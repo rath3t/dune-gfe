@@ -1,0 +1,18 @@
+# $Id$
+
+# options for icc
+# remember to run ./autogen.sh after changing these values!
+
+# name of compiler binaries
+COMP="icc"
+CXXCOMP="icc"
+
+# flags set in any case
+FLAGS="-Wall"
+
+# additional flags for debugging
+DEBUGFLAGS="-O0 -g"
+
+# additional flags for optimization
+OPTIMFLAGS="-O3 -Ob2 -unroll"
+

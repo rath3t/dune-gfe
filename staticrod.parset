@@ -1,0 +1,38 @@
+# Number of grid levels
+minLevel = 0
+
+maxLevel = 0
+
+# Initial load increment
+loadIncrement = 1
+
+# Max number of steps of the Newton solver
+maxNewtonSteps = 10
+
+# Number of multigrid iterations per time step
+numIt = 100
+
+# Number of presmoothing steps
+nu1 = 3
+
+# Number of postsmoothing steps
+nu2 = 3
+
+# Number of coarse grid corrections
+mu = 1
+
+# Number of base solver iterations
+baseIt = 100
+
+# Tolerance of the solver
+tolerance = -1
+
+# Tolerance of the base grid solver
+baseTolerance = -1
+
+############################
+#   Problem specifications
+############################
+
+# Number of elements of the rod grid
+numRodElements = 40
