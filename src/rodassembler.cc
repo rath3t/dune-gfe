@@ -46,12 +46,9 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
                BCRSMatrix<MatrixBlock>& matrix)
 {
 
-    //int n = grid_->size(grid_->maxlevel(), dim);
-    
     MatrixIndexSet neighborsPerVertex;
     getNeighborsPerVertex(neighborsPerVertex);
     
-    //neighborsPerVertex.exportIdx(*matrix_);
     matrix = 0;
     
     ElementIterator it    = grid_->template lbegin<0>( grid_->maxlevel() );
@@ -68,7 +65,6 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
 
         // Extract local solution
         BlockVector<FieldVector<double, blocksize> > localSolution(numOfBaseFct);
-        //BlockVector<FieldVector<double, dim> > localRhs(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[functionSpace_.mapToGlobal(*it,i)];

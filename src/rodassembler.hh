@@ -38,8 +38,6 @@ namespace Dune
         typedef typename FunctionSpaceType::RangeField RangeFieldType;
         typedef typename FunctionSpaceType::Range       RangeType;
         
-    public:
-        
         /** \todo Does actually belong into the base class */
         const GridType* grid_; 
         
@@ -51,6 +49,8 @@ namespace Dune
         double A1;
         double A3;
 
+    public:
+        
         //! ???
         RodAssembler(const FunctionSpaceType &f) : 
             functionSpace_(f)
@@ -63,24 +63,33 @@ namespace Dune
 
         ~RodAssembler() {}
 
-        void getNeighborsPerVertex(MatrixIndexSet& nb) const;
-        
+        void setParameters(double b, double a1, double a3) {
+            B  = b;
+            A1 = a1;
+            A3 = a3;
+        }
+
         /** \brief Assemble the tangent stiffness matrix and the right hand side
          */
         void assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
                             BCRSMatrix<MatrixBlock>& matrix);
         
+        void assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
+                              BlockVector<FieldVector<double, blocksize> >& grad) const;
+
+        /** \brief Compute the energy of a deformation state */
+        double computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const;
+
+        void getNeighborsPerVertex(MatrixIndexSet& nb) const;
+        
+    protected:
+
         /** \brief Compute the element tangent stiffness matrix  */
         template <class MatrixType>
         void getLocalMatrix( EntityType &entity, 
                              const BlockVector<FieldVector<double, blocksize> >& localSolution, 
                              const int matSize, MatrixType& mat) const;
 
-        void assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
-                              BlockVector<FieldVector<double, blocksize> >& grad) const;
-
-        /** \brief Compute the energy of a deformation state */
-        double computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const;
         
         
         
