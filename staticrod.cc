@@ -15,18 +15,19 @@
 //#include "../common/linearipopt.hh"
 
 #include "../common/projectedblockgsstep.hh"
+#include "../contact/src/contactmmgstep.hh"
+
 #include <dune/solver/iterativesolver.hh>
 
 #include "../common/geomestimator.hh"
 #include "../common/energynorm.hh"
 #include <dune/common/configparser.hh>
+#include "src/rodwriter.hh"
 
 // Choose a solver
 //#define IPOPT
-#define GAUSS_SEIDEL
-//#define MULTIGRID
-
-//#define IPOPT_BASE
+//#define GAUSS_SEIDEL
+#define MULTIGRID
 
 // Number of degrees of freedom: 
 // 3 (x, y, theta) for a planar rod
@@ -46,7 +47,6 @@ int main (int argc, char *argv[]) try
     parameterSet.parseFile("staticrod.parset");
 
     // read solver settings
-    const int minLevel         = parameterSet.get("minLevel", int(0));
     const int maxLevel         = parameterSet.get("maxLevel", int(0));
     double loadIncrement       = parameterSet.get("loadIncrement", double(0));
     const int maxNewtonSteps   = parameterSet.get("maxNewtonSteps", int(0));
@@ -59,42 +59,35 @@ int main (int argc, char *argv[]) try
     const double baseTolerance = parameterSet.get("baseTolerance", double(0));
     
     // Problem settings
-    const int numRodElements = parameterSet.get("numRodElements", int(0));
+    const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
 
     // ///////////////////////////////////////
     //    Create the two grids
     // ///////////////////////////////////////
     typedef OneDGrid<1,1> RodGridType;
-    RodGridType rod(numRodElements, 0, 1);
+    RodGridType rod(numRodBaseElements, 0, 1);
 
-    
-
-    Array<BitField> dirichletNodes;
-    dirichletNodes.resize(maxLevel+1);
-    dirichletNodes[0].resize( blocksize * (numRodElements+1) );
-
-    dirichletNodes[0].unsetAll();
-    dirichletNodes[0][0] = dirichletNodes[0][1] = dirichletNodes[0][2] = true;
-    dirichletNodes[0][blocksize*numRodElements+0] = true;
-    dirichletNodes[0][blocksize*numRodElements+1] = true;
-    dirichletNodes[0][blocksize*numRodElements+2] = true;
-
-    // refine uniformly until minlevel
-    for (int i=0; i<minLevel; i++)
+    // refine uniformly until maxLevel
+    for (int i=0; i<maxLevel; i++)
         rod.globalRefine(1);
 
     int maxlevel = rod.maxlevel();
+    int numRodElements = rod.size(maxlevel, 0);
 
-    // //////////////////////////////////////////////////////////
-    //   Create obstacles
-    // //////////////////////////////////////////////////////////
+    
+    Array<BitField> dirichletNodes;
+    dirichletNodes.resize(maxLevel+1);
+    for (int i=0; i<=maxlevel; i++) {
 
-    Array<BitField> hasObstacle;
-    hasObstacle.resize(maxLevel+1);
-    hasObstacle[0].resize(numRodElements+1);
-    hasObstacle[0].unsetAll();
+        dirichletNodes[i].resize( blocksize * rod.size(i,1) );
 
+        dirichletNodes[i].unsetAll();
 
+        for (int j=0; j<blocksize; j++) {
+            dirichletNodes[i][j] = true;
+            dirichletNodes[i][dirichletNodes[i].size()-1-j] = true;
+        }
+    }
 
     // //////////////////////////////////////////////////////////
     //    Create discrete function spaces
@@ -122,6 +115,13 @@ int main (int argc, char *argv[]) try
     VectorType corr;
 
     MatrixType hessianMatrix;
+    RodAssembler<RodFuncSpaceType, 2> rodAssembler(*rodFuncSpace[maxlevel]);
+    rodAssembler.setParameters(1, 10, 10);
+
+    MatrixIndexSet indices(numRodElements+1, numRodElements+1);
+    rodAssembler.getNeighborsPerVertex(indices);
+    indices.exportIdx(hessianMatrix);
+
 
     rhs.resize(rodFuncSpace[maxlevel]->size());
     x.resize(rodFuncSpace[maxlevel]->size());
@@ -136,21 +136,32 @@ int main (int argc, char *argv[]) try
         x[i][2] = M_PI/2;
     }
 
-    x[0][1] = x[numRodElements][1] = 1;
+    x[0][0] = x[numRodElements][0] = 0;
+    x[0][1] = x[numRodElements][1] = 0;
 
-    RodAssembler<RodFuncSpaceType,2> test(*rodFuncSpace[0]);
-    test.assembleGradient(x, rhs);
-    //std::cout << "Solution: " << std::endl << x << std::endl;
-    //std::cout << "Gradient: " << std::endl << rhs << std::endl;
-    std::cout << "Energy: " << test.computeEnergy(x) << std::endl;
+    x[0][2] = 0;
+    x[numRodElements][2] = 2*M_PI;
 
-    MatrixIndexSet indices(numRodElements+1, numRodElements+1);
-    test.getNeighborsPerVertex(indices);
-    indices.exportIdx(hessianMatrix);
-    test.assembleMatrix(x,hessianMatrix);
+    // //////////////////////////////////////////////////////////
+    //   Create obstacles
+    // //////////////////////////////////////////////////////////
 
-    //printmatrix(std::cout, hessianMatrix, "hessianMatrix", "--");
-    //exit(0);
+    Array<BitField> hasObstacle;
+    hasObstacle.resize(maxLevel+1);
+    for (int i=0; i<hasObstacle.size(); i++) {
+        hasObstacle[i].resize(rod.size(i, 1));
+        hasObstacle[i].setAll();
+    }
+
+    Array<SimpleVector<BoxConstraint<3> > > obstacles(maxlevel+1);
+
+    for (int i=0; i<obstacles.size(); i++)
+        obstacles[i].resize(rod.size(i,1));
+
+    for (int i=0; i<obstacles[maxlevel].size(); i++) {
+        obstacles[maxlevel][i].clear();
+        obstacles[maxlevel][i].val[1] = 0.1 - x[i][0];
+    }
 
     // Create a solver
 #if defined IPOPT
@@ -169,62 +180,56 @@ int main (int argc, char *argv[]) try
     SmootherType projectedBlockGSStep(hessianMatrix, corr, rhs);
     projectedBlockGSStep.dirichletNodes_ = &dirichletNodes[maxlevel];
     projectedBlockGSStep.hasObstacle_    = &hasObstacle[maxlevel];
-    projectedBlockGSStep.obstacles_      = NULL;//&contactAssembler.obstacles_[maxlevel];
+    projectedBlockGSStep.obstacles_      = &obstacles;
 
     EnergyNorm<MatrixType, VectorType> energyNorm(projectedBlockGSStep);
 
     IterativeSolver<MatrixType, VectorType> solver;
     solver.iterationStep = &projectedBlockGSStep;
     solver.numIt = numIt;
-    solver.verbosity_ = Solver::QUIET;
+    solver.verbosity_ = Solver::FULL;
     solver.errorNorm_ = &energyNorm;
     solver.tolerance_ = tolerance;
     
 #elif defined MULTIGRID
 
-    // First create a base solver
-#ifdef IPOPT_BASE
+    // First create a gauss-seidel base solver
+    ProjectedBlockGSStep<MatrixType, VectorType> baseSolverStep;
 
-    LinearIPOptSolver<BlockVector<FieldVector<double,dim> >  > baseSolver;
-    baseSolver.verbosity_ = Solver::FULL;
+    EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
 
-#else // Gauss-Seidel is the base solver
-
-    ProjectedBlockGSStep<MatrixType, BlockVector<FieldVector<double,dim> >  > baseSolverStep;
-
-    EnergyNorm<MatrixType, BlockVector<FieldVector<double,dim> >  > baseEnergyNorm(baseSolverStep);
-
-    IterativeSolver<MatrixType, BlockVector<FieldVector<double,dim> >  > baseSolver;
+    IterativeSolver<MatrixType, VectorType> baseSolver;
     baseSolver.iterationStep = &baseSolverStep;
     baseSolver.numIt = baseIt;
     baseSolver.verbosity_ = Solver::QUIET;
     baseSolver.errorNorm_ = &baseEnergyNorm;
     baseSolver.tolerance_ = baseTolerance;
-#endif
 
     // Make pre and postsmoothers
-    ProjectedBlockGSStep<MatrixType, BlockVector<FieldVector<double,dim> >  > presmoother;
-    ProjectedBlockGSStep<MatrixType, BlockVector<FieldVector<double,dim> >  > postsmoother;
-    
+    ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
+    ProjectedBlockGSStep<MatrixType, VectorType> postsmoother;
 
-    ContactMMGStep<MatrixType, BlockVector<FieldVector<double,dim> > , FuncSpaceType > contactMMGStep(maxlevel+1);
+    ContactMMGStep<MatrixType, VectorType, RodFuncSpaceType > contactMMGStep(maxlevel+1);
 
-    contactMMGStep.setMGType(1, nu1, nu2);
-    contactMMGStep.dirichletNodes_    = &totalDirichletNodes;
+    contactMMGStep.setMGType(mu, nu1, nu2);
+    contactMMGStep.dirichletNodes_    = &dirichletNodes;
     contactMMGStep.basesolver_        = &baseSolver;
     contactMMGStep.presmoother_       = &presmoother;
     contactMMGStep.postsmoother_      = &postsmoother;    
     contactMMGStep.hasObstacle_       = &hasObstacle;
-    contactMMGStep.obstacles_         = &contactAssembler.obstacles_;
+    contactMMGStep.obstacles_         = &obstacles;
 
     // Create the transfer operators
     contactMMGStep.mgTransfer_.resize(maxlevel);
-    for (int i=0; i<contactMMGStep.mgTransfer_.size(); i++)
-        contactMMGStep.mgTransfer_[i] = NULL;
+    for (int i=0; i<contactMMGStep.mgTransfer_.size(); i++){
+        TruncatedMGTransfer<VectorType>* newTransferOp = new TruncatedMGTransfer<VectorType>;
+        newTransferOp->setup(*rodFuncSpace[i], *rodFuncSpace[i+1]);
+        contactMMGStep.mgTransfer_[i] = newTransferOp;
+    }
 
     EnergyNorm<MatrixType, VectorType> energyNorm(contactMMGStep);
 
-    IterativeSolver<MatrixType, BlockVector<FieldVector<double,dim> > > solver;
+    IterativeSolver<MatrixType, VectorType> solver;
     solver.iterationStep = &contactMMGStep;
     solver.numIt = numIt;
     solver.verbosity_ = Solver::FULL;
@@ -242,8 +247,6 @@ int main (int argc, char *argv[]) try
 
     do {
 
-        RodAssembler<RodFuncSpaceType, 1> rodAssembler(*rodFuncSpace[maxlevel]);
-
         loadFactor += loadIncrement;
 
         std::cout << "####################################################" << std::endl;
@@ -257,15 +260,20 @@ int main (int argc, char *argv[]) try
 
         for (int j=0; j<maxNewtonSteps; j++) {
 
+            std::cout << "----------------------------------------------------" << std::endl;
+            std::cout << "      Newton Step Number: " << j << std::endl;
+            std::cout << "----------------------------------------------------" << std::endl;
+
             rhs = 0;
             corr = 0;
 
+            //std::cout <<"Solution: " << x << std::endl;
             rodAssembler.assembleGradient(x, rhs);
             rodAssembler.assembleMatrix(x, hessianMatrix);
 
             rhs *= -1;
 
-            std::cout << "rhs: " << std::endl << rhs << std::endl;
+            //std::cout << "rhs: " << std::endl << rhs << std::endl;
 
 #ifndef IPOPT
             solver.iterationStep->setProblem(hessianMatrix, corr, rhs);
@@ -285,10 +293,10 @@ int main (int argc, char *argv[]) try
              solver.solve();
 
 #ifdef MULTIGRID
-             totalCorr = contactMMGStep.getSol();
+             corr = contactMMGStep.getSol();
 #endif
 
-             std::cout << "Correction: \n" << corr << std::endl;
+             //std::cout << "Correction: \n" << corr << std::endl;
 
              // line search
              printf("------  Line Search ---------\n");
@@ -317,17 +325,33 @@ int main (int argc, char *argv[]) try
              x.axpy(smallestFactor, corr);
 
              // Output result
-             std::cout << "Solution:" << std::endl << x << std::endl;
+             //std::cout << "Solution:" << std::endl << x << std::endl;
 
-             printf("infinity norm of the correction: %g\n", corr[0].infinity_norm());
-             if (corr.infinity_norm() < 1e-8)
+             printf("infinity norm of the correction: %g\n", smallestFactor*corr.infinity_norm());
+             if (smallestFactor*corr.infinity_norm() < 1e-8)
                  break;
+
+             // Subtract correction from the current obstacle
+             for (int k=0; k<corr.size(); k++) {
+                 FieldVector<double, blocksize> tmp = corr[k];
+                 tmp *= smallestFactor;
+                 obstacles[maxlevel][k] -= tmp;
+             }
 
         }
         
         
     } while (loadFactor < 1);
 
+    // Write result grid
+    writeRod(x, "rod.result");
+
+    // Write Lagrange multiplyers
+    std::ofstream lagrangeFile("lagrange");
+
+    VectorType lagrangeMultipliers;
+    rodAssembler.assembleGradient(x, lagrangeMultipliers);
+    lagrangeFile << lagrangeMultipliers << std::endl;
 
 
  } catch (Exception e) {
