@@ -155,7 +155,7 @@ getLocalMatrix( EntityType &entity,
         
         double x_s     = localSolution[0][0]*shapeGrad[0][0][0] + localSolution[1][0]*shapeGrad[1][0][0];
         double y_s     = localSolution[0][1]*shapeGrad[0][0][0] + localSolution[1][1]*shapeGrad[1][0][0];
-        double theta_s = localSolution[0][2]*shapeGrad[0][0][0] + localSolution[1][2]*shapeGrad[1][0][0];
+        //double theta_s = localSolution[0][2]*shapeGrad[0][0][0] + localSolution[1][2]*shapeGrad[1][0][0];
 
         double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
 
@@ -169,7 +169,7 @@ getLocalMatrix( EntityType &entity,
 
                 // \partial J^2 / \partial x_i \partial y_j
                 localMat[i][j][0][1] += weight * shapeGrad[i][0][0] * shapeGrad[j][0][0]
-                    * (-A1 * + A3) * sin(theta)* cos(theta);
+                    * (-A1 + A3) * sin(theta)* cos(theta);
 
                 // \partial J^2 / \partial x_i \partial theta_j
                 localMat[i][j][0][2] += weight * shapeGrad[i] * shapeFunction[j]
@@ -213,7 +213,7 @@ getLocalMatrix( EntityType &entity,
                     * (+ A1 * (x_s*sin(theta) + y_s*cos(theta)) * (x_s*sin(theta) + y_s*cos(theta))
                        + A1 * (x_s*cos(theta) - y_s*sin(theta)) * (-x_s*cos(theta)+ y_s*sin(theta))
                        + A3 * (x_s*cos(theta) - y_s*sin(theta)) * (x_s*cos(theta) - y_s*sin(theta))
-                       - A3 * (x_s*sin(theta) + y_s*cos(theta) - 1) * (x_s*sin(theta) - y_s*cos(theta)));
+                       - A3 * (x_s*sin(theta) + y_s*cos(theta) - 1) * (x_s*sin(theta) + y_s*cos(theta)));
                                                 
 
 
