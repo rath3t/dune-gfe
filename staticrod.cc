@@ -115,8 +115,8 @@ int main (int argc, char *argv[]) try
     VectorType corr;
 
     MatrixType hessianMatrix;
-    RodAssembler<RodFuncSpaceType, 2> rodAssembler(*rodFuncSpace[maxlevel]);
-    rodAssembler.setParameters(1, 10, 10);
+    RodAssembler<RodFuncSpaceType, 4> rodAssembler(*rodFuncSpace[maxlevel]);
+    rodAssembler.setParameters(1, 100, 100);
 
     MatrixIndexSet indices(numRodElements+1, numRodElements+1);
     rodAssembler.getNeighborsPerVertex(indices);
@@ -232,7 +232,7 @@ int main (int argc, char *argv[]) try
     IterativeSolver<MatrixType, VectorType> solver;
     solver.iterationStep = &contactMMGStep;
     solver.numIt = numIt;
-    solver.verbosity_ = Solver::FULL;
+    solver.verbosity_ = Solver::QUIET;
     solver.errorNorm_ = &energyNorm;
     solver.tolerance_ = tolerance;
 
@@ -253,6 +253,11 @@ int main (int argc, char *argv[]) try
         std::cout << "New load factor: " << loadFactor 
                   << "    new load increment: " << loadIncrement << std::endl;
         std::cout << "####################################################" << std::endl;
+
+        // The continuation variable determines the material parameters
+        double A1 = loadFactor * 1000;
+        double A3 = loadFactor * 1000;
+        rodAssembler.setParameters(1, A1, A3);
 
         // /////////////////////////////////////////////////////
         //   Newton Solver
@@ -316,11 +321,11 @@ int main (int argc, char *argv[]) try
                      smallestEnergy = energy;
                      smallestFactor = factor;
                  }
-                 //printf("factor: %g,  energy: %g\n", factor, energy);
+                 printf("factor: %g,  energy: %e\n", factor, energy);
              }
 
              std::cout << "Damping factor: " << smallestFactor << std::endl;
-
+             //exit(0);
              //  Add correction to the current solution
              x.axpy(smallestFactor, corr);
 
@@ -340,18 +345,25 @@ int main (int argc, char *argv[]) try
 
         }
         
+        // Write Lagrange multiplyers
+        std::stringstream a1AsAscii, a3AsAscii;
+        a1AsAscii << A1;
+        a3AsAscii << A3;
+        std::string lagrangeFilename = "pressure/lagrange_" + a1AsAscii.str() + "_" + a3AsAscii.str();
+        std::ofstream lagrangeFile(lagrangeFilename.c_str());
         
+        VectorType lagrangeMultipliers;
+        rodAssembler.assembleGradient(x, lagrangeMultipliers);
+        lagrangeFile << lagrangeMultipliers << std::endl;
+        
+        // Write result grid
+        std::string solutionFilename = "solutions/rod_" + a1AsAscii.str() 
+            + "_" + a3AsAscii.str() + ".result";
+        writeRod(x, solutionFilename);
+
     } while (loadFactor < 1);
 
-    // Write result grid
-    writeRod(x, "rod.result");
 
-    // Write Lagrange multiplyers
-    std::ofstream lagrangeFile("lagrange");
-
-    VectorType lagrangeMultipliers;
-    rodAssembler.assembleGradient(x, lagrangeMultipliers);
-    lagrangeFile << lagrangeMultipliers << std::endl;
 
 
  } catch (Exception e) {
