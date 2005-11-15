@@ -1,13 +1,11 @@
-# Number of grid levels
-minLevel = 0
-
-maxLevel = 0
+# Number of uniform grid refinement steps
+maxLevel = 4
 
 # Initial load increment
-loadIncrement = 1
+loadIncrement = 0.01
 
 # Max number of steps of the Newton solver
-maxNewtonSteps = 10
+maxNewtonSteps = 30
 
 # Number of multigrid iterations per time step
 numIt = 100
@@ -25,7 +23,7 @@ mu = 1
 baseIt = 100
 
 # Tolerance of the solver
-tolerance = -1
+tolerance = 1e-10
 
 # Tolerance of the base grid solver
 baseTolerance = -1
@@ -35,4 +33,4 @@ baseTolerance = -1
 ############################
 
 # Number of elements of the rod grid
-numRodElements = 40
+numRodBaseElements = 5

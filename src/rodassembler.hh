@@ -32,11 +32,11 @@ namespace Dune
         typedef FieldMatrix<double, blocksize, blocksize> MatrixBlock;
         
         //! ???
-        typedef typename FunctionSpaceType::JacobianRange JacobianRange;
+        typedef typename FunctionSpaceType::JacobianRangeType JacobianRange;
         
         //! ???
-        typedef typename FunctionSpaceType::RangeField RangeFieldType;
-        typedef typename FunctionSpaceType::Range       RangeType;
+        typedef typename FunctionSpaceType::RangeFieldType RangeFieldType;
+        typedef typename FunctionSpaceType::RangeType       RangeType;
         
         /** \todo Does actually belong into the base class */
         const GridType* grid_; 
@@ -55,7 +55,7 @@ namespace Dune
         RodAssembler(const FunctionSpaceType &f) : 
             functionSpace_(f)
         { 
-            grid_ = &f.getGrid();
+            grid_ = &f.grid();
             B = 1;
             A1 = 1;
             A3 = 1;

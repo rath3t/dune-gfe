@@ -3,6 +3,7 @@
 #include <dune/grid/onedgrid.hh>
 
 #include <dune/fem/lagrangebase.hh>
+#include <dune/grid/common/gridpart.hh>
 
 #include <dune/istl/io.hh>
 
@@ -94,15 +95,15 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////////////////////
 
     typedef FunctionSpace < double , double, 1, 1 > RodFuncSpace;
-    typedef DefaultGridIndexSet<RodGridType,LevelIndex> RodIndexSet;
-    typedef LagrangeDiscreteFunctionSpace < RodFuncSpace, RodGridType,RodIndexSet,  1> RodFuncSpaceType;
+    typedef LevelGridPart<RodGridType> RodGridPartType;
+    typedef LagrangeDiscreteFunctionSpace < RodFuncSpace, RodGridPartType, 1> RodFuncSpaceType;
 
-    Array<RodIndexSet*> rodIndexSet(maxlevel+1);
+    Array<RodGridPartType*> rodGridPart(maxlevel+1);
     Array<const RodFuncSpaceType*> rodFuncSpace(maxlevel+1);
 
     for (int i=0; i<maxlevel+1; i++) {
-        rodIndexSet[i]  = new RodIndexSet(rod, i);
-        rodFuncSpace[i] = new RodFuncSpaceType(rod, *rodIndexSet[i], i);
+        rodGridPart[i]  = new RodGridPartType(rod, i);
+        rodFuncSpace[i] = new RodFuncSpaceType(*rodGridPart[i]);
     }
 
 
@@ -160,6 +161,7 @@ int main (int argc, char *argv[]) try
 
     for (int i=0; i<obstacles[maxlevel].size(); i++) {
         obstacles[maxlevel][i].clear();
+        obstacles[maxlevel][i].val[0] =     - x[i][0];
         obstacles[maxlevel][i].val[1] = 0.1 - x[i][0];
     }
 
