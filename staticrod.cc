@@ -37,6 +37,37 @@ const int blocksize = 3;
 using namespace Dune;
 using std::string;
 
+void setTrustRegionObstacles(double trustRegionRadius,
+                             SimpleVector<BoxConstraint<blocksize> >& trustRegionObstacles,
+                             const SimpleVector<BoxConstraint<blocksize> >& trueObstacles,
+                             const BitField& dirichletNodes)
+{
+    //std::cout << "True obstacles\n" << trueObstacles << std::endl;
+
+    for (int j=0; j<trustRegionObstacles.size(); j++) {
+
+        for (int k=0; k<blocksize; k++) {
+
+            if (dirichletNodes[j*blocksize+k])
+                continue;
+
+            trustRegionObstacles[j].val[2*k] =
+                (trueObstacles[j].val[2*k] < -1e10)
+                ? std::min(-trustRegionRadius, trueObstacles[j].val[2*k+1] - trustRegionRadius)
+                : trueObstacles[j].val[2*k];
+                
+            trustRegionObstacles[j].val[2*k+1] =
+                (trueObstacles[j].val[2*k+1] >  1e10) 
+                ? std::max(trustRegionRadius,trueObstacles[j].val[2*k] + trustRegionRadius)
+                : trueObstacles[j].val[2*k+1];
+
+        }
+
+    }
+
+    //std::cout << "TrustRegion obstacles\n" << trustRegionObstacles << std::endl;
+}
+
 int main (int argc, char *argv[]) try
 {
     // Some types that I need
@@ -80,9 +111,7 @@ int main (int argc, char *argv[]) try
     dirichletNodes.resize(maxLevel+1);
     for (int i=0; i<=maxlevel; i++) {
 
-        dirichletNodes[i].resize( blocksize * rod.size(i,1) );
-
-        dirichletNodes[i].unsetAll();
+        dirichletNodes[i].resize( blocksize * rod.size(i,1), false );
 
         for (int j=0; j<blocksize; j++) {
             dirichletNodes[i][j] = true;
@@ -154,15 +183,18 @@ int main (int argc, char *argv[]) try
         hasObstacle[i].setAll();
     }
 
-    Array<SimpleVector<BoxConstraint<3> > > obstacles(maxlevel+1);
+    Array<SimpleVector<BoxConstraint<3> > > trueObstacles(maxlevel+1);
+    Array<SimpleVector<BoxConstraint<3> > > trustRegionObstacles(maxlevel+1);
 
-    for (int i=0; i<obstacles.size(); i++)
-        obstacles[i].resize(rod.size(i,1));
+    for (int i=0; i<maxlevel+1; i++) {
+        trueObstacles[i].resize(rod.size(i,1));
+        trustRegionObstacles[i].resize(rod.size(i,1));
+    }
 
-    for (int i=0; i<obstacles[maxlevel].size(); i++) {
-        obstacles[maxlevel][i].clear();
-        obstacles[maxlevel][i].val[0] =     - x[i][0];
-        obstacles[maxlevel][i].val[1] = 0.1 - x[i][0];
+    for (int i=0; i<trueObstacles[maxlevel].size(); i++) {
+        trueObstacles[maxlevel][i].clear();
+        //trueObstacles[maxlevel][i].val[0] =     - x[i][0];
+        trueObstacles[maxlevel][i].val[1] = 0.1 - x[i][0];
     }
 
     // Create a solver
@@ -182,7 +214,7 @@ int main (int argc, char *argv[]) try
     SmootherType projectedBlockGSStep(hessianMatrix, corr, rhs);
     projectedBlockGSStep.dirichletNodes_ = &dirichletNodes[maxlevel];
     projectedBlockGSStep.hasObstacle_    = &hasObstacle[maxlevel];
-    projectedBlockGSStep.obstacles_      = &obstacles;
+    projectedBlockGSStep.obstacles_      = &trueObstacles;
 
     EnergyNorm<MatrixType, VectorType> energyNorm(projectedBlockGSStep);
 
@@ -219,7 +251,7 @@ int main (int argc, char *argv[]) try
     contactMMGStep.presmoother_       = &presmoother;
     contactMMGStep.postsmoother_      = &postsmoother;    
     contactMMGStep.hasObstacle_       = &hasObstacle;
-    contactMMGStep.obstacles_         = &obstacles;
+    contactMMGStep.obstacles_         = &trustRegionObstacles;
 
     // Create the transfer operators
     contactMMGStep.mgTransfer_.resize(maxlevel);
@@ -243,9 +275,10 @@ int main (int argc, char *argv[]) try
 #endif
 
     // ///////////////////////////////////////////////////
-    //   Do a homotopy of the Dirichlet boundary data
+    //   Do a homotopy of the material parameters
     // ///////////////////////////////////////////////////
     double loadFactor = 0;
+    double trustRegionRadius = 0.1;
 
     do {
 
@@ -257,8 +290,8 @@ int main (int argc, char *argv[]) try
         std::cout << "####################################################" << std::endl;
 
         // The continuation variable determines the material parameters
-        double A1 = loadFactor * 1000;
-        double A3 = loadFactor * 1000;
+        double A1 = loadFactor * 10000;
+        double A3 = loadFactor * 10000;
         rodAssembler.setParameters(1, A1, A3);
 
         // /////////////////////////////////////////////////////
@@ -280,7 +313,15 @@ int main (int argc, char *argv[]) try
 
             rhs *= -1;
 
+            // Apply trust-region obstacles
+            setTrustRegionObstacles(trustRegionRadius,
+                                    trustRegionObstacles[maxlevel],
+                                    trueObstacles[maxlevel],
+                                    dirichletNodes[maxlevel]);
+
             //std::cout << "rhs: " << std::endl << rhs << std::endl;
+            //std::cout << "Trust Region obstacles:" << std::endl;
+            //std::cout << (*contactMMGStep.obstacles_)[maxlevel] << std::endl;
 
 #ifndef IPOPT
             solver.iterationStep->setProblem(hessianMatrix, corr, rhs);
@@ -342,7 +383,7 @@ int main (int argc, char *argv[]) try
              for (int k=0; k<corr.size(); k++) {
                  FieldVector<double, blocksize> tmp = corr[k];
                  tmp *= smallestFactor;
-                 obstacles[maxlevel][k] -= tmp;
+                 trueObstacles[maxlevel][k] -= tmp;
              }
 
         }
@@ -363,6 +404,7 @@ int main (int argc, char *argv[]) try
             + "_" + a3AsAscii.str() + ".result";
         writeRod(x, solutionFilename);
 
+        //break;
     } while (loadFactor < 1);
 
 
