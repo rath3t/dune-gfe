@@ -1,20 +1,14 @@
 #include <config.h>
 
+//#define DUNE_EXPRESSIONTEMPLATES
 #include <dune/grid/onedgrid.hh>
-
-#include <dune/fem/lagrangebase.hh>
-#include <dune/grid/common/gridpart.hh>
 
 #include <dune/istl/io.hh>
 
-//#include "../common/boundarytreatment.hh"
 #include "../common/boundarypatch.hh"
 #include <dune/common/bitfield.hh>
-//#include "../common/readbitfield.hh"
 
 #include "src/rodassembler.hh"
-//#include "../common/linearipopt.hh"
-
 #include "../common/projectedblockgsstep.hh"
 #include "../contact/src/contactmmgstep.hh"
 
@@ -22,8 +16,9 @@
 
 #include "../common/geomestimator.hh"
 #include "../common/energynorm.hh"
-#include <dune/common/configparser.hh>
 #include "src/rodwriter.hh"
+
+#include <dune/common/configparser.hh>
 
 // Choose a solver
 //#define IPOPT
@@ -92,7 +87,7 @@ int main (int argc, char *argv[]) try
     
     // Problem settings
     const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
-
+    
     // ///////////////////////////////////////
     //    Create the two grids
     // ///////////////////////////////////////
@@ -103,7 +98,7 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<maxLevel; i++)
         rod.globalRefine(1);
 
-    int maxlevel = rod.maxlevel();
+    int maxlevel = rod.maxLevel();
     int numRodElements = rod.size(maxlevel, 0);
 
     
@@ -119,23 +114,6 @@ int main (int argc, char *argv[]) try
         }
     }
 
-    // //////////////////////////////////////////////////////////
-    //    Create discrete function spaces
-    // //////////////////////////////////////////////////////////
-
-    typedef FunctionSpace < double , double, 1, 1 > RodFuncSpace;
-    typedef LevelGridPart<RodGridType> RodGridPartType;
-    typedef LagrangeDiscreteFunctionSpace < RodFuncSpace, RodGridPartType, 1> RodFuncSpaceType;
-
-    Array<RodGridPartType*> rodGridPart(maxlevel+1);
-    Array<const RodFuncSpaceType*> rodFuncSpace(maxlevel+1);
-
-    for (int i=0; i<maxlevel+1; i++) {
-        rodGridPart[i]  = new RodGridPartType(rod, i);
-        rodFuncSpace[i] = new RodFuncSpaceType(*rodGridPart[i]);
-    }
-
-
     // ////////////////////////////////////////////////////////////
     //    Create solution and rhs vectors
     // ////////////////////////////////////////////////////////////
@@ -145,17 +123,17 @@ int main (int argc, char *argv[]) try
     VectorType corr;
 
     MatrixType hessianMatrix;
-    RodAssembler<RodFuncSpaceType, 4> rodAssembler(*rodFuncSpace[maxlevel]);
+    RodAssembler<RodGridType,4> rodAssembler(rod);
+    
     rodAssembler.setParameters(1, 100, 100);
 
     MatrixIndexSet indices(numRodElements+1, numRodElements+1);
     rodAssembler.getNeighborsPerVertex(indices);
     indices.exportIdx(hessianMatrix);
 
-
-    rhs.resize(rodFuncSpace[maxlevel]->size());
-    x.resize(rodFuncSpace[maxlevel]->size());
-    corr.resize(rodFuncSpace[maxlevel]->size());
+    rhs.resize(rod.size(maxlevel,1));
+    x.resize(rod.size(maxlevel,1));
+    corr.resize(rod.size(maxlevel,1));
     
     // Initial solution
     x = 0;
@@ -243,7 +221,7 @@ int main (int argc, char *argv[]) try
     ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
     ProjectedBlockGSStep<MatrixType, VectorType> postsmoother;
 
-    ContactMMGStep<MatrixType, VectorType, RodFuncSpaceType > contactMMGStep(maxlevel+1);
+    ContactMMGStep<MatrixType, VectorType, RodGridType > contactMMGStep(maxlevel+1);
 
     contactMMGStep.setMGType(mu, nu1, nu2);
     contactMMGStep.dirichletNodes_    = &dirichletNodes;
@@ -257,7 +235,8 @@ int main (int argc, char *argv[]) try
     contactMMGStep.mgTransfer_.resize(maxlevel);
     for (int i=0; i<contactMMGStep.mgTransfer_.size(); i++){
         TruncatedMGTransfer<VectorType>* newTransferOp = new TruncatedMGTransfer<VectorType>;
-        newTransferOp->setup(*rodFuncSpace[i], *rodFuncSpace[i+1]);
+        //newTransferOp->setup(*rodFuncSpace[i], *rodFuncSpace[i+1]);
+        newTransferOp->setup(rod,i,i+1);
         contactMMGStep.mgTransfer_[i] = newTransferOp;
     }
 
@@ -308,6 +287,7 @@ int main (int argc, char *argv[]) try
             corr = 0;
 
             //std::cout <<"Solution: " << x << std::endl;
+            //exit(0);
             rodAssembler.assembleGradient(x, rhs);
             rodAssembler.assembleMatrix(x, hessianMatrix);
 
@@ -407,11 +387,9 @@ int main (int argc, char *argv[]) try
         //break;
     } while (loadFactor < 1);
 
-
-
-
  } catch (Exception e) {
 
     std::cout << e << std::endl;
+
 
  }

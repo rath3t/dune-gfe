@@ -11,19 +11,16 @@ namespace Dune
 
     /** \brief The FEM operator for an extensible, shearable rod
      */
-    template <class FunctionSpaceType, int polOrd>
+    template <class GridType, int polOrd>
     class RodAssembler {
-        
-        //! The grid
-        typedef typename FunctionSpaceType::GridType GridType;
         
         typedef typename GridType::template Codim<0>::Entity EntityType;
         typedef typename GridType::template Codim<0>::LevelIterator ElementIterator;
-        typedef typename FunctionSpaceType::BaseFunctionSetType BaseFunctionSetType;
-    
 
         //! Dimension of the grid.  This needs to be one!
         enum { gridDim = GridType::dimension };
+
+        enum { elementOrder = 1};
 
         //! Each block is x, y, theta
         enum { blocksize = 3 };
@@ -31,19 +28,8 @@ namespace Dune
         //!
         typedef FieldMatrix<double, blocksize, blocksize> MatrixBlock;
         
-        //! ???
-        typedef typename FunctionSpaceType::JacobianRangeType JacobianRange;
-        
-        //! ???
-        typedef typename FunctionSpaceType::RangeFieldType RangeFieldType;
-        typedef typename FunctionSpaceType::RangeType       RangeType;
-        
-        /** \todo Does actually belong into the base class */
         const GridType* grid_; 
         
-        /** \todo Does actually belong into the base class */
-        const FunctionSpaceType& functionSpace_;
-
         /** \brief Material constants */
         double B;
         double A1;
@@ -52,10 +38,9 @@ namespace Dune
     public:
         
         //! ???
-        RodAssembler(const FunctionSpaceType &f) : 
-            functionSpace_(f)
+        RodAssembler(const GridType &grid) : 
+            grid_(&grid)
         { 
-            grid_ = &f.grid();
             B = 1;
             A1 = 1;
             A3 = 1;
