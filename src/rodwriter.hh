@@ -1,6 +1,7 @@
 #ifndef ROD_WRITER_HH
 #define ROD_WRITER_HH
 
+#include <fstream>
 
 void writeRod(const Dune::BlockVector<Dune::FieldVector<double,3> >& rod, 
               const std::string& filename)
