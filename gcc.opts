@@ -4,8 +4,8 @@
 # remember to run ./autogen.sh after changing these values!
 
 # name of compiler binaries
-COMP="gcc-4.0"
-CXXCOMP="g++-4.0"
+COMP="gcc-3.4"
+CXXCOMP="g++-3.4"
 
 # flags set in any case
 FLAGS=""
