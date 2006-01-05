@@ -278,7 +278,7 @@ int main (int argc, char *argv[]) try
              corr = contactMMGStep.getSol();
 
              printf("infinity norm of the correction: %g\n", corr.infinity_norm());
-             if (corr.infinity_norm()) {
+             if (corr.infinity_norm() < 1e-5) {
                  std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
                  break;
              }
