@@ -186,7 +186,7 @@ int main (int argc, char *argv[]) try
         MatrixType hessianMatrix;
         RodAssembler<GridType,4> rodAssembler(grid);
         
-        rodAssembler.setParameters(1, 100, 100);
+        rodAssembler.setParameters(1, 350000, 350000);
         
         MatrixIndexSet indices(grid.size(toplevel,1), grid.size(toplevel,1));
         rodAssembler.getNeighborsPerVertex(indices);
@@ -278,7 +278,7 @@ int main (int argc, char *argv[]) try
              corr = contactMMGStep.getSol();
 
              printf("infinity norm of the correction: %g\n", corr.infinity_norm());
-             if (corr[0].infinity_norm() < 1e-5 && corr[1].infinity_norm() < 1e-5) {
+             if (corr.infinity_norm()) {
                  std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
                  break;
              }
