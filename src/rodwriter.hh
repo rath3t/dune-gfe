@@ -3,6 +3,8 @@
 
 #include <fstream>
 
+/** \brief Write a planar rod
+ */
 void writeRod(const Dune::BlockVector<Dune::FieldVector<double,3> >& rod, 
               const std::string& filename)
 {
@@ -74,6 +76,109 @@ void writeRod(const Dune::BlockVector<Dune::FieldVector<double,3> >& rod,
 
         outfile << rod[i][0]+director[0] << "  " << rod[i][1]+director[1] << "  0 " << std::endl;
         outfile << rod[i][0]-director[0] << "  " << rod[i][1]-director[1] << "  0 " << std::endl;
+
+    }
+
+    std::cout << "Result written successfully to: " << filename << std::endl;
+
+}
+
+/** \brief Write a spatial rod
+ */
+void writeRod(const Dune::BlockVector<Dune::FieldVector<double,7> >& rod, 
+              const std::string& filename)
+{
+    int nLines = rod.size() + 1 + 3*3*rod.size();
+
+    // One point for each center line vertex and three for three director endpoints
+    int nPoints = 4*rod.size();
+
+    double directorLength = 1/((double)rod.size());
+
+    // /////////////////////
+    //   Write header
+    // /////////////////////
+
+    std::ofstream outfile(filename.c_str());
+
+    outfile << "# AmiraMesh 3D ASCII 2.0" << std::endl;
+    outfile << std::endl;
+    outfile << "# CreationDate: Mon Jul 18 17:14:27 2005" << std::endl;
+    outfile << std::endl;
+    outfile << std::endl;
+    outfile << "define Lines " << nLines << std::endl;
+    outfile << "nVertices " << nPoints << std::endl;
+    outfile << std::endl;
+    outfile << "Parameters {" << std::endl;
+    outfile << "    ContentType \"HxLineSet\"" << std::endl;
+    outfile << "}" << std::endl;
+    outfile << std::endl;
+    outfile << "Lines { int LineIdx } @1" << std::endl;
+    outfile << "Vertices { float[3] Coordinates } @2" << std::endl;
+    outfile << std::endl;
+    outfile << "# Data section follows" << std::endl;
+    outfile << "@1" << std::endl;
+
+    // ///////////////////////////////////////
+    //   write lines
+    // ///////////////////////////////////////
+
+    // The center axis
+    for (int i=0; i<rod.size(); i++)
+        outfile << i << std::endl;
+
+    outfile << "-1" << std::endl;
+
+    // The directors
+    for (int i=0; i<rod.size(); i++) {
+        outfile << i << std::endl << rod.size()+3*i << std::endl << "-1" << std::endl;
+
+        outfile << i << std::endl << rod.size()+3*i+1 << std::endl << "-1" << std::endl;
+
+        outfile << i << std::endl << rod.size()+3*i+2 << std::endl << "-1" << std::endl;
+    }
+
+    // /////////////////////////////////////// 
+    //   Write the vertices
+    // ///////////////////////////////////////
+
+    outfile << std::endl << "@2" << std::endl;
+
+    // The center axis
+    for (int i=0; i<rod.size(); i++)
+        outfile << rod[i][0] << "  " << rod[i][1] << "  " << rod[i][2] << std::endl;
+
+    // The directors
+    for (int i=0; i<rod.size(); i++) {
+
+        // notational simplicity
+        const Dune::FieldVector<double,4>& q = *((const Dune::FieldVector<double,4>*)(&rod[i][3]));
+
+        Dune::FieldVector<double, 3> director[3];
+
+        director[0][0] = q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3];
+        director[0][1] = 2 * (q[0]*q[1] + q[2]*q[3]);
+        director[0][2] = 2 * (q[0]*q[2] - q[1]*q[3]);
+
+        director[1][0] = 2 * (q[0]*q[1] - q[2]*q[3]);
+        director[1][1] = -q[0]*q[0] + q[1]*q[1] - q[2]*q[2] + q[3]*q[3];
+        director[1][2] = 2 * (q[1]*q[2] + q[0]*q[3]);
+
+        director[2][0] = 2 * (q[0]*q[2] + q[1]*q[3]);
+        director[2][1] = 2 * (q[1]*q[2] - q[0]*q[3]);
+        director[2][2] = -q[0]*q[0] - q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
+
+//         std::cout << "Director 0:   " << director[0] << std::endl;
+//         std::cout << "Director 1:   " << director[1] << std::endl;
+//         std::cout << "Director 2:   " << director[2] << std::endl;
+
+        director[0] *= directorLength;
+        director[1] *= directorLength;
+        director[2] *= directorLength;
+
+        outfile << rod[i][0]+director[0][0] << "  " << rod[i][1]+director[0][1] << "  " << rod[i][1]+director[0][2] << std::endl;
+        outfile << rod[i][0]+director[1][0] << "  " << rod[i][1]+director[1][1] << "  " << rod[i][1]+director[1][2] << std::endl;
+        outfile << rod[i][0]+director[2][0] << "  " << rod[i][1]+director[2][1] << "  " << rod[i][1]+director[2][2] << std::endl;
 
     }
 
