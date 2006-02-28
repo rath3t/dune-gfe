@@ -7,8 +7,8 @@
 
 #include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 
-template <class GridType, int polOrd>
-void Dune::RodAssembler<GridType, polOrd>::
+template <class GridType>
+void Dune::RodAssembler<GridType>::
 getNeighborsPerVertex(MatrixIndexSet& nb) const
 {
     const int gridDim = GridType::dimension;
@@ -28,8 +28,6 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
             
             for (j=0; j<it->template count<gridDim>(); j++) {
                 
-                //int iIdx = it->template subIndex<gridDim>(i);
-                //int jIdx = it->template subIndex<gridDim>(j);
                 int iIdx = indexSet.template subIndex<gridDim>(*it,i);
                 int jIdx = indexSet.template subIndex<gridDim>(*it,j);
                 
@@ -43,9 +41,9 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
     
 }
 
-template <class GridType, int polOrd>
-void Dune::RodAssembler<GridType, polOrd>::
-assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
+template <class GridType>
+void Dune::RodAssembler<GridType>::
+assembleMatrix(const std::vector<Configuration>& sol,
                BCRSMatrix<MatrixBlock>& matrix)
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -62,7 +60,6 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
     
     for( ; it != endit; ++it ) {
         
-        //const BaseFunctionSetType & baseSet = functionSpace_.getBaseFunctionSet( *it );
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         const int numOfBaseFct = baseSet.size();  
@@ -70,10 +67,9 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
         mat.resize(numOfBaseFct, numOfBaseFct);
 
         // Extract local solution
-        BlockVector<FieldVector<double, blocksize> > localSolution(numOfBaseFct);
+        std::vector<Configuration> localSolution(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
-            //localSolution[i] = sol[functionSpace_.mapToGlobal(*it,i)];
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
         // setup matrix 
@@ -103,11 +99,11 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
 
 
 
-template <class GridType, int polOrd>
+template <class GridType>
 template <class MatrixType>
-void Dune::RodAssembler<GridType, polOrd>::
+void Dune::RodAssembler<GridType>::
 getLocalMatrix( EntityType &entity, 
-                const BlockVector<FieldVector<double, blocksize> >& localSolution,
+                const std::vector<Configuration>& localSolution,
                 const int matSize, MatrixType& localMat) const
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -124,6 +120,7 @@ getLocalMatrix( EntityType &entity,
         = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(entity.geometry().type(), elementOrder);
 
     // Get quadrature rule
+    int polOrd = 2;
     const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(entity.geometry().type(), polOrd);
     
     /* Loop over all integration points */
@@ -160,13 +157,13 @@ getLocalMatrix( EntityType &entity,
         
         double shapeFunction[matSize];
         for(int i=0; i<matSize; i++) 
-            //baseSet.eval(i,quadPos,shapeFunction[i]);
             shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
 
         // //////////////////////////////////
         //   Interpolate
         // //////////////////////////////////
         
+#if 0
         double x_s     = localSolution[0][0]*shapeGrad[0][0] + localSolution[1][0]*shapeGrad[1][0];
         double y_s     = localSolution[0][1]*shapeGrad[0][0] + localSolution[1][1]*shapeGrad[1][0];
 
@@ -175,7 +172,6 @@ getLocalMatrix( EntityType &entity,
         for (int i=0; i<matSize; i++) {
 
             for (int j=0; j<matSize; j++) {
-
                 // \partial J^2 / \partial x_i \partial x_j
                 localMat[i][j][0][0] += weight * shapeGrad[i][0] * shapeGrad[j][0]
                     * (A1 * cos(theta) * cos(theta) + A3 * sin(theta) * sin(theta));
@@ -229,10 +225,10 @@ getLocalMatrix( EntityType &entity,
                        - A3 * (x_s*sin(theta) + y_s*cos(theta) - 1) * (x_s*sin(theta) + y_s*cos(theta)));
                                                 
 
-
             }
         
         }
+#endif
         
         
     }
@@ -265,9 +261,9 @@ getLocalMatrix( EntityType &entity,
     
 }
 
-template <class GridType, int polOrd>
-void Dune::RodAssembler<GridType, polOrd>::
-assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
+template <class GridType>
+void Dune::RodAssembler<GridType>::
+assembleGradient(const std::vector<Configuration>& sol,
                  BlockVector<FieldVector<double, blocksize> >& grad) const
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -286,18 +282,17 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
     for (; it!=endIt; ++it) {
 
         // Extract local solution on this element
-        //const BaseFunctionSetType & baseSet = functionSpace_.getBaseFunctionSet( *it );
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         const int numOfBaseFct = baseSet.size();  
         
-        FieldVector<double, blocksize> localSolution[numOfBaseFct];
+        Configuration localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
-            //localSolution[i] = sol[functionSpace_.mapToGlobal(*it,i)];
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
         // Get quadrature rule
+        int polOrd = 2;
         const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
 
         for (int pt=0; pt<quad.size(); pt++) {
@@ -317,7 +312,6 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
             
             for (int dof=0; dof<numOfBaseFct; dof++) {
                 
-                //baseSet.jacobian(dof, quadPos, shapeGrad[dof]);
                 for (int i=0; i<gridDim; i++)
                     shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
 
@@ -337,24 +331,26 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
             //   Interpolate
             // //////////////////////////////////
 
-            double x_s     = localSolution[0][0]*shapeGrad[0][0] + localSolution[1][0]*shapeGrad[1][0];
-            double y_s     = localSolution[0][1]*shapeGrad[0][0] + localSolution[1][1]*shapeGrad[1][0];
-            double theta_s = localSolution[0][2]*shapeGrad[0][0] + localSolution[1][2]*shapeGrad[1][0];
+            FieldVector<double,3> r_s;
+            r_s[0]     = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
+            r_s[1]     = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
+            r_s[2]     = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
 
-            double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
+//             double theta_s = localSolution[0][2]*shapeGrad[0][0] + localSolution[1][2]*shapeGrad[1][0];
+
+//             double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
 
             // /////////////////////////////////////////////
             //   Sum it all up
             // /////////////////////////////////////////////
 
+#if 0
             double partA1 = A1 * (x_s * cos(theta) - y_s * sin(theta));
             double partA3 = A3 * (x_s * sin(theta) + y_s * cos(theta) - 1);
 
             for (int dof=0; dof<numOfBaseFct; dof++) {
 
-                //int globalDof = functionSpace_.mapToGlobal(*it,dof);
                 int globalDof = indexSet.template subIndex<gridDim>(*it,dof);
-
                 //printf("globalDof: %d   partA1: %g   partA3: %g\n", globalDof, partA1, partA3);
 
                 // \partial J / \partial x^i
@@ -367,10 +363,10 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
                 grad[globalDof][2] += weight * (B * theta_s * shapeGrad[dof][0]
                                                + partA1 * (-x_s * sin(theta) - y_s * cos(theta)) * shapeFunction[dof]
                                                + partA3 * ( x_s * cos(theta) - y_s * sin(theta)) * shapeFunction[dof]);
-
             }
 
 
+#endif
         }
 
     }
@@ -378,38 +374,35 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
 }
 
 
-template <class GridType, int polOrd>
-double Dune::RodAssembler<GridType, polOrd>::
-computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
+template <class GridType>
+double Dune::RodAssembler<GridType>::
+computeEnergy(const std::vector<Configuration>& sol) const
 {
-    const int maxlevel = grid_->maxLevel();
     double energy = 0;
+    
+    const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
 
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(maxlevel);
-
-    if (sol.size()!=grid_->size(maxlevel, gridDim))
+    if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
-    ElementIterator it    = grid_->template lbegin<0>(maxlevel);
-    ElementIterator endIt = grid_->template lend<0>(maxlevel);
+    ElementLeafIterator it    = grid_->template leafbegin<0>();
+    ElementLeafIterator endIt = grid_->template leafend<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
 
         // Extract local solution on this element
-        // const BaseFunctionSetType & baseSet = functionSpace_.getBaseFunctionSet( *it );
-//         const int numOfBaseFct = baseSet.getNumberOfBaseFunctions();  
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         int numOfBaseFct = baseSet.size();
 
-        FieldVector<double, blocksize> localSolution[numOfBaseFct];
+        Configuration localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
-            //localSolution[i] = sol[functionSpace_.mapToGlobal(*it,i)];
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
         // Get quadrature rule
+        const int polOrd = 2;
         const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
 
         for (int pt=0; pt<quad.size(); pt++) {
@@ -425,11 +418,10 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
             // ///////////////////////////////////////
             //   Compute deformation gradient
             // ///////////////////////////////////////
-            Array<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
+            std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
             
             for (int dof=0; dof<numOfBaseFct; dof++) {
                 
-                //baseSet.jacobian(dof, quadPos, shapeGrad[dof]);
                 for (int i=0; i<gridDim; i++)
                     shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
                 //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
@@ -440,8 +432,6 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
                 shapeGrad[dof] = tmp;
                 //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
 
-                
-                
             }
 
             // Get the value of the shape functions
@@ -453,23 +443,55 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
             //   Interpolate
             // //////////////////////////////////
 
-            double x_s     = localSolution[0][0]*shapeGrad[0][0] + localSolution[1][0]*shapeGrad[1][0];
-            double y_s     = localSolution[0][1]*shapeGrad[0][0] + localSolution[1][1]*shapeGrad[1][0];
-            double theta_s = localSolution[0][2]*shapeGrad[0][0] + localSolution[1][2]*shapeGrad[1][0];
+            FieldVector<double,3> r_s;
+            r_s[0] = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
+            r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
+            r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
 
-            double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
+            // Get the rotation at the quadrature point by interpolating in $H$ and normalizing
+            Quaternion<double> q;
+            q[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
+            q[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
+            q[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
+            q[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
+
+            // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
+            q.normalize();
+            
+            // Get the derivative of the rotation at the quadrature point by interpolating in $H$ and normalizing
+            Quaternion<double> q_s;
+            q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
+            q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
+            q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
+            q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
+
+            q.normalize();
 
             // /////////////////////////////////////////////
             //   Sum it all up
             // /////////////////////////////////////////////
 
-            double partA1 = x_s * cos(theta) - y_s * sin(theta);
-            double partA3 = x_s * sin(theta) + y_s * cos(theta) - 1;
+            // Part I: the shearing and stretching energy
+            std::cout << "tangent : " << r_s << std::endl;
+            FieldVector<double,3> v;
+            v[0] = r_s * q.director(0);    // shear strain
+            v[1] = r_s * q.director(1);    // shear strain
+            v[2] = r_s * q.director(2);    // stretching strain
 
+            std::cout << "strain : " << v << std::endl;
 
-            energy += 0.5 * weight * (B * theta_s * theta_s
-                                      + A1 * partA1 * partA1
-                                      + A3 * partA3 * partA3);
+            energy += 0.5*A1*v[0]*v[0] + 0.5*A2*v[1]*v[1] + 0.5*A3*(v[2]-1)*(v[2]-1);
+
+            // Part II: the bending and twisting energy
+            
+            FieldVector<double,3> u;  // The Darboux vector
+            u[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
+            u[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
+            u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
+
+            std::cout << "Darboux vector : " << u << std::endl;
+
+            energy += 0.5 * (K1*u[0]*u[0] + K2*u[1]*u[1] + K3*u[2]*u[2]);
 
         }
 
