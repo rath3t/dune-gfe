@@ -91,6 +91,12 @@ assembleMatrix(const std::vector<Configuration>& sol,
         }
 
     }
+
+    // temporary: make identity
+    matrix = 0;
+    for (int i=0; i<matrix.N(); i++)
+        for (int j=0; j<6; j++)
+            matrix[i][i][j][j] = 1;
     
 }
 
@@ -308,12 +314,11 @@ assembleGradient(const std::vector<Configuration>& sol,
             // ///////////////////////////////////////
             //   Compute deformation gradient
             // ///////////////////////////////////////
-            Array<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
+            double shapeGrad[numOfBaseFct];
             
             for (int dof=0; dof<numOfBaseFct; dof++) {
                 
-                for (int i=0; i<gridDim; i++)
-                    shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
+                shapeGrad[dof] = baseSet[dof].evaluateDerivative(0,0,quadPos);
 
                 // multiply with jacobian inverse 
                 FieldVector<double,gridDim> tmp(0);
@@ -332,41 +337,147 @@ assembleGradient(const std::vector<Configuration>& sol,
             // //////////////////////////////////
 
             FieldVector<double,3> r_s;
-            r_s[0]     = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
-            r_s[1]     = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
-            r_s[2]     = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
+            r_s[0] = localSolution[0].r[0]*shapeGrad[0] + localSolution[1].r[0]*shapeGrad[1];
+            r_s[1] = localSolution[0].r[1]*shapeGrad[0] + localSolution[1].r[1]*shapeGrad[1];
+            r_s[2] = localSolution[0].r[2]*shapeGrad[0] + localSolution[1].r[2]*shapeGrad[1];
 
-//             double theta_s = localSolution[0][2]*shapeGrad[0][0] + localSolution[1][2]*shapeGrad[1][0];
+            // Interpolate current rotation at this quadrature point and normalize
+            // to get a unit quaternion again
+            Quaternion<double> hatq;
+            hatq[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
+            hatq[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
+            hatq[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
+            hatq[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
+            hatq.normalize();
 
-//             double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
+            // Get the derivative of the rotation at the quadrature point by interpolating in $H$ and normalizing
+            Quaternion<double> hatq_s;
+            hatq_s[0] = localSolution[0].q[0]*shapeGrad[0] + localSolution[1].q[0]*shapeGrad[1];
+            hatq_s[1] = localSolution[0].q[1]*shapeGrad[0] + localSolution[1].q[1]*shapeGrad[1];
+            hatq_s[2] = localSolution[0].q[2]*shapeGrad[0] + localSolution[1].q[2]*shapeGrad[1];
+            hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
+            hatq_s.normalize();
+
+            FieldVector<double,3> u;  // The Darboux vector
+            u[0] = 2 * ( hatq[3]*hatq_s[0] + hatq[2]*hatq_s[1] - hatq[1]*hatq_s[2] - hatq[0]*hatq_s[3]);
+            u[1] = 2 * (-hatq[2]*hatq_s[0] + hatq[3]*hatq_s[1] + hatq[0]*hatq_s[2] - hatq[1]*hatq_s[3]);
+            u[2] = 2 * ( hatq[1]*hatq_s[0] - hatq[0]*hatq_s[1] + hatq[3]*hatq_s[2] - hatq[2]*hatq_s[3]);
+
+            // Contains \partial q / \partial v^i_j  at v = 0
+            Quaternion<double> dq_dvij[2][3];
+            Quaternion<double> dq_dvij_ds[2][3];
+            for (int i=0; i<2; i++)
+                for (int j=0; j<3; j++) {
+
+                    for (int m=0; m<3; m++) {
+                        dq_dvij[i][j][m]    = (j==m) * 0.5 * shapeFunction[i];
+                        dq_dvij_ds[i][j][m] = (j==m) * 0.5 * shapeGrad[i];
+                    }
+
+                    dq_dvij[i][j][3]    = 0;
+                    dq_dvij_ds[i][j][3] = 0;
+                }
+
+            // Contains \parder
+            FieldVector<double,3> dd_dvij[3][2][3];
+            
+            for (int i=0; i<2; i++) {
+
+                for (int j=0; j<3; j++) {
+
+                    // d1
+                    dd_dvij[0][i][j][0] = hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
+                        - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
+                    
+                    dd_dvij[0][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
+                        + (dq_dvij[i][j].mult(hatq))[2]*hatq[3] + hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
+
+                    dd_dvij[0][i][j][2] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
+                        - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
+
+                    // d2
+                    dd_dvij[1][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
+                        - (dq_dvij[i][j].mult(hatq))[2]*hatq[3] - hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
+
+                    dd_dvij[1][i][j][1] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] + hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
+                        - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
+                    
+                    dd_dvij[1][i][j][2] = (dq_dvij[i][j].mult(hatq))[1]*hatq[2] + hatq[1]*(dq_dvij[i][j].mult(hatq))[2]
+                        - (dq_dvij[i][j].mult(hatq))[0]*hatq[3] - hatq[0]*(dq_dvij[i][j].mult(hatq))[3];
+
+                    // d3
+                    dd_dvij[2][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
+                        + (dq_dvij[i][j].mult(hatq))[1]*hatq[3] + hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
+
+                    dd_dvij[2][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
+                        - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
+
+                    dd_dvij[2][i][j][2] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
+                        + hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
+                    
+
+                    dd_dvij[0][i][j] *= 2;
+                    dd_dvij[1][i][j] *= 2;
+                    dd_dvij[2][i][j] *= 2;
+
+                }
+
+            }
 
             // /////////////////////////////////////////////
             //   Sum it all up
             // /////////////////////////////////////////////
 
-#if 0
-            double partA1 = A1 * (x_s * cos(theta) - y_s * sin(theta));
-            double partA3 = A3 * (x_s * sin(theta) + y_s * cos(theta) - 1);
-
             for (int dof=0; dof<numOfBaseFct; dof++) {
 
                 int globalDof = indexSet.template subIndex<gridDim>(*it,dof);
-                //printf("globalDof: %d   partA1: %g   partA3: %g\n", globalDof, partA1, partA3);
 
-                // \partial J / \partial x^i
-                grad[globalDof][0] += weight * (partA1 * cos(theta) + partA3 * sin(theta)) * shapeGrad[dof][0];
+                // /////////////////////////////////////////////
+                //   The translational part
+                // /////////////////////////////////////////////
+                
+                // \partial \bar{W} / \partial r^i_j
+                for (int j=0; j<3; j++) {
 
-                // \partial J / \partial y^i
-                grad[globalDof][1] += weight * (-partA1 * sin(theta) + partA3 * cos(theta)) * shapeGrad[dof][0];
+                    grad[globalDof][j] += weight 
+                        * ((A1 * (r_s*hatq.director(0)) * shapeGrad[dof] * hatq.director(0)[j])
+                           + (A2 * (r_s*hatq.director(1)) * shapeGrad[dof] * hatq.director(1)[j])
+                           + (A3 * (r_s*hatq.director(2) - 1) * shapeGrad[dof] * hatq.director(2)[j]));
 
-                // \partial J / \partial \theta^i
-                grad[globalDof][2] += weight * (B * theta_s * shapeGrad[dof][0]
-                                               + partA1 * (-x_s * sin(theta) - y_s * cos(theta)) * shapeFunction[dof]
-                                               + partA3 * ( x_s * cos(theta) - y_s * sin(theta)) * shapeFunction[dof]);
+                }
+
+                // \partial \bar{W}_v / \partial v^i_j
+                for (int j=0; j<3; j++) {
+
+                    grad[globalDof][3+j] += weight 
+                        * ((A1 * (r_s*hatq.director(0)) * (r_s*dd_dvij[0][dof][j]))
+                           + (A2 * (r_s*hatq.director(1)) * (r_s*dd_dvij[1][dof][j]))
+                           + (A3 * (r_s*hatq.director(2) - 1) * (r_s*dd_dvij[2][dof][j])));
+
+                }
+
+                // /////////////////////////////////////////////
+                //   The rotational part
+                // /////////////////////////////////////////////
+                
+                // Stupid: I want those as an array
+                double K[3] = {K1, K2, K3};
+
+                // \partial \bar{W}_v / \partial v^i_j
+                for (int j=0; j<3; j++) {
+
+                    for (int m=0; m<3; m++) {
+
+                        grad[globalDof][3+j] += 2*weight*K[m]*u[m]
+                            * (B(m,(dq_dvij[dof][j].mult(hatq))) * hatq_s
+                               + B(m,hatq).mult(dq_dvij_ds[dof][j].mult(hatq) + dq_dvij[dof][j].mult(hatq_s)));
+
+                    }
+
+                }
+
             }
 
-
-#endif
         }
 
     }
@@ -465,20 +576,20 @@ computeEnergy(const std::vector<Configuration>& sol) const
             q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
             q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
 
-            q.normalize();
+            q_s.normalize();
 
             // /////////////////////////////////////////////
             //   Sum it all up
             // /////////////////////////////////////////////
 
             // Part I: the shearing and stretching energy
-            std::cout << "tangent : " << r_s << std::endl;
+            //std::cout << "tangent : " << r_s << std::endl;
             FieldVector<double,3> v;
             v[0] = r_s * q.director(0);    // shear strain
             v[1] = r_s * q.director(1);    // shear strain
             v[2] = r_s * q.director(2);    // stretching strain
 
-            std::cout << "strain : " << v << std::endl;
+            //std::cout << "strain : " << v << std::endl;
 
             energy += 0.5*A1*v[0]*v[0] + 0.5*A2*v[1]*v[1] + 0.5*A3*(v[2]-1)*(v[2]-1);
 
@@ -489,7 +600,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
             u[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
             u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
 
-            std::cout << "Darboux vector : " << u << std::endl;
+            //std::cout << "Darboux vector : " << u << std::endl;
 
             energy += 0.5 * (K1*u[0]*u[0] + K2*u[1]*u[1] + K3*u[2]*u[2]);
 

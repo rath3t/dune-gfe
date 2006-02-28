@@ -80,8 +80,29 @@ namespace Dune
                              const std::vector<Configuration>& localSolution, 
                              const int matSize, MatrixType& mat) const;
 
-        
-        
+        template <class T>
+        static Quaternion<T> B(int m, const Quaternion<T>& q) {
+            assert(m>=0 && m<3);
+            Quaternion<T> r;
+            if (m==0) {
+                r[0] =  q[3];
+                r[1] =  q[2];
+                r[2] = -q[1];
+                r[3] = -q[0];
+            } else if (m==1) {
+                r[0] = -q[2];
+                r[1] =  q[3];
+                r[2] =  q[0];
+                r[3] = -q[1];
+            } else {
+                r[0] =  q[1];
+                r[1] = -q[0];
+                r[2] =  q[3];
+                r[3] = -q[2];
+            } 
+
+            return r;
+        }
         
         
         
