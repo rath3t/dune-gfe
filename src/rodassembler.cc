@@ -41,6 +41,7 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
     
 }
 
+
 template <class GridType>
 void Dune::RodAssembler<GridType>::
 assembleMatrix(const std::vector<Configuration>& sol,
@@ -92,12 +93,13 @@ assembleMatrix(const std::vector<Configuration>& sol,
 
     }
 
+#if 0
     // temporary: make identity
     matrix = 0;
     for (int i=0; i<matrix.N(); i++)
         for (int j=0; j<6; j++)
             matrix[i][i][j][j] = 1;
-    
+#endif
 }
 
 
@@ -149,7 +151,6 @@ getLocalMatrix( EntityType &entity,
         
         for (int dof=0; dof<ndof; dof++) {
             
-            //baseSet.jacobian(dof, quadPos, shapeGrad[dof]);
             for (int i=0; i<gridDim; i++)
                 shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
             
@@ -169,74 +170,205 @@ getLocalMatrix( EntityType &entity,
         //   Interpolate
         // //////////////////////////////////
         
-#if 0
-        double x_s     = localSolution[0][0]*shapeGrad[0][0] + localSolution[1][0]*shapeGrad[1][0];
-        double y_s     = localSolution[0][1]*shapeGrad[0][0] + localSolution[1][1]*shapeGrad[1][0];
+        FieldVector<double,3> r_s;
+        r_s[0] = localSolution[0].r[0]*shapeGrad[0] + localSolution[1].r[0]*shapeGrad[1];
+        r_s[1] = localSolution[0].r[1]*shapeGrad[0] + localSolution[1].r[1]*shapeGrad[1];
+        r_s[2] = localSolution[0].r[2]*shapeGrad[0] + localSolution[1].r[2]*shapeGrad[1];
 
-        double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
+        // Interpolate current rotation at this quadrature point and normalize
+        // to get a unit quaternion again
+        Quaternion<double> hatq;
+        hatq[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
+        hatq[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
+        hatq[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
+        hatq[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
+        hatq.normalize();
 
+        // Contains \partial q / \partial v^i_j  at v = 0
+        Quaternion<double> dq_dvij[2][3];
+        Quaternion<double> dq_dvij_ds[2][3];
+        for (int i=0; i<2; i++)
+            for (int j=0; j<3; j++) {
+                
+                for (int m=0; m<3; m++) {
+                    dq_dvij[i][j][m]    = (j==m) * 0.5 * shapeFunction[i];
+                    dq_dvij_ds[i][j][m] = (j==m) * 0.5 * shapeGrad[i];
+                }
+                
+                dq_dvij[i][j][3]    = 0;
+                dq_dvij_ds[i][j][3] = 0;
+            }
+
+        Quaternion<double> dq_dvij_dvkl[2][3][2][3];
+        for (int i=0; i<2; i++) {
+            
+            for (int j=0; j<3; j++) {
+                
+                for (int k=0; k<2; k++) {
+            
+                    for (int l=0; l<3; l++) {
+
+                        for (int m=0; m<3; m++)
+                            dq_dvij_dvkl[i][j][k][l][m] = 0;
+
+                        dq_dvij_dvkl[i][j][k][l][3] = -0.25 * (j==l) * shapeFunction[i] * shapeFunction[k];
+                    }
+
+                }
+
+            }
+
+        }        
+        
+        // Contains \parder d \parder v^i_j
+        FieldVector<double,3> dd_dvij[3][2][3];
+        
+        for (int i=0; i<2; i++) {
+            
+            for (int j=0; j<3; j++) {
+                
+                // d1
+                dd_dvij[0][i][j][0] = hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
+                    - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                dd_dvij[0][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
+                    + (dq_dvij[i][j].mult(hatq))[2]*hatq[3] + hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                dd_dvij[0][i][j][2] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
+                    - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                // d2
+                dd_dvij[1][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
+                    - (dq_dvij[i][j].mult(hatq))[2]*hatq[3] - hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                dd_dvij[1][i][j][1] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] + hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
+                    - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                dd_dvij[1][i][j][2] = (dq_dvij[i][j].mult(hatq))[1]*hatq[2] + hatq[1]*(dq_dvij[i][j].mult(hatq))[2]
+                    - (dq_dvij[i][j].mult(hatq))[0]*hatq[3] - hatq[0]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                // d3
+                dd_dvij[2][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
+                    + (dq_dvij[i][j].mult(hatq))[1]*hatq[3] + hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                dd_dvij[2][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
+                    - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                dd_dvij[2][i][j][2] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
+                    + hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
+                
+                
+                dd_dvij[0][i][j] *= 2;
+                dd_dvij[1][i][j] *= 2;
+                dd_dvij[2][i][j] *= 2;
+                
+            }
+            
+        }
+
+
+        // Contains \parder dm \parder v^i_j
+        FieldVector<double,3> dd_dvij_dvkl[3][2][3][2][3];
+        
+        for (int i=0; i<2; i++) {
+            
+            for (int j=0; j<3; j++) {
+                
+                for (int k=0; k<2; k++) {
+            
+                    for (int l=0; l<3; l++) {
+
+                        FieldMatrix<double,3,3> A;
+                        for (int a=0; a<4; a++)
+                            for (int b=0; b<4; b++) 
+                                A[a][b] = (dq_dvij[k][l].mult(hatq))[a] * (dq_dvij[i][j].mult(hatq))[b]
+                                    + hatq[a] * dq_dvij_dvkl[i][j][k][l].mult(hatq)[b];
+                
+                        // d1
+                        dd_dvij_dvkl[0][i][j][k][l][0] = A[0][0] - A[1][1] - A[2][2] + A[3][3];
+                        dd_dvij_dvkl[0][i][j][k][l][1] = A[1][0] + A[0][1] + A[3][2] + A[2][3];
+                        dd_dvij_dvkl[0][i][j][k][l][2] = A[2][0] + A[0][2] - A[3][1] - A[1][3];
+                        
+                        // d2
+                        dd_dvij_dvkl[1][i][j][k][l][0] =  A[1][0] + A[0][1] - A[3][2] - A[2][3];
+                        dd_dvij_dvkl[1][i][j][k][l][1] = -A[0][0] + A[1][1] - A[2][2] + A[3][3];
+                        dd_dvij_dvkl[1][i][j][k][l][2] =  A[2][1] + A[1][2] - A[3][0] - A[0][3];
+                        
+                        // d3
+                        dd_dvij_dvkl[2][i][j][k][l][0] =  A[2][0] + A[0][2] + A[3][1] + A[1][3];
+                        dd_dvij_dvkl[2][i][j][k][l][1] =  A[2][1] + A[1][2] - A[3][0] - A[0][3];
+                        dd_dvij_dvkl[2][i][j][k][l][2] = -A[0][0] - A[1][1] + A[2][2] + A[3][3];
+                        
+                        
+                        dd_dvij_dvkl[0][i][j][k][l] *= 2;
+                        dd_dvij_dvkl[1][i][j][k][l] *= 2;
+                        dd_dvij_dvkl[2][i][j][k][l] *= 2;
+                        
+                    }
+                    
+                }
+
+            }
+
+        }
+
+        
+        // ///////////////////////////////////
+        //   Sum it all up
+        // ///////////////////////////////////
         for (int i=0; i<matSize; i++) {
 
-            for (int j=0; j<matSize; j++) {
-                // \partial J^2 / \partial x_i \partial x_j
-                localMat[i][j][0][0] += weight * shapeGrad[i][0] * shapeGrad[j][0]
-                    * (A1 * cos(theta) * cos(theta) + A3 * sin(theta) * sin(theta));
+            for (int k=0; k<matSize; k++) {
 
-                // \partial J^2 / \partial x_i \partial y_j
-                localMat[i][j][0][1] += weight * shapeGrad[i][0] * shapeGrad[j][0]
-                    * (-A1 + A3) * sin(theta)* cos(theta);
+                for (int j=0; j<3; j++) {
 
-                // \partial J^2 / \partial x_i \partial theta_j
-                localMat[i][j][0][2] += weight * shapeGrad[i][0] * shapeFunction[j]
-                    * (-A1 * (x_s*sin(theta) + y_s*cos(theta)) * cos(theta)
-                       - A1* (x_s*cos(theta) - y_s*sin(theta)) * sin(theta)
-                       +A3 * (x_s*cos(theta) - y_s*sin(theta)) * sin(theta)
-                       +A3 * (x_s*sin(theta) + y_s*cos(theta) - 1) * cos(theta));
+                    for (int l=0; l<3; l++) {
 
-                // \partial J^2 / \partial y_i \partial x_j
-                localMat[i][j][1][0] += weight * shapeGrad[i][0] * shapeGrad[j][0]
-                    * (-A1 * sin(theta)* cos(theta) + A3 * cos(theta) * sin(theta));
+                        // ////////////////////////////////////////////
+                        //   The translational part
+                        // ////////////////////////////////////////////
+                        
+                        // \partial W^2 \partial r^i_j \partial r^k_l
+                        localMat[i][k][j][l] += weight 
+                            * ( A1 * shapeGrad[i] * hatq.director(0)[j] * shapeGrad[k] * hatq.director(0)[l]
+                                + A2 * shapeGrad[i] * hatq.director(1)[j] * shapeGrad[k] * hatq.director(1)[l]
+                                + A3 * shapeGrad[i] * hatq.director(2)[j] * shapeGrad[k] * hatq.director(2)[l]);
 
-                // \partial J^2 / \partial y_i \partial y_j
-                localMat[i][j][1][1] += weight * shapeGrad[i][0] * shapeGrad[j][0]
-                    * (A1 * sin(theta)*sin(theta) + A3 * cos(theta)*cos(theta));
+                        // \partial W^2 \partial v^i_j \partial r^k_l
+                        localMat[i][k][j][l+3] = weight
+                            * (A1 * shapeGrad[k]*hatq.director(0)[l]*(r_s*dd_dvij[0][i][j])
+                               + A1 * (r_s*hatq.director(0)) * shapeGrad[k] * dd_dvij[0][i][j][l]
+                               + A2 * shapeGrad[k]*hatq.director(1)[l]*(r_s*dd_dvij[1][i][j])
+                               + A2 * (r_s*hatq.director(1)) * shapeGrad[k] * dd_dvij[1][i][j][l]
+                               + A3 * shapeGrad[k]*hatq.director(2)[l]*(r_s*dd_dvij[2][i][j])
+                               + A3 * (r_s*hatq.director(2)-1) * shapeGrad[k] * dd_dvij[2][i][j][l]);
 
-                // \partial J^2 / \partial y_i \partial theta_j
-                localMat[i][j][1][2] += weight * shapeGrad[i][0] * shapeFunction[j]
-                    * (A1  * (x_s * sin(theta) + y_s * cos(theta)) * sin(theta)
-                       -A1 * (x_s * cos(theta) - y_s * sin(theta)) * cos(theta)
-                       +A3 * (x_s * cos(theta) - y_s * sin(theta)) * cos(theta)
-                       -A3 * (x_s * sin(theta) + y_s * cos(theta) - 1) * sin(theta));
+                        localMat[i][k][j+3][l] = localMat[i][k][j][l+3];
 
-                // \partial J^2 / \partial theta_i \partial x_j
-                localMat[i][j][2][0] += weight * shapeFunction[i] * shapeGrad[j][0]
-                    * (-A1 * (x_s*sin(theta) + y_s*cos(theta)) * cos(theta)
-                       - A1* (x_s*cos(theta) - y_s*sin(theta)) * sin(theta)
-                       +A3 * (x_s*cos(theta) - y_s*sin(theta)) * sin(theta)
-                       +A3 * (x_s*sin(theta) + y_s*cos(theta) - 1) * cos(theta));
+                        // \partial W^2 \partial v^i_j \partial v^k_l
+                        localMat[i][k][j+3][l+3] = weight
+                            * (A1 * (r_s * dd_dvij[0][k][l]) * (r_s * dd_dvij[0][i][j])
+                               + A1 * (r_s * hatq.director(0)) * (r_s * dd_dvij_dvkl[0][i][j][k][l])
+                               + A2 * (r_s * dd_dvij[1][k][l]) * (r_s * dd_dvij[1][i][j])
+                               + A2 * (r_s * hatq.director(1)) * (r_s * dd_dvij_dvkl[1][i][j][k][l])
+                               + A3 * (r_s * dd_dvij[2][k][l]) * (r_s * dd_dvij[2][i][j])
+                               + A3 * (r_s * hatq.director(2)) * (r_s * dd_dvij_dvkl[2][i][j][k][l]));
 
-                // \partial J^2 / \partial theta_i \partial y_j
-                localMat[i][j][2][1] += weight * shapeFunction[i] * shapeGrad[j][0]
-                    * (A1  * (x_s * sin(theta) + y_s * cos(theta)) * sin(theta)
-                       -A1 * (x_s * cos(theta) - y_s * sin(theta)) * cos(theta)
-                       +A3 * (x_s * cos(theta) - y_s * sin(theta)) * cos(theta)
-                       -A3 * (x_s * sin(theta) + y_s * cos(theta) - 1) * sin(theta));
+                        // ////////////////////////////////////////////
+                        //   The rotational part
+                        // ////////////////////////////////////////////
 
-                // \partial J^2 / \partial theta_i \partial theta_j
-                localMat[i][j][2][2] += weight * B * shapeGrad[i][0] * shapeGrad[j][0];
-                localMat[i][j][2][2] += weight * shapeFunction[i] * shapeFunction[j]
-                    * (+ A1 * (x_s*sin(theta) + y_s*cos(theta)) * (x_s*sin(theta) + y_s*cos(theta))
-                       + A1 * (x_s*cos(theta) - y_s*sin(theta)) * (-x_s*cos(theta)+ y_s*sin(theta))
-                       + A3 * (x_s*cos(theta) - y_s*sin(theta)) * (x_s*cos(theta) - y_s*sin(theta))
-                       - A3 * (x_s*sin(theta) + y_s*cos(theta) - 1) * (x_s*sin(theta) + y_s*cos(theta)));
-                                                
+                        // \partial W^2 \partial v^i_j \partial v^k_l
+                        // All other derivatives are zero
+
+                    }
+
+                }
 
             }
         
         }
-#endif
-        
-        
+
     }
     
 #if 0
@@ -356,7 +488,6 @@ assembleGradient(const std::vector<Configuration>& sol,
             hatq_s[1] = localSolution[0].q[1]*shapeGrad[0] + localSolution[1].q[1]*shapeGrad[1];
             hatq_s[2] = localSolution[0].q[2]*shapeGrad[0] + localSolution[1].q[2]*shapeGrad[1];
             hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
-            hatq_s.normalize();
 
             FieldVector<double,3> u;  // The Darboux vector
             u[0] = 2 * ( hatq[3]*hatq_s[0] + hatq[2]*hatq_s[1] - hatq[1]*hatq_s[2] - hatq[0]*hatq_s[3]);
@@ -380,7 +511,7 @@ assembleGradient(const std::vector<Configuration>& sol,
 
             // Contains \parder
             FieldVector<double,3> dd_dvij[3][2][3];
-            
+
             for (int i=0; i<2; i++) {
 
                 for (int j=0; j<3; j++) {
@@ -468,9 +599,10 @@ assembleGradient(const std::vector<Configuration>& sol,
 
                     for (int m=0; m<3; m++) {
 
-                        grad[globalDof][3+j] += 2*weight*K[m]*u[m]
-                            * (B(m,(dq_dvij[dof][j].mult(hatq))) * hatq_s
-                               + B(m,hatq).mult(dq_dvij_ds[dof][j].mult(hatq) + dq_dvij[dof][j].mult(hatq_s)));
+                        double addend1 = B(m,(dq_dvij[dof][j].mult(hatq))) * hatq_s;
+                        double addend2 = B(m,hatq) * (dq_dvij_ds[dof][j].mult(hatq) + dq_dvij[dof][j].mult(hatq_s));
+
+                        grad[globalDof][3+j] += 2*weight*K[m]*u[m] * (addend1 + addend2);
 
                     }
 
@@ -569,14 +701,12 @@ computeEnergy(const std::vector<Configuration>& sol) const
             // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
             q.normalize();
             
-            // Get the derivative of the rotation at the quadrature point by interpolating in $H$ and normalizing
+            // Get the derivative of the rotation at the quadrature point by interpolating in $H$
             Quaternion<double> q_s;
             q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
             q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
             q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
             q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
-
-            q_s.normalize();
 
             // /////////////////////////////////////////////
             //   Sum it all up
