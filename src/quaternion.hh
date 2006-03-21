@@ -9,6 +9,9 @@ class Quaternion : public Dune::FieldVector<T,4>
 {
 public:
 
+    Quaternion() {}
+    Quaternion(const Dune::FieldVector<T,4>& other) : Dune::FieldVector<T,4>(other) {}
+
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
     static Quaternion<T> exp(const T& v0, const T& v1, const T& v2) {
