@@ -12,6 +12,16 @@ public:
     Quaternion() {}
     Quaternion(const Dune::FieldVector<T,4>& other) : Dune::FieldVector<T,4>(other) {}
 
+    /** \brief Return the identity element */
+    static Quaternion<T> identity() {
+        Quaternion<T> id;
+        id[0] = 0;
+        id[1] = 0;
+        id[2] = 0;
+        id[3] = 1;
+        return id;
+    }
+
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
     static Quaternion<T> exp(const T& v0, const T& v1, const T& v2) {
