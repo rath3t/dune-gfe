@@ -3,12 +3,12 @@
 #include <dune/istl/matrixindexset.hh>
 #include <dune/common/matrix.hh>
 
-#include <dune/quadrature/quadraturerules.hh>
+#include <dune/grid/common/quadraturerules.hh>
 
 #include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 
 template <class GridType, int polOrd>
-void Dune::RodAssembler<GridType, polOrd>::
+void Dune::PlanarRodAssembler<GridType, polOrd>::
 getNeighborsPerVertex(MatrixIndexSet& nb) const
 {
     const int gridDim = GridType::dimension;
@@ -44,7 +44,7 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
 }
 
 template <class GridType, int polOrd>
-void Dune::RodAssembler<GridType, polOrd>::
+void Dune::PlanarRodAssembler<GridType, polOrd>::
 assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
                BCRSMatrix<MatrixBlock>& matrix)
 {
@@ -105,7 +105,7 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
 
 template <class GridType, int polOrd>
 template <class MatrixType>
-void Dune::RodAssembler<GridType, polOrd>::
+void Dune::PlanarRodAssembler<GridType, polOrd>::
 getLocalMatrix( EntityType &entity, 
                 const BlockVector<FieldVector<double, blocksize> >& localSolution,
                 const int matSize, MatrixType& localMat) const
@@ -266,7 +266,7 @@ getLocalMatrix( EntityType &entity,
 }
 
 template <class GridType, int polOrd>
-void Dune::RodAssembler<GridType, polOrd>::
+void Dune::PlanarRodAssembler<GridType, polOrd>::
 assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
                  BlockVector<FieldVector<double, blocksize> >& grad) const
 {
@@ -375,7 +375,7 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
 
 
 template <class GridType, int polOrd>
-double Dune::RodAssembler<GridType, polOrd>::
+double Dune::PlanarRodAssembler<GridType, polOrd>::
 computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
 {
     const int maxlevel = grid_->maxLevel();
@@ -393,8 +393,6 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
     for (; it!=endIt; ++it) {
 
         // Extract local solution on this element
-        // const BaseFunctionSetType & baseSet = functionSpace_.getBaseFunctionSet( *it );
-//         const int numOfBaseFct = baseSet.getNumberOfBaseFunctions();  
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         int numOfBaseFct = baseSet.size();
@@ -402,7 +400,6 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
         FieldVector<double, blocksize> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
-            //localSolution[i] = sol[functionSpace_.mapToGlobal(*it,i)];
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
         // Get quadrature rule
@@ -425,7 +422,6 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
             
             for (int dof=0; dof<numOfBaseFct; dof++) {
                 
-                //baseSet.jacobian(dof, quadPos, shapeGrad[dof]);
                 for (int i=0; i<gridDim; i++)
                     shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
                 //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;

@@ -38,7 +38,7 @@ namespace Dune
     public:
         
         //! ???
-        RodAssembler(const GridType &grid) : 
+        PlanarRodAssembler(const GridType &grid) : 
             grid_(&grid)
         { 
             B = 1;
@@ -46,7 +46,7 @@ namespace Dune
             A3 = 1;
         }
 
-        ~RodAssembler() {}
+        ~PlanarRodAssembler() {}
 
         void setParameters(double b, double a1, double a3) {
             B  = b;
