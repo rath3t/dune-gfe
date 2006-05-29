@@ -71,6 +71,9 @@ namespace Dune
         double computeEnergy(const std::vector<Configuration>& sol) const;
 
         void getNeighborsPerVertex(MatrixIndexSet& nb) const;
+
+        void getStrain(const std::vector<Configuration>& sol, 
+                       BlockVector<FieldVector<double, blocksize> >& strain) const;
         
     protected:
 
