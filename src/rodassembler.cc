@@ -658,19 +658,23 @@ computeEnergy(const std::vector<Configuration>& sol) const
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
-        // Get quadrature rule
-        const int polOrd = 2;
-        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
+        // ///////////////////////////////////////////////////////////////////////////////
+        //   The following two loops are a reduced integration scheme.  We integrate
+        //   the transverse shear and extensional energy with a first-order quadrature
+        //   formula, even though it should be second order.  This prevents shear-locking
+        // ///////////////////////////////////////////////////////////////////////////////
+        const int shearingPolOrd = 2;
+        const QuadratureRule<double, gridDim>& shearingQuad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), shearingPolOrd);
 
-        for (int pt=0; pt<quad.size(); pt++) {
+        for (int pt=0; pt<shearingQuad.size(); pt++) {
 
             // Local position of the quadrature point
-            const FieldVector<double,gridDim>& quadPos = quad[pt].position();
+            const FieldVector<double,gridDim>& quadPos = shearingQuad[pt].position();
             
             const FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
             const double integrationElement = it->geometry().integrationElement(quadPos);
         
-            double weight = quad[pt].weight() * integrationElement;
+            double weight = shearingQuad[pt].weight() * integrationElement;
             
             // ///////////////////////////////////////
             //   Compute deformation gradient
@@ -681,13 +685,11 @@ computeEnergy(const std::vector<Configuration>& sol) const
                 
                 for (int i=0; i<gridDim; i++)
                     shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
-                //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
                 
                 // multiply with jacobian inverse 
                 FieldVector<double,gridDim> tmp(0);
                 inv.umv(shapeGrad[dof], tmp);
                 shapeGrad[dof] = tmp;
-                //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
 
             }
 
@@ -733,10 +735,98 @@ computeEnergy(const std::vector<Configuration>& sol) const
             v[1] = r_s * q.director(1);    // shear strain
             v[2] = r_s * q.director(2);    // stretching strain
 
+            energy += weight * 0.5 * (A1*v[0]*v[0] + A2*v[1]*v[1] + A3*(v[2]-1)*(v[2]-1));
+
+#if 0
+            // Part II: the bending and twisting energy
+            
+            FieldVector<double,3> u;  // The Darboux vector
+            u[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
+            u[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
+            u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
+
+            //std::cout << "Darboux vector : " << u << std::endl;
+
+            energy += weight * 0.5 * (K1*u[0]*u[0] + K2*u[1]*u[1] + K3*u[2]*u[2]);
+#endif
+        }
+
+        // Get quadrature rule
+        const int polOrd = 2;
+        const QuadratureRule<double, gridDim>& bendingQuad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
+
+        for (int pt=0; pt<bendingQuad.size(); pt++) {
+
+            // Local position of the quadrature point
+            const FieldVector<double,gridDim>& quadPos = bendingQuad[pt].position();
+            
+            const FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
+        
+            double weight = bendingQuad[pt].weight() * it->geometry().integrationElement(quadPos);
+            
+            // ///////////////////////////////////////
+            //   Compute deformation gradient
+            // ///////////////////////////////////////
+            std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
+            
+            for (int dof=0; dof<numOfBaseFct; dof++) {
+                
+                for (int i=0; i<gridDim; i++)
+                    shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
+                
+                // multiply with jacobian inverse 
+                FieldVector<double,gridDim> tmp(0);
+                inv.umv(shapeGrad[dof], tmp);
+                shapeGrad[dof] = tmp;
+
+            }
+
+            // Get the value of the shape functions
+            double shapeFunction[2];
+            for(int i=0; i<2; i++) 
+                shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
+
+            // //////////////////////////////////
+            //   Interpolate
+            // //////////////////////////////////
+
+            FieldVector<double,3> r_s;
+            r_s[0] = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
+            r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
+            r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
+
+            // Get the rotation at the quadrature point by interpolating in $H$ and normalizing
+            Quaternion<double> q;
+            q[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
+            q[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
+            q[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
+            q[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
+
+            // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
+            q.normalize();
+            
+            // Get the derivative of the rotation at the quadrature point by interpolating in $H$
+            Quaternion<double> q_s;
+            q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
+            q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
+            q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
+            q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
+
+            // /////////////////////////////////////////////
+            //   Sum it all up
+            // /////////////////////////////////////////////
+#if 0
+            // Part I: the shearing and stretching energy
+            //std::cout << "tangent : " << r_s << std::endl;
+            FieldVector<double,3> v;
+            v[0] = r_s * q.director(0);    // shear strain
+            v[1] = r_s * q.director(1);    // shear strain
+            v[2] = r_s * q.director(2);    // stretching strain
+
             //std::cout << "strain : " << v << std::endl;
 
             energy += weight * 0.5*A1*v[0]*v[0] + 0.5*A2*v[1]*v[1] + 0.5*A3*(v[2]-1)*(v[2]-1);
-
+#endif
             // Part II: the bending and twisting energy
             
             FieldVector<double,3> u;  // The Darboux vector
