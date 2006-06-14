@@ -8,22 +8,17 @@
 #include "../common/boundarypatch.hh"
 #include <dune/common/bitfield.hh>
 
-#include "src/rodassembler.hh"
+#include "src/planarrodassembler.hh"
 #include "../common/projectedblockgsstep.hh"
 #include "../contact/src/contactmmgstep.hh"
 
-#include <dune/solver/iterativesolver.hh>
+#include "../solver/iterativesolver.hh"
 
 #include "../common/geomestimator.hh"
 #include "../common/energynorm.hh"
 #include "src/rodwriter.hh"
 
 #include <dune/common/configparser.hh>
-
-// Choose a solver
-//#define IPOPT
-//#define GAUSS_SEIDEL
-#define MULTIGRID
 
 // Number of degrees of freedom: 
 // 3 (x, y, theta) for a planar rod
@@ -123,7 +118,7 @@ int main (int argc, char *argv[]) try
     VectorType corr;
 
     MatrixType hessianMatrix;
-    RodAssembler<RodGridType,4> rodAssembler(rod);
+    PlanarRodAssembler<RodGridType,4> rodAssembler(rod);
     
     rodAssembler.setParameters(1, 100, 100);
 
@@ -175,35 +170,9 @@ int main (int argc, char *argv[]) try
         trueObstacles[maxlevel][i].val[1] = 0.1 - x[i][0];
     }
 
-    // Create a solver
-#if defined IPOPT
-
-    typedef LinearIPOptSolver<VectorType> SolverType;
-    
-    SolverType solver;
-    solver.dirichletNodes_ = &totalDirichletNodes[maxlevel];
-    solver.hasObstacle_    = &contactAssembler.hasObstacle_[maxlevel];
-    solver.obstacles_      = &contactAssembler.obstacles_[maxlevel];
-    solver.verbosity_      = Solver::FULL;
-
-#elif defined GAUSS_SEIDEL
-
-    typedef ProjectedBlockGSStep<MatrixType, VectorType> SmootherType;
-    SmootherType projectedBlockGSStep(hessianMatrix, corr, rhs);
-    projectedBlockGSStep.dirichletNodes_ = &dirichletNodes[maxlevel];
-    projectedBlockGSStep.hasObstacle_    = &hasObstacle[maxlevel];
-    projectedBlockGSStep.obstacles_      = &trueObstacles;
-
-    EnergyNorm<MatrixType, VectorType> energyNorm(projectedBlockGSStep);
-
-    IterativeSolver<MatrixType, VectorType> solver;
-    solver.iterationStep = &projectedBlockGSStep;
-    solver.numIt = numIt;
-    solver.verbosity_ = Solver::FULL;
-    solver.errorNorm_ = &energyNorm;
-    solver.tolerance_ = tolerance;
-    
-#elif defined MULTIGRID
+    // ////////////////////////////////
+    //   Create a multigrid solver
+    // ////////////////////////////////
 
     // First create a gauss-seidel base solver
     ProjectedBlockGSStep<MatrixType, VectorType> baseSolverStep;
@@ -221,7 +190,7 @@ int main (int argc, char *argv[]) try
     ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
     ProjectedBlockGSStep<MatrixType, VectorType> postsmoother;
 
-    ContactMMGStep<MatrixType, VectorType, RodGridType > contactMMGStep(maxlevel+1);
+    ContactMMGStep<MatrixType, VectorType> contactMMGStep(maxlevel+1);
 
     contactMMGStep.setMGType(mu, nu1, nu2);
     contactMMGStep.dirichletNodes_    = &dirichletNodes;
@@ -235,7 +204,6 @@ int main (int argc, char *argv[]) try
     contactMMGStep.mgTransfer_.resize(maxlevel);
     for (int i=0; i<contactMMGStep.mgTransfer_.size(); i++){
         TruncatedMGTransfer<VectorType>* newTransferOp = new TruncatedMGTransfer<VectorType>;
-        //newTransferOp->setup(*rodFuncSpace[i], *rodFuncSpace[i+1]);
         newTransferOp->setup(rod,i,i+1);
         contactMMGStep.mgTransfer_[i] = newTransferOp;
     }
@@ -248,10 +216,6 @@ int main (int argc, char *argv[]) try
     solver.verbosity_ = Solver::QUIET;
     solver.errorNorm_ = &energyNorm;
     solver.tolerance_ = tolerance;
-
-#else
-    #warning You have to specify a solver!
-#endif
 
     // ///////////////////////////////////////////////////
     //   Do a homotopy of the material parameters
@@ -303,26 +267,17 @@ int main (int argc, char *argv[]) try
             //std::cout << "Trust Region obstacles:" << std::endl;
             //std::cout << (*contactMMGStep.obstacles_)[maxlevel] << std::endl;
 
-#ifndef IPOPT
             solver.iterationStep->setProblem(hessianMatrix, corr, rhs);
-#else
-            solver.setProblem(hessianMatrix, corr, rhs);
-#endif
 
             solver.preprocess();
-#ifdef MULTIGRID
-
             contactMMGStep.preprocess();
-#endif
 
             // /////////////////////////////
             //    Solve !
             // /////////////////////////////
              solver.solve();
 
-#ifdef MULTIGRID
              corr = contactMMGStep.getSol();
-#endif
 
              //std::cout << "Correction: \n" << corr << std::endl;
 
@@ -390,6 +345,5 @@ int main (int argc, char *argv[]) try
  } catch (Exception e) {
 
     std::cout << e << std::endl;
-
 
  }
