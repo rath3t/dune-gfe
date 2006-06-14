@@ -777,6 +777,8 @@ getStrain(const std::vector<Configuration>& sol,
     // Loop over all elements
     for (; it!=endIt; ++it) {
 
+        int elementIdx = indexSet.index(*it);
+
         // Extract local solution on this element
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
@@ -872,7 +874,6 @@ getStrain(const std::vector<Configuration>& sol,
             u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
 
             // Sum it all up
-            int elementIdx = indexSet.index(*it);
             strain[elementIdx][0] += weight * v[0];
             strain[elementIdx][1] += weight * v[1];
             strain[elementIdx][2] += weight * v[2];
@@ -881,6 +882,14 @@ getStrain(const std::vector<Configuration>& sol,
             strain[elementIdx][5] += weight * u[2];
 
         }
+
+        // /////////////////////////////////////////////////////////////////////////
+        //   We want the average strain per element.  Therefore we have to divide
+        //   the integral we just computed by the element volume.
+        // /////////////////////////////////////////////////////////////////////////
+        // we know the element is a line, therefore the integration element is the volume
+        FieldVector<double,1> dummyPos(0.5);  
+        strain[elementIdx] /= it->geometry().integrationElement(dummyPos);
 
     }
 
