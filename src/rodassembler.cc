@@ -1,7 +1,7 @@
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
-#include <dune/common/matrix.hh>
+#include <dune/istl/matrix.hh>
 
 #include <dune/grid/common/quadraturerules.hh>
 
@@ -139,7 +139,7 @@ getLocalMatrix( EntityType &entity,
         /**********************************************/
         /* compute gradients of the shape functions   */
         /**********************************************/
-        Array<FieldVector<double,gridDim> > shapeGrad(ndof);
+        FieldVector<double,gridDim> shapeGrad[ndof];
         
         for (int dof=0; dof<ndof; dof++) {
             
