@@ -769,6 +769,7 @@ getStrain(const std::vector<Configuration>& sol,
 
     // Strain defined on each element
     strain.resize(indexSet.size(0));
+    strain = 0;
 
     ElementLeafIterator it    = grid_->template leafbegin<0>();
     ElementLeafIterator endIt = grid_->template leafend<0>();
