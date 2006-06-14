@@ -8,7 +8,7 @@ AC_CONFIG_SRCDIR([staticrod.cc])
 AM_CONFIG_HEADER([config.h])
 
 # we need no more than the standard DUNE-stuff
-DUNE_CHECK_ALL
+DUNE_CHECK_ALL([dunecommon], [dunegrid], [duneistl], [dunedisc])
 
 # implicitly set the Dune-flags everywhere
 AC_SUBST(AM_CPPFLAGS, $DUNE_CPPFLAGS)

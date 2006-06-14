@@ -144,5 +144,5 @@ export CPP="$COMP -E"
 export CFLAGS="$COMPFLAGS"
 export CXXFLAGS="$COMPFLAGS"
 
-./configure $DEFAULTCONFOPT $CONFOPT
+#./configure $DEFAULTCONFOPT $CONFOPT
 
