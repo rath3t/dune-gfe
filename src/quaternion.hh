@@ -43,7 +43,7 @@ public:
     }
 
     /** \brief Right quaternion multiplication */
-    Quaternion<T> mult(const Quaternion<T>& other) {
+    Quaternion<T> mult(const Quaternion<T>& other) const {
         Quaternion<T> q;
         q[0] =   (*this)[3]*other[0] - (*this)[2]*other[1] + (*this)[1]*other[2] + (*this)[0]*other[3];
         q[1] =   (*this)[2]*other[0] + (*this)[3]*other[1] - (*this)[0]*other[2] + (*this)[1]*other[3];
