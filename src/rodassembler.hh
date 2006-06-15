@@ -58,6 +58,28 @@ namespace Dune
             A3 = a3;
         }
 
+        /** \brief Set shape constants and material parameters
+            \param A The rod section area
+            \param J1, J2 The geometric moments (Flächenträgheitsmomente)
+            \param E Young's modulus
+            \param nu Poisson number
+        */
+        void setShapeAndMaterial(double A, double J1, double J2, double E, double nu) 
+        {
+            // shear modulus
+            double G = E/(2+2*nu);
+
+            K1 = E * J1;
+            K2 = E * J2;
+            K3 = G * (J1 + J2);
+
+            A1 = G * A;
+            A2 = G * A;
+            A3 = E * A;
+
+            printf("%g %g %g   %g %g %g\n", K1, K2, K3, A1, A2, A3);
+            //exit(0);
+        }
 
         /** \brief Assemble the tangent stiffness matrix and the right hand side
          */
@@ -107,7 +129,16 @@ namespace Dune
             return r;
         }
         
-        
+        template <class T>
+        static FieldVector<T,3> darboux(const Quaternion<T>& q, const FieldVector<T,4>& q_s) 
+        {
+            FieldVector<double,3> u;  // The Darboux vector
+            u[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
+            u[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
+            u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
+
+            return u;
+        }
         
         
     }; // end class

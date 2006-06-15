@@ -316,10 +316,8 @@ getLocalMatrix( EntityType &entity,
         hatq_s[2] = localSolution[0].q[2]*shapeGrad[0] + localSolution[1].q[2]*shapeGrad[1];
         hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
         
-        FieldVector<double,3> u;  // The Darboux vector
-        u[0] = 2 * ( hatq[3]*hatq_s[0] + hatq[2]*hatq_s[1] - hatq[1]*hatq_s[2] - hatq[0]*hatq_s[3]);
-        u[1] = 2 * (-hatq[2]*hatq_s[0] + hatq[3]*hatq_s[1] + hatq[0]*hatq_s[2] - hatq[1]*hatq_s[3]);
-        u[2] = 2 * ( hatq[1]*hatq_s[0] - hatq[0]*hatq_s[1] + hatq[3]*hatq_s[2] - hatq[2]*hatq_s[3]);
+        // The Darboux vector
+        FieldVector<double,3> u = darboux(hatq, hatq_s);
 
         // Contains \partial q / \partial v^i_j  at v = 0
         double dum_dvij[3][2][3];
@@ -503,10 +501,8 @@ assembleGradient(const std::vector<Configuration>& sol,
             hatq_s[2] = localSolution[0].q[2]*shapeGrad[0] + localSolution[1].q[2]*shapeGrad[1];
             hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
 
-            FieldVector<double,3> u;  // The Darboux vector
-            u[0] = 2 * ( hatq[3]*hatq_s[0] + hatq[2]*hatq_s[1] - hatq[1]*hatq_s[2] - hatq[0]*hatq_s[3]);
-            u[1] = 2 * (-hatq[2]*hatq_s[0] + hatq[3]*hatq_s[1] + hatq[0]*hatq_s[2] - hatq[1]*hatq_s[3]);
-            u[2] = 2 * ( hatq[1]*hatq_s[0] - hatq[0]*hatq_s[1] + hatq[3]*hatq_s[2] - hatq[2]*hatq_s[3]);
+            // The Darboux vector
+            FieldVector<double,3> u = darboux(hatq, hatq_s);
 
             // Contains \partial q / \partial v^i_j  at v = 0
             Quaternion<double> dq_dvij[2][3];
@@ -740,12 +736,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 #if 0
             // Part II: the bending and twisting energy
             
-            FieldVector<double,3> u;  // The Darboux vector
-            u[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
-            u[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
-            u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
-
-            //std::cout << "Darboux vector : " << u << std::endl;
+            FieldVector<double,3> u = darboux(q, q_s);  // The Darboux vector
 
             energy += weight * 0.5 * (K1*u[0]*u[0] + K2*u[1]*u[1] + K3*u[2]*u[2]);
 #endif
@@ -829,11 +820,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 #endif
             // Part II: the bending and twisting energy
             
-            FieldVector<double,3> u;  // The Darboux vector
-            u[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
-            u[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
-            u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
-
+            FieldVector<double,3> u = darboux(q, q_s);  // The Darboux vector
             //std::cout << "Darboux vector : " << u << std::endl;
 
             energy += weight * 0.5 * (K1*u[0]*u[0] + K2*u[1]*u[1] + K3*u[2]*u[2]);
@@ -958,10 +945,7 @@ getStrain(const std::vector<Configuration>& sol,
 
             // Part II: the Darboux vector
             
-            FieldVector<double,3> u; 
-            u[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
-            u[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
-            u[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
+            FieldVector<double,3> u = darboux(q, q_s);
 
             // Sum it all up
             strain[elementIdx][0] += weight * v[0];
