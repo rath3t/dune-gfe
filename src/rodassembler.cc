@@ -97,7 +97,60 @@ assembleMatrix(const std::vector<Configuration>& sol,
 
 
 
+template <class GridType>
+void Dune::RodAssembler<GridType>::
+getFirstDerivativesOfDirectors(const Quaternion<double>& q, 
+                               Dune::FixedArray<Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 2>, 3>& dd_dvij,
+                               const Dune::FixedArray<Dune::FixedArray<Quaternion<double>, 3>, 2>& dq_dvij)
+{
+ 
+    // Contains \parder d \parder v^i_j
+    //FieldVector<double,3> dd_dvij[3][2][3];
+    
+    for (int i=0; i<2; i++) {
+        
+        for (int j=0; j<3; j++) {
+            
+            // d1
+            dd_dvij[0][i][j][0] = q[0]*(dq_dvij[i][j].mult(q))[0] - q[1]*(dq_dvij[i][j].mult(q))[1] 
+                - q[2]*(dq_dvij[i][j].mult(q))[2] + q[3]*(dq_dvij[i][j].mult(q))[3];
+            
+            dd_dvij[0][i][j][1] = (dq_dvij[i][j].mult(q))[0]*q[1] + q[0]*(dq_dvij[i][j].mult(q))[1]
+                + (dq_dvij[i][j].mult(q))[2]*q[3] + q[2]*(dq_dvij[i][j].mult(q))[3];
+            
+            dd_dvij[0][i][j][2] = (dq_dvij[i][j].mult(q))[0]*q[2] + q[0]*(dq_dvij[i][j].mult(q))[2]
+                - (dq_dvij[i][j].mult(q))[1]*q[3] - q[1]*(dq_dvij[i][j].mult(q))[3];
+            
+            // d2
+            dd_dvij[1][i][j][0] = (dq_dvij[i][j].mult(q))[0]*q[1] + q[0]*(dq_dvij[i][j].mult(q))[1]
+                - (dq_dvij[i][j].mult(q))[2]*q[3] - q[2]*(dq_dvij[i][j].mult(q))[3];
+            
+            dd_dvij[1][i][j][1] = - q[0]*(dq_dvij[i][j].mult(q))[0] + q[1]*(dq_dvij[i][j].mult(q))[1] 
+                - q[2]*(dq_dvij[i][j].mult(q))[2] + q[3]*(dq_dvij[i][j].mult(q))[3];
+            
+            dd_dvij[1][i][j][2] = (dq_dvij[i][j].mult(q))[1]*q[2] + q[1]*(dq_dvij[i][j].mult(q))[2]
+                + (dq_dvij[i][j].mult(q))[0]*q[3] + q[0]*(dq_dvij[i][j].mult(q))[3];
+            
+            // d3
+            dd_dvij[2][i][j][0] = (dq_dvij[i][j].mult(q))[0]*q[2] + q[0]*(dq_dvij[i][j].mult(q))[2]
+                + (dq_dvij[i][j].mult(q))[1]*q[3] + q[1]*(dq_dvij[i][j].mult(q))[3];
+            
+            dd_dvij[2][i][j][1] = (dq_dvij[i][j].mult(q))[1]*q[2] + q[1]*(dq_dvij[i][j].mult(q))[2]
+                - (dq_dvij[i][j].mult(q))[0]*q[3] - q[0]*(dq_dvij[i][j].mult(q))[3];
+            
+            dd_dvij[2][i][j][2] = - q[0]*(dq_dvij[i][j].mult(q))[0] - q[1]*(dq_dvij[i][j].mult(q))[1] 
+                + q[2]*(dq_dvij[i][j].mult(q))[2] + q[3]*(dq_dvij[i][j].mult(q))[3];
+            
+            
+            dd_dvij[0][i][j] *= 2;
+            dd_dvij[1][i][j] *= 2;
+            dd_dvij[2][i][j] *= 2;
+            
+        }
+        
+    }
 
+}
 
 
 template <class GridType>
@@ -177,7 +230,7 @@ getLocalMatrix( EntityType &entity,
         hatq.normalize();
 
         // Contains \partial q / \partial v^i_j  at v = 0
-        Quaternion<double> dq_dvij[2][3];
+        FixedArray<FixedArray<Quaternion<double>,3>,2> dq_dvij;
         Quaternion<double> dq_dvij_ds[2][3];
         for (int i=0; i<2; i++)
             for (int j=0; j<3; j++) {
@@ -218,51 +271,8 @@ getLocalMatrix( EntityType &entity,
         }        
         
         // Contains \parder d \parder v^i_j
-        FieldVector<double,3> dd_dvij[3][2][3];
-        
-        for (int i=0; i<2; i++) {
-            
-            for (int j=0; j<3; j++) {
-                
-                // d1
-                dd_dvij[0][i][j][0] = hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
-                    - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                dd_dvij[0][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
-                    + (dq_dvij[i][j].mult(hatq))[2]*hatq[3] + hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                dd_dvij[0][i][j][2] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
-                    - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                // d2
-                dd_dvij[1][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
-                    - (dq_dvij[i][j].mult(hatq))[2]*hatq[3] - hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                dd_dvij[1][i][j][1] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] + hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
-                    - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                dd_dvij[1][i][j][2] = (dq_dvij[i][j].mult(hatq))[1]*hatq[2] + hatq[1]*(dq_dvij[i][j].mult(hatq))[2]
-                    - (dq_dvij[i][j].mult(hatq))[0]*hatq[3] - hatq[0]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                // d3
-                dd_dvij[2][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
-                    + (dq_dvij[i][j].mult(hatq))[1]*hatq[3] + hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                dd_dvij[2][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
-                    - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                dd_dvij[2][i][j][2] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
-                    + hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
-                
-                
-                dd_dvij[0][i][j] *= 2;
-                dd_dvij[1][i][j] *= 2;
-                dd_dvij[2][i][j] *= 2;
-                
-            }
-            
-        }
-
+        FixedArray<FixedArray<FixedArray<FieldVector<double,3>, 3>, 2>, 3> dd_dvij;
+        getFirstDerivativesOfDirectors(hatq, dd_dvij, dq_dvij);
 
         // Contains \parder dm \parder v^i_j
         FieldVector<double,3> dd_dvij_dvkl[3][2][3][2][3];
@@ -289,7 +299,7 @@ getLocalMatrix( EntityType &entity,
                         // d2
                         dd_dvij_dvkl[1][i][j][k][l][0] =  A[1][0] + A[0][1] - A[3][2] - A[2][3];
                         dd_dvij_dvkl[1][i][j][k][l][1] = -A[0][0] + A[1][1] - A[2][2] + A[3][3];
-                        dd_dvij_dvkl[1][i][j][k][l][2] =  A[2][1] + A[1][2] - A[3][0] - A[0][3];
+                        dd_dvij_dvkl[1][i][j][k][l][2] =  A[2][1] + A[1][2] + A[3][0] + A[0][3];
                         
                         // d3
                         dd_dvij_dvkl[2][i][j][k][l][0] =  A[2][0] + A[0][2] + A[3][1] + A[1][3];
@@ -505,7 +515,9 @@ assembleGradient(const std::vector<Configuration>& sol,
             FieldVector<double,3> u = darboux(hatq, hatq_s);
 
             // Contains \partial q / \partial v^i_j  at v = 0
-            Quaternion<double> dq_dvij[2][3];
+            //Quaternion<double> dq_dvij[2][3];
+            FixedArray<FixedArray<Quaternion<double>,3>,2> dq_dvij;
+
             Quaternion<double> dq_dvij_ds[2][3];
             for (int i=0; i<2; i++)
                 for (int j=0; j<3; j++) {
@@ -519,51 +531,9 @@ assembleGradient(const std::vector<Configuration>& sol,
                     dq_dvij_ds[i][j][3] = 0;
                 }
 
-            // Contains \parder
-            FieldVector<double,3> dd_dvij[3][2][3];
-
-            for (int i=0; i<2; i++) {
-
-                for (int j=0; j<3; j++) {
-
-                    // d1
-                    dd_dvij[0][i][j][0] = hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
-                        - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
-                    
-                    dd_dvij[0][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
-                        + (dq_dvij[i][j].mult(hatq))[2]*hatq[3] + hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
-
-                    dd_dvij[0][i][j][2] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
-                        - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
-
-                    // d2
-                    dd_dvij[1][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[1] + hatq[0]*(dq_dvij[i][j].mult(hatq))[1]
-                        - (dq_dvij[i][j].mult(hatq))[2]*hatq[3] - hatq[2]*(dq_dvij[i][j].mult(hatq))[3];
-
-                    dd_dvij[1][i][j][1] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] + hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
-                        - hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
-                    
-                    dd_dvij[1][i][j][2] = (dq_dvij[i][j].mult(hatq))[1]*hatq[2] + hatq[1]*(dq_dvij[i][j].mult(hatq))[2]
-                        - (dq_dvij[i][j].mult(hatq))[0]*hatq[3] - hatq[0]*(dq_dvij[i][j].mult(hatq))[3];
-
-                    // d3
-                    dd_dvij[2][i][j][0] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
-                        + (dq_dvij[i][j].mult(hatq))[1]*hatq[3] + hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
-
-                    dd_dvij[2][i][j][1] = (dq_dvij[i][j].mult(hatq))[0]*hatq[2] + hatq[0]*(dq_dvij[i][j].mult(hatq))[2]
-                        - (dq_dvij[i][j].mult(hatq))[1]*hatq[3] - hatq[1]*(dq_dvij[i][j].mult(hatq))[3];
-
-                    dd_dvij[2][i][j][2] = - hatq[0]*(dq_dvij[i][j].mult(hatq))[0] - hatq[1]*(dq_dvij[i][j].mult(hatq))[1] 
-                        + hatq[2]*(dq_dvij[i][j].mult(hatq))[2] + hatq[3]*(dq_dvij[i][j].mult(hatq))[3];
-                    
-
-                    dd_dvij[0][i][j] *= 2;
-                    dd_dvij[1][i][j] *= 2;
-                    dd_dvij[2][i][j] *= 2;
-
-                }
-
-            }
+            // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
+            FixedArray<FixedArray<FixedArray<FieldVector<double,3>, 3>, 2>, 3> dd_dvij;
+            getFirstDerivativesOfDirectors(hatq, dd_dvij, dq_dvij);
 
             // /////////////////////////////////////////////
             //   Sum it all up
