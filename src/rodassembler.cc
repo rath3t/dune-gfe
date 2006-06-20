@@ -79,12 +79,10 @@ assembleMatrix(const std::vector<Configuration>& sol,
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) { 
             
-            //int row = functionSpace_.mapToGlobal( *it , i );
             int row = indexSet.template subIndex<gridDim>(*it,i);
 
             for (int j=0; j<numOfBaseFct; j++ ) {
                 
-                //int col = functionSpace_.mapToGlobal( *it , j );    
                 int col = indexSet.template subIndex<gridDim>(*it,j);
                 matrix[row][col] += mat[i][j];
                 
@@ -274,7 +272,7 @@ getLocalMatrix( EntityType &entity,
         FixedArray<FixedArray<FixedArray<FieldVector<double,3>, 3>, 2>, 3> dd_dvij;
         getFirstDerivativesOfDirectors(hatq, dd_dvij, dq_dvij);
 
-        // Contains \parder dm \parder v^i_j
+        // Contains \parder {dm}{v^i_j}{v^k_l}
         FieldVector<double,3> dd_dvij_dvkl[3][2][3][2][3];
         
         for (int i=0; i<2; i++) {
@@ -328,17 +326,43 @@ getLocalMatrix( EntityType &entity,
         
         // The Darboux vector
         FieldVector<double,3> u = darboux(hatq, hatq_s);
+        FieldVector<double,3> darbouxCan = darbouxCanonical(hatq, hatq_s);
 
-        // Contains \partial q / \partial v^i_j  at v = 0
-        double dum_dvij[3][2][3];
+        // Contains \partial u (canonical) / \partial v^i_j  at v = 0
+        FieldVector<double,3> duCan_dvij[2][3];
+        FieldVector<double,3> duLocal_dvij[2][3];
+        FieldVector<double,3> duCan_dvij_dvkl[2][3][2][3];
 
-        for (int i=0; i<2; i++)
+        for (int i=0; i<2; i++) {
+
             for (int j=0; j<3; j++) {
                 
-                for (int m=0; m<3; m++) 
-                    dum_dvij[m][i][j] = B(m, dq_dvij[i][j].mult(hatq))*hatq_s + B(m,hatq)*(dq_dvij_ds[i][j].mult(hatq));
+                for (int m=0; m<3; m++) {
+                    duCan_dvij[i][j][m]  = 2*(B(m, dq_dvij[i][j].mult(hatq))*hatq_s);
+                    duCan_dvij[i][j][m] += 2*(B(m,hatq)*(dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
+                }
+
+                // Don't fuse the two loops, we need the complete duCan_dvij[i][j]
+                for (int m=0; m<3; m++)
+                    duLocal_dvij[i][j][m] = duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvij[m][i][j];
+
+                for (int k=0; k<2; k++) {
+
+                    for (int l=0; l<3; l++) {
+
+                        for (int m=0; m<3; m++)
+                            duCan_dvij_dvkl[i][j][k][l] = 2 * (B(m,dq_dvij_dvkl[i][j][k][l].mult(hatq)) * hatq_s)
+                                + 2 * (B(m,dq_dvij[i][j].mult(hatq)) * (dq_dvij_ds[k][l].mult(hatq) + dq_dvij[k][l].mult(hatq_s)))
+                                + 2 * (B(m,dq_dvij[k][l].mult(hatq)) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)))
+                                + 2 * (B(m,hatq) * (dq_dvij_dvkl_ds[i][j][k][l].mult(hatq) + dq_dvij_dvkl[i][j][k][l].mult(hatq_s)));
+
+                    }
+
+                }
                 
             }
+
+        }
 
         // ///////////////////////////////////
         //   Sum it all up
@@ -370,7 +394,9 @@ getLocalMatrix( EntityType &entity,
                                + A3 * shapeGrad[k]*hatq.director(2)[l]*(r_s*dd_dvij[2][i][j])
                                + A3 * (r_s*hatq.director(2)-1) * shapeGrad[k] * dd_dvij[2][i][j][l]);
 
-                        localMat[i][k][j+3][l] = localMat[i][k][j][l+3];
+                        // This is programmed stupidly.  To ensure the equality it is enough to make
+                        // the following assignment once and not for each quadrature point
+                        localMat[k][i][l+3][j] = localMat[i][k][j][l+3];
 
                         // \partial W^2 \partial v^i_j \partial v^k_l
                         localMat[i][k][j+3][l+3] += weight
@@ -391,21 +417,14 @@ getLocalMatrix( EntityType &entity,
                         // All other derivatives are zero
                         for (int m=0; m<3; m++) {
 
-                            double sum = dum_dvij[m][k][l] * (B(m,dq_dvij[i][j].mult(hatq)) * hatq_s);
+                            double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvij[m][i][j]);
                             
-                            sum += dum_dvij[m][k][l] * (B(m,hatq)*(dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
-
-                            sum += u[m] * (B(m, dq_dvij_dvkl[i][j][k][l].mult(hatq)) * hatq_s);
-
-                            sum += u[m] * (B(m, dq_dvij[i][j].mult(hatq)) * dq_dvij_ds[k][l].mult(hatq));
-
-                            sum += u[m] * (B(m, dq_dvij[k][l].mult(hatq)) * 
-                                           (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
-
-                            sum += u[m] * (B(m, hatq) * 
-                                           (dq_dvij_dvkl_ds[i][j][k][l].mult(hatq) + (dq_dvij_dvkl[i][j][k][l].mult(hatq_s))));
-                            
-                            localMat[i][k][j+3][l+3] += 2*weight *K[m] * sum;
+                            sum += u[m] * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
+                                                 + duCan_dvij[i][j] * dd_dvij[m][k][l]
+                                                 + duCan_dvij[k][l] * dd_dvij[m][i][j]
+                                                 + darbouxCan * dd_dvij_dvkl[m][i][j][k][l]);
+                       
+                            localMat[i][k][j+3][l+3] += weight *K[m] * sum;
 
                         }
 
@@ -535,13 +554,14 @@ assembleGradient(const std::vector<Configuration>& sol,
             FixedArray<FixedArray<FixedArray<FieldVector<double,3>, 3>, 2>, 3> dd_dvij;
             getFirstDerivativesOfDirectors(hatq, dd_dvij, dq_dvij);
 
+            
             // /////////////////////////////////////////////
             //   Sum it all up
             // /////////////////////////////////////////////
 
-            for (int dof=0; dof<numOfBaseFct; dof++) {
+            for (int i=0; i<numOfBaseFct; i++) {
 
-                int globalDof = indexSet.template subIndex<gridDim>(*it,dof);
+                int globalDof = indexSet.template subIndex<gridDim>(*it,i);
 
                 // /////////////////////////////////////////////
                 //   The translational part
@@ -551,9 +571,9 @@ assembleGradient(const std::vector<Configuration>& sol,
                 for (int j=0; j<3; j++) {
 
                     grad[globalDof][j] += weight 
-                        * ((A1 * (r_s*hatq.director(0)) * shapeGrad[dof] * hatq.director(0)[j])
-                           + (A2 * (r_s*hatq.director(1)) * shapeGrad[dof] * hatq.director(1)[j])
-                           + (A3 * (r_s*hatq.director(2) - 1) * shapeGrad[dof] * hatq.director(2)[j]));
+                        * ((A1 * (r_s*hatq.director(0)) * shapeGrad[i] * hatq.director(0)[j])
+                           + (A2 * (r_s*hatq.director(1)) * shapeGrad[i] * hatq.director(1)[j])
+                           + (A3 * (r_s*hatq.director(2) - 1) * shapeGrad[i] * hatq.director(2)[j]));
 
                 }
 
@@ -561,9 +581,9 @@ assembleGradient(const std::vector<Configuration>& sol,
                 for (int j=0; j<3; j++) {
 
                     grad[globalDof][3+j] += weight 
-                        * ((A1 * (r_s*hatq.director(0)) * (r_s*dd_dvij[0][dof][j]))
-                           + (A2 * (r_s*hatq.director(1)) * (r_s*dd_dvij[1][dof][j]))
-                           + (A3 * (r_s*hatq.director(2) - 1) * (r_s*dd_dvij[2][dof][j])));
+                        * ((A1 * (r_s*hatq.director(0)) * (r_s*dd_dvij[0][i][j]))
+                           + (A2 * (r_s*hatq.director(1)) * (r_s*dd_dvij[1][i][j]))
+                           + (A3 * (r_s*hatq.director(2) - 1) * (r_s*dd_dvij[2][i][j])));
 
                 }
 
@@ -577,10 +597,18 @@ assembleGradient(const std::vector<Configuration>& sol,
                 // \partial \bar{W}_v / \partial v^i_j
                 for (int j=0; j<3; j++) {
 
+                    FieldVector<double,3> du_dvij;
+                    for (int m=0; m<3; m++) {
+                        du_dvij[m] = B(m, dq_dvij[i][j].mult(hatq)) * hatq_s;
+                        du_dvij[m] += B(m, hatq) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s));
+                    }
+                    du_dvij *= 2;
+
+                    FieldVector<double,3> darbouxCan = darbouxCanonical(hatq, hatq_s);
                     for (int m=0; m<3; m++) {
 
-                        double addend1 = B(m,(dq_dvij[dof][j].mult(hatq))) * hatq_s;
-                        double addend2 = B(m,hatq) * (dq_dvij_ds[dof][j].mult(hatq) + dq_dvij[dof][j].mult(hatq_s));
+                        double addend1 = du_dvij * hatq.director(m);
+                        double addend2 = darbouxCan * dd_dvij[m][i][j];
 
                         grad[globalDof][3+j] += 2*weight*K[m]*u[m] * (addend1 + addend2);
 
@@ -682,19 +710,12 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
             // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
             q.normalize();
-            
-            // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-            Quaternion<double> q_s;
-            q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
-            q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
-            q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
-            q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
 
             // /////////////////////////////////////////////
             //   Sum it all up
+            // Part I: the shearing and stretching energy
             // /////////////////////////////////////////////
 
-            // Part I: the shearing and stretching energy
             //std::cout << "tangent : " << r_s << std::endl;
             FieldVector<double,3> v;
             v[0] = r_s * q.director(0);    // shear strain
@@ -703,13 +724,6 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
             energy += weight * 0.5 * (A1*v[0]*v[0] + A2*v[1]*v[1] + A3*(v[2]-1)*(v[2]-1));
 
-#if 0
-            // Part II: the bending and twisting energy
-            
-            FieldVector<double,3> u = darboux(q, q_s);  // The Darboux vector
-
-            energy += weight * 0.5 * (K1*u[0]*u[0] + K2*u[1]*u[1] + K3*u[2]*u[2]);
-#endif
         }
 
         // Get quadrature rule
@@ -751,11 +765,6 @@ computeEnergy(const std::vector<Configuration>& sol) const
             //   Interpolate
             // //////////////////////////////////
 
-            FieldVector<double,3> r_s;
-            r_s[0] = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
-            r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
-            r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
-
             // Get the rotation at the quadrature point by interpolating in $H$ and normalizing
             Quaternion<double> q;
             q[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
@@ -776,18 +785,6 @@ computeEnergy(const std::vector<Configuration>& sol) const
             // /////////////////////////////////////////////
             //   Sum it all up
             // /////////////////////////////////////////////
-#if 0
-            // Part I: the shearing and stretching energy
-            //std::cout << "tangent : " << r_s << std::endl;
-            FieldVector<double,3> v;
-            v[0] = r_s * q.director(0);    // shear strain
-            v[1] = r_s * q.director(1);    // shear strain
-            v[2] = r_s * q.director(2);    // stretching strain
-
-            //std::cout << "strain : " << v << std::endl;
-
-            energy += weight * 0.5*A1*v[0]*v[0] + 0.5*A2*v[1]*v[1] + 0.5*A3*(v[2]-1)*(v[2]-1);
-#endif
             // Part II: the bending and twisting energy
             
             FieldVector<double,3> u = darboux(q, q_s);  // The Darboux vector
