@@ -534,7 +534,6 @@ assembleGradient(const std::vector<Configuration>& sol,
             FieldVector<double,3> u = darboux(hatq, hatq_s);
 
             // Contains \partial q / \partial v^i_j  at v = 0
-            //Quaternion<double> dq_dvij[2][3];
             FixedArray<FixedArray<Quaternion<double>,3>,2> dq_dvij;
 
             Quaternion<double> dq_dvij_ds[2][3];
@@ -610,7 +609,7 @@ assembleGradient(const std::vector<Configuration>& sol,
                         double addend1 = du_dvij * hatq.director(m);
                         double addend2 = darbouxCan * dd_dvij[m][i][j];
 
-                        grad[globalDof][3+j] += 2*weight*K[m]*u[m] * (addend1 + addend2);
+                        grad[globalDof][3+j] += weight*K[m]*u[m] * (addend1 + addend2);
 
                     }
 
