@@ -28,11 +28,12 @@ public:
         Quaternion<T> q;
 
         T normV = std::sqrt(v0*v0 + v1*v1 + v2*v2);
-        T sin   = std::sin(normV/2)/normV;
+
+        // Stabilization for small |v| due Grassia
+        T sin   = (normV < 1e-4) ? 0.5 * (normV*normV/48) : std::sin(normV/2)/normV;
 
         // if normV == 0 then q = (0,0,0,1)
-        if (isnan(sin))
-            sin = 0;
+        assert(!isnan(sin));
             
         q[0] = sin * v0;
         q[1] = sin * v1;
