@@ -15,4 +15,11 @@ struct Configuration
 
 };
 
+//! Send configuration to output stream
+std::ostream& operator<< (std::ostream& s, const Configuration& c)
+  {
+      s << "(" << c.r << ")  (" << c.q << ")";
+      return s;
+  }
+
 #endif
