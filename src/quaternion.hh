@@ -9,8 +9,21 @@ class Quaternion : public Dune::FieldVector<T,4>
 {
 public:
 
+    /** \brief Default constructor */
     Quaternion() {}
+
+    /** \brief Copy constructor */
     Quaternion(const Dune::FieldVector<T,4>& other) : Dune::FieldVector<T,4>(other) {}
+
+    /** \brief Constructor with rotation axis and angle */
+    Quaternion(Dune::FieldVector<T,3> axis, T angle) {
+        axis /= axis.two_norm();
+        axis *= std::sin(angle/2);
+        (*this)[0] = axis[0];
+        (*this)[1] = axis[1];
+        (*this)[2] = axis[2];
+        (*this)[3] = std::cos(angle/2);
+    }
 
     /** \brief Return the identity element */
     static Quaternion<T> identity() {
@@ -83,6 +96,32 @@ public:
     /** \brief Turn quaternion into a unit quaternion by dividing by its Euclidean norm */
     void normalize() {
         (*this) /= this->two_norm();
+    }
+
+    Dune::FieldVector<double,3> rotate(const Dune::FieldVector<double,3>& v) const {
+
+        Dune::FieldVector<double,3> result;
+        Dune::FieldVector<double,3> d0 = director(0);
+        Dune::FieldVector<double,3> d1 = director(1);
+        Dune::FieldVector<double,3> d2 = director(2);
+
+        for (int i=0; i<3; i++)
+            result[i] = v[0]*d0[i] + v[1]*d1[i] + v[2]*d2[i];
+
+        return result;
+    }
+
+    /** \brief Interpolate between two rotations */
+    static Quaternion<T> interpolate(const Quaternion<T>& a, const Quaternion<T>& b, double omega) {
+
+        Quaternion<T> result;
+
+        for (int i=0; i<4; i++)
+            result[i] = a[i]*(1-omega) + b[i]*omega;
+
+        result.normalize();
+
+        return result;
     }
 
 };
