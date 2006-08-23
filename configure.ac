@@ -8,14 +8,15 @@ AC_CONFIG_SRCDIR([staticrod.cc])
 AM_CONFIG_HEADER([config.h])
 
 # we need no more than the standard DUNE-stuff
-DUNE_CHECK_ALL([dunecommon], [dunegrid], [duneistl], [dunedisc])
+DUNE_CHECK_ALL([dune-common], [dune-grid], [dune-istl], [dune-disc])
 
 # implicitly set the Dune-flags everywhere
 AC_SUBST(AM_CPPFLAGS, $DUNE_CPPFLAGS)
 AC_SUBST(AM_LDFLAGS, $DUNE_LDFLAGS)
 LIBS="$DUNE_LIBS"
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+                 test/Makefile])
 AC_OUTPUT
 
 # finally print the summary information
