@@ -103,7 +103,6 @@ getFirstDerivativesOfDirectors(const Quaternion<double>& q,
 {
  
     // Contains \parder d \parder v^i_j
-    //FieldVector<double,3> dd_dvij[3][2][3];
     
     for (int i=0; i<2; i++) {
         
@@ -218,14 +217,8 @@ getLocalMatrix( EntityType &entity,
         r_s[1] = localSolution[0].r[1]*shapeGrad[0] + localSolution[1].r[1]*shapeGrad[1];
         r_s[2] = localSolution[0].r[2]*shapeGrad[0] + localSolution[1].r[2]*shapeGrad[1];
 
-        // Interpolate current rotation at this quadrature point and normalize
-        // to get a unit quaternion again
-        Quaternion<double> hatq;
-        hatq[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
-        hatq[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
-        hatq[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
-        hatq[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
-        hatq.normalize();
+        // Interpolate current rotation at this quadrature point
+        Quaternion<double> hatq = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
         // Contains \partial q / \partial v^i_j  at v = 0
         FixedArray<FixedArray<Quaternion<double>,3>,2> dq_dvij;
@@ -514,14 +507,8 @@ assembleGradient(const std::vector<Configuration>& sol,
             r_s[1] = localSolution[0].r[1]*shapeGrad[0] + localSolution[1].r[1]*shapeGrad[1];
             r_s[2] = localSolution[0].r[2]*shapeGrad[0] + localSolution[1].r[2]*shapeGrad[1];
 
-            // Interpolate current rotation at this quadrature point and normalize
-            // to get a unit quaternion again
-            Quaternion<double> hatq;
-            hatq[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
-            hatq[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
-            hatq[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
-            hatq[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
-            hatq.normalize();
+            // Interpolate current rotation at this quadrature point
+            Quaternion<double> hatq = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
             // Get the derivative of the rotation at the quadrature point by interpolating in $H$
             Quaternion<double> hatq_s;
@@ -584,6 +571,12 @@ assembleGradient(const std::vector<Configuration>& sol,
                            + (A2 * (r_s*hatq.director(1)) * (r_s*dd_dvij[1][i][j]))
                            + (A3 * (r_s*hatq.director(2) - 1) * (r_s*dd_dvij[2][i][j])));
 
+//                     if (globalDof==1) {
+//                         printf("directorder:\n");
+//                         std::cout << dd_dvij[0][i][j] << std::endl <<  dd_dvij[1][i][j] << std::endl << dd_dvij[2][i][j] << std::endl;
+//                         printf("i %d  j %d   ", i, j);
+//                         std::cout << grad[globalDof] << std::endl;
+//                     }
                 }
 
                 // /////////////////////////////////////////////
@@ -700,15 +693,8 @@ computeEnergy(const std::vector<Configuration>& sol) const
             r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
             r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
 
-            // Get the rotation at the quadrature point by interpolating in $H$ and normalizing
-            Quaternion<double> q;
-            q[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
-            q[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
-            q[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
-            q[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
-
-            // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
-            q.normalize();
+            // Interpolate the rotation at the quadrature point
+            Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
             // /////////////////////////////////////////////
             //   Sum it all up
@@ -774,6 +760,8 @@ computeEnergy(const std::vector<Configuration>& sol) const
             // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
             q.normalize();
             
+            assert((q-Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0])).infinity_norm() < 1e-6);
+
             // Get the derivative of the rotation at the quadrature point by interpolating in $H$
             Quaternion<double> q_s;
             q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
@@ -879,16 +867,9 @@ getStrain(const std::vector<Configuration>& sol,
             r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
             r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
 
-            // Get the rotation at the quadrature point by interpolating in $H$ and normalizing
-            Quaternion<double> q;
-            q[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
-            q[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
-            q[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
-            q[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
+            // Interpolate the rotation at the quadrature point
+            Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
-            // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
-            q.normalize();
-            
             // Get the derivative of the rotation at the quadrature point by interpolating in $H$
             Quaternion<double> q_s;
             q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
