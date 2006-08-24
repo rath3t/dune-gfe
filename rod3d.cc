@@ -15,7 +15,6 @@
 #include "../solver/iterativesolver.hh"
 
 #include "../common/geomestimator.hh"
-#include "../common/refinegrid.hh"
 #include "../common/energynorm.hh"
 
 #include <dune/common/configparser.hh>
@@ -88,7 +87,7 @@ int main (int argc, char *argv[]) try
 
     Array<SimpleVector<BoxConstraint<blocksize> > > trustRegionObstacles(1);
     Array<BitField> hasObstacle(1);
-    Array<BitField> dirichletNodes(1);
+    std::vector<BitField> dirichletNodes(1);
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -148,14 +147,13 @@ int main (int argc, char *argv[]) try
         x[i].q = Quaternion<double>::identity();
     }
 
-    x[x.size()-1].r[0] = 0;
-    x[x.size()-1].r[1] = 0.1;
-    x[x.size()-1].r[2] = 0;
-#if 0
-    x[x.size()-1].q[0] = 0;
-    x[x.size()-1].q[1] = 0;
-    x[x.size()-1].q[2] = 1/sqrt(2);
-    x[x.size()-1].q[3] = 1/sqrt(2);
+//     x[x.size()-1].r[0] = 0;
+//     x[x.size()-1].r[1] = 0;
+//     x[x.size()-1].r[2] = 0;
+#if 1
+    FieldVector<double,3>  zAxis(0);
+    zAxis[2] = 1;
+    x[x.size()-1].q = Quaternion<double>(zAxis, M_PI);
 #endif
 
     std::cout << "Left boundary orientation:" << std::endl;
