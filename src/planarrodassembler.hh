@@ -1,10 +1,11 @@
 #ifndef DUNE_PLANAR_ROD_ASSEMBLER_HH
 #define DUNE_PLANAR_ROD_ASSEMBLER_HH
 
-#include <dune/istl/bcrsmatrix.hh>
 #include <dune/common/fmatrix.hh>
+
+#include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
-#include <dune/common/matrix.hh>
+#include <dune/istl/matrix.hh>
 
 namespace Dune 
 {
