@@ -95,12 +95,12 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
 
-    IterativeSolver<MatrixType, CorrectionType>* baseSolver = new IterativeSolver<MatrixType, CorrectionType>;
-    baseSolver->iterationStep = baseSolverStep;
-    baseSolver->numIt = baseIt_;
-    baseSolver->verbosity_ = Solver::QUIET;
-    baseSolver->errorNorm_ = baseEnergyNorm;
-    baseSolver->tolerance_ = baseTolerance_;
+    IterativeSolver<MatrixType, CorrectionType>* baseSolver 
+        = new IterativeSolver<MatrixType, CorrectionType>(baseSolverStep,
+                                                          baseIt_,
+                                                          baseTolerance_,
+                                                          baseEnergyNorm,
+                                                          Solver::QUIET);
 
     // Make pre and postsmoothers
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -121,12 +121,11 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     EnergyNorm<MatrixType, CorrectionType>* energyNorm = new EnergyNorm<MatrixType, CorrectionType>(*mmgStep);
 
-    mmgSolver_ = new IterativeSolver<MatrixType, CorrectionType>;
-    mmgSolver_->iterationStep = mmgStep;
-    mmgSolver_->numIt         = multigridIterations_;
-    mmgSolver_->verbosity_    = Solver::FULL;
-    mmgSolver_->errorNorm_    = energyNorm;
-    mmgSolver_->tolerance_    = qpTolerance_;
+    mmgSolver_ = new IterativeSolver<MatrixType, CorrectionType>(mmgStep,
+                                                                 multigridIterations_,
+                                                                 qpTolerance_,
+                                                                 energyNorm,
+                                                                 Solver::FULL);
 
     // ////////////////////////////////////////////////////////////
     //    Create Hessian matrix and its occupation structure
@@ -201,11 +200,11 @@ void RodSolver<GridType>::solve()
         setTrustRegionObstacles(trustRegionRadius,
                                 trustRegionObstacles_[grid_->maxLevel()]);
         
-        dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep)->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
+        dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
         
         mmgSolver_->preprocess();
         
-        dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep)->preprocess();
+        dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->preprocess();
         
         
         // /////////////////////////////
@@ -213,12 +212,12 @@ void RodSolver<GridType>::solve()
         // /////////////////////////////
         mmgSolver_->solve();
         
-        corr = dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep)->getSol();
+        corr = dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->getSol();
         
         std::cout << "Correction: " << std::endl << corr << std::endl;
         
         printf("infinity norm of the correction: %g\n", corr.infinity_norm());
-        if (corr.infinity_norm() < 1e-10) {
+        if (corr.infinity_norm() < 1e-7) {
             std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
             break;
         }
@@ -267,8 +266,8 @@ void RodSolver<GridType>::solve()
         
         if (energy >= oldEnergy) {
             printf("Richtung ist keine Abstiegsrichtung!\n");
-            //                  std::cout << "corr[0]\n" << corr[0] << std::endl;
-            //exit(0);
+//             std::cout << "old energy: " << oldEnergy << "   new energy: " << energy << std::endl;
+//             exit(0);
         }
         
         // //////////////////////////////////////////////
