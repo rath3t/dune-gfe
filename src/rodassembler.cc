@@ -45,7 +45,7 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
 template <class GridType>
 void Dune::RodAssembler<GridType>::
 assembleMatrix(const std::vector<Configuration>& sol,
-               BCRSMatrix<MatrixBlock>& matrix)
+               BCRSMatrix<MatrixBlock>& matrix) const
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
 
@@ -65,7 +65,7 @@ assembleMatrix(const std::vector<Configuration>& sol,
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         const int numOfBaseFct = baseSet.size();  
         
-        mat.resize(numOfBaseFct, numOfBaseFct);
+        mat.setSize(numOfBaseFct, numOfBaseFct);
 
         // Extract local solution
         std::vector<Configuration> localSolution(numOfBaseFct);
@@ -74,7 +74,7 @@ assembleMatrix(const std::vector<Configuration>& sol,
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
         // setup matrix 
-        getLocalMatrix( *it, localSolution, numOfBaseFct, mat);
+        getLocalMatrix( it, localSolution, sol, numOfBaseFct, mat);
         
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) { 
@@ -153,8 +153,9 @@ getFirstDerivativesOfDirectors(const Quaternion<double>& q,
 template <class GridType>
 template <class MatrixType>
 void Dune::RodAssembler<GridType>::
-getLocalMatrix( EntityType &entity, 
+getLocalMatrix( EntityPointer &entity, 
                 const std::vector<Configuration>& localSolution,
+                const std::vector<Configuration>& globalSolution,
                 const int matSize, MatrixType& localMat) const
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -167,11 +168,11 @@ getLocalMatrix( EntityType &entity,
             localMat[i][j] = 0;
     
     const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(entity.geometry().type(), elementOrder);
+        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(entity->geometry().type(), elementOrder);
 
     // Get quadrature rule
     int polOrd = 2;
-    const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(entity.geometry().type(), polOrd);
+    const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(entity->geometry().type(), polOrd);
     
     /* Loop over all integration points */
     for (int ip=0; ip<quad.size(); ip++) {
@@ -180,8 +181,8 @@ getLocalMatrix( EntityType &entity,
         const FieldVector<double,gridDim>& quadPos = quad[ip].position();
 
         // calc Jacobian inverse before integration element is evaluated 
-        const FieldMatrix<double,gridDim,gridDim>& inv = entity.geometry().jacobianInverseTransposed(quadPos);
-        const double integrationElement = entity.geometry().integrationElement(quadPos);
+        const FieldMatrix<double,gridDim,gridDim>& inv = entity->geometry().jacobianInverseTransposed(quadPos);
+        const double integrationElement = entity->geometry().integrationElement(quadPos);
         
         /* Compute the weight of the current integration point */
         double weight = quad[ip].weight() * integrationElement;
@@ -190,16 +191,16 @@ getLocalMatrix( EntityType &entity,
         /* compute gradients of the shape functions   */
         /**********************************************/
         FieldVector<double,gridDim> shapeGrad[ndof];
+        FieldVector<double,gridDim> tmp;
         
         for (int dof=0; dof<ndof; dof++) {
             
             for (int i=0; i<gridDim; i++)
-                shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
+                tmp[i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
             
             // multiply with jacobian inverse 
-            FieldVector<double,gridDim> tmp(0);
-            inv.umv(shapeGrad[dof], tmp);
-            shapeGrad[dof] = tmp;
+            shapeGrad[dof] = 0;
+            inv.umv(tmp,shapeGrad[dof]);
 
         }
         
@@ -318,8 +319,14 @@ getLocalMatrix( EntityType &entity,
         hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
         
         // The Darboux vector
-        FieldVector<double,3> u = darboux(hatq, hatq_s);
+        //FieldVector<double,3> u = darboux(hatq, hatq_s);
         FieldVector<double,3> darbouxCan = darbouxCanonical(hatq, hatq_s);
+
+        // The current strain
+        FieldVector<double,blocksize> strain = getStrain(globalSolution, entity, quadPos);
+        
+        // The reference strain
+        FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, entity, quadPos);
 
         // Contains \partial u (canonical) / \partial v^i_j  at v = 0
         FieldVector<double,3> duCan_dvij[2][3];
@@ -368,56 +375,46 @@ getLocalMatrix( EntityType &entity,
 
                     for (int l=0; l<3; l++) {
 
-                        // ////////////////////////////////////////////
-                        //   The translational part
-                        // ////////////////////////////////////////////
-                        
-                        // \partial W^2 \partial r^i_j \partial r^k_l
-                        localMat[i][k][j][l] += weight 
-                            * ( A1 * shapeGrad[i] * hatq.director(0)[j] * shapeGrad[k] * hatq.director(0)[l]
-                                + A2 * shapeGrad[i] * hatq.director(1)[j] * shapeGrad[k] * hatq.director(1)[l]
-                                + A3 * shapeGrad[i] * hatq.director(2)[j] * shapeGrad[k] * hatq.director(2)[l]);
-
-                        // \partial W^2 \partial v^i_j \partial r^k_l
-                        localMat[i][k][j][l+3] += weight
-                            * (A1 * shapeGrad[k]*hatq.director(0)[l]*(r_s*dd_dvij[0][i][j])
-                               + A1 * (r_s*hatq.director(0)) * shapeGrad[k] * dd_dvij[0][i][j][l]
-                               + A2 * shapeGrad[k]*hatq.director(1)[l]*(r_s*dd_dvij[1][i][j])
-                               + A2 * (r_s*hatq.director(1)) * shapeGrad[k] * dd_dvij[1][i][j][l]
-                               + A3 * shapeGrad[k]*hatq.director(2)[l]*(r_s*dd_dvij[2][i][j])
-                               + A3 * (r_s*hatq.director(2)-1) * shapeGrad[k] * dd_dvij[2][i][j][l]);
-
-                        // This is programmed stupidly.  To ensure the equality it is enough to make
-                        // the following assignment once and not for each quadrature point
-                        localMat[k][i][l+3][j] = localMat[i][k][j][l+3];
-
-                        // \partial W^2 \partial v^i_j \partial v^k_l
-                        localMat[i][k][j+3][l+3] += weight
-                            * (A1 * (r_s * dd_dvij[0][k][l]) * (r_s * dd_dvij[0][i][j])
-                               + A1 * (r_s * hatq.director(0)) * (r_s * dd_dvij_dvkl[0][i][j][k][l])
-                               + A2 * (r_s * dd_dvij[1][k][l]) * (r_s * dd_dvij[1][i][j])
-                               + A2 * (r_s * hatq.director(1)) * (r_s * dd_dvij_dvkl[1][i][j][k][l])
-                               + A3 * (r_s * dd_dvij[2][k][l]) * (r_s * dd_dvij[2][i][j])
-                               + A3 * (r_s * hatq.director(2)) * (r_s * dd_dvij_dvkl[2][i][j][k][l]));
-
-                        // ////////////////////////////////////////////
-                        //   The rotational part
-                        // ////////////////////////////////////////////
-                        // Stupid: I want those as an array
-                        double K[3] = {K1, K2, K3};
-
-                        // \partial W^2 \partial v^i_j \partial v^k_l
-                        // All other derivatives are zero
                         for (int m=0; m<3; m++) {
+
+                            // ////////////////////////////////////////////
+                            //   The translational part
+                            // ////////////////////////////////////////////
+                        
+                            // \partial W^2 \partial r^i_j \partial r^k_l
+                            localMat[i][k][j][l] += weight 
+                                * A_[m] * shapeGrad[i] * hatq.director(m)[j] * shapeGrad[k] * hatq.director(m)[l];
+
+                            // \partial W^2 \partial v^i_j \partial r^k_l
+                            localMat[i][k][j][l+3] += weight
+                                * ( A_[m] * shapeGrad[k]*hatq.director(m)[l]*(r_s*dd_dvij[m][i][j])
+                                    + A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[k] * dd_dvij[m][i][j][l]);
+
+                            // This is programmed stupidly.  To ensure the symmetry it is enough to make
+                            // the following assignment once and not for each quadrature point
+                            localMat[k][i][l+3][j] = localMat[i][k][j][l+3];
+
+                            // \partial W^2 \partial v^i_j \partial v^k_l
+                            localMat[i][k][j+3][l+3] += weight
+                                * (  A_[m] * (r_s * dd_dvij[m][k][l]) * (r_s * dd_dvij[m][i][j])
+                                     + A_[m] * (strain[m] - referenceStrain[m]) * (r_s * dd_dvij_dvkl[m][i][j][k][l]) );
+
+                            // ////////////////////////////////////////////
+                            //   The rotational part
+                            // ////////////////////////////////////////////
+                            
+                            // \partial W^2 \partial v^i_j \partial v^k_l
+                            // All other derivatives are zero
 
                             double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvij[m][i][j]);
                             
-                            sum += u[m] * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
+                            sum += strain[m+3] * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
                                                  + duCan_dvij[i][j] * dd_dvij[m][k][l]
                                                  + duCan_dvij[k][l] * dd_dvij[m][i][j]
                                                  + darbouxCan * dd_dvij_dvkl[m][i][j][k][l]);
                        
-                            localMat[i][k][j+3][l+3] += weight *K[m] * sum;
+#warning Reference strain missing here!
+                            localMat[i][k][j+3][l+3] += weight *K_[m] * sum;
 
                         }
 
@@ -517,8 +514,11 @@ assembleGradient(const std::vector<Configuration>& sol,
             hatq_s[2] = localSolution[0].q[2]*shapeGrad[0] + localSolution[1].q[2]*shapeGrad[1];
             hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
 
-            // The Darboux vector
-            FieldVector<double,3> u = darboux(hatq, hatq_s);
+            // The current strain
+            FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
+
+            // The reference strain
+            FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
             // Contains \partial q / \partial v^i_j  at v = 0
             FixedArray<FixedArray<Quaternion<double>,3>,2> dq_dvij;
@@ -557,9 +557,9 @@ assembleGradient(const std::vector<Configuration>& sol,
                 for (int j=0; j<3; j++) {
 
                     grad[globalDof][j] += weight 
-                        * ((A1 * (r_s*hatq.director(0)) * shapeGrad[i] * hatq.director(0)[j])
-                           + (A2 * (r_s*hatq.director(1)) * shapeGrad[i] * hatq.director(1)[j])
-                           + (A3 * (r_s*hatq.director(2) - 1) * shapeGrad[i] * hatq.director(2)[j]));
+                        * ((  A_[0] * (strain[0] - referenceStrain[0]) * shapeGrad[i] * hatq.director(0)[j])
+                           + (A_[1] * (strain[1] - referenceStrain[1]) * shapeGrad[i] * hatq.director(1)[j])
+                           + (A_[2] * (strain[2] - referenceStrain[2]) * shapeGrad[i] * hatq.director(2)[j]));
 
                 }
 
@@ -567,25 +567,16 @@ assembleGradient(const std::vector<Configuration>& sol,
                 for (int j=0; j<3; j++) {
 
                     grad[globalDof][3+j] += weight 
-                        * ((A1 * (r_s*hatq.director(0)) * (r_s*dd_dvij[0][i][j]))
-                           + (A2 * (r_s*hatq.director(1)) * (r_s*dd_dvij[1][i][j]))
-                           + (A3 * (r_s*hatq.director(2) - 1) * (r_s*dd_dvij[2][i][j])));
+                        * (  (A_[0] * (strain[0] - referenceStrain[0]) * (r_s*dd_dvij[0][i][j]))
+                           + (A_[1] * (strain[1] - referenceStrain[1]) * (r_s*dd_dvij[1][i][j]))
+                           + (A_[2] * (strain[2] - referenceStrain[2]) * (r_s*dd_dvij[2][i][j])));
 
-//                     if (globalDof==1) {
-//                         printf("directorder:\n");
-//                         std::cout << dd_dvij[0][i][j] << std::endl <<  dd_dvij[1][i][j] << std::endl << dd_dvij[2][i][j] << std::endl;
-//                         printf("i %d  j %d   ", i, j);
-//                         std::cout << grad[globalDof] << std::endl;
-//                     }
                 }
 
                 // /////////////////////////////////////////////
                 //   The rotational part
                 // /////////////////////////////////////////////
                 
-                // Stupid: I want those as an array
-                double K[3] = {K1, K2, K3};
-
                 // \partial \bar{W}_v / \partial v^i_j
                 for (int j=0; j<3; j++) {
 
@@ -602,7 +593,8 @@ assembleGradient(const std::vector<Configuration>& sol,
                         double addend1 = du_dvij * hatq.director(m);
                         double addend2 = darbouxCan * dd_dvij[m][i][j];
 
-                        grad[globalDof][3+j] += weight*K[m]*u[m] * (addend1 + addend2);
+#warning Reference strain missing here!
+                        grad[globalDof][3+j] += weight*K_[m]*strain[m+3] * (addend1 + addend2);
 
                     }
 
@@ -650,64 +642,25 @@ computeEnergy(const std::vector<Configuration>& sol) const
         //   formula, even though it should be second order.  This prevents shear-locking
         // ///////////////////////////////////////////////////////////////////////////////
         const int shearingPolOrd = 2;
-        const QuadratureRule<double, gridDim>& shearingQuad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), shearingPolOrd);
+        const QuadratureRule<double, gridDim>& shearingQuad 
+            = QuadratureRules<double, gridDim>::rule(it->geometry().type(), shearingPolOrd);
 
         for (int pt=0; pt<shearingQuad.size(); pt++) {
 
             // Local position of the quadrature point
             const FieldVector<double,gridDim>& quadPos = shearingQuad[pt].position();
             
-            const FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
             const double integrationElement = it->geometry().integrationElement(quadPos);
         
             double weight = shearingQuad[pt].weight() * integrationElement;
             
-            // ///////////////////////////////////////
-            //   Compute deformation gradient
-            // ///////////////////////////////////////
-            std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
-            
-            for (int dof=0; dof<numOfBaseFct; dof++) {
-                
-                for (int i=0; i<gridDim; i++)
-                    shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
-                
-                // multiply with jacobian inverse 
-                FieldVector<double,gridDim> tmp(0);
-                inv.umv(shapeGrad[dof], tmp);
-                shapeGrad[dof] = tmp;
+            FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
 
-            }
+            // The reference strain
+            FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
-            // Get the value of the shape functions
-            double shapeFunction[2];
-            for(int i=0; i<2; i++) 
-                shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
-
-            // //////////////////////////////////
-            //   Interpolate
-            // //////////////////////////////////
-
-            FieldVector<double,3> r_s;
-            r_s[0] = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
-            r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
-            r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
-
-            // Interpolate the rotation at the quadrature point
-            Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
-
-            // /////////////////////////////////////////////
-            //   Sum it all up
-            // Part I: the shearing and stretching energy
-            // /////////////////////////////////////////////
-
-            //std::cout << "tangent : " << r_s << std::endl;
-            FieldVector<double,3> v;
-            v[0] = r_s * q.director(0);    // shear strain
-            v[1] = r_s * q.director(1);    // shear strain
-            v[2] = r_s * q.director(2);    // stretching strain
-
-            energy += weight * 0.5 * (A1*v[0]*v[0] + A2*v[1]*v[1] + A3*(v[2]-1)*(v[2]-1));
+            for (int i=0; i<3; i++)
+                energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] * referenceStrain[i]);
 
         }
 
@@ -720,64 +673,16 @@ computeEnergy(const std::vector<Configuration>& sol) const
             // Local position of the quadrature point
             const FieldVector<double,gridDim>& quadPos = bendingQuad[pt].position();
             
-            const FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
-        
             double weight = bendingQuad[pt].weight() * it->geometry().integrationElement(quadPos);
             
-            // ///////////////////////////////////////
-            //   Compute deformation gradient
-            // ///////////////////////////////////////
-            std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
-            
-            for (int dof=0; dof<numOfBaseFct; dof++) {
-                
-                for (int i=0; i<gridDim; i++)
-                    shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
-                
-                // multiply with jacobian inverse 
-                FieldVector<double,gridDim> tmp(0);
-                inv.umv(shapeGrad[dof], tmp);
-                shapeGrad[dof] = tmp;
+            FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
 
-            }
+            // The reference strain
+            FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
-            // Get the value of the shape functions
-            double shapeFunction[2];
-            for(int i=0; i<2; i++) 
-                shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
-
-            // //////////////////////////////////
-            //   Interpolate
-            // //////////////////////////////////
-
-            // Get the rotation at the quadrature point by interpolating in $H$ and normalizing
-            Quaternion<double> q;
-            q[0] = localSolution[0].q[0]*shapeFunction[0] + localSolution[1].q[0]*shapeFunction[1];
-            q[1] = localSolution[0].q[1]*shapeFunction[0] + localSolution[1].q[1]*shapeFunction[1];
-            q[2] = localSolution[0].q[2]*shapeFunction[0] + localSolution[1].q[2]*shapeFunction[1];
-            q[3] = localSolution[0].q[3]*shapeFunction[0] + localSolution[1].q[3]*shapeFunction[1];
-
-            // The interpolated quaternion is not a unit quaternion anymore.  We simply normalize
-            q.normalize();
-            
-            assert((q-Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0])).infinity_norm() < 1e-6);
-
-            // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-            Quaternion<double> q_s;
-            q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
-            q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
-            q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
-            q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
-
-            // /////////////////////////////////////////////
-            //   Sum it all up
-            // /////////////////////////////////////////////
             // Part II: the bending and twisting energy
-            
-            FieldVector<double,3> u = darboux(q, q_s);  // The Darboux vector
-            //std::cout << "Darboux vector : " << u << std::endl;
-
-            energy += weight * 0.5 * (K1*u[0]*u[0] + K2*u[1]*u[1] + K3*u[2]*u[2]);
+            for (int i=0; i<3; i++)
+                energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] * referenceStrain[i+3]);
 
         }
 
@@ -828,79 +733,13 @@ getStrain(const std::vector<Configuration>& sol,
 
             // Local position of the quadrature point
             const FieldVector<double,gridDim>& quadPos = quad[pt].position();
+
+            double weight = quad[pt].weight() * it->geometry().integrationElement(quadPos);
+
+            FieldVector<double,blocksize> localStrain = getStrain(sol, it, quad[pt].position());
             
-            const FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
-            const double integrationElement = it->geometry().integrationElement(quadPos);
-        
-            double weight = quad[pt].weight() * integrationElement;
-            
-            // ///////////////////////////////////////
-            //   Compute deformation gradient
-            // ///////////////////////////////////////
-            std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
-            
-            for (int dof=0; dof<numOfBaseFct; dof++) {
-                
-                for (int i=0; i<gridDim; i++)
-                    shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
-                //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
-                
-                // multiply with jacobian inverse 
-                FieldVector<double,gridDim> tmp(0);
-                inv.umv(shapeGrad[dof], tmp);
-                shapeGrad[dof] = tmp;
-                //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
-
-            }
-
-            // Get the value of the shape functions
-            double shapeFunction[2];
-            for(int i=0; i<2; i++) 
-                shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
-
-            // //////////////////////////////////
-            //   Interpolate
-            // //////////////////////////////////
-
-            FieldVector<double,3> r_s;
-            r_s[0] = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
-            r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
-            r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
-
-            // Interpolate the rotation at the quadrature point
-            Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
-
-            // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-            Quaternion<double> q_s;
-            q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
-            q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
-            q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
-            q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
-
-            // /////////////////////////////////////////////
-            //   Sum it all up
-            // /////////////////////////////////////////////
-
-            // Part I: the shearing and stretching strain
-            //std::cout << "tangent : " << r_s << std::endl;
-            FieldVector<double,3> v;
-            v[0] = r_s * q.director(0);    // shear strain
-            v[1] = r_s * q.director(1);    // shear strain
-            v[2] = r_s * q.director(2);    // stretching strain
-
-            //std::cout << "strain : " << v << std::endl;
-
-            // Part II: the Darboux vector
-            
-            FieldVector<double,3> u = darboux(q, q_s);
-
             // Sum it all up
-            strain[elementIdx][0] += weight * v[0];
-            strain[elementIdx][1] += weight * v[1];
-            strain[elementIdx][2] += weight * v[2];
-            strain[elementIdx][3] += weight * u[0];
-            strain[elementIdx][4] += weight * u[1];
-            strain[elementIdx][5] += weight * u[2];
+            strain.axpy(weight, localStrain);
 
         }
 
@@ -914,4 +753,119 @@ getStrain(const std::vector<Configuration>& sol,
 
     }
 
+}
+
+template <class GridType>
+Dune::FieldVector<double, 6> Dune::RodAssembler<GridType>::getStrain(const std::vector<Configuration>& sol,
+                                                                       const EntityPointer& element,
+                                                                       double pos) const
+{
+    if (!element->isLeaf())
+        DUNE_THROW(Dune::NotImplemented, "Only for leaf elements");
+
+    const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
+
+    if (sol.size()!=indexSet.size(gridDim))
+        DUNE_THROW(Exception, "Configuration vector doesn't match the grid!");
+
+    // Strain defined on each element
+    FieldVector<double, blocksize> strain(0);
+
+    // Extract local solution on this element
+    const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
+        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(element->geometry().type(), elementOrder);
+    int numOfBaseFct = baseSet.size();
+    
+    Configuration localSolution[numOfBaseFct];
+    
+    for (int i=0; i<numOfBaseFct; i++)
+        localSolution[i] = sol[indexSet.template subIndex<gridDim>(*element,i)];
+    
+    const FieldMatrix<double,1,1>& inv = element->geometry().jacobianInverseTransposed(pos);
+    
+    // ///////////////////////////////////////
+    //   Compute deformation gradient
+    // ///////////////////////////////////////
+    FieldVector<double,gridDim> shapeGrad[numOfBaseFct];
+        
+    for (int dof=0; dof<numOfBaseFct; dof++) {
+            
+        for (int i=0; i<gridDim; i++)
+            shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,pos);
+        //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
+        
+        // multiply with jacobian inverse 
+        FieldVector<double,gridDim> tmp(0);
+        inv.umv(shapeGrad[dof], tmp);
+        shapeGrad[dof] = tmp;
+        //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
+        
+    }
+        
+    // //////////////////////////////////
+    //   Interpolate
+    // //////////////////////////////////
+        
+    FieldVector<double,3> r_s;
+    r_s[0] = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
+    r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
+    r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
+        
+    // Interpolate the rotation at the quadrature point
+    Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q, pos);
+        
+    // Get the derivative of the rotation at the quadrature point by interpolating in $H$
+    Quaternion<double> q_s;
+    q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
+    q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
+    q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
+    q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
+        
+    // /////////////////////////////////////////////
+    //   Sum it all up
+    // /////////////////////////////////////////////
+        
+    // Part I: the shearing and stretching strain
+    //std::cout << "tangent : " << r_s << std::endl;
+    strain[0] = r_s * q.director(0);    // shear strain
+    strain[1] = r_s * q.director(1);    // shear strain
+    strain[2] = r_s * q.director(2);    // stretching strain
+        
+    //std::cout << "strain : " << v << std::endl;
+        
+    // Part II: the Darboux vector
+        
+    FieldVector<double,3> u = darboux(q, q_s);
+    
+    strain[3] = u[0];
+    strain[4] = u[1];
+    strain[5] = u[2];
+
+    return strain;
+}
+
+template <class GridType>
+Dune::FieldVector<double,3> Dune::RodAssembler<GridType>::
+getResultantForce(const std::vector<Configuration>& sol) const
+{
+    const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
+
+    if (sol.size()!=indexSet.size(gridDim))
+        DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
+
+    // HARDWIRED: the leftmost point on the grid
+    EntityPointer leftElement = grid_->template leafbegin<0>();
+    assert(leftElement->ileafbegin().boundary());
+
+    double pos = 0;
+
+    FieldVector<double, blocksize> strain = getStrain(sol, leftElement, pos);
+    FieldVector<double, blocksize> referenceStrain = getStrain(referenceConfiguration_, leftElement, pos);
+
+    FieldVector<double,3> localStress;
+    for (int i=0; i<3; i++)
+        localStress[i] = (strain[i] - referenceStrain[i]) * A_[i];
+
+    #warning Transformation fehlt
+    return localStress;
 }

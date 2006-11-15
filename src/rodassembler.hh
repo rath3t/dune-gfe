@@ -16,6 +16,7 @@ namespace Dune
     class RodAssembler {
         
         typedef typename GridType::template Codim<0>::Entity EntityType;
+        typedef typename GridType::template Codim<0>::EntityPointer EntityPointer;
         typedef typename GridType::template Codim<0>::LevelIterator ElementIterator;
         typedef typename GridType::template Codim<0>::LeafIterator ElementLeafIterator;
 
@@ -33,8 +34,11 @@ namespace Dune
         const GridType* grid_; 
         
         /** \brief Material constants */
-        double K1, K2, K3;
-        double A1, A2, A3;
+        double K_[3];
+        double A_[3];
+
+        /** \brief The stress-free configuration */
+        std::vector<Configuration> referenceConfiguration_;
 
     public:
         
@@ -42,20 +46,37 @@ namespace Dune
         RodAssembler(const GridType &grid) : 
             grid_(&grid)
         { 
-            K1 = K2 = K3 = 1;
-            A1 = A2 = A3 = 1;
+            // Set dummy material parameters
+            K_[0] = K_[1] = K_[2] = 1;
+            A_[0] = A_[1] = A_[2] = 1;
+
+            referenceConfiguration_.resize(grid.size(gridDim));
+
+            typename GridType::template Codim<gridDim>::LeafIterator it    = grid.template leafbegin<gridDim>();
+            typename GridType::template Codim<gridDim>::LeafIterator endIt = grid.template leafend<gridDim>();
+
+            for (; it != endIt; ++it) {
+
+                int idx = grid.leafIndexSet().index(*it);
+
+                referenceConfiguration_[idx].r[0] = 0;
+                referenceConfiguration_[idx].r[1] = 0;
+                referenceConfiguration_[idx].r[2] = it->geometry()[0][0];
+                referenceConfiguration_[idx].q = Quaternion<double>::identity();
+            }
+
         }
 
         ~RodAssembler() {}
 
         void setParameters(double k1, double k2, double k3, 
                            double a1, double a2, double a3) {
-            K1 = k1;
-            K2 = k2;
-            K3 = k3;
-            A1 = a1;
-            A2 = a2;
-            A3 = a3;
+            K_[0] = k1;
+            K_[1] = k2;
+            K_[2] = k3;
+            A_[0] = a1;
+            A_[1] = a2;
+            A_[2] = a3;
         }
 
         /** \brief Set shape constants and material parameters
@@ -69,22 +90,22 @@ namespace Dune
             // shear modulus
             double G = E/(2+2*nu);
 
-            K1 = E * J1;
-            K2 = E * J2;
-            K3 = G * (J1 + J2);
+            K_[0] = E * J1;
+            K_[1] = E * J2;
+            K_[2] = G * (J1 + J2);
 
-            A1 = G * A;
-            A2 = G * A;
-            A3 = E * A;
+            A_[0] = G * A;
+            A_[1] = G * A;
+            A_[2] = E * A;
 
-            printf("%g %g %g   %g %g %g\n", K1, K2, K3, A1, A2, A3);
+            printf("%g %g %g   %g %g %g\n", K_[0], K_[1], K_[2], A_[0], A_[1], A_[2]);
             //exit(0);
         }
 
         /** \brief Assemble the tangent stiffness matrix and the right hand side
          */
         void assembleMatrix(const std::vector<Configuration>& sol,
-                            BCRSMatrix<MatrixBlock>& matrix);
+                            BCRSMatrix<MatrixBlock>& matrix) const;
         
         void assembleGradient(const std::vector<Configuration>& sol,
                               BlockVector<FieldVector<double, blocksize> >& grad) const;
@@ -96,13 +117,24 @@ namespace Dune
 
         void getStrain(const std::vector<Configuration>& sol, 
                        BlockVector<FieldVector<double, blocksize> >& strain) const;
+
+        /** \brief Get the strain at a particular point of the grid */
+        FieldVector<double, 6> getStrain(const std::vector<Configuration>& sol,
+                                                 const EntityPointer& element,
+                                                 double pos) const;
+                       
         
+        /** \brief Return resultant force in canonical coordinates */
+        FieldVector<double,3> getResultantForce(const std::vector<Configuration>& sol) const;
+
     protected:
 
-        /** \brief Compute the element tangent stiffness matrix  */
+        /** \brief Compute the element tangent stiffness matrix  
+            \todo Handing over both the local and the global solution is pretty stupid. */
         template <class MatrixType>
-        void getLocalMatrix( EntityType &entity, 
+        void getLocalMatrix( EntityPointer &entity, 
                              const std::vector<Configuration>& localSolution, 
+                             const std::vector<Configuration>& globalSolution, 
                              const int matSize, MatrixType& mat) const;
 
         template <class T>
