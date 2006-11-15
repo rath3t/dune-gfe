@@ -408,12 +408,11 @@ getLocalMatrix( EntityPointer &entity,
 
                             double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvij[m][i][j]);
                             
-                            sum += strain[m+3] * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
-                                                 + duCan_dvij[i][j] * dd_dvij[m][k][l]
-                                                 + duCan_dvij[k][l] * dd_dvij[m][i][j]
-                                                 + darbouxCan * dd_dvij_dvkl[m][i][j][k][l]);
+                            sum += (strain[m+3] - referenceStrain[m+3]) * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
+                                                                           + duCan_dvij[i][j] * dd_dvij[m][k][l]
+                                                                           + duCan_dvij[k][l] * dd_dvij[m][i][j]
+                                                                           + darbouxCan * dd_dvij_dvkl[m][i][j][k][l]);
                        
-#warning Reference strain missing here!
                             localMat[i][k][j+3][l+3] += weight *K_[m] * sum;
 
                         }
@@ -593,8 +592,8 @@ assembleGradient(const std::vector<Configuration>& sol,
                         double addend1 = du_dvij * hatq.director(m);
                         double addend2 = darbouxCan * dd_dvij[m][i][j];
 
-#warning Reference strain missing here!
-                        grad[globalDof][3+j] += weight*K_[m]*strain[m+3] * (addend1 + addend2);
+                        grad[globalDof][3+j] += weight * K_[m] 
+                            * (strain[m+3]-referenceStrain[m+3]) * (addend1 + addend2);
 
                     }
 
