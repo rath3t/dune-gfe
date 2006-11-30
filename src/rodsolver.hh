@@ -1,10 +1,12 @@
 #ifndef ROD_SOLVER_HH
 #define RODSOLVER
 
+#include <dune/common/array.hh>
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
 #include "../../common/boxconstraint.hh"
+#include "../../solver/iterativesolver.hh"
 
 #include "rodassembler.hh"
 
