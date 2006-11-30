@@ -738,7 +738,7 @@ getStrain(const std::vector<Configuration>& sol,
             FieldVector<double,blocksize> localStrain = getStrain(sol, it, quad[pt].position());
             
             // Sum it all up
-            strain.axpy(weight, localStrain);
+            strain[elementIdx].axpy(weight, localStrain);
 
         }
 
