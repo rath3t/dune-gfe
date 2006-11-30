@@ -12,6 +12,16 @@ public:
     /** \brief Default constructor */
     Quaternion() {}
 
+    /** \brief Constructor with the four components */
+    Quaternion(const T& a, const T& b, const T& c, const T& d) {
+
+        (*this)[0] = a;
+        (*this)[1] = b;
+        (*this)[2] = c;
+        (*this)[3] = d;
+    
+    }
+
     /** \brief Copy constructor */
     Quaternion(const Dune::FieldVector<T,4>& other) : Dune::FieldVector<T,4>(other) {}
 
@@ -42,7 +52,7 @@ public:
 
         T normV = std::sqrt(v0*v0 + v1*v1 + v2*v2);
 
-        // Stabilization for small |v| due Grassia
+        // Stabilization for small |v| due to Grassia
         T sin   = (normV < 1e-4) ? 0.5 * (normV*normV/48) : std::sin(normV/2)/normV;
 
         // if normV == 0 then q = (0,0,0,1)
@@ -124,6 +134,95 @@ public:
         return result;
     }
 
+    /** \brief Return the corresponding orthogonal matrix */
+    void matrix(Dune::FieldMatrix<T,3,3>& m) const {
+
+        m[0][0] = (*this)[0]*(*this)[0] - (*this)[1]*(*this)[1] - (*this)[2]*(*this)[2] + (*this)[3]*(*this)[3];
+        m[0][1] = 2 * ( (*this)[0]*(*this)[1] - (*this)[2]*(*this)[3] );
+        m[0][2] = 2 * ( (*this)[0]*(*this)[2] + (*this)[1]*(*this)[3] );
+
+        m[1][0] = 2 * ( (*this)[0]*(*this)[1] + (*this)[2]*(*this)[3] );
+        m[1][1] = - (*this)[0]*(*this)[0] + (*this)[1]*(*this)[1] - (*this)[2]*(*this)[2] + (*this)[3]*(*this)[3];
+        m[1][2] = 2 * ( -(*this)[0]*(*this)[3] + (*this)[1]*(*this)[2] );
+
+        m[2][0] = 2 * ( (*this)[0]*(*this)[2] - (*this)[1]*(*this)[3] );
+        m[2][1] = 2 * ( (*this)[0]*(*this)[3] + (*this)[1]*(*this)[2] );
+        m[2][2] = - (*this)[0]*(*this)[0] - (*this)[1]*(*this)[1] + (*this)[2]*(*this)[2] + (*this)[3]*(*this)[3];
+
+    }
+
+    /** \brief Set unit quaternion from orthogonal matrix 
+
+    We tacitly assume that the matrix really is orthogonal */
+    void set(const Dune::FieldMatrix<T,3,3>& m) {
+
+        // Easier writing
+        Dune::FieldVector<T,4>& p = (*this);
+        // The following equations for the derivation of a unit quaternion from a rotation
+        // matrix comes from 'E. Salamin, Application of Quaternions to Computation with
+        // Rotations, Technical Report, Stanford, 1974'
+
+        p[0] = (1 + m[0][0] - m[1][1] - m[2][2]) / 4;
+        p[1] = (1 - m[0][0] + m[1][1] - m[2][2]) / 4;
+        p[2] = (1 - m[0][0] - m[1][1] + m[2][2]) / 4;
+        p[3] = (1 + m[0][0] + m[1][1] + m[2][2]) / 4;
+
+        // avoid rounding problems
+        if (p[0] >= p[1] && p[0] >= p[2] && p[0] >= p[3]) {
+
+            p[0] = std::sqrt(p[0]);
+
+            // r_x r_y = (R_12 + R_21) / 4
+            p[1] = (m[0][1] + m[1][0]) / 4 / p[0];
+
+            // r_x r_z = (R_13 + R_31) / 4
+            p[2] = (m[0][2] + m[2][0]) / 4 / p[0];
+
+            // r_0 r_x = (R_32 - R_23) / 4
+            p[3] = (m[2][1] - m[1][2]) / 4 / p[0]; 
+
+        } else if (p[1] >= p[0] && p[1] >= p[2] && p[1] >= p[3]) {
+
+            p[1] = std::sqrt(p[1]);
+
+            // r_x r_y = (R_12 + R_21) / 4
+            p[0] = (m[0][1] + m[1][0]) / 4 / p[1];
+
+            // r_y r_z = (R_23 + R_32) / 4
+            p[2] = (m[1][2] + m[2][1]) / 4 / p[1];
+
+            // r_0 r_y = (R_13 - R_31) / 4
+            p[3] = (m[0][2] - m[2][0]) / 4 / p[1]; 
+
+        } else if (p[2] >= p[0] && p[2] >= p[1] && p[2] >= p[3]) {
+
+            p[2] = std::sqrt(p[2]);
+
+            // r_x r_z = (R_13 + R_31) / 4
+            p[0] = (m[0][2] + m[2][0]) / 4 / p[2];
+
+            // r_y r_z = (R_23 + R_32) / 4
+            p[1] = (m[1][2] + m[2][1]) / 4 / p[2];
+
+            // r_0 r_z = (R_21 - R_12) / 4
+            p[3] = (m[1][0] - m[0][1]) / 4 / p[2]; 
+
+        } else {
+
+            p[3] = std::sqrt(p[3]);
+
+            // r_0 r_x = (R_32 - R_23) / 4
+            p[0] = (m[2][1] - m[1][2]) / 4 / p[3];
+
+            // r_0 r_y = (R_13 - R_31) / 4
+            p[1] = (m[0][2] - m[2][0]) / 4 / p[3];
+
+            // r_0 r_z = (R_21 - R_12) / 4
+            p[2] = (m[1][0] - m[0][1]) / 4 / p[3]; 
+
+        }
+
+    }
 };
 
 #endif
