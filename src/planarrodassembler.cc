@@ -67,7 +67,7 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         const int numOfBaseFct = baseSet.size();  
         
-        mat.resize(numOfBaseFct, numOfBaseFct);
+        mat.setSize(numOfBaseFct, numOfBaseFct);
 
         // Extract local solution
         BlockVector<FieldVector<double, blocksize> > localSolution(numOfBaseFct);
