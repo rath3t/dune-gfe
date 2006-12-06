@@ -1,21 +1,23 @@
 #include <config.h>
 
 //#define DUNE_EXPRESSIONTEMPLATES
+#include <dune/common/bitfield.hh>
+
 #include <dune/grid/onedgrid.hh>
 
 #include <dune/istl/io.hh>
 
-#include "../common/boundarypatch.hh"
-#include <dune/common/bitfield.hh>
+#include <dune/disc/operators/p1operator.hh>
 
-#include "src/rodassembler.hh"
+#include "../common/boundarypatch.hh"
+
+#include "src/planarrodassembler.hh"
 #include "../common/projectedblockgsstep.hh"
 #include "../contact/src/contactmmgstep.hh"
 
-#include <dune/solver/iterativesolver.hh>
+#include "../solver/iterativesolver.hh"
 
 #include "../common/geomestimator.hh"
-#include "../common/refinegrid.hh"
 #include "../common/energynorm.hh"
 #include "src/rodwriter.hh"
 
@@ -29,7 +31,7 @@ using namespace Dune;
 using std::string;
 
 void setTrustRegionObstacles(double trustRegionRadius,
-                             SimpleVector<BoxConstraint<blocksize> >& trustRegionObstacles,
+                             std::vector<BoxConstraint<blocksize> >& trustRegionObstacles,
                              const SimpleVector<BoxConstraint<blocksize> >& trueObstacles,
                              const BitField& dirichletNodes)
 {
@@ -95,12 +97,12 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     //    Create the two grids
     // ///////////////////////////////////////
-    typedef OneDGrid<1,1> GridType;
+    typedef OneDGrid GridType;
     GridType grid(numRodBaseElements, 0, 1);
 
-    Array<SimpleVector<BoxConstraint<3> > > trustRegionObstacles(1);
+    Array<std::vector<BoxConstraint<3> > > trustRegionObstacles(1);
     Array<BitField> hasObstacle(1);
-    Array<BitField> dirichletNodes(1);
+    std::vector<BitField> dirichletNodes(1);
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -111,18 +113,17 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
 
-    IterativeSolver<MatrixType, VectorType> baseSolver;
-    baseSolver.iterationStep = &baseSolverStep;
-    baseSolver.numIt = baseIt;
-    baseSolver.verbosity_ = Solver::QUIET;
-    baseSolver.errorNorm_ = &baseEnergyNorm;
-    baseSolver.tolerance_ = baseTolerance;
+    IterativeSolver<MatrixType, VectorType> baseSolver(&baseSolverStep,
+                                                       baseIt,
+                                                       baseTolerance,
+                                                       &baseEnergyNorm,
+                                                       Solver::QUIET);
 
     // Make pre and postsmoothers
     ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
     ProjectedBlockGSStep<MatrixType, VectorType> postsmoother;
 
-    ContactMMGStep<MatrixType, VectorType, GridType > contactMMGStep(1);
+    ContactMMGStep<MatrixType, VectorType> contactMMGStep(1);
 
     contactMMGStep.setMGType(mu, nu1, nu2);
     contactMMGStep.dirichletNodes_    = &dirichletNodes;
@@ -137,12 +138,11 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(contactMMGStep);
 
-    IterativeSolver<MatrixType, VectorType> solver;
-    solver.iterationStep = &contactMMGStep;
-    solver.numIt = numIt;
-    solver.verbosity_ = Solver::FULL;
-    solver.errorNorm_ = &energyNorm;
-    solver.tolerance_ = tolerance;
+    IterativeSolver<MatrixType, VectorType> solver(&contactMMGStep,
+                                                   numIt,
+                                                   tolerance,
+                                                   &energyNorm,
+                                                   Solver::FULL);
 
     double trustRegionRadius = 0.1;
 
@@ -184,7 +184,7 @@ int main (int argc, char *argv[]) try
 
 
         MatrixType hessianMatrix;
-        RodAssembler<GridType,4> rodAssembler(grid);
+        PlanarRodAssembler<GridType,4> rodAssembler(grid);
         
         rodAssembler.setParameters(1, 350000, 350000);
         
@@ -263,7 +263,7 @@ int main (int argc, char *argv[]) try
                                     trueObstacles[toplevel],
                                     dirichletNodes[toplevel]);
 
-            dynamic_cast<MultigridStep<MatrixType,VectorType,GridType>*>(solver.iterationStep)->setProblem(hessianMatrix, corr, rhs, toplevel+1);
+            dynamic_cast<MultigridStep<MatrixType,VectorType>*>(solver.iterationStep_)->setProblem(hessianMatrix, corr, rhs, toplevel+1);
 
             solver.preprocess();
 
@@ -334,8 +334,20 @@ int main (int argc, char *argv[]) try
         GeometricEstimator<GridType> estimator;
         
         estimator.estimate(grid, (toplevel<=minLevel) ? refineAll : refineCondition);
-        refineGridAndTransferFunction(grid, x);
-           
+
+        P1FunctionManager<GridType,double> functionManager(grid);
+        LeafP1Function<GridType,double,blocksize> sol(grid);
+        *sol = x;
+
+        grid.preAdapt();
+        sol.preAdapt();
+        grid.adapt();
+
+        sol.postAdapt(functionManager);
+        grid.postAdapt();
+
+        x = *sol;
+
         //writeRod(x, "solutions/rod_1.result");
     }
 

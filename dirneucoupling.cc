@@ -1,5 +1,7 @@
 #include <config.h>
 
+#define HAVE_IPOPT
+
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/uggrid.hh>
 
@@ -16,6 +18,7 @@
 #include "../common/multigridstep.hh"
 #include "../solver/iterativesolver.hh"
 #include "../common/projectedblockgsstep.hh"
+#include "../common/linearipopt.hh"
 #include "../common/readbitfield.hh"
 #include "../common/energynorm.hh"
 #include "../common/boundarypatch.hh"
@@ -73,13 +76,13 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     //    Create the rod grid
     // ///////////////////////////////////////
-    typedef OneDGrid<1,1> RodGridType;
+    typedef OneDGrid RodGridType;
     RodGridType rodGrid(numRodBaseElements, 0, 5);
 
     // ///////////////////////////////////////
     //    Create the grid for the 3d object
     // ///////////////////////////////////////
-    typedef UGGrid<dim,dim> GridType;
+    typedef UGGrid<dim> GridType;
     GridType grid;
     grid.setRefinementType(GridType::COPY);
     
@@ -202,15 +205,9 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////
 
     // First create a gauss-seidel base solver
-    BlockGSStep<MatrixType, VectorType> baseSolverStep;
-
-    EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
-
-    IterativeSolver<MatrixType, VectorType> baseSolver(&baseSolverStep,
-                                                       baseIterations,
-                                                       baseTolerance,
-                                                       &baseEnergyNorm,
-                                                       Solver::QUIET);
+    LinearIPOptSolver<VectorType> baseSolver;
+    baseSolver.verbosity_ = NumProc::QUIET;
+    baseSolver.tolerance_ = baseTolerance;
 
     // Make pre and postsmoothers
     BlockGSStep<MatrixType, VectorType> presmoother, postsmoother;
@@ -329,8 +326,8 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
-    AmiraMeshWriter<GridType>::writeGrid(grid, "grid.result");
-    AmiraMeshWriter<GridType>::writeBlockVector(grid, x3d, "grid.sol");
+    LeafAmiraMeshWriter<GridType>::writeGrid(grid, "grid.result");
+    LeafAmiraMeshWriter<GridType>::writeBlockVector(grid, x3d, "grid.sol");
     writeRod(rodX, "rod3d.result");
 
     for (int i=0; i<rodX.size(); i++)

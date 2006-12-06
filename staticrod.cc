@@ -28,8 +28,8 @@ using namespace Dune;
 using std::string;
 
 void setTrustRegionObstacles(double trustRegionRadius,
-                             SimpleVector<BoxConstraint<blocksize> >& trustRegionObstacles,
-                             const SimpleVector<BoxConstraint<blocksize> >& trueObstacles,
+                             std::vector<BoxConstraint<blocksize> >& trustRegionObstacles,
+                             const std::vector<BoxConstraint<blocksize> >& trueObstacles,
                              const BitField& dirichletNodes)
 {
     //std::cout << "True obstacles\n" << trueObstacles << std::endl;
@@ -86,7 +86,7 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     //    Create the two grids
     // ///////////////////////////////////////
-    typedef OneDGrid<1,1> RodGridType;
+    typedef OneDGrid RodGridType;
     RodGridType rod(numRodBaseElements, 0, 1);
 
     // refine uniformly until maxLevel
@@ -97,7 +97,7 @@ int main (int argc, char *argv[]) try
     int numRodElements = rod.size(maxlevel, 0);
 
     
-    Array<BitField> dirichletNodes;
+    std::vector<BitField> dirichletNodes;
     dirichletNodes.resize(maxLevel+1);
     for (int i=0; i<=maxlevel; i++) {
 
@@ -156,8 +156,8 @@ int main (int argc, char *argv[]) try
         hasObstacle[i].setAll();
     }
 
-    Array<SimpleVector<BoxConstraint<3> > > trueObstacles(maxlevel+1);
-    Array<SimpleVector<BoxConstraint<3> > > trustRegionObstacles(maxlevel+1);
+    Array<std::vector<BoxConstraint<3> > > trueObstacles(maxlevel+1);
+    Array<std::vector<BoxConstraint<3> > > trustRegionObstacles(maxlevel+1);
 
     for (int i=0; i<maxlevel+1; i++) {
         trueObstacles[i].resize(rod.size(i,1));
@@ -179,12 +179,11 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
 
-    IterativeSolver<MatrixType, VectorType> baseSolver;
-    baseSolver.iterationStep = &baseSolverStep;
-    baseSolver.numIt = baseIt;
-    baseSolver.verbosity_ = Solver::QUIET;
-    baseSolver.errorNorm_ = &baseEnergyNorm;
-    baseSolver.tolerance_ = baseTolerance;
+    IterativeSolver<MatrixType, VectorType> baseSolver(&baseSolverStep,
+                                                       baseIt,
+                                                       baseTolerance,
+                                                       &baseEnergyNorm,
+                                                       Solver::QUIET);
 
     // Make pre and postsmoothers
     ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
@@ -210,12 +209,11 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(contactMMGStep);
 
-    IterativeSolver<MatrixType, VectorType> solver;
-    solver.iterationStep = &contactMMGStep;
-    solver.numIt = numIt;
-    solver.verbosity_ = Solver::QUIET;
-    solver.errorNorm_ = &energyNorm;
-    solver.tolerance_ = tolerance;
+    IterativeSolver<MatrixType, VectorType> solver(&contactMMGStep,
+                                                   numIt,
+                                                   tolerance,
+                                                   &energyNorm,
+                                                   Solver::QUIET);
 
     // ///////////////////////////////////////////////////
     //   Do a homotopy of the material parameters
@@ -267,7 +265,7 @@ int main (int argc, char *argv[]) try
             //std::cout << "Trust Region obstacles:" << std::endl;
             //std::cout << (*contactMMGStep.obstacles_)[maxlevel] << std::endl;
 
-            solver.iterationStep->setProblem(hessianMatrix, corr, rhs);
+            solver.iterationStep_->setProblem(hessianMatrix, corr, rhs);
 
             solver.preprocess();
             contactMMGStep.preprocess();
