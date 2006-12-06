@@ -223,6 +223,36 @@ public:
         }
 
     }
+
+    /** \brief Create three vectors which form an orthonormal basis of \mathbb{H} together
+        with this one.
+
+        This is used to compute the strain in rod problems.  
+        See: Dichmann, Li, Maddocks, 'Hamiltonian Formulations and Symmetries in
+        Rod Mechanics', page 83 
+    */
+    Quaternion<T> B(int m) const {
+        assert(m>=0 && m<3);
+        Quaternion<T> r;
+        if (m==0) {
+            r[0] =  (*this)[3];
+            r[1] =  (*this)[2];
+            r[2] = -(*this)[1];
+            r[3] = -(*this)[0];
+        } else if (m==1) {
+            r[0] = -(*this)[2];
+            r[1] =  (*this)[3];
+            r[2] =  (*this)[0];
+            r[3] = -(*this)[1];
+        } else {
+            r[0] =  (*this)[1];
+            r[1] = -(*this)[0];
+            r[2] =  (*this)[3];
+            r[3] = -(*this)[2];
+        } 
+
+        return r;
+    }
 };
 
 #endif

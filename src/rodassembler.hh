@@ -137,37 +137,12 @@ namespace Dune
                              const std::vector<Configuration>& globalSolution, 
                              const int matSize, MatrixType& mat) const;
 
-        template <class T>
-        static Quaternion<T> B(int m, const Quaternion<T>& q) {
-            assert(m>=0 && m<3);
-            Quaternion<T> r;
-            if (m==0) {
-                r[0] =  q[3];
-                r[1] =  q[2];
-                r[2] = -q[1];
-                r[3] = -q[0];
-            } else if (m==1) {
-                r[0] = -q[2];
-                r[1] =  q[3];
-                r[2] =  q[0];
-                r[3] = -q[1];
-            } else {
-                r[0] =  q[1];
-                r[1] = -q[0];
-                r[2] =  q[3];
-                r[3] = -q[2];
-            } 
 
-            return r;
-        }
         
         template <class T>
         static FieldVector<T,3> darboux(const Quaternion<T>& q, const FieldVector<T,4>& q_s) 
         {
-            FieldVector<double,3> uCanonical;  // The Darboux vector
-            uCanonical[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
-            uCanonical[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
-            uCanonical[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
+            FieldVector<double,3> uCanonical = darbouxCanonical(q, q_s);  // The Darboux vector
 
             FieldVector<double,3> u;
             u[0] = uCanonical*q.director(0);
@@ -180,9 +155,13 @@ namespace Dune
         static FieldVector<T,3> darbouxCanonical(const Quaternion<T>& q, const FieldVector<T,4>& q_s) 
         {
             FieldVector<double,3> uCanonical;  // The Darboux vector
-            uCanonical[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
-            uCanonical[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
-            uCanonical[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
+//             uCanonical[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
+//             uCanonical[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
+//             uCanonical[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
+
+            uCanonical[0] = 2 * (q.B(0) * q_s);
+            uCanonical[1] = 2 * (q.B(1) * q_s);
+            uCanonical[2] = 2 * (q.B(2) * q_s);
 
             return uCanonical;
         }
