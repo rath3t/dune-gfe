@@ -338,8 +338,10 @@ getLocalMatrix( EntityPointer &entity,
             for (int j=0; j<3; j++) {
                 
                 for (int m=0; m<3; m++) {
-                    duCan_dvij[i][j][m]  = 2*(B(m, dq_dvij[i][j].mult(hatq))*hatq_s);
-                    duCan_dvij[i][j][m] += 2*(B(m,hatq)*(dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
+//                     duCan_dvij[i][j][m]  = 2*(B(m, dq_dvij[i][j].mult(hatq))*hatq_s);
+//                     duCan_dvij[i][j][m] += 2*(B(m,hatq)*(dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
+                    duCan_dvij[i][j][m]  = 2 * ( (dq_dvij[i][j].mult(hatq)).B(m)*hatq_s );
+                    duCan_dvij[i][j][m] += 2 * ( hatq.B(m)*(dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
                 }
 
                 // Don't fuse the two loops, we need the complete duCan_dvij[i][j]
@@ -351,10 +353,10 @@ getLocalMatrix( EntityPointer &entity,
                     for (int l=0; l<3; l++) {
 
                         for (int m=0; m<3; m++)
-                            duCan_dvij_dvkl[i][j][k][l] = 2 * (B(m,dq_dvij_dvkl[i][j][k][l].mult(hatq)) * hatq_s)
-                                + 2 * (B(m,dq_dvij[i][j].mult(hatq)) * (dq_dvij_ds[k][l].mult(hatq) + dq_dvij[k][l].mult(hatq_s)))
-                                + 2 * (B(m,dq_dvij[k][l].mult(hatq)) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)))
-                                + 2 * (B(m,hatq) * (dq_dvij_dvkl_ds[i][j][k][l].mult(hatq) + dq_dvij_dvkl[i][j][k][l].mult(hatq_s)));
+                            duCan_dvij_dvkl[i][j][k][l] = 2 * ( (dq_dvij_dvkl[i][j][k][l].mult(hatq)).B(m) * hatq_s)
+                                + 2 * ( (dq_dvij[i][j].mult(hatq)).B(m) * (dq_dvij_ds[k][l].mult(hatq) + dq_dvij[k][l].mult(hatq_s)))
+                                + 2 * ( (dq_dvij[k][l].mult(hatq)).B(m) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)))
+                                + 2 * ( hatq.B(m) * (dq_dvij_dvkl_ds[i][j][k][l].mult(hatq) + dq_dvij_dvkl[i][j][k][l].mult(hatq_s)));
 
                     }
 
@@ -581,8 +583,10 @@ assembleGradient(const std::vector<Configuration>& sol,
 
                     FieldVector<double,3> du_dvij;
                     for (int m=0; m<3; m++) {
-                        du_dvij[m] = B(m, dq_dvij[i][j].mult(hatq)) * hatq_s;
-                        du_dvij[m] += B(m, hatq) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s));
+//                         du_dvij[m] = B(m, dq_dvij[i][j].mult(hatq)) * hatq_s;
+//                         du_dvij[m] += B(m, hatq) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s));
+                        du_dvij[m] = (dq_dvij[i][j].mult(hatq)).B(m) * hatq_s;
+                        du_dvij[m] += hatq.B(m) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s));
                     }
                     du_dvij *= 2;
 
@@ -865,6 +869,19 @@ getResultantForce(const std::vector<Configuration>& sol) const
     for (int i=0; i<3; i++)
         localStress[i] = (strain[i] - referenceStrain[i]) * A_[i];
 
-    #warning Transformation fehlt
-    return localStress;
+    // Transform stress given with respect to the basis given by the three directors to
+    // the canonical basis of R^3
+    /** \todo Hardwired: Entry 0 is the leftmost entry! */
+    FieldMatrix<double,3,3> orientationMatrix;
+    sol[0].q.matrix(orientationMatrix);
+
+    FieldVector<double,3> canonicalStress(0);
+    orientationMatrix.umv(localStress, canonicalStress);
+
+    // Reverse transformation to make sure we did the correct thing
+    assert( std::abs(localStress[0]-canonicalStress*sol[0].q.director(0)) < 1e-6 );
+    assert( std::abs(localStress[1]-canonicalStress*sol[0].q.director(1)) < 1e-6 );
+    assert( std::abs(localStress[2]-canonicalStress*sol[0].q.director(2)) < 1e-6 );
+
+    return canonicalStress;
 }
