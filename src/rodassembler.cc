@@ -140,6 +140,11 @@ getFirstDerivativesOfDirectors(const Quaternion<double>& q,
         dd_dvj[2][j] *= 2;
         
     }
+    
+    // Check: The derivatives of the directors must be orthogonal to the directors
+    for (int i=0; i<3; i++)
+        for (int j=0; j<3; j++)
+            assert (std::abs(q.director(i) * dd_dvj[i][j]) < 1e-7);
 
 }
 
