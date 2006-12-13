@@ -105,34 +105,34 @@ getFirstDerivativesOfDirectors(const Quaternion<double>& q,
     for (int j=0; j<3; j++) {
         
         // d1
-        dd_dvj[0][j][0] = q[0]*(dq_dvj[j].mult(q))[0] - q[1]*(dq_dvj[j].mult(q))[1] 
-            - q[2]*(dq_dvj[j].mult(q))[2] + q[3]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[0][j][0] = q[0]*(q.mult(dq_dvj[j]))[0] - q[1]*(q.mult(dq_dvj[j]))[1] 
+            - q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
         
-        dd_dvj[0][j][1] = (dq_dvj[j].mult(q))[0]*q[1] + q[0]*(dq_dvj[j].mult(q))[1]
-            + (dq_dvj[j].mult(q))[2]*q[3] + q[2]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[0][j][1] = (q.mult(dq_dvj[j]))[0]*q[1] + q[0]*(q.mult(dq_dvj[j]))[1]
+            + (q.mult(dq_dvj[j]))[2]*q[3] + q[2]*(q.mult(dq_dvj[j]))[3];
         
-        dd_dvj[0][j][2] = (dq_dvj[j].mult(q))[0]*q[2] + q[0]*(dq_dvj[j].mult(q))[2]
-            - (dq_dvj[j].mult(q))[1]*q[3] - q[1]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[0][j][2] = (q.mult(dq_dvj[j]))[0]*q[2] + q[0]*(q.mult(dq_dvj[j]))[2]
+            - (q.mult(dq_dvj[j]))[1]*q[3] - q[1]*(q.mult(dq_dvj[j]))[3];
         
         // d2
-        dd_dvj[1][j][0] = (dq_dvj[j].mult(q))[0]*q[1] + q[0]*(dq_dvj[j].mult(q))[1]
-            - (dq_dvj[j].mult(q))[2]*q[3] - q[2]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[1][j][0] = (q.mult(dq_dvj[j]))[0]*q[1] + q[0]*(q.mult(dq_dvj[j]))[1]
+            - (q.mult(dq_dvj[j]))[2]*q[3] - q[2]*(q.mult(dq_dvj[j]))[3];
         
-        dd_dvj[1][j][1] = - q[0]*(dq_dvj[j].mult(q))[0] + q[1]*(dq_dvj[j].mult(q))[1] 
-            - q[2]*(dq_dvj[j].mult(q))[2] + q[3]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[1][j][1] = - q[0]*(q.mult(dq_dvj[j]))[0] + q[1]*(q.mult(dq_dvj[j]))[1] 
+            - q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
         
-        dd_dvj[1][j][2] = (dq_dvj[j].mult(q))[1]*q[2] + q[1]*(dq_dvj[j].mult(q))[2]
-            + (dq_dvj[j].mult(q))[0]*q[3] + q[0]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[1][j][2] = (q.mult(dq_dvj[j]))[1]*q[2] + q[1]*(q.mult(dq_dvj[j]))[2]
+            + (q.mult(dq_dvj[j]))[0]*q[3] + q[0]*(q.mult(dq_dvj[j]))[3];
         
         // d3
-        dd_dvj[2][j][0] = (dq_dvj[j].mult(q))[0]*q[2] + q[0]*(dq_dvj[j].mult(q))[2]
-            + (dq_dvj[j].mult(q))[1]*q[3] + q[1]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[2][j][0] = (q.mult(dq_dvj[j]))[0]*q[2] + q[0]*(q.mult(dq_dvj[j]))[2]
+            + (q.mult(dq_dvj[j]))[1]*q[3] + q[1]*(q.mult(dq_dvj[j]))[3];
         
-        dd_dvj[2][j][1] = (dq_dvj[j].mult(q))[1]*q[2] + q[1]*(dq_dvj[j].mult(q))[2]
-            - (dq_dvj[j].mult(q))[0]*q[3] - q[0]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[2][j][1] = (q.mult(dq_dvj[j]))[1]*q[2] + q[1]*(q.mult(dq_dvj[j]))[2]
+            - (q.mult(dq_dvj[j]))[0]*q[3] - q[0]*(q.mult(dq_dvj[j]))[3];
         
-        dd_dvj[2][j][2] = - q[0]*(dq_dvj[j].mult(q))[0] - q[1]*(dq_dvj[j].mult(q))[1] 
-            + q[2]*(dq_dvj[j].mult(q))[2] + q[3]*(dq_dvj[j].mult(q))[3];
+        dd_dvj[2][j][2] = - q[0]*(q.mult(dq_dvj[j]))[0] - q[1]*(q.mult(dq_dvj[j]))[1] 
+            + q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
         
         
         dd_dvj[0][j] *= 2;
@@ -274,9 +274,9 @@ getLocalMatrix( EntityPointer &entity,
                         FieldMatrix<double,4,4> A;
                         for (int a=0; a<4; a++)
                             for (int b=0; b<4; b++) 
-                                A[a][b] = (dq_dvj[l].mult(hatq))[a] * (dq_dvj[j].mult(hatq))[b]
+                                A[a][b] = (hatq.mult(dq_dvj[l]))[a] * (hatq.mult(dq_dvj[j]))[b]
                                     * shapeFunction[i] * shapeFunction[k]
-                                    + hatq[a] * dq_dvij_dvkl[i][j][k][l].mult(hatq)[b];
+                                    + hatq[a] * hatq.mult(dq_dvij_dvkl[i][j][k][l])[b];
                 
                         // d1
                         dd_dvij_dvkl[0][i][j][k][l][0] = A[0][0] - A[1][1] - A[2][2] + A[3][3];
