@@ -93,57 +93,51 @@ assembleMatrix(const std::vector<Configuration>& sol,
 
 }
 
-
-
 template <class GridType>
 void Dune::RodAssembler<GridType>::
 getFirstDerivativesOfDirectors(const Quaternion<double>& q, 
-                               Dune::FixedArray<Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 2>, 3>& dd_dvij,
-                               const Dune::FixedArray<Dune::FixedArray<Quaternion<double>, 3>, 2>& dq_dvij)
+                               Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 3>& dd_dvj,
+                               const Dune::FixedArray<Quaternion<double>, 3>& dq_dvj)
 {
  
-    // Contains \parder d \parder v^i_j
-    
-    for (int i=0; i<2; i++) {
+    // Contains \parder d \parder v_j
         
-        for (int j=0; j<3; j++) {
-            
-            // d1
-            dd_dvij[0][i][j][0] = q[0]*(dq_dvij[i][j].mult(q))[0] - q[1]*(dq_dvij[i][j].mult(q))[1] 
-                - q[2]*(dq_dvij[i][j].mult(q))[2] + q[3]*(dq_dvij[i][j].mult(q))[3];
-            
-            dd_dvij[0][i][j][1] = (dq_dvij[i][j].mult(q))[0]*q[1] + q[0]*(dq_dvij[i][j].mult(q))[1]
-                + (dq_dvij[i][j].mult(q))[2]*q[3] + q[2]*(dq_dvij[i][j].mult(q))[3];
-            
-            dd_dvij[0][i][j][2] = (dq_dvij[i][j].mult(q))[0]*q[2] + q[0]*(dq_dvij[i][j].mult(q))[2]
-                - (dq_dvij[i][j].mult(q))[1]*q[3] - q[1]*(dq_dvij[i][j].mult(q))[3];
-            
-            // d2
-            dd_dvij[1][i][j][0] = (dq_dvij[i][j].mult(q))[0]*q[1] + q[0]*(dq_dvij[i][j].mult(q))[1]
-                - (dq_dvij[i][j].mult(q))[2]*q[3] - q[2]*(dq_dvij[i][j].mult(q))[3];
-            
-            dd_dvij[1][i][j][1] = - q[0]*(dq_dvij[i][j].mult(q))[0] + q[1]*(dq_dvij[i][j].mult(q))[1] 
-                - q[2]*(dq_dvij[i][j].mult(q))[2] + q[3]*(dq_dvij[i][j].mult(q))[3];
-            
-            dd_dvij[1][i][j][2] = (dq_dvij[i][j].mult(q))[1]*q[2] + q[1]*(dq_dvij[i][j].mult(q))[2]
-                + (dq_dvij[i][j].mult(q))[0]*q[3] + q[0]*(dq_dvij[i][j].mult(q))[3];
-            
-            // d3
-            dd_dvij[2][i][j][0] = (dq_dvij[i][j].mult(q))[0]*q[2] + q[0]*(dq_dvij[i][j].mult(q))[2]
-                + (dq_dvij[i][j].mult(q))[1]*q[3] + q[1]*(dq_dvij[i][j].mult(q))[3];
-            
-            dd_dvij[2][i][j][1] = (dq_dvij[i][j].mult(q))[1]*q[2] + q[1]*(dq_dvij[i][j].mult(q))[2]
-                - (dq_dvij[i][j].mult(q))[0]*q[3] - q[0]*(dq_dvij[i][j].mult(q))[3];
-            
-            dd_dvij[2][i][j][2] = - q[0]*(dq_dvij[i][j].mult(q))[0] - q[1]*(dq_dvij[i][j].mult(q))[1] 
-                + q[2]*(dq_dvij[i][j].mult(q))[2] + q[3]*(dq_dvij[i][j].mult(q))[3];
-            
-            
-            dd_dvij[0][i][j] *= 2;
-            dd_dvij[1][i][j] *= 2;
-            dd_dvij[2][i][j] *= 2;
-            
-        }
+    for (int j=0; j<3; j++) {
+        
+        // d1
+        dd_dvj[0][j][0] = q[0]*(dq_dvj[j].mult(q))[0] - q[1]*(dq_dvj[j].mult(q))[1] 
+            - q[2]*(dq_dvj[j].mult(q))[2] + q[3]*(dq_dvj[j].mult(q))[3];
+        
+        dd_dvj[0][j][1] = (dq_dvj[j].mult(q))[0]*q[1] + q[0]*(dq_dvj[j].mult(q))[1]
+            + (dq_dvj[j].mult(q))[2]*q[3] + q[2]*(dq_dvj[j].mult(q))[3];
+        
+        dd_dvj[0][j][2] = (dq_dvj[j].mult(q))[0]*q[2] + q[0]*(dq_dvj[j].mult(q))[2]
+            - (dq_dvj[j].mult(q))[1]*q[3] - q[1]*(dq_dvj[j].mult(q))[3];
+        
+        // d2
+        dd_dvj[1][j][0] = (dq_dvj[j].mult(q))[0]*q[1] + q[0]*(dq_dvj[j].mult(q))[1]
+            - (dq_dvj[j].mult(q))[2]*q[3] - q[2]*(dq_dvj[j].mult(q))[3];
+        
+        dd_dvj[1][j][1] = - q[0]*(dq_dvj[j].mult(q))[0] + q[1]*(dq_dvj[j].mult(q))[1] 
+            - q[2]*(dq_dvj[j].mult(q))[2] + q[3]*(dq_dvj[j].mult(q))[3];
+        
+        dd_dvj[1][j][2] = (dq_dvj[j].mult(q))[1]*q[2] + q[1]*(dq_dvj[j].mult(q))[2]
+            + (dq_dvj[j].mult(q))[0]*q[3] + q[0]*(dq_dvj[j].mult(q))[3];
+        
+        // d3
+        dd_dvj[2][j][0] = (dq_dvj[j].mult(q))[0]*q[2] + q[0]*(dq_dvj[j].mult(q))[2]
+            + (dq_dvj[j].mult(q))[1]*q[3] + q[1]*(dq_dvj[j].mult(q))[3];
+        
+        dd_dvj[2][j][1] = (dq_dvj[j].mult(q))[1]*q[2] + q[1]*(dq_dvj[j].mult(q))[2]
+            - (dq_dvj[j].mult(q))[0]*q[3] - q[0]*(dq_dvj[j].mult(q))[3];
+        
+        dd_dvj[2][j][2] = - q[0]*(dq_dvj[j].mult(q))[0] - q[1]*(dq_dvj[j].mult(q))[1] 
+            + q[2]*(dq_dvj[j].mult(q))[2] + q[3]*(dq_dvj[j].mult(q))[3];
+        
+        
+        dd_dvj[0][j] *= 2;
+        dd_dvj[1][j] *= 2;
+        dd_dvj[2][j] *= 2;
         
     }
 
@@ -222,17 +216,17 @@ getLocalMatrix( EntityPointer &entity,
         Quaternion<double> hatq = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
         // Contains \partial q / \partial v^i_j  at v = 0
-        FixedArray<FixedArray<Quaternion<double>,3>,2> dq_dvij;
+        FixedArray<Quaternion<double>,3> dq_dvj;
         Quaternion<double> dq_dvij_ds[2][3];
         for (int i=0; i<2; i++)
             for (int j=0; j<3; j++) {
                 
                 for (int m=0; m<3; m++) {
-                    dq_dvij[i][j][m]    = (j==m) * 0.5 * shapeFunction[i];
+                    dq_dvj[j][m]    = (j==m) * 0.5;
                     dq_dvij_ds[i][j][m] = (j==m) * 0.5 * shapeGrad[i];
                 }
                 
-                dq_dvij[i][j][3]    = 0;
+                dq_dvj[j][3]    = 0;
                 dq_dvij_ds[i][j][3] = 0;
             }
 
@@ -263,8 +257,8 @@ getLocalMatrix( EntityPointer &entity,
         }        
         
         // Contains \parder d \parder v^i_j
-        FixedArray<FixedArray<FixedArray<FieldVector<double,3>, 3>, 2>, 3> dd_dvij;
-        getFirstDerivativesOfDirectors(hatq, dd_dvij, dq_dvij);
+        FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
+        getFirstDerivativesOfDirectors(hatq, dd_dvj, dq_dvj);
 
         // Contains \parder {dm}{v^i_j}{v^k_l}
         FieldVector<double,3> dd_dvij_dvkl[3][2][3][2][3];
@@ -280,7 +274,8 @@ getLocalMatrix( EntityPointer &entity,
                         FieldMatrix<double,4,4> A;
                         for (int a=0; a<4; a++)
                             for (int b=0; b<4; b++) 
-                                A[a][b] = (dq_dvij[k][l].mult(hatq))[a] * (dq_dvij[i][j].mult(hatq))[b]
+                                A[a][b] = (dq_dvj[l].mult(hatq))[a] * (dq_dvj[j].mult(hatq))[b]
+                                    * shapeFunction[i] * shapeFunction[k]
                                     + hatq[a] * dq_dvij_dvkl[i][j][k][l].mult(hatq)[b];
                 
                         // d1
@@ -338,24 +333,30 @@ getLocalMatrix( EntityPointer &entity,
             for (int j=0; j<3; j++) {
                 
                 for (int m=0; m<3; m++) {
-//                     duCan_dvij[i][j][m]  = 2*(B(m, dq_dvij[i][j].mult(hatq))*hatq_s);
-//                     duCan_dvij[i][j][m] += 2*(B(m,hatq)*(dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
-                    duCan_dvij[i][j][m]  = 2 * ( (dq_dvij[i][j].mult(hatq)).B(m)*hatq_s );
-                    duCan_dvij[i][j][m] += 2 * ( hatq.B(m)*(dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)));
+                    duCan_dvij[i][j][m]  = 2 * ( (dq_dvj[j].mult(hatq)).B(m)*hatq_s ) * shapeFunction[i];
+                    Quaternion<double> tmp = dq_dvj[j];
+                    tmp *= shapeFunction[i];
+                    duCan_dvij[i][j][m] += 2 * ( hatq.B(m)*(dq_dvij_ds[i][j].mult(hatq) + tmp.mult(hatq_s)));
                 }
 
                 // Don't fuse the two loops, we need the complete duCan_dvij[i][j]
                 for (int m=0; m<3; m++)
-                    duLocal_dvij[i][j][m] = duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvij[m][i][j];
+                    duLocal_dvij[i][j][m] = duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvj[m][j]*shapeFunction[i];
 
                 for (int k=0; k<2; k++) {
 
                     for (int l=0; l<3; l++) {
 
+                        Quaternion<double> tmp_ij = dq_dvj[j];
+                        Quaternion<double> tmp_kl = dq_dvj[l];
+
+                        tmp_ij *= shapeFunction[i];
+                        tmp_kl *= shapeFunction[k];
+
                         for (int m=0; m<3; m++)
                             duCan_dvij_dvkl[i][j][k][l] = 2 * ( (dq_dvij_dvkl[i][j][k][l].mult(hatq)).B(m) * hatq_s)
-                                + 2 * ( (dq_dvij[i][j].mult(hatq)).B(m) * (dq_dvij_ds[k][l].mult(hatq) + dq_dvij[k][l].mult(hatq_s)))
-                                + 2 * ( (dq_dvij[k][l].mult(hatq)).B(m) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s)))
+                                + 2 * ( (tmp_ij.mult(hatq)).B(m) * (dq_dvij_ds[k][l].mult(hatq) + tmp_kl.mult(hatq_s)))
+                                + 2 * ( (tmp_kl.mult(hatq)).B(m) * (dq_dvij_ds[i][j].mult(hatq) + tmp_ij.mult(hatq_s)))
                                 + 2 * ( hatq.B(m) * (dq_dvij_dvkl_ds[i][j][k][l].mult(hatq) + dq_dvij_dvkl[i][j][k][l].mult(hatq_s)));
 
                     }
@@ -389,8 +390,8 @@ getLocalMatrix( EntityPointer &entity,
 
                             // \partial W^2 \partial v^i_j \partial r^k_l
                             localMat[i][k][j][l+3] += weight
-                                * ( A_[m] * shapeGrad[k]*hatq.director(m)[l]*(r_s*dd_dvij[m][i][j])
-                                    + A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[k] * dd_dvij[m][i][j][l]);
+                                * ( A_[m] * shapeGrad[k]*hatq.director(m)[l]*(r_s*dd_dvj[m][j] * shapeFunction[i])
+                                    + A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[k] * dd_dvj[m][j][l]*shapeFunction[i]);
 
                             // This is programmed stupidly.  To ensure the symmetry it is enough to make
                             // the following assignment once and not for each quadrature point
@@ -398,7 +399,7 @@ getLocalMatrix( EntityPointer &entity,
 
                             // \partial W^2 \partial v^i_j \partial v^k_l
                             localMat[i][k][j+3][l+3] += weight
-                                * (  A_[m] * (r_s * dd_dvij[m][k][l]) * (r_s * dd_dvij[m][i][j])
+                                * (  A_[m] * (r_s * dd_dvj[m][l]*shapeFunction[k]) * (r_s * dd_dvj[m][j]*shapeFunction[i])
                                      + A_[m] * (strain[m] - referenceStrain[m]) * (r_s * dd_dvij_dvkl[m][i][j][k][l]) );
 
                             // ////////////////////////////////////////////
@@ -408,11 +409,11 @@ getLocalMatrix( EntityPointer &entity,
                             // \partial W^2 \partial v^i_j \partial v^k_l
                             // All other derivatives are zero
 
-                            double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvij[m][i][j]);
+                            double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvj[m][j]*shapeFunction[i]);
                             
                             sum += (strain[m+3] - referenceStrain[m+3]) * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
-                                                                           + duCan_dvij[i][j] * dd_dvij[m][k][l]
-                                                                           + duCan_dvij[k][l] * dd_dvij[m][i][j]
+                                                                           + duCan_dvij[i][j] * dd_dvj[m][l] * shapeFunction[k]
+                                                                           + duCan_dvij[k][l] * dd_dvj[m][j] * shapeFunction[i]
                                                                            + darbouxCan * dd_dvij_dvkl[m][i][j][k][l]);
                        
                             localMat[i][k][j+3][l+3] += weight *K_[m] * sum;
@@ -522,24 +523,24 @@ assembleGradient(const std::vector<Configuration>& sol,
             FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
             // Contains \partial q / \partial v^i_j  at v = 0
-            FixedArray<FixedArray<Quaternion<double>,3>,2> dq_dvij;
+            FixedArray<Quaternion<double>,3> dq_dvj;
 
             Quaternion<double> dq_dvij_ds[2][3];
             for (int i=0; i<2; i++)
                 for (int j=0; j<3; j++) {
 
                     for (int m=0; m<3; m++) {
-                        dq_dvij[i][j][m]    = (j==m) * 0.5 * shapeFunction[i];
+                        dq_dvj[j][m]    = (j==m) * 0.5;
                         dq_dvij_ds[i][j][m] = (j==m) * 0.5 * shapeGrad[i];
                     }
 
-                    dq_dvij[i][j][3]    = 0;
+                    dq_dvj[j][3]    = 0;
                     dq_dvij_ds[i][j][3] = 0;
                 }
 
             // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
-            FixedArray<FixedArray<FixedArray<FieldVector<double,3>, 3>, 2>, 3> dd_dvij;
-            getFirstDerivativesOfDirectors(hatq, dd_dvij, dq_dvij);
+            FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
+            getFirstDerivativesOfDirectors(hatq, dd_dvj, dq_dvj);
 
             
             // /////////////////////////////////////////////
@@ -568,9 +569,9 @@ assembleGradient(const std::vector<Configuration>& sol,
                 for (int j=0; j<3; j++) {
 
                     grad[globalDof][3+j] += weight 
-                        * (  (A_[0] * (strain[0] - referenceStrain[0]) * (r_s*dd_dvij[0][i][j]))
-                           + (A_[1] * (strain[1] - referenceStrain[1]) * (r_s*dd_dvij[1][i][j]))
-                           + (A_[2] * (strain[2] - referenceStrain[2]) * (r_s*dd_dvij[2][i][j])));
+                        * (  (A_[0] * (strain[0] - referenceStrain[0]) * (r_s*dd_dvj[0][j]*shapeFunction[i]))
+                           + (A_[1] * (strain[1] - referenceStrain[1]) * (r_s*dd_dvj[1][j]*shapeFunction[i]))
+                           + (A_[2] * (strain[2] - referenceStrain[2]) * (r_s*dd_dvj[2][j]*shapeFunction[i])));
 
                 }
 
@@ -583,10 +584,11 @@ assembleGradient(const std::vector<Configuration>& sol,
 
                     FieldVector<double,3> du_dvij;
                     for (int m=0; m<3; m++) {
-//                         du_dvij[m] = B(m, dq_dvij[i][j].mult(hatq)) * hatq_s;
-//                         du_dvij[m] += B(m, hatq) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s));
-                        du_dvij[m] = (dq_dvij[i][j].mult(hatq)).B(m) * hatq_s;
-                        du_dvij[m] += hatq.B(m) * (dq_dvij_ds[i][j].mult(hatq) + dq_dvij[i][j].mult(hatq_s));
+                        du_dvij[m] = (dq_dvj[j].mult(hatq)).B(m) * hatq_s;
+                        du_dvij[m] *= shapeFunction[i];
+                        Quaternion<double> tmp = dq_dvj[j];
+                        tmp *= shapeFunction[i];
+                        du_dvij[m] += hatq.B(m) * (dq_dvij_ds[i][j].mult(hatq) + tmp.mult(hatq_s));
                     }
                     du_dvij *= 2;
 
@@ -594,7 +596,7 @@ assembleGradient(const std::vector<Configuration>& sol,
                     for (int m=0; m<3; m++) {
 
                         double addend1 = du_dvij * hatq.director(m);
-                        double addend2 = darbouxCan * dd_dvij[m][i][j];
+                        double addend2 = darbouxCan * dd_dvj[m][j] * shapeFunction[i];
 
                         grad[globalDof][3+j] += weight * K_[m] 
                             * (strain[m+3]-referenceStrain[m+3]) * (addend1 + addend2);

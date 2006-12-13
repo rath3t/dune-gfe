@@ -155,9 +155,6 @@ namespace Dune
         static FieldVector<T,3> darbouxCanonical(const Quaternion<T>& q, const FieldVector<T,4>& q_s) 
         {
             FieldVector<double,3> uCanonical;  // The Darboux vector
-//             uCanonical[0] = 2 * ( q[3]*q_s[0] + q[2]*q_s[1] - q[1]*q_s[2] - q[0]*q_s[3]);
-//             uCanonical[1] = 2 * (-q[2]*q_s[0] + q[3]*q_s[1] + q[0]*q_s[2] - q[1]*q_s[3]);
-//             uCanonical[2] = 2 * ( q[1]*q_s[0] - q[0]*q_s[1] + q[3]*q_s[2] - q[2]*q_s[3]);
 
             uCanonical[0] = 2 * (q.B(0) * q_s);
             uCanonical[1] = 2 * (q.B(1) * q_s);
@@ -167,8 +164,8 @@ namespace Dune
         }
         
         static void getFirstDerivativesOfDirectors(const Quaternion<double>& q, 
-                                                   Dune::FixedArray<Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 2>, 3>& dd_dvij,
-                                                   const Dune::FixedArray<Dune::FixedArray<Quaternion<double>, 3>, 2>& dq_dvij);
+                                                   Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 3>& dd_dvj,
+                                                   const Dune::FixedArray<Quaternion<double>, 3>& dq_dvj);
 
     }; // end class
     
