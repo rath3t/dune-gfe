@@ -663,7 +663,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
             FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
             for (int i=0; i<3; i++)
-                energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] * referenceStrain[i]);
+                energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
 
         }
 
@@ -685,7 +685,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
             // Part II: the bending and twisting energy
             for (int i=0; i<3; i++)
-                energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] * referenceStrain[i+3]);
+                energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
 
         }
 
