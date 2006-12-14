@@ -516,10 +516,8 @@ assembleGradient(const std::vector<Configuration>& sol,
 
             // Get the derivative of the rotation at the quadrature point by interpolating in $H$
             Quaternion<double> hatq_s;
-            hatq_s[0] = localSolution[0].q[0]*shapeGrad[0] + localSolution[1].q[0]*shapeGrad[1];
-            hatq_s[1] = localSolution[0].q[1]*shapeGrad[0] + localSolution[1].q[1]*shapeGrad[1];
-            hatq_s[2] = localSolution[0].q[2]*shapeGrad[0] + localSolution[1].q[2]*shapeGrad[1];
-            hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
+            for (int i=0; i<4; i++)
+                hatq_s[i] = localSolution[0].q[i]*shapeGrad[0] + localSolution[1].q[i]*shapeGrad[1];
 
             // The current strain
             FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
@@ -530,18 +528,18 @@ assembleGradient(const std::vector<Configuration>& sol,
             // Contains \partial q / \partial v^i_j  at v = 0
             FixedArray<Quaternion<double>,3> dq_dvj;
 
-            Quaternion<double> dq_dvij_ds[2][3];
-            for (int i=0; i<2; i++)
-                for (int j=0; j<3; j++) {
+            FixedArray<Quaternion<double>,3> dq_dvj_ds;
 
-                    for (int m=0; m<3; m++) {
-                        dq_dvj[j][m]    = (j==m) * 0.5;
-                        dq_dvij_ds[i][j][m] = (j==m) * 0.5 * shapeGrad[i];
-                    }
-
-                    dq_dvj[j][3]    = 0;
-                    dq_dvij_ds[i][j][3] = 0;
+            for (int j=0; j<3; j++) {
+                    
+                for (int m=0; m<3; m++) {
+                    dq_dvj[j][m]     = (j==m) * 0.5;
+                    dq_dvj_ds[j][m] = (j==m) * 0.5;
                 }
+
+                dq_dvj[j][3]    = 0;
+                dq_dvj_ds[j][3] = 0;
+            }
 
             // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
             FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
@@ -563,20 +561,18 @@ assembleGradient(const std::vector<Configuration>& sol,
                 // \partial \bar{W} / \partial r^i_j
                 for (int j=0; j<3; j++) {
 
-                    grad[globalDof][j] += weight 
-                        * ((  A_[0] * (strain[0] - referenceStrain[0]) * shapeGrad[i] * hatq.director(0)[j])
-                           + (A_[1] * (strain[1] - referenceStrain[1]) * shapeGrad[i] * hatq.director(1)[j])
-                           + (A_[2] * (strain[2] - referenceStrain[2]) * shapeGrad[i] * hatq.director(2)[j]));
+                    for (int m=0; m<3; m++) 
+                        grad[globalDof][j] += weight 
+                            * (  A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[i] * hatq.director(m)[j]);
 
                 }
 
                 // \partial \bar{W}_v / \partial v^i_j
                 for (int j=0; j<3; j++) {
 
-                    grad[globalDof][3+j] += weight 
-                        * (  (A_[0] * (strain[0] - referenceStrain[0]) * (r_s*dd_dvj[0][j]*shapeFunction[i]))
-                           + (A_[1] * (strain[1] - referenceStrain[1]) * (r_s*dd_dvj[1][j]*shapeFunction[i]))
-                           + (A_[2] * (strain[2] - referenceStrain[2]) * (r_s*dd_dvj[2][j]*shapeFunction[i])));
+                    for (int m=0; m<3; m++) 
+                        grad[globalDof][3+j] += weight 
+                            * (A_[m] * (strain[m] - referenceStrain[m]) * (r_s*dd_dvj[m][j]*shapeFunction[i]));
 
                 }
 
@@ -587,24 +583,30 @@ assembleGradient(const std::vector<Configuration>& sol,
                 // \partial \bar{W}_v / \partial v^i_j
                 for (int j=0; j<3; j++) {
 
-                    FieldVector<double,3> du_dvij;
-                    for (int m=0; m<3; m++) {
-                        du_dvij[m] = (dq_dvj[j].mult(hatq)).B(m) * hatq_s;
-                        du_dvij[m] *= shapeFunction[i];
-                        Quaternion<double> tmp = dq_dvj[j];
-                        tmp *= shapeFunction[i];
-                        du_dvij[m] += hatq.B(m) * (dq_dvij_ds[i][j].mult(hatq) + tmp.mult(hatq_s));
-                    }
-                    du_dvij *= 2;
-
-                    FieldVector<double,3> darbouxCan = darbouxCanonical(hatq, hatq_s);
                     for (int m=0; m<3; m++) {
 
-                        double addend1 = du_dvij * hatq.director(m);
-                        double addend2 = darbouxCan * dd_dvj[m][j] * shapeFunction[i];
+                        double du_dvij_m;
+
+                        for (int t=0; t<3; t++) {
+
+                            du_dvij_m = (hatq.mult(dq_dvj[j])).B(t) * hatq_s;
+                            du_dvij_m *= shapeFunction[i] * hatq.director(m)[t];
+                            
+                            Quaternion<double> tmp = dq_dvj[j];
+                            tmp *= shapeFunction[i];
+                            Quaternion<double> tmp_ds = dq_dvj_ds[j];
+                            tmp_ds *= shapeGrad[i];
+                            
+                            du_dvij_m += hatq.B(t) * (hatq.mult(tmp_ds) + hatq_s.mult(tmp)) * hatq.director(m)[t];
+                            
+                            du_dvij_m += (hatq.B(t) * hatq_s) * dd_dvj[m][j] * shapeFunction[i];
+                            
+                            du_dvij_m *= 2;
+
+                        }
 
                         grad[globalDof][3+j] += weight * K_[m] 
-                            * (strain[m+3]-referenceStrain[m+3]) * (addend1 + addend2);
+                            * (strain[m+3]-referenceStrain[m+3]) * du_dvij_m;
 
                     }
 
