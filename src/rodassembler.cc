@@ -235,7 +235,7 @@ getLocalMatrix( EntityPointer &entity,
                 dq_dvij_ds[i][j][3] = 0;
             }
 
-        Quaternion<double> dq_dvij_dvkl[2][3][2][3];
+        Quaternion<double> dq_dvj_dvl[3][3];
         Quaternion<double> dq_dvij_dvkl_ds[2][3][2][3];
         for (int i=0; i<2; i++) {
             
@@ -246,11 +246,11 @@ getLocalMatrix( EntityPointer &entity,
                     for (int l=0; l<3; l++) {
 
                         for (int m=0; m<3; m++) {
-                            dq_dvij_dvkl[i][j][k][l][m] = 0;
+                            dq_dvj_dvl[j][l][m] = 0;
                             dq_dvij_dvkl_ds[i][j][k][l][m] = 0;
                         }
 
-                        dq_dvij_dvkl[i][j][k][l][3] = -0.25 * (j==l) * shapeFunction[i] * shapeFunction[k];
+                        dq_dvj_dvl[j][l][3]    = -0.25 * (j==l);
                         dq_dvij_dvkl_ds[i][j][k][l][3] = -0.25 * (j==l) * shapeGrad[i] * shapeGrad[k];
 
                     }
@@ -279,9 +279,8 @@ getLocalMatrix( EntityPointer &entity,
                         FieldMatrix<double,4,4> A;
                         for (int a=0; a<4; a++)
                             for (int b=0; b<4; b++) 
-                                A[a][b] = (hatq.mult(dq_dvj[l]))[a] * (hatq.mult(dq_dvj[j]))[b]
-                                    * shapeFunction[i] * shapeFunction[k]
-                                    + hatq[a] * hatq.mult(dq_dvij_dvkl[i][j][k][l])[b];
+                                A[a][b] = ( (hatq.mult(dq_dvj[l]))[a] * (hatq.mult(dq_dvj[j]))[b]
+                                            + hatq[a] * hatq.mult(dq_dvj_dvl[j][l])[b] ) * shapeFunction[i] * shapeFunction[k];
                 
                         // d1
                         dd_dvij_dvkl[0][i][j][k][l][0] = A[0][0] - A[1][1] - A[2][2] + A[3][3];
@@ -313,13 +312,10 @@ getLocalMatrix( EntityPointer &entity,
 
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
         Quaternion<double> hatq_s;
-        hatq_s[0] = localSolution[0].q[0]*shapeGrad[0] + localSolution[1].q[0]*shapeGrad[1];
-        hatq_s[1] = localSolution[0].q[1]*shapeGrad[0] + localSolution[1].q[1]*shapeGrad[1];
-        hatq_s[2] = localSolution[0].q[2]*shapeGrad[0] + localSolution[1].q[2]*shapeGrad[1];
-        hatq_s[3] = localSolution[0].q[3]*shapeGrad[0] + localSolution[1].q[3]*shapeGrad[1];
+        for (int i=0; i<4; i++)
+            hatq_s[i] = localSolution[0].q[i]*shapeGrad[0] + localSolution[1].q[i]*shapeGrad[1];
         
         // The Darboux vector
-        //FieldVector<double,3> u = darboux(hatq, hatq_s);
         FieldVector<double,3> darbouxCan = darbouxCanonical(hatq, hatq_s);
 
         // The current strain
@@ -338,10 +334,10 @@ getLocalMatrix( EntityPointer &entity,
             for (int j=0; j<3; j++) {
                 
                 for (int m=0; m<3; m++) {
-                    duCan_dvij[i][j][m]  = 2 * ( (dq_dvj[j].mult(hatq)).B(m)*hatq_s ) * shapeFunction[i];
+                    duCan_dvij[i][j][m]  = 2 * ( (hatq.mult(dq_dvj[j])).B(m)*hatq_s ) * shapeFunction[i];
                     Quaternion<double> tmp = dq_dvj[j];
                     tmp *= shapeFunction[i];
-                    duCan_dvij[i][j][m] += 2 * ( hatq.B(m)*(dq_dvij_ds[i][j].mult(hatq) + tmp.mult(hatq_s)));
+                    duCan_dvij[i][j][m] += 2 * ( hatq.B(m)*(hatq.mult(dq_dvij_ds[i][j]) + hatq_s.mult(tmp)));
                 }
 
                 // Don't fuse the two loops, we need the complete duCan_dvij[i][j]
@@ -358,11 +354,17 @@ getLocalMatrix( EntityPointer &entity,
                         tmp_ij *= shapeFunction[i];
                         tmp_kl *= shapeFunction[k];
 
-                        for (int m=0; m<3; m++)
-                            duCan_dvij_dvkl[i][j][k][l] = 2 * ( (dq_dvij_dvkl[i][j][k][l].mult(hatq)).B(m) * hatq_s)
-                                + 2 * ( (tmp_ij.mult(hatq)).B(m) * (dq_dvij_ds[k][l].mult(hatq) + tmp_kl.mult(hatq_s)))
-                                + 2 * ( (tmp_kl.mult(hatq)).B(m) * (dq_dvij_ds[i][j].mult(hatq) + tmp_ij.mult(hatq_s)))
-                                + 2 * ( hatq.B(m) * (dq_dvij_dvkl_ds[i][j][k][l].mult(hatq) + dq_dvij_dvkl[i][j][k][l].mult(hatq_s)));
+                        for (int m=0; m<3; m++) {
+
+                            Quaternion<double> tmp_ijkl = dq_dvj_dvl[j][l];
+                            tmp_ijkl *= shapeFunction[i] * shapeFunction[k];
+
+                            duCan_dvij_dvkl[i][j][k][l] = 2 * ( (hatq.mult(tmp_ijkl)).B(m) * hatq_s)
+                                + 2 * ( (hatq.mult(tmp_ij)).B(m) * (hatq.mult(dq_dvij_ds[k][l]) + hatq_s.mult(tmp_kl)))
+                                + 2 * ( (hatq.mult(tmp_kl)).B(m) * (hatq.mult(dq_dvij_ds[i][j]) + hatq_s.mult(tmp_ij)))
+                                + 2 * ( hatq.B(m) * (hatq.mult(dq_dvij_dvkl_ds[i][j][k][l]) + hatq_s.mult(tmp_ijkl)));
+
+                        }
 
                     }
 
@@ -414,7 +416,8 @@ getLocalMatrix( EntityPointer &entity,
                             // \partial W^2 \partial v^i_j \partial v^k_l
                             // All other derivatives are zero
 
-                            double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvj[m][j]*shapeFunction[i]);
+                            //double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvj[m][j]*shapeFunction[i]);
+                            double sum = duLocal_dvij[k][l][m] * duLocal_dvij[i][j][m];
                             
                             sum += (strain[m+3] - referenceStrain[m+3]) * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
                                                                            + duCan_dvij[i][j] * dd_dvj[m][l] * shapeFunction[k]
@@ -599,7 +602,7 @@ assembleGradient(const std::vector<Configuration>& sol,
                             
                             du_dvij_m += hatq.B(t) * (hatq.mult(tmp_ds) + hatq_s.mult(tmp)) * hatq.director(m)[t];
                             
-                            du_dvij_m += (hatq.B(t) * hatq_s) * dd_dvj[m][j] * shapeFunction[i];
+                            du_dvij_m += hatq.B(t) * hatq_s * dd_dvj[m][j][t] * shapeFunction[i];
                             
                             du_dvij_m *= 2;
 
@@ -637,7 +640,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
-
+        double elementEnergy = 0;
         // Extract local solution on this element
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
@@ -671,9 +674,10 @@ computeEnergy(const std::vector<Configuration>& sol) const
             // The reference strain
             FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
-            for (int i=0; i<3; i++)
+            for (int i=0; i<3; i++) {
                 energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
-
+                elementEnergy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
+            }
         }
 
         // Get quadrature rule
@@ -693,11 +697,14 @@ computeEnergy(const std::vector<Configuration>& sol) const
             FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
             // Part II: the bending and twisting energy
-            for (int i=0; i<3; i++)
+            for (int i=0; i<3; i++) {
                 energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
+                elementEnergy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
+            }
 
         }
 
+        //std::cout << "ElementEnergy: " << elementEnergy << std::endl;
     }
 
     return energy;
