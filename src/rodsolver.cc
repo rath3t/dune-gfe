@@ -217,7 +217,7 @@ void RodSolver<GridType>::solve()
         std::cout << "Correction: " << std::endl << corr << std::endl;
         
         printf("infinity norm of the correction: %g\n", corr.infinity_norm());
-        if (corr.infinity_norm() < 1e-7) {
+        if (corr.infinity_norm() < 1e-5) {
             std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
             break;
         }
@@ -256,7 +256,7 @@ void RodSolver<GridType>::solve()
         // Note that rhs = -g
         CorrectionType tmp(corr.size());
         tmp = 0;
-        hessianMatrix_->mmv(corr, tmp);
+        hessianMatrix_->umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
         
         std::cout << "Model decrease: " << modelDecrease 
@@ -269,7 +269,10 @@ void RodSolver<GridType>::solve()
 //             std::cout << "old energy: " << oldEnergy << "   new energy: " << energy << std::endl;
 //             exit(0);
         }
-        
+
+        if (std::abs(oldEnergy-energy) < 1e-12)
+            std::cout << "Suspecting rounding problems" << std::endl;
+
         // //////////////////////////////////////////////
         //   Check for acceptance of the step
         // //////////////////////////////////////////////
@@ -279,7 +282,8 @@ void RodSolver<GridType>::solve()
             x_ = newIterate;
             trustRegionRadius *= 2;
             
-        } else if ( (oldEnergy-energy) / modelDecrease > 0.01) {
+        } else if ( (oldEnergy-energy) / modelDecrease > 0.01
+                    || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
             x_ = newIterate;
             
