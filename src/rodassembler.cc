@@ -266,48 +266,40 @@ getLocalMatrix( EntityPointer &entity,
         getFirstDerivativesOfDirectors(hatq, dd_dvj, dq_dvj);
 
         // Contains \parder {dm}{v^i_j}{v^k_l}
-        FieldVector<double,3> dd_dvij_dvkl[3][2][3][2][3];
+        FieldVector<double,3> dd_dvij_dvkl[3][3][3];
         
-        for (int i=0; i<2; i++) {
+        for (int j=0; j<3; j++) {
             
-            for (int j=0; j<3; j++) {
+            for (int l=0; l<3; l++) {
                 
-                for (int k=0; k<2; k++) {
-            
-                    for (int l=0; l<3; l++) {
-
-                        FieldMatrix<double,4,4> A;
-                        for (int a=0; a<4; a++)
-                            for (int b=0; b<4; b++) 
-                                A[a][b] = ( (hatq.mult(dq_dvj[l]))[a] * (hatq.mult(dq_dvj[j]))[b]
-                                            + hatq[a] * hatq.mult(dq_dvj_dvl[j][l])[b] ) * shapeFunction[i] * shapeFunction[k];
+                FieldMatrix<double,4,4> A;
+                for (int a=0; a<4; a++)
+                    for (int b=0; b<4; b++) 
+                        A[a][b] = (hatq.mult(dq_dvj[l]))[a] * (hatq.mult(dq_dvj[j]))[b]
+                            + hatq[a] * hatq.mult(dq_dvj_dvl[j][l])[b];
                 
-                        // d1
-                        dd_dvij_dvkl[0][i][j][k][l][0] = A[0][0] - A[1][1] - A[2][2] + A[3][3];
-                        dd_dvij_dvkl[0][i][j][k][l][1] = A[1][0] + A[0][1] + A[3][2] + A[2][3];
-                        dd_dvij_dvkl[0][i][j][k][l][2] = A[2][0] + A[0][2] - A[3][1] - A[1][3];
-                        
-                        // d2
-                        dd_dvij_dvkl[1][i][j][k][l][0] =  A[1][0] + A[0][1] - A[3][2] - A[2][3];
-                        dd_dvij_dvkl[1][i][j][k][l][1] = -A[0][0] + A[1][1] - A[2][2] + A[3][3];
-                        dd_dvij_dvkl[1][i][j][k][l][2] =  A[2][1] + A[1][2] + A[3][0] + A[0][3];
-                        
-                        // d3
-                        dd_dvij_dvkl[2][i][j][k][l][0] =  A[2][0] + A[0][2] + A[3][1] + A[1][3];
-                        dd_dvij_dvkl[2][i][j][k][l][1] =  A[2][1] + A[1][2] - A[3][0] - A[0][3];
-                        dd_dvij_dvkl[2][i][j][k][l][2] = -A[0][0] - A[1][1] + A[2][2] + A[3][3];
-                        
-                        
-                        dd_dvij_dvkl[0][i][j][k][l] *= 2;
-                        dd_dvij_dvkl[1][i][j][k][l] *= 2;
-                        dd_dvij_dvkl[2][i][j][k][l] *= 2;
-                        
-                    }
-                    
-                }
-
+                // d1
+                dd_dvij_dvkl[0][j][l][0] = A[0][0] - A[1][1] - A[2][2] + A[3][3];
+                dd_dvij_dvkl[0][j][l][1] = A[1][0] + A[0][1] + A[3][2] + A[2][3];
+                dd_dvij_dvkl[0][j][l][2] = A[2][0] + A[0][2] - A[3][1] - A[1][3];
+                
+                // d2
+                dd_dvij_dvkl[1][j][l][0] =  A[1][0] + A[0][1] - A[3][2] - A[2][3];
+                dd_dvij_dvkl[1][j][l][1] = -A[0][0] + A[1][1] - A[2][2] + A[3][3];
+                dd_dvij_dvkl[1][j][l][2] =  A[2][1] + A[1][2] + A[3][0] + A[0][3];
+                
+                // d3
+                dd_dvij_dvkl[2][j][l][0] =  A[2][0] + A[0][2] + A[3][1] + A[1][3];
+                dd_dvij_dvkl[2][j][l][1] =  A[2][1] + A[1][2] - A[3][0] - A[0][3];
+                dd_dvij_dvkl[2][j][l][2] = -A[0][0] - A[1][1] + A[2][2] + A[3][3];
+                
+                
+                dd_dvij_dvkl[0][j][l] *= 2;
+                dd_dvij_dvkl[1][j][l] *= 2;
+                dd_dvij_dvkl[2][j][l] *= 2;
+                
             }
-
+            
         }
 
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
@@ -407,7 +399,7 @@ getLocalMatrix( EntityPointer &entity,
                             // \partial W^2 \partial v^i_j \partial v^k_l
                             localMat[i][k][j+3][l+3] += weight
                                 * (  A_[m] * (r_s * dd_dvj[m][l]*shapeFunction[k]) * (r_s * dd_dvj[m][j]*shapeFunction[i])
-                                     + A_[m] * (strain[m] - referenceStrain[m]) * (r_s * dd_dvij_dvkl[m][i][j][k][l]) );
+                                     + A_[m] * (strain[m] - referenceStrain[m]) * (r_s * dd_dvij_dvkl[m][j][l]) * shapeFunction[i] * shapeFunction[k]);
 
                             // ////////////////////////////////////////////
                             //   The rotational part
@@ -422,7 +414,7 @@ getLocalMatrix( EntityPointer &entity,
                             sum += (strain[m+3] - referenceStrain[m+3]) * (duCan_dvij_dvkl[i][j][k][l] * hatq.director(m)
                                                                            + duCan_dvij[i][j] * dd_dvj[m][l] * shapeFunction[k]
                                                                            + duCan_dvij[k][l] * dd_dvj[m][j] * shapeFunction[i]
-                                                                           + darbouxCan * dd_dvij_dvkl[m][i][j][k][l]);
+                                                                           + darbouxCan * dd_dvij_dvkl[m][j][l] * shapeFunction[i] * shapeFunction[k]);
                        
                             localMat[i][k][j+3][l+3] += weight *K_[m] * sum;
 
