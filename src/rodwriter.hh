@@ -122,7 +122,7 @@ void writeRod(const std::vector<Configuration>& rod,
     // ///////////////////////////////////////
     outfile << "@1" << std::endl;
 
-    for (int i=0; i<rod.size(); i++)
+    for (size_t i=0; i<rod.size(); i++)
         //outfile << rod[i].r[0] << "  " << rod[i].r[1] << "  " << rod[i].r[2] << std::endl;
         outfile << rod[i].r << std::endl;
 
@@ -132,12 +132,12 @@ void writeRod(const std::vector<Configuration>& rod,
     // ///////////////////////////////////////
     outfile << std::endl << "@2" << std::endl;
 
-    for (int i=0; i<rod.size(); i++) 
+    for (size_t i=0; i<rod.size(); i++) 
         outfile << rod[i].q.director(0) << std::endl;
 
     outfile << std::endl << "@3" << std::endl;
 
-    for (int i=0; i<rod.size(); i++) 
+    for (size_t i=0; i<rod.size(); i++) 
         outfile << rod[i].q.director(1) << std::endl;
 
 
