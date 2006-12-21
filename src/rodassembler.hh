@@ -137,30 +137,16 @@ namespace Dune
                              const std::vector<Configuration>& globalSolution, 
                              const int matSize, MatrixType& mat) const;
 
-
-        
         template <class T>
         static FieldVector<T,3> darboux(const Quaternion<T>& q, const FieldVector<T,4>& q_s) 
         {
-            FieldVector<double,3> uCanonical = darbouxCanonical(q, q_s);  // The Darboux vector
+            FieldVector<double,3> u;  // The Darboux vector
 
-            FieldVector<double,3> u;
-            u[0] = uCanonical*q.director(0);
-            u[1] = uCanonical*q.director(1);
-            u[2] = uCanonical*q.director(2);
+            u[0] = 2 * (q.B(0) * q_s);
+            u[1] = 2 * (q.B(1) * q_s);
+            u[2] = 2 * (q.B(2) * q_s);
+
             return u;
-        }
-
-        template <class T>
-        static FieldVector<T,3> darbouxCanonical(const Quaternion<T>& q, const FieldVector<T,4>& q_s) 
-        {
-            FieldVector<double,3> uCanonical;  // The Darboux vector
-
-            uCanonical[0] = 2 * (q.B(0) * q_s);
-            uCanonical[1] = 2 * (q.B(1) * q_s);
-            uCanonical[2] = 2 * (q.B(2) * q_s);
-
-            return uCanonical;
         }
         
         static void getFirstDerivativesOfDirectors(const Quaternion<double>& q, 
