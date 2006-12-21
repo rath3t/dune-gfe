@@ -6,6 +6,7 @@
 #include <dune/istl/bvector.hh>
 
 #include "../../common/boxconstraint.hh"
+#include "../common/h1seminorm.hh"
 #include "../../solver/iterativesolver.hh"
 
 #include "rodassembler.hh"
@@ -42,7 +43,8 @@ public:
                int nu1,
                int nu2,
                int baseIterations,
-               double baseTolerance);
+               double baseTolerance,
+               bool instrumented);
 
     void solve();
 
@@ -104,6 +106,13 @@ protected:
 
     /** \brief The Dirichlet nodes on all levels */
     std::vector<Dune::BitField> dirichletNodes_;
+
+    /** \brief The norm used to measure multigrid convergence */
+    H1SemiNorm<CorrectionType>* h1SemiNorm_;
+    
+    /** \brief If set to true we log convergence speed and other stuff */
+    bool instrumented_;
+
 };
 
 #include "rodsolver.cc"

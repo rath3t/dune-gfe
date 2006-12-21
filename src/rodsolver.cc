@@ -2,12 +2,17 @@
 
 #include <dune/istl/io.hh>
 
+#include <dune/disc/functions/p1function.hh>
+#include <dune/disc/miscoperators/laplace.hh>
+#include <dune/disc/operators/p1operator.hh>
+
 #include "../common/trustregiongsstep.hh"
 #include "../contact/src/contactmmgstep.hh"
 
 #include "../solver/iterativesolver.hh"
 
 #include "../common/energynorm.hh"
+#include "../common/h1seminorm.hh"
 
 #include "configuration.hh"
 #include "quaternion.hh"
@@ -52,7 +57,8 @@ void RodSolver<GridType>::setup(const GridType& grid,
                                 int nu1,
                                 int nu2,
                                 int baseIterations,
-                                double baseTolerance)
+                                double baseTolerance,
+                                bool instrumented)
 {
     using namespace Dune;
 
@@ -68,6 +74,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     nu2_                      = nu2;
     baseIt_                   = baseIterations;
     baseTolerance_            = baseTolerance;
+    instrumented_             = instrumented;
 
     int numLevels = grid_->maxLevel()+1;
 
@@ -117,15 +124,30 @@ void RodSolver<GridType>::setup(const GridType& grid,
     mmgStep->obstacles_         = &trustRegionObstacles_;
     mmgStep->verbosity_         = Solver::FULL;
 
+    // //////////////////////////////////////////////////////////////////////////////////////
+    //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
+    // //////////////////////////////////////////////////////////////////////////////////////
+    LeafP1Function<GridType,double> u(grid),f(grid);
+    LaplaceLocalStiffness<GridType,double> laplaceStiffness;
+    LeafP1OperatorAssembler<GridType,double,1>* A = new LeafP1OperatorAssembler<GridType,double,1>(grid);
+    A->assemble(laplaceStiffness,u,f);
 
+    typedef typename LeafP1OperatorAssembler<GridType,double,1>::RepresentationType LaplaceMatrixType;
 
-    EnergyNorm<MatrixType, CorrectionType>* energyNorm = new EnergyNorm<MatrixType, CorrectionType>(*mmgStep);
+    if (h1SemiNorm_)
+        delete h1SemiNorm_;
+
+    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
 
     mmgSolver_ = new IterativeSolver<MatrixType, CorrectionType>(mmgStep,
                                                                  multigridIterations_,
                                                                  qpTolerance_,
-                                                                 energyNorm,
+                                                                 h1SemiNorm_,
                                                                  Solver::FULL);
+
+    // Write all intermediate solutions, if requested
+    if (instrumented_)
+        mmgSolver_->historyBuffer_ = "tmp/";
 
     // ////////////////////////////////////////////////////////////
     //    Create Hessian matrix and its occupation structure
@@ -171,9 +193,22 @@ void RodSolver<GridType>::setup(const GridType& grid,
 template <class GridType>
 void RodSolver<GridType>::solve()
 {
+    using namespace Dune;
+
     double trustRegionRadius = initialTrustRegionRadius_;
 
+    // /////////////////////////////////////////////////////
+    //   Set up the log file, if requested
+    // /////////////////////////////////////////////////////
+    FILE* fp;
+    if (instrumented_) {
+
+        fp = fopen("statistics", "w");
+        if (!fp)
+            DUNE_THROW(IOError, "Couldn't open statistics file for writing!");
     
+    }
+
     // /////////////////////////////////////////////////////
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
@@ -193,18 +228,35 @@ void RodSolver<GridType>::solve()
         std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
         rodAssembler_->assembleGradient(x_, rhs);
         rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
-        
+#if 0
+        for (int j=0; j<hessianMatrix_->N(); j++) {
+
+            for (int k=0; k<hessianMatrix_->M(); k++) {
+
+                if (hessianMatrix_->exists(j,k)) {
+                    (*hessianMatrix_)[j][k] = 0;
+
+                    if (j==k)
+                        for (int l=0; l<6; l++)
+                            (*hessianMatrix_)[j][k][l][l] = 1;
+
+                }
+            }
+        }
+#endif   
         rhs *= -1;
+
+        //std::cout << "Gradient:\n" << rhs << std::endl;
 
         // Create trust-region obstacle on maxlevel
         setTrustRegionObstacles(trustRegionRadius,
                                 trustRegionObstacles_[grid_->maxLevel()]);
         
-        dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
+        dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
         
         mmgSolver_->preprocess();
         
-        dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->preprocess();
+        dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->preprocess();
         
         
         // /////////////////////////////
@@ -212,10 +264,77 @@ void RodSolver<GridType>::solve()
         // /////////////////////////////
         mmgSolver_->solve();
         
-        corr = dynamic_cast<Dune::MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->getSol();
+        corr = dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->getSol();
         
-        std::cout << "Correction: " << std::endl << corr << std::endl;
+        //std::cout << "Correction: " << std::endl << corr << std::endl;
         
+        if (instrumented_) {
+
+            fprintf(fp, "Trust-region step: %d, trust-region radius: %g\n",
+                    i, trustRegionRadius);
+                    
+            // ///////////////////////////////////////////////////////////////
+            //   Compute and measure progress against the exact solution
+            //   for each trust region step
+            // ///////////////////////////////////////////////////////////////
+    
+            CorrectionType exactSolution = corr;
+
+            // Start from 0
+            double oldError = 0;
+            double totalConvRate = 1;
+            double convRate = 1;
+    
+            // Write statistics of the initial solution
+            // Compute the energy norm
+            oldError = h1SemiNorm_->compute(exactSolution);
+    
+            for (int j=0; j<multigridIterations_; j++) {
+        
+                // read iteration from file
+                CorrectionType intermediateSol(grid_->size(1));
+                intermediateSol = 0;
+                char iSolFilename[100];
+                sprintf(iSolFilename, "tmp/intermediatesolution_%04d", j);
+                
+                FILE* fpInt = fopen(iSolFilename, "rb");
+                if (!fpInt)
+                    DUNE_THROW(IOError, "Couldn't open intermediate solution");
+                for (int k=0; k<intermediateSol.size(); k++)
+                    for (int l=0; l<blocksize; l++)
+                        fread(&intermediateSol[k][l], sizeof(double), 1, fpInt);
+                
+                fclose(fpInt);
+                //std::cout << "intermediateSol\n" << intermediateSol << std::endl;
+
+                // Compute errors
+                intermediateSol -= exactSolution;
+      
+                //std::cout << "error\n" << intermediateSol << std::endl;
+
+                // Compute the H1 norm
+                double error = h1SemiNorm_->compute(intermediateSol);
+
+                convRate = error / oldError;
+                totalConvRate *= convRate;
+                
+                if (error < 1e-12)
+                    break;
+                
+                printf("Iteration: %d  ", j);
+                printf("Errors:  error %g,  convergence Rate: %g,  total conv rate %g\n", 
+                       error, convRate, pow(totalConvRate, 1/((double)j+1)), 0);
+                fprintf(fp, "%d %g %g %g\n", j+1, error, convRate, pow(totalConvRate, 1/((double)j+1)));
+                
+                
+                oldError = error;
+                
+            }
+            
+            
+        }
+
+
         printf("infinity norm of the correction: %g\n", corr.infinity_norm());
         if (corr.infinity_norm() < 1e-5) {
             std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
@@ -236,13 +355,11 @@ void RodSolver<GridType>::solve()
             // Add rotational correction
             Quaternion<double> qCorr = Quaternion<double>::exp(corr[j][3], corr[j][4], corr[j][5]);
             newIterate[j].q = newIterate[j].q.mult(qCorr);
-            //newIterate[j].q = qCorr.mult(newIterate[j].q);
             
         }
         
-        
+#if 0
         std::cout << "newIterate: \n";
-#if 1
         for (int j=0; j<newIterate.size(); j++)
             std::cout << newIterate[j] << std::endl;
 #endif     
@@ -296,5 +413,10 @@ void RodSolver<GridType>::solve()
         //  Write current energy
         std::cout << "--- Current energy: " << energy << " ---" << std::endl;
     }
-    
+
+    // //////////////////////////////////////////////
+    //   Close logfile
+    // //////////////////////////////////////////////
+    if (instrumented_)
+        fclose(fp);
 }
