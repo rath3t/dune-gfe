@@ -2,11 +2,18 @@
 #define QUATERNION_HH
 
 #include <dune/common/fvector.hh>
+#include <dune/common/fmatrix.hh>
 #include <dune/common/exceptions.hh>
 
 template <class T>
 class Quaternion : public Dune::FieldVector<T,4>
 {
+
+    /** \brief Computes sin(x/2) / x without getting unstable for small x */
+    static T sincHalf(const T& x) {
+        return (x < 1e-4) ? 0.5 + (x*x/48) : std::sin(x/2)/x;
+    }
+
 public:
 
     /** \brief Default constructor */
@@ -53,7 +60,7 @@ public:
         T normV = std::sqrt(v0*v0 + v1*v1 + v2*v2);
 
         // Stabilization for small |v| due to Grassia
-        T sin   = (normV < 1e-4) ? 0.5 + (normV*normV/48) : std::sin(normV/2)/normV;
+        T sin = sincHalf(normV);
 
         // if normV == 0 then q = (0,0,0,1)
         assert(!isnan(sin));
@@ -64,6 +71,27 @@ public:
         q[3] = std::cos(normV/2);
 
         return q;
+    }
+
+    static Dune::FieldMatrix<T,4,3> Dexp(const Dune::FieldVector<T,3>& v) {
+
+        Dune::FieldMatrix<T,4,3> result(0);
+        T norm = v.two_norm();
+
+        for (int i=0; i<3; i++) {
+
+            for (int m=0; m<3; m++) {
+                
+                result[m][i] = (norm==0) 
+                    ? (i==m) 
+                    : 0.5 * std::cos(norm/2) * v[i] * v[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - v[i]*v[m]/(norm*norm));
+
+            }
+
+            result[3][i] = - 0.5 * sincHalf(norm) * v[i];
+
+        }
+        return result;
     }
 
     /** \brief Right quaternion multiplication */
@@ -147,11 +175,11 @@ public:
 
         Quaternion<T> diff = a;
         diff.invert();
-        diff.mult(b);
+        diff = diff.mult(b);
 
         T dist = 2*std::acos(diff[3]);
 
-        T invSinc = (dist < 1e-4) ? 1/(0.5+(dist*dist/48)) : dist / std::sin(dist/2);
+        T invSinc = 1/sincHalf(dist);
 
         // Compute difference on T_a SO(3)
         Dune::FieldVector<double,3> v;
@@ -169,12 +197,46 @@ public:
     /** \brief Interpolate between two rotations */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
                                                double omega, double intervallLength) {
-
         Quaternion<T> result;
+#if 0
 
         for (int i=0; i<4; i++)
             result[i] = a[i] / (-intervallLength) + b[i] / intervallLength;
 
+#else
+        // Interpolation on the geodesic in SO(3) from a to b
+
+        // diff = a^-1 b
+        Quaternion<T> diff = a;
+        diff.invert();
+        diff = diff.mult(b);
+
+        T dist = 2*std::acos(diff[3]);
+
+        T invSinc = 1/sincHalf(dist);
+
+        // Compute difference on T_a SO(3)
+        Dune::FieldVector<double,3> v;
+        v[0] = diff[0] * invSinc;
+        v[1] = diff[1] * invSinc;
+        v[2] = diff[2] * invSinc;
+
+        Dune::FieldVector<double,3> der = v;
+        der /= intervallLength;
+        
+        // //////////////////////////////////////////////////////////////
+        //   v now contains the derivative at 'a'.  The derivative at
+        //   the requested site is v pushed forward by Dexp.
+        // /////////////////////////////////////////////////////////////
+
+        v *= omega;
+
+        Dune::FieldMatrix<double,4,3> diffExp = Quaternion<double>::Dexp(v);
+
+        result[0] = result[1] = result[2] = result[3] = 0;
+        diffExp.umv(der,result);
+#endif
+        //std::cout << result << std::endl;
         return result;
     }
 
