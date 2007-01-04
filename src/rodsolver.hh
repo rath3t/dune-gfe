@@ -29,7 +29,7 @@ class RodSolver
 public:
 
     RodSolver()
-        : hessianMatrix_(NULL)
+        : hessianMatrix_(NULL), h1SemiNorm_(NULL)
     {}
 
     void setup(const GridType& grid, 
