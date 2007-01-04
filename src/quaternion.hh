@@ -121,15 +121,59 @@ public:
         return result;
     }
 
+    /** \brief Invert the quaternion */
+    void invert() {
+
+        (*this)[0] *= -1;
+        (*this)[1] *= -1;
+        (*this)[2] *= -1;
+
+        (*this) /= this->two_norm2();
+    }
+
     /** \brief Interpolate between two rotations */
     static Quaternion<T> interpolate(const Quaternion<T>& a, const Quaternion<T>& b, double omega) {
 
+#if 0  // Interpolation in H plus normalization
         Quaternion<T> result;
 
         for (int i=0; i<4; i++)
             result[i] = a[i]*(1-omega) + b[i]*omega;
 
         result.normalize();
+
+        return result;
+#else  // Interpolation on the geodesic in SO(3) from a to b
+
+        Quaternion<T> diff = a;
+        diff.invert();
+        diff.mult(b);
+
+        T dist = 2*std::acos(diff[3]);
+
+        T invSinc = (dist < 1e-4) ? 1/(0.5+(dist*dist/48)) : dist / std::sin(dist/2);
+
+        // Compute difference on T_a SO(3)
+        Dune::FieldVector<double,3> v;
+        v[0] = diff[0] * invSinc;
+        v[1] = diff[1] * invSinc;
+        v[2] = diff[2] * invSinc;
+
+        v *= omega;
+
+        return a.mult(exp(v[0], v[1], v[2]));
+#endif
+
+    }
+
+    /** \brief Interpolate between two rotations */
+    static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
+                                               double omega, double intervallLength) {
+
+        Quaternion<T> result;
+
+        for (int i=0; i<4; i++)
+            result[i] = a[i] / (-intervallLength) + b[i] / intervallLength;
 
         return result;
     }

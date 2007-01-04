@@ -303,9 +303,8 @@ getLocalMatrix( EntityPointer &entity,
         }
 
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-        Quaternion<double> hatq_s;
-        for (int i=0; i<4; i++)
-            hatq_s[i] = localSolution[0].q[i]*shapeGrad[0] + localSolution[1].q[i]*shapeGrad[1];
+        Quaternion<double> hatq_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
+                                                                              quadPos, 1/shapeGrad[1]);
         
         // The current strain
         FieldVector<double,blocksize> strain = getStrain(globalSolution, entity, quadPos);
@@ -402,7 +401,6 @@ getLocalMatrix( EntityPointer &entity,
                             // \partial W^2 \partial v^i_j \partial v^k_l
                             // All other derivatives are zero
 
-                            //double sum = duLocal_dvij[k][l][m] * (duCan_dvij[i][j] * hatq.director(m) + darbouxCan*dd_dvj[m][j]*shapeFunction[i]);
                             double sum = du_dvij[k][l][m] * du_dvij[i][j][m];
                             
                             sum += (strain[m+3] - referenceStrain[m+3]) * du_dvij_dvkl[i][j][k][l][m];
@@ -501,9 +499,8 @@ assembleGradient(const std::vector<Configuration>& sol,
             Quaternion<double> hatq = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
             // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-            Quaternion<double> hatq_s;
-            for (int i=0; i<4; i++)
-                hatq_s[i] = localSolution[0].q[i]*shapeGrad[0] + localSolution[1].q[i]*shapeGrad[1];
+            Quaternion<double> hatq_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
+                                                                                  quadPos, 1/shapeGrad[1]);
 
             // The current strain
             FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
@@ -811,11 +808,8 @@ Dune::FieldVector<double, 6> Dune::RodAssembler<GridType>::getStrain(const std::
     Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q, pos);
         
     // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-    Quaternion<double> q_s;
-    q_s[0] = localSolution[0].q[0]*shapeGrad[0][0] + localSolution[1].q[0]*shapeGrad[1][0];
-    q_s[1] = localSolution[0].q[1]*shapeGrad[0][0] + localSolution[1].q[1]*shapeGrad[1][0];
-    q_s[2] = localSolution[0].q[2]*shapeGrad[0][0] + localSolution[1].q[2]*shapeGrad[1][0];
-    q_s[3] = localSolution[0].q[3]*shapeGrad[0][0] + localSolution[1].q[3]*shapeGrad[1][0];
+    Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
+                                                                       pos, 1/shapeGrad[1]);
         
     // /////////////////////////////////////////////
     //   Sum it all up
