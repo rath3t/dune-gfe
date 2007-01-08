@@ -162,16 +162,7 @@ public:
     /** \brief Interpolate between two rotations */
     static Quaternion<T> interpolate(const Quaternion<T>& a, const Quaternion<T>& b, double omega) {
 
-#if 0  // Interpolation in H plus normalization
-        Quaternion<T> result;
-
-        for (int i=0; i<4; i++)
-            result[i] = a[i]*(1-omega) + b[i]*omega;
-
-        result.normalize();
-
-        return result;
-#else  // Interpolation on the geodesic in SO(3) from a to b
+        // Interpolation on the geodesic in SO(3) from a to b
 
         Quaternion<T> diff = a;
         diff.invert();
@@ -190,20 +181,12 @@ public:
         v *= omega;
 
         return a.mult(exp(v[0], v[1], v[2]));
-#endif
-
     }
 
     /** \brief Interpolate between two rotations */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
                                                double omega, double intervallLength) {
         Quaternion<T> result;
-#if 0
-
-        for (int i=0; i<4; i++)
-            result[i] = a[i] / (-intervallLength) + b[i] / intervallLength;
-
-#else
         // Interpolation on the geodesic in SO(3) from a to b
 
         // diff = a^-1 b
@@ -250,8 +233,6 @@ public:
             abort();
         }
             
-#endif
-        //std::cout << result << std::endl;
         return result;
     }
 
