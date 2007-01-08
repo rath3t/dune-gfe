@@ -17,6 +17,9 @@
 #include "configuration.hh"
 #include "quaternion.hh"
 
+// for debugging
+#include "../test/fdcheck.hh"
+
 // Number of degrees of freedom: 
 // 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod
 //const int blocksize = 6;
@@ -29,9 +32,6 @@ setTrustRegionObstacles(double trustRegionRadius,
     for (int j=0; j<trustRegionObstacles.size(); j++) {
 
         for (int k=0; k<blocksize; k++) {
-
-//             if (totalDirichletNodes[j*dim+k])
-//                 continue;
 
             trustRegionObstacles[j].val[2*k]   = -trustRegionRadius;
             trustRegionObstacles[j].val[2*k+1] =  trustRegionRadius;
@@ -228,25 +228,34 @@ void RodSolver<GridType>::solve()
         std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
         rodAssembler_->assembleGradient(x_, rhs);
         rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
+
+        gradientFDCheck(x_, rhs, *rodAssembler_);
+        hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
+
 #if 0
         for (int j=0; j<hessianMatrix_->N(); j++) {
 
             for (int k=0; k<hessianMatrix_->M(); k++) {
 
                 if (hessianMatrix_->exists(j,k)) {
+
+                    for (int l=0; l<6; l++)
+                        for (int m=0; m<6; m++)
+                            assert( std::abs((*hessianMatrix_)[j][k][l][m] - (*hessianMatrix_)[k][j][m][l]) < 1e-6);
+#if 0
                     (*hessianMatrix_)[j][k] = 0;
 
                     if (j==k)
                         for (int l=0; l<6; l++)
                             (*hessianMatrix_)[j][k][l][l] = 1;
-
+#endif
                 }
             }
         }
 #endif   
         rhs *= -1;
 
-        //std::cout << "Gradient:\n" << rhs << std::endl;
+        std::cout << "Gradient:\n" << rhs << std::endl;
 
         // Create trust-region obstacle on maxlevel
         setTrustRegionObstacles(trustRegionRadius,
