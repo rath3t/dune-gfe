@@ -218,7 +218,7 @@ getLocalMatrix( EntityPointer &entity,
         r_s[2] = localSolution[0].r[2]*shapeGrad[0] + localSolution[1].r[2]*shapeGrad[1];
 
         // Interpolate current rotation at this quadrature point
-        Quaternion<double> hatq = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
+        Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
         // Contains \partial q / \partial v^i_j  at v = 0
         FixedArray<Quaternion<double>,3> dq_dvj;
@@ -263,7 +263,7 @@ getLocalMatrix( EntityPointer &entity,
         
         // Contains \parder d \parder v^i_j
         FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
-        getFirstDerivativesOfDirectors(hatq, dd_dvj, dq_dvj);
+        getFirstDerivativesOfDirectors(q, dd_dvj, dq_dvj);
 
         // Contains \parder {dm}{v^i_j}{v^k_l}
         FieldVector<double,3> dd_dvij_dvkl[3][3][3];
@@ -275,8 +275,8 @@ getLocalMatrix( EntityPointer &entity,
                 FieldMatrix<double,4,4> A;
                 for (int a=0; a<4; a++)
                     for (int b=0; b<4; b++) 
-                        A[a][b] = (hatq.mult(dq_dvj[l]))[a] * (hatq.mult(dq_dvj[j]))[b]
-                            + hatq[a] * hatq.mult(dq_dvj_dvl[j][l])[b];
+                        A[a][b] = (q.mult(dq_dvj[l]))[a] * (q.mult(dq_dvj[j]))[b]
+                            + q[a] * q.mult(dq_dvj_dvl[j][l])[b];
                 
                 // d1
                 dd_dvij_dvkl[0][j][l][0] = A[0][0] - A[1][1] - A[2][2] + A[3][3];
@@ -303,8 +303,8 @@ getLocalMatrix( EntityPointer &entity,
         }
 
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-        Quaternion<double> hatq_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
-                                                                              quadPos, 1/shapeGrad[1]);
+        Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
+                                                                           quadPos, 1/shapeGrad[1]);
         
         // The current strain
         FieldVector<double,blocksize> strain = getStrain(globalSolution, entity, quadPos);
@@ -322,11 +322,11 @@ getLocalMatrix( EntityPointer &entity,
 
                 for (int m=0; m<3; m++) {
                     //du_dvij[i][j][m]  = 2 * (hatq.mult(dq_dvj[j])).B(m)*hatq_s  * shapeFunction[i];
-                    du_dvij[i][j][m]  = (hatq.mult(dq_dvj[j])).B(m)*hatq_s;
+                    du_dvij[i][j][m]  = (q.mult(dq_dvj[j])).B(m)*q_s;
                     du_dvij[i][j][m] *= 2 * shapeFunction[i];
                     Quaternion<double> tmp = dq_dvj[j];
                     tmp *= shapeFunction[i];
-                    du_dvij[i][j][m] += 2 * ( hatq.B(m)*(hatq.mult(dq_dvij_ds[i][j]) + hatq_s.mult(tmp)));
+                    du_dvij[i][j][m] += 2 * ( q.B(m)*(q.mult(dq_dvij_ds[i][j]) + q_s.mult(tmp)));
                 }
 
                 for (int k=0; k<2; k++) {
@@ -344,10 +344,10 @@ getLocalMatrix( EntityPointer &entity,
                             Quaternion<double> tmp_ijkl = dq_dvj_dvl[j][l];
                             tmp_ijkl *= shapeFunction[i] * shapeFunction[k];
 
-                            du_dvij_dvkl[i][j][k][l][m] = 2 * ( (hatq.mult(tmp_ijkl)).B(m) * hatq_s)
-                                + 2 * ( (hatq.mult(tmp_ij)).B(m) * (hatq.mult(dq_dvij_ds[k][l]) + hatq_s.mult(tmp_kl)))
-                                + 2 * ( (hatq.mult(tmp_kl)).B(m) * (hatq.mult(dq_dvij_ds[i][j]) + hatq_s.mult(tmp_ij)))
-                                + 2 * ( hatq.B(m) * (hatq.mult(dq_dvij_dvkl_ds[i][j][k][l]) + hatq_s.mult(tmp_ijkl)));
+                            du_dvij_dvkl[i][j][k][l][m] = 2 * ( (q.mult(tmp_ijkl)).B(m) * q_s)
+                                + 2 * ( (q.mult(tmp_ij)).B(m) * (q.mult(dq_dvij_ds[k][l]) + q_s.mult(tmp_kl)))
+                                + 2 * ( (q.mult(tmp_kl)).B(m) * (q.mult(dq_dvij_ds[i][j]) + q_s.mult(tmp_ij)))
+                                + 2 * ( q.B(m) * (q.mult(dq_dvij_dvkl_ds[i][j][k][l]) + q_s.mult(tmp_ijkl)));
 
                         }
 
@@ -378,11 +378,11 @@ getLocalMatrix( EntityPointer &entity,
                         
                             // \partial W^2 \partial r^i_j \partial r^k_l
                             localMat[i][k][j][l] += weight 
-                                * A_[m] * shapeGrad[i] * hatq.director(m)[j] * shapeGrad[k] * hatq.director(m)[l];
+                                * A_[m] * shapeGrad[i] * q.director(m)[j] * shapeGrad[k] * q.director(m)[l];
 
                             // \partial W^2 \partial v^i_j \partial r^k_l
                             localMat[i][k][j][l+3] += weight
-                                * ( A_[m] * shapeGrad[k]*hatq.director(m)[l]*(r_s*dd_dvj[m][j] * shapeFunction[i])
+                                * ( A_[m] * shapeGrad[k]*q.director(m)[l]*(r_s*dd_dvj[m][j] * shapeFunction[i])
                                     + A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[k] * dd_dvj[m][j][l]*shapeFunction[i]);
 
                             // This is programmed stupidly.  To ensure the symmetry it is enough to make
