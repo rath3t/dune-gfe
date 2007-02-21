@@ -2,6 +2,7 @@
 #define QUATERNION_HH
 
 #include <dune/common/fvector.hh>
+#include <dune/common/fixedarray.hh>
 #include <dune/common/fmatrix.hh>
 #include <dune/common/exceptions.hh>
 
@@ -77,13 +78,14 @@ public:
 
         Dune::FieldMatrix<T,4,3> result(0);
         T norm = v.two_norm();
-
+        
         for (int i=0; i<3; i++) {
 
             for (int m=0; m<3; m++) {
                 
                 result[m][i] = (norm==0) 
-                    ? (i==m) 
+                    /** \todo Isn't there a better way to implement this stably? */
+                    ? 0.5 * (i==m) 
                     : 0.5 * std::cos(norm/2) * v[i] * v[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - v[i]*v[m]/(norm*norm));
 
             }
@@ -131,6 +133,66 @@ public:
         return d;
     }
             
+    void getFirstDerivativesOfDirectors(Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 3>& dd_dvj) const
+    {
+        const Quaternion<T>& q = (*this);
+
+        // Contains \partial q / \partial v^i_j  at v = 0
+        Dune::FixedArray<Quaternion<double>,3> dq_dvj;
+        for (int j=0; j<3; j++) {
+            for (int m=0; m<4; m++)
+                dq_dvj[j][m]    = (j==m) * 0.5;
+        }
+        
+        // Contains \parder d \parder v_j
+        
+        for (int j=0; j<3; j++) {
+            
+            // d1
+            dd_dvj[0][j][0] = q[0]*(q.mult(dq_dvj[j]))[0] - q[1]*(q.mult(dq_dvj[j]))[1] 
+                - q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
+            
+            dd_dvj[0][j][1] = (q.mult(dq_dvj[j]))[0]*q[1] + q[0]*(q.mult(dq_dvj[j]))[1]
+                + (q.mult(dq_dvj[j]))[2]*q[3] + q[2]*(q.mult(dq_dvj[j]))[3];
+            
+            dd_dvj[0][j][2] = (q.mult(dq_dvj[j]))[0]*q[2] + q[0]*(q.mult(dq_dvj[j]))[2]
+                - (q.mult(dq_dvj[j]))[1]*q[3] - q[1]*(q.mult(dq_dvj[j]))[3];
+            
+            // d2
+            dd_dvj[1][j][0] = (q.mult(dq_dvj[j]))[0]*q[1] + q[0]*(q.mult(dq_dvj[j]))[1]
+                - (q.mult(dq_dvj[j]))[2]*q[3] - q[2]*(q.mult(dq_dvj[j]))[3];
+            
+            dd_dvj[1][j][1] = - q[0]*(q.mult(dq_dvj[j]))[0] + q[1]*(q.mult(dq_dvj[j]))[1] 
+                - q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
+            
+            dd_dvj[1][j][2] = (q.mult(dq_dvj[j]))[1]*q[2] + q[1]*(q.mult(dq_dvj[j]))[2]
+                + (q.mult(dq_dvj[j]))[0]*q[3] + q[0]*(q.mult(dq_dvj[j]))[3];
+            
+            // d3
+            dd_dvj[2][j][0] = (q.mult(dq_dvj[j]))[0]*q[2] + q[0]*(q.mult(dq_dvj[j]))[2]
+                + (q.mult(dq_dvj[j]))[1]*q[3] + q[1]*(q.mult(dq_dvj[j]))[3];
+            
+            dd_dvj[2][j][1] = (q.mult(dq_dvj[j]))[1]*q[2] + q[1]*(q.mult(dq_dvj[j]))[2]
+                - (q.mult(dq_dvj[j]))[0]*q[3] - q[0]*(q.mult(dq_dvj[j]))[3];
+            
+            dd_dvj[2][j][2] = - q[0]*(q.mult(dq_dvj[j]))[0] - q[1]*(q.mult(dq_dvj[j]))[1] 
+                + q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
+            
+            
+            dd_dvj[0][j] *= 2;
+            dd_dvj[1][j] *= 2;
+            dd_dvj[2][j] *= 2;
+            
+        }
+    
+    // Check: The derivatives of the directors must be orthogonal to the directors
+    for (int i=0; i<3; i++)
+        for (int j=0; j<3; j++)
+            assert (std::abs(q.director(i) * dd_dvj[i][j]) < 1e-7);
+
+}
+
+
     /** \brief Turn quaternion into a unit quaternion by dividing by its Euclidean norm */
     void normalize() {
         (*this) /= this->two_norm();
@@ -221,6 +283,9 @@ public:
 
         result = a.mult(result);
 
+        // ////////////////////////////////////////////////////////////////////////////
+        //   Check correctness by comparing with a finite difference approximation
+        // ////////////////////////////////////////////////////////////////////////////
         double eps = 1e-6;
         Quaternion<T> fdResult = interpolate(a,b, omega+eps);
         fdResult              -= interpolate(a,b, omega-eps);

@@ -93,61 +93,6 @@ assembleMatrix(const std::vector<Configuration>& sol,
 
 }
 
-template <class GridType>
-void Dune::RodAssembler<GridType>::
-getFirstDerivativesOfDirectors(const Quaternion<double>& q, 
-                               Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 3>& dd_dvj,
-                               const Dune::FixedArray<Quaternion<double>, 3>& dq_dvj)
-{
- 
-    // Contains \parder d \parder v_j
-        
-    for (int j=0; j<3; j++) {
-        
-        // d1
-        dd_dvj[0][j][0] = q[0]*(q.mult(dq_dvj[j]))[0] - q[1]*(q.mult(dq_dvj[j]))[1] 
-            - q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
-        
-        dd_dvj[0][j][1] = (q.mult(dq_dvj[j]))[0]*q[1] + q[0]*(q.mult(dq_dvj[j]))[1]
-            + (q.mult(dq_dvj[j]))[2]*q[3] + q[2]*(q.mult(dq_dvj[j]))[3];
-        
-        dd_dvj[0][j][2] = (q.mult(dq_dvj[j]))[0]*q[2] + q[0]*(q.mult(dq_dvj[j]))[2]
-            - (q.mult(dq_dvj[j]))[1]*q[3] - q[1]*(q.mult(dq_dvj[j]))[3];
-        
-        // d2
-        dd_dvj[1][j][0] = (q.mult(dq_dvj[j]))[0]*q[1] + q[0]*(q.mult(dq_dvj[j]))[1]
-            - (q.mult(dq_dvj[j]))[2]*q[3] - q[2]*(q.mult(dq_dvj[j]))[3];
-        
-        dd_dvj[1][j][1] = - q[0]*(q.mult(dq_dvj[j]))[0] + q[1]*(q.mult(dq_dvj[j]))[1] 
-            - q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
-        
-        dd_dvj[1][j][2] = (q.mult(dq_dvj[j]))[1]*q[2] + q[1]*(q.mult(dq_dvj[j]))[2]
-            + (q.mult(dq_dvj[j]))[0]*q[3] + q[0]*(q.mult(dq_dvj[j]))[3];
-        
-        // d3
-        dd_dvj[2][j][0] = (q.mult(dq_dvj[j]))[0]*q[2] + q[0]*(q.mult(dq_dvj[j]))[2]
-            + (q.mult(dq_dvj[j]))[1]*q[3] + q[1]*(q.mult(dq_dvj[j]))[3];
-        
-        dd_dvj[2][j][1] = (q.mult(dq_dvj[j]))[1]*q[2] + q[1]*(q.mult(dq_dvj[j]))[2]
-            - (q.mult(dq_dvj[j]))[0]*q[3] - q[0]*(q.mult(dq_dvj[j]))[3];
-        
-        dd_dvj[2][j][2] = - q[0]*(q.mult(dq_dvj[j]))[0] - q[1]*(q.mult(dq_dvj[j]))[1] 
-            + q[2]*(q.mult(dq_dvj[j]))[2] + q[3]*(q.mult(dq_dvj[j]))[3];
-        
-        
-        dd_dvj[0][j] *= 2;
-        dd_dvj[1][j] *= 2;
-        dd_dvj[2][j] *= 2;
-        
-    }
-    
-    // Check: The derivatives of the directors must be orthogonal to the directors
-    for (int i=0; i<3; i++)
-        for (int j=0; j<3; j++)
-            assert (std::abs(q.director(i) * dd_dvj[i][j]) < 1e-7);
-
-}
-
 
 template <class GridType>
 template <class MatrixType>
@@ -263,7 +208,7 @@ getLocalMatrix( EntityPointer &entity,
         
         // Contains \parder d \parder v^i_j
         FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
-        getFirstDerivativesOfDirectors(q, dd_dvj, dq_dvj);
+        q.getFirstDerivativesOfDirectors(dd_dvj);
 
         // Contains \parder {dm}{v^i_j}{v^k_l}
         FieldVector<double,3> dd_dvij_dvkl[3][3][3];
@@ -526,7 +471,7 @@ assembleGradient(const std::vector<Configuration>& sol,
 
             // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
             FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
-            getFirstDerivativesOfDirectors(hatq, dd_dvj, dq_dvj);
+            hatq.getFirstDerivativesOfDirectors(dd_dvj);
 
             
             // /////////////////////////////////////////////

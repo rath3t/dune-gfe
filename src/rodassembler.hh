@@ -149,10 +149,6 @@ namespace Dune
             return u;
         }
         
-        static void getFirstDerivativesOfDirectors(const Quaternion<double>& q, 
-                                                   Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 3>& dd_dvj,
-                                                   const Dune::FixedArray<Quaternion<double>, 3>& dq_dvj);
-
     }; // end class
     
 } // end namespace 
