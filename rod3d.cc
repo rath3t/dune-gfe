@@ -1,24 +1,24 @@
 #include <config.h>
 
-//#define DUNE_EXPRESSIONTEMPLATES
+#include <dune/common/bitfield.hh>
+#include <dune/common/configparser.hh>
+
 #include <dune/grid/onedgrid.hh>
 
 #include <dune/istl/io.hh>
 
-#include <dune/common/bitfield.hh>
-#include "src/quaternion.hh"
-
-#include "src/rodassembler.hh"
-#include "src/rodsolver.hh"
 
 #include "../solver/iterativesolver.hh"
 
 #include "../common/geomestimator.hh"
 #include "../common/energynorm.hh"
 
-#include <dune/common/configparser.hh>
 #include "src/configuration.hh"
+#include "src/roddifference.hh"
 #include "src/rodwriter.hh"
+#include "src/quaternion.hh"
+#include "src/rodassembler.hh"
+#include "src/rodsolver.hh"
 
 // Number of degrees of freedom: 
 // 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod
@@ -26,6 +26,15 @@ const int blocksize = 6;
 
 using namespace Dune;
 using std::string;
+
+double computeEnergyNormSquared(const BlockVector<FieldVector<double,6> >& x,
+                                const BCRSMatrix<FieldMatrix<double, 6, 6> >& matrix)
+{
+    BlockVector<FieldVector<double, 6> > tmp(x.size());
+    tmp = 0;
+    matrix.umv(x,tmp);
+    return x*tmp;
+}
 
 int main (int argc, char *argv[]) try
 {
@@ -47,6 +56,7 @@ int main (int argc, char *argv[]) try
     const double baseTolerance    = parameterSet.get("baseTolerance", double(0));
     const double initialTrustRegionRadius = parameterSet.get("initialTrustRegionRadius", double(1));
     const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
+    const bool instrumented      = parameterSet.get("instrumented", int(0));
     
     // ///////////////////////////////////////
     //    Create the grid
@@ -63,6 +73,8 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
+    FieldVector<double,3>  zAxis(0);
+    zAxis[2] = 1;
 
     for (int i=0; i<x.size(); i++) {
         x[i].r[0] = 0;    // x
@@ -70,15 +82,18 @@ int main (int argc, char *argv[]) try
         x[i].r[2] = double(i)/(x.size()-1);                 // z
         //x[i].r[2] = i+5;
         x[i].q = Quaternion<double>::identity();
+        //x[i].q = Quaternion<double>(zAxis, M_PI/2 * double(i)/(x.size()-1));
     }
 
-//     x[x.size()-1].r[0] = 0;
-//     x[x.size()-1].r[1] = 0;
-//     x[x.size()-1].r[2] = 0;
+
 #if 1
-    FieldVector<double,3>  zAxis(0);
-    zAxis[2] = 1;
-    x[x.size()-1].q = Quaternion<double>(zAxis, M_PI);
+    FieldVector<double,3>  xAxis(0);
+    xAxis[0] = 1;
+    x[1].r[2] = 0.25;
+    x.back().r[2] = 0.5;
+    x[0].q = Quaternion<double>(xAxis, -M_PI/2);
+    x.back().q = Quaternion<double>(xAxis, M_PI/2);
+    
 #endif
 
     std::cout << "Left boundary orientation:" << std::endl;
@@ -110,7 +125,8 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////
     RodAssembler<GridType> rodAssembler(grid);
     rodAssembler.setShapeAndMaterial(0.01, 0.0001, 0.0001, 2.5e5, 0.3);
-    
+    //rodAssembler.setParameters(0,0,0,1,1,1);
+
     RodSolver<GridType> rodSolver;
     rodSolver.setup(grid, 
                     &rodAssembler,
@@ -121,7 +137,8 @@ int main (int argc, char *argv[]) try
                     mgTolerance,
                     mu, nu1, nu2,
                     baseIterations,
-                    baseTolerance);
+                    baseTolerance,
+                    instrumented);
 
     // /////////////////////////////////////////////////////
     //   Solve!
@@ -142,9 +159,92 @@ int main (int argc, char *argv[]) try
     rodAssembler.getStrain(x,strain);
     //std::cout << strain << std::endl;
     //exit(0);
-    
-    writeRod(x, strain, "rod3d.strain");
 
+    //writeRod(x, "rod3d.strain");
+
+    // //////////////////////////////////////////////////////////
+    //   Recompute and compare against exact solution
+    // //////////////////////////////////////////////////////////
+    
+    SolutionType exactSolution = x;
+
+    // //////////////////////////////////////////////////////////
+    //   Compute hessian of the rod functional at the exact solution
+    //   for use of the energy norm it creates.
+    // //////////////////////////////////////////////////////////
+
+    BCRSMatrix<FieldMatrix<double, 6, 6> > hessian;
+    MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
+    rodAssembler.getNeighborsPerVertex(indices);
+    indices.exportIdx(hessian);
+    rodAssembler.assembleMatrix(exactSolution, hessian);
+
+
+    double error = std::numeric_limits<double>::max();
+    double oldError = 0;
+    double totalConvRate = 1;
+
+    SolutionType intermediateSolution(x.size());
+
+    // Compute error of the initial 3d solution
+    
+    // This should really be exactSol-initialSol, but we're starting
+    // from zero anyways
+    //oldError += computeEnergyNormSquared(exactSol3d, *hessian3d);
+    
+    /** \todo Rod error still missing */
+
+    oldError = std::sqrt(oldError);
+
+    
+
+    int i;
+    for (i=0; i<maxTrustRegionSteps; i++) {
+        
+        // /////////////////////////////////////////////////////
+        //   Read iteration from file
+        // /////////////////////////////////////////////////////
+        char iSolFilename[100];
+        sprintf(iSolFilename, "tmp/intermediateSolution_%04d", i);
+            
+        FILE* fp = fopen(iSolFilename, "rb");
+        if (!fp)
+            DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
+        for (int j=0; j<intermediateSolution.size(); j++) {
+            fread(&intermediateSolution[j].r, sizeof(double), 3, fp);
+            fread(&intermediateSolution[j].q, sizeof(double), 4, fp);
+        }
+        
+        fclose(fp);
+
+
+
+        // /////////////////////////////////////////////////////
+        //   Compute error
+        // /////////////////////////////////////////////////////
+        typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
+        RodDifferenceType rodDifference = computeRodDifference(exactSolution, intermediateSolution);
+        
+        error = std::sqrt(computeEnergyNormSquared(rodDifference, hessian));
+        
+
+        double convRate = error / oldError;
+        totalConvRate *= convRate;
+
+        // Output
+        std::cout << "Trust-region iteration: " << i << "  error : " << error << ",      "
+                  << "convrate " << convRate 
+                  << "    total conv rate " << std::pow(totalConvRate, 1/((double)i+1)) << std::endl;
+
+        if (error < 1e-12)
+          break;
+
+        oldError = error;
+        
+    }            
+
+
+    // //////////////////////////////
  } catch (Exception e) {
 
     std::cout << e << std::endl;
