@@ -166,7 +166,7 @@ getLocalMatrix( EntityPointer &entity,
         Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
 
         // Contains \partial q / \partial v^i_j  at v = 0
-        FixedArray<Quaternion<double>,3> dq_dvj;
+        array<Quaternion<double>,3> dq_dvj;
         Quaternion<double> dq_dvij_ds[2][3];
         for (int i=0; i<2; i++)
             for (int j=0; j<3; j++) {
@@ -207,7 +207,7 @@ getLocalMatrix( EntityPointer &entity,
         }        
         
         // Contains \parder d \parder v^i_j
-        FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
+        array<array<FieldVector<double,3>, 3>, 3> dd_dvj;
         q.getFirstDerivativesOfDirectors(dd_dvj);
 
         // Contains \parder {dm}{v^i_j}{v^k_l}
@@ -454,9 +454,9 @@ assembleGradient(const std::vector<Configuration>& sol,
             FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
 
             // Contains \partial q / \partial v^i_j  at v = 0
-            FixedArray<Quaternion<double>,3> dq_dvj;
+            array<Quaternion<double>,3> dq_dvj;
 
-            FixedArray<Quaternion<double>,3> dq_dvj_ds;
+            array<Quaternion<double>,3> dq_dvj_ds;
 
             for (int j=0; j<3; j++) {
                     
@@ -470,7 +470,7 @@ assembleGradient(const std::vector<Configuration>& sol,
             }
 
             // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
-            FixedArray<FixedArray<FieldVector<double,3>, 3>, 3> dd_dvj;
+            array<array<FieldVector<double,3>, 3>, 3> dd_dvj;
             hatq.getFirstDerivativesOfDirectors(dd_dvj);
 
             
@@ -781,39 +781,68 @@ Dune::FieldVector<double, 6> Dune::RodAssembler<GridType>::getStrain(const std::
 
 template <class GridType>
 Dune::FieldVector<double,3> Dune::RodAssembler<GridType>::
-getResultantForce(const std::vector<Configuration>& sol) const
+getResultantForce(const BoundaryPatch<GridType>& boundary, 
+                  const std::vector<Configuration>& sol) const
 {
     const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
-    // HARDWIRED: the leftmost point on the grid
-    EntityPointer leftElement = grid_->template leafbegin<0>();
-    assert(leftElement->ileafbegin().boundary());
-
-    double pos = 0;
-
-    FieldVector<double, blocksize> strain = getStrain(sol, leftElement, pos);
-    FieldVector<double, blocksize> referenceStrain = getStrain(referenceConfiguration_, leftElement, pos);
-
-    FieldVector<double,3> localStress;
-    for (int i=0; i<3; i++)
-        localStress[i] = (strain[i] - referenceStrain[i]) * A_[i];
-
-    // Transform stress given with respect to the basis given by the three directors to
-    // the canonical basis of R^3
-    /** \todo Hardwired: Entry 0 is the leftmost entry! */
-    FieldMatrix<double,3,3> orientationMatrix;
-    sol[0].q.matrix(orientationMatrix);
-
     FieldVector<double,3> canonicalStress(0);
-    orientationMatrix.umv(localStress, canonicalStress);
+    
+    // Loop over the given boundary
+    ElementLeafIterator eIt    = grid_->template leafbegin<0>();
+    ElementLeafIterator eEndIt = grid_->template leafend<0>();
 
-    // Reverse transformation to make sure we did the correct thing
-    assert( std::abs(localStress[0]-canonicalStress*sol[0].q.director(0)) < 1e-6 );
-    assert( std::abs(localStress[1]-canonicalStress*sol[0].q.director(1)) < 1e-6 );
-    assert( std::abs(localStress[2]-canonicalStress*sol[0].q.director(2)) < 1e-6 );
+    for (; eIt!=eEndIt; ++eIt) {
+
+        typename EntityType::LeafIntersectionIterator nIt    = eIt->ileafbegin();
+        typename EntityType::LeafIntersectionIterator nEndIt = eIt->ileafend();
+
+        for (; nIt!=nEndIt; ++nIt) {
+
+            if (!boundary.contains(*eIt, nIt.numberInSelf()))
+                continue;
+
+            // //////////////////////////////////////////////
+            //   Compute force across this boundary face
+            // //////////////////////////////////////////////
+
+            
+            double pos = nIt.intersectionSelfLocal()[0];
+
+            FieldVector<double, blocksize> strain = getStrain(sol, eIt, pos);
+            FieldVector<double, blocksize> referenceStrain = getStrain(referenceConfiguration_, eIt, pos);
+
+            FieldVector<double,3> localStress;
+            for (int i=0; i<3; i++)
+                localStress[i] = (strain[i] - referenceStrain[i]) * A_[i];
+
+            // Transform stress given with respect to the basis given by the three directors to
+            // the canonical basis of R^3
+            /** \todo Hardwired: Entry 0 is the leftmost entry! */
+            FieldMatrix<double,3,3> orientationMatrix;
+            sol[0].q.matrix(orientationMatrix);
+            
+            orientationMatrix.umv(localStress, canonicalStress);
+            
+            // Reverse transformation to make sure we did the correct thing
+ //            assert( std::abs(localStress[0]-canonicalStress*sol[0].q.director(0)) < 1e-6 );
+//             assert( std::abs(localStress[1]-canonicalStress*sol[0].q.director(1)) < 1e-6 );
+//             assert( std::abs(localStress[2]-canonicalStress*sol[0].q.director(2)) < 1e-6 );
+            
+        }
+
+    }
 
     return canonicalStress;
+}
+
+template <class GridType>
+Dune::FieldVector<double,3> Dune::RodAssembler<GridType>::
+getResultantTorque(const BoundaryPatch<GridType>& boundary, 
+                  const std::vector<Configuration>& sol) const
+{
+#warning getResultantForce non implemented yet!
 }
