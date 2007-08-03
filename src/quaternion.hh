@@ -133,12 +133,12 @@ public:
         return d;
     }
             
-    void getFirstDerivativesOfDirectors(Dune::FixedArray<Dune::FixedArray<Dune::FieldVector<double,3>, 3>, 3>& dd_dvj) const
+    void getFirstDerivativesOfDirectors(Dune::array<Dune::array<Dune::FieldVector<double,3>, 3>, 3>& dd_dvj) const
     {
         const Quaternion<T>& q = (*this);
 
         // Contains \partial q / \partial v^i_j  at v = 0
-        Dune::FixedArray<Quaternion<double>,3> dq_dvj;
+        Dune::array<Quaternion<double>,3> dq_dvj;
         for (int j=0; j<3; j++) {
             for (int m=0; m<4; m++)
                 dq_dvj[j][m]    = (j==m) * 0.5;
@@ -221,7 +221,30 @@ public:
         (*this) /= this->two_norm2();
     }
 
+    static Dune::FieldVector<T,3> difference(const Quaternion<T>& a, const Quaternion<T>& b) {
+
+        Quaternion<T> diff = a;
+        diff.invert();
+        diff = diff.mult(b);
+
+        // Compute the geodesical distance between a and b on SO(3)
+        // Due to numerical dirt, diff[3] may be larger than 1. 
+        // In that case, use 1 instead of diff[3].
+        T dist = 2*std::acos( std::min(diff[3],1.0) );
+
+        T invSinc = 1/sincHalf(dist);
+
+        // Compute difference on T_a SO(3)
+        Dune::FieldVector<T,3> v;
+        v[0] = diff[0] * invSinc;
+        v[1] = diff[1] * invSinc;
+        v[2] = diff[2] * invSinc;
+
+        return v;
+    }
+
     /** \brief Interpolate between two rotations */
+    /** \todo Use method 'difference' here */
     static Quaternion<T> interpolate(const Quaternion<T>& a, const Quaternion<T>& b, double omega) {
 
         // Interpolation on the geodesic in SO(3) from a to b
@@ -230,12 +253,15 @@ public:
         diff.invert();
         diff = diff.mult(b);
 
-        T dist = 2*std::acos(diff[3]);
+        // Compute the geodesical distance between a and b on SO(3)
+        // Due to numerical dirt, diff[3] may be larger than 1. 
+        // In that case, use 1 instead of diff[3].
+        T dist = 2*std::acos( std::min(diff[3],1.0) );
 
         T invSinc = 1/sincHalf(dist);
 
         // Compute difference on T_a SO(3)
-        Dune::FieldVector<double,3> v;
+        Dune::FieldVector<T,3> v;
         v[0] = diff[0] * invSinc;
         v[1] = diff[1] * invSinc;
         v[2] = diff[2] * invSinc;
@@ -246,6 +272,7 @@ public:
     }
 
     /** \brief Interpolate between two rotations */
+    /** \todo Use method 'difference' here */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
                                                double omega, double intervallLength) {
         Quaternion<T> result;
@@ -256,7 +283,10 @@ public:
         diff.invert();
         diff = diff.mult(b);
 
-        T dist = 2*std::acos(diff[3]);
+        // Compute the geodesical distance between a and b on SO(3)
+        // Due to numerical dirt, diff[3] may be larger than 1. 
+        // In that case, use 1 instead of diff[3].
+        T dist = 2*std::acos( diff[3]);
 
         T invSinc = 1/sincHalf(dist);
 
