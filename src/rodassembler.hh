@@ -5,6 +5,8 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
+
+#include "../../common/boundarypatch.hh"
 #include "configuration.hh"
 
 namespace Dune 
@@ -124,8 +126,17 @@ namespace Dune
                                                  double pos) const;
                        
         
-        /** \brief Return resultant force in canonical coordinates */
-        FieldVector<double,3> getResultantForce(const std::vector<Configuration>& sol) const;
+        /** \brief Return resultant force across boundary in canonical coordinates 
+
+        \note Linear run-time in the size of the grid */
+        FieldVector<double,3> getResultantForce(const BoundaryPatch<GridType>& boundary, 
+                                                const std::vector<Configuration>& sol) const;
+
+        /** \brief Return resultant torque across boundary in canonical coordinates 
+
+        \note Linear run-time in the size of the grid */
+        FieldVector<double,3> getResultantTorque(const BoundaryPatch<GridType>& boundary, 
+                                                 const std::vector<Configuration>& sol) const;
 
     protected:
 
