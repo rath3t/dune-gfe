@@ -98,11 +98,11 @@ protected:
     Dune::IterativeSolver<MatrixType, CorrectionType>* mmgSolver_;
 
     /** \brief The hierarchy of trust-region obstacles */
-    Dune::Array<std::vector<BoxConstraint<blocksize> > > trustRegionObstacles_;
+    std::vector<std::vector<BoxConstraint<blocksize> > > trustRegionObstacles_;
 
     /** \brief Dummy fields containing 'true' everywhere.  The multigrid step
         expects them :-( */
-    Dune::Array<Dune::BitField> hasObstacle_;
+    std::vector<Dune::BitField> hasObstacle_;
 
     /** \brief The Dirichlet nodes on all levels */
     std::vector<Dune::BitField> dirichletNodes_;
