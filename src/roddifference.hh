@@ -1,0 +1,30 @@
+#ifndef ROD_DIFFERENCE_HH
+#define ROD_DIFFERENCE_HH
+
+Dune::BlockVector<Dune::FieldVector<double,6> > computeRodDifference(const std::vector<Configuration>& a,
+                                                                     const std::vector<Configuration>& b)
+{
+    if (a.size() != b.size())
+        DUNE_THROW(Dune::Exception, "a and b have to have the same length!");
+
+    Dune::BlockVector<Dune::FieldVector<double,6> > result(a.size());
+
+    for (size_t i=0; i<result.size(); i++) {
+
+        // Subtract centerline position
+        for (int j=0; j<3; j++)
+            result[i][j] = a[i].r[j] - b[i].r[j];
+        
+        // Subtract orientations on the tangent space of 'a'
+        Dune::FieldVector<double,3> v = Quaternion<double>::difference(a[i].q, b[i].q);
+
+        // Compute difference on T_a SO(3)
+        for (int j=0; j<3; j++)
+            result[i][j+3] = v[j];
+
+    }
+
+    return result;
+}
+
+#endif
