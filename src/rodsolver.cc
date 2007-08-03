@@ -122,7 +122,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     mmgStep->postsmoother_      = postsmoother;    
     mmgStep->hasObstacle_       = &hasObstacle_;
     mmgStep->obstacles_         = &trustRegionObstacles_;
-    mmgStep->verbosity_         = Solver::FULL;
+    mmgStep->verbosity_         = Solver::QUIET;
 
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
@@ -147,7 +147,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     // Write all intermediate solutions, if requested
     if (instrumented_)
-        mmgSolver_->historyBuffer_ = "tmp/";
+        mmgSolver_->historyBuffer_ = "tmp/mgHistory";
 
     // ////////////////////////////////////////////////////////////
     //    Create Hessian matrix and its occupation structure
@@ -227,10 +227,14 @@ void RodSolver<GridType>::solve()
         //rodAssembler.setParameters(0,0,0,1,1,1);
         std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
         rodAssembler_->assembleGradient(x_, rhs);
+        std::cout << "Gradient assembled!\n";
         rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
+        std::cout << "matrix assembled!\n";
 
         gradientFDCheck(x_, rhs, *rodAssembler_);
+        std::cout << "Gradient checked!\n";
         hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
+        std::cout << "matrix checked!\n";
 
 #if 0
         for (int j=0; j<hessianMatrix_->N(); j++) {
@@ -304,7 +308,7 @@ void RodSolver<GridType>::solve()
                 CorrectionType intermediateSol(grid_->size(1));
                 intermediateSol = 0;
                 char iSolFilename[100];
-                sprintf(iSolFilename, "tmp/intermediatesolution_%04d", j);
+                sprintf(iSolFilename, "tmp/mgHistory/intermediatesolution_%04d", j);
                 
                 FILE* fpInt = fopen(iSolFilename, "rb");
                 if (!fpInt)
@@ -421,6 +425,34 @@ void RodSolver<GridType>::solve()
         
         //  Write current energy
         std::cout << "--- Current energy: " << energy << " ---" << std::endl;
+
+        // /////////////////////////////////////////////////////////////////////
+        //   Write the iterate to disk for later convergence rate measurement
+        // /////////////////////////////////////////////////////////////////////
+
+        if (instrumented_) {
+
+            char iRodFilename[100];
+            sprintf(iRodFilename, "tmp/intermediateSolution_%04d", i);
+
+            FILE* fpRod = fopen(iRodFilename, "wb");
+            if (!fpRod)
+                DUNE_THROW(SolverError, "Couldn't open file " << iRodFilename << " for writing");
+            
+            for (int j=0; j<x_.size(); j++) {
+
+                for (int k=0; k<3; k++)
+                    fwrite(&x_[j].r[k], sizeof(double), 1, fpRod);
+
+                for (int k=0; k<4; k++)  // 3d hardwired here!
+                    fwrite(&x_[j].q[k], sizeof(double), 1, fpRod);
+
+            }
+
+            fclose(fpRod);
+
+        }
+
     }
 
     // //////////////////////////////////////////////
