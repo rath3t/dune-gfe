@@ -62,7 +62,7 @@ assembleMatrix(const std::vector<Configuration>& sol,
     for( ; it != endit; ++it ) {
         
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
+            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
         const int numOfBaseFct = baseSet.size();  
         
         mat.setSize(numOfBaseFct, numOfBaseFct);
@@ -110,11 +110,11 @@ getLocalMatrix( EntityPointer &entity,
             localMat[i][j] = 0;
     
     const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(entity->geometry().type(), elementOrder);
+        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(entity->type(), elementOrder);
 
     // Get quadrature rule
     int polOrd = 2;
-    const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(entity->geometry().type(), polOrd);
+    const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(entity->type(), polOrd);
     
     /* Loop over all integration points */
     for (int ip=0; ip<quad.size(); ip++) {
@@ -386,7 +386,7 @@ assembleGradient(const std::vector<Configuration>& sol,
 
         // Extract local solution on this element
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
+            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
         const int numOfBaseFct = baseSet.size();  
         
         Configuration localSolution[numOfBaseFct];
@@ -396,7 +396,7 @@ assembleGradient(const std::vector<Configuration>& sol,
 
         // Get quadrature rule
         int polOrd = 2;
-        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
+        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
@@ -560,7 +560,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
         double elementEnergy = 0;
         // Extract local solution on this element
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
+            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
         int numOfBaseFct = baseSet.size();
 
         Configuration localSolution[numOfBaseFct];
@@ -575,7 +575,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
         // ///////////////////////////////////////////////////////////////////////////////
         const int shearingPolOrd = 2;
         const QuadratureRule<double, gridDim>& shearingQuad 
-            = QuadratureRules<double, gridDim>::rule(it->geometry().type(), shearingPolOrd);
+            = QuadratureRules<double, gridDim>::rule(it->type(), shearingPolOrd);
 
         for (size_t pt=0; pt<shearingQuad.size(); pt++) {
 
@@ -599,7 +599,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
         // Get quadrature rule
         const int polOrd = 2;
-        const QuadratureRule<double, gridDim>& bendingQuad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
+        const QuadratureRule<double, gridDim>& bendingQuad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
 
         for (size_t pt=0; pt<bendingQuad.size(); pt++) {
 
@@ -653,7 +653,7 @@ getStrain(const std::vector<Configuration>& sol,
 
         // Extract local solution on this element
         const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
+            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
         int numOfBaseFct = baseSet.size();
 
         Configuration localSolution[numOfBaseFct];
@@ -663,7 +663,7 @@ getStrain(const std::vector<Configuration>& sol,
 
         // Get quadrature rule
         const int polOrd = 2;
-        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
+        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
@@ -709,7 +709,7 @@ Dune::FieldVector<double, 6> Dune::RodAssembler<GridType>::getStrain(const std::
 
     // Extract local solution on this element
     const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(element->geometry().type(), elementOrder);
+        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(element->type(), elementOrder);
     int numOfBaseFct = baseSet.size();
     
     Configuration localSolution[numOfBaseFct];
