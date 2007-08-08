@@ -102,8 +102,6 @@ getLocalMatrix( EntityPointer &entity,
                 const std::vector<Configuration>& globalSolution,
                 const int matSize, MatrixType& localMat) const
 {
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
-
     /* ndof is the number of vectors of the element */
     int ndof = matSize;
 
@@ -579,7 +577,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
         const QuadratureRule<double, gridDim>& shearingQuad 
             = QuadratureRules<double, gridDim>::rule(it->geometry().type(), shearingPolOrd);
 
-        for (int pt=0; pt<shearingQuad.size(); pt++) {
+        for (size_t pt=0; pt<shearingQuad.size(); pt++) {
 
             // Local position of the quadrature point
             const FieldVector<double,gridDim>& quadPos = shearingQuad[pt].position();
@@ -603,7 +601,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
         const int polOrd = 2;
         const QuadratureRule<double, gridDim>& bendingQuad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
 
-        for (int pt=0; pt<bendingQuad.size(); pt++) {
+        for (size_t pt=0; pt<bendingQuad.size(); pt++) {
 
             // Local position of the quadrature point
             const FieldVector<double,gridDim>& quadPos = bendingQuad[pt].position();
