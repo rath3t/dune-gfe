@@ -55,6 +55,12 @@ public:
 
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
+    static Quaternion<T> exp(const Dune::FieldVector<T,3>& v) {
+        return exp(v[0], v[1], v[2]);
+    }
+
+    /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
+     */
     static Quaternion<T> exp(const T& v0, const T& v1, const T& v2) {
         Quaternion<T> q;
 
