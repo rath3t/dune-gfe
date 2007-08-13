@@ -33,6 +33,8 @@ namespace Dune
         //!
         typedef FieldMatrix<double, blocksize, blocksize> MatrixBlock;
         
+        /** \todo public only for debugging! */
+    public:
         const GridType* grid_; 
         
         /** \brief Material constants */
@@ -108,7 +110,24 @@ namespace Dune
          */
         void assembleMatrix(const std::vector<Configuration>& sol,
                             BCRSMatrix<MatrixBlock>& matrix) const;
+
+        void strainDerivative(const std::vector<Configuration>& localSolution,
+                              double pos,
+                              FieldVector<double,1> shapeGrad[2],
+                              FieldVector<double,1> shapeFunction[2],
+                              Dune::array<FieldMatrix<double,2,6>, 6>& derivatives) const;
+
+        void rotationStrainHessian(const std::vector<Configuration>& x, 
+                                   double pos,
+                                   FieldVector<double,1> shapeGrad[2],
+                                   FieldVector<double,1> shapeFunction[2],
+                                   Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const;
         
+        void strainHessian(const std::vector<Configuration>& localSolution,
+                           double pos,
+                           Dune::array<Matrix<FieldMatrix<double,6,6> >, 3>& translationDer,
+                           Dune::array<Matrix<FieldMatrix<double,3,3> >, 3>& rotationDer) const;
+
         void assembleGradient(const std::vector<Configuration>& sol,
                               BlockVector<FieldVector<double, blocksize> >& grad) const;
 
@@ -130,13 +149,8 @@ namespace Dune
 
         \note Linear run-time in the size of the grid */
         FieldVector<double,3> getResultantForce(const BoundaryPatch<GridType>& boundary, 
-                                                const std::vector<Configuration>& sol) const;
-
-        /** \brief Return resultant torque across boundary in canonical coordinates 
-
-        \note Linear run-time in the size of the grid */
-        FieldVector<double,3> getResultantTorque(const BoundaryPatch<GridType>& boundary, 
-                                                 const std::vector<Configuration>& sol) const;
+                                                const std::vector<Configuration>& sol,
+                                                FieldVector<double,3>& canonicalTorque) const;
 
     protected:
 
