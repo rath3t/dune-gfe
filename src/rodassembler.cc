@@ -7,6 +7,156 @@
 
 #include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 
+
+template <class GridType, class RT>
+RT RodLocalStiffness<GridType, RT>::
+energy(const EntityPointer& element,
+       const std::vector<Configuration>& localSolution,
+       const std::vector<Configuration>& localReferenceConfiguration,
+       int k)
+{
+    RT energy = 0;
+    
+    //const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
+
+    double elementEnergy = 0;
+    
+    // Extract local solution on this element
+    const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
+        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element->type(), k);
+    int numOfBaseFct = baseSet.size();
+    
+    // ///////////////////////////////////////////////////////////////////////////////
+    //   The following two loops are a reduced integration scheme.  We integrate
+    //   the transverse shear and extensional energy with a first-order quadrature
+    //   formula, even though it should be second order.  This prevents shear-locking
+    // ///////////////////////////////////////////////////////////////////////////////
+
+    const int shearingPolOrd = 2;
+    const Dune::QuadratureRule<double, 1>& shearingQuad 
+        = Dune::QuadratureRules<double, 1>::rule(element->type(), shearingPolOrd);
+    
+    for (size_t pt=0; pt<shearingQuad.size(); pt++) {
+        
+        // Local position of the quadrature point
+        const Dune::FieldVector<double,1>& quadPos = shearingQuad[pt].position();
+        
+        const double integrationElement = element->geometry().integrationElement(quadPos);
+        
+        double weight = shearingQuad[pt].weight() * integrationElement;
+        
+        Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
+        
+        // The reference strain
+        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
+        
+        for (int i=0; i<3; i++) {
+            energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
+            elementEnergy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
+        }
+    }
+    
+    // Get quadrature rule
+    const int polOrd = 2;
+    const Dune::QuadratureRule<double, 1>& bendingQuad = Dune::QuadratureRules<double, 1>::rule(element->type(), polOrd);
+    
+    for (size_t pt=0; pt<bendingQuad.size(); pt++) {
+        
+        // Local position of the quadrature point
+        const Dune::FieldVector<double,1>& quadPos = bendingQuad[pt].position();
+        
+        double weight = bendingQuad[pt].weight() * element->geometry().integrationElement(quadPos);
+        
+        Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
+        
+        // The reference strain
+        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
+        
+        // Part II: the bending and twisting energy
+        for (int i=0; i<3; i++) {
+            energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
+            elementEnergy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
+        }
+        
+    }
+
+    return energy;
+}
+
+template <class GridType, class RT>
+Dune::FieldVector<double, 6> RodLocalStiffness<GridType, RT>::
+getStrain(const std::vector<Configuration>& localSolution,
+          const EntityPointer& element,
+          const Dune::FieldVector<double,1>& pos) const
+{
+    if (!element->isLeaf())
+        DUNE_THROW(Dune::NotImplemented, "Only for leaf elements");
+
+    assert(localSolution.size() == 2);
+
+    // Strain defined on each element
+    Dune::FieldVector<double, 6> strain(0);
+
+    // Extract local solution on this element
+    const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
+        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element->type(), 1);
+    int numOfBaseFct = baseSet.size();
+    
+    const Dune::FieldMatrix<double,1,1>& inv = element->geometry().jacobianInverseTransposed(pos);
+    
+    // ///////////////////////////////////////
+    //   Compute deformation gradient
+    // ///////////////////////////////////////
+    Dune::FieldVector<double,1> shapeGrad[numOfBaseFct];
+        
+    for (int dof=0; dof<numOfBaseFct; dof++) {
+            
+        for (int i=0; i<1; i++)
+            shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,pos);
+        
+        // multiply with jacobian inverse 
+        Dune::FieldVector<double,1> tmp(0);
+        inv.umv(shapeGrad[dof], tmp);
+        shapeGrad[dof] = tmp;
+        
+    }
+        
+    // //////////////////////////////////
+    //   Interpolate
+    // //////////////////////////////////
+        
+    Dune::FieldVector<double,3> r_s;
+    for (int i=0; i<3; i++)
+        r_s[i] = localSolution[0].r[i]*shapeGrad[0][0] + localSolution[1].r[i]*shapeGrad[1][0];
+        
+    // Interpolate the rotation at the quadrature point
+    Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q, pos);
+        
+    // Get the derivative of the rotation at the quadrature point by interpolating in $H$
+    Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
+                                                                       pos, 1/shapeGrad[1]);
+        
+    // /////////////////////////////////////////////
+    //   Sum it all up
+    // /////////////////////////////////////////////
+        
+    // Part I: the shearing and stretching strain
+    strain[0] = r_s * q.director(0);    // shear strain
+    strain[1] = r_s * q.director(1);    // shear strain
+    strain[2] = r_s * q.director(2);    // stretching strain
+        
+    // Part II: the Darboux vector
+        
+    Dune::FieldVector<double,3> u = darboux(q, q_s);
+    
+    strain[3] = u[0];
+    strain[4] = u[1];
+    strain[5] = u[2];
+
+    return strain;
+}
+
+
 template <class GridType>
 void Dune::RodAssembler<GridType>::
 getNeighborsPerVertex(MatrixIndexSet& nb) const
@@ -371,6 +521,208 @@ getLocalMatrix( EntityPointer &entity,
 
             }
         
+        }
+
+    }
+
+}
+
+template <class GridType>
+void Dune::RodAssembler<GridType>::
+assembleMatrixFD(const std::vector<Configuration>& sol,
+                 BCRSMatrix<MatrixBlock>& matrix) const
+{
+    double eps = 1e-2;
+
+    typedef typename Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> >::row_type::iterator ColumnIterator;
+
+    // ///////////////////////////////////////////////////////////
+    //   Compute gradient by finite-difference approximation
+    // ///////////////////////////////////////////////////////////
+    std::vector<Configuration> forwardSolution = sol;
+    std::vector<Configuration> backwardSolution = sol;
+
+    std::vector<Configuration> forwardForwardSolution = sol;
+    std::vector<Configuration> forwardBackwardSolution = sol;
+    std::vector<Configuration> backwardForwardSolution = sol;
+    std::vector<Configuration> backwardBackwardSolution = sol;
+
+    // ////////////////////////////////////////////////////
+    //   Create local assembler
+    // ////////////////////////////////////////////////////
+
+    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
+    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
+    RodLocalStiffness<GridType,double> localStiffness(K, A);
+
+    // //////////////////////////////////////////////////////////////////
+    //   Store pointers to all elements so we can access them by index
+    // //////////////////////////////////////////////////////////////////
+
+    const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
+
+    std::vector<EntityPointer> elements(grid_->size(0),grid_->template leafbegin<0>());
+    
+    typename GridType::template Codim<0>::LeafIterator eIt    = grid_->template leafbegin<0>();
+    typename GridType::template Codim<0>::LeafIterator eEndIt = grid_->template leafend<0>();
+
+    for (; eIt!=eEndIt; ++eIt)
+        elements[indexSet.index(*eIt)] = eIt;
+
+    std::vector<Configuration> localReferenceConfiguration(2);
+    std::vector<Configuration> localSolution(2);
+
+    // ///////////////////////////////////////////////////////////////
+    //   Loop over all blocks of the outer matrix
+    // ///////////////////////////////////////////////////////////////
+    for (int i=0; i<matrix.N(); i++) {
+
+        ColumnIterator cIt    = matrix[i].begin();
+        ColumnIterator cEndIt = matrix[i].end();
+
+        for (; cIt!=cEndIt; ++cIt) {
+
+            // ////////////////////////////////////////////////////////////////////////////
+            //   Compute a finite-difference approximation of this hessian matrix block
+            // ////////////////////////////////////////////////////////////////////////////
+
+            for (int j=0; j<6; j++) {
+
+                for (int k=0; k<6; k++) {
+
+                    if (i==cIt.index() && j==k) {
+
+                        double forwardEnergy = 0;
+                        double solutionEnergy = 0;
+                        double backwardEnergy = 0;
+
+                        infinitesimalVariation(forwardSolution[i], eps, j);
+                        infinitesimalVariation(backwardSolution[i], -eps, j);
+
+                        if (i != grid_->size(1)-1) {
+
+                            localReferenceConfiguration[0] = referenceConfiguration_[i];
+                            localReferenceConfiguration[1] = referenceConfiguration_[i+1];
+
+                            localSolution[0] = forwardSolution[i];
+                            localSolution[1] = forwardSolution[i+1];
+
+                            forwardEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+
+                            localSolution[0] = sol[i];
+                            localSolution[1] = sol[i+1];
+
+                            solutionEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+
+                            localSolution[0] = backwardSolution[i];
+                            localSolution[1] = backwardSolution[i+1];
+
+                            backwardEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+
+                        } 
+
+                        if (i != 0) {
+
+                            localReferenceConfiguration[0] = referenceConfiguration_[i-1];
+                            localReferenceConfiguration[1] = referenceConfiguration_[i];
+
+                            localSolution[0] = forwardSolution[i-1];
+                            localSolution[1] = forwardSolution[i];
+
+                            forwardEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+
+                            localSolution[0] = sol[i-1];
+                            localSolution[1] = sol[i];
+
+                            solutionEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+
+                            localSolution[0] = backwardSolution[i-1];
+                            localSolution[1] = backwardSolution[i];
+
+                            backwardEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+
+                        } 
+
+                        // Second derivative
+                        (*cIt)[j][k] = (forwardEnergy - 2*solutionEnergy + backwardEnergy) / (eps*eps);
+                        
+                        forwardSolution[i]  = sol[i];
+                        backwardSolution[i] = sol[i];
+
+                    } else {
+
+                        double forwardForwardEnergy = 0;
+                        double forwardBackwardEnergy = 0;
+                        double backwardForwardEnergy = 0;
+                        double backwardBackwardEnergy = 0;
+
+                        infinitesimalVariation(forwardForwardSolution[i],             eps, j);
+                        infinitesimalVariation(forwardForwardSolution[cIt.index()],   eps, k);
+                        infinitesimalVariation(forwardBackwardSolution[i],            eps, j);
+                        infinitesimalVariation(forwardBackwardSolution[cIt.index()], -eps, k);
+                        infinitesimalVariation(backwardForwardSolution[i],           -eps, j);
+                        infinitesimalVariation(backwardForwardSolution[cIt.index()],  eps, k);
+                        infinitesimalVariation(backwardBackwardSolution[i],          -eps, j);
+                        infinitesimalVariation(backwardBackwardSolution[cIt.index()],-eps, k);
+
+                        std::set<int> elementsInvolved;
+                        if (i>0)
+                            elementsInvolved.insert(i-1);
+                        if (i<grid_->size(1)-1)
+                            elementsInvolved.insert(i);
+                        if (cIt.index()>0)
+                            elementsInvolved.insert(cIt.index()-1);
+                        if (cIt.index()<grid_->size(1)-1)
+                            elementsInvolved.insert(cIt.index());
+
+                        for (typename std::set<int>::iterator it = elementsInvolved.begin();
+                             it != elementsInvolved.end();
+                             ++it) {
+
+                            localReferenceConfiguration[0] = referenceConfiguration_[*it];
+                            localReferenceConfiguration[1] = referenceConfiguration_[*it+1];
+
+                            localSolution[0] = forwardForwardSolution[*it];
+                            localSolution[1] = forwardForwardSolution[*it+1];
+
+                            forwardForwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+
+                            localSolution[0] = forwardBackwardSolution[*it];
+                            localSolution[1] = forwardBackwardSolution[*it+1];
+
+                            forwardBackwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+
+                            localSolution[0] = backwardForwardSolution[*it];
+                            localSolution[1] = backwardForwardSolution[*it+1];
+
+                            backwardForwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+
+                            localSolution[0] = backwardBackwardSolution[*it];
+                            localSolution[1] = backwardBackwardSolution[*it+1];
+
+                            backwardBackwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+
+
+                        }
+
+                        (*cIt)[j][k] = (forwardForwardEnergy + backwardBackwardEnergy
+                                        - forwardBackwardEnergy - backwardForwardEnergy) / (4*eps*eps);
+                        
+                        forwardForwardSolution[i]             = sol[i];
+                        forwardForwardSolution[cIt.index()]   = sol[cIt.index()];
+                        forwardBackwardSolution[i]            = sol[i];
+                        forwardBackwardSolution[cIt.index()]  = sol[cIt.index()];
+                        backwardForwardSolution[i]            = sol[i];
+                        backwardForwardSolution[cIt.index()]  = sol[cIt.index()];
+                        backwardBackwardSolution[i]           = sol[i];
+                        backwardBackwardSolution[cIt.index()] = sol[cIt.index()];
+                        
+                    }
+                            
+                }
+
+            }
+
         }
 
     }

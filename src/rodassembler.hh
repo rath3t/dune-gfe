@@ -5,9 +5,117 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
+#include <dune/disc/operators/localstiffness.hh>
 
 #include "../../common/boundarypatch.hh"
 #include "configuration.hh"
+
+template<class GridType, class RT>
+class RodLocalStiffness 
+    : public Dune::LocalStiffness<RodLocalStiffness<GridType,RT>,GridType,RT,6>
+{
+    // grid types
+    typedef typename GridType::ctype DT;
+    typedef typename GridType::template Codim<0>::Entity Entity;
+    typedef typename GridType::template Codim<0>::EntityPointer EntityPointer;
+    
+    // some other sizes
+    enum {dim=GridType::dimension};
+
+public:
+    // define the number of components of your system, this is used outside
+    // to allocate the correct size of (dense) blocks with a FieldMatrix
+    enum {m=6};
+    
+    enum {SIZE = Dune::LocalStiffness<RodLocalStiffness,GridType,RT,m>::SIZE};
+    
+    // types for matrics, vectors and boundary conditions
+    typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
+    typedef Dune::FieldVector<RT,m> VBlockType;   // one entry in the global vectors
+    typedef Dune::array<Dune::BoundaryConditions::Flags,m> BCBlockType;     // componentwise boundary conditions
+
+    // /////////////////////////////////
+    //   The material parameters
+    // /////////////////////////////////
+    
+    /** \brief Material constants */
+    double K_[3];
+    double A_[3];
+
+    //! Default Constructor
+    RodLocalStiffness ()
+    {
+        // this->currentsize_ = 0;
+        
+        // For the time being:  all boundary conditions are homogeneous Neumann
+        // This means no boundary condition handling is done at all
+        for (int i=0; i<Dune::LocalStiffness<RodLocalStiffness,GridType,RT,m>::SIZE; i++)
+            for (size_t j=0; j<this->bctype[i].size(); j++)
+                this->bctype[i][j] = Dune::BoundaryConditions::neumann;
+    }
+
+    //! Default Constructor
+    RodLocalStiffness (const Dune::array<double,3>& K, const Dune::array<double,3>& A)
+    {
+        for (int i=0; i<3; i++) {
+            K_[i] = K[i];
+            A_[i] = A[i];
+        }
+        // this->currentsize_ = 0;
+        
+        // For the time being:  all boundary conditions are homogeneous Neumann
+        // This means no boundary condition handling is done at all
+        for (int i=0; i<Dune::LocalStiffness<RodLocalStiffness,GridType,RT,m>::SIZE; i++)
+            for (size_t j=0; j<this->bctype[i].size(); j++)
+                this->bctype[i][j] = Dune::BoundaryConditions::neumann;
+    }
+    
+    //! assemble local stiffness matrix for given element and order
+    /*! On exit the following things have been done:
+      - The stiffness matrix for the given entity and polynomial degree has been assembled and is
+      accessible with the mat() method.
+      - The boundary conditions have been evaluated and are accessible with the bc() method
+      - The right hand side has been assembled. It contains either the value of the essential boundary
+      condition or the assembled source term and neumann boundary condition. It is accessible via the rhs() method.
+      @param[in]  e    a codim 0 entity reference
+      \param[in]  localSolution Current local solution, because this is a nonlinear assembler
+      @param[in]  k    order of Lagrange basis
+    */
+    template<typename TypeTag>
+    void assemble (const Entity& e, 
+                   const Dune::BlockVector<Dune::FieldVector<double, dim> >& localSolution,
+                   int k=1);
+
+    
+    RT energy (const EntityPointer& e,
+               const std::vector<Configuration>& localSolution,
+               const std::vector<Configuration>& localReferenceConfiguration,
+               int k=1);
+
+    Dune::FieldVector<double, 6> getStrain(const std::vector<Configuration>& localSolution,
+                                           const EntityPointer& element,
+                                           const Dune::FieldVector<double,1>& pos) const;
+    
+    template <class T>
+    static Dune::FieldVector<T,3> darboux(const Quaternion<T>& q, const Dune::FieldVector<T,4>& q_s) 
+    {
+        Dune::FieldVector<double,3> u;  // The Darboux vector
+        
+        u[0] = 2 * (q.B(0) * q_s);
+        u[1] = 2 * (q.B(1) * q_s);
+        u[2] = 2 * (q.B(2) * q_s);
+        
+        return u;
+    }
+        
+
+    //! should allow to assmble boundary conditions only
+//     template<typename Tag>
+//     void assembleBoundaryCondition (const Entity& e, int k=1)
+//     {
+//     }
+    
+};
 
 namespace Dune 
 {
@@ -44,6 +152,17 @@ namespace Dune
         /** \brief The stress-free configuration */
         std::vector<Configuration> referenceConfiguration_;
 
+        /** \todo Only for the fd approximations */
+        static void infinitesimalVariation(Configuration& c, double eps, int i)
+        {
+            if (i<3)
+                c.r[i] += eps;
+            else
+                c.q = c.q.mult(Quaternion<double>::exp((i==3)*eps, 
+                                                       (i==4)*eps, 
+                                                       (i==5)*eps));
+        }
+    
     public:
         
         //! ???
@@ -106,9 +225,14 @@ namespace Dune
             //exit(0);
         }
 
-        /** \brief Assemble the tangent stiffness matrix and the right hand side
+        /** \brief Assemble the tangent stiffness matrix
          */
         void assembleMatrix(const std::vector<Configuration>& sol,
+                            BCRSMatrix<MatrixBlock>& matrix) const;
+
+        /** \brief Assemble the tangent stiffness matrix using a finite difference approximation
+         */
+        void assembleMatrixFD(const std::vector<Configuration>& sol,
                             BCRSMatrix<MatrixBlock>& matrix) const;
 
         void strainDerivative(const std::vector<Configuration>& localSolution,
