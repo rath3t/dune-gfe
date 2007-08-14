@@ -49,6 +49,7 @@ template <class GridType>
 void RodSolver<GridType>::setup(const GridType& grid,
                                 const RodAssembler<GridType>* rodAssembler,
                                 const SolutionType& x,
+                                double tolerance,
                                 int maxTrustRegionSteps,
                                 double initialTrustRegionRadius,
                                 int multigridIterations,
@@ -65,6 +66,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     grid_ = &grid;
     rodAssembler_             = rodAssembler;
     x_                        = x;
+    tolerance_                = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
     initialTrustRegionRadius_ = initialTrustRegionRadius;
     multigridIterations_      = multigridIterations;
@@ -322,7 +324,7 @@ void RodSolver<GridType>::solve()
 
 
         printf("infinity norm of the correction: %g\n", corr.infinity_norm());
-        if (corr.infinity_norm() < 1e-5) {
+        if (corr.infinity_norm() < tolerance_) {
             std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
             break;
         }
@@ -343,12 +345,6 @@ void RodSolver<GridType>::solve()
             newIterate[j].q = newIterate[j].q.mult(qCorr);
             
         }
-        
-#if 0
-        std::cout << "newIterate: \n";
-        for (int j=0; j<newIterate.size(); j++)
-            std::cout << newIterate[j] << std::endl;
-#endif     
         
         /** \todo Don't always recompute oldEnergy */
         double oldEnergy = rodAssembler_->computeEnergy(x_);

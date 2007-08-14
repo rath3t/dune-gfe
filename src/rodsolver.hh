@@ -35,6 +35,7 @@ public:
     void setup(const GridType& grid, 
                const RodAssembler<GridType>* rodAssembler,
                const SolutionType& x,
+               double tolerance,
                int maxTrustRegionSteps,
                double initialTrustRegionRadius,
                int multigridIterations,
@@ -64,6 +65,9 @@ protected:
 
     /** \brief The initial trust-region radius in the maximum-norm */
     double initialTrustRegionRadius_;
+
+    /** \brief Tolerance of the trust-region solver */
+    double tolerance_;
 
     /** \brief Maximum number of trust-region steps */
     int maxTrustRegionSteps_;
