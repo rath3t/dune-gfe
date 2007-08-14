@@ -143,7 +143,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
                                                                  multigridIterations_,
                                                                  qpTolerance_,
                                                                  h1SemiNorm_,
-                                                                 Solver::FULL);
+                                                                 Solver::QUIET);
 
     // Write all intermediate solutions, if requested
     if (instrumented_)
@@ -224,42 +224,15 @@ void RodSolver<GridType>::solve()
         CorrectionType corr(x_.size());
         corr = 0;
 
-        //rodAssembler.setParameters(0,0,0,1,1,1);
         std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
         rodAssembler_->assembleGradient(x_, rhs);
-        std::cout << "Gradient assembled!\n";
-        rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
-        std::cout << "matrix assembled!\n";
+        //rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
+        rodAssembler_->assembleMatrixFD(x_, *hessianMatrix_);
 
-        gradientFDCheck(x_, rhs, *rodAssembler_);
-        std::cout << "Gradient checked!\n";
-        hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
-        std::cout << "matrix checked!\n";
+        //gradientFDCheck(x_, rhs, *rodAssembler_);
+        //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
 
-#if 0
-        for (int j=0; j<hessianMatrix_->N(); j++) {
-
-            for (int k=0; k<hessianMatrix_->M(); k++) {
-
-                if (hessianMatrix_->exists(j,k)) {
-
-                    for (int l=0; l<6; l++)
-                        for (int m=0; m<6; m++)
-                            assert( std::abs((*hessianMatrix_)[j][k][l][m] - (*hessianMatrix_)[k][j][m][l]) < 1e-6);
-#if 0
-                    (*hessianMatrix_)[j][k] = 0;
-
-                    if (j==k)
-                        for (int l=0; l<6; l++)
-                            (*hessianMatrix_)[j][k][l][l] = 1;
-#endif
-                }
-            }
-        }
-#endif   
         rhs *= -1;
-
-        std::cout << "Gradient:\n" << rhs << std::endl;
 
         // Create trust-region obstacle on maxlevel
         setTrustRegionObstacles(trustRegionRadius,
