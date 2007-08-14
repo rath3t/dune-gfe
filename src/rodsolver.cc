@@ -47,7 +47,7 @@ setTrustRegionObstacles(double trustRegionRadius,
 
 template <class GridType>
 void RodSolver<GridType>::setup(const GridType& grid,
-                                const Dune::RodAssembler<GridType>* rodAssembler,
+                                const RodAssembler<GridType>* rodAssembler,
                                 const SolutionType& x,
                                 int maxTrustRegionSteps,
                                 double initialTrustRegionRadius,

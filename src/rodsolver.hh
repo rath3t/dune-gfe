@@ -33,7 +33,7 @@ public:
     {}
 
     void setup(const GridType& grid, 
-               const Dune::RodAssembler<GridType>* rodAssembler,
+               const RodAssembler<GridType>* rodAssembler,
                const SolutionType& x,
                int maxTrustRegionSteps,
                double initialTrustRegionRadius,
@@ -92,7 +92,7 @@ protected:
     MatrixType* hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const Dune::RodAssembler<GridType>* rodAssembler_;
+    const RodAssembler<GridType>* rodAssembler_;
 
     /** \brief The multigrid solver */
     Dune::IterativeSolver<MatrixType, CorrectionType>* mmgSolver_;

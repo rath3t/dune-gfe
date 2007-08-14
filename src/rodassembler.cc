@@ -158,8 +158,8 @@ getStrain(const std::vector<Configuration>& localSolution,
 
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
-getNeighborsPerVertex(MatrixIndexSet& nb) const
+void RodAssembler<GridType>::
+getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
     const int gridDim = GridType::dimension;
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -193,10 +193,12 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
 
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 assembleMatrix(const std::vector<Configuration>& sol,
-               BCRSMatrix<MatrixBlock>& matrix) const
+               Dune::BCRSMatrix<MatrixBlock>& matrix) const
 {
+    using namespace Dune;
+
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
 
     MatrixIndexSet neighborsPerVertex;
@@ -246,12 +248,14 @@ assembleMatrix(const std::vector<Configuration>& sol,
 
 template <class GridType>
 template <class MatrixType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 getLocalMatrix( EntityPointer &entity, 
                 const std::vector<Configuration>& localSolution,
                 const std::vector<Configuration>& globalSolution,
                 const int matSize, MatrixType& localMat) const
 {
+    using namespace Dune;
+
     /* ndof is the number of vectors of the element */
     int ndof = matSize;
 
@@ -528,10 +532,12 @@ getLocalMatrix( EntityPointer &entity,
 }
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 assembleMatrixFD(const std::vector<Configuration>& sol,
-                 BCRSMatrix<MatrixBlock>& matrix) const
+                 Dune::BCRSMatrix<MatrixBlock>& matrix) const
 {
+    using namespace Dune;
+
     double eps = 1e-2;
 
     typedef typename Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> >::row_type::iterator ColumnIterator;
@@ -730,23 +736,16 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
 }
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 strainDerivative(const std::vector<Configuration>& localSolution,
                  double pos,
-                 FieldVector<double,1> shapeGrad[2],
-                 FieldVector<double,1> shapeFunction[2],
-                 Dune::array<FieldMatrix<double,2,6>, 6>& derivatives) const
+                 Dune::FieldVector<double,1> shapeGrad[2],
+                 Dune::FieldVector<double,1> shapeFunction[2],
+                 Dune::array<Dune::FieldMatrix<double,2,6>, 6>& derivatives) const
 {
+    using namespace Dune;
+
     assert(localSolution.size()==2);
-
-//     FieldVector<double,1> shapeGrad[2];
-//     shapeGrad[0] = -1;
-//     shapeGrad[1] =  1;
-
-//     FieldVector<double,1> shapeFunction[2];
-//     shapeFunction[0] = 1-pos;
-//     shapeFunction[1] =  pos;
-
 
     FieldVector<double,3> r_s;
     for (int i=0; i<3; i++)
@@ -814,12 +813,14 @@ strainDerivative(const std::vector<Configuration>& localSolution,
 
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 strainHessian(const std::vector<Configuration>& localSolution,
               double pos,
-              Dune::array<Matrix<FieldMatrix<double,6,6> >, 3>& translationDer,
-              Dune::array<Matrix<FieldMatrix<double,3,3> >, 3>& rotationDer) const
+              Dune::array<Dune::Matrix<Dune::FieldMatrix<double,6,6> >, 3>& translationDer,
+              Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const
 {
+    using namespace Dune;
+
     assert(localSolution.size()==2);
 
     FieldVector<double,1> shapeGrad[2];
@@ -942,13 +943,15 @@ strainHessian(const std::vector<Configuration>& localSolution,
 }
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 rotationStrainHessian(const std::vector<Configuration>& x, 
                       double pos,
                       Dune::FieldVector<double,1> shapeGrad[2],
                       Dune::FieldVector<double,1> shapeFunction[2],
                       Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const
 {
+    using namespace Dune;
+
     assert(x.size()==2);
     double eps = 1e-3;
 
@@ -1003,11 +1006,13 @@ rotationStrainHessian(const std::vector<Configuration>& x,
 
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 assembleGradient(const std::vector<Configuration>& sol,
-                 BlockVector<FieldVector<double, blocksize> >& grad) const
+                 Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
+     using namespace Dune;
+
+   const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
     const int maxlevel = grid_->maxLevel();
 
     if (sol.size()!=grid_->size(maxlevel, gridDim))
@@ -1180,9 +1185,11 @@ assembleGradient(const std::vector<Configuration>& sol,
 
 
 template <class GridType>
-double Dune::RodAssembler<GridType>::
+double RodAssembler<GridType>::
 computeEnergy(const std::vector<Configuration>& sol) const
 {
+    using namespace Dune;
+
     double energy = 0;
     
     const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
@@ -1268,10 +1275,12 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
 
 template <class GridType>
-void Dune::RodAssembler<GridType>::
+void RodAssembler<GridType>::
 getStrain(const std::vector<Configuration>& sol,
-          BlockVector<FieldVector<double, blocksize> >& strain) const
+          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const
 {
+    using namespace Dune;
+
     const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
@@ -1330,10 +1339,12 @@ getStrain(const std::vector<Configuration>& sol,
 }
 
 template <class GridType>
-Dune::FieldVector<double, 6> Dune::RodAssembler<GridType>::getStrain(const std::vector<Configuration>& sol,
+Dune::FieldVector<double, 6> RodAssembler<GridType>::getStrain(const std::vector<Configuration>& sol,
                                                                        const EntityPointer& element,
                                                                        double pos) const
 {
+    using namespace Dune;
+
     if (!element->isLeaf())
         DUNE_THROW(Dune::NotImplemented, "Only for leaf elements");
 
@@ -1416,11 +1427,13 @@ Dune::FieldVector<double, 6> Dune::RodAssembler<GridType>::getStrain(const std::
 }
 
 template <class GridType>
-Dune::FieldVector<double,3> Dune::RodAssembler<GridType>::
+Dune::FieldVector<double,3> RodAssembler<GridType>::
 getResultantForce(const BoundaryPatch<GridType>& boundary, 
                   const std::vector<Configuration>& sol,
-                  FieldVector<double,3>& canonicalTorque) const
+                  Dune::FieldVector<double,3>& canonicalTorque) const
 {
+    using namespace Dune;
+
     const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
 
     if (sol.size()!=indexSet.size(gridDim))

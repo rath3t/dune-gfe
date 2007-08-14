@@ -117,8 +117,6 @@ public:
     
 };
 
-namespace Dune 
-{
 
     /** \brief The FEM operator for an extensible, shearable rod
      */
@@ -139,7 +137,7 @@ namespace Dune
         enum { blocksize = 6 };
         
         //!
-        typedef FieldMatrix<double, blocksize, blocksize> MatrixBlock;
+        typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
         
         /** \todo public only for debugging! */
     public:
@@ -221,60 +219,60 @@ namespace Dune
             A_[1] = G * A;
             A_[2] = E * A;
 
-            printf("%g %g %g   %g %g %g\n", K_[0], K_[1], K_[2], A_[0], A_[1], A_[2]);
+            //printf("%g %g %g   %g %g %g\n", K_[0], K_[1], K_[2], A_[0], A_[1], A_[2]);
             //exit(0);
         }
 
         /** \brief Assemble the tangent stiffness matrix
          */
         void assembleMatrix(const std::vector<Configuration>& sol,
-                            BCRSMatrix<MatrixBlock>& matrix) const;
+                            Dune::BCRSMatrix<MatrixBlock>& matrix) const;
 
         /** \brief Assemble the tangent stiffness matrix using a finite difference approximation
          */
         void assembleMatrixFD(const std::vector<Configuration>& sol,
-                            BCRSMatrix<MatrixBlock>& matrix) const;
+                              Dune::BCRSMatrix<MatrixBlock>& matrix) const;
 
         void strainDerivative(const std::vector<Configuration>& localSolution,
                               double pos,
-                              FieldVector<double,1> shapeGrad[2],
-                              FieldVector<double,1> shapeFunction[2],
-                              Dune::array<FieldMatrix<double,2,6>, 6>& derivatives) const;
+                              Dune::FieldVector<double,1> shapeGrad[2],
+                              Dune::FieldVector<double,1> shapeFunction[2],
+                              Dune::array<Dune::FieldMatrix<double,2,6>, 6>& derivatives) const;
 
         void rotationStrainHessian(const std::vector<Configuration>& x, 
                                    double pos,
-                                   FieldVector<double,1> shapeGrad[2],
-                                   FieldVector<double,1> shapeFunction[2],
+                                   Dune::FieldVector<double,1> shapeGrad[2],
+                                   Dune::FieldVector<double,1> shapeFunction[2],
                                    Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const;
         
         void strainHessian(const std::vector<Configuration>& localSolution,
                            double pos,
-                           Dune::array<Matrix<FieldMatrix<double,6,6> >, 3>& translationDer,
-                           Dune::array<Matrix<FieldMatrix<double,3,3> >, 3>& rotationDer) const;
+                           Dune::array<Dune::Matrix<Dune::FieldMatrix<double,6,6> >, 3>& translationDer,
+                           Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const;
 
         void assembleGradient(const std::vector<Configuration>& sol,
-                              BlockVector<FieldVector<double, blocksize> >& grad) const;
+                              Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
         /** \brief Compute the energy of a deformation state */
         double computeEnergy(const std::vector<Configuration>& sol) const;
 
-        void getNeighborsPerVertex(MatrixIndexSet& nb) const;
+        void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
 
         void getStrain(const std::vector<Configuration>& sol, 
-                       BlockVector<FieldVector<double, blocksize> >& strain) const;
+                       Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
 
         /** \brief Get the strain at a particular point of the grid */
-        FieldVector<double, 6> getStrain(const std::vector<Configuration>& sol,
-                                                 const EntityPointer& element,
-                                                 double pos) const;
+        Dune::FieldVector<double, 6> getStrain(const std::vector<Configuration>& sol,
+                                               const EntityPointer& element,
+                                               double pos) const;
                        
         
         /** \brief Return resultant force across boundary in canonical coordinates 
 
         \note Linear run-time in the size of the grid */
-        FieldVector<double,3> getResultantForce(const BoundaryPatch<GridType>& boundary, 
-                                                const std::vector<Configuration>& sol,
-                                                FieldVector<double,3>& canonicalTorque) const;
+        Dune::FieldVector<double,3> getResultantForce(const BoundaryPatch<GridType>& boundary, 
+                                                      const std::vector<Configuration>& sol,
+                                                      Dune::FieldVector<double,3>& canonicalTorque) const;
 
     protected:
 
@@ -287,9 +285,9 @@ namespace Dune
                              const int matSize, MatrixType& mat) const;
 
         template <class T>
-        static FieldVector<T,3> darboux(const Quaternion<T>& q, const FieldVector<T,4>& q_s) 
+        static Dune::FieldVector<T,3> darboux(const Quaternion<T>& q, const Dune::FieldVector<T,4>& q_s) 
         {
-            FieldVector<double,3> u;  // The Darboux vector
+            Dune::FieldVector<double,3> u;  // The Darboux vector
 
             u[0] = 2 * (q.B(0) * q_s);
             u[1] = 2 * (q.B(1) * q_s);
@@ -299,8 +297,6 @@ namespace Dune
         }
         
     }; // end class
-    
-} // end namespace 
 
 #include "rodassembler.cc"
 
