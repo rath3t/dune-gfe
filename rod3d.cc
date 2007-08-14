@@ -100,6 +100,9 @@ int main (int argc, char *argv[]) try
 
     x.back().q = Quaternion<double>(axis, M_PI*angle/180);
 
+    // backup for error measurement later
+    SolutionType initialIterate = x;
+
     std::cout << "Left boundary orientation:" << std::endl;
     std::cout << "director 0:  " << x[0].q.director(0) << std::endl;
     std::cout << "director 1:  " << x[0].q.director(1) << std::endl;
@@ -159,10 +162,6 @@ int main (int argc, char *argv[]) try
     writeRod(x, resultPath + "rod3d.result");
     BlockVector<FieldVector<double, 6> > strain(x.size()-1);
     rodAssembler.getStrain(x,strain);
-    //std::cout << strain << std::endl;
-    //exit(0);
-
-    //writeRod(x, "rod3d.strain");
 
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
@@ -183,24 +182,16 @@ int main (int argc, char *argv[]) try
 
 
     double error = std::numeric_limits<double>::max();
-    double oldError = 0;
 
     SolutionType intermediateSolution(x.size());
 
     // Create statistics file
     std::ofstream statisticsFile((resultPath + "trStatistics").c_str());
 
-    // Compute error of the initial 3d solution
-    
-    // This should really be exactSol-initialSol, but we're starting
-    // from zero anyways
-    //oldError += computeEnergyNormSquared(exactSol3d, *hessian3d);
-    
-#warning Rod error still missing
-
-    oldError = std::sqrt(oldError);
-
-    
+    // Compute error of the initial iterate
+    typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
+    RodDifferenceType rodDifference = computeRodDifference(exactSolution, initialIterate);
+    double oldError = std::sqrt(computeEnergyNormSquared(rodDifference, hessian));
 
     int i;
     for (i=0; i<maxTrustRegionSteps; i++) {
@@ -221,13 +212,11 @@ int main (int argc, char *argv[]) try
         
         fclose(fp);
 
-
-
         // /////////////////////////////////////////////////////
         //   Compute error
         // /////////////////////////////////////////////////////
-        typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
-        RodDifferenceType rodDifference = computeRodDifference(exactSolution, intermediateSolution);
+
+        rodDifference = computeRodDifference(exactSolution, intermediateSolution);
         
         error = std::sqrt(computeEnergyNormSquared(rodDifference, hessian));
         
