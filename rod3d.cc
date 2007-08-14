@@ -41,7 +41,10 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ConfigParser parameterSet;
-    parameterSet.parseFile("rod3d.parset");
+    if (argc==2)
+        parameterSet.parseFile(argv[1]);
+    else
+        parameterSet.parseFile("rod3d.parset");
 
     // read solver settings
     const int numLevels        = parameterSet.get("numLevels", int(1));
@@ -57,7 +60,8 @@ int main (int argc, char *argv[]) try
     const double initialTrustRegionRadius = parameterSet.get("initialTrustRegionRadius", double(1));
     const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
     const bool instrumented      = parameterSet.get("instrumented", int(0));
-    
+    std::string resultPath           = parameterSet.get("resultPath", "");
+
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
@@ -152,7 +156,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
-    writeRod(x, "rod3d.result");
+    writeRod(x, resultPath + "rod3d.result");
     BlockVector<FieldVector<double, 6> > strain(x.size()-1);
     rodAssembler.getStrain(x,strain);
     //std::cout << strain << std::endl;
@@ -182,6 +186,9 @@ int main (int argc, char *argv[]) try
     double oldError = 0;
 
     SolutionType intermediateSolution(x.size());
+
+    // Create statistics file
+    std::ofstream statisticsFile((resultPath + "trStatistics").c_str());
 
     // Compute error of the initial 3d solution
     
@@ -230,6 +237,7 @@ int main (int argc, char *argv[]) try
         // Output
         std::cout << "Trust-region iteration: " << i << "  error : " << error << ",      "
                   << "convrate " << convRate << std::endl;
+        statisticsFile << i << "  " << error << "  " << convRate << std::endl;
 
         if (error < 1e-12)
           break;
