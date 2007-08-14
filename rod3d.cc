@@ -10,7 +10,6 @@
 
 #include "../solver/iterativesolver.hh"
 
-#include "../common/geomestimator.hh"
 #include "../common/energynorm.hh"
 
 #include "src/configuration.hh"
@@ -182,7 +181,6 @@ int main (int argc, char *argv[]) try
 
     double error = std::numeric_limits<double>::max();
     double oldError = 0;
-    double totalConvRate = 1;
 
     SolutionType intermediateSolution(x.size());
 
@@ -192,7 +190,7 @@ int main (int argc, char *argv[]) try
     // from zero anyways
     //oldError += computeEnergyNormSquared(exactSol3d, *hessian3d);
     
-    /** \todo Rod error still missing */
+#warning Rod error still missing
 
     oldError = std::sqrt(oldError);
 
@@ -229,12 +227,10 @@ int main (int argc, char *argv[]) try
         
 
         double convRate = error / oldError;
-        totalConvRate *= convRate;
 
         // Output
         std::cout << "Trust-region iteration: " << i << "  error : " << error << ",      "
-                  << "convrate " << convRate 
-                  << "    total conv rate " << std::pow(totalConvRate, 1/((double)i+1)) << std::endl;
+                  << "convrate " << convRate << std::endl;
 
         if (error < 1e-12)
           break;
