@@ -45,13 +45,14 @@ int main (int argc, char *argv[]) try
 
     // read solver settings
     const int numLevels        = parameterSet.get("numLevels", int(1));
+    const double tolerance        = parameterSet.get("tolerance", double(0));
     const int maxTrustRegionSteps   = parameterSet.get("maxNewtonSteps", int(0));
     const int multigridIterations   = parameterSet.get("numIt", int(0));
     const int nu1              = parameterSet.get("nu1", int(0));
     const int nu2              = parameterSet.get("nu2", int(0));
     const int mu               = parameterSet.get("mu", int(0));
     const int baseIterations      = parameterSet.get("baseIt", int(0));
-    const double mgTolerance        = parameterSet.get("tolerance", double(0));
+    const double mgTolerance        = parameterSet.get("mgTolerance", double(0));
     const double baseTolerance    = parameterSet.get("baseTolerance", double(0));
     const double initialTrustRegionRadius = parameterSet.get("initialTrustRegionRadius", double(1));
     const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
@@ -72,28 +73,28 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
-    FieldVector<double,3>  zAxis(0);
-    zAxis[2] = 1;
 
     for (int i=0; i<x.size(); i++) {
-        x[i].r[0] = 0;    // x
-        x[i].r[1] = 0;                 // y
-        x[i].r[2] = double(i)/(x.size()-1);                 // z
-        //x[i].r[2] = i+5;
+        x[i].r[0] = 0;
+        x[i].r[1] = 0;
+        x[i].r[2] = double(i)/(x.size()-1);
         x[i].q = Quaternion<double>::identity();
-        //x[i].q = Quaternion<double>(zAxis, M_PI/2 * double(i)/(x.size()-1));
     }
 
+    // /////////////////////////////////////////
+    //   Read Dirichlet values
+    // /////////////////////////////////////////
+    x.back().r[0] = parameterSet.get("dirichletValueX", double(0));
+    x.back().r[1] = parameterSet.get("dirichletValueY", double(0));
+    x.back().r[2] = parameterSet.get("dirichletValueZ", double(0));
 
-#if 1
-    FieldVector<double,3>  xAxis(0);
-    xAxis[0] = 1;
-    x[1].r[2] = 0.25;
-    x.back().r[2] = 0.5;
-    x[0].q = Quaternion<double>(xAxis, -M_PI/2);
-    x.back().q = Quaternion<double>(xAxis, M_PI/2);
-    
-#endif
+    FieldVector<double,3> axis;
+    axis[0] = parameterSet.get("dirichletAxisX", double(0));
+    axis[1] = parameterSet.get("dirichletAxisY", double(0));
+    axis[2] = parameterSet.get("dirichletAxisZ", double(0));
+    double angle = parameterSet.get("dirichletAngle", double(0));
+
+    x.back().q = Quaternion<double>(axis, M_PI*angle/180);
 
     std::cout << "Left boundary orientation:" << std::endl;
     std::cout << "director 0:  " << x[0].q.director(0) << std::endl;
@@ -104,9 +105,6 @@ int main (int argc, char *argv[]) try
     std::cout << "director 0:  " << x[x.size()-1].q.director(0) << std::endl;
     std::cout << "director 1:  " << x[x.size()-1].q.director(1) << std::endl;
     std::cout << "director 2:  " << x[x.size()-1].q.director(2) << std::endl;
-//     exit(0);
-
-    //x[0].r[2] = -1;
 
     dirichletNodes.resize(numLevels);
     for (int i=0; i<numLevels; i++) {
@@ -130,6 +128,7 @@ int main (int argc, char *argv[]) try
     rodSolver.setup(grid, 
                     &rodAssembler,
                     x,
+                    tolerance,
                     maxTrustRegionSteps,
                     initialTrustRegionRadius,
                     multigridIterations,
