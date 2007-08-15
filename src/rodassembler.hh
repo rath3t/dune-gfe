@@ -108,13 +108,6 @@ public:
         return u;
     }
         
-
-    //! should allow to assmble boundary conditions only
-//     template<typename Tag>
-//     void assembleBoundaryCondition (const Entity& e, int k=1)
-//     {
-//     }
-    
 };
 
 
@@ -252,6 +245,9 @@ public:
 
         void assembleGradient(const std::vector<Configuration>& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
+
+        void assembleGradientFD(const std::vector<Configuration>& sol,
+                                Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
         /** \brief Compute the energy of a deformation state */
         double computeEnergy(const std::vector<Configuration>& sol) const;
