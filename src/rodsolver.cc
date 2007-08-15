@@ -227,7 +227,8 @@ void RodSolver<GridType>::solve()
         corr = 0;
 
         std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
-        rodAssembler_->assembleGradient(x_, rhs);
+        //rodAssembler_->assembleGradient(x_, rhs);
+        rodAssembler_->assembleGradientFD(x_, rhs);
         //rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
         rodAssembler_->assembleMatrixFD(x_, *hessianMatrix_);
 
