@@ -17,10 +17,6 @@ energy(const EntityPointer& element,
 {
     RT energy = 0;
     
-    //const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
-
-    double elementEnergy = 0;
-    
     // Extract local solution on this element
     const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
         = Dune::LagrangeShapeFunctions<double, double, 1>::general(element->type(), k);
@@ -50,10 +46,9 @@ energy(const EntityPointer& element,
         // The reference strain
         Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
         
-        for (int i=0; i<3; i++) {
+        for (int i=0; i<3; i++)
             energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
-            elementEnergy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
-        }
+
     }
     
     // Get quadrature rule
@@ -73,10 +68,8 @@ energy(const EntityPointer& element,
         Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
         
         // Part II: the bending and twisting energy
-        for (int i=0; i<3; i++) {
+        for (int i=0; i<3; i++)
             energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
-            elementEnergy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
-        }
         
     }
 
