@@ -30,6 +30,7 @@
 #include "src/configuration.hh"
 #include "src/averageinterface.hh"
 #include "src/rodsolver.hh"
+#include "src/roddifference.hh"
 #include "src/rodwriter.hh"
 
 // Space dimension
@@ -38,12 +39,23 @@ const int dim = 3;
 using namespace Dune;
 using std::string;
 
+template <class DiscFuncType, int blocksize>
+double computeEnergyNormSquared(const DiscFuncType& u, 
+                                const BCRSMatrix<FieldMatrix<double,blocksize,blocksize> >& A)
+{
+    DiscFuncType tmp(u.size());
+    tmp = 0;
+    A.umv(u, tmp);
+    return u*tmp;
+}
+
 int main (int argc, char *argv[]) try
 {
     // Some types that I need
     typedef BCRSMatrix<FieldMatrix<double, dim, dim> >   MatrixType;
     typedef BlockVector<FieldVector<double, dim> >       VectorType;
     typedef std::vector<Configuration>                   RodSolutionType;
+    typedef BlockVector<FieldVector<double, 6> >         RodDifferenceType;
 
     // parse data file
     ConfigParser parameterSet;
@@ -52,7 +64,9 @@ int main (int argc, char *argv[]) try
     // read solver settings
     const int minLevel            = parameterSet.get("minLevel", int(0));
     const int maxLevel            = parameterSet.get("maxLevel", int(0));
+    const double ddTolerance           = parameterSet.get("ddTolerance", double(0));
     const int maxDirichletNeumannSteps = parameterSet.get("maxDirichletNeumannSteps", int(0));
+    const double trTolerance           = parameterSet.get("trTolerance", double(0));
     const int maxTrustRegionSteps = parameterSet.get("maxTrustRegionSteps", int(0));
     const int multigridIterations = parameterSet.get("numIt", int(0));
     const int nu1              = parameterSet.get("nu1", int(0));
@@ -61,7 +75,7 @@ int main (int argc, char *argv[]) try
     const int baseIterations   = parameterSet.get("baseIt", int(0));
     const double mgTolerance     = parameterSet.get("tolerance", double(0));
     const double baseTolerance = parameterSet.get("baseTolerance", double(0));
-    const int initialTrustRegionRadius = parameterSet.get("initialTrustRegionRadius", int(0));
+    const double initialTrustRegionRadius = parameterSet.get("initialTrustRegionRadius", double(0));
     const double damping       = parameterSet.get("damping", double(1));
 
     // Problem settings
@@ -71,7 +85,6 @@ int main (int argc, char *argv[]) try
     std::string dirichletValuesFile = parameterSet.get("dirichletValues", "xyz");
     std::string interfaceNodesFile  = parameterSet.get("interfaceNodes", "xyz");
     const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
-    
     
     // ///////////////////////////////////////
     //    Create the rod grid
@@ -192,13 +205,15 @@ int main (int argc, char *argv[]) try
     rodSolver.setup(rodGrid, 
                     &rodAssembler,
                     rodX,
+                    trTolerance,
                     maxTrustRegionSteps,
                     initialTrustRegionRadius,
                     multigridIterations,
                     mgTolerance,
                     mu, nu1, nu2,
                     baseIterations,
-                    baseTolerance);
+                    baseTolerance,
+                    false);
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -229,7 +244,7 @@ int main (int argc, char *argv[]) try
                                                    multigridIterations,
                                                    mgTolerance,
                                                    &energyNorm,
-                                                   Solver::FULL);
+                                                   Solver::QUIET);
 
     // ////////////////////////////////////
     //   Create the transfer operators
@@ -253,12 +268,18 @@ int main (int argc, char *argv[]) try
     Configuration referenceInterface = rodX[0];
     Configuration lambda = referenceInterface;
 
+    //
+    double normOfOldCorrection = 0;
+
     for (int i=0; i<maxDirichletNeumannSteps; i++) {
         
         std::cout << "----------------------------------------------------" << std::endl;
         std::cout << "      Dirichlet-Neumann Step Number: " << i << std::endl;
         std::cout << "----------------------------------------------------" << std::endl;
         
+        // Backup of the current solution for the error computation later on
+        VectorType oldSolution3d = x3d;
+
         // //////////////////////////////////////////////////
         //   Dirichlet step for the rod
         // //////////////////////////////////////////////////
@@ -272,16 +293,20 @@ int main (int argc, char *argv[]) try
         // ///////////////////////////////////////////////////////////
         //   Extract Neumann values and transfer it to the 3d object
         // ///////////////////////////////////////////////////////////
-        FieldVector<double,dim> resultantForce  = rodAssembler.getResultantForce(rodX);
+
+        BitField couplingBitfield(rodX.size(),false);
+        // Using the index 0 is always the left boundary for a uniformly refined OneDGrid
+        couplingBitfield[0] = true;
+        BoundaryPatch<RodGridType> couplingBoundary(rodGrid, rodGrid.maxLevel(), couplingBitfield);
+
+        FieldVector<double,dim> resultantTorque;
+        FieldVector<double,dim> resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
+
         std::cout << "resultant force: " << resultantForce << std::endl;
-#if 0
-        FieldVector<double,dim> resultantTorque = rodAssembler.getResultantTorque(grid, rodX);
-#endif
+        std::cout << "resultant torque: " << resultantTorque << std::endl;
+
         VectorType neumannValues(grid.size(dim));
-        neumannValues = 0;
-        for (int j=0; j<neumannValues.size(); j++)
-            if (interfaceBoundary[grid.maxLevel()].containsVertex(j))
-                neumannValues[j] = resultantForce;
+        computeAveragePressure<GridType>(resultantForce, resultantTorque, interfaceBoundary[grid.maxLevel()], neumannValues);
 
         rhs3d = 0;
         assembleAndAddNeumannTerm<GridType, VectorType>(interfaceBoundary[grid.maxLevel()],
@@ -305,10 +330,6 @@ int main (int argc, char *argv[]) try
         // ///////////////////////////////////////////////////////////
 
         Configuration averageInterface;
-//         x3d = 0;
-//         for (int i=0; i<x3d.size(); i++)
-//             x3d[i][2] = 1;
-
         computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
 
         std::cout << "average interface: " << averageInterface << std::endl;
@@ -321,7 +342,180 @@ int main (int argc, char *argv[]) try
             lambda.r[j] = (1-damping) * lambda.r[j] + damping * (referenceInterface.r[j] + averageInterface.r[j]);
         lambda.q = averageInterface.q.mult(referenceInterface.q);
 
+        // ////////////////////////////////////////////////////////////////////////
+        //   Write the two iterates to disk for later convergence rate measurement
+        // ////////////////////////////////////////////////////////////////////////
+
+        // First the 3d body
+        char iSolFilename[100];
+        sprintf(iSolFilename, "tmp/intermediate3dSolution_%04d", i);
+            
+        FILE* fp = fopen(iSolFilename, "wb");
+        if (!fp)
+            DUNE_THROW(SolverError, "Couldn't open file " << iSolFilename << " for writing");
+            
+        for (int j=0; j<x3d.size(); j++)
+            for (int k=0; k<dim; k++)
+                fwrite(&x3d[j][k], sizeof(double), 1, fp);
+
+        fclose(fp);
+
+        // Then the rod
+        char iRodFilename[100];
+        sprintf(iRodFilename, "tmp/intermediateRodSolution_%04d", i);
+
+        FILE* fpRod = fopen(iRodFilename, "wb");
+        if (!fpRod)
+            DUNE_THROW(SolverError, "Couldn't open file " << iRodFilename << " for writing");
+            
+        for (int j=0; j<rodX.size(); j++) {
+
+            for (int k=0; k<dim; k++)
+                fwrite(&rodX[j].r[k], sizeof(double), 1, fpRod);
+
+            for (int k=0; k<4; k++)  // 3d hardwired here!
+                fwrite(&rodX[j].q[k], sizeof(double), 1, fpRod);
+
+        }
+
+        fclose(fpRod);
+
+        // ////////////////////////////////////////////
+        //   Compute error in the energy norm
+        // ////////////////////////////////////////////
+
+        // the 3d body
+        double oldNorm = computeEnergyNormSquared(oldSolution3d, *hessian3d);
+        oldSolution3d -= x3d;
+        double normOfCorrection = computeEnergyNormSquared(oldSolution3d, *hessian3d);
+
+        // the rod \todo missing
+#warning Energy error of the rod still missing
+
+        oldNorm = std::sqrt(oldNorm);
+
+        normOfCorrection = std::sqrt(normOfCorrection);
+
+        double relativeError = normOfCorrection / oldNorm;
+
+        double convRate = normOfCorrection / normOfOldCorrection;
+
+        normOfOldCorrection = normOfCorrection;
+
+        // Output
+        std::cout << "DD iteration: " << i << "  --  ||u^{n+1} - u^n||: " << relativeError << ",      "
+                  << "convrate " << convRate << "\n";
+
+        if (relativeError < ddTolerance)
+            break;
+
     }
+
+
+
+    // //////////////////////////////////////////////////////////
+    //   Recompute and compare against exact solution
+    // //////////////////////////////////////////////////////////
+    VectorType exactSol3d       = x3d;
+    RodSolutionType exactSolRod = rodX;
+
+    // //////////////////////////////////////////////////////////
+    //   Compute hessian of the rod functional at the exact solution
+    //   for use of the energy norm it creates.
+    // //////////////////////////////////////////////////////////
+
+    BCRSMatrix<FieldMatrix<double, 6, 6> > hessianRod;
+    MatrixIndexSet indices(exactSolRod.size(), exactSolRod.size());
+    rodAssembler.getNeighborsPerVertex(indices);
+    indices.exportIdx(hessianRod);
+    rodAssembler.assembleMatrix(exactSolRod, hessianRod);
+
+
+    double error = std::numeric_limits<double>::max();
+    double oldError = 0;
+    double totalConvRate = 1;
+
+    VectorType      intermediateSol3d(x3d.size());
+    RodSolutionType intermediateSolRod(rodX.size());
+
+    // Compute error of the initial 3d solution
+    
+    // This should really be exactSol-initialSol, but we're starting
+    // from zero anyways
+    oldError += computeEnergyNormSquared(exactSol3d, *hessian3d);
+    
+    /** \todo Rod error still missing */
+
+    oldError = std::sqrt(oldError);
+
+    
+
+    int i;
+    for (i=0; i<maxDirichletNeumannSteps; i++) {
+        
+        // /////////////////////////////////////////////////////
+        //   Read iteration from file
+        // /////////////////////////////////////////////////////
+
+        // Read 3d solution from file
+        char iSolFilename[100];
+        sprintf(iSolFilename, "tmp/intermediate3dSolution_%04d", i);
+            
+        FILE* fpInt = fopen(iSolFilename, "rb");
+        if (!fpInt)
+            DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
+        for (int j=0; j<intermediateSol3d.size(); j++)
+            fread(&intermediateSol3d[j], sizeof(double), dim, fpInt);
+        
+        fclose(fpInt);
+
+        // Read rod solution from file
+        sprintf(iSolFilename, "tmp/intermediateRodSolution_%04d", i);
+            
+        fpInt = fopen(iSolFilename, "rb");
+        if (!fpInt)
+            DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
+        for (int j=0; j<intermediateSolRod.size(); j++) {
+            fread(&intermediateSolRod[j].r, sizeof(double), dim, fpInt);
+            fread(&intermediateSolRod[j].q, sizeof(double), 4, fpInt);
+        }
+        
+        fclose(fpInt);
+
+
+
+        // /////////////////////////////////////////////////////
+        //   Compute error
+        // /////////////////////////////////////////////////////
+        
+        VectorType solBackup0 = intermediateSol3d;
+        solBackup0 -= exactSol3d;
+
+        RodDifferenceType rodDifference = computeRodDifference(exactSolRod, intermediateSolRod);
+        
+        error = std::sqrt(computeEnergyNormSquared(solBackup0, *hessian3d)
+                          +
+                          computeEnergyNormSquared(rodDifference, hessianRod));
+        
+
+        double convRate = error / oldError;
+        totalConvRate *= convRate;
+
+        // Output
+        std::cout << "DD iteration: " << i << "  error : " << error << ",      "
+                  << "convrate " << convRate 
+                  << "    total conv rate " << std::pow(totalConvRate, 1/((double)i+1)) << std::endl;
+
+        if (error < 1e-12)
+          break;
+
+        oldError = error;
+        
+    }            
+
+    std::cout << "damping: " << damping
+              << "   convRate: " << std::pow(totalConvRate, 1/((double)i+1)) << std::endl;
+
 
     // //////////////////////////////
     //   Output result
@@ -330,8 +524,8 @@ int main (int argc, char *argv[]) try
     LeafAmiraMeshWriter<GridType>::writeBlockVector(grid, x3d, "grid.sol");
     writeRod(rodX, "rod3d.result");
 
-    for (int i=0; i<rodX.size(); i++)
-        std::cout << rodX[i] << std::endl;
+//     for (int i=0; i<rodX.size(); i++)
+//         std::cout << rodX[i] << std::endl;
 
  } catch (Exception e) {
 
