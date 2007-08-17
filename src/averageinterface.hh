@@ -199,16 +199,16 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     // polar composition.
     FieldVector<double,dim> W;
     FieldMatrix<double,dim,dim> VT;
+
+    // returns a decomposition U W VT, where U is returned in the first argument
     svdcmp<double,dim,dim>(deformationGradient, W, VT);
 
     deformationGradient.rightmultiply(VT);
 
+    // deformationGradient now contains the orthogonal part of the polar decomposition
     assert( std::abs(1-deformationGradient.determinant()) < 1e-3);
-    //std::cout << "determinant: " << deformationGradient.determinant() << "  (should be 1)\n";
-    
 
-    // average orientation not implemented yet
-    average.q = Quaternion<double>::identity();
+    average.q.set(deformationGradient);
 }
 
 #endif
