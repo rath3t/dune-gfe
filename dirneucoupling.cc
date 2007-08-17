@@ -115,13 +115,25 @@ int main (int argc, char *argv[]) try
         rodX[i].q = Quaternion<double>::identity();
     }
 
-    rodX[rodX.size()-1].r[0] = 0.5;
-    rodX[rodX.size()-1].r[1] = 0.5;
-    rodX[rodX.size()-1].r[2] = 11;
-//     rodX[rodX.size()-1].q[0] = 0;
-//     rodX[rodX.size()-1].q[1] = 0;
-//     rodX[rodX.size()-1].q[2] = 1/sqrt(2);
-//     rodX[rodX.size()-1].q[3] = 1/sqrt(2);
+//     rodX[rodX.size()-1].r[0] = 0.5;
+//     rodX[rodX.size()-1].r[1] = 0.5;
+//     rodX[rodX.size()-1].r[2] = 11;
+
+    // /////////////////////////////////////////
+    //   Read Dirichlet values
+    // /////////////////////////////////////////
+    rodX.back().r[0] = parameterSet.get("dirichletValueX", double(0));
+    rodX.back().r[1] = parameterSet.get("dirichletValueY", double(0));
+    rodX.back().r[2] = parameterSet.get("dirichletValueZ", double(0));
+
+    FieldVector<double,3> axis;
+    axis[0] = parameterSet.get("dirichletAxisX", double(0));
+    axis[1] = parameterSet.get("dirichletAxisY", double(0));
+    axis[2] = parameterSet.get("dirichletAxisZ", double(0));
+    double angle = parameterSet.get("dirichletAngle", double(0));
+
+    rodX.back().q = Quaternion<double>(axis, M_PI*angle/180);
+
 
 //     std::cout << "Left boundary orientation:" << std::endl;
 //     std::cout << "director 0:  " << rodX[0].q.director(0) << std::endl;
@@ -295,7 +307,7 @@ int main (int argc, char *argv[]) try
         // ///////////////////////////////////////////////////////////
 
         BitField couplingBitfield(rodX.size(),false);
-        // Using the index 0 is always the left boundary for a uniformly refined OneDGrid
+        // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
         couplingBitfield[0] = true;
         BoundaryPatch<RodGridType> couplingBoundary(rodGrid, rodGrid.maxLevel(), couplingBitfield);
 
@@ -306,7 +318,11 @@ int main (int argc, char *argv[]) try
         std::cout << "resultant torque: " << resultantTorque << std::endl;
 
         VectorType neumannValues(grid.size(dim));
-        computeAveragePressure<GridType>(resultantForce, resultantTorque, interfaceBoundary[grid.maxLevel()], neumannValues);
+        // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+        computeAveragePressure<GridType>(resultantForce, resultantTorque, 
+                                         interfaceBoundary[grid.maxLevel()], 
+                                         rodX[0],
+                                         neumannValues);
 
         rhs3d = 0;
         assembleAndAddNeumannTerm<GridType, VectorType>(interfaceBoundary[grid.maxLevel()],
