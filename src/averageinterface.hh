@@ -4,6 +4,62 @@
 #include <dune/common/fmatrix.hh>
 #include "svd.hh"
 
+// Given a resultant force and torque (from a rod problem), this method computes the corresponding
+// Neumann data for a 3d elasticity problem.
+template <class GridType>
+void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>& resultantForce,
+                            const Dune::FieldVector<double,GridType::dimension>& resultantTorque,
+                            const BoundaryPatch<GridType>& interface,
+                            const Configuration& crossSection,
+                            Dune::BlockVector<Dune::FieldVector<double, GridType::dimension> >& pressure)
+{
+    const GridType& grid = interface.getGrid();
+    const int level      = interface.level();
+    const typename GridType::Traits::LevelIndexSet& indexSet = grid.levelIndexSet(level);
+    const int dim        = GridType::dimension;
+    typedef typename GridType::ctype ctype;
+
+    typedef typename GridType::template Codim<dim>::LevelIterator VertexIterator;
+
+    // set up output array
+    pressure.resize(indexSet.size(dim));
+    pressure = 0;
+    
+    ctype area = interface.area();
+    
+    VertexIterator vIt    = indexSet.template begin<dim, Dune::All_Partition>();
+    VertexIterator vEndIt = indexSet.template end<dim, Dune::All_Partition>();
+    
+    for (; vIt!=vEndIt; ++vIt) {
+
+        int vIdx = indexSet.index(*vIt);
+
+        if (interface.containsVertex(vIdx)) {
+
+            // force part
+            pressure[vIdx] = resultantForce;
+            pressure[vIdx] /= area;
+
+            // torque part
+            double x = (vIt->geometry()[0] - crossSection.r) * crossSection.q.director(0);
+            double y = (vIt->geometry()[0] - crossSection.r) * crossSection.q.director(1);
+            
+            Dune::FieldVector<double,3> localTorque;
+            for (int i=0; i<3; i++)
+                localTorque[i] = resultantTorque * crossSection.q.director(i);
+
+            // add it up
+            pressure[vIdx][0] += -2 * M_PI * localTorque[2] * y / (area*area);
+            pressure[vIdx][1] +=  2 * M_PI * localTorque[2] * x / (area*area);
+            pressure[vIdx][2] +=  4 * M_PI * localTorque[0] * y / (area*area);
+            pressure[vIdx][2] += -4 * M_PI * localTorque[1] * x / (area*area);
+
+        }
+
+    }
+
+}
+
 template <class GridType>
 void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                              const Dune::BlockVector<Dune::FieldVector<double,GridType::dimension> > deformation,
@@ -83,7 +139,7 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                 /**********************************************/
                 /* compute gradients of the shape functions   */
                 /**********************************************/
-                Array<FieldVector<double, dim> > shapeGrads(eIt->geometry().corners());
+                std::vector<FieldVector<double, dim> > shapeGrads(eIt->geometry().corners());
                 
                 for (int dof=0; dof<eIt->geometry().corners(); dof++) {
                     
@@ -137,7 +193,7 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     // average deformation is the integral over the deformation gradient
     // divided by its area
     deformationGradient /= interfaceArea;
-    std::cout << "deformationGradient: " << deformationGradient << std::endl;
+    std::cout << "deformationGradient: " << std::endl << deformationGradient << std::endl;
 
     // Get the rotational part of the deformation gradient by performing a 
     // polar composition.
@@ -146,7 +202,9 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     svdcmp<double,dim,dim>(deformationGradient, W, VT);
 
     deformationGradient.rightmultiply(VT);
-    std::cout << "determinant: " << deformationGradient.determinant() << "  (should be 1)\n";
+
+    assert( std::abs(1-deformationGradient.determinant()) < 1e-3);
+    //std::cout << "determinant: " << deformationGradient.determinant() << "  (should be 1)\n";
     
 
     // average orientation not implemented yet
