@@ -211,7 +211,7 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
     RodAssembler<RodGridType> rodAssembler(rodGrid);
-    rodAssembler.setShapeAndMaterial(1, 1/12, 1/12, 2.5e5, 0.3);
+    rodAssembler.setShapeAndMaterial(1, 1.0/12, 1.0/12, 2.5e5, 0.3);
 
     RodSolver<RodGridType> rodSolver;
     rodSolver.setup(rodGrid, 
