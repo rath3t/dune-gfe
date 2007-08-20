@@ -211,7 +211,7 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
     RodAssembler<RodGridType> rodAssembler(rodGrid);
-    rodAssembler.setShapeAndMaterial(1, 1, 1, 2.5e5, 0.3);
+    rodAssembler.setShapeAndMaterial(1, 1/12, 1/12, 2.5e5, 0.3);
 
     RodSolver<RodGridType> rodSolver;
     rodSolver.setup(rodGrid, 
@@ -536,8 +536,10 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
-    LeafAmiraMeshWriter<GridType>::writeGrid(grid, "grid.result");
-    LeafAmiraMeshWriter<GridType>::writeBlockVector(grid, x3d, "grid.sol");
+    LeafAmiraMeshWriter<GridType> amiraMeshWriter(grid);
+    amiraMeshWriter.addVertexData(x3d, grid.leafIndexSet());
+    amiraMeshWriter.write("grid.result");
+
     writeRod(rodX, "rod3d.result");
 
 //     for (int i=0; i<rodX.size(); i++)
