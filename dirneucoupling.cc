@@ -356,7 +356,8 @@ int main (int argc, char *argv[]) try
 
         for (int j=0; j<dim; j++)
             lambda.r[j] = (1-damping) * lambda.r[j] + damping * (referenceInterface.r[j] + averageInterface.r[j]);
-        lambda.q = averageInterface.q.mult(referenceInterface.q);
+
+        lambda.q = Quaternion<double>::interpolate(lambda.q, averageInterface.q, damping);
 
         // ////////////////////////////////////////////////////////////////////////
         //   Write the two iterates to disk for later convergence rate measurement
