@@ -4,6 +4,17 @@
 #include <dune/common/fmatrix.hh>
 #include "svd.hh"
 
+// template parameter dim is only there do make it compile when dim!=3
+template <class T, int dim>
+Dune::FieldVector<T,dim> crossProduct(const Dune::FieldVector<T,dim>& a, const Dune::FieldVector<T,dim>& b)
+{
+    Dune::FieldVector<T,dim> r;
+    r[0] = a[1]*b[2] - a[2]*b[1];
+    r[1] = a[2]*b[0] - a[0]*b[2];
+    r[2] = a[0]*b[1] - a[1]*b[0];
+    return r;
+}
+
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
 template <class GridType>
@@ -57,6 +68,58 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
         }
 
     }
+
+    // /////////////////////////////////////////////////////////////////////////////////////
+    //   Compute the overall force and torque to see whether the preceding code is correct
+    // /////////////////////////////////////////////////////////////////////////////////////
+
+    Dune::FieldVector<double,3> outputForce(0), outputTorque(0);
+    Dune::LeafP1Function<GridType,double,dim> pressureFunction(grid);
+    *pressureFunction = pressure;
+
+    typename GridType::template Codim<0>::LevelIterator eIt    = indexSet.template begin<0,Dune::All_Partition>();
+    typename GridType::template Codim<0>::LevelIterator eEndIt = indexSet.template end<0,Dune::All_Partition>();
+
+    for (; eIt!=eEndIt; ++eIt) {
+
+        typename GridType::template Codim<0>::Entity::LevelIntersectionIterator nIt    = eIt->ilevelbegin();
+        typename GridType::template Codim<0>::Entity::LevelIntersectionIterator nEndIt = eIt->ilevelend();
+        
+        for (; nIt!=nEndIt; ++nIt) {
+            
+            if (!interface.contains(*eIt,nIt))
+                continue;
+            
+            const Dune::QuadratureRule<double, dim-1>& quad 
+                = Dune::QuadratureRules<double, dim-1>::rule(nIt.intersectionGlobal().type(), dim-1);
+            
+            for (size_t qp=0; qp<quad.size(); qp++) {
+                
+                // Local position of the quadrature point
+                const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
+                
+                const double integrationElement         = nIt.intersectionGlobal().integrationElement(quadPos);
+                
+                // Evaluate function
+                Dune::FieldVector<double,dim> localPressure;
+                pressureFunction.evalalllocal(*eIt, nIt.intersectionSelfLocal().global(quadPos), localPressure);
+                
+                // Sum up the total force
+                outputForce.axpy(quad[qp].weight()*integrationElement, localPressure);
+
+                // Sum up the total torque   \int (x - x_0) \times f dx
+                Dune::FieldVector<double,dim> worldPos = nIt.intersectionGlobal().global(quadPos);
+                outputTorque.axpy(quad[qp].weight()*integrationElement, 
+                                  crossProduct(worldPos - crossSection.r, localPressure));
+
+            }
+
+        }
+
+    }
+
+    std::cout << "Output force:  " << outputForce << std::endl;
+    std::cout << "Output torque: " << outputTorque << "      " << resultantTorque[0]/outputTorque[0] << std::endl;
 
 }
 
