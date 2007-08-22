@@ -1,5 +1,5 @@
 #ifndef ROD_SOLVER_HH
-#define RODSOLVER
+#define ROD_SOLVER_HH
 
 #include <dune/common/array.hh>
 #include <dune/istl/bcrsmatrix.hh>
