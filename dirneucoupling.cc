@@ -317,7 +317,13 @@ int main (int argc, char *argv[]) try
         std::cout << "resultant force: " << resultantForce << std::endl;
         std::cout << "resultant torque: " << resultantTorque << std::endl;
 
-        VectorType neumannValues(grid.size(dim));
+        // For the time being the Neumann data coming from the rod is a dg function (== not continuous)
+        // Maybe that is not necessary
+        DGIndexSet<GridType> dgIndexSet(grid,grid.maxLevel());
+        dgIndexSet.setup(grid,grid.maxLevel());
+
+        VectorType neumannValues(dgIndexSet.size());
+
         // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
         computeAveragePressure<GridType>(resultantForce, resultantTorque, 
                                          interfaceBoundary[grid.maxLevel()], 
@@ -326,6 +332,7 @@ int main (int argc, char *argv[]) try
 
         rhs3d = 0;
         assembleAndAddNeumannTerm<GridType, VectorType>(interfaceBoundary[grid.maxLevel()],
+                                                        dgIndexSet,
                                                         neumannValues,
                                                         rhs3d);
 

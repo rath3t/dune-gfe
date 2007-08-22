@@ -2,18 +2,12 @@
 #define AVERAGE_INTERFACE_HH
 
 #include <dune/common/fmatrix.hh>
-#include "svd.hh"
+#include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 
-// template parameter dim is only there do make it compile when dim!=3
-template <class T, int dim>
-Dune::FieldVector<T,dim> crossProduct(const Dune::FieldVector<T,dim>& a, const Dune::FieldVector<T,dim>& b)
-{
-    Dune::FieldVector<T,dim> r;
-    r[0] = a[1]*b[2] - a[2]*b[1];
-    r[1] = a[2]*b[0] - a[0]*b[2];
-    r[2] = a[0]*b[1] - a[1]*b[0];
-    return r;
-}
+#include "../../contact/src/dgindexset.hh"
+#include "../../common/crossproduct.hh"
+#include "svd.hh"
+#include "../linearsolver.hh"
 
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
@@ -33,50 +27,11 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     typedef typename GridType::template Codim<dim>::LevelIterator VertexIterator;
 
     // set up output array
-    pressure.resize(indexSet.size(dim));
+    DGIndexSet<GridType> dgIndexSet(grid,level);
+    dgIndexSet.setup(grid,level);
+    pressure.resize(dgIndexSet.size());
     pressure = 0;
     
-    ctype area = interface.area();
-    
-    VertexIterator vIt    = indexSet.template begin<dim, Dune::All_Partition>();
-    VertexIterator vEndIt = indexSet.template end<dim, Dune::All_Partition>();
-    
-    for (; vIt!=vEndIt; ++vIt) {
-
-        int vIdx = indexSet.index(*vIt);
-
-        if (interface.containsVertex(vIdx)) {
-
-            // force part
-            pressure[vIdx] = resultantForce;
-            pressure[vIdx] /= area;
-
-            // torque part
-            double x = (vIt->geometry()[0] - crossSection.r) * crossSection.q.director(0);
-            double y = (vIt->geometry()[0] - crossSection.r) * crossSection.q.director(1);
-            
-            Dune::FieldVector<double,3> localTorque;
-            for (int i=0; i<3; i++)
-                localTorque[i] = resultantTorque * crossSection.q.director(i);
-
-            // add it up
-            pressure[vIdx][0] += -2 * M_PI * localTorque[2] * y / (area*area);
-            pressure[vIdx][1] +=  2 * M_PI * localTorque[2] * x / (area*area);
-            pressure[vIdx][2] +=  4 * M_PI * localTorque[0] * y / (area*area);
-            pressure[vIdx][2] += -4 * M_PI * localTorque[1] * x / (area*area);
-
-        }
-
-    }
-
-    // /////////////////////////////////////////////////////////////////////////////////////
-    //   Compute the overall force and torque to see whether the preceding code is correct
-    // /////////////////////////////////////////////////////////////////////////////////////
-
-    Dune::FieldVector<double,3> outputForce(0), outputTorque(0);
-    Dune::LeafP1Function<GridType,double,dim> pressureFunction(grid);
-    *pressureFunction = pressure;
-
     typename GridType::template Codim<0>::LevelIterator eIt    = indexSet.template begin<0,Dune::All_Partition>();
     typename GridType::template Codim<0>::LevelIterator eEndIt = indexSet.template end<0,Dune::All_Partition>();
 
@@ -89,6 +44,120 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             
             if (!interface.contains(*eIt,nIt))
                 continue;
+
+            const Dune::LagrangeShapeFunctionSet<double, double, dim-1>& baseSet
+                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(nIt.intersectionGlobal().type(),1);
+
+            if (baseSet.size() != 4)
+                DUNE_THROW(Dune::NotImplemented, "average interface only for quad faces");
+            
+            // four rows because a face may have no more than four vertices
+            Dune::FieldVector<double,4> mu(0);
+            Dune::FieldVector<double,3> mu_tilde[4][3];
+            
+            for (int i=0; i<4; i++)
+                for (int j=0; j<3; j++)
+                    mu_tilde[i][j] = 0;
+
+            for (int i=0; i<nIt.intersectionGlobal().corners(); i++) {
+                
+                const Dune::QuadratureRule<double, dim-1>& quad 
+                    = Dune::QuadratureRules<double, dim-1>::rule(nIt.intersectionGlobal().type(), dim-1);
+                
+                for (size_t qp=0; qp<quad.size(); qp++) {
+                    
+                    // Local position of the quadrature point
+                    const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
+                    
+                    const double integrationElement         = nIt.intersectionGlobal().integrationElement(quadPos);
+                    
+                    // \mu_i = \int_t \varphi_i \ds
+                    mu[i] += quad[qp].weight() * integrationElement * baseSet[i].evaluateFunction(0,quadPos);
+                    
+                    // \tilde{\mu}_i^j = \int_t \varphi_i \times (x - x_0) \ds
+                    Dune::FieldVector<double,dim> worldPos = nIt.intersectionGlobal().global(quadPos);
+
+                    for (int j=0; j<dim; j++) {
+
+                        // Vector-valued basis function
+                        Dune::FieldVector<double,dim> phi_i(0);
+                        phi_i[j] = baseSet[i].evaluateFunction(0,quadPos);
+                        
+                        mu_tilde[i][j].axpy(quad[qp].weight() * integrationElement,
+                                            crossProduct(worldPos-crossSection.r, phi_i));
+
+                    }
+                    
+                }
+                
+            }
+
+
+//             std::cout << "tilde{mu}\n" << std::endl;
+//             for (int i=0; i<4; i++)
+//                 for (int j=0; j<3; j++)
+//                     std::cout << "i: " << i << ",  j: " << j << ",   " << mu_tilde[i][j] << std::endl;
+
+
+            // Set up matrix
+            Dune::FieldMatrix<double, 6, 12> matrix(0);
+            for (int i=0; i<4; i++)
+                for (int j=0; j<3; j++)
+                    matrix[j][i*3+j] = mu[i];
+
+            for (int i=0; i<4; i++)
+                for (int j=0; j<3; j++)
+                    for (int k=0; k<3; k++)
+                        matrix[3+k][3*i+j] = mu_tilde[i][j][k];
+
+            Dune::FieldVector<double,12> u;
+            Dune::FieldVector<double,6> b;
+
+            for (int i=0; i<3; i++) {
+                b[i]   = resultantForce[i];
+                b[i+3] = resultantTorque[i];
+            }
+
+//             std::cout << b << std::endl;
+//             std::cout << matrix << std::endl;
+
+            //matrix.solve(u,b);
+            linearSolver(matrix, u, b);
+            //std::cout << u << std::endl;
+
+            for (int i=0; i<3; i++) {
+                pressure[dgIndexSet(*eIt, nIt.numberInSelf())][i]   = u[i];
+                pressure[dgIndexSet(*eIt, nIt.numberInSelf())+1][i] = u[i+3];
+                pressure[dgIndexSet(*eIt, nIt.numberInSelf())+2][i] = u[i+6];
+                pressure[dgIndexSet(*eIt, nIt.numberInSelf())+3][i] = u[i+9];
+            }
+
+        }
+
+    }
+
+
+    // /////////////////////////////////////////////////////////////////////////////////////
+    //   Compute the overall force and torque to see whether the preceding code is correct
+    // /////////////////////////////////////////////////////////////////////////////////////
+
+    Dune::FieldVector<double,3> outputForce(0), outputTorque(0);
+
+    eIt    = indexSet.template begin<0,Dune::All_Partition>();
+    eEndIt = indexSet.template end<0,Dune::All_Partition>();
+
+    for (; eIt!=eEndIt; ++eIt) {
+
+        typename GridType::template Codim<0>::Entity::LevelIntersectionIterator nIt    = eIt->ilevelbegin();
+        typename GridType::template Codim<0>::Entity::LevelIntersectionIterator nEndIt = eIt->ilevelend();
+        
+        for (; nIt!=nEndIt; ++nIt) {
+            
+            if (!interface.contains(*eIt,nIt))
+                continue;
+
+            const Dune::LagrangeShapeFunctionSet<double, double, dim-1>& baseSet
+                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(nIt.intersectionGlobal().type(),1);
             
             const Dune::QuadratureRule<double, dim-1>& quad 
                 = Dune::QuadratureRules<double, dim-1>::rule(nIt.intersectionGlobal().type(), dim-1);
@@ -101,9 +170,13 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                 const double integrationElement         = nIt.intersectionGlobal().integrationElement(quadPos);
                 
                 // Evaluate function
-                Dune::FieldVector<double,dim> localPressure;
-                pressureFunction.evalalllocal(*eIt, nIt.intersectionSelfLocal().global(quadPos), localPressure);
+                Dune::FieldVector<double,dim> localPressure(0);
                 
+                for (size_t i=0; i<baseSet.size(); i++) 
+                    localPressure.axpy(baseSet[i].evaluateFunction(0,quadPos),
+                                       pressure[dgIndexSet(*eIt,nIt.numberInSelf())+i]);
+
+
                 // Sum up the total force
                 outputForce.axpy(quad[qp].weight()*integrationElement, localPressure);
 
@@ -118,8 +191,12 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 
     }
 
-    std::cout << "Output force:  " << outputForce << std::endl;
-    std::cout << "Output torque: " << outputTorque << "      " << resultantTorque[0]/outputTorque[0] << std::endl;
+    outputForce  -= resultantForce;
+    outputTorque -= resultantTorque;
+    assert( outputForce.two_norm() < 1e-6 );
+    assert( outputTorque.two_norm() < 1e-6 );
+//     std::cout << "Output force:  " << outputForce << std::endl;
+//     std::cout << "Output torque: " << outputTorque << "      " << resultantTorque[0]/outputTorque[0] << std::endl;
 
 }
 
