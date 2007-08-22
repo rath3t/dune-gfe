@@ -23,6 +23,7 @@
 #include "../common/energynorm.hh"
 #include "../common/boundarypatch.hh"
 #include "../common/prolongboundarypatch.hh"
+#include "../common/sampleonbitfield.hh"
 #include "../common/neumannassembler.hh"
 
 #include "src/quaternion.hh"
@@ -62,8 +63,7 @@ int main (int argc, char *argv[]) try
     parameterSet.parseFile("dirneucoupling.parset");
 
     // read solver settings
-    const int minLevel            = parameterSet.get("minLevel", int(0));
-    const int maxLevel            = parameterSet.get("maxLevel", int(0));
+    const int numLevels            = parameterSet.get("numLevels", int(1));
     const double ddTolerance           = parameterSet.get("ddTolerance", double(0));
     const int maxDirichletNeumannSteps = parameterSet.get("maxDirichletNeumannSteps", int(0));
     const double trTolerance           = parameterSet.get("trTolerance", double(0));
@@ -101,17 +101,25 @@ int main (int argc, char *argv[]) try
     
     AmiraMeshReader<GridType>::read(grid, path + objectName);
 
+    // //////////////////////////////////////
+    //   Globally refine grids
+    // //////////////////////////////////////
+
+    rodGrid.globalRefine(numLevels-1);
+    grid.globalRefine(numLevels-1);
+
     std::vector<BitField> dirichletNodes(1);
 
-    RodSolutionType rodX(rodGrid.size(0,1));
+    RodSolutionType rodX(rodGrid.size(1));
 
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
 
     for (int i=0; i<rodX.size(); i++) {
-        rodX[i].r = 0.5;
-        rodX[i].r[2] = i+5;
+        rodX[i].r[0] = 0.5;
+        rodX[i].r[1] = 0.5;
+        rodX[i].r[2] = 5 + (i* 5 /(rodX.size()-1));
         rodX[i].q = Quaternion<double>::identity();
     }
 
@@ -134,30 +142,23 @@ int main (int argc, char *argv[]) try
 
     rodX.back().q = Quaternion<double>(axis, M_PI*angle/180);
 
-
-//     std::cout << "Left boundary orientation:" << std::endl;
-//     std::cout << "director 0:  " << rodX[0].q.director(0) << std::endl;
-//     std::cout << "director 1:  " << rodX[0].q.director(1) << std::endl;
-//     std::cout << "director 2:  " << rodX[0].q.director(2) << std::endl;
-//     std::cout << std::endl;
     std::cout << "Right boundary orientation:" << std::endl;
     std::cout << "director 0:  " << rodX[rodX.size()-1].q.director(0) << std::endl;
     std::cout << "director 1:  " << rodX[rodX.size()-1].q.director(1) << std::endl;
     std::cout << "director 2:  " << rodX[rodX.size()-1].q.director(2) << std::endl;
-//     exit(0);
 
     int toplevel = rodGrid.maxLevel();
 
     // /////////////////////////////////////////////////////
     //   Determine the Dirichlet nodes
     // /////////////////////////////////////////////////////
-    Array<VectorType> dirichletValues;
+    std::vector<VectorType> dirichletValues;
     dirichletValues.resize(toplevel+1);
     dirichletValues[0].resize(grid.size(0, dim));
     AmiraMeshReader<int>::readFunction(dirichletValues[0], path + dirichletValuesFile);
 
     std::vector<BoundaryPatch<GridType> > dirichletBoundary;
-    dirichletBoundary.resize(maxLevel+1);
+    dirichletBoundary.resize(numLevels);
     dirichletBoundary[0].setup(grid, 0);
     readBoundaryPatch(dirichletBoundary[0], path + dirichletNodesFile);
     PatchProlongator<GridType>::prolong(dirichletBoundary);
@@ -172,12 +173,14 @@ int main (int argc, char *argv[]) try
                 dirichletNodes[i][j*dim+k] = dirichletBoundary[i].containsVertex(j);
         
     }
+
+    sampleOnBitField(grid, dirichletValues, dirichletNodes);
     
     // /////////////////////////////////////////////////////
     //   Determine the interface boundary
     // /////////////////////////////////////////////////////
     std::vector<BoundaryPatch<GridType> > interfaceBoundary;
-    interfaceBoundary.resize(maxLevel+1);
+    interfaceBoundary.resize(numLevels);
     interfaceBoundary[0].setup(grid, 0);
     readBoundaryPatch(interfaceBoundary[0], path + interfaceNodesFile);
     PatchProlongator<GridType>::prolong(interfaceBoundary);
