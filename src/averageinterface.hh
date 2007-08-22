@@ -23,8 +23,12 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     const typename GridType::Traits::LevelIndexSet& indexSet = grid.levelIndexSet(level);
     const int dim        = GridType::dimension;
     typedef typename GridType::ctype ctype;
+    typedef double field_type;
 
     typedef typename GridType::template Codim<dim>::LevelIterator VertexIterator;
+
+    // Get total interface area
+    ctype area = interface.area();
 
     // set up output array
     DGIndexSet<GridType> dgIndexSet(grid,level);
@@ -45,8 +49,8 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             if (!interface.contains(*eIt,nIt))
                 continue;
 
-            const Dune::LagrangeShapeFunctionSet<double, double, dim-1>& baseSet
-                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(nIt.intersectionGlobal().type(),1);
+            const Dune::LagrangeShapeFunctionSet<ctype, field_type, dim-1>& baseSet
+                = Dune::LagrangeShapeFunctions<ctype, field_type, dim-1>::general(nIt.intersectionGlobal().type(),1);
 
             if (baseSet.size() != 4)
                 DUNE_THROW(Dune::NotImplemented, "average interface only for quad faces");
@@ -113,9 +117,13 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             Dune::FieldVector<double,12> u;
             Dune::FieldVector<double,6> b;
 
+            // Scale the resultant force and torque with this segments area percentage.
+            // That way the resulting pressure gets distributed fairly uniformly.
+            ctype segmentArea = nIt.intersectionGlobal().volume() / area;
+
             for (int i=0; i<3; i++) {
-                b[i]   = resultantForce[i];
-                b[i+3] = resultantTorque[i];
+                b[i]   = resultantForce[i] * segmentArea;
+                b[i+3] = resultantTorque[i] * segmentArea;
             }
 
 //             std::cout << b << std::endl;
@@ -333,7 +341,7 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     // average deformation is the integral over the deformation gradient
     // divided by its area
     deformationGradient /= interfaceArea;
-    std::cout << "deformationGradient: " << std::endl << deformationGradient << std::endl;
+    //std::cout << "deformationGradient: " << std::endl << deformationGradient << std::endl;
 
     // Get the rotational part of the deformation gradient by performing a 
     // polar composition.
