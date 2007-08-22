@@ -1,7 +1,8 @@
 #ifndef ROD_SOLVER_HH
 #define ROD_SOLVER_HH
 
-#include <dune/common/array.hh>
+#include <vector>
+
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
