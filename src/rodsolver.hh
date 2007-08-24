@@ -100,7 +100,7 @@ protected:
     const RodAssembler<GridType>* rodAssembler_;
 
     /** \brief The multigrid solver */
-    Dune::IterativeSolver<MatrixType, CorrectionType>* mmgSolver_;
+    IterativeSolver<MatrixType, CorrectionType>* mmgSolver_;
 
     /** \brief The hierarchy of trust-region obstacles */
     std::vector<std::vector<BoxConstraint<blocksize> > > trustRegionObstacles_;
