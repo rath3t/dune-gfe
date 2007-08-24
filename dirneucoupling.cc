@@ -119,13 +119,9 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<rodX.size(); i++) {
         rodX[i].r[0] = 0.5;
         rodX[i].r[1] = 0.5;
-        rodX[i].r[2] = 5 + (i* 5 /(rodX.size()-1));
+        rodX[i].r[2] = 5 + (i* 5.0 /(rodX.size()-1));
         rodX[i].q = Quaternion<double>::identity();
     }
-
-//     rodX[rodX.size()-1].r[0] = 0.5;
-//     rodX[rodX.size()-1].r[1] = 0.5;
-//     rodX[rodX.size()-1].r[2] = 11;
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
