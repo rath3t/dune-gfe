@@ -249,7 +249,7 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
 
             const typename NeighborIterator::Geometry& segmentGeometry = nIt.intersectionGlobal();
 
-            const ReferenceElement<double,dim>& refElement = ReferenceElements<double, dim>::general(eIt->geometry().type());
+            const ReferenceElement<double,dim>& refElement = ReferenceElements<double, dim>::general(eIt->type());
             int nDofs = refElement.size(nIt.numberInSelf(),1,dim);
 
             // Get quadrature rule
@@ -257,7 +257,7 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
 
             // Get set of shape functions on this segment
             const typename LagrangeShapeFunctionSetContainer<double,double,dim>::value_type& sfs
-                = LagrangeShapeFunctions<double,double,dim>::general(eIt->geometry().type(),1);
+                = LagrangeShapeFunctions<double,double,dim>::general(eIt->type(),1);
 
             /* Loop over all integration points */
             for (int ip=0; ip<quad.size(); ip++) {
@@ -291,14 +291,13 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                 
                 for (int dof=0; dof<eIt->geometry().corners(); dof++) {
                     
+                    FieldVector<double,dim> tmp;
                     for (int i=0; i<dim; i++)
-                        shapeGrads[dof][i] = sfs[dof].evaluateDerivative(0, i, quadPos);
+                        tmp[i] = sfs[dof].evaluateDerivative(0, i, quadPos);
                     
                     // multiply with jacobian inverse 
-                    FieldVector<double,dim> tmp(0);
-                    inv.umv(shapeGrads[dof], tmp);
-                    shapeGrads[dof] = tmp;
-                    //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
+                    shapeGrads[dof] = 0;
+                    inv.umv(tmp, shapeGrads[dof]);
                 }
 
                 /****************************************************/
@@ -320,12 +319,16 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                     
                 }
 
+                // Sum up interface area
                 interfaceArea += quad[ip].weight() * integrationElement;
 
+                // Sum up average displacement
                 average.r.axpy(quad[ip].weight() * integrationElement, posAtQuadPoint);
 
-                F *= quad[ip].weight();
-                deformationGradient += F;
+                // Sum up average deformation gradient
+                for (int i=0; i<dim; i++)
+                    for (int j=0; j<dim; j++)
+                        deformationGradient[i][j] += F[i][j] * quad[ip].weight() * integrationElement;
 
             }
 
