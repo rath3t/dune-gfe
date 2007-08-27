@@ -418,7 +418,7 @@ getLocalMatrix( EntityPointer &entity,
                     du_dvij[i][j][m] += 2 * ( q.B(m)*(q.mult(dq_dvij_ds[i][j]) + q_s.mult(tmp)));
                 }
 
-#if 0
+#if 1
                 for (int k=0; k<2; k++) {
 
                     for (int l=0; l<3; l++) {
@@ -1527,6 +1527,9 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 {
     using namespace Dune;
 
+    if (grid_ != &boundary.getGrid())
+        DUNE_THROW(Dune::Exception, "The boundary patch has to match the grid of the assembler!");
+
     const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
@@ -1569,9 +1572,8 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 
             // Transform stress given with respect to the basis given by the three directors to
             // the canonical basis of R^3
-            /** \todo Hardwired: Entry 0 is the leftmost entry! */
             FieldMatrix<double,3,3> orientationMatrix;
-            sol[0].q.matrix(orientationMatrix);
+            sol[indexSet.template subIndex<1>(*eIt,nIt.numberInSelf())].q.matrix(orientationMatrix);
             
             orientationMatrix.umv(localStress, canonicalStress);
             
