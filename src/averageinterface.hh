@@ -348,13 +348,38 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
 
     // Get the rotational part of the deformation gradient by performing a 
     // polar composition.
-    FieldVector<double,dim> W;
-    FieldMatrix<double,dim,dim> VT;
+    FieldVector<double,dim> W, sigma;
+    FieldMatrix<double,dim,dim> V, VT, U_, VT_;
+
+    FieldMatrix<double,dim,dim> deformationGradientBackup = deformationGradient;
 
     // returns a decomposition U W VT, where U is returned in the first argument
-    svdcmp<double,dim,dim>(deformationGradient, W, VT);
+    svdcmp<double,dim,dim>(deformationGradient, W, V);
 
+    for (int i=0; i<3; i++)
+        for (int j=0; j<3; j++)
+            VT[i][j] = V[j][i];
+#if 0
+    // Debugging
+    std::cout << "Numerical recipes:" << std::endl;
+    std::cout << deformationGradient << std::endl;
+    std::cout << W << std::endl;
+    std::cout << VT << std::endl;
+#endif
     deformationGradient.rightmultiply(VT);
+    std::cout << deformationGradient << std::endl;
+
+#if 0
+    lapackSVD(deformationGradientBackup, U_, sigma, VT_);
+
+    std::cout << "Lapack:" << std::endl;
+    std::cout << U_ << std::endl;
+    std::cout << sigma << std::endl;
+    std::cout << VT_ << std::endl;
+    U_.rightmultiply(VT_);
+    std::cout << U_ << std::endl;
+#endif
+
 
     // deformationGradient now contains the orthogonal part of the polar decomposition
     assert( std::abs(1-deformationGradient.determinant()) < 1e-3);
