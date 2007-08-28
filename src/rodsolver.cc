@@ -370,8 +370,10 @@ void RodSolver<GridType>::solve()
 //             exit(0);
         }
 
-        if (std::abs(oldEnergy-energy) < 1e-12)
+        if (std::abs(oldEnergy-energy) < 1e-12 || modelDecrease < 1e-10) {
             std::cout << "Suspecting rounding problems" << std::endl;
+            break;
+        }
 
         // //////////////////////////////////////////////
         //   Check for acceptance of the step
