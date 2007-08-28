@@ -138,10 +138,8 @@ int main (int argc, char *argv[]) try
 
     rodX.back().q = Quaternion<double>(axis, M_PI*angle/180);
 
-    std::cout << "Right boundary orientation:" << std::endl;
-    std::cout << "director 0:  " << rodX[rodX.size()-1].q.director(0) << std::endl;
-    std::cout << "director 1:  " << rodX[rodX.size()-1].q.director(1) << std::endl;
-    std::cout << "director 2:  " << rodX[rodX.size()-1].q.director(2) << std::endl;
+    // Backup initial rod iterate for later reference
+    RodSolutionType initialIterateRod = rodX;
 
     int toplevel = rodGrid.maxLevel();
 
@@ -467,7 +465,9 @@ int main (int argc, char *argv[]) try
     // from zero anyways
     oldError += computeEnergyNormSquared(exactSol3d, *hessian3d);
     
-    /** \todo Rod error still missing */
+    // Error of the initial rod iterate
+    RodDifferenceType rodDifference = computeRodDifference(initialIterateRod, exactSolRod);
+    oldError += computeEnergyNormSquared(rodDifference, hessianRod);
 
     oldError = std::sqrt(oldError);
 
