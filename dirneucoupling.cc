@@ -63,28 +63,28 @@ int main (int argc, char *argv[]) try
     parameterSet.parseFile("dirneucoupling.parset");
 
     // read solver settings
-    const int numLevels            = parameterSet.get("numLevels", int(1));
-    const double ddTolerance           = parameterSet.get("ddTolerance", double(0));
-    const int maxDirichletNeumannSteps = parameterSet.get("maxDirichletNeumannSteps", int(0));
-    const double trTolerance           = parameterSet.get("trTolerance", double(0));
-    const int maxTrustRegionSteps = parameterSet.get("maxTrustRegionSteps", int(0));
-    const int multigridIterations = parameterSet.get("numIt", int(0));
-    const int nu1              = parameterSet.get("nu1", int(0));
-    const int nu2              = parameterSet.get("nu2", int(0));
-    const int mu               = parameterSet.get("mu", int(0));
-    const int baseIterations   = parameterSet.get("baseIt", int(0));
-    const double mgTolerance     = parameterSet.get("tolerance", double(0));
-    const double baseTolerance = parameterSet.get("baseTolerance", double(0));
-    const double initialTrustRegionRadius = parameterSet.get("initialTrustRegionRadius", double(0));
-    const double damping       = parameterSet.get("damping", double(1));
+    const int numLevels            = parameterSet.get<int>("numLevels");
+    const double ddTolerance           = parameterSet.get<double>("ddTolerance");
+    const int maxDirichletNeumannSteps = parameterSet.get<int>("maxDirichletNeumannSteps");
+    const double trTolerance           = parameterSet.get<double>("trTolerance");
+    const int maxTrustRegionSteps = parameterSet.get<int>("maxTrustRegionSteps");
+    const int multigridIterations = parameterSet.get<int>("numIt");
+    const int nu1              = parameterSet.get<int>("nu1");
+    const int nu2              = parameterSet.get<int>("nu2");
+    const int mu               = parameterSet.get<int>("mu");
+    const int baseIterations   = parameterSet.get<int>("baseIt");
+    const double mgTolerance     = parameterSet.get<double>("tolerance");
+    const double baseTolerance = parameterSet.get<double>("baseTolerance");
+    const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
+    const double damping       = parameterSet.get<double>("damping");
 
     // Problem settings
-    std::string path = parameterSet.get("path", "xyz");
-    std::string objectName = parameterSet.get("gridFile", "xyz");
-    std::string dirichletNodesFile  = parameterSet.get("dirichletNodes", "xyz");
-    std::string dirichletValuesFile = parameterSet.get("dirichletValues", "xyz");
-    std::string interfaceNodesFile  = parameterSet.get("interfaceNodes", "xyz");
-    const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
+    std::string path = parameterSet.get<string>("path");
+    std::string objectName = parameterSet.get<string>("gridFile");
+    std::string dirichletNodesFile  = parameterSet.get<string>("dirichletNodes");
+    std::string dirichletValuesFile = parameterSet.get<string>("dirichletValues");
+    std::string interfaceNodesFile  = parameterSet.get<string>("interfaceNodes");
+    const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
     
     // ///////////////////////////////////////
     //    Create the rod grid
