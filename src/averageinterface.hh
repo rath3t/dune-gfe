@@ -52,9 +52,6 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             const Dune::LagrangeShapeFunctionSet<ctype, field_type, dim-1>& baseSet
                 = Dune::LagrangeShapeFunctions<ctype, field_type, dim-1>::general(nIt.intersectionGlobal().type(),1);
 
-            if (baseSet.size() != 4)
-                DUNE_THROW(Dune::NotImplemented, "average interface only for quad faces");
-            
             // four rows because a face may have no more than four vertices
             Dune::FieldVector<double,4> mu(0);
             Dune::FieldVector<double,3> mu_tilde[4][3];
@@ -96,25 +93,19 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                 
             }
 
-
-//             std::cout << "tilde{mu}\n" << std::endl;
-//             for (int i=0; i<4; i++)
-//                 for (int j=0; j<3; j++)
-//                     std::cout << "i: " << i << ",  j: " << j << ",   " << mu_tilde[i][j] << std::endl;
-
-
             // Set up matrix
-            Dune::FieldMatrix<double, 6, 12> matrix(0);
-            for (int i=0; i<4; i++)
+            Dune::Matrix<Dune::FieldMatrix<double,1,1> > matrix(6, 3*baseSet.size());
+            matrix = 0;
+            for (int i=0; i<baseSet.size(); i++)
                 for (int j=0; j<3; j++)
                     matrix[j][i*3+j] = mu[i];
 
-            for (int i=0; i<4; i++)
+            for (int i=0; i<baseSet.size(); i++)
                 for (int j=0; j<3; j++)
                     for (int k=0; k<3; k++)
                         matrix[3+k][3*i+j] = mu_tilde[i][j][k];
 
-            Dune::FieldVector<double,12> u;
+            Dune::BlockVector<Dune::FieldVector<double,1> > u(3*baseSet.size());
             Dune::FieldVector<double,6> b;
 
             // Scale the resultant force and torque with this segments area percentage.
@@ -133,12 +124,9 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             linearSolver(matrix, u, b);
             //std::cout << u << std::endl;
 
-            for (int i=0; i<3; i++) {
-                pressure[dgIndexSet(*eIt, nIt.numberInSelf())][i]   = u[i];
-                pressure[dgIndexSet(*eIt, nIt.numberInSelf())+1][i] = u[i+3];
-                pressure[dgIndexSet(*eIt, nIt.numberInSelf())+2][i] = u[i+6];
-                pressure[dgIndexSet(*eIt, nIt.numberInSelf())+3][i] = u[i+9];
-            }
+            for (int i=0; i<baseSet.size(); i++)
+                for (int j=0; j<3; j++)
+                    pressure[dgIndexSet(*eIt, nIt.numberInSelf())+i][j]   = u[i*3+j];
 
         }
 
@@ -201,8 +189,8 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 
     outputForce  -= resultantForce;
     outputTorque -= resultantTorque;
-    assert( outputForce.two_norm() < 1e-6 );
-    assert( outputTorque.two_norm() < 1e-6 );
+    assert( outputForce.infinity_norm() < 1e-6 );
+    assert( outputTorque.infinity_norm() < 1e-6 );
 //     std::cout << "Output force:  " << outputForce << std::endl;
 //     std::cout << "Output torque: " << outputTorque << "      " << resultantTorque[0]/outputTorque[0] << std::endl;
 
