@@ -25,7 +25,7 @@ numLevels = $2
 ddTolerance = 1e-12
 
 # Max number of Dirichlet-Neumann steps
-maxDirichletNeumannSteps = 50
+maxDirichletNeumannSteps = 10
 
 # Damping for the Dirichlet-Neumann solver
 damping = $3
@@ -104,11 +104,20 @@ EOF
 #runComputation 2levels 2
 
 
-for level in 2; do
-   
-    for damping in 0.02; do
+for level in 2 3; do
 
-        runComputation 2levels $level $damping
+    LEVELDIR=${level}"levels"
+    
+    if test -e ${LEVELDIR}/convrates; then
+        rm ${LEVELDIR}/convrates
+    fi
+
+    for damping in 0.01 0.02; do
+
+        runComputation $LEVELDIR $level $damping
+
+        # Append convergence rate of this run to overall list for this level
+        cat convrate >> ${LEVELDIR}/convrates
 
     done
 
