@@ -216,17 +216,20 @@ void RodSolver<GridType>::solve()
     // /////////////////////////////////////////////////////
     for (int i=0; i<maxTrustRegionSteps_; i++) {
         
-        std::cout << "----------------------------------------------------" << std::endl;
-        std::cout << "      Trust-Region Step Number: " << i << std::endl;
-        std::cout << "----------------------------------------------------" << std::endl;
-        
-        std::cout << "### Trust-Region Radius: " << trustRegionRadius << " ###" << std::endl;
-        
+        if (this->verbosity_ == FULL) {
+            std::cout << "----------------------------------------------------" << std::endl;
+            std::cout << "      Trust-Region Step Number: " << i << std::endl;
+            std::cout << "----------------------------------------------------" << std::endl;
+            
+            std::cout << "### Trust-Region Radius: " << trustRegionRadius << " ###" << std::endl;
+        }
+
         CorrectionType rhs;
         CorrectionType corr(x_.size());
         corr = 0;
 
-        std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
+        if (this->verbosity_ == FULL)
+            std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
         //rodAssembler_->assembleGradient(x_, rhs);
         rodAssembler_->assembleGradientFD(x_, rhs);
         //rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
@@ -323,10 +326,15 @@ void RodSolver<GridType>::solve()
             
         }
 
+        if (this->verbosity_ == FULL)
+            printf("infinity norm of the correction: %g\n", corr.infinity_norm());
 
-        printf("infinity norm of the correction: %g\n", corr.infinity_norm());
         if (corr.infinity_norm() < tolerance_) {
-            std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
+            if (this->verbosity_ == FULL)
+                std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
+
+            if (this->verbosity_ != QUIET)
+                std::cout << i+1 << " trust-region steps were taken." << std::endl;
             break;
         }
         
@@ -359,19 +367,23 @@ void RodSolver<GridType>::solve()
         hessianMatrix_->umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
         
-        std::cout << "Model decrease: " << modelDecrease 
-                  << ",  functional decrease: " << oldEnergy - energy << std::endl;
+        if (this->verbosity_ == FULL)
+            std::cout << "Model decrease: " << modelDecrease 
+                      << ",  functional decrease: " << oldEnergy - energy << std::endl;
         
         assert(modelDecrease >= 0);
         
         if (energy >= oldEnergy) {
-            printf("Richtung ist keine Abstiegsrichtung!\n");
-//             std::cout << "old energy: " << oldEnergy << "   new energy: " << energy << std::endl;
-//             exit(0);
+            if (this->verbosity_ == FULL)
+                printf("Richtung ist keine Abstiegsrichtung!\n");
         }
 
         if (std::abs(oldEnergy-energy) < 1e-12 || modelDecrease < 1e-10) {
-            std::cout << "Suspecting rounding problems" << std::endl;
+            if (this->verbosity_ == FULL)
+                std::cout << "Suspecting rounding problems" << std::endl;
+
+            if (this->verbosity_ != QUIET)
+                std::cout << i+1 << " trust-region steps were taken." << std::endl;
             break;
         }
 
@@ -392,11 +404,13 @@ void RodSolver<GridType>::solve()
         } else {
             // unsuccessful iteration
             trustRegionRadius /= 2;
-            std::cout << "Unsuccessful iteration!" << std::endl;
+            if (this->verbosity_ == FULL)
+                std::cout << "Unsuccessful iteration!" << std::endl;
         }
         
         //  Write current energy
-        std::cout << "--- Current energy: " << energy << " ---" << std::endl;
+        if (this->verbosity_ == FULL)
+            std::cout << "--- Current energy: " << energy << " ---" << std::endl;
 
         // /////////////////////////////////////////////////////////////////////
         //   Write the iterate to disk for later convergence rate measurement
