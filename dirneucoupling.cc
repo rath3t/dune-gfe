@@ -60,7 +60,10 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ConfigParser parameterSet;
-    parameterSet.parseFile("dirneucoupling.parset");
+    if (argc==2)
+        parameterSet.parseFile(argv[1]);
+    else
+        parameterSet.parseFile("dirneucoupling.parset");
 
     // read solver settings
     const int numLevels            = parameterSet.get<int>("numLevels");
@@ -546,6 +549,10 @@ int main (int argc, char *argv[]) try
               << "   convRate: " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
               << std::endl;
 
+    std::ofstream convRateFile("convrate");
+    convRateFile << damping << "   " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
+                 << std::endl;
+
 
     // //////////////////////////////
     //   Output result
@@ -555,9 +562,6 @@ int main (int argc, char *argv[]) try
     amiraMeshWriter.write("grid.result");
 
     writeRod(rodX, "rod3d.result");
-
-//     for (int i=0; i<rodX.size(); i++)
-//         std::cout << rodX[i] << std::endl;
 
  } catch (Exception e) {
 
