@@ -16,7 +16,7 @@
 
 /** \brief Riemannian trust-region solver for 3d Cosserat rod problems */
 template <class GridType>
-class RodSolver
+class RodSolver : public Solver
 { 
     const static int blocksize = 6;
 
@@ -30,7 +30,8 @@ class RodSolver
 public:
 
     RodSolver()
-        : hessianMatrix_(NULL), h1SemiNorm_(NULL)
+        : Solver(0,NumProc::FULL),
+          hessianMatrix_(NULL), h1SemiNorm_(NULL)
     {}
 
     void setup(const GridType& grid, 
@@ -66,9 +67,6 @@ protected:
 
     /** \brief The initial trust-region radius in the maximum-norm */
     double initialTrustRegionRadius_;
-
-    /** \brief Tolerance of the trust-region solver */
-    double tolerance_;
 
     /** \brief Maximum number of trust-region steps */
     int maxTrustRegionSteps_;
