@@ -76,7 +76,7 @@ int main (int argc, char *argv[]) try
     const int nu2              = parameterSet.get<int>("nu2");
     const int mu               = parameterSet.get<int>("mu");
     const int baseIterations   = parameterSet.get<int>("baseIt");
-    const double mgTolerance     = parameterSet.get<double>("tolerance");
+    const double mgTolerance     = parameterSet.get<double>("mgTolerance");
     const double baseTolerance = parameterSet.get<double>("baseTolerance");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
     const double damping       = parameterSet.get<double>("damping");
