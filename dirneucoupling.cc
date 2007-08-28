@@ -224,6 +224,8 @@ int main (int argc, char *argv[]) try
                     baseTolerance,
                     false);
 
+    rodSolver.verbosity_ = Solver::QUIET;
+
     // ////////////////////////////////
     //   Create a multigrid solver
     // ////////////////////////////////
@@ -454,7 +456,6 @@ int main (int argc, char *argv[]) try
 
     double error = std::numeric_limits<double>::max();
     double oldError = 0;
-    double totalConvRate = 1;
 
     VectorType      intermediateSol3d(x3d.size());
     RodSolutionType intermediateSolRod(rodX.size());
@@ -471,7 +472,11 @@ int main (int argc, char *argv[]) try
 
     oldError = std::sqrt(oldError);
 
-    
+    // Store the history of total conv rates so we can filter out numerical
+    // dirt in the end.
+    std::vector<double> totalConvRate(maxDirichletNeumannSteps);
+    totalConvRate[0] = 1;
+
 
     int i;
     for (i=0; i<maxDirichletNeumannSteps; i++) {
@@ -522,12 +527,12 @@ int main (int argc, char *argv[]) try
         
 
         double convRate = error / oldError;
-        totalConvRate *= convRate;
+        totalConvRate[i+1] = totalConvRate[i] * convRate;
 
         // Output
         std::cout << "DD iteration: " << i << "  error : " << error << ",      "
                   << "convrate " << convRate 
-                  << "    total conv rate " << std::pow(totalConvRate, 1/((double)i+1)) << std::endl;
+                  << "    total conv rate " << std::pow(totalConvRate[i+1], 1/((double)i+1)) << std::endl;
 
         if (error < 1e-12)
           break;
@@ -536,8 +541,10 @@ int main (int argc, char *argv[]) try
         
     }            
 
+    int backTrace = 1;
     std::cout << "damping: " << damping
-              << "   convRate: " << std::pow(totalConvRate, 1/((double)i+1)) << std::endl;
+              << "   convRate: " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
+              << std::endl;
 
 
     // //////////////////////////////
