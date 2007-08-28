@@ -477,7 +477,7 @@ int main (int argc, char *argv[]) try
 
     // Store the history of total conv rates so we can filter out numerical
     // dirt in the end.
-    std::vector<double> totalConvRate(maxDirichletNeumannSteps);
+    std::vector<double> totalConvRate(maxDirichletNeumannSteps+1);
     totalConvRate[0] = 1;
 
 
