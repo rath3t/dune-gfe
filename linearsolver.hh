@@ -2,9 +2,10 @@
 #define LINEAR_SOLVER_HH
 
 #include <dune/common/fmatrix.hh>
+#include <dune/istl/matrix.hh>
 
-void linearSolver(const Dune::FieldMatrix<double,6,12>& A,
-                  Dune::FieldVector<double,12>& x,
+void linearSolver(const Dune::Matrix<Dune::FieldMatrix<double,1,1> >& A,
+                  Dune::BlockVector<Dune::FieldVector<double,1> >& x,
                   const Dune::FieldVector<double,6>& b);
 
 void lapackSVD(const Dune::FieldMatrix<double,3,3>& A,

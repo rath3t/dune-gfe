@@ -7,30 +7,30 @@
 using namespace Dune;
 
 // Solve a small linear system using lapack++
-void linearSolver(const FieldMatrix<double,6,12>& A,
-                  FieldVector<double,12>& x,
+void linearSolver(const Dune::Matrix<Dune::FieldMatrix<double,1,1> >& A,
+                  Dune::BlockVector<Dune::FieldVector<double,1> >& x,
                   const FieldVector<double,6>& b)
 {
-    int N = 6;
-    int M = 12;
+    assert(A.N()==6);
+    assert(A.M()%3 == 0);
 
-    LaGenMatDouble matrix(6,12);
+    LaGenMatDouble matrix(A.N(),A.M());
 
-    for (int i=0; i<N; i++)
-        for (int j=0; j<M; j++)
+    for (int i=0; i<A.N(); i++)
+        for (int j=0; j<A.M(); j++)
             matrix(i,j) = A[i][j];
 
-    LaVectorDouble X(M);
-    for (int i=0; i<M; i++)
+    LaVectorDouble X(A.M());
+    for (int i=0; i<A.M(); i++)
         X(i) = x[i];
 
-    LaVectorDouble B(N);
-    for (int i=0; i<N; i++)
+    LaVectorDouble B(A.N());
+    for (int i=0; i<A.N(); i++)
         B(i) = b[i];
 
     LaLinearSolve(matrix, X, B);
 
-    for (int i=0; i<M; i++)
+    for (int i=0; i<A.M(); i++)
         x[i] = X(i);
 }
 
