@@ -80,6 +80,7 @@ int main (int argc, char *argv[]) try
     const double baseTolerance = parameterSet.get<double>("baseTolerance");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
     const double damping       = parameterSet.get<double>("damping");
+    std::string resultPath           = parameterSet.get("resultPath", "");
 
     // Problem settings
     std::string path = parameterSet.get<string>("path");
@@ -559,9 +560,9 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     LeafAmiraMeshWriter<GridType> amiraMeshWriter(grid);
     amiraMeshWriter.addVertexData(x3d, grid.leafIndexSet());
-    amiraMeshWriter.write("grid.result");
+    amiraMeshWriter.write(resultPath + "grid.result");
 
-    writeRod(rodX, "rod3d.result");
+    writeRod(rodX, resultPath + "rod3d.result");
 
  } catch (Exception e) {
 
