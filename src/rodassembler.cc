@@ -1572,6 +1572,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 
             // Transform stress given with respect to the basis given by the three directors to
             // the canonical basis of R^3
+
             FieldMatrix<double,3,3> orientationMatrix;
             sol[indexSet.template subIndex<1>(*eIt,nIt.numberInSelf())].q.matrix(orientationMatrix);
             
@@ -1579,9 +1580,14 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             
             orientationMatrix.umv(localTorque, canonicalTorque);
             // Reverse transformation to make sure we did the correct thing
- //            assert( std::abs(localStress[0]-canonicalStress*sol[0].q.director(0)) < 1e-6 );
+//             assert( std::abs(localStress[0]-canonicalStress*sol[0].q.director(0)) < 1e-6 );
 //             assert( std::abs(localStress[1]-canonicalStress*sol[0].q.director(1)) < 1e-6 );
 //             assert( std::abs(localStress[2]-canonicalStress*sol[0].q.director(2)) < 1e-6 );
+
+            // Multiply force times boundary normal to get the transmitted force
+            // I am not quite sure why the -1 is there, but it has to be there.
+            canonicalStress *= -nIt.unitOuterNormal(FieldVector<double,0>(0))[0];
+            canonicalTorque *= -nIt.unitOuterNormal(FieldVector<double,0>(0))[0];
             
         }
 
