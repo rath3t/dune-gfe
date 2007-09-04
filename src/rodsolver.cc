@@ -367,10 +367,13 @@ void RodSolver<GridType>::solve()
         hessianMatrix_->umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
         
-        if (this->verbosity_ == FULL)
-            std::cout << "Model decrease: " << modelDecrease 
+        if (this->verbosity_ == FULL) {
+            std::cout << "Absolute model decrease: " << modelDecrease 
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
-        
+            std::cout << "Relative model decrease: " << modelDecrease / energy
+                      << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
+        }            
+
         assert(modelDecrease >= 0);
         
         if (energy >= oldEnergy) {
@@ -378,14 +381,16 @@ void RodSolver<GridType>::solve()
                 printf("Richtung ist keine Abstiegsrichtung!\n");
         }
 
-        if (std::abs(oldEnergy-energy) < 1e-12 || modelDecrease < 1e-10) {
+#if 1
+        if (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9) {
             if (this->verbosity_ == FULL)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
             if (this->verbosity_ != QUIET)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
-            break;
+            //break;
         }
+#endif
 
         // //////////////////////////////////////////////
         //   Check for acceptance of the step
