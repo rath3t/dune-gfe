@@ -251,7 +251,6 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
             for (int ip=0; ip<quad.size(); ip++) {
                 
                 // Local position of the quadrature point
-                //const FieldVector<double,dim-1>& quadPos = quad[ip].position();
                 const FieldVector<double,dim> quadPos = nIt.intersectionSelfLocal().global(quad[ip].position());
                 
                 const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
@@ -336,38 +335,26 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
 
     // Get the rotational part of the deformation gradient by performing a 
     // polar composition.
-    FieldVector<double,dim> W, sigma;
-    FieldMatrix<double,dim,dim> V, VT, U_, VT_;
+    FieldVector<double,dim> W;
+    FieldMatrix<double,dim,dim> V, VT, U;
 
     FieldMatrix<double,dim,dim> deformationGradientBackup = deformationGradient;
 
+#if 1
     // returns a decomposition U W VT, where U is returned in the first argument
     svdcmp<double,dim,dim>(deformationGradient, W, V);
 
     for (int i=0; i<3; i++)
         for (int j=0; j<3; j++)
             VT[i][j] = V[j][i];
-#if 0
-    // Debugging
-    std::cout << "Numerical recipes:" << std::endl;
-    std::cout << deformationGradient << std::endl;
-    std::cout << W << std::endl;
-    std::cout << VT << std::endl;
-#endif
+
     deformationGradient.rightmultiply(VT);
-    std::cout << deformationGradient << std::endl;
-
-#if 0
-    lapackSVD(deformationGradientBackup, U_, sigma, VT_);
-
-    std::cout << "Lapack:" << std::endl;
-    std::cout << U_ << std::endl;
-    std::cout << sigma << std::endl;
-    std::cout << VT_ << std::endl;
-    U_.rightmultiply(VT_);
-    std::cout << U_ << std::endl;
+#else
+    lapackSVD(deformationGradientBackup, U, W, VT);
+    deformationGradient = U;
+    deformationGradient.rightmultiply(VT);
 #endif
-
+    std::cout << deformationGradient << std::endl;
 
     // deformationGradient now contains the orthogonal part of the polar decomposition
     assert( std::abs(1-deformationGradient.determinant()) < 1e-3);
