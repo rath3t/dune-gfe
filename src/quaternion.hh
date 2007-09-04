@@ -254,15 +254,23 @@ public:
         // Compute the geodesical distance between a and b on SO(3)
         // Due to numerical dirt, diff[3] may be larger than 1. 
         // In that case, use 1 instead of diff[3].
-        T dist = 2*std::acos( std::min(diff[3],1.0) );
-
-        T invSinc = 1/sincHalf(dist);
-
-        // Compute difference on T_a SO(3)
         Dune::FieldVector<T,3> v;
-        v[0] = diff[0] * invSinc;
-        v[1] = diff[1] * invSinc;
-        v[2] = diff[2] * invSinc;
+        if (diff[3] > 1.0) {
+
+            v = 0;
+
+        } else {
+            
+            T dist = 2*std::acos( std::min(diff[3],1.0) );
+            
+            T invSinc = 1/sincHalf(dist);
+            
+            // Compute difference on T_a SO(3)
+            v[0] = diff[0] * invSinc;
+            v[1] = diff[1] * invSinc;
+            v[2] = diff[2] * invSinc;
+
+        }
 
         return v;
     }
@@ -271,24 +279,8 @@ public:
     /** \todo Use method 'difference' here */
     static Quaternion<T> interpolate(const Quaternion<T>& a, const Quaternion<T>& b, double omega) {
 
-        // Interpolation on the geodesic in SO(3) from a to b
-
-        Quaternion<T> diff = a;
-        diff.invert();
-        diff = diff.mult(b);
-
-        // Compute the geodesical distance between a and b on SO(3)
-        // Due to numerical dirt, diff[3] may be larger than 1. 
-        // In that case, use 1 instead of diff[3].
-        T dist = 2*std::acos( std::min(diff[3],1.0) );
-
-        T invSinc = 1/sincHalf(dist);
-
         // Compute difference on T_a SO(3)
-        Dune::FieldVector<T,3> v;
-        v[0] = diff[0] * invSinc;
-        v[1] = diff[1] * invSinc;
-        v[2] = diff[2] * invSinc;
+        Dune::FieldVector<T,3> v = difference(a,b);
 
         v *= omega;
 
@@ -300,25 +292,9 @@ public:
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
                                                double omega, double intervallLength) {
         Quaternion<T> result;
-        // Interpolation on the geodesic in SO(3) from a to b
-
-        // diff = a^-1 b
-        Quaternion<T> diff = a;
-        diff.invert();
-        diff = diff.mult(b);
-
-        // Compute the geodesical distance between a and b on SO(3)
-        // Due to numerical dirt, diff[3] may be larger than 1. 
-        // In that case, use 1 instead of diff[3].
-        T dist = 2*std::acos( std::min(diff[3],1.0) );
-
-        T invSinc = 1/sincHalf(dist);
 
         // Compute difference on T_a SO(3)
-        Dune::FieldVector<double,3> v;
-        v[0] = diff[0] * invSinc;
-        v[1] = diff[1] * invSinc;
-        v[2] = diff[2] * invSinc;
+        Dune::FieldVector<double,3> v = difference(a,b);
 
         Dune::FieldVector<double,3> der = v;
         der /= intervallLength;
