@@ -50,6 +50,7 @@ int main (int argc, char *argv[]) try
     const int numLevels        = parameterSet.get<int>("numLevels");
     const double tolerance        = parameterSet.get<double>("tolerance");
     const int maxTrustRegionSteps   = parameterSet.get<int>("maxNewtonSteps");
+    const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
     const int multigridIterations   = parameterSet.get<int>("numIt");
     const int nu1              = parameterSet.get<int>("nu1");
     const int nu2              = parameterSet.get<int>("nu2");
@@ -57,11 +58,17 @@ int main (int argc, char *argv[]) try
     const int baseIterations      = parameterSet.get<int>("baseIt");
     const double mgTolerance        = parameterSet.get<double>("mgTolerance");
     const double baseTolerance    = parameterSet.get<double>("baseTolerance");
-    const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
-    const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
     const bool instrumented      = parameterSet.get<bool>("instrumented");
     std::string resultPath           = parameterSet.get("resultPath", "");
 
+    // read rod parameter settings
+    const double A               = parameterSet.get<double>("A");
+    const double J1              = parameterSet.get<double>("J1");
+    const double J2              = parameterSet.get<double>("J2");
+    const double E               = parameterSet.get<double>("E");
+    const double nu              = parameterSet.get<double>("nu");
+    const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
+    
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
@@ -128,7 +135,7 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
     RodAssembler<GridType> rodAssembler(grid);
-    rodAssembler.setShapeAndMaterial(0.01, 0.0001, 0.0001, 2.5e5, 0.3);
+    rodAssembler.setShapeAndMaterial(A, J1, J2, E, nu);
 
     RodSolver<GridType> rodSolver;
     rodSolver.setup(grid, 
