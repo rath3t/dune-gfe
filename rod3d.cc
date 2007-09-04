@@ -47,19 +47,19 @@ int main (int argc, char *argv[]) try
         parameterSet.parseFile("rod3d.parset");
 
     // read solver settings
-    const int numLevels        = parameterSet.get("numLevels", int(1));
-    const double tolerance        = parameterSet.get("tolerance", double(0));
-    const int maxTrustRegionSteps   = parameterSet.get("maxNewtonSteps", int(0));
-    const int multigridIterations   = parameterSet.get("numIt", int(0));
-    const int nu1              = parameterSet.get("nu1", int(0));
-    const int nu2              = parameterSet.get("nu2", int(0));
-    const int mu               = parameterSet.get("mu", int(0));
-    const int baseIterations      = parameterSet.get("baseIt", int(0));
-    const double mgTolerance        = parameterSet.get("mgTolerance", double(0));
-    const double baseTolerance    = parameterSet.get("baseTolerance", double(0));
-    const double initialTrustRegionRadius = parameterSet.get("initialTrustRegionRadius", double(1));
-    const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
-    const bool instrumented      = parameterSet.get("instrumented", int(0));
+    const int numLevels        = parameterSet.get<int>("numLevels");
+    const double tolerance        = parameterSet.get<double>("tolerance");
+    const int maxTrustRegionSteps   = parameterSet.get<int>("maxNewtonSteps");
+    const int multigridIterations   = parameterSet.get<int>("numIt");
+    const int nu1              = parameterSet.get<int>("nu1");
+    const int nu2              = parameterSet.get<int>("nu2");
+    const int mu               = parameterSet.get<int>("mu");
+    const int baseIterations      = parameterSet.get<int>("baseIt");
+    const double mgTolerance        = parameterSet.get<double>("mgTolerance");
+    const double baseTolerance    = parameterSet.get<double>("baseTolerance");
+    const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
+    const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
+    const bool instrumented      = parameterSet.get<bool>("instrumented");
     std::string resultPath           = parameterSet.get("resultPath", "");
 
     // ///////////////////////////////////////
@@ -129,7 +129,6 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////
     RodAssembler<GridType> rodAssembler(grid);
     rodAssembler.setShapeAndMaterial(0.01, 0.0001, 0.0001, 2.5e5, 0.3);
-    //rodAssembler.setParameters(0,0,0,1,1,1);
 
     RodSolver<GridType> rodSolver;
     rodSolver.setup(grid, 
