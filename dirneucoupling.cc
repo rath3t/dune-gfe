@@ -71,6 +71,7 @@ int main (int argc, char *argv[]) try
     const int maxDirichletNeumannSteps = parameterSet.get<int>("maxDirichletNeumannSteps");
     const double trTolerance           = parameterSet.get<double>("trTolerance");
     const int maxTrustRegionSteps = parameterSet.get<int>("maxTrustRegionSteps");
+    const int trVerbosity            = parameterSet.get<int>("trVerbosity");
     const int multigridIterations = parameterSet.get<int>("numIt");
     const int nu1              = parameterSet.get<int>("nu1");
     const int nu2              = parameterSet.get<int>("nu2");
@@ -79,7 +80,12 @@ int main (int argc, char *argv[]) try
     const double mgTolerance     = parameterSet.get<double>("mgTolerance");
     const double baseTolerance = parameterSet.get<double>("baseTolerance");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
-    const double damping       = parameterSet.get<double>("damping");
+    const double dirichletDamping         = parameterSet.get<double>("dirichletDamping");
+    FieldVector<double,3> neumannDamping;
+    neumannDamping           = parameterSet.get<double>("neumannDamping");
+    neumannDamping[0]           = parameterSet.get<double>("neumannDampingT");
+    neumannDamping[1]           = parameterSet.get<double>("neumannDampingT");
+    neumannDamping[2]           = parameterSet.get<double>("neumannDampingL");
     std::string resultPath           = parameterSet.get("resultPath", "");
 
     // Problem settings
@@ -183,7 +189,7 @@ int main (int argc, char *argv[]) try
     readBoundaryPatch(interfaceBoundary[0], path + interfaceNodesFile);
     PatchProlongator<GridType>::prolong(interfaceBoundary);
 
-    // //////////////////////////////////////////
+    // ////////////////////////////////////////// 
     //   Assemble 3d linear elasticity problem
     // //////////////////////////////////////////
     LeafP1Function<GridType,double,dim> u(grid),f(grid);
@@ -228,7 +234,15 @@ int main (int argc, char *argv[]) try
                     baseTolerance,
                     false);
 
-    rodSolver.verbosity_ = Solver::QUIET;
+    switch (trVerbosity) {
+    case 0:
+        rodSolver.verbosity_ = Solver::QUIET;   break;
+    case 1:
+        rodSolver.verbosity_ = Solver::REDUCED;   break;
+    default:
+        rodSolver.verbosity_ = Solver::FULL;   break;
+    }
+
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -282,6 +296,8 @@ int main (int argc, char *argv[]) try
     // Init interface value
     Configuration referenceInterface = rodX[0];
     Configuration lambda = referenceInterface;
+    FieldVector<double,3> lambdaForce(0);
+    FieldVector<double,3> lambdaTorque(0);
 
     //
     double normOfOldCorrection = 0;
@@ -305,6 +321,9 @@ int main (int argc, char *argv[]) try
 
         rodX = rodSolver.getSol();
 
+        for (int j=0; j<rodX.size(); j++)
+            std::cout << rodX[j] << std::endl;
+
         // ///////////////////////////////////////////////////////////
         //   Extract Neumann values and transfer it to the 3d object
         // ///////////////////////////////////////////////////////////
@@ -314,11 +333,46 @@ int main (int argc, char *argv[]) try
         couplingBitfield[0] = true;
         BoundaryPatch<RodGridType> couplingBoundary(rodGrid, rodGrid.maxLevel(), couplingBitfield);
 
-        FieldVector<double,dim> resultantTorque;
-        FieldVector<double,dim> resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
+        FieldVector<double,dim> resultantForce, resultantTorque;
+        resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
 
         std::cout << "resultant force: " << resultantForce << std::endl;
         std::cout << "resultant torque: " << resultantTorque << std::endl;
+
+#if 0
+        for (int j=0; j<dim; j++) {
+            lambdaForce[j] = (1-neumannDamping[j]) * lambdaForce[j] + neumannDamping[j] * resultantForce[j];
+            lambdaTorque[j] = (1-neumannDamping[j]) * lambdaTorque[j] + neumannDamping[j] * resultantTorque[j];
+        }
+#else
+        // damp in local coordinate system
+        FieldVector<double,dim> lambdaForceLocal, lambdaTorqueLocal;
+        FieldVector<double,dim> resultantForceLocal, resultantTorqueLocal;
+        for (int j=0; j<dim; j++) {
+
+            lambdaForceLocal[j]  = lambdaForce  * rodX[0].q.director(j);
+            lambdaTorqueLocal[j] = lambdaTorque * rodX[0].q.director(j);
+
+            resultantForceLocal[j]  = resultantForce  * rodX[0].q.director(j);
+            resultantTorqueLocal[j] = resultantTorque * rodX[0].q.director(j);
+
+            // Anisotropic damping
+            lambdaForceLocal[j] = (1-neumannDamping[j]) * lambdaForceLocal[j] + neumannDamping[j] * resultantForceLocal[j];
+            lambdaTorqueLocal[j] = (1-neumannDamping[j]) * lambdaTorqueLocal[j] + neumannDamping[j] * resultantTorqueLocal[j];
+
+        }
+
+        // Back to canonical coordinates
+        FieldMatrix<double,3,3> orientationMatrix;
+        rodX[0].q.matrix(orientationMatrix);
+            
+        lambdaForce  = 0;
+        lambdaTorque = 0;
+
+        orientationMatrix.umv(lambdaForceLocal, lambdaForce);
+        orientationMatrix.umv(lambdaTorqueLocal, lambdaTorque);
+
+#endif
 
         // For the time being the Neumann data coming from the rod is a dg function (== not continuous)
         // Maybe that is not necessary
@@ -328,7 +382,7 @@ int main (int argc, char *argv[]) try
         VectorType neumannValues(dgIndexSet.size());
 
         // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-        computeAveragePressure<GridType>(resultantForce, resultantTorque, 
+        computeAveragePressure<GridType>(lambdaForce, lambdaTorque, 
                                          interfaceBoundary[grid.maxLevel()], 
                                          rodX[0],
                                          neumannValues);
@@ -358,16 +412,25 @@ int main (int argc, char *argv[]) try
         Configuration averageInterface;
         computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
 
+        //averageInterface.r[0] = averageInterface.r[1] = 0;
+        //averageInterface.q = Quaternion<double>::identity();
         std::cout << "average interface: " << averageInterface << std::endl;
+
+        std::cout << "director 0:  " << averageInterface.q.director(0) << std::endl;
+        std::cout << "director 1:  " << averageInterface.q.director(1) << std::endl;
+        std::cout << "director 2:  " << averageInterface.q.director(2) << std::endl;
+        std::cout << std::endl;
 
         // ///////////////////////////////////////////////////////////
         //   Compute new damped interface value
         // ///////////////////////////////////////////////////////////
-
         for (int j=0; j<dim; j++)
-            lambda.r[j] = (1-damping) * lambda.r[j] + damping * (referenceInterface.r[j] + averageInterface.r[j]);
+            lambda.r[j] = (1-dirichletDamping) * lambda.r[j] 
+                + dirichletDamping * (referenceInterface.r[j] + averageInterface.r[j]);
 
-        lambda.q = Quaternion<double>::interpolate(lambda.q, averageInterface.q, damping);
+        lambda.q = Quaternion<double>::interpolate(lambda.q, averageInterface.q, dirichletDamping);
+
+        std::cout << "Lambda: " << lambda << std::endl;
 
         // ////////////////////////////////////////////////////////////////////////
         //   Write the two iterates to disk for later convergence rate measurement
@@ -545,13 +608,16 @@ int main (int argc, char *argv[]) try
         
     }            
 
-    int backTrace = 1;
-    std::cout << "damping: " << damping
+    int backTrace = std::min(size_t(4),totalConvRate.size());
+    std::cout << "Dirichlet damping: " << dirichletDamping
+              << "Neumann damping: " << neumannDamping
               << "   convRate: " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
               << std::endl;
 
     std::ofstream convRateFile("convrate");
-    convRateFile << damping << "   " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
+    convRateFile << dirichletDamping << "   " 
+                 << neumannDamping << "   " 
+                 << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
                  << std::endl;
 
 
