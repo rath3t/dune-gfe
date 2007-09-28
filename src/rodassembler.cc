@@ -1290,76 +1290,32 @@ computeEnergy(const std::vector<Configuration>& sol) const
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
+    // ////////////////////////////////////////////////////
+    //   Create local assembler
+    // ////////////////////////////////////////////////////
+
+    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
+    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
+    RodLocalStiffness<GridType,double> localStiffness(K, A);
+
+    std::vector<Configuration> localReferenceConfiguration(2);
+    std::vector<Configuration> localSolution(2);
+
     ElementLeafIterator it    = grid_->template leafbegin<0>();
     ElementLeafIterator endIt = grid_->template leafend<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
-        double elementEnergy = 0;
-        // Extract local solution on this element
-        const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
-        int numOfBaseFct = baseSet.size();
 
-        Configuration localSolution[numOfBaseFct];
-        
-        for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
+        for (int i=0; i<2; i++) {
 
-        // ///////////////////////////////////////////////////////////////////////////////
-        //   The following two loops are a reduced integration scheme.  We integrate
-        //   the transverse shear and extensional energy with a first-order quadrature
-        //   formula, even though it should be second order.  This prevents shear-locking
-        // ///////////////////////////////////////////////////////////////////////////////
-        const int shearingPolOrd = 2;
-        const QuadratureRule<double, gridDim>& shearingQuad 
-            = QuadratureRules<double, gridDim>::rule(it->type(), shearingPolOrd);
-
-        for (size_t pt=0; pt<shearingQuad.size(); pt++) {
-
-            // Local position of the quadrature point
-            const FieldVector<double,gridDim>& quadPos = shearingQuad[pt].position();
-            
-            const double integrationElement = it->geometry().integrationElement(quadPos);
-        
-            double weight = shearingQuad[pt].weight() * integrationElement;
-            
-            FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
-
-            // The reference strain
-            FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
-
-            for (int i=0; i<3; i++) {
-                energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
-                elementEnergy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
-            }
-        }
-
-        // Get quadrature rule
-        const int polOrd = 2;
-        const QuadratureRule<double, gridDim>& bendingQuad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
-
-        for (size_t pt=0; pt<bendingQuad.size(); pt++) {
-
-            // Local position of the quadrature point
-            const FieldVector<double,gridDim>& quadPos = bendingQuad[pt].position();
-            
-            double weight = bendingQuad[pt].weight() * it->geometry().integrationElement(quadPos);
-            
-            FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
-
-            // The reference strain
-            FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
-
-            // Part II: the bending and twisting energy
-            for (int i=0; i<3; i++) {
-                energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
-                elementEnergy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
-            }
+            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.template subIndex<gridDim>(*it,i)];
+            localSolution[i]               = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
         }
 
-        //std::cout << "ElementEnergy: " << elementEnergy << std::endl;
+        energy += localStiffness.energy(it, localSolution, localReferenceConfiguration);
+
     }
 
     return energy;
