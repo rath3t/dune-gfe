@@ -25,6 +25,7 @@
 #include "../common/prolongboundarypatch.hh"
 #include "../common/sampleonbitfield.hh"
 #include "../common/neumannassembler.hh"
+#include "../common/computestress.hh"
 
 #include "src/quaternion.hh"
 #include "src/rodassembler.hh"
@@ -36,6 +37,9 @@
 
 // Space dimension
 const int dim = 3;
+
+const double E = 2.5e5;
+const double nu = 0.3;
 
 using namespace Dune;
 using std::string;
@@ -82,10 +86,10 @@ int main (int argc, char *argv[]) try
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
     const double dirichletDamping         = parameterSet.get<double>("dirichletDamping");
     FieldVector<double,3> neumannDamping;
-    neumannDamping           = parameterSet.get<double>("neumannDamping");
-    neumannDamping[0]           = parameterSet.get<double>("neumannDampingT");
-    neumannDamping[1]           = parameterSet.get<double>("neumannDampingT");
-    neumannDamping[2]           = parameterSet.get<double>("neumannDampingL");
+    neumannDamping           = parameterSet.get("neumannDamping", double(1));
+    neumannDamping[0]           = parameterSet.get("neumannDampingT", neumannDamping[0]);
+    neumannDamping[1]           = parameterSet.get("neumannDampingT", neumannDamping[1]);
+    neumannDamping[2]           = parameterSet.get("neumannDampingL", neumannDamping[2]);
     std::string resultPath           = parameterSet.get("resultPath", "");
 
     // Problem settings
@@ -193,7 +197,7 @@ int main (int argc, char *argv[]) try
     //   Assemble 3d linear elasticity problem
     // //////////////////////////////////////////
     LeafP1Function<GridType,double,dim> u(grid),f(grid);
-    LinearElasticityLocalStiffness<GridType,double> lstiff(2.5e5, 0.3);
+    LinearElasticityLocalStiffness<GridType,double> lstiff(E, nu);
     LeafP1OperatorAssembler<GridType,double,dim> hessian3d(grid);
     hessian3d.assemble(lstiff,u,f);
 
@@ -626,7 +630,14 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     LeafAmiraMeshWriter<GridType> amiraMeshWriter(grid);
     amiraMeshWriter.addVertexData(x3d, grid.leafIndexSet());
+
+    BlockVector<FieldVector<double,1> > stress;
+    Stress<GridType,dim>::getStress(grid, x3d, stress, E, nu);
+    amiraMeshWriter.addVertexData(stress, grid.leafIndexSet());
+
     amiraMeshWriter.write(resultPath + "grid.result");
+
+
 
     writeRod(rodX, resultPath + "rod3d.result");
 
