@@ -7,7 +7,8 @@
 #include "../../contact/src/dgindexset.hh"
 #include "../../common/crossproduct.hh"
 #include "svd.hh"
-#include "../linearsolver.hh"
+#include "lapackpp.h"
+#undef max
 
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
@@ -94,6 +95,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             }
 
             // Set up matrix
+#if 0  // DUNE style
             Dune::Matrix<Dune::FieldMatrix<double,1,1> > matrix(6, 3*baseSet.size());
             matrix = 0;
             for (int i=0; i<baseSet.size(); i++)
@@ -117,16 +119,41 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                 b[i+3] = resultantTorque[i] * segmentArea;
             }
 
+            matrix.solve(u,b);
+
+#else   // LaPack++ style
+            LaGenMatDouble matrix(6, 3*baseSet.size());
+            matrix = 0;
+            for (int i=0; i<baseSet.size(); i++)
+                for (int j=0; j<3; j++)
+                    matrix(j, i*3+j) = mu[i];
+
+            for (int i=0; i<baseSet.size(); i++)
+                for (int j=0; j<3; j++)
+                    for (int k=0; k<3; k++)
+                        matrix(3+k, 3*i+j) = mu_tilde[i][j][k];
+
+            LaVectorDouble u(3*baseSet.size());
+            LaVectorDouble b(6);
+
+            // Scale the resultant force and torque with this segments area percentage.
+            // That way the resulting pressure gets distributed fairly uniformly.
+            ctype segmentArea = nIt.intersectionGlobal().volume() / area;
+
+            for (int i=0; i<3; i++) {
+                b(i)   = resultantForce[i] * segmentArea;
+                b(i+3) = resultantTorque[i] * segmentArea;
+            }
+
+            LaLinearSolve(matrix, u, b);
+#endif
 //             std::cout << b << std::endl;
 //             std::cout << matrix << std::endl;
-
-            //matrix.solve(u,b);
-            linearSolver(matrix, u, b);
             //std::cout << u << std::endl;
 
             for (int i=0; i<baseSet.size(); i++)
                 for (int j=0; j<3; j++)
-                    pressure[dgIndexSet(*eIt, nIt.numberInSelf())+i][j]   = u[i*3+j];
+                    pressure[dgIndexSet(*eIt, nIt.numberInSelf())+i][j]   = u(i*3+j);
 
         }
 
