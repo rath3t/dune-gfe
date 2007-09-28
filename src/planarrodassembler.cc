@@ -142,7 +142,7 @@ getLocalMatrix( EntityType &entity,
         /**********************************************/
         /* compute gradients of the shape functions   */
         /**********************************************/
-        Array<FieldVector<double,gridDim> > shapeGrad(ndof);
+        std::vector<FieldVector<double,gridDim> > shapeGrad(ndof);
         
         for (int dof=0; dof<ndof; dof++) {
             
@@ -311,7 +311,7 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
             // ///////////////////////////////////////
             //   Compute deformation gradient
             // ///////////////////////////////////////
-            Array<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
+            std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
             
             for (int dof=0; dof<numOfBaseFct; dof++) {
                 
@@ -418,7 +418,7 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
             // ///////////////////////////////////////
             //   Compute deformation gradient
             // ///////////////////////////////////////
-            Array<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
+            std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
             
             for (int dof=0; dof<numOfBaseFct; dof++) {
                 
