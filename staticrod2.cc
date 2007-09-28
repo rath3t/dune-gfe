@@ -32,7 +32,7 @@ using std::string;
 
 void setTrustRegionObstacles(double trustRegionRadius,
                              std::vector<BoxConstraint<blocksize> >& trustRegionObstacles,
-                             const SimpleVector<BoxConstraint<blocksize> >& trueObstacles,
+                             const std::vector<BoxConstraint<blocksize> >& trueObstacles,
                              const BitField& dirichletNodes)
 {
     //std::cout << "True obstacles\n" << trueObstacles << std::endl;
@@ -100,8 +100,8 @@ int main (int argc, char *argv[]) try
     typedef OneDGrid GridType;
     GridType grid(numRodBaseElements, 0, 1);
 
-    Array<std::vector<BoxConstraint<3> > > trustRegionObstacles(1);
-    Array<BitField> hasObstacle(1);
+    std::vector<std::vector<BoxConstraint<3> > > trustRegionObstacles(1);
+    std::vector<BitField> hasObstacle(1);
     std::vector<BitField> dirichletNodes(1);
 
     // ////////////////////////////////
@@ -206,7 +206,7 @@ int main (int argc, char *argv[]) try
             hasObstacle[i].setAll();
         }
         
-        Array<SimpleVector<BoxConstraint<3> > > trueObstacles(toplevel+1);
+        std::vector<std::vector<BoxConstraint<3> > > trueObstacles(toplevel+1);
         trustRegionObstacles.resize(toplevel+1);
         
         for (int i=0; i<toplevel+1; i++) {

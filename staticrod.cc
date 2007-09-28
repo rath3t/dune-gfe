@@ -149,15 +149,15 @@ int main (int argc, char *argv[]) try
     //   Create obstacles
     // //////////////////////////////////////////////////////////
 
-    Array<BitField> hasObstacle;
+    std::vector<BitField> hasObstacle;
     hasObstacle.resize(maxLevel+1);
     for (int i=0; i<hasObstacle.size(); i++) {
         hasObstacle[i].resize(rod.size(i, 1));
         hasObstacle[i].setAll();
     }
 
-    Array<std::vector<BoxConstraint<3> > > trueObstacles(maxlevel+1);
-    Array<std::vector<BoxConstraint<3> > > trustRegionObstacles(maxlevel+1);
+    std::vector<std::vector<BoxConstraint<3> > > trueObstacles(maxlevel+1);
+    std::vector<std::vector<BoxConstraint<3> > > trustRegionObstacles(maxlevel+1);
 
     for (int i=0; i<maxlevel+1; i++) {
         trueObstacles[i].resize(rod.size(i,1));
