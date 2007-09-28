@@ -16,7 +16,7 @@ staticrod_SOURCES = staticrod.cc
 staticrod2_SOURCES = staticrod2.cc
 rod3d_SOURCES = rod3d.cc
 
-dirneucoupling_SOURCES  = dirneucoupling.cc linearsolver.cc
+dirneucoupling_SOURCES  = dirneucoupling.cc
 dirneucoupling_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(MPI_CPPFLAGS) -I$(IPOPT_DIR)/IPOPT/include \
                           $(LAPACKPP_CPPFLAGS)
 dirneucoupling_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) $(MPI_LDFLAGS) \
