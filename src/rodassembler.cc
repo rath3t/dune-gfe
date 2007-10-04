@@ -20,7 +20,6 @@ energy(const EntityPointer& element,
     // Extract local solution on this element
     const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
         = Dune::LagrangeShapeFunctions<double, double, 1>::general(element->type(), k);
-    int numOfBaseFct = baseSet.size();
     
     // ///////////////////////////////////////////////////////////////////////////////
     //   The following two loops are a reduced integration scheme.  We integrate
