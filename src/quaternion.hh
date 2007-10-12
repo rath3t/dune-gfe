@@ -43,6 +43,13 @@ public:
         (*this)[3] = std::cos(angle/2);
     }
 
+    /** \brief Assignment from a scalar */
+    Quaternion<T>& operator=(const T& v) {
+        for (int i=0; i<4; i++)
+            (*this)[i] = v;
+        return (*this);
+    }
+
     /** \brief Return the identity element */
     static Quaternion<T> identity() {
         Quaternion<T> id;
@@ -100,6 +107,60 @@ public:
 
         }
         return result;
+    }
+
+    /** \brief The inverse of the exponential map */
+    static Dune::FieldVector<T,3> expInv(const Quaternion<T>& q) {
+        // Compute v = exp^{-1} q
+        // Due to numerical dirt, q[3] may be larger than 1. 
+        // In that case, use 1 instead of q[3].
+        Dune::FieldVector<T,3> v;
+        if (q[3] > 1.0) {
+
+            v = 0;
+
+        } else {
+            
+            T invSinc = 1/sincHalf(2*std::acos(q[3]));
+            
+            v[0] = q[0] * invSinc;
+            v[1] = q[1] * invSinc;
+            v[2] = q[2] * invSinc;
+
+        }
+        return v;
+    }
+
+    /** \brief The derivative of the inverse of the exponential map, evaluated at q */
+    static Dune::FieldMatrix<T,3,4> DexpInv(const Quaternion<T>& q) {
+        
+        // Compute v = exp^{-1} q
+        Dune::FieldVector<T,3> v = expInv(q);
+
+        // The derivative of exp at v
+        Dune::FieldMatrix<T,4,3> A = Dexp(v);
+
+        // Compute the Moore-Penrose pseudo inverse  A^+ = (A^T A)^{-1} A^T
+        Dune::FieldMatrix<T,3,3> ATA;
+
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++) {
+                ATA[i][j] = 0;
+                for (int k=0; k<4; k++)
+                    ATA[i][j] += A[k][i] * A[k][j];
+            }
+
+        ATA.invert();
+
+        Dune::FieldMatrix<T,3,4> APseudoInv;
+        for (int i=0; i<3; i++)
+            for (int j=0; j<4; j++) {
+                APseudoInv[i][j] = 0;
+                for (int k=0; k<3; k++)
+                    APseudoInv[i][j] += ATA[i][k] * A[j][k];
+            }
+
+        return APseudoInv;
     }
 
     /** \brief Right quaternion multiplication */
@@ -235,14 +296,21 @@ public:
         return result;
     }
 
-    /** \brief Invert the quaternion */
-    void invert() {
+    /** \brief Conjugate the quaternion */
+    void conjugate() {
 
         (*this)[0] *= -1;
         (*this)[1] *= -1;
         (*this)[2] *= -1;
 
+    }
+
+    /** \brief Invert the quaternion */
+    void invert() {
+
+        conjugate();
         (*this) /= this->two_norm2();
+
     }
 
     static Dune::FieldVector<T,3> difference(const Quaternion<T>& a, const Quaternion<T>& b) {
