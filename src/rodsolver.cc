@@ -326,8 +326,17 @@ void RodSolver<GridType>::solve()
             
         }
 
-        if (this->verbosity_ == FULL)
-            printf("infinity norm of the correction: %g\n", corr.infinity_norm());
+        if (this->verbosity_ == FULL) {
+            double translationMax = 0;
+            double rotationMax    = 0;
+            for (size_t j=0; j<corr.size(); j++) {
+                for (int k=0; k<3; k++) {
+                    translationMax = std::max(translationMax, corr[j][k]);
+                    rotationMax    = std::max(rotationMax, corr[j][k+3]);
+                }
+            }
+            printf("infinity norm of the correction: %g %g\n", translationMax, rotationMax);
+        }
 
         if (corr.infinity_norm() < tolerance_) {
             if (this->verbosity_ == FULL)
@@ -381,16 +390,17 @@ void RodSolver<GridType>::solve()
                 printf("Richtung ist keine Abstiegsrichtung!\n");
         }
 
-#if 1
-        if (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9) {
+        if (energy >= oldEnergy &&
+            (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9)) {
             if (this->verbosity_ == FULL)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
             if (this->verbosity_ != QUIET)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
-            //break;
+
+            x_ = newIterate;
+            break;
         }
-#endif
 
         // //////////////////////////////////////////////
         //   Check for acceptance of the step
