@@ -8,7 +8,7 @@
 
 #include "../../common/boxconstraint.hh"
 #include "../common/h1seminorm.hh"
-#include "../../solver/iterativesolver.hh"
+#include "../../common/iterativesolver.hh"
 
 #include "rodassembler.hh"
 

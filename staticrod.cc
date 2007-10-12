@@ -12,7 +12,7 @@
 #include "../common/projectedblockgsstep.hh"
 #include "../contact/src/contactmmgstep.hh"
 
-#include "../solver/iterativesolver.hh"
+#include "../common/iterativesolver.hh"
 
 #include "../common/geomestimator.hh"
 #include "../common/energynorm.hh"

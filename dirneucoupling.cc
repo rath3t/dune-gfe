@@ -16,7 +16,7 @@
 #include <dune/common/configparser.hh>
 
 #include "../common/multigridstep.hh"
-#include "../solver/iterativesolver.hh"
+#include "../common/iterativesolver.hh"
 #include "../common/projectedblockgsstep.hh"
 #include "../common/linearipopt.hh"
 #include "../common/readbitfield.hh"

@@ -9,7 +9,7 @@
 #include "../common/trustregiongsstep.hh"
 #include "../contact/src/contactmmgstep.hh"
 
-#include "../solver/iterativesolver.hh"
+#include "../common/iterativesolver.hh"
 
 #include "../common/energynorm.hh"
 #include "../common/h1seminorm.hh"

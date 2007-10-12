@@ -8,8 +8,7 @@
 #include <dune/istl/io.hh>
 
 
-#include "../solver/iterativesolver.hh"
-
+#include "../common/iterativesolver.hh"
 #include "../common/energynorm.hh"
 
 #include "src/configuration.hh"
