@@ -17,10 +17,6 @@ energy(const EntityPointer& element,
 {
     RT energy = 0;
     
-    // Extract local solution on this element
-    const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element->type(), k);
-    
     // ///////////////////////////////////////////////////////////////////////////////
     //   The following two loops are a reduced integration scheme.  We integrate
     //   the transverse shear and extensional energy with a first-order quadrature
@@ -73,6 +69,81 @@ energy(const EntityPointer& element,
     }
 
     return energy;
+}
+
+template <class GridType, class RT>
+template <class T>
+void RodLocalStiffness<GridType, RT>::
+interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
+                        Dune::array<Quaternion<double>,6>& grad)
+{
+    // Clear output array
+    for (int i=0; i<6; i++)
+        grad[i] = 0;
+
+    // Compute q_0^{-1}
+    Quaternion<T> q0Inv = q0;
+    q0Inv.invert();
+
+    // Compute v = s \exp^{-1} ( q_0^{-1} q_1)
+    Dune::FieldVector<T,3> v = Quaternion<T>::expInv(q0Inv.mult(q1));
+    v *= s;
+
+    Dune::FieldMatrix<T,4,3> dExp_v = Quaternion<T>::Dexp(v);
+
+    Dune::FieldMatrix<T,3,4> dExpInv = Quaternion<T>::DexpInv(q0Inv.mult(q1));
+
+    /** \todo Compute this once and for all */
+    Dune::FieldMatrix<T,4,3> dExp_v_0 = Quaternion<T>::Dexp(Dune::FieldVector<T,3>(0));
+
+    
+
+    Dune::FieldMatrix<T,4,4> mat(0);
+    for (int i=0; i<4; i++)
+        for (int j=0; j<4; j++)
+            for (int k=0; k<3; k++)
+                mat[i][j] += s * dExp_v[i][k] * dExpInv[k][j];
+
+    
+    // The derivatives with respect to w^0
+    for (int i=0; i<3; i++) {
+
+        Quaternion<T> dw;
+        for (int j=0; j<4; j++)
+            dw[j] = dExp_v_0[j][i];
+        
+        // First addend
+        Quaternion<T> grad0 = q0.mult(dw.mult(Quaternion<T>::exp(v)));
+
+        // Second addend
+        dw.conjugate();
+
+        dw[3] -= 2 * dExp_v_0[3][i];
+
+        dw = dw.mult(q0Inv.mult(q1));
+        
+        mat.umv(dw,grad[i]);
+        grad[i] = q0.mult(grad[i]);
+        
+        // Add the two addends
+        for (int j=0; j<4; j++)
+            grad[i][j] = grad0[j] + grad[i][j];
+
+    }
+
+    // The derivatives with respect to w^1
+    for (int i=3; i<6; i++) {
+
+        Quaternion<T> dw;
+        for (int j=0; j<4; j++)
+            dw[j] = dExp_v_0[j][i-3];
+        
+        dw = q0Inv.mult(q1.mult(dw));
+        
+        mat.umv(dw,grad[i]);
+        grad[i] = q0.mult(grad[i]);
+
+    }
 }
 
 template <class GridType, class RT>
