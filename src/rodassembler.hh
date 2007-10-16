@@ -23,10 +23,14 @@ class RodLocalStiffness
     enum {dim=GridType::dimension};
 
 public:
+    
+    //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
+    enum { blocksize = 6 };
+
     // define the number of components of your system, this is used outside
     // to allocate the correct size of (dense) blocks with a FieldMatrix
-    enum {m=6};
-    
+    enum {m=blocksize};
+
     enum {SIZE = Dune::LocalStiffness<RodLocalStiffness,GridType,RT,m>::SIZE};
     
     // types for matrics, vectors and boundary conditions
@@ -87,9 +91,9 @@ public:
                    int k=1);
 
     
-    RT energy (const EntityPointer& e,
-               const std::vector<Configuration>& localSolution,
-               const std::vector<Configuration>& localReferenceConfiguration,
+    RT energy (const Entity& e,
+               const Dune::array<Configuration,2>& localSolution,
+               const Dune::array<Configuration,2>& localReferenceConfiguration,
                int k=1);
 
     static void interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
@@ -98,9 +102,15 @@ public:
     static void interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
                                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad);
 
-    Dune::FieldVector<double, 6> getStrain(const std::vector<Configuration>& localSolution,
-                                           const EntityPointer& element,
+    Dune::FieldVector<double, 6> getStrain(const Dune::array<Configuration,2>& localSolution,
+                                           const Entity& element,
                                            const Dune::FieldVector<double,1>& pos) const;
+
+    /** \brief Assemble the element gradient of the energy functional */
+    void assembleGradient(const Entity& element,
+                          const Dune::array<Configuration,2>& solution,
+                          const Dune::array<Configuration,2>& referenceConfiguration,
+                          Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
     
     template <class T>
     static Dune::FieldVector<T,3> darboux(const Quaternion<T>& q, const Dune::FieldVector<T,4>& q_s) 
@@ -132,7 +142,7 @@ public:
 
         enum { elementOrder = 1};
 
-        //! Each block is x, y, theta
+        //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
         enum { blocksize = 6 };
         
         //!

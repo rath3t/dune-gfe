@@ -10,9 +10,9 @@
 
 template <class GridType, class RT>
 RT RodLocalStiffness<GridType, RT>::
-energy(const EntityPointer& element,
-       const std::vector<Configuration>& localSolution,
-       const std::vector<Configuration>& localReferenceConfiguration,
+energy(const Entity& element,
+       const Dune::array<Configuration,2>& localSolution,
+       const Dune::array<Configuration,2>& localReferenceConfiguration,
        int k)
 {
     RT energy = 0;
@@ -25,14 +25,14 @@ energy(const EntityPointer& element,
 
     const int shearingPolOrd = 2;
     const Dune::QuadratureRule<double, 1>& shearingQuad 
-        = Dune::QuadratureRules<double, 1>::rule(element->type(), shearingPolOrd);
+        = Dune::QuadratureRules<double, 1>::rule(element.type(), shearingPolOrd);
     
     for (size_t pt=0; pt<shearingQuad.size(); pt++) {
         
         // Local position of the quadrature point
         const Dune::FieldVector<double,1>& quadPos = shearingQuad[pt].position();
         
-        const double integrationElement = element->geometry().integrationElement(quadPos);
+        const double integrationElement = element.geometry().integrationElement(quadPos);
         
         double weight = shearingQuad[pt].weight() * integrationElement;
         
@@ -48,14 +48,14 @@ energy(const EntityPointer& element,
     
     // Get quadrature rule
     const int polOrd = 2;
-    const Dune::QuadratureRule<double, 1>& bendingQuad = Dune::QuadratureRules<double, 1>::rule(element->type(), polOrd);
+    const Dune::QuadratureRule<double, 1>& bendingQuad = Dune::QuadratureRules<double, 1>::rule(element.type(), polOrd);
     
     for (size_t pt=0; pt<bendingQuad.size(); pt++) {
         
         // Local position of the quadrature point
         const Dune::FieldVector<double,1>& quadPos = bendingQuad[pt].position();
         
-        double weight = bendingQuad[pt].weight() * element->geometry().integrationElement(quadPos);
+        double weight = bendingQuad[pt].weight() * element.geometry().integrationElement(quadPos);
         
         Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
         
@@ -278,11 +278,11 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
 
 template <class GridType, class RT>
 Dune::FieldVector<double, 6> RodLocalStiffness<GridType, RT>::
-getStrain(const std::vector<Configuration>& localSolution,
-          const EntityPointer& element,
+getStrain(const Dune::array<Configuration,2>& localSolution,
+          const Entity& element,
           const Dune::FieldVector<double,1>& pos) const
 {
-    if (!element->isLeaf())
+    if (!element.isLeaf())
         DUNE_THROW(Dune::NotImplemented, "Only for leaf elements");
 
     assert(localSolution.size() == 2);
@@ -292,10 +292,10 @@ getStrain(const std::vector<Configuration>& localSolution,
 
     // Extract local solution on this element
     const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element->type(), 1);
+        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element.type(), 1);
     int numOfBaseFct = baseSet.size();
     
-    const Dune::FieldMatrix<double,1,1>& inv = element->geometry().jacobianInverseTransposed(pos);
+    const Dune::FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(pos);
     
     // ///////////////////////////////////////
     //   Compute deformation gradient
@@ -349,6 +349,160 @@ getStrain(const std::vector<Configuration>& localSolution,
     return strain;
 }
 
+template <class GridType, class RT>
+void RodLocalStiffness<GridType, RT>::
+assembleGradient(const Entity& element,
+                 const Dune::array<Configuration,2>& solution,
+                 const Dune::array<Configuration,2>& referenceConfiguration,
+                 Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const
+{
+    using namespace Dune;
+
+    // Extract local solution on this element
+    const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
+        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element.type(), 1); // first order
+    const int numOfBaseFct = baseSet.size();  
+        
+    // Get quadrature rule
+    int polOrd = 2;
+    const QuadratureRule<double, 1>& quad = QuadratureRules<double, 1>::rule(element.type(), polOrd);
+
+    for (int pt=0; pt<quad.size(); pt++) {
+        
+        // Local position of the quadrature point
+        const FieldVector<double,1>& quadPos = quad[pt].position();
+        
+        const FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(quadPos);
+        const double integrationElement = element.geometry().integrationElement(quadPos);
+        
+        double weight = quad[pt].weight() * integrationElement;
+        
+        // ///////////////////////////////////////
+        //   Compute deformation gradient
+        // ///////////////////////////////////////
+        double shapeGrad[numOfBaseFct];
+        
+        for (int dof=0; dof<numOfBaseFct; dof++) {
+            
+            shapeGrad[dof] = baseSet[dof].evaluateDerivative(0,0,quadPos);
+            
+            // multiply with jacobian inverse 
+            FieldVector<double,1> tmp(0);
+            inv.umv(shapeGrad[dof], tmp);
+            shapeGrad[dof] = tmp;
+            
+        }
+        
+        // Get the value of the shape functions
+        double shapeFunction[2];
+        for(int i=0; i<2; i++) 
+            shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
+        
+        // //////////////////////////////////
+        //   Interpolate
+        // //////////////////////////////////
+        
+        FieldVector<double,3> r_s;
+        for (int i=0; i<3; i++)
+            r_s[i] = solution[0].r[i]*shapeGrad[0] + solution[1].r[i]*shapeGrad[1];
+        
+        // Interpolate current rotation at this quadrature point
+        Quaternion<double> hatq = Quaternion<double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
+        
+        // Get the derivative of the rotation at the quadrature point by interpolating in $H$
+        Quaternion<double> hatq_s = Quaternion<double>::interpolateDerivative(solution[0].q, solution[1].q,
+                                                                              quadPos, 1/shapeGrad[1]);
+        
+        // The current strain
+        FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
+        
+        // The reference strain
+        FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration, element, quadPos);
+        
+        // Contains \partial q / \partial v^i_j  at v = 0
+        array<Quaternion<double>,3> dq_dvj;
+        
+        array<Quaternion<double>,3> dq_dvj_ds;
+        
+        for (int j=0; j<3; j++) {
+            
+            for (int m=0; m<3; m++) {
+                dq_dvj[j][m]     = (j==m) * 0.5;
+                dq_dvj_ds[j][m] = (j==m) * 0.5;
+            }
+            
+            dq_dvj[j][3]    = 0;
+            dq_dvj_ds[j][3] = 0;
+        }
+        
+        // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
+        array<array<FieldVector<double,3>, 3>, 3> dd_dvj;
+        hatq.getFirstDerivativesOfDirectors(dd_dvj);
+        
+        
+        // /////////////////////////////////////////////
+        //   Sum it all up
+        // /////////////////////////////////////////////
+        
+        for (int i=0; i<numOfBaseFct; i++) {
+            
+            // /////////////////////////////////////////////
+            //   The translational part
+            // /////////////////////////////////////////////
+            
+            // \partial \bar{W} / \partial r^i_j
+            for (int j=0; j<3; j++) {
+                
+                for (int m=0; m<3; m++) 
+                    gradient[i][j] += weight 
+                        * (  A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[i] * hatq.director(m)[j]);
+                
+            }
+            
+            // \partial \bar{W}_v / \partial v^i_j
+            for (int j=0; j<3; j++) {
+                
+                for (int m=0; m<3; m++) 
+                    gradient[i][3+j] += weight 
+                        * (A_[m] * (strain[m] - referenceStrain[m]) * (r_s*dd_dvj[m][j]*shapeFunction[i]));
+                
+            }
+            
+            // /////////////////////////////////////////////
+            //   The rotational part
+            // /////////////////////////////////////////////
+            
+            // \partial \bar{W}_v / \partial v^i_j
+            for (int j=0; j<3; j++) {
+                
+                for (int m=0; m<3; m++) {
+                    
+                    double du_dvij_m;
+                    
+                    du_dvij_m = (hatq.mult(dq_dvj[j])).B(m) * hatq_s;
+                    du_dvij_m *= shapeFunction[i];
+                    
+                    Quaternion<double> tmp = dq_dvj[j];
+                    tmp *= shapeFunction[i];
+                    Quaternion<double> tmp_ds = dq_dvj_ds[j];
+                    tmp_ds *= shapeGrad[i];
+                    
+                    du_dvij_m += hatq.B(m) * (hatq.mult(tmp_ds) + hatq_s.mult(tmp));
+                    
+                    du_dvij_m *= 2;
+                    
+                    gradient[i][3+j] += weight * K_[m] 
+                        * (strain[m+3]-referenceStrain[m+3]) * du_dvij_m;
+                    
+                }
+                
+            }
+            
+        }
+        
+    }
+
+}
 
 template <class GridType>
 void RodAssembler<GridType>::
@@ -768,8 +922,8 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
     for (; eIt!=eEndIt; ++eIt)
         elements[indexSet.index(*eIt)] = eIt;
 
-    std::vector<Configuration> localReferenceConfiguration(2);
-    std::vector<Configuration> localSolution(2);
+    Dune::array<Configuration,2> localReferenceConfiguration;
+    Dune::array<Configuration,2> localSolution;
 
     // ///////////////////////////////////////////////////////////////
     //   Loop over all blocks of the outer matrix
@@ -806,17 +960,17 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
                             localSolution[0] = forwardSolution[i];
                             localSolution[1] = forwardSolution[i+1];
 
-                            forwardEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+                            forwardEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
 
                             localSolution[0] = sol[i];
                             localSolution[1] = sol[i+1];
 
-                            solutionEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+                            solutionEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
 
                             localSolution[0] = backwardSolution[i];
                             localSolution[1] = backwardSolution[i+1];
 
-                            backwardEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+                            backwardEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
 
                         } 
 
@@ -828,17 +982,17 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
                             localSolution[0] = forwardSolution[i-1];
                             localSolution[1] = forwardSolution[i];
 
-                            forwardEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+                            forwardEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
 
                             localSolution[0] = sol[i-1];
                             localSolution[1] = sol[i];
 
-                            solutionEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+                            solutionEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
 
                             localSolution[0] = backwardSolution[i-1];
                             localSolution[1] = backwardSolution[i];
 
-                            backwardEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+                            backwardEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
 
                         } 
 
@@ -884,22 +1038,22 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
                             localSolution[0] = forwardForwardSolution[*it];
                             localSolution[1] = forwardForwardSolution[*it+1];
 
-                            forwardForwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+                            forwardForwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
 
                             localSolution[0] = forwardBackwardSolution[*it];
                             localSolution[1] = forwardBackwardSolution[*it+1];
 
-                            forwardBackwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+                            forwardBackwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
 
                             localSolution[0] = backwardForwardSolution[*it];
                             localSolution[1] = backwardForwardSolution[*it+1];
 
-                            backwardForwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+                            backwardForwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
 
                             localSolution[0] = backwardBackwardSolution[*it];
                             localSolution[1] = backwardBackwardSolution[*it+1];
 
-                            backwardBackwardEnergy += localStiffness.energy(elements[*it], localSolution, localReferenceConfiguration);
+                            backwardBackwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
 
 
                         }
@@ -1203,13 +1357,21 @@ void RodAssembler<GridType>::
 assembleGradient(const std::vector<Configuration>& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
-     using namespace Dune;
+    using namespace Dune;
 
-   const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
+    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
     const int maxlevel = grid_->maxLevel();
 
     if (sol.size()!=grid_->size(maxlevel, gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
+
+    // ////////////////////////////////////////////////////
+    //   Create local assembler
+    // ////////////////////////////////////////////////////
+
+    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
+    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
+    RodLocalStiffness<GridType,double> localStiffness(K, A);
 
     grad.resize(sol.size());
     grad = 0;
@@ -1220,157 +1382,29 @@ assembleGradient(const std::vector<Configuration>& sol,
     // Loop over all elements
     for (; it!=endIt; ++it) {
 
-        // Extract local solution on this element
-        const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
-        const int numOfBaseFct = baseSet.size();  
+        // A 1d grid has two vertices
+        const int nDofs = 2;
+
+        // Extract local solution
+        array<Configuration,nDofs> localSolution;
         
-        Configuration localSolution[numOfBaseFct];
-        
-        for (int i=0; i<numOfBaseFct; i++)
+        for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
 
-        // Get quadrature rule
-        int polOrd = 2;
-        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
-
-        for (int pt=0; pt<quad.size(); pt++) {
-
-            // Local position of the quadrature point
-            const FieldVector<double,gridDim>& quadPos = quad[pt].position();
-            
-            const FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
-            const double integrationElement = it->geometry().integrationElement(quadPos);
+        // Extract local reference configuration
+        array<Configuration,nDofs> localReferenceConfiguration;
         
-            double weight = quad[pt].weight() * integrationElement;
-            
-            // ///////////////////////////////////////
-            //   Compute deformation gradient
-            // ///////////////////////////////////////
-            double shapeGrad[numOfBaseFct];
-            
-            for (int dof=0; dof<numOfBaseFct; dof++) {
-                
-                shapeGrad[dof] = baseSet[dof].evaluateDerivative(0,0,quadPos);
+        for (int i=0; i<nDofs; i++)
+            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.template subIndex<gridDim>(*it,i)];
 
-                // multiply with jacobian inverse 
-                FieldVector<double,gridDim> tmp(0);
-                inv.umv(shapeGrad[dof], tmp);
-                shapeGrad[dof] = tmp;
-                
-            }
+        // Assemble local gradient
+        array<FieldVector<double,blocksize>, nDofs> localGradient;
 
-            // Get the value of the shape functions
-            double shapeFunction[2];
-            for(int i=0; i<2; i++) 
-                shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
+        localStiffness.assembleGradient(*it, localSolution, localReferenceConfiguration, localGradient);
 
-            // //////////////////////////////////
-            //   Interpolate
-            // //////////////////////////////////
-
-            FieldVector<double,3> r_s;
-            r_s[0] = localSolution[0].r[0]*shapeGrad[0] + localSolution[1].r[0]*shapeGrad[1];
-            r_s[1] = localSolution[0].r[1]*shapeGrad[0] + localSolution[1].r[1]*shapeGrad[1];
-            r_s[2] = localSolution[0].r[2]*shapeGrad[0] + localSolution[1].r[2]*shapeGrad[1];
-
-            // Interpolate current rotation at this quadrature point
-            Quaternion<double> hatq = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,quadPos[0]);
-
-            // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-            Quaternion<double> hatq_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
-                                                                                  quadPos, 1/shapeGrad[1]);
-
-            // The current strain
-            FieldVector<double,blocksize> strain = getStrain(sol, it, quadPos);
-
-            // The reference strain
-            FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration_, it, quadPos);
-
-            // Contains \partial q / \partial v^i_j  at v = 0
-            array<Quaternion<double>,3> dq_dvj;
-
-            array<Quaternion<double>,3> dq_dvj_ds;
-
-            for (int j=0; j<3; j++) {
-                    
-                for (int m=0; m<3; m++) {
-                    dq_dvj[j][m]     = (j==m) * 0.5;
-                    dq_dvj_ds[j][m] = (j==m) * 0.5;
-                }
-
-                dq_dvj[j][3]    = 0;
-                dq_dvj_ds[j][3] = 0;
-            }
-
-            // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
-            array<array<FieldVector<double,3>, 3>, 3> dd_dvj;
-            hatq.getFirstDerivativesOfDirectors(dd_dvj);
-
-            
-            // /////////////////////////////////////////////
-            //   Sum it all up
-            // /////////////////////////////////////////////
-
-            for (int i=0; i<numOfBaseFct; i++) {
-
-                int globalDof = indexSet.template subIndex<gridDim>(*it,i);
-
-                // /////////////////////////////////////////////
-                //   The translational part
-                // /////////////////////////////////////////////
-                
-                // \partial \bar{W} / \partial r^i_j
-                for (int j=0; j<3; j++) {
-
-                    for (int m=0; m<3; m++) 
-                        grad[globalDof][j] += weight 
-                            * (  A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[i] * hatq.director(m)[j]);
-
-                }
-
-                // \partial \bar{W}_v / \partial v^i_j
-                for (int j=0; j<3; j++) {
-
-                    for (int m=0; m<3; m++) 
-                        grad[globalDof][3+j] += weight 
-                            * (A_[m] * (strain[m] - referenceStrain[m]) * (r_s*dd_dvj[m][j]*shapeFunction[i]));
-
-                }
-
-                // /////////////////////////////////////////////
-                //   The rotational part
-                // /////////////////////////////////////////////
-                
-                // \partial \bar{W}_v / \partial v^i_j
-                for (int j=0; j<3; j++) {
-
-                    for (int m=0; m<3; m++) {
-
-                        double du_dvij_m;
-
-                        du_dvij_m = (hatq.mult(dq_dvj[j])).B(m) * hatq_s;
-                        du_dvij_m *= shapeFunction[i];
-
-                        Quaternion<double> tmp = dq_dvj[j];
-                        tmp *= shapeFunction[i];
-                        Quaternion<double> tmp_ds = dq_dvj_ds[j];
-                        tmp_ds *= shapeGrad[i];
-                        
-                        du_dvij_m += hatq.B(m) * (hatq.mult(tmp_ds) + hatq_s.mult(tmp));
-
-                        du_dvij_m *= 2;
-
-                        grad[globalDof][3+j] += weight * K_[m] 
-                            * (strain[m+3]-referenceStrain[m+3]) * du_dvij_m;
-
-                    }
-
-                }
-
-            }
-
-        }
+        // Add to global gradient
+        for (int i=0; i<nDofs; i++)
+            grad[indexSet.template subIndex<gridDim>(*it,i)] += localGradient[i];
 
     }
 
@@ -1413,8 +1447,8 @@ assembleGradientFD(const std::vector<Configuration>& sol,
     for (; eIt!=eEndIt; ++eIt)
         elements[indexSet.index(*eIt)] = eIt;
 
-    std::vector<Configuration> localReferenceConfiguration(2);
-    std::vector<Configuration> localSolution(2);
+    Dune::array<Configuration,2> localReferenceConfiguration;
+    Dune::array<Configuration,2> localSolution;
 
     // ///////////////////////////////////////////////////////////////
     //   Loop over all blocks of the outer matrix
@@ -1437,12 +1471,12 @@ assembleGradientFD(const std::vector<Configuration>& sol,
                 localSolution[0] = forwardSolution[i];
                 localSolution[1] = forwardSolution[i+1];
                 
-                forwardEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+                forwardEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
                 
                 localSolution[0] = backwardSolution[i];
                 localSolution[1] = backwardSolution[i+1];
                 
-                backwardEnergy += localStiffness.energy(elements[i], localSolution, localReferenceConfiguration);
+                backwardEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
                 
             } 
             
@@ -1454,12 +1488,12 @@ assembleGradientFD(const std::vector<Configuration>& sol,
                 localSolution[0] = forwardSolution[i-1];
                 localSolution[1] = forwardSolution[i];
                 
-                forwardEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+                forwardEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
                 
                 localSolution[0] = backwardSolution[i-1];
                 localSolution[1] = backwardSolution[i];
                 
-                backwardEnergy += localStiffness.energy(elements[i-1], localSolution, localReferenceConfiguration);
+                backwardEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
                 
             } 
             
@@ -1498,8 +1532,8 @@ computeEnergy(const std::vector<Configuration>& sol) const
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
     RodLocalStiffness<GridType,double> localStiffness(K, A);
 
-    std::vector<Configuration> localReferenceConfiguration(2);
-    std::vector<Configuration> localSolution(2);
+    Dune::array<Configuration,2> localReferenceConfiguration;
+    Dune::array<Configuration,2> localSolution;
 
     ElementLeafIterator it    = grid_->template leafbegin<0>();
     ElementLeafIterator endIt = grid_->template leafend<0>();
@@ -1514,7 +1548,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
         }
 
-        energy += localStiffness.energy(it, localSolution, localReferenceConfiguration);
+        energy += localStiffness.energy(*it, localSolution, localReferenceConfiguration);
 
     }
 
