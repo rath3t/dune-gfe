@@ -96,6 +96,10 @@ public:
     static void interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
                                         Dune::array<Quaternion<double>,6>& grad);
 
+    template <class T>
+    static void interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
+                                                double intervalLength, Dune::array<Quaternion<double>,6>& grad);
+
     Dune::FieldVector<double, 6> getStrain(const std::vector<Configuration>& localSolution,
                                            const EntityPointer& element,
                                            const Dune::FieldVector<double,1>& pos) const;

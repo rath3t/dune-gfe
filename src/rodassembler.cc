@@ -147,6 +147,138 @@ interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double
 }
 
 template <class GridType, class RT>
+template <class T>
+void RodLocalStiffness<GridType, RT>::
+interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
+                                double intervalLength, Dune::array<Quaternion<double>,6>& grad)
+{
+    // Clear output array
+    for (int i=0; i<6; i++)
+        grad[i] = 0;
+
+    // Compute q_0^{-1}
+    Quaternion<T> q0Inv = q0;
+    q0Inv.invert();
+
+
+    // Compute v = s \exp^{-1} ( q_0^{-1} q_1)
+    Dune::FieldVector<T,3> v = Quaternion<T>::expInv(q0Inv.mult(q1));
+    v *= s/intervalLength;
+
+    Dune::FieldMatrix<T,4,3> dExp_v = Quaternion<T>::Dexp(v);
+
+    Dune::array<Dune::FieldMatrix<T,3,3>, 4> ddExp;
+    Quaternion<T>::DDexp(v, ddExp);
+
+    Dune::FieldMatrix<T,3,4> dExpInv = Quaternion<T>::DexpInv(q0Inv.mult(q1));
+
+    /** \todo Compute this once and for all */
+    Dune::FieldMatrix<T,4,3> dExp_v_0 = Quaternion<T>::Dexp(Dune::FieldVector<T,3>(0));
+    
+    Dune::FieldMatrix<T,4,4> mat(0);
+    for (int i=0; i<4; i++)
+        for (int j=0; j<4; j++)
+            for (int k=0; k<3; k++)
+                mat[i][j] += 1/intervalLength * dExp_v[i][k] * dExpInv[k][j];
+
+    
+    // /////////////////////////////////////////////////
+    // The derivatives with respect to w^0
+    // /////////////////////////////////////////////////
+    for (int i=0; i<3; i++) {
+
+        // \partial exp \partial w^1_j at 0
+        Quaternion<T> dw;
+        for (int j=0; j<4; j++)
+            dw[j] = dExp_v_0[j][i];
+
+        // \xi = \exp^{-1} q_0^{-1} q_1
+        Dune::FieldVector<T,3> xi = Quaternion<T>::expInv(q0Inv.mult(q1));
+
+        Quaternion<T> addend0;
+        addend0 = 0;
+        dExp_v.umv(xi,addend0);
+        addend0 = dw.mult(addend0);
+        addend0 /= intervalLength;
+
+        //  \parder{\xi}{w^1_j} = ...
+        /** \todo Dieser Teil kommt unten nochmal! */
+        Dune::FieldVector<T,3> dxi(0);
+        Quaternion<T>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
+
+        Quaternion<T> vHv;
+        for (int j=0; j<4; j++) {
+            vHv[j] = 0;
+            // vHv[j] = dxi * DDexp * xi
+            for (int k=0; k<3; k++)
+                for (int l=0; l<3; l++)
+                    vHv[j] += ddExp[j][k][l]*dxi[k]*xi[l];
+        }
+
+        vHv *= s/intervalLength/intervalLength;
+
+        // Third addend
+        dw.conjugate();
+
+        dw[3] -= 2 * dExp_v_0[3][i];
+
+        dw = dw.mult(q0Inv.mult(q1));
+        
+        mat.umv(dw,grad[i]);
+
+        // add up
+        grad[i] += addend0;
+        grad[i] += vHv;
+
+        grad[i] = q0.mult(grad[i]);
+    }
+
+
+    // /////////////////////////////////////////////////
+    // The derivatives with respect to w^1
+    // /////////////////////////////////////////////////
+    for (int i=3; i<6; i++) {
+
+        // \partial exp \partial w^1_j at 0
+        Quaternion<T> dw;
+        for (int j=0; j<4; j++)
+            dw[j] = dExp_v_0[j][i-3];
+
+        // \xi = \exp^{-1} q_0^{-1} q_1
+        Dune::FieldVector<T,3> xi = Quaternion<T>::expInv(q0Inv.mult(q1));
+
+        //  \parder{\xi}{w^1_j} = ...
+        Dune::FieldVector<T,3> dxi(0);
+        Quaternion<T>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
+
+        Quaternion<T> vHv;
+        for (int j=0; j<4; j++) {
+            // vHv[j] = dxi * DDexp * xi
+            vHv[j] = 0;
+            for (int k=0; k<3; k++)
+                for (int l=0; l<3; l++)
+                    vHv[j] += ddExp[j][k][l]*dxi[k]*xi[l];
+        }
+
+        vHv *= s/intervalLength/intervalLength;
+
+        // ///////////////////////////////////
+        //   second addend
+        // ///////////////////////////////////
+            
+        
+        dw = q0Inv.mult(q1.mult(dw));
+        
+        mat.umv(dw,grad[i]);
+        grad[i] += vHv;
+
+        grad[i] = q0.mult(grad[i]);
+
+    }
+
+}
+
+template <class GridType, class RT>
 Dune::FieldVector<double, 6> RodLocalStiffness<GridType, RT>::
 getStrain(const std::vector<Configuration>& localSolution,
           const EntityPointer& element,
