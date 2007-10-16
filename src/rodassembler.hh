@@ -92,12 +92,10 @@ public:
                const std::vector<Configuration>& localReferenceConfiguration,
                int k=1);
 
-    template <class T>
-    static void interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
+    static void interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
                                         Dune::array<Quaternion<double>,6>& grad);
 
-    template <class T>
-    static void interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
+    static void interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
                                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad);
 
     Dune::FieldVector<double, 6> getStrain(const std::vector<Configuration>& localSolution,

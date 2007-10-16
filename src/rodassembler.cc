@@ -72,9 +72,8 @@ energy(const EntityPointer& element,
 }
 
 template <class GridType, class RT>
-template <class T>
 void RodLocalStiffness<GridType, RT>::
-interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
+interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
                         Dune::array<Quaternion<double>,6>& grad)
 {
     // Clear output array
@@ -82,23 +81,23 @@ interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double
         grad[i] = 0;
 
     // Compute q_0^{-1}
-    Quaternion<T> q0Inv = q0;
+    Quaternion<RT> q0Inv = q0;
     q0Inv.invert();
 
     // Compute v = s \exp^{-1} ( q_0^{-1} q_1)
-    Dune::FieldVector<T,3> v = Quaternion<T>::expInv(q0Inv.mult(q1));
+    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q0Inv.mult(q1));
     v *= s;
 
-    Dune::FieldMatrix<T,4,3> dExp_v = Quaternion<T>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Quaternion<RT>::Dexp(v);
 
-    Dune::FieldMatrix<T,3,4> dExpInv = Quaternion<T>::DexpInv(q0Inv.mult(q1));
+    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q0Inv.mult(q1));
 
     /** \todo Compute this once and for all */
-    Dune::FieldMatrix<T,4,3> dExp_v_0 = Quaternion<T>::Dexp(Dune::FieldVector<T,3>(0));
+    Dune::FieldMatrix<RT,4,3> dExp_v_0 = Quaternion<RT>::Dexp(Dune::FieldVector<RT,3>(0));
 
     
 
-    Dune::FieldMatrix<T,4,4> mat(0);
+    Dune::FieldMatrix<RT,4,4> mat(0);
     for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
             for (int k=0; k<3; k++)
@@ -108,12 +107,12 @@ interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double
     // The derivatives with respect to w^0
     for (int i=0; i<3; i++) {
 
-        Quaternion<T> dw;
+        Quaternion<RT> dw;
         for (int j=0; j<4; j++)
             dw[j] = dExp_v_0[j][i];
         
         // First addend
-        Quaternion<T> grad0 = q0.mult(dw.mult(Quaternion<T>::exp(v)));
+        Quaternion<RT> grad0 = q0.mult(dw.mult(Quaternion<RT>::exp(v)));
 
         // Second addend
         dw.conjugate();
@@ -134,7 +133,7 @@ interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double
     // The derivatives with respect to w^1
     for (int i=3; i<6; i++) {
 
-        Quaternion<T> dw;
+        Quaternion<RT> dw;
         for (int j=0; j<4; j++)
             dw[j] = dExp_v_0[j][i-3];
         
@@ -147,9 +146,8 @@ interpolationDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double
 }
 
 template <class GridType, class RT>
-template <class T>
 void RodLocalStiffness<GridType, RT>::
-interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1, double s,
+interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad)
 {
     // Clear output array
@@ -157,25 +155,25 @@ interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1
         grad[i] = 0;
 
     // Compute q_0^{-1}
-    Quaternion<T> q0Inv = q0;
+    Quaternion<RT> q0Inv = q0;
     q0Inv.invert();
 
 
     // Compute v = s \exp^{-1} ( q_0^{-1} q_1)
-    Dune::FieldVector<T,3> v = Quaternion<T>::expInv(q0Inv.mult(q1));
+    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q0Inv.mult(q1));
     v *= s/intervalLength;
 
-    Dune::FieldMatrix<T,4,3> dExp_v = Quaternion<T>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Quaternion<RT>::Dexp(v);
 
-    Dune::array<Dune::FieldMatrix<T,3,3>, 4> ddExp;
-    Quaternion<T>::DDexp(v, ddExp);
+    Dune::array<Dune::FieldMatrix<RT,3,3>, 4> ddExp;
+    Quaternion<RT>::DDexp(v, ddExp);
 
-    Dune::FieldMatrix<T,3,4> dExpInv = Quaternion<T>::DexpInv(q0Inv.mult(q1));
+    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q0Inv.mult(q1));
 
     /** \todo Compute this once and for all */
-    Dune::FieldMatrix<T,4,3> dExp_v_0 = Quaternion<T>::Dexp(Dune::FieldVector<T,3>(0));
+    Dune::FieldMatrix<RT,4,3> dExp_v_0 = Quaternion<RT>::Dexp(Dune::FieldVector<RT,3>(0));
     
-    Dune::FieldMatrix<T,4,4> mat(0);
+    Dune::FieldMatrix<RT,4,4> mat(0);
     for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
             for (int k=0; k<3; k++)
@@ -188,14 +186,14 @@ interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1
     for (int i=0; i<3; i++) {
 
         // \partial exp \partial w^1_j at 0
-        Quaternion<T> dw;
+        Quaternion<RT> dw;
         for (int j=0; j<4; j++)
             dw[j] = dExp_v_0[j][i];
 
         // \xi = \exp^{-1} q_0^{-1} q_1
-        Dune::FieldVector<T,3> xi = Quaternion<T>::expInv(q0Inv.mult(q1));
+        Dune::FieldVector<RT,3> xi = Quaternion<RT>::expInv(q0Inv.mult(q1));
 
-        Quaternion<T> addend0;
+        Quaternion<RT> addend0;
         addend0 = 0;
         dExp_v.umv(xi,addend0);
         addend0 = dw.mult(addend0);
@@ -203,10 +201,10 @@ interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1
 
         //  \parder{\xi}{w^1_j} = ...
         /** \todo Dieser Teil kommt unten nochmal! */
-        Dune::FieldVector<T,3> dxi(0);
-        Quaternion<T>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
+        Dune::FieldVector<RT,3> dxi(0);
+        Quaternion<RT>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
 
-        Quaternion<T> vHv;
+        Quaternion<RT> vHv;
         for (int j=0; j<4; j++) {
             vHv[j] = 0;
             // vHv[j] = dxi * DDexp * xi
@@ -240,18 +238,18 @@ interpolationVelocityDerivative(const Quaternion<T>& q0, const Quaternion<T>& q1
     for (int i=3; i<6; i++) {
 
         // \partial exp \partial w^1_j at 0
-        Quaternion<T> dw;
+        Quaternion<RT> dw;
         for (int j=0; j<4; j++)
             dw[j] = dExp_v_0[j][i-3];
 
         // \xi = \exp^{-1} q_0^{-1} q_1
-        Dune::FieldVector<T,3> xi = Quaternion<T>::expInv(q0Inv.mult(q1));
+        Dune::FieldVector<RT,3> xi = Quaternion<RT>::expInv(q0Inv.mult(q1));
 
         //  \parder{\xi}{w^1_j} = ...
-        Dune::FieldVector<T,3> dxi(0);
-        Quaternion<T>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
+        Dune::FieldVector<RT,3> dxi(0);
+        Quaternion<RT>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
 
-        Quaternion<T> vHv;
+        Quaternion<RT> vHv;
         for (int j=0; j<4; j++) {
             // vHv[j] = dxi * DDexp * xi
             vHv[j] = 0;
