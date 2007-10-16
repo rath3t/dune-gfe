@@ -109,6 +109,45 @@ public:
         return result;
     }
 
+    static void DDexp(const Dune::FieldVector<T,3>& v,
+                      Dune::array<Dune::FieldMatrix<T,3,3>, 4>& result) {
+
+        T norm = v.two_norm();
+        if (norm==0) {
+
+            for (int m=0; m<4; m++)
+                result[m] = 0;
+
+            for (int i=0; i<3; i++)
+                result[3][i][i] = -0.25;
+
+
+        } else {
+
+            for (int i=0; i<3; i++) {
+                
+                for (int j=0; j<3; j++) {
+                    
+                    for (int m=0; m<3; m++) {
+                        
+                        result[m][i][j] = -0.25*v[i]*v[j]*v[m]*norm*norm*norm*std::sin(norm/2)
+                            + 0.5 / (norm*norm) *  ((i==j)*v[m] + (j==m)*v[i] + (i==m)*v[j] - 3*v[i]*v[j]*v[m]/(norm*norm))
+                            * (std::cos(norm/2) - sincHalf(norm));
+                        
+
+                    }
+
+                    result[3][i][j] = -0.25/(norm*norm)
+                        * ( 0.5*std::cos(norm/2)*v[i]*v[j] + std::sin(norm/2) * ((i==j)*norm - v[i]*v[j]/norm));
+
+                }
+
+            }
+
+        }
+
+    }
+
     /** \brief The inverse of the exponential map */
     static Dune::FieldVector<T,3> expInv(const Quaternion<T>& q) {
         // Compute v = exp^{-1} q
