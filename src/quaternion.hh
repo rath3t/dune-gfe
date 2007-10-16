@@ -344,7 +344,6 @@ public:
     }
 
     /** \brief Interpolate between two rotations */
-    /** \todo Use method 'difference' here */
     static Quaternion<T> interpolate(const Quaternion<T>& a, const Quaternion<T>& b, double omega) {
 
         // Compute difference on T_a SO(3)
@@ -356,7 +355,6 @@ public:
     }
 
     /** \brief Interpolate between two rotations */
-    /** \todo Use method 'difference' here */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
                                                double omega, double intervallLength) {
         Quaternion<T> result;
@@ -379,24 +377,7 @@ public:
         result[0] = result[1] = result[2] = result[3] = 0;
         diffExp.umv(der,result);
 
-        result = a.mult(result);
-
-        // ////////////////////////////////////////////////////////////////////////////
-        //   Check correctness by comparing with a finite difference approximation
-        // ////////////////////////////////////////////////////////////////////////////
-        double eps = 1e-6;
-        Quaternion<T> fdResult = interpolate(a,b, omega+eps);
-        fdResult              -= interpolate(a,b, omega-eps);
-        fdResult /= 2*eps;
-        fdResult /= intervallLength;
-
-        if ((result-fdResult).two_norm() > 1e-4) {
-            std::cout << "Wrong interpolation:\n";
-            std::cout << "Analytical: " << result << "        fd: " << fdResult << std::endl;
-            abort();
-        }
-            
-        return result;
+        return a.mult(result);
     }
 
     /** \brief Return the corresponding orthogonal matrix */
