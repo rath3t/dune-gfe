@@ -30,6 +30,9 @@ public:
     
     }
 
+    /** \brief Constructor from a single scalar */
+    Quaternion(const T& a) : Dune::FieldVector<T,4>(a) {}
+
     /** \brief Copy constructor */
     Quaternion(const Dune::FieldVector<T,4>& other) : Dune::FieldVector<T,4>(other) {}
 
@@ -396,7 +399,7 @@ public:
     /** \brief Interpolate between two rotations */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
                                                double omega, double intervallLength) {
-        Quaternion<T> result;
+        Quaternion<T> result(0);
 
         // Compute difference on T_a SO(3)
         Dune::FieldVector<double,3> v = difference(a,b);
@@ -413,7 +416,6 @@ public:
 
         Dune::FieldMatrix<double,4,3> diffExp = Quaternion<double>::Dexp(v);
 
-        result[0] = result[1] = result[2] = result[3] = 0;
         diffExp.umv(der,result);
 
         return a.mult(result);
