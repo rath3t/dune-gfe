@@ -200,9 +200,13 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
         addend0 /= intervalLength;
 
         //  \parder{\xi}{w^1_j} = ...
-        /** \todo Dieser Teil kommt unten nochmal! */
+        Quaternion<RT> dwConj = dw;
+        dwConj.conjugate();
+        dwConj[3] -= 2 * dExp_v_0[3][i];
+        dwConj = dwConj.mult(q0Inv.mult(q1));
+
         Dune::FieldVector<RT,3> dxi(0);
-        Quaternion<RT>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
+        Quaternion<RT>::DexpInv(q0Inv.mult(q1)).umv(dwConj, dxi);
 
         Quaternion<RT> vHv;
         for (int j=0; j<4; j++) {
@@ -216,13 +220,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
         vHv *= s/intervalLength/intervalLength;
 
         // Third addend
-        dw.conjugate();
-
-        dw[3] -= 2 * dExp_v_0[3][i];
-
-        dw = dw.mult(q0Inv.mult(q1));
-        
-        mat.umv(dw,grad[i]);
+        mat.umv(dwConj,grad[i]);
 
         // add up
         grad[i] += addend0;
@@ -247,7 +245,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
 
         //  \parder{\xi}{w^1_j} = ...
         Dune::FieldVector<RT,3> dxi(0);
-        Quaternion<RT>::DexpInv(q0Inv.mult(q1)).umv(q0Inv.mult(q1.mult(dw)), dxi);
+        dExpInv.umv(q0Inv.mult(q1.mult(dw)), dxi);
 
         Quaternion<RT> vHv;
         for (int j=0; j<4; j++) {

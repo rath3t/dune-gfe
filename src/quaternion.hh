@@ -133,14 +133,14 @@ public:
                     
                     for (int m=0; m<3; m++) {
                         
-                        result[m][i][j] = -0.25*v[i]*v[j]*v[m]*norm*norm*norm*std::sin(norm/2)
-                            + 0.5 / (norm*norm) *  ((i==j)*v[m] + (j==m)*v[i] + (i==m)*v[j] - 3*v[i]*v[j]*v[m]/(norm*norm))
-                            * (std::cos(norm/2) - sincHalf(norm));
+                        result[m][i][j] = -0.25*std::sin(norm/2)*v[i]*v[j]*v[m]/(norm*norm*norm)
+                            + ((i==j)*v[m] + (j==m)*v[i] + (i==m)*v[j] - 3*v[i]*v[j]*v[m]/(norm*norm))
+                            * (0.5*std::cos(norm/2) - sincHalf(norm)) / (norm*norm);
                         
 
                     }
 
-                    result[3][i][j] = -0.25/(norm*norm)
+                    result[3][i][j] = -0.5/(norm*norm)
                         * ( 0.5*std::cos(norm/2)*v[i]*v[j] + std::sin(norm/2) * ((i==j)*norm - v[i]*v[j]/norm));
 
                 }
@@ -402,21 +402,21 @@ public:
         Quaternion<T> result(0);
 
         // Compute difference on T_a SO(3)
-        Dune::FieldVector<double,3> v = difference(a,b);
+        Dune::FieldVector<double,3> xi = difference(a,b);
 
-        Dune::FieldVector<double,3> der = v;
-        der /= intervallLength;
+        xi /= intervallLength;
+
+        Dune::FieldVector<double,3> v = xi;
+        v *= omega;
         
         // //////////////////////////////////////////////////////////////
         //   v now contains the derivative at 'a'.  The derivative at
         //   the requested site is v pushed forward by Dexp.
         // /////////////////////////////////////////////////////////////
 
-        v *= omega;
-
         Dune::FieldMatrix<double,4,3> diffExp = Quaternion<double>::Dexp(v);
 
-        diffExp.umv(der,result);
+        diffExp.umv(xi,result);
 
         return a.mult(result);
     }
