@@ -248,23 +248,6 @@ public:
         void assembleMatrixFD(const std::vector<Configuration>& sol,
                               Dune::BCRSMatrix<MatrixBlock>& matrix) const;
 
-        void strainDerivative(const std::vector<Configuration>& localSolution,
-                              double pos,
-                              Dune::FieldVector<double,1> shapeGrad[2],
-                              Dune::FieldVector<double,1> shapeFunction[2],
-                              Dune::array<Dune::FieldMatrix<double,2,6>, 6>& derivatives) const;
-
-        void rotationStrainHessian(const std::vector<Configuration>& x, 
-                                   double pos,
-                                   Dune::FieldVector<double,1> shapeGrad[2],
-                                   Dune::FieldVector<double,1> shapeFunction[2],
-                                   Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const;
-        
-        void strainHessian(const std::vector<Configuration>& localSolution,
-                           double pos,
-                           Dune::array<Dune::Matrix<Dune::FieldMatrix<double,6,6> >, 3>& translationDer,
-                           Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const;
-
         void assembleGradient(const std::vector<Configuration>& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
