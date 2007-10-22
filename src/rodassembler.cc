@@ -361,6 +361,12 @@ assembleGradient(const Entity& element,
         = Dune::LagrangeShapeFunctions<double, double, 1>::general(element.type(), 1); // first order
     const int numOfBaseFct = baseSet.size();  
         
+    // init
+    for (size_t i=0; i<gradient.size(); i++)
+        gradient[i] = 0;
+
+    double intervalLength = element.geometry()[1][0] - element.geometry()[0][0];
+
     // Get quadrature rule
     int polOrd = 2;
     const QuadratureRule<double, 1>& quad = QuadratureRules<double, 1>::rule(element.type(), polOrd);
@@ -405,10 +411,10 @@ assembleGradient(const Entity& element,
             r_s[i] = solution[0].r[i]*shapeGrad[0] + solution[1].r[i]*shapeGrad[1];
         
         // Interpolate current rotation at this quadrature point
-        Quaternion<double> hatq = Quaternion<double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
+        Quaternion<double> q = Quaternion<double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
         
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-        Quaternion<double> hatq_s = Quaternion<double>::interpolateDerivative(solution[0].q, solution[1].q,
+        Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(solution[0].q, solution[1].q,
                                                                               quadPos, 1/shapeGrad[1]);
         
         // The current strain
@@ -417,31 +423,23 @@ assembleGradient(const Entity& element,
         // The reference strain
         FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration, element, quadPos);
         
-        // Contains \partial q / \partial v^i_j  at v = 0
-        array<Quaternion<double>,3> dq_dvj;
         
-        array<Quaternion<double>,3> dq_dvj_ds;
+        // dd_dvij[m][i][j] = \parder {(d_k)_i} {q}
+        array<FieldMatrix<double,3 , 4>, 3> dd_dq;
+        q.getFirstDerivativesOfDirectors(dd_dq);
         
-        for (int j=0; j<3; j++) {
-            
-            for (int m=0; m<3; m++) {
-                dq_dvj[j][m]     = (j==m) * 0.5;
-                dq_dvj_ds[j][m] = (j==m) * 0.5;
-            }
-            
-            dq_dvj[j][3]    = 0;
-            dq_dvj_ds[j][3] = 0;
-        }
-        
-        // dd_dvij[k][i][j] = \parder {d_k} {v^i_j}
-        array<array<FieldVector<double,3>, 3>, 3> dd_dvj;
-        hatq.getFirstDerivativesOfDirectors(dd_dvj);
-        
-        
+        // First derivatives of the position
+        array<Quaternion<double>,6> dq_dwij;
+        interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
+
+        array<Quaternion<double>,6> dq_ds_dwij;
+        interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos*intervalLength, intervalLength, 
+                                        dq_ds_dwij);
+
         // /////////////////////////////////////////////
         //   Sum it all up
         // /////////////////////////////////////////////
-        
+
         for (int i=0; i<numOfBaseFct; i++) {
             
             // /////////////////////////////////////////////
@@ -453,49 +451,42 @@ assembleGradient(const Entity& element,
                 
                 for (int m=0; m<3; m++) 
                     gradient[i][j] += weight 
-                        * (  A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[i] * hatq.director(m)[j]);
+                        * (  A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[i] * q.director(m)[j]);
                 
             }
-            
-            // \partial \bar{W}_v / \partial v^i_j
-            for (int j=0; j<3; j++) {
-                
-                for (int m=0; m<3; m++) 
-                    gradient[i][3+j] += weight 
-                        * (A_[m] * (strain[m] - referenceStrain[m]) * (r_s*dd_dvj[m][j]*shapeFunction[i]));
-                
-            }
-            
-            // /////////////////////////////////////////////
-            //   The rotational part
-            // /////////////////////////////////////////////
             
             // \partial \bar{W}_v / \partial v^i_j
             for (int j=0; j<3; j++) {
                 
                 for (int m=0; m<3; m++) {
+                    FieldVector<double,3> tmp(0);
+                    dd_dq[m].umv(dq_dwij[3*i+j], tmp);
+                    gradient[i][3+j] += weight 
+                        * A_[m] * (strain[m] - referenceStrain[m]) * (r_s*tmp);
+                }
+            }
+            
+            // /////////////////////////////////////////////
+            //   The rotational part
+            // /////////////////////////////////////////////
+
+            // \partial \bar{W}_v / \partial v^i_j
+            for (int j=0; j<3; j++) {
+                
+                for (int m=0; m<3; m++) {
                     
-                    double du_dvij_m;
+                    // Compute derivative of the strain
+                    double du_dvij_m = 2 * (dq_dwij[i*3+j].B(m) * q_s)
+                        + 2* ( q.B(m) * dq_ds_dwij[i*3+j]);
                     
-                    du_dvij_m = (hatq.mult(dq_dvj[j])).B(m) * hatq_s;
-                    du_dvij_m *= shapeFunction[i];
-                    
-                    Quaternion<double> tmp = dq_dvj[j];
-                    tmp *= shapeFunction[i];
-                    Quaternion<double> tmp_ds = dq_dvj_ds[j];
-                    tmp_ds *= shapeGrad[i];
-                    
-                    du_dvij_m += hatq.B(m) * (hatq.mult(tmp_ds) + hatq_s.mult(tmp));
-                    
-                    du_dvij_m *= 2;
-                    
+                    // Sum it up
                     gradient[i][3+j] += weight * K_[m] 
                         * (strain[m+3]-referenceStrain[m+3]) * du_dvij_m;
                     
                 }
                 
             }
-            
+
         }
         
     }
@@ -590,7 +581,6 @@ assembleMatrix(const std::vector<Configuration>& sol,
 
 }
 
-
 template <class GridType>
 template <class MatrixType>
 void RodAssembler<GridType>::
@@ -600,6 +590,7 @@ getLocalMatrix( EntityPointer &entity,
                 const int matSize, MatrixType& localMat) const
 {
     using namespace Dune;
+#if 0
 
     /* ndof is the number of vectors of the element */
     int ndof = matSize;
@@ -873,7 +864,7 @@ getLocalMatrix( EntityPointer &entity,
         }
 
     }
-
+#endif
 }
 
 template <class GridType>
@@ -1088,6 +1079,7 @@ strainDerivative(const std::vector<Configuration>& localSolution,
                  Dune::FieldVector<double,1> shapeFunction[2],
                  Dune::array<Dune::FieldMatrix<double,2,6>, 6>& derivatives) const
 {
+#if 0
     using namespace Dune;
 
     assert(localSolution.size()==2);
@@ -1153,139 +1145,9 @@ strainDerivative(const std::vector<Configuration>& localSolution,
 
     }
 
-
-}
-
-
-template <class GridType>
-void RodAssembler<GridType>::
-strainHessian(const std::vector<Configuration>& localSolution,
-              double pos,
-              Dune::array<Dune::Matrix<Dune::FieldMatrix<double,6,6> >, 3>& translationDer,
-              Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer) const
-{
-    using namespace Dune;
-
-    assert(localSolution.size()==2);
-
-    FieldVector<double,1> shapeGrad[2];
-    shapeGrad[0] = -1;
-    shapeGrad[1] =  1;
-
-    FieldVector<double,1> shapeFunction[2];
-    shapeFunction[0] = 1-pos;
-    shapeFunction[1] =  pos;
-
-
-    FieldVector<double,3> r_s;
-    for (int i=0; i<3; i++)
-        r_s[i] = localSolution[0].r[i]*shapeGrad[0] + localSolution[1].r[i]*shapeGrad[1];
-
-    // Interpolate current rotation at this quadrature point
-    Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q,pos);
-
-    // Contains \parder d \parder v^i_j
-    array<array<FieldVector<double,3>, 3>, 3> dd_dvj;
-    q.getFirstDerivativesOfDirectors(dd_dvj);
-
-    Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
-                                                                       pos, 1/shapeGrad[1]);
-
-    array<Quaternion<double>,3> dq_dvj;
-    Quaternion<double> dq_dvij_ds[2][3];
-    for (int i=0; i<2; i++)
-        for (int j=0; j<3; j++) {
-            
-            for (int m=0; m<3; m++) {
-                dq_dvj[j][m]    = (j==m) * 0.5;
-                dq_dvij_ds[i][j][m] = (j==m) * 0.5 * shapeGrad[i]/* * ((i==0) ? 1-pos[0] : pos[0])*/;
-            }
-            
-            dq_dvj[j][3]    = 0;
-            dq_dvij_ds[i][j][3] = 0;
-        }
-
-    Quaternion<double> dq_dvj_dvl[3][3];
-    Quaternion<double> dq_dvij_dvkl_ds[2][3][2][3];
-    for (int i=0; i<2; i++) {
-        
-        for (int j=0; j<3; j++) {
-            
-            for (int k=0; k<2; k++) {
-                
-                for (int l=0; l<3; l++) {
-                    
-                    for (int m=0; m<3; m++) {
-                        dq_dvj_dvl[j][l][m] = 0;
-                        dq_dvij_dvkl_ds[i][j][k][l][m] = 0;
-                    }
-                    
-                    dq_dvj_dvl[j][l][3]    = -0.25 * (j==l);
-                    dq_dvij_dvkl_ds[i][j][k][l][3] = -0.25 * (j==l) * shapeGrad[i] * shapeGrad[k]
-                        /*  * ((i==0) ? 1-pos[0] : pos[0]) * ((k==0) ? 1-pos[0] : pos[0]) */;
-                    
-                }
-                
-            }
-            
-        }
-        
-    }        
-
-    // the strain component
-    for (int m=0; m<3; m++) {
-
-        translationDer[m].setSize(2,2);
-        translationDer[m] = 0;
-
-        rotationDer[m].setSize(2,2);
-        rotationDer[m] = 0;
-
-        // the shape function
-        for (int i=0; i<2; i++) {
-
-            // the partial derivative direction
-            for (int j=0; j<3; j++) {
-
-                for (int k=0; k<2; k++) {
-
-                    for (int l=0; l<3; l++) {
-
-
-
-                        // //////////////////////////////////////////////////
-                        //   The rotation part
-                        // //////////////////////////////////////////////////
-                        Quaternion<double> tmp_ij = dq_dvj[j];
-                        Quaternion<double> tmp_kl = dq_dvj[l];
-
-                        tmp_ij *= shapeFunction[i];
-                        tmp_kl *= shapeFunction[k];
-
-                        Quaternion<double> tmp_ijkl = dq_dvj_dvl[j][l];
-                        tmp_ijkl *= shapeFunction[i] * shapeFunction[k];
-
-                        rotationDer[m][i][k][j][l]  = 2 * ( (q.mult(tmp_ijkl)).B(m) * q_s);
-                        rotationDer[m][i][k][j][l] += 2 * ( (q.mult(tmp_ij)).B(m) * (q.mult(dq_dvij_ds[k][l]) + q_s.mult(tmp_kl)));
-#if 1
-                        rotationDer[m][i][k][j][l] += 2 * ( (q.mult(tmp_kl)).B(m) * (q.mult(dq_dvij_ds[i][j]) + q_s.mult(tmp_ij)));
-                        rotationDer[m][i][k][j][l] += 2 * ( q.B(m) * (q.mult(dq_dvij_dvkl_ds[i][j][k][l]) + q_s.mult(tmp_ijkl)));
-#else
-#warning Term omitted in strainHessian
 #endif
-
-                    }
-
-                }
-
-            }
-
-        }
-
-    }
-
-
 }
+
 
 template <class GridType>
 void RodAssembler<GridType>::
