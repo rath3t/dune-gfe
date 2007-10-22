@@ -336,19 +336,21 @@ public:
         return a.mult(exp(v[0], v[1], v[2]));
     }
 
-    /** \brief Interpolate between two rotations */
+    /** \brief Interpolate between two rotations 
+        \param omega must be between 0 and 1
+    */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
-                                               double omega, double intervallLength) {
+                                               double omega, double intervalLength) {
         Quaternion<T> result(0);
 
         // Compute difference on T_a SO(3)
         Dune::FieldVector<double,3> xi = difference(a,b);
 
-        xi /= intervallLength;
-
         Dune::FieldVector<double,3> v = xi;
         v *= omega;
         
+        xi /= intervalLength;
+
         // //////////////////////////////////////////////////////////////
         //   v now contains the derivative at 'a'.  The derivative at
         //   the requested site is v pushed forward by Dexp.
