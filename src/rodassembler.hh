@@ -22,6 +22,12 @@ class RodLocalStiffness
     // some other sizes
     enum {dim=GridType::dimension};
 
+    // Quadrature order used for the extension and shear energy
+    enum {shearQuadOrder = 2};
+
+    // Quadrature order used for the bending and torsion energy
+    enum {bendingQuadOrder = 2};
+
 public:
     
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d

@@ -20,12 +20,11 @@ energy(const Entity& element,
     // ///////////////////////////////////////////////////////////////////////////////
     //   The following two loops are a reduced integration scheme.  We integrate
     //   the transverse shear and extensional energy with a first-order quadrature
-    //   formula, even though it should be second order.  This prevents shear-locking
+    //   formula, even though it should be second order.  This prevents shear-locking.
     // ///////////////////////////////////////////////////////////////////////////////
 
-    const int shearingPolOrd = 2;
     const Dune::QuadratureRule<double, 1>& shearingQuad 
-        = Dune::QuadratureRules<double, 1>::rule(element.type(), shearingPolOrd);
+        = Dune::QuadratureRules<double, 1>::rule(element.type(), shearQuadOrder);
     
     for (size_t pt=0; pt<shearingQuad.size(); pt++) {
         
@@ -47,8 +46,8 @@ energy(const Entity& element,
     }
     
     // Get quadrature rule
-    const int polOrd = 2;
-    const Dune::QuadratureRule<double, 1>& bendingQuad = Dune::QuadratureRules<double, 1>::rule(element.type(), polOrd);
+    const Dune::QuadratureRule<double, 1>& bendingQuad 
+        = Dune::QuadratureRules<double, 1>::rule(element.type(), bendingQuadOrder);
     
     for (size_t pt=0; pt<bendingQuad.size(); pt++) {
         
