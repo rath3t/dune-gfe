@@ -270,12 +270,6 @@ public:
         void getStrain(const std::vector<Configuration>& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
 
-        /** \brief Get the strain at a particular point of the grid */
-        Dune::FieldVector<double, 6> getStrain(const std::vector<Configuration>& sol,
-                                               const EntityPointer& element,
-                                               double pos) const;
-                       
-        
         /** \brief Return resultant force across boundary in canonical coordinates 
 
         \note Linear run-time in the size of the grid */

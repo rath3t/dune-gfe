@@ -1329,6 +1329,14 @@ getStrain(const std::vector<Configuration>& sol,
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
+    // ////////////////////////////////////////////////////
+    //   Create local assembler
+    // ////////////////////////////////////////////////////
+
+    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
+    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
+    RodLocalStiffness<GridType,double> localStiffness(K, A);
+
     // Strain defined on each element
     strain.resize(indexSet.size(0));
     strain = 0;
@@ -1346,7 +1354,7 @@ getStrain(const std::vector<Configuration>& sol,
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
         int numOfBaseFct = baseSet.size();
 
-        Configuration localSolution[numOfBaseFct];
+        array<Configuration,2> localSolution;
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
@@ -1362,7 +1370,7 @@ getStrain(const std::vector<Configuration>& sol,
 
             double weight = quad[pt].weight() * it->geometry().integrationElement(quadPos);
 
-            FieldVector<double,blocksize> localStrain = getStrain(sol, it, quad[pt].position());
+            FieldVector<double,blocksize> localStrain = localStiffness.getStrain(localSolution, *it, quad[pt].position());
             
             // Sum it all up
             strain[elementIdx].axpy(weight, localStrain);
@@ -1379,94 +1387,6 @@ getStrain(const std::vector<Configuration>& sol,
 
     }
 
-}
-
-template <class GridType>
-Dune::FieldVector<double, 6> RodAssembler<GridType>::getStrain(const std::vector<Configuration>& sol,
-                                                                       const EntityPointer& element,
-                                                                       double pos) const
-{
-    using namespace Dune;
-
-    if (!element->isLeaf())
-        DUNE_THROW(Dune::NotImplemented, "Only for leaf elements");
-
-    const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
-
-    if (sol.size()!=indexSet.size(gridDim))
-        DUNE_THROW(Exception, "Configuration vector doesn't match the grid!");
-
-    // Strain defined on each element
-    FieldVector<double, blocksize> strain(0);
-
-    // Extract local solution on this element
-    const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(element->type(), elementOrder);
-    int numOfBaseFct = baseSet.size();
-    
-    Configuration localSolution[numOfBaseFct];
-    
-    for (int i=0; i<numOfBaseFct; i++)
-        localSolution[i] = sol[indexSet.template subIndex<gridDim>(*element,i)];
-    
-    const FieldMatrix<double,1,1>& inv = element->geometry().jacobianInverseTransposed(pos);
-    
-    // ///////////////////////////////////////
-    //   Compute deformation gradient
-    // ///////////////////////////////////////
-    FieldVector<double,gridDim> shapeGrad[numOfBaseFct];
-        
-    for (int dof=0; dof<numOfBaseFct; dof++) {
-            
-        for (int i=0; i<gridDim; i++)
-            shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,pos);
-        //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
-        
-        // multiply with jacobian inverse 
-        FieldVector<double,gridDim> tmp(0);
-        inv.umv(shapeGrad[dof], tmp);
-        shapeGrad[dof] = tmp;
-        //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
-        
-    }
-        
-    // //////////////////////////////////
-    //   Interpolate
-    // //////////////////////////////////
-        
-    FieldVector<double,3> r_s;
-    r_s[0] = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
-    r_s[1] = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
-    r_s[2] = localSolution[0].r[2]*shapeGrad[0][0] + localSolution[1].r[2]*shapeGrad[1][0];
-        
-    // Interpolate the rotation at the quadrature point
-    Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q, pos);
-        
-    // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-    Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
-                                                                       pos, 1/shapeGrad[1]);
-        
-    // /////////////////////////////////////////////
-    //   Sum it all up
-    // /////////////////////////////////////////////
-        
-    // Part I: the shearing and stretching strain
-    //std::cout << "tangent : " << r_s << std::endl;
-    strain[0] = r_s * q.director(0);    // shear strain
-    strain[1] = r_s * q.director(1);    // shear strain
-    strain[2] = r_s * q.director(2);    // stretching strain
-        
-    //std::cout << "strain : " << v << std::endl;
-        
-    // Part II: the Darboux vector
-        
-    FieldVector<double,3> u = darboux(q, q_s);
-    
-    strain[3] = u[0];
-    strain[4] = u[1];
-    strain[5] = u[2];
-
-    return strain;
 }
 
 template <class GridType>
