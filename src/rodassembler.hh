@@ -285,14 +285,6 @@ public:
 
     protected:
 
-        /** \brief Compute the element tangent stiffness matrix  
-            \todo Handing over both the local and the global solution is pretty stupid. */
-        template <class MatrixType>
-        void getLocalMatrix( EntityPointer &entity, 
-                             const std::vector<Configuration>& localSolution, 
-                             const std::vector<Configuration>& globalSolution, 
-                             const int matSize, MatrixType& mat) const;
-
         template <class T>
         static Dune::FieldVector<T,3> darboux(const Quaternion<T>& q, const Dune::FieldVector<T,4>& q_s) 
         {
