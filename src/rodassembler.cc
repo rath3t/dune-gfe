@@ -324,7 +324,9 @@ getStrain(const Dune::array<Configuration,2>& localSolution,
         
     // Get the derivative of the rotation at the quadrature point by interpolating in $H$
     Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
-                                                                       pos, 1/shapeGrad[1]);
+                                                                       pos);
+    // Transformation from the reference element
+    q_s *= inv[0][0];
         
     // /////////////////////////////////////////////
     //   Sum it all up
@@ -483,7 +485,10 @@ assembleGradient(const Entity& element,
         
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
         Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(solution[0].q, solution[1].q,
-                                                                              quadPos, integrationElement);
+                                                                           quadPos);
+        // Transformation from the reference element
+        q_s *= inv[0][0];
+        
         
         // The current strain
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);

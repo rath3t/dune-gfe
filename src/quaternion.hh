@@ -340,7 +340,7 @@ public:
         \param omega must be between 0 and 1
     */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
-                                               double omega, double intervalLength) {
+                                               double omega) {
         Quaternion<T> result(0);
 
         // Compute difference on T_a SO(3)
@@ -349,8 +349,6 @@ public:
         Dune::FieldVector<double,3> v = xi;
         v *= omega;
         
-        xi /= intervalLength;
-
         // //////////////////////////////////////////////////////////////
         //   v now contains the derivative at 'a'.  The derivative at
         //   the requested site is v pushed forward by Dexp.
