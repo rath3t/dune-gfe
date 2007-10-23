@@ -366,19 +366,24 @@ assembleGradient(const Entity& element,
 
     double intervalLength = element.geometry()[1][0] - element.geometry()[0][0];
 
+    // ///////////////////////////////////////////////////////////////////////////////////
+    //   Reduced integration to avoid locking:  assembly is split into a shear part 
+    //   and a bending part.  Different quadrature rules are used for the two parts.
+    //   This avoids locking.
+    // ///////////////////////////////////////////////////////////////////////////////////
+    
     // Get quadrature rule
-    int polOrd = 2;
-    const QuadratureRule<double, 1>& quad = QuadratureRules<double, 1>::rule(element.type(), polOrd);
+    const QuadratureRule<double, 1>& shearingQuad = QuadratureRules<double, 1>::rule(element.type(), shearQuadOrder);
 
-    for (int pt=0; pt<quad.size(); pt++) {
+    for (int pt=0; pt<shearingQuad.size(); pt++) {
         
         // Local position of the quadrature point
-        const FieldVector<double,1>& quadPos = quad[pt].position();
+        const FieldVector<double,1>& quadPos = shearingQuad[pt].position();
         
         const FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(quadPos);
         const double integrationElement = element.geometry().integrationElement(quadPos);
         
-        double weight = quad[pt].weight() * integrationElement;
+        double weight = shearingQuad[pt].weight() * integrationElement;
         
         // ///////////////////////////////////////
         //   Compute deformation gradient
@@ -396,11 +401,6 @@ assembleGradient(const Entity& element,
             
         }
         
-        // Get the value of the shape functions
-        double shapeFunction[2];
-        for(int i=0; i<2; i++) 
-            shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
-        
         // //////////////////////////////////
         //   Interpolate
         // //////////////////////////////////
@@ -411,10 +411,6 @@ assembleGradient(const Entity& element,
         
         // Interpolate current rotation at this quadrature point
         Quaternion<double> q = Quaternion<double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
-        
-        // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-        Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(solution[0].q, solution[1].q,
-                                                                              quadPos, 1/shapeGrad[1]);
         
         // The current strain
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
@@ -430,10 +426,6 @@ assembleGradient(const Entity& element,
         // First derivatives of the position
         array<Quaternion<double>,6> dq_dwij;
         interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
-
-        array<Quaternion<double>,6> dq_ds_dwij;
-        interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos*intervalLength, intervalLength, 
-                                        dq_ds_dwij);
 
         // /////////////////////////////////////////////
         //   Sum it all up
@@ -465,6 +457,54 @@ assembleGradient(const Entity& element,
                 }
             }
             
+        }
+        
+    }
+
+    // /////////////////////////////////////////////////////
+    //   Now: the bending/torsion part
+    // /////////////////////////////////////////////////////
+
+    // Get quadrature rule
+    const QuadratureRule<double, 1>& bendingQuad = QuadratureRules<double, 1>::rule(element.type(), bendingQuadOrder);
+
+    for (int pt=0; pt<bendingQuad.size(); pt++) {
+        
+        // Local position of the quadrature point
+        const FieldVector<double,1>& quadPos = bendingQuad[pt].position();
+        
+        const FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(quadPos);
+        const double integrationElement = element.geometry().integrationElement(quadPos);
+        
+        double weight = bendingQuad[pt].weight() * integrationElement;
+        
+        // Interpolate current rotation at this quadrature point
+        Quaternion<double> q = Quaternion<double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
+        
+        // Get the derivative of the rotation at the quadrature point by interpolating in $H$
+        Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(solution[0].q, solution[1].q,
+                                                                              quadPos, integrationElement);
+        
+        // The current strain
+        FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
+        
+        // The reference strain
+        FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration, element, quadPos);
+        
+        // First derivatives of the position
+        array<Quaternion<double>,6> dq_dwij;
+        interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
+
+        array<Quaternion<double>,6> dq_ds_dwij;
+        interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos*intervalLength, intervalLength, 
+                                        dq_ds_dwij);
+
+        // /////////////////////////////////////////////
+        //   Sum it all up
+        // /////////////////////////////////////////////
+
+        for (int i=0; i<numOfBaseFct; i++) {
+            
             // /////////////////////////////////////////////
             //   The rotational part
             // /////////////////////////////////////////////
@@ -489,7 +529,6 @@ assembleGradient(const Entity& element,
         }
         
     }
-
 }
 
 template <class GridType>
