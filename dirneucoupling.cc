@@ -1,7 +1,5 @@
 #include <config.h>
 
-#define HAVE_IPOPT
-
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/uggrid.hh>
 
