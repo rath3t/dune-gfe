@@ -28,8 +28,8 @@ using namespace Dune;
 using std::string;
 
 void setTrustRegionObstacles(double trustRegionRadius,
-                             std::vector<BoxConstraint<blocksize> >& trustRegionObstacles,
-                             const std::vector<BoxConstraint<blocksize> >& trueObstacles,
+                             std::vector<BoxConstraint<double,blocksize> >& trustRegionObstacles,
+                             const std::vector<BoxConstraint<double,blocksize> >& trueObstacles,
                              const BitField& dirichletNodes)
 {
     //std::cout << "True obstacles\n" << trueObstacles << std::endl;
@@ -156,8 +156,8 @@ int main (int argc, char *argv[]) try
         hasObstacle[i].setAll();
     }
 
-    std::vector<std::vector<BoxConstraint<3> > > trueObstacles(maxlevel+1);
-    std::vector<std::vector<BoxConstraint<3> > > trustRegionObstacles(maxlevel+1);
+    std::vector<std::vector<BoxConstraint<double,3> > > trueObstacles(maxlevel+1);
+    std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(maxlevel+1);
 
     for (int i=0; i<maxlevel+1; i++) {
         trueObstacles[i].resize(rod.size(i,1));
