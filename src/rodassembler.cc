@@ -1044,11 +1044,21 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             //   Compute force across this boundary face
             // //////////////////////////////////////////////
 
+            //   Create local assembler
             
+            Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
+            Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
+            RodLocalStiffness<GridType,double> localStiffness(K, A);
+
             double pos = nIt.intersectionSelfLocal()[0];
 
-            FieldVector<double, blocksize> strain = getStrain(sol, eIt, pos);
-            FieldVector<double, blocksize> referenceStrain = getStrain(referenceConfiguration_, eIt, pos);
+            Dune::array<Configuration,2> localSolution = {sol[indexSet.template subIndex<1>(*eIt,0)],
+                                                          sol[indexSet.template subIndex<1>(*eIt,1)]};
+            Dune::array<Configuration,2> localRefConf  = {referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)],
+                                                          referenceConfiguration_[indexSet.template subIndex<1>(*eIt,1)]};
+
+            FieldVector<double, blocksize> strain          = localStiffness.getStrain(localSolution, *eIt, pos);
+            FieldVector<double, blocksize> referenceStrain = localStiffness.getStrain(localRefConf, *eIt, pos);
 
             FieldVector<double,3> localStress;
             for (int i=0; i<3; i++)
