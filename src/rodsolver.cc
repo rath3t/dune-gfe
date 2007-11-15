@@ -218,18 +218,16 @@ void RodSolver<GridType>::solve()
         
         if (this->verbosity_ == FULL) {
             std::cout << "----------------------------------------------------" << std::endl;
-            std::cout << "      Trust-Region Step Number: " << i << std::endl;
+            std::cout << "      Trust-Region Step Number: " << i 
+                      << ",     radius: " << trustRegionRadius
+                      << ",     energy: " << rodAssembler_->computeEnergy(x_) << std::endl;
             std::cout << "----------------------------------------------------" << std::endl;
-            
-            std::cout << "### Trust-Region Radius: " << trustRegionRadius << " ###" << std::endl;
         }
 
         CorrectionType rhs;
         CorrectionType corr(x_.size());
         corr = 0;
 
-        if (this->verbosity_ == FULL)
-            std::cout << "Rod energy: " <<rodAssembler_->computeEnergy(x_) << std::endl;
         rodAssembler_->assembleGradient(x_, rhs);
         //rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
         rodAssembler_->assembleMatrixFD(x_, *hessianMatrix_);
