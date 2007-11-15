@@ -49,8 +49,8 @@ public:
     // /////////////////////////////////
     
     /** \brief Material constants */
-    double K_[3];
-    double A_[3];
+    Dune::array<double,3> K_;
+    Dune::array<double,3> A_;
 
     //! Default Constructor
     RodLocalStiffness ()
@@ -159,8 +159,8 @@ public:
         const GridType* grid_; 
         
         /** \brief Material constants */
-        double K_[3];
-        double A_[3];
+        Dune::array<double,3> K_;
+        Dune::array<double,3> A_;
 
         /** \brief The stress-free configuration */
         std::vector<Configuration> referenceConfiguration_;
