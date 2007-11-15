@@ -20,13 +20,16 @@ class RodSolver : public Solver
 { 
     const static int blocksize = 6;
 
+    // Centralize the field type here
+    typedef double field_type;
+
     // Some types that I need
-    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize, blocksize> > MatrixType;
-    typedef Dune::BlockVector<Dune::FieldVector<double, blocksize> >           CorrectionType;
-    typedef std::vector<Configuration>                              SolutionType;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
+    typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
+    typedef std::vector<Configuration>                                             SolutionType;
 
     static void setTrustRegionObstacles(double trustRegionRadius,
-                                        std::vector<BoxConstraint<blocksize> >& trustRegionObstacles);
+                                        std::vector<BoxConstraint<field_type,blocksize> >& trustRegionObstacles);
 public:
 
     RodSolver()
@@ -101,7 +104,7 @@ protected:
     IterativeSolver<MatrixType, CorrectionType>* mmgSolver_;
 
     /** \brief The hierarchy of trust-region obstacles */
-    std::vector<std::vector<BoxConstraint<blocksize> > > trustRegionObstacles_;
+    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles_;
 
     /** \brief Dummy fields containing 'true' everywhere.  The multigrid step
         expects them :-( */
