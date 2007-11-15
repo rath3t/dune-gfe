@@ -27,7 +27,7 @@
 template <class GridType>
 void RodSolver<GridType>::
 setTrustRegionObstacles(double trustRegionRadius,
-                        std::vector<BoxConstraint<blocksize> >& trustRegionObstacles)
+                        std::vector<BoxConstraint<field_type,blocksize> >& trustRegionObstacles)
 {
     for (int j=0; j<trustRegionObstacles.size(); j++) {
 
