@@ -430,7 +430,9 @@ int main (int argc, char *argv[]) try
             lambda.r[j] = (1-dirichletDamping) * lambda.r[j] 
                 + dirichletDamping * (referenceInterface.r[j] + averageInterface.r[j]);
 
-        lambda.q = Quaternion<double>::interpolate(lambda.q, averageInterface.q, dirichletDamping);
+        lambda.q = Quaternion<double>::interpolate(lambda.q, 
+                                                   referenceInterface.q.mult(averageInterface.q), 
+                                                   dirichletDamping);
 
         std::cout << "Lambda: " << lambda << std::endl;
 
