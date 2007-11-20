@@ -310,9 +310,11 @@ void RodSolver<GridType>::solve()
                 if (error < 1e-12)
                     break;
                 
-                printf("Iteration: %d  ", j);
-                printf("Errors:  error %g,  convergence Rate: %g,  total conv rate %g\n", 
-                       error, convRate, pow(totalConvRate, 1/((double)j+1)), 0);
+                std::cout << "Iteration: " << j << "  ";
+                std::cout << "Errors:  error " << error << ", convergence rate: " << convRate
+                          << ",  total conv rate " << pow(totalConvRate, 1/((double)j+1)) << std::endl;
+                
+
                 fprintf(fp, "%d %g %g %g\n", j+1, error, convRate, pow(totalConvRate, 1/((double)j+1)));
                 
                 
