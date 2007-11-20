@@ -1023,6 +1023,10 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
+    /** \todo Eigentlich sollte das BoundaryPatch ein LeafBoundaryPatch sein */
+    if (boundary.level() != grid_->maxLevel())
+        DUNE_THROW(Exception, "The boundary patch has to refer to the max level!");
+
     FieldVector<double,3> canonicalStress(0);
     canonicalTorque = 0;
 
