@@ -264,9 +264,6 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
 
             const typename NeighborIterator::Geometry& segmentGeometry = nIt.intersectionGlobal();
 
-            const ReferenceElement<double,dim>& refElement = ReferenceElements<double, dim>::general(eIt->type());
-            int nDofs = refElement.size(nIt.numberInSelf(),1,dim);
-
             // Get quadrature rule
             const QuadratureRule<double, dim-1>& quad = QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
 
@@ -294,9 +291,6 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                 }
 
                 const FieldMatrix<double,dim,dim>& inv = eIt->geometry().jacobianInverseTransposed(quadPos);
-                
-                /* Compute the weight of the current integration point */
-                double weight = quad[ip].weight() * integrationElement;
                 
                 /**********************************************/
                 /* compute gradients of the shape functions   */
@@ -381,7 +375,7 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     deformationGradient = U;
     deformationGradient.rightmultiply(VT);
 #endif
-    std::cout << deformationGradient << std::endl;
+    //std::cout << deformationGradient << std::endl;
 
     // deformationGradient now contains the orthogonal part of the polar decomposition
     assert( std::abs(1-deformationGradient.determinant()) < 1e-3);
