@@ -163,7 +163,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     // /////////////////////////////////////////////////////////////////////////////////////
     //   Compute the overall force and torque to see whether the preceding code is correct
     // /////////////////////////////////////////////////////////////////////////////////////
-
+#ifdef NDEBUG
     Dune::FieldVector<double,3> outputForce(0), outputTorque(0);
 
     eIt    = indexSet.template begin<0,Dune::All_Partition>();
@@ -220,8 +220,62 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     assert( outputTorque.infinity_norm() < 1e-6 );
 //     std::cout << "Output force:  " << outputForce << std::endl;
 //     std::cout << "Output torque: " << outputTorque << "      " << resultantTorque[0]/outputTorque[0] << std::endl;
+#endif
 
 }
+
+template <class GridType>
+void averageSurfaceDGFunction(const GridType& grid,
+                              const Dune::BlockVector<Dune::FieldVector<double,GridType::dimension> >& dgFunction,
+                              Dune::BlockVector<Dune::FieldVector<double,GridType::dimension> >& p1Function,
+                              const DGIndexSet<GridType>& dgIndexSet)
+{
+    const int dim = GridType::dimension;
+
+    const typename GridType::Traits::LeafIndexSet& indexSet = grid.leafIndexSet();
+
+    p1Function.resize(indexSet.size(dim));
+    p1Function = 0;
+
+    std::vector<int> counter(indexSet.size(dim), 0);
+
+    typename GridType::template Codim<0>::LeafIterator eIt    = grid.template leafbegin<0>();
+    typename GridType::template Codim<0>::LeafIterator eEndIt = grid.template leafend<0>();
+
+    for (; eIt!=eEndIt; ++eIt) {
+
+        typename GridType::template Codim<0>::Entity::LeafIntersectionIterator nIt    = eIt->ileafbegin();
+        typename GridType::template Codim<0>::Entity::LeafIntersectionIterator nEndIt = eIt->ileafend();
+
+        for (; nIt!=nEndIt; ++nIt) {
+
+            if (!nIt.boundary())
+                continue;
+
+            const Dune::ReferenceElement<double,dim>& refElement 
+                = Dune::ReferenceElements<double, dim>::general(eIt->type());
+
+            for (int i=0; i<refElement.size(nIt.numberInSelf(),1,dim); i++) {
+
+                int idxInElement = refElement.subEntity(nIt.numberInSelf(),1, i, dim);
+                
+                p1Function[indexSet.template subIndex<dim>(*eIt,idxInElement)] 
+                    += dgFunction[dgIndexSet(*eIt,nIt.numberInSelf())+i];
+                
+                counter[indexSet.template subIndex<dim>(*eIt,idxInElement)]++;
+                
+            }
+
+        }
+
+    }
+
+    for (int i=0; i<p1Function.size(); i++)
+        if (counter[i]!=0)
+            p1Function[i] /= counter[i];
+
+}
+
 
 template <class GridType>
 void computeAverageInterface(const BoundaryPatch<GridType>& interface,
