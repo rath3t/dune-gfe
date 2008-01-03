@@ -42,16 +42,6 @@ const double nu = 0.3;
 using namespace Dune;
 using std::string;
 
-template <class DiscFuncType, int blocksize>
-double computeEnergyNormSquared(const DiscFuncType& u, 
-                                const BCRSMatrix<FieldMatrix<double,blocksize,blocksize> >& A)
-{
-    DiscFuncType tmp(u.size());
-    tmp = 0;
-    A.umv(u, tmp);
-    return u*tmp;
-}
-
 int main (int argc, char *argv[]) try
 {
     // Some types that I need
@@ -479,9 +469,9 @@ int main (int argc, char *argv[]) try
         // ////////////////////////////////////////////
 
         // the 3d body
-        double oldNorm = computeEnergyNormSquared(oldSolution3d, *hessian3d);
+        double oldNorm = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, *hessian3d);
         oldSolution3d -= x3d;
-        double normOfCorrection = computeEnergyNormSquared(oldSolution3d, *hessian3d);
+        double normOfCorrection = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, *hessian3d);
 
         // the rod \todo missing
 #warning Energy error of the rod still missing
@@ -497,7 +487,7 @@ int main (int argc, char *argv[]) try
         normOfOldCorrection = normOfCorrection;
 
         // Output
-        std::cout << "DD iteration: " << i << "  --  ||u^{n+1} - u^n||: " << relativeError << ",      "
+        std::cout << "DD iteration: " << i << "  --  ||u^{n+1} - u^n|| / ||u^n||: " << relativeError << ",      "
                   << "convrate " << convRate << "\n";
 
         if (relativeError < ddTolerance)
@@ -535,11 +525,11 @@ int main (int argc, char *argv[]) try
     
     // This should really be exactSol-initialSol, but we're starting
     // from zero anyways
-    oldError += computeEnergyNormSquared(exactSol3d, *hessian3d);
+    oldError += EnergyNorm<MatrixType,VectorType>::normSquared(exactSol3d, *hessian3d);
     
     // Error of the initial rod iterate
     RodDifferenceType rodDifference = computeRodDifference(initialIterateRod, exactSolRod);
-    oldError += computeEnergyNormSquared(rodDifference, hessianRod);
+    oldError += EnergyNorm<BCRSMatrix<FieldMatrix<double,6,6> >,RodDifferenceType>::normSquared(rodDifference, hessianRod);
 
     oldError = std::sqrt(oldError);
 
@@ -592,9 +582,9 @@ int main (int argc, char *argv[]) try
 
         RodDifferenceType rodDifference = computeRodDifference(exactSolRod, intermediateSolRod);
         
-        error = std::sqrt(computeEnergyNormSquared(solBackup0, *hessian3d)
+        error = std::sqrt(EnergyNorm<MatrixType,VectorType>::normSquared(solBackup0, *hessian3d)
                           +
-                          computeEnergyNormSquared(rodDifference, hessianRod));
+                          EnergyNorm<BCRSMatrix<FieldMatrix<double,6,6> >,RodDifferenceType>::normSquared(rodDifference, hessianRod));
         
 
         double convRate = error / oldError;
