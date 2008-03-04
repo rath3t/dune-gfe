@@ -1,0 +1,8 @@
+
+#dune module information file#
+##############################
+
+#Name of the module
+Module:rods
+#depending on 
+Depends:dune-common dune-grid dune-istl dune-disc
