@@ -7,9 +7,7 @@
 #include <dune/disc/operators/p1operator.hh>
 
 #include <dune/ag-common/trustregiongsstep.hh>
-/** \todo Don't hardwire the absolute path here! */
-#include "/home/haile/sander/dune/contact/src/contactmmgstep.hh"
-
+#include <dune/ag-common/mmgstep.hh>
 #include <dune/ag-common/iterativesolver.hh>
 
 #include <dune/ag-common/energynorm.hh>
@@ -116,7 +114,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
     TrustRegionGSStep<MatrixType, CorrectionType>* postsmoother = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
-    ContactMMGStep<MatrixType, CorrectionType>* mmgStep = new ContactMMGStep<MatrixType, CorrectionType>(numLevels);
+    MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>(numLevels);
 
     mmgStep->setMGType(mu_, nu1_, nu2_);
     mmgStep->dirichletNodes_    = &dirichletNodes_;
