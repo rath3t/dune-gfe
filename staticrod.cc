@@ -41,15 +41,15 @@ void setTrustRegionObstacles(double trustRegionRadius,
             if (dirichletNodes[j*blocksize+k])
                 continue;
 
-            trustRegionObstacles[j].val[2*k] =
-                (trueObstacles[j].val[2*k] < -1e10)
-                ? std::min(-trustRegionRadius, trueObstacles[j].val[2*k+1] - trustRegionRadius)
-                : trueObstacles[j].val[2*k];
+            trustRegionObstacles[j].lower(k) =
+                (trueObstacles[j].lower(k) < -1e10)
+                ? std::min(-trustRegionRadius, trueObstacles[j].upper(k) - trustRegionRadius)
+                : trueObstacles[j].lower(k);
                 
-            trustRegionObstacles[j].val[2*k+1] =
-                (trueObstacles[j].val[2*k+1] >  1e10) 
-                ? std::max(trustRegionRadius,trueObstacles[j].val[2*k] + trustRegionRadius)
-                : trueObstacles[j].val[2*k+1];
+            trustRegionObstacles[j].upper(k) =
+                (trueObstacles[j].upper(k) >  1e10) 
+                ? std::max(trustRegionRadius,trueObstacles[j].lower(k) + trustRegionRadius)
+                : trueObstacles[j].upper(k);
 
         }
 
@@ -167,7 +167,7 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<trueObstacles[maxlevel].size(); i++) {
         trueObstacles[maxlevel][i].clear();
         //trueObstacles[maxlevel][i].val[0] =     - x[i][0];
-        trueObstacles[maxlevel][i].val[1] = 0.1 - x[i][0];
+        trueObstacles[maxlevel][i].upper(0) = 0.1 - x[i][0];
     }
 
     // ////////////////////////////////
