@@ -1,7 +1,7 @@
 #include <config.h>
 
-//#define DUNE_EXPRESSIONTEMPLATES
 #include <dune/common/bitfield.hh>
+#include <dune/common/configparser.hh>
 
 #include <dune/grid/onedgrid.hh>
 
@@ -9,19 +9,17 @@
 
 #include <dune/disc/operators/p1operator.hh>
 
-#include "../common/boundarypatch.hh"
-
-#include "src/planarrodassembler.hh"
-#include "../common/projectedblockgsstep.hh"
+#include <dune/ag-common/boundarypatch.hh>
+#include <dune/ag-common/projectedblockgsstep.hh>
 #include "../contact/src/contactmmgstep.hh"
+#include <dune/ag-common/iterativesolver.hh>
 
-#include "../common/iterativesolver.hh"
+#include <dune/ag-common/geomestimator.hh>
+#include <dune/ag-common/energynorm.hh>
 
-#include "../common/geomestimator.hh"
-#include "../common/energynorm.hh"
 #include "src/rodwriter.hh"
+#include "src/planarrodassembler.hh"
 
-#include <dune/common/configparser.hh>
 
 // Number of degrees of freedom: 
 // 3 (x, y, theta) for a planar rod
