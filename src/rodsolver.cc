@@ -6,13 +6,14 @@
 #include <dune/disc/miscoperators/laplace.hh>
 #include <dune/disc/operators/p1operator.hh>
 
-#include "../common/trustregiongsstep.hh"
-#include "../contact/src/contactmmgstep.hh"
+#include <dune/ag-common/trustregiongsstep.hh>
+/** \todo Don't hardwire the absolute path here! */
+#include "/home/haile/sander/dune/contact/src/contactmmgstep.hh"
 
-#include "../common/iterativesolver.hh"
+#include <dune/ag-common/iterativesolver.hh>
 
-#include "../common/energynorm.hh"
-#include "../common/h1seminorm.hh"
+#include <dune/ag-common/energynorm.hh>
+#include <dune/ag-common/h1seminorm.hh>
 
 #include "configuration.hh"
 #include "quaternion.hh"
@@ -33,8 +34,8 @@ setTrustRegionObstacles(double trustRegionRadius,
 
         for (int k=0; k<blocksize; k++) {
 
-            trustRegionObstacles[j].val[2*k]   = -trustRegionRadius;
-            trustRegionObstacles[j].val[2*k+1] =  trustRegionRadius;
+            trustRegionObstacles[j].lower(k) = -trustRegionRadius;
+            trustRegionObstacles[j].upper(k) =  trustRegionRadius;
 
         }
         

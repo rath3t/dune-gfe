@@ -4,8 +4,8 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 
-#include "../../contact/src/dgindexset.hh"
-#include "../../common/crossproduct.hh"
+#include <dune/ag-common/dgindexset.hh>
+#include <dune/ag-common/crossproduct.hh>
 #include "svd.hh"
 #include "lapackpp.h"
 #undef max

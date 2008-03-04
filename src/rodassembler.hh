@@ -7,7 +7,7 @@
 #include <dune/istl/matrix.hh>
 #include <dune/disc/operators/localstiffness.hh>
 
-#include "../../common/boundarypatch.hh"
+#include <dune/ag-common/boundarypatch.hh>
 #include "configuration.hh"
 
 template<class GridType, class RT>
