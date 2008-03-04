@@ -70,6 +70,7 @@ energy(const Entity& element,
     return energy;
 }
 
+
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
 interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
@@ -79,22 +80,58 @@ interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, doub
     for (int i=0; i<6; i++)
         grad[i] = 0;
 
-    // Compute q_0^{-1}
-    Quaternion<RT> q0Inv = q0;
-    q0Inv.invert();
+    // The derivatives with respect to w^1
 
+    // Compute q_1^{-1}q_0
+    Quaternion<RT> q1InvQ0 = q1;
+    q1InvQ0.invert();
+    q1InvQ0 = q1InvQ0.mult(q0);
+
+    {
+    // Compute v = (1-s) \exp^{-1} ( q_1^{-1} q_0)
+    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q1InvQ0);
+    v *= (1-s);
+
+    Dune::FieldMatrix<RT,4,3> dExp_v = Quaternion<RT>::Dexp(v);
+
+    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q1InvQ0);
+
+    Dune::FieldMatrix<RT,4,4> mat(0);
+    for (int i=0; i<4; i++)
+        for (int j=0; j<4; j++)
+            for (int k=0; k<3; k++)
+                mat[i][j] += (1-s) * dExp_v[i][k] * dExpInv[k][j];
+
+    for (int i=0; i<3; i++) {
+
+        Quaternion<RT> dw;
+        for (int j=0; j<4; j++)
+            dw[j] = 0.5 * (i==j);  // dExp[j][i] at v=0
+        
+        dw = q1InvQ0.mult(dw);
+        
+        mat.umv(dw,grad[i]);
+        grad[i] = q1.mult(grad[i]);
+
+    }
+    }
+
+
+    // The derivatives with respect to w^1
+
+    // Compute q_0^{-1}
+    Quaternion<RT> q0InvQ1 = q0;
+    q0InvQ1.invert();
+    q0InvQ1 = q0InvQ1.mult(q1);
+
+    {
     // Compute v = s \exp^{-1} ( q_0^{-1} q_1)
-    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q0Inv.mult(q1));
+    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q0InvQ1);
     v *= s;
 
     Dune::FieldMatrix<RT,4,3> dExp_v = Quaternion<RT>::Dexp(v);
 
-    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q0Inv.mult(q1));
-
-    /** \todo Compute this once and for all */
-    Dune::FieldMatrix<RT,4,3> dExp_v_0 = Quaternion<RT>::Dexp(Dune::FieldVector<RT,3>(0));
-
-    
+    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q0InvQ1);
 
     Dune::FieldMatrix<RT,4,4> mat(0);
     for (int i=0; i<4; i++)
@@ -102,47 +139,22 @@ interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, doub
             for (int k=0; k<3; k++)
                 mat[i][j] += s * dExp_v[i][k] * dExpInv[k][j];
 
-    
-    // The derivatives with respect to w^0
-    for (int i=0; i<3; i++) {
-
-        Quaternion<RT> dw;
-        for (int j=0; j<4; j++)
-            dw[j] = dExp_v_0[j][i];
-        
-        // First addend
-        Quaternion<RT> grad0 = q0.mult(dw.mult(Quaternion<RT>::exp(v)));
-
-        // Second addend
-        dw.conjugate();
-
-        dw[3] -= 2 * dExp_v_0[3][i];
-
-        dw = dw.mult(q0Inv.mult(q1));
-        
-        mat.umv(dw,grad[i]);
-        grad[i] = q0.mult(grad[i]);
-        
-        // Add the two addends
-        for (int j=0; j<4; j++)
-            grad[i][j] = grad0[j] + grad[i][j];
-
-    }
-
-    // The derivatives with respect to w^1
     for (int i=3; i<6; i++) {
 
         Quaternion<RT> dw;
         for (int j=0; j<4; j++)
-            dw[j] = dExp_v_0[j][i-3];
-        
-        dw = q0Inv.mult(q1.mult(dw));
+            dw[j] = 0.5 * ((i-3)==j);  // dExp[j][i-3] at v=0
+
+        dw = q0InvQ1.mult(dw);
         
         mat.umv(dw,grad[i]);
         grad[i] = q0.mult(grad[i]);
 
     }
+    }
 }
+
+
 
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
@@ -169,9 +181,6 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
 
     Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q0Inv.mult(q1));
 
-    /** \todo Compute this once and for all */
-    Dune::FieldMatrix<RT,4,3> dExp_v_0 = Quaternion<RT>::Dexp(Dune::FieldVector<RT,3>(0));
-    
     Dune::FieldMatrix<RT,4,4> mat(0);
     for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
@@ -187,7 +196,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
         // \partial exp \partial w^1_j at 0
         Quaternion<RT> dw;
         for (int j=0; j<4; j++)
-            dw[j] = dExp_v_0[j][i];
+            dw[j] = 0.5*(i==j);  // dExp_v_0[j][i];
 
         // \xi = \exp^{-1} q_0^{-1} q_1
         Dune::FieldVector<RT,3> xi = Quaternion<RT>::expInv(q0Inv.mult(q1));
@@ -201,7 +210,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
         //  \parder{\xi}{w^1_j} = ...
         Quaternion<RT> dwConj = dw;
         dwConj.conjugate();
-        dwConj[3] -= 2 * dExp_v_0[3][i];
+        //dwConj[3] -= 2 * dExp_v_0[3][i];   the last row of dExp_v_0 is zero
         dwConj = dwConj.mult(q0Inv.mult(q1));
 
         Dune::FieldVector<RT,3> dxi(0);
@@ -237,7 +246,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
         // \partial exp \partial w^1_j at 0
         Quaternion<RT> dw;
         for (int j=0; j<4; j++)
-            dw[j] = dExp_v_0[j][i-3];
+            dw[j] = 0.5 * ((i-3)==j);  // dw[j] = dExp_v_0[j][i-3];
 
         // \xi = \exp^{-1} q_0^{-1} q_1
         Dune::FieldVector<RT,3> xi = Quaternion<RT>::expInv(q0Inv.mult(q1));
@@ -632,7 +641,7 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
 {
     using namespace Dune;
 
-    double eps = 1e-2;
+    double eps = 1e-4;
 
     typedef typename Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> >::row_type::iterator ColumnIterator;
 
@@ -682,6 +691,10 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
 
         for (; cIt!=cEndIt; ++cIt) {
 
+            // compute only the upper right triangular matrix
+            if (cIt.index() < i)
+                continue;
+
             // ////////////////////////////////////////////////////////////////////////////
             //   Compute a finite-difference approximation of this hessian matrix block
             // ////////////////////////////////////////////////////////////////////////////
@@ -689,6 +702,10 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
             for (int j=0; j<6; j++) {
 
                 for (int k=0; k<6; k++) {
+
+                    // compute only the upper right triangular matrix
+                    if (i==cIt.index() && k<j)
+                        continue;
 
                     if (i==cIt.index() && j==k) {
 
@@ -822,6 +839,44 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
                 }
 
             }
+
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////
+    //   Symmetrize the matrix
+    //   This is possible expensive, but I want to be absolute sure
+    //   that the matrix is symmetric.
+    // ///////////////////////////////////////////////////////////////
+    for (int i=0; i<matrix.N(); i++) {
+
+        ColumnIterator cIt    = matrix[i].begin();
+        ColumnIterator cEndIt = matrix[i].end();
+
+        for (; cIt!=cEndIt; ++cIt) {
+
+            if (cIt.index()>i)
+                continue;
+
+
+            if (cIt.index()==i) {
+
+                for (int j=1; j<6; j++)
+                    for (int k=0; k<j; k++)
+                        (*cIt)[j][k] = (*cIt)[k][j];
+
+            } else {
+
+                const FieldMatrix<double,6,6>& other = matrix[cIt.index()][i];
+
+                for (int j=0; j<6; j++)
+                    for (int k=0; k<6; k++)
+                        (*cIt)[j][k] = other[k][j];
+
+
+            }
+
 
         }
 
