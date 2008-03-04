@@ -9,9 +9,18 @@ LAPACKPP_CPPFLAGS = -I/home/haile/sander/lapack++-inst/include/lapackpp
 LAPACKPP_LDFLAGS  = -L/home/haile/sander/lapack++-inst/lib -llapackpp
 
 # Include and linker paths to the old fortran IPOpt library
-IPOPT_DIR = /home/haile/sander/COIN/Ipopt
-IPOPT_LDADD    = -L$(IPOPT_DIR)/lib -lipopt -llapack -lblas -lg2c
-IPOPT_CPPFLAGS = -I$(IPOPT_DIR)/IPOPT/include -DHAVE_IPOPT
+#IPOPT_DIR = /home/haile/sander/COIN/Ipopt
+#IPOPT_LDADD    = -L$(IPOPT_DIR)/lib -lipopt -llapack -lblas -lg2c
+#IPOPT_CPPFLAGS = -I$(IPOPT_DIR)/IPOPT/include -DHAVE_IPOPT
+
+# Include and linker paths to the new C++ IPOpt library
+IPOPT_CPP_DIR  = /home/haile/sander/CoinIpopt/build
+IPOPT_LDADD    = -L$(IPOPT_CPP_DIR)/lib -lipopt -llapack -lblas -lgfortran
+IPOPT_CPPFLAGS = -I$(IPOPT_CPP_DIR)/include -DHAVE_IPOPT_CPP
+
+# Hack around the insufficient build system: add to references
+# to ag-common by hand
+AM_CPPFLAGS += -I../../dune/ag-common
 
 noinst_PROGRAMS = staticrod staticrod2 rod3d dirneucoupling
 
