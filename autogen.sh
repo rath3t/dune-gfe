@@ -44,6 +44,7 @@ for OPT in "$@"; do
             if test -d "$OPT/am"; then
               am_dir="$OPT/am"
             fi
+            PATH=$PATH:$OPT/bin
             ;;
     esac
 done
