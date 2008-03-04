@@ -13,17 +13,22 @@
 #include <dune/common/bitfield.hh>
 #include <dune/common/configparser.hh>
 
-#include "../common/multigridstep.hh"
-#include "../common/iterativesolver.hh"
-#include "../common/projectedblockgsstep.hh"
-#include "../common/linearipopt.hh"
-#include "../common/readbitfield.hh"
-#include "../common/energynorm.hh"
-#include "../common/boundarypatch.hh"
-#include "../common/prolongboundarypatch.hh"
-#include "../common/sampleonbitfield.hh"
-#include "../common/neumannassembler.hh"
-#include "../common/computestress.hh"
+#include <dune/ag-common/multigridstep.hh>
+#include <dune/ag-common/iterativesolver.hh>
+#include <dune/ag-common/projectedblockgsstep.hh>
+#ifdef HAVE_IPOPT
+#include <dune/ag-common/linearipopt.hh>
+#endif
+#ifdef HAVE_IPOPT_CPP
+#include <dune/ag-common/quadraticipopt.hh>
+#endif
+#include <dune/ag-common/readbitfield.hh>
+#include <dune/ag-common/energynorm.hh>
+#include <dune/ag-common/boundarypatch.hh>
+#include <dune/ag-common/prolongboundarypatch.hh>
+#include <dune/ag-common/sampleonbitfield.hh>
+#include <dune/ag-common/neumannassembler.hh>
+#include <dune/ag-common/computestress.hh>
 
 #include "src/quaternion.hh"
 #include "src/rodassembler.hh"
@@ -36,11 +41,51 @@
 // Space dimension
 const int dim = 3;
 
-const double E = 2.5e5;
-const double nu = 0.3;
-
 using namespace Dune;
 using std::string;
+using std::vector;
+
+// Some types that I need
+//typedef BCRSMatrix<FieldMatrix<double, dim, dim> > OperatorType;
+//typedef BlockVector<FieldVector<double, dim> >     VectorType;
+typedef vector<Configuration>                      RodSolutionType;
+typedef BlockVector<FieldVector<double, 6> >       RodDifferenceType;
+
+
+// Make a straight rod from two given endpoints
+void makeStraightRod(RodSolutionType& rod, int n,
+                     const FieldVector<double,3>& beginning, const FieldVector<double,3>& end)
+{
+    // Compute the correct orientation
+    Quaternion<double> orientation = Quaternion<double>::identity();
+
+    FieldVector<double,3> zAxis(0);
+    zAxis[2] = 1;
+    FieldVector<double,3> axis = crossProduct(end-beginning, zAxis);
+
+    if (axis.two_norm() != 0)
+        axis /= -axis.two_norm();
+
+    FieldVector<double,3> d3 = end-beginning;
+    d3 /= d3.two_norm();
+
+    double angle = std::acos(zAxis * d3);
+
+    if (angle != 0)
+        orientation = Quaternion<double>(axis, angle);
+
+    // Set the values
+    rod.resize(n);
+    for (int i=0; i<n; i++) {
+
+        rod[i].r = beginning;
+        rod[i].r.axpy(double(i) / (n-1), end-beginning);
+        rod[i].q = orientation;
+
+    }
+
+
+}
 
 int main (int argc, char *argv[]) try
 {
@@ -72,27 +117,40 @@ int main (int argc, char *argv[]) try
     const double mgTolerance     = parameterSet.get<double>("mgTolerance");
     const double baseTolerance = parameterSet.get<double>("baseTolerance");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
-    const double dirichletDamping         = parameterSet.get<double>("dirichletDamping");
-    FieldVector<double,3> neumannDamping;
-    neumannDamping           = parameterSet.get("neumannDamping", double(1));
-    neumannDamping[0]           = parameterSet.get("neumannDampingT", neumannDamping[0]);
-    neumannDamping[1]           = parameterSet.get("neumannDampingT", neumannDamping[1]);
-    neumannDamping[2]           = parameterSet.get("neumannDampingL", neumannDamping[2]);
-    std::string resultPath           = parameterSet.get("resultPath", "");
+    const double damping         = parameterSet.get<double>("damping");
+    string resultPath           = parameterSet.get("resultPath", "");
 
     // Problem settings
-    std::string path = parameterSet.get<string>("path");
-    std::string objectName = parameterSet.get<string>("gridFile");
-    std::string dirichletNodesFile  = parameterSet.get<string>("dirichletNodes");
-    std::string dirichletValuesFile = parameterSet.get<string>("dirichletValues");
-    std::string interfaceNodesFile  = parameterSet.get<string>("interfaceNodes");
-    const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
-    
+    string path = parameterSet.get<string>("path");
+    string objectName = parameterSet.get<string>("gridFile");
+    string dirichletNodesFile  = parameterSet.get<string>("dirichletNodes");
+    string dirichletValuesFile = parameterSet.get<string>("dirichletValues");
+    string interfaceNodesFile  = parameterSet.get<string>("interfaceNodes");
+    const int numRodBaseElements    = parameterSet.get<int>("numRodBaseElements");
+
+    double E      = parameterSet.get<double>("E");
+    double nu     = parameterSet.get<double>("nu");
+
+    // rod material parameters
+    double rodA   = parameterSet.get<double>("rodA");
+    double rodJ1  = parameterSet.get<double>("rodJ1");
+    double rodJ2  = parameterSet.get<double>("rodJ2");
+    double rodE   = parameterSet.get<double>("rodE");
+    double rodNu  = parameterSet.get<double>("rodNu");
+
+    std::tr1::array<FieldVector<double,3>,2> rodRestEndPoint;
+    rodRestEndPoint[0][0] = parameterSet.get<double>("rodRestEndPoint0X");
+    rodRestEndPoint[0][1] = parameterSet.get<double>("rodRestEndPoint0Y");
+    rodRestEndPoint[0][2] = parameterSet.get<double>("rodRestEndPoint0Z");
+    rodRestEndPoint[1][0] = parameterSet.get<double>("rodRestEndPoint1X");
+    rodRestEndPoint[1][1] = parameterSet.get<double>("rodRestEndPoint1Y");
+    rodRestEndPoint[1][2] = parameterSet.get<double>("rodRestEndPoint1Z");
+
     // ///////////////////////////////////////
     //    Create the rod grid
     // ///////////////////////////////////////
     typedef OneDGrid RodGridType;
-    RodGridType rodGrid(numRodBaseElements, 0, 5);
+    RodGridType rodGrid(numRodBaseElements, 0, (rodRestEndPoint[1]-rodRestEndPoint[0]).two_norm());
 
     // ///////////////////////////////////////
     //    Create the grid for the 3d object
@@ -117,20 +175,22 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
-
+#if 0
     for (int i=0; i<rodX.size(); i++) {
         rodX[i].r[0] = 0.5;
         rodX[i].r[1] = 0.5;
         rodX[i].r[2] = 5 + (i* 5.0 /(rodX.size()-1));
         rodX[i].q = Quaternion<double>::identity();
     }
+#endif
+    makeStraightRod(rodX, rodGrid.size(1), rodRestEndPoint[0], rodRestEndPoint[1]);
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
-    rodX.back().r[0] = parameterSet.get("dirichletValueX", double(0));
-    rodX.back().r[1] = parameterSet.get("dirichletValueY", double(0));
-    rodX.back().r[2] = parameterSet.get("dirichletValueZ", double(0));
+    rodX.back().r[0] = parameterSet.get("dirichletValueX", rodRestEndPoint[1][0]);
+    rodX.back().r[1] = parameterSet.get("dirichletValueY", rodRestEndPoint[1][1]);
+    rodX.back().r[2] = parameterSet.get("dirichletValueZ", rodRestEndPoint[1][2]);
 
     FieldVector<double,3> axis;
     axis[0] = parameterSet.get("dirichletAxisX", double(0));
@@ -210,7 +270,8 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
     RodAssembler<RodGridType> rodAssembler(rodGrid);
-    rodAssembler.setShapeAndMaterial(1, 1.0/12, 1.0/12, 2.5e5, 0.3);
+    rodAssembler.setShapeAndMaterial(rodA, rodJ1, rodJ2, rodE, rodNu);
+
 
     RodSolver<RodGridType> rodSolver;
     rodSolver.setup(rodGrid, 
@@ -241,7 +302,12 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////
 
     // First create a gauss-seidel base solver
+#ifdef HAVE_IPOPT
     LinearIPOptSolver<VectorType> baseSolver;
+#endif
+#ifdef HAVE_IPOPT_CPP
+    QuadraticIPOptSolver<MatrixType,VectorType> baseSolver;
+#endif
     baseSolver.verbosity_ = NumProc::QUIET;
     baseSolver.tolerance_ = baseTolerance;
 
@@ -255,14 +321,15 @@ int main (int argc, char *argv[]) try
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.presmoother_       = &presmoother;
     multigridStep.postsmoother_      = &postsmoother;    
-    multigridStep.verbosity_         = Solver::REDUCED;
+    multigridStep.verbosity_         = Solver::QUIET;
 
 
 
     EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
     IterativeSolver<MatrixType, VectorType> solver(&multigridStep,
-                                                   multigridIterations,
+                                                   // IPOpt doesn't like to be started in the solution
+                                                   (numLevels!=1) ? multigridIterations : 1,
                                                    mgTolerance,
                                                    &energyNorm,
                                                    Solver::QUIET);
@@ -301,7 +368,8 @@ int main (int argc, char *argv[]) try
         std::cout << "----------------------------------------------------" << std::endl;
         
         // Backup of the current solution for the error computation later on
-        VectorType oldSolution3d = x3d;
+        VectorType      oldSolution3d  = x3d;
+        RodSolutionType oldSolutionRod = rodX;
 
         // //////////////////////////////////////////////////
         //   Dirichlet step for the rod
@@ -313,8 +381,8 @@ int main (int argc, char *argv[]) try
 
         rodX = rodSolver.getSol();
 
-        for (int j=0; j<rodX.size(); j++)
-            std::cout << rodX[j] << std::endl;
+//         for (int j=0; j<rodX.size(); j++)
+//             std::cout << rodX[j] << std::endl;
 
         // ///////////////////////////////////////////////////////////
         //   Extract Neumann values and transfer it to the 3d object
@@ -331,41 +399,6 @@ int main (int argc, char *argv[]) try
         std::cout << "resultant force: " << resultantForce << std::endl;
         std::cout << "resultant torque: " << resultantTorque << std::endl;
 
-#if 0
-        for (int j=0; j<dim; j++) {
-            lambdaForce[j] = (1-neumannDamping[j]) * lambdaForce[j] + neumannDamping[j] * resultantForce[j];
-            lambdaTorque[j] = (1-neumannDamping[j]) * lambdaTorque[j] + neumannDamping[j] * resultantTorque[j];
-        }
-#else
-        // damp in local coordinate system
-        FieldVector<double,dim> lambdaForceLocal, lambdaTorqueLocal;
-        FieldVector<double,dim> resultantForceLocal, resultantTorqueLocal;
-        for (int j=0; j<dim; j++) {
-
-            lambdaForceLocal[j]  = lambdaForce  * rodX[0].q.director(j);
-            lambdaTorqueLocal[j] = lambdaTorque * rodX[0].q.director(j);
-
-            resultantForceLocal[j]  = resultantForce  * rodX[0].q.director(j);
-            resultantTorqueLocal[j] = resultantTorque * rodX[0].q.director(j);
-
-            // Anisotropic damping
-            lambdaForceLocal[j] = (1-neumannDamping[j]) * lambdaForceLocal[j] + neumannDamping[j] * resultantForceLocal[j];
-            lambdaTorqueLocal[j] = (1-neumannDamping[j]) * lambdaTorqueLocal[j] + neumannDamping[j] * resultantTorqueLocal[j];
-
-        }
-
-        // Back to canonical coordinates
-        FieldMatrix<double,3,3> orientationMatrix;
-        rodX[0].q.matrix(orientationMatrix);
-            
-        lambdaForce  = 0;
-        lambdaTorque = 0;
-
-        orientationMatrix.umv(lambdaForceLocal, lambdaForce);
-        orientationMatrix.umv(lambdaTorqueLocal, lambdaTorque);
-
-#endif
-
         // For the time being the Neumann data coming from the rod is a dg function (== not continuous)
         // Maybe that is not necessary
         DGIndexSet<GridType> dgIndexSet(grid,grid.maxLevel());
@@ -374,7 +407,7 @@ int main (int argc, char *argv[]) try
         VectorType neumannValues(dgIndexSet.size());
 
         // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-        computeAveragePressure<GridType>(lambdaForce, lambdaTorque, 
+        computeAveragePressure<GridType>(resultantForce, resultantTorque, 
                                          interfaceBoundary[grid.maxLevel()], 
                                          rodX[0],
                                          neumannValues);
@@ -417,12 +450,12 @@ int main (int argc, char *argv[]) try
         //   Compute new damped interface value
         // ///////////////////////////////////////////////////////////
         for (int j=0; j<dim; j++)
-            lambda.r[j] = (1-dirichletDamping) * lambda.r[j] 
-                + dirichletDamping * (referenceInterface.r[j] + averageInterface.r[j]);
+            lambda.r[j] = (1-damping) * lambda.r[j] 
+                + damping * (referenceInterface.r[j] + averageInterface.r[j]);
 
         lambda.q = Quaternion<double>::interpolate(lambda.q, 
                                                    referenceInterface.q.mult(averageInterface.q), 
-                                                   dirichletDamping);
+                                                   damping);
 
         std::cout << "Lambda: " << lambda << std::endl;
 
@@ -473,8 +506,27 @@ int main (int argc, char *argv[]) try
         oldSolution3d -= x3d;
         double normOfCorrection = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, *hessian3d);
 
-        // the rod \todo missing
-#warning Energy error of the rod still missing
+        double max3dRelCorrection = 0;
+        for (size_t j=0; j<x3d.size(); j++)
+            for (int k=0; k<dim; k++)
+                max3dRelCorrection = std::max(max3dRelCorrection, 
+                                              std::fabs(oldSolution3d[j][k])/ std::fabs(x3d[j][k]));
+
+
+        RodDifferenceType rodDiff = computeRodDifference(oldSolutionRod, rodX);
+        double maxRodRelCorrection = 0;
+        for (size_t j=0; j<rodX.size(); j++)
+            for (int k=0; k<dim; k++)
+                maxRodRelCorrection = std::max(maxRodRelCorrection, 
+                                              std::fabs(rodDiff[j][k])/ std::fabs(rodX[j].r[k]));
+
+        double maxRodCorrection = computeRodDifference(oldSolutionRod, rodX).infinity_norm();
+        double max3dCorrection  = oldSolution3d.infinity_norm();
+        std::cout << "rod correction: " << maxRodCorrection
+                  << "    rod rel correction: " <<  maxRodRelCorrection
+                  << "    3d correction: " <<  max3dCorrection
+                  << "    3d rel correction: " <<  max3dRelCorrection << std::endl;
+        
 
         oldNorm = std::sqrt(oldNorm);
 
@@ -490,7 +542,8 @@ int main (int argc, char *argv[]) try
         std::cout << "DD iteration: " << i << "  --  ||u^{n+1} - u^n|| / ||u^n||: " << relativeError << ",      "
                   << "convrate " << convRate << "\n";
 
-        if (relativeError < ddTolerance)
+        //if (relativeError < ddTolerance)
+        if (std::max(max3dRelCorrection,maxRodRelCorrection) < ddTolerance)
             break;
 
     }
@@ -512,7 +565,7 @@ int main (int argc, char *argv[]) try
     MatrixIndexSet indices(exactSolRod.size(), exactSolRod.size());
     rodAssembler.getNeighborsPerVertex(indices);
     indices.exportIdx(hessianRod);
-    rodAssembler.assembleMatrix(exactSolRod, hessianRod);
+    rodAssembler.assembleMatrixFD(exactSolRod, hessianRod);
 
 
     double error = std::numeric_limits<double>::max();
@@ -538,6 +591,13 @@ int main (int argc, char *argv[]) try
     std::vector<double> totalConvRate(maxDirichletNeumannSteps+1);
     totalConvRate[0] = 1;
 
+
+    double oldConvRate = 100;
+    bool firstTime = true;
+    std::stringstream levelAsAscii, dampingAsAscii;
+    levelAsAscii << numLevels;
+    dampingAsAscii << damping;
+    std::string filename = resultPath + "convrate_" + levelAsAscii.str() + "_" + dampingAsAscii.str();
 
     int i;
     for (i=0; i<maxDirichletNeumannSteps; i++) {
@@ -595,25 +655,44 @@ int main (int argc, char *argv[]) try
                   << "convrate " << convRate 
                   << "    total conv rate " << std::pow(totalConvRate[i+1], 1/((double)i+1)) << std::endl;
 
+        // Convergence rates tend to stay fairly constant after a few initial iterates.
+        // Only when we hit numerical dirt are they starting to wiggle around wildly.
+        // We use this to detect 'the' convergence rate as the last averaged rate before
+        // we hit the dirt.
+        if (convRate > oldConvRate + 0.1 && i > 5 && firstTime) {
+
+            std::cout << "Damping: " << damping
+                      << "   convRate: " << std::pow(totalConvRate[i], 1/((double)i)) 
+                      << std::endl;
+
+            std::ofstream convRateFile(filename.c_str());
+            convRateFile << damping << "   " 
+                         << std::pow(totalConvRate[i], 1/((double)i)) 
+                         << std::endl;
+
+            firstTime = false;
+        }
+
         if (error < 1e-12)
           break;
 
         oldError = error;
+        oldConvRate = convRate;
         
     }            
 
-    int backTrace = std::min(size_t(4),totalConvRate.size());
-    std::cout << "Dirichlet damping: " << dirichletDamping
-              << "Neumann damping: " << neumannDamping
-              << "   convRate: " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
-              << std::endl;
-
-    std::ofstream convRateFile("convrate");
-    convRateFile << dirichletDamping << "   " 
-                 << neumannDamping << "   " 
-                 << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
-                 << std::endl;
-
+    // Convergence without dirt: write the overall convergence rate now
+    if (firstTime) {
+        int backTrace = std::min(size_t(4),totalConvRate.size());
+        std::cout << "Damping: " << damping
+                  << "   convRate: " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
+                  << std::endl;
+        
+        std::ofstream convRateFile(filename.c_str());
+        convRateFile << damping << "   " 
+                     << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
+                     << std::endl;
+    }
 
     // //////////////////////////////
     //   Output result
