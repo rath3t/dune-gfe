@@ -338,6 +338,8 @@ public:
 
     /** \brief Interpolate between two rotations 
         \param omega must be between 0 and 1
+        \todo I'd say this method is incorrect and is other one is correct.
+        The solver works much better with this one, though.   I don't get it.
     */
     static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
                                                double omega) {
@@ -345,6 +347,33 @@ public:
 
         // Compute difference on T_a SO(3)
         Dune::FieldVector<double,3> xi = difference(a,b);
+
+        Dune::FieldVector<double,3> v = xi;
+        v *= omega;
+        
+        // //////////////////////////////////////////////////////////////
+        //   v now contains the derivative at 'a'.  The derivative at
+        //   the requested site is v pushed forward by Dexp.
+        // /////////////////////////////////////////////////////////////
+
+        Dune::FieldMatrix<double,4,3> diffExp = Quaternion<double>::Dexp(v);
+
+        diffExp.umv(xi,result);
+
+        return a.mult(result);
+    }
+
+    /** \brief Interpolate between two rotations 
+        \param omega must be between 0 and 1
+    */
+    static Quaternion<T> interpolateDerivative(const Quaternion<T>& a, const Quaternion<T>& b, 
+                                               double omega, double intervalLength) {
+        Quaternion<T> result(0);
+
+        // Compute difference on T_a SO(3)
+        Dune::FieldVector<double,3> xi = difference(a,b);
+
+        xi /= intervalLength;
 
         Dune::FieldVector<double,3> v = xi;
         v *= omega;
