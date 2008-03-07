@@ -34,7 +34,7 @@ public:
                      const Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >* massMatrix,
                      const Dune::BlockVector<Dune::FieldVector<double,1> >* nodalWeights,
                      const Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >* constraintJacobian)
-        : jacobianCutoff_(-1), patch_(patch), x_(result),
+        : jacobianCutoff_(1e-12), patch_(patch), x_(result),
           massMatrix_(massMatrix), nodalWeights_(nodalWeights),
           constraintJacobian_(constraintJacobian),
           resultantForce_(resultantForce), resultantTorque_(resultantTorque)
@@ -543,8 +543,8 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
     Ipopt::SmartPtr<Ipopt::IpoptApplication> app = new Ipopt::IpoptApplication();
     
     // Change some options
-    app->Options()->SetNumericValue("tol", 1e-10);
-    app->Options()->SetIntegerValue("max_iter", 20);
+    app->Options()->SetNumericValue("tol", 1e-8);
+    app->Options()->SetIntegerValue("max_iter", 1000);
     app->Options()->SetStringValue("mu_strategy", "adaptive");
     app->Options()->SetStringValue("output_file", "ipopt.out");
     app->Options()->SetStringValue("hessian_approximation", "limited-memory");
@@ -553,7 +553,7 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
     // Intialize the IpoptApplication and process the options
     Ipopt::ApplicationReturnStatus status;
     status = app->Initialize();
-    if (status != Ipopt::Solve_Succeeded) 
+    if (status != Ipopt::Solve_Succeeded)
         DUNE_THROW(SolverError, "Error during IPOpt initialization!");
     
     // Ask Ipopt to solve the problem
@@ -567,7 +567,8 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
                                                                                     &constraints);
     status = app->OptimizeTNLP(defectSolverSmart);
     
-    if (status != Ipopt::Solve_Succeeded)
+    if (status != Ipopt::Solve_Succeeded
+        && status != Ipopt::Solved_To_Acceptable_Level) 
         DUNE_THROW(SolverError, "Solving the defect problem failed!");
 
     // //////////////////////////////////////////////////////////////////////////////
