@@ -31,7 +31,7 @@ public:
                      const Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >* massMatrix,
                      const Dune::BlockVector<Dune::FieldVector<double,1> >* nodalWeights,
                      const Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >* constraintJacobian)
-        : jacobianCutoff_(1e-8), patch_(patch), x_(result),
+        : jacobianCutoff_(-1), patch_(patch), x_(result),
           massMatrix_(massMatrix), nodalWeights_(nodalWeights),
           constraintJacobian_(constraintJacobian),
           resultantForce_(resultantForce), resultantTorque_(resultantTorque)
@@ -102,7 +102,7 @@ public:
     // /////////////////////////////////
 
     /** \brief All entries in the constraint Jacobian smaller than the value
-        here are removed.  This increases stability.
+        here are removed.  Apparently this is unnecessary though.
     */
     const double jacobianCutoff_;
 
@@ -151,7 +151,7 @@ get_nlp_info(Ipopt::Index& n, Ipopt::Index& m, Ipopt::Index& nnz_jac_g,
         const RowType& jacobianRow = (*constraintJacobian_)[i];
             
         for (typename RowType::ConstIterator cIt = jacobianRow.begin(); cIt!=jacobianRow.end(); ++cIt)
-            if ( (*cIt)[0][0] > jacobianCutoff_ )
+            if ( std::abs((*cIt)[0][0]) > jacobianCutoff_ )
                 nnz_jac_g++;
         
     }
@@ -220,10 +220,6 @@ template <class GridType>
 bool PressureAverager<GridType>::
 eval_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number& obj_value)
 {
-//     std::cout << "x:" << std::endl;
-//     for (int i=0; i<n; i++)
-//         std::cout << x[i] << std::endl;
-
     // Init return value
     obj_value = 0;
 
@@ -244,7 +240,7 @@ eval_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number& obj_va
 
     }
 
-    // -b(x)
+    // 
     for (int i=0; i<nodalWeights_->size(); i++)
         for (int j=0; j<dim; j++)
             obj_value -= 2 * x[n-dim + j] * x[i*dim+j] * (*nodalWeights_)[i];
@@ -252,9 +248,6 @@ eval_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number& obj_va
     // += c^2 * \int 1 ds
     for (int i=0; i<dim; i++)
         obj_value += patchArea_ * (x[n-dim + i] * x[n-dim + i]);
-
-    //std::cout << "IPOPT Energy: " << obj_value << std::endl;
-    //exit(0);
 
   return true;
 }
@@ -269,8 +262,6 @@ eval_grad_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number* g
     // \nabla J = A(x,.) - b(x)
     for (int i=0; i<n; i++)
         grad_f[i] = 0;
-
-    printmatrix(std::cout, *massMatrix_, "mass", "--");
 
     for (int i=0; i<massMatrix_->N(); i++) {
 
@@ -297,10 +288,10 @@ eval_grad_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number* g
         
     }
 
-    for (int i=0; i<n; i++) {
-        std::cout << "x = " <<  x[i] << std::endl;
-        std::cout << "grad = " <<  grad_f[i] << std::endl;
-    }
+//     for (int i=0; i<n; i++) {
+//         std::cout << "x = " <<  x[i] << std::endl;
+//         std::cout << "grad = " <<  grad_f[i] << std::endl;
+//     }
 
   return true;
 }
@@ -318,10 +309,15 @@ eval_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Index m, Ipopt
         const RowType& jacobianRow = (*constraintJacobian_)[i];
 
         for (typename RowType::ConstIterator cIt = jacobianRow.begin(); cIt!=jacobianRow.end(); ++cIt)
-            if ( (*cIt)[0][0] > jacobianCutoff_ )
+            if ( std::abs((*cIt)[0][0]) > jacobianCutoff_ ) {
+                //printf("adding %g times %g\n", (*cIt)[0][0], x[cIt.index()]);
                 g[i] += (*cIt)[0][0] * x[cIt.index()];
+            }
 
     }
+
+//     for (int i=0; i<m; i++)
+//         std::cout << "g[" << i << "]: " << g[i] << std::endl;
         
   return true;
 }
@@ -342,7 +338,7 @@ eval_jac_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
             const RowType& jacobianRow = (*constraintJacobian_)[i];
             
             for (typename RowType::ConstIterator cIt = jacobianRow.begin(); cIt!=jacobianRow.end(); ++cIt) {
-                if ( (*cIt)[0][0] > jacobianCutoff_ ) {
+                if ( std::abs((*cIt)[0][0]) > jacobianCutoff_ ) {
                     iRow[idx] = i;
                     jCol[idx] = cIt.index();
                     idx++;
@@ -358,7 +354,7 @@ eval_jac_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
             const RowType& jacobianRow = (*constraintJacobian_)[i];
             
             for (typename RowType::ConstIterator cIt = jacobianRow.begin(); cIt!=jacobianRow.end(); ++cIt)
-                if ( (*cIt)[0][0] > jacobianCutoff_ )
+                if ( std::abs((*cIt)[0][0]) > jacobianCutoff_ )
                     values[idx++] = (*cIt)[0][0];
             
         }
@@ -397,8 +393,6 @@ finalize_solution(Ipopt::SolverReturn status,
         for (int j=0; j<dim; j++)
             (*x_)[i][j] = x[i*dim+j];
 
-    std::cout << "Closest constant: ";// << x[n-dim] << "  " << x[n-dim+1] << "  " << [x-dim+2] << std::endl;
-
 }
 
 
@@ -422,27 +416,27 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
     typedef typename GridType::template Codim<dim>::LevelIterator VertexIterator;
 
     // Create the matrix of constraints
-    Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > matrix(2*dim, dim*interface.numVertices(),
-                                                                Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >::random);
+    Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > constraints(2*dim, dim*interface.numVertices(),
+                                                                     Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >::random);
 
     for (int i=0; i<dim; i++) {
-        matrix.setrowsize(i,     interface.numVertices());
-        matrix.setrowsize(i+dim, dim*interface.numVertices());
+        constraints.setrowsize(i,     interface.numVertices());
+        constraints.setrowsize(i+dim, dim*interface.numVertices());
     }
 
-    matrix.endrowsizes();
+    constraints.endrowsizes();
 
     for (int i=0; i<dim; i++)
         for (int j=0; j<interface.numVertices(); j++)
-            matrix.addindex(i, dim*j+i);
+            constraints.addindex(i, dim*j+i);
 
     for (int i=0; i<dim; i++)
         for (int j=0; j<dim*interface.numVertices(); j++)
-            matrix.addindex(i+dim, j);
+            constraints.addindex(i+dim, j);
 
-    matrix.endindices();
+    constraints.endindices();
 
-    matrix = 0;
+    constraints = 0;
 
     // Create the surface mass matrix
     Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > massMatrix;
@@ -523,11 +517,11 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
 
                 nodalWeights[subIndex] += mu[i];
                 for (int j=0; j<dim; j++)
-                    matrix[j][subIndex*dim+j] += mu[i];
+                    constraints[j][subIndex*dim+j] += mu[i];
 
                 for (int j=0; j<3; j++)
                     for (int k=0; k<3; k++)
-                        matrix[dim+k][dim*subIndex+j] += mu_tilde[i][j][k];
+                        constraints[dim+k][dim*subIndex+j] += mu_tilde[i][j][k];
 
             }
 
@@ -535,7 +529,7 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
 
     }
 
-    //printmatrix(std::cout, matrix, "jacobian", "--");
+    //printmatrix(std::cout, constraints, "jacobian", "--");
     //printmatrix(std::cout, massMatrix, "mass", "--");
 
     // /////////////////////////////////////////////////////////////////////////////////////
@@ -546,11 +540,12 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
     Ipopt::SmartPtr<Ipopt::IpoptApplication> app = new Ipopt::IpoptApplication();
     
     // Change some options
-    app->Options()->SetNumericValue("tol", 1e-8);
+    app->Options()->SetNumericValue("tol", 1e-10);
     app->Options()->SetIntegerValue("max_iter", 20);
     app->Options()->SetStringValue("mu_strategy", "adaptive");
     app->Options()->SetStringValue("output_file", "ipopt.out");
     app->Options()->SetStringValue("hessian_approximation", "limited-memory");
+    app->Options()->SetIntegerValue("print_level", -2);
 
     // Intialize the IpoptApplication and process the options
     Ipopt::ApplicationReturnStatus status;
@@ -566,7 +561,7 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
                                                                                     resultantTorque,
                                                                                     &massMatrix,
                                                                                     &nodalWeights,
-                                                                                    &matrix);
+                                                                                    &constraints);
     status = app->OptimizeTNLP(defectSolverSmart);
     
     if (status != Ipopt::Solve_Succeeded)
@@ -741,33 +736,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             }
 
             // Set up matrix
-#if 0  // DUNE style
-            Dune::Matrix<Dune::FieldMatrix<double,1,1> > matrix(6, 3*baseSet.size());
-            matrix = 0;
-            for (int i=0; i<baseSet.size(); i++)
-                for (int j=0; j<3; j++)
-                    matrix[j][i*3+j] = mu[i];
-
-            for (int i=0; i<baseSet.size(); i++)
-                for (int j=0; j<3; j++)
-                    for (int k=0; k<3; k++)
-                        matrix[3+k][3*i+j] = mu_tilde[i][j][k];
-
-            Dune::BlockVector<Dune::FieldVector<double,1> > u(3*baseSet.size());
-            Dune::FieldVector<double,6> b;
-
-            // Scale the resultant force and torque with this segments area percentage.
-            // That way the resulting pressure gets distributed fairly uniformly.
-            ctype segmentArea = nIt.intersectionGlobal().volume() / area;
-
-            for (int i=0; i<3; i++) {
-                b[i]   = resultantForce[i] * segmentArea;
-                b[i+3] = resultantTorque[i] * segmentArea;
-            }
-
-            matrix.solve(u,b);
-
-#else   // LaPack++ style
+            // LaPack++ style
             LaGenMatDouble matrix(6, 3*baseSet.size());
             matrix = 0;
             for (int i=0; i<baseSet.size(); i++)
@@ -791,17 +760,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                 b(i+3) = resultantTorque[i] * segmentArea;
             }
 
-            for (int i=0; i<6; i++) {
-                for (int j=0; j<3*baseSet.size(); j++)
-                    std::cout << matrix(i,j) << "  ";
-                std::cout << std::endl;
-            }
-
             LaLinearSolve(matrix, u, b);
-#endif
-//             std::cout << b << std::endl;
-//             std::cout << matrix << std::endl;
-            //std::cout << u << std::endl;
 
             for (int i=0; i<baseSet.size(); i++)
                 for (int j=0; j<3; j++)
