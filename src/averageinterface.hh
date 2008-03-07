@@ -8,8 +8,11 @@
 #include <dune/ag-common/crossproduct.hh>
 #include <dune/ag-common/surfmassmatrix.hh>
 #include "svd.hh"
+
+#ifdef HAVE_LAPACKPP
 #include "lapackpp.h"
 #undef max
+#endif
 
 template <class GridType>
 class PressureAverager : public Ipopt::TNLP
@@ -651,6 +654,7 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
 }
 
 
+#ifdef HAVE_LAPACKPP
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
 template <class GridType>
@@ -834,7 +838,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 #endif
 
 }
-
+#endif
 
 
 template <class GridType>

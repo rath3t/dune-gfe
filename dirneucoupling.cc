@@ -414,6 +414,9 @@ int main (int argc, char *argv[]) try
                                                         rhs3d);
 
 #else
+#ifndef HAVE_LAPACKPP
+#error You need LaPack++ for this!
+#endif
         // For the time being the Neumann data coming from the rod is a dg function (== not continuous)
         // Maybe that is not necessary
         DGIndexSet<GridType> dgIndexSet(grid,grid.maxLevel());
