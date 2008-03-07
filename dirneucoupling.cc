@@ -399,6 +399,21 @@ int main (int argc, char *argv[]) try
         std::cout << "resultant force: " << resultantForce << std::endl;
         std::cout << "resultant torque: " << resultantTorque << std::endl;
 
+#if 1
+        VectorType neumannValues(rhs3d.size());
+
+        // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+        computeAveragePressureIPOpt<GridType>(resultantForce, resultantTorque, 
+                                              interfaceBoundary[grid.maxLevel()], 
+                                              rodX[0],
+                                              neumannValues);
+
+        rhs3d = 0;
+        assembleAndAddNeumannTerm<GridType, VectorType>(interfaceBoundary[grid.maxLevel()],
+                                                        neumannValues,
+                                                        rhs3d);
+
+#else
         // For the time being the Neumann data coming from the rod is a dg function (== not continuous)
         // Maybe that is not necessary
         DGIndexSet<GridType> dgIndexSet(grid,grid.maxLevel());
@@ -408,16 +423,16 @@ int main (int argc, char *argv[]) try
 
         // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
         computeAveragePressure<GridType>(resultantForce, resultantTorque, 
-                                         interfaceBoundary[grid.maxLevel()], 
-                                         rodX[0],
-                                         neumannValues);
+                                              interfaceBoundary[grid.maxLevel()], 
+                                              rodX[0],
+                                              neumannValues);
 
         rhs3d = 0;
         assembleAndAddNeumannTerm<GridType, VectorType>(interfaceBoundary[grid.maxLevel()],
                                                         dgIndexSet,
                                                         neumannValues,
                                                         rhs3d);
-
+#endif
         // ///////////////////////////////////////////////////////////
         //   Solve the Neumann problem for the 3d body
         // ///////////////////////////////////////////////////////////
