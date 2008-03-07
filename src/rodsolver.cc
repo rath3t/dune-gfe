@@ -8,6 +8,7 @@
 
 #include <dune/ag-common/trustregiongsstep.hh>
 #include <dune/ag-common/mmgstep.hh>
+#include <dune/ag-common/contactobsrestrict.hh>
 #include <dune/ag-common/iterativesolver.hh>
 
 #include <dune/ag-common/energynorm.hh>
@@ -120,7 +121,8 @@ void RodSolver<GridType>::setup(const GridType& grid,
     mmgStep->dirichletNodes_    = &dirichletNodes_;
     mmgStep->basesolver_        = baseSolver;
     mmgStep->presmoother_       = presmoother;
-    mmgStep->postsmoother_      = postsmoother;    
+    mmgStep->postsmoother_      = postsmoother; 
+    mmgStep->obstacleRestrictor_= new ContactObsRestriction<CorrectionType>();
     mmgStep->hasObstacle_       = &hasObstacle_;
     mmgStep->obstacles_         = &trustRegionObstacles_;
     mmgStep->verbosity_         = Solver::QUIET;
