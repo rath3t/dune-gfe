@@ -482,10 +482,11 @@ int main (int argc, char *argv[]) try
         // ////////////////////////////////////////////////////////////////////////
 
         // First the 3d body
-        char iSolFilename[100];
-        sprintf(iSolFilename, "tmp/intermediate3dSolution_%04d", i);
+        std::stringstream iAsAscii;
+        iAsAscii << i;
+        std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
             
-        FILE* fp = fopen(iSolFilename, "wb");
+        FILE* fp = fopen(iSolFilename.c_str(), "wb");
         if (!fp)
             DUNE_THROW(SolverError, "Couldn't open file " << iSolFilename << " for writing");
             
@@ -496,12 +497,11 @@ int main (int argc, char *argv[]) try
         fclose(fp);
 
         // Then the rod
-        char iRodFilename[100];
-        sprintf(iRodFilename, "tmp/intermediateRodSolution_%04d", i);
+        iSolFilename = resultPath + "tmp/intermediateRodSolution_" + iAsAscii.str();
 
-        FILE* fpRod = fopen(iRodFilename, "wb");
+        FILE* fpRod = fopen(iSolFilename.c_str(), "wb");
         if (!fpRod)
-            DUNE_THROW(SolverError, "Couldn't open file " << iRodFilename << " for writing");
+            DUNE_THROW(SolverError, "Couldn't open file " << iSolFilename << " for writing");
             
         for (int j=0; j<rodX.size(); j++) {
 
@@ -625,10 +625,11 @@ int main (int argc, char *argv[]) try
         // /////////////////////////////////////////////////////
 
         // Read 3d solution from file
-        char iSolFilename[100];
-        sprintf(iSolFilename, "tmp/intermediate3dSolution_%04d", i);
+        std::stringstream iAsAscii;
+        iAsAscii << i;
+        std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
             
-        FILE* fpInt = fopen(iSolFilename, "rb");
+        FILE* fpInt = fopen(iSolFilename.c_str(), "rb");
         if (!fpInt)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
         for (int j=0; j<intermediateSol3d.size(); j++)
@@ -637,9 +638,9 @@ int main (int argc, char *argv[]) try
         fclose(fpInt);
 
         // Read rod solution from file
-        sprintf(iSolFilename, "tmp/intermediateRodSolution_%04d", i);
+        iSolFilename = resultPath + "tmp/intermediateRodSolution_" + iAsAscii.str();
             
-        fpInt = fopen(iSolFilename, "rb");
+        fpInt = fopen(iSolFilename.c_str(), "rb");
         if (!fpInt)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
         for (int j=0; j<intermediateSolRod.size(); j++) {
