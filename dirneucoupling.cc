@@ -713,6 +713,13 @@ int main (int argc, char *argv[]) try
                      << std::endl;
     }
 
+
+    // //////////////////////////////
+    //   Delete temporary memory
+    // //////////////////////////////
+    std::string removeTmpCommand = "rm -rf " + resultPath + "tmp/intermediate*";
+    system(removeTmpCommand.c_str());
+
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
