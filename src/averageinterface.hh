@@ -569,8 +569,10 @@ void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimens
     status = app->OptimizeTNLP(defectSolverSmart);
     
     if (status != Ipopt::Solve_Succeeded
-        && status != Ipopt::Solved_To_Acceptable_Level) 
-        DUNE_THROW(SolverError, "Solving the defect problem failed!");
+        && status != Ipopt::Solved_To_Acceptable_Level) {
+        //DUNE_THROW(SolverError, "Solving the defect problem failed!");
+        std::cout << "IPOpt returned error code " << status << "!" << std::endl;
+    }
 
     // //////////////////////////////////////////////////////////////////////////////
     //   Get result
