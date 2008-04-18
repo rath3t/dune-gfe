@@ -104,8 +104,8 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
 
-    IterativeSolver<MatrixType, CorrectionType>* baseSolver 
-        = new IterativeSolver<MatrixType, CorrectionType>(baseSolverStep,
+    IterativeSolver<CorrectionType>* baseSolver 
+        = new IterativeSolver<CorrectionType>(baseSolverStep,
                                                           baseIt_,
                                                           baseTolerance_,
                                                           baseEnergyNorm,
@@ -142,11 +142,11 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
 
-    mmgSolver_ = new IterativeSolver<MatrixType, CorrectionType>(mmgStep,
-                                                                 multigridIterations_,
-                                                                 qpTolerance_,
-                                                                 h1SemiNorm_,
-                                                                 Solver::QUIET);
+    mmgSolver_ = new IterativeSolver<CorrectionType>(mmgStep,
+                                                     multigridIterations_,
+                                                     qpTolerance_,
+                                                     h1SemiNorm_,
+                                                     Solver::QUIET);
 
     // Write all intermediate solutions, if requested
     if (instrumented_)
