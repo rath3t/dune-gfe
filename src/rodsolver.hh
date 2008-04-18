@@ -101,7 +101,7 @@ protected:
     const RodAssembler<GridType>* rodAssembler_;
 
     /** \brief The multigrid solver */
-    IterativeSolver<MatrixType, CorrectionType>* mmgSolver_;
+    IterativeSolver<CorrectionType>* mmgSolver_;
 
     /** \brief The hierarchy of trust-region obstacles */
     std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles_;
