@@ -179,11 +179,11 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
 
-    IterativeSolver<MatrixType, VectorType> baseSolver(&baseSolverStep,
-                                                       baseIt,
-                                                       baseTolerance,
-                                                       &baseEnergyNorm,
-                                                       Solver::QUIET);
+    IterativeSolver<VectorType> baseSolver(&baseSolverStep,
+    									   baseIt,
+    									   baseTolerance,
+    									   &baseEnergyNorm,
+    									   Solver::QUIET);
 
     // Make pre and postsmoothers
     ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
@@ -209,7 +209,7 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(contactMMGStep);
 
-    IterativeSolver<MatrixType, VectorType> solver(&contactMMGStep,
+    IterativeSolver<VectorType> solver(&contactMMGStep,
                                                    numIt,
                                                    tolerance,
                                                    &energyNorm,
@@ -265,7 +265,8 @@ int main (int argc, char *argv[]) try
             //std::cout << "Trust Region obstacles:" << std::endl;
             //std::cout << (*contactMMGStep.obstacles_)[maxlevel] << std::endl;
 
-            solver.iterationStep_->setProblem(hessianMatrix, corr, rhs);
+            //solver.iterationStep_->setProblem(hessianMatrix, corr, rhs);
+            DUNE_THROW(NotImplemented,"IterationStep::setProblem, Matrix uebergeben");
 
             solver.preprocess();
             contactMMGStep.preprocess();
