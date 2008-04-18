@@ -327,7 +327,7 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    IterativeSolver<MatrixType, VectorType> solver(&multigridStep,
+    IterativeSolver<VectorType> solver(&multigridStep,
                                                    // IPOpt doesn't like to be started in the solution
                                                    (numLevels!=1) ? multigridIterations : 1,
                                                    mgTolerance,
