@@ -111,7 +111,7 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
 
-    IterativeSolver<MatrixType, VectorType> baseSolver(&baseSolverStep,
+    IterativeSolver<VectorType> baseSolver(&baseSolverStep,
                                                        baseIt,
                                                        baseTolerance,
                                                        &baseEnergyNorm,
@@ -136,7 +136,7 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(contactMMGStep);
 
-    IterativeSolver<MatrixType, VectorType> solver(&contactMMGStep,
+    IterativeSolver<VectorType> solver(&contactMMGStep,
                                                    numIt,
                                                    tolerance,
                                                    &energyNorm,
