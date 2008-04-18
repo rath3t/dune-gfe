@@ -1096,7 +1096,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 
         for (; nIt!=nEndIt; ++nIt) {
 
-            if (!boundary.contains(*eIt, nIt.numberInSelf()))
+            if (!boundary.contains(*eIt, nIt->numberInSelf()))
                 continue;
 
             // //////////////////////////////////////////////
@@ -1109,7 +1109,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
             RodLocalStiffness<GridType,double> localStiffness(K, A);
 
-            double pos = nIt.intersectionSelfLocal()[0];
+            double pos = nIt->intersectionSelfLocal()[0];
 
             Dune::array<Configuration,2> localSolution = {sol[indexSet.template subIndex<1>(*eIt,0)],
                                                           sol[indexSet.template subIndex<1>(*eIt,1)]};
@@ -1131,7 +1131,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             // the canonical basis of R^3
 
             FieldMatrix<double,3,3> orientationMatrix;
-            sol[indexSet.template subIndex<1>(*eIt,nIt.numberInSelf())].q.matrix(orientationMatrix);
+            sol[indexSet.template subIndex<1>(*eIt,nIt->numberInSelf())].q.matrix(orientationMatrix);
             
             orientationMatrix.umv(localStress, canonicalStress);
             
@@ -1143,8 +1143,8 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 
             // Multiply force times boundary normal to get the transmitted force
             // I am not quite sure why the -1 is there, but it has to be there.
-            canonicalStress *= -nIt.unitOuterNormal(FieldVector<double,0>(0))[0];
-            canonicalTorque *= -nIt.unitOuterNormal(FieldVector<double,0>(0))[0];
+            canonicalStress *= -nIt->unitOuterNormal(FieldVector<double,0>(0))[0];
+            canonicalTorque *= -nIt->unitOuterNormal(FieldVector<double,0>(0))[0];
             
         }
 
