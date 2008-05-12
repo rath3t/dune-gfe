@@ -212,8 +212,9 @@ get_starting_point(Ipopt::Index n, bool init_x, Ipopt::Number* x,
     assert(init_lambda == false);
     
     // initialize to the given starting point
-    for (int i=0; i<n; i++)
-        x[i] = 0;
+    for (int i=0; i<n/dim; i++)
+        for (int j=0; j<dim; j++)
+            x[i*dim+j] = resultantForce_[j]/patchArea_;
 
     return true;
 }
