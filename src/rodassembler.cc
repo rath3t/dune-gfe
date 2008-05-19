@@ -1063,6 +1063,27 @@ getStrain(const std::vector<Configuration>& sol,
 }
 
 template <class GridType>
+void RodAssembler<GridType>::
+getStress(const std::vector<Configuration>& sol,
+          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const
+{
+    // Get the strain
+    getStrain(sol,stress);
+
+    // Get reference strain
+    Dune::BlockVector<Dune::FieldVector<double, blocksize> > referenceStrain;
+    getStrain(referenceConfiguration_, referenceStrain);
+
+    // Linear diagonal constitutive law
+    for (size_t i=0; i<stress.size(); i++) {
+        for (int j=0; j<3; j++) {
+            stress[i][j]   = (stress[i][j]   - referenceStrain[i][j])   * A_[j];
+            stress[i][j+3] = (stress[i][j+3] - referenceStrain[i][j+3]) * K_[j];
+        }
+    }
+}
+
+template <class GridType>
 Dune::FieldVector<double,3> RodAssembler<GridType>::
 getResultantForce(const BoundaryPatch<GridType>& boundary, 
                   const std::vector<Configuration>& sol,
@@ -1142,7 +1163,8 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 //             assert( std::abs(localStress[2]-canonicalStress*sol[0].q.director(2)) < 1e-6 );
 
             // Multiply force times boundary normal to get the transmitted force
-            // I am not quite sure why the -1 is there, but it has to be there.
+            /** \todo The minus sign comes from the coupling conditions.  It
+                should really be in the Dirichlet-Neumann code. */
             canonicalStress *= -nIt->unitOuterNormal(FieldVector<double,0>(0))[0];
             canonicalTorque *= -nIt->unitOuterNormal(FieldVector<double,0>(0))[0];
             

@@ -259,6 +259,9 @@ public:
         void getStrain(const std::vector<Configuration>& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
 
+        void getStress(const std::vector<Configuration>& sol, 
+                       Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const;
+
         /** \brief Return resultant force across boundary in canonical coordinates 
 
         \note Linear run-time in the size of the grid */
