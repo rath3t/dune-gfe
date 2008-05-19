@@ -148,21 +148,9 @@ void writeRod(const std::vector<Configuration>& rod,
 
 /** \brief Write a spatial rod along with a strain or stress field
  */
-template <int ndata>
-void writeRod(const std::vector<Configuration>& rod, Dune::BlockVector<Dune::FieldVector<double, ndata> >& data,
-              const std::string& filename)
+void writeRodElementData(Dune::BlockVector<Dune::FieldVector<double, 1> >& data,
+                         const std::string& filename)
 {
-    if (data.size() != rod.size()-1)
-        DUNE_THROW(Dune::Exception, "Size of data vector doesn't match number of vertices");
-
-    // #lines in center axis + #lines in set of directors
-    int nLines = 3*(rod.size()-1) + 3*3*rod.size();
-
-    // Don't ever share vertices.  That way we can simulate per-element data
-    int nPoints = nLines/3*2;
-
-    double directorLength = 1/((double)rod.size());
-
     // /////////////////////
     //   Write header
     // /////////////////////
@@ -174,83 +162,49 @@ void writeRod(const std::vector<Configuration>& rod, Dune::BlockVector<Dune::Fie
     outfile << "# CreationDate: Mon Jul 18 17:14:27 2005" << std::endl;
     outfile << std::endl;
     outfile << std::endl;
-    outfile << "define Lines " << nLines << std::endl;
-    outfile << "nVertices " << nPoints << std::endl;
+    outfile << "define Segments " << data.size() << std::endl;
     outfile << std::endl;
     outfile << "Parameters {" << std::endl;
-    outfile << "    ContentType \"HxLineSet\"" << std::endl;
+    outfile << "    ContentType \"ScalarRodField\"" << std::endl;
+    outfile << "    Encoding    \"OnSegments\"" << std::endl;
     outfile << "}" << std::endl;
     outfile << std::endl;
-    outfile << "Lines { int LineIdx } @1" << std::endl;
-    outfile << "Vertices { float[3] Coordinates } @2" << std::endl;
-
-    for (int i=0; i<ndata; i++)
-        outfile << "Vertices {float Data" << i << " } @" << 3+i << std::endl;
-
+    outfile << "Segments { float Data } @1" << std::endl;
     outfile << std::endl;
+
     outfile << "# Data section follows" << std::endl;
     outfile << "@1" << std::endl;
 
     // ///////////////////////////////////////
-    //   write lines
+    //   write data
     // ///////////////////////////////////////
 
-    for (int i=0; i<nLines/3; i++)
-        outfile << 2*i << std::endl << 2*i+1 << std::endl << "-1" << std::endl;
-
-    // /////////////////////////////////////// 
-    //   Write the vertices
-    // ///////////////////////////////////////
-
-    outfile << std::endl << "@2" << std::endl;
-
-    // The center axis
-    for (int i=0; i<rod.size()-1; i++) {
-        outfile << rod[i].r[0]   << "  " << rod[i].r[1]   << "  " << rod[i].r[2]   << std::endl;
-        outfile << rod[i+1].r[0] << "  " << rod[i+1].r[1] << "  " << rod[i+1].r[2] << std::endl;
-    }
-
-    // The directors
-    for (int i=0; i<rod.size(); i++) {
-
-        Dune::FieldVector<double, 3> director[3];
-
-        director[0] = rod[i].q.director(0);
-        director[1] = rod[i].q.director(1);
-        director[2] = rod[i].q.director(2);
-
-        director[0] *= directorLength;
-        director[1] *= directorLength;
-        director[2] *= directorLength;
-
-        outfile << rod[i].r[0]                << "  " << rod[i].r[1]                << "  " << rod[i].r[2]                << std::endl;
-        outfile << rod[i].r[0]+director[0][0] << "  " << rod[i].r[1]+director[0][1] << "  " << rod[i].r[2]+director[0][2] << std::endl;
-        outfile << rod[i].r[0]                << "  " << rod[i].r[1]                << "  " << rod[i].r[2]                << std::endl;
-        outfile << rod[i].r[0]+director[1][0] << "  " << rod[i].r[1]+director[1][1] << "  " << rod[i].r[2]+director[1][2] << std::endl;
-        outfile << rod[i].r[0]                << "  " << rod[i].r[1]                << "  " << rod[i].r[2]                << std::endl;
-        outfile << rod[i].r[0]+director[2][0] << "  " << rod[i].r[1]+director[2][1] << "  " << rod[i].r[2]+director[2][2] << std::endl;
-
-    }
-
-    outfile << std::endl;
-
-    // ///////////////////////////////////////
-    //   Write data
-    // ///////////////////////////////////////
-    for (int i=0; i<ndata; i++) {
-
-        outfile << "@" << 3+i << std::endl;
-        
-        for (int j=0; j<nPoints/2; j++) {
-            double value = (j<data.size()) ? data[j][i] : 0;
-            outfile << value << std::endl << value << std::endl;
-        }
-
-        outfile << std::endl;
-
-    }
+    for (int i=0; i<data.size(); i++)
+        outfile << data[i] << std::endl;
 
     std::cout << "Result written successfully to: " << filename << std::endl;
+
+}
+
+void writeRodStress(Dune::BlockVector<Dune::FieldVector<double, 6> >& data,
+                    const std::string& basename)
+{
+    Dune::BlockVector<Dune::FieldVector<double, 1> > scalarStress(data.size());
+
+    // Extract separate stress values and write them
+    for (int i=0; i<6; i++) {
+
+        for (size_t j=0; j<data.size(); j++) 
+            scalarStress[j] = data[j][i];
+
+        // create a name
+        std::stringstream iAsAscii;
+        iAsAscii << i;
+
+        // write the scalar field
+        writeRodElementData(scalarStress, basename + ".stress" + iAsAscii.str());
+
+    }
 
 }
 
