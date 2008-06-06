@@ -14,10 +14,6 @@ IPOPT_CPP_DIR  = /home/haile/sander/Ipopt-3.3.5/build
 IPOPT_LDADD    = -L$(IPOPT_CPP_DIR)/lib -lipopt -llapack -lblas -lgfortran
 IPOPT_CPPFLAGS = -I$(IPOPT_CPP_DIR)/include -DHAVE_IPOPT_CPP
 
-# Hack around the insufficient build system: add to references
-# to ag-common by hand
-AM_CPPFLAGS += -I../../dune/ag-common
-
 noinst_PROGRAMS = staticrod staticrod2 rod3d dirneucoupling
 
 staticrod_SOURCES = staticrod.cc
