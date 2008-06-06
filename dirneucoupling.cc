@@ -360,7 +360,7 @@ int main (int argc, char *argv[]) try
 
     //
     double normOfOldCorrection = 0;
-
+    int dnStepsActuallyTaken = 0;
     for (int i=0; i<maxDirichletNeumannSteps; i++) {
         
         std::cout << "----------------------------------------------------" << std::endl;
@@ -530,7 +530,7 @@ int main (int argc, char *argv[]) try
                 max3dRelCorrection = std::max(max3dRelCorrection, 
                                               std::fabs(oldSolution3d[j][k])/ std::fabs(x3d[j][k]));
 
-
+        // the rod
         RodDifferenceType rodDiff = computeRodDifference(oldSolutionRod, rodX);
         double maxRodRelCorrection = 0;
         for (size_t j=0; j<rodX.size(); j++)
@@ -538,8 +538,11 @@ int main (int argc, char *argv[]) try
                 maxRodRelCorrection = std::max(maxRodRelCorrection, 
                                               std::fabs(rodDiff[j][k])/ std::fabs(rodX[j].r[k]));
 
+        // Absolute corrections
         double maxRodCorrection = computeRodDifference(oldSolutionRod, rodX).infinity_norm();
         double max3dCorrection  = oldSolution3d.infinity_norm();
+
+
         std::cout << "rod correction: " << maxRodCorrection
                   << "    rod rel correction: " <<  maxRodRelCorrection
                   << "    3d correction: " <<  max3dCorrection
@@ -559,6 +562,8 @@ int main (int argc, char *argv[]) try
         // Output
         std::cout << "DD iteration: " << i << "  --  ||u^{n+1} - u^n|| / ||u^n||: " << relativeError << ",      "
                   << "convrate " << convRate << "\n";
+
+        dnStepsActuallyTaken = i;
 
         //if (relativeError < ddTolerance)
         if (std::max(max3dRelCorrection,maxRodRelCorrection) < ddTolerance)
@@ -618,7 +623,7 @@ int main (int argc, char *argv[]) try
     std::string filename = resultPath + "convrate_" + levelAsAscii.str() + "_" + dampingAsAscii.str();
 
     int i;
-    for (i=0; i<maxDirichletNeumannSteps; i++) {
+    for (i=0; i<dnStepsActuallyTaken; i++) {
         
         // /////////////////////////////////////////////////////
         //   Read iteration from file
