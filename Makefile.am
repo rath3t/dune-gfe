@@ -14,7 +14,7 @@ LAPACKPP_LDFLAGS  = -L/home/haile/sander/lapack++-inst/lib -llapackpp
 #IPOPT_CPPFLAGS = -I$(IPOPT_DIR)/IPOPT/include -DHAVE_IPOPT
 
 # Include and linker paths to the new C++ IPOpt library
-IPOPT_CPP_DIR  = /home/haile/sander/CoinIpopt/build
+IPOPT_CPP_DIR  = /home/haile/sander/Ipopt-3.3.5/build
 IPOPT_LDADD    = -L$(IPOPT_CPP_DIR)/lib -lipopt -llapack -lblas -lgfortran
 IPOPT_CPPFLAGS = -I$(IPOPT_CPP_DIR)/include -DHAVE_IPOPT_CPP
 
