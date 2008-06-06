@@ -11,11 +11,11 @@
 
 #include <dune/ag-common/boundarypatch.hh>
 #include <dune/ag-common/projectedblockgsstep.hh>
-#include "../contact/src/contactmmgstep.hh"
+#include <dune/ag-common/mmgstep.hh>
 #include <dune/ag-common/iterativesolver.hh>
-
 #include <dune/ag-common/geomestimator.hh>
 #include <dune/ag-common/energynorm.hh>
+#include <dune/ag-common/contactobsrestrict.hh>
 
 #include "src/rodwriter.hh"
 #include "src/planarrodassembler.hh"
@@ -121,22 +121,22 @@ int main (int argc, char *argv[]) try
     ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
     ProjectedBlockGSStep<MatrixType, VectorType> postsmoother;
 
-    ContactMMGStep<MatrixType, VectorType> contactMMGStep(1);
+    MonotoneMGStep<MatrixType, VectorType> multigridStep(1);
 
-    contactMMGStep.setMGType(mu, nu1, nu2);
-    contactMMGStep.dirichletNodes_    = &dirichletNodes;
-    contactMMGStep.basesolver_        = &baseSolver;
-    contactMMGStep.presmoother_       = &presmoother;
-    contactMMGStep.postsmoother_      = &postsmoother;    
-    contactMMGStep.hasObstacle_       = &hasObstacle;
-    contactMMGStep.obstacles_         = &trustRegionObstacles;
-    contactMMGStep.verbosity_         = Solver::QUIET;
+    multigridStep.setMGType(mu, nu1, nu2);
+    multigridStep.dirichletNodes_    = &dirichletNodes;
+    multigridStep.basesolver_        = &baseSolver;
+    multigridStep.presmoother_       = &presmoother;
+    multigridStep.postsmoother_      = &postsmoother;    
+    multigridStep.hasObstacle_       = &hasObstacle;
+    multigridStep.obstacles_         = &trustRegionObstacles;
+    multigridStep.verbosity_         = Solver::QUIET;
+    multigridStep.obstacleRestrictor_ = new ContactObsRestriction<VectorType>;
 
 
+    EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    EnergyNorm<MatrixType, VectorType> energyNorm(contactMMGStep);
-
-    IterativeSolver<VectorType> solver(&contactMMGStep,
+    IterativeSolver<VectorType> solver(&multigridStep,
                                                    numIt,
                                                    tolerance,
                                                    &energyNorm,
@@ -226,15 +226,15 @@ int main (int argc, char *argv[]) try
         // ////////////////////////////////////
         //   Create the transfer operators
         // ////////////////////////////////////
-        for (int k=0; k<contactMMGStep.mgTransfer_.size(); k++)
-            delete(contactMMGStep.mgTransfer_[k]);
+        for (int k=0; k<multigridStep.mgTransfer_.size(); k++)
+            delete(multigridStep.mgTransfer_[k]);
 
-        contactMMGStep.mgTransfer_.resize(toplevel);
+        multigridStep.mgTransfer_.resize(toplevel);
 
-        for (int i=0; i<contactMMGStep.mgTransfer_.size(); i++){
+        for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
             TruncatedMGTransfer<VectorType>* newTransferOp = new TruncatedMGTransfer<VectorType>;
             newTransferOp->setup(grid,i,i+1);
-            contactMMGStep.mgTransfer_[i] = newTransferOp;
+            multigridStep.mgTransfer_[i] = newTransferOp;
         }
 
         // /////////////////////////////////////////////////////
@@ -265,7 +265,7 @@ int main (int argc, char *argv[]) try
 
             solver.preprocess();
 
-            contactMMGStep.preprocess();
+            multigridStep.preprocess();
 
 
             // /////////////////////////////
@@ -273,7 +273,7 @@ int main (int argc, char *argv[]) try
             // /////////////////////////////
              solver.solve();
 
-             corr = contactMMGStep.getSol();
+             corr = multigridStep.getSol();
 
              printf("infinity norm of the correction: %g\n", corr.infinity_norm());
              if (corr.infinity_norm() < 1e-5) {

@@ -8,16 +8,15 @@
 #include <dune/istl/io.hh>
 
 #include <dune/ag-common/boundarypatch.hh>
-
-#include "src/planarrodassembler.hh"
 #include <dune/ag-common/projectedblockgsstep.hh>
-#include "../contact/src/contactmmgstep.hh"
-
+#include <dune/ag-common/mmgstep.hh>
 #include <dune/ag-common/iterativesolver.hh>
-
 #include <dune/ag-common/geomestimator.hh>
 #include <dune/ag-common/energynorm.hh>
+#include <dune/ag-common/contactobsrestrict.hh>
+
 #include "src/rodwriter.hh"
+#include "src/planarrodassembler.hh"
 
 
 // Number of degrees of freedom: 
@@ -189,27 +188,28 @@ int main (int argc, char *argv[]) try
     ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
     ProjectedBlockGSStep<MatrixType, VectorType> postsmoother;
 
-    ContactMMGStep<MatrixType, VectorType> contactMMGStep(maxlevel+1);
+    MonotoneMGStep<MatrixType, VectorType> multigridStep(maxlevel+1);
 
-    contactMMGStep.setMGType(mu, nu1, nu2);
-    contactMMGStep.dirichletNodes_    = &dirichletNodes;
-    contactMMGStep.basesolver_        = &baseSolver;
-    contactMMGStep.presmoother_       = &presmoother;
-    contactMMGStep.postsmoother_      = &postsmoother;    
-    contactMMGStep.hasObstacle_       = &hasObstacle;
-    contactMMGStep.obstacles_         = &trustRegionObstacles;
+    multigridStep.setMGType(mu, nu1, nu2);
+    multigridStep.dirichletNodes_    = &dirichletNodes;
+    multigridStep.basesolver_        = &baseSolver;
+    multigridStep.presmoother_       = &presmoother;
+    multigridStep.postsmoother_      = &postsmoother;    
+    multigridStep.hasObstacle_       = &hasObstacle;
+    multigridStep.obstacles_         = &trustRegionObstacles;
+    multigridStep.obstacleRestrictor_ = new ContactObsRestriction<VectorType>;
 
     // Create the transfer operators
-    contactMMGStep.mgTransfer_.resize(maxlevel);
-    for (int i=0; i<contactMMGStep.mgTransfer_.size(); i++){
+    multigridStep.mgTransfer_.resize(maxlevel);
+    for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
         TruncatedMGTransfer<VectorType>* newTransferOp = new TruncatedMGTransfer<VectorType>;
         newTransferOp->setup(rod,i,i+1);
-        contactMMGStep.mgTransfer_[i] = newTransferOp;
+        multigridStep.mgTransfer_[i] = newTransferOp;
     }
 
-    EnergyNorm<MatrixType, VectorType> energyNorm(contactMMGStep);
+    EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    IterativeSolver<VectorType> solver(&contactMMGStep,
+    IterativeSolver<VectorType> solver(&multigridStep,
                                                    numIt,
                                                    tolerance,
                                                    &energyNorm,
@@ -263,20 +263,20 @@ int main (int argc, char *argv[]) try
 
             //std::cout << "rhs: " << std::endl << rhs << std::endl;
             //std::cout << "Trust Region obstacles:" << std::endl;
-            //std::cout << (*contactMMGStep.obstacles_)[maxlevel] << std::endl;
+            //std::cout << (*multigridStep.obstacles_)[maxlevel] << std::endl;
 
             //solver.iterationStep_->setProblem(hessianMatrix, corr, rhs);
             DUNE_THROW(NotImplemented,"IterationStep::setProblem, Matrix uebergeben");
 
             solver.preprocess();
-            contactMMGStep.preprocess();
+            multigridStep.preprocess();
 
             // /////////////////////////////
             //    Solve !
             // /////////////////////////////
              solver.solve();
 
-             corr = contactMMGStep.getSol();
+             corr = multigridStep.getSol();
 
              //std::cout << "Correction: \n" << corr << std::endl;
 
