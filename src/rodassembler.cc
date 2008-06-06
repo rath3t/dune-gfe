@@ -510,7 +510,7 @@ assembleGradient(const Entity& element,
         interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
 
         array<Quaternion<double>,6> dq_ds_dwij;
-        interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos*intervalLength, intervalLength, 
+        interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos[0]*intervalLength, intervalLength, 
                                         dq_ds_dwij);
 
         // /////////////////////////////////////////////
