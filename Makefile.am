@@ -21,9 +21,9 @@ staticrod2_SOURCES = staticrod2.cc
 rod3d_SOURCES = rod3d.cc
 
 dirneucoupling_SOURCES  = dirneucoupling.cc
-dirneucoupling_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS)
+dirneucoupling_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
 dirneucoupling_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
-                          $(IPOPT_LDADD)
+                          $(IPOPT_LDADD) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
 
 # don't follow the full GNU-standard
 # we need automake 1.5
