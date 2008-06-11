@@ -791,7 +791,6 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
 
     FieldMatrix<double,dim,dim> deformationGradientBackup = deformationGradient;
 
-#if 1
     // returns a decomposition U W VT, where U is returned in the first argument
     svdcmp<double,dim,dim>(deformationGradient, W, V);
 
@@ -800,11 +799,6 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
             VT[i][j] = V[j][i];
 
     deformationGradient.rightmultiply(VT);
-#else
-    lapackSVD(deformationGradientBackup, U, W, VT);
-    deformationGradient = U;
-    deformationGradient.rightmultiply(VT);
-#endif
     //std::cout << deformationGradient << std::endl;
 
     // deformationGradient now contains the orthogonal part of the polar decomposition
