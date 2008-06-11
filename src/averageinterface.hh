@@ -399,7 +399,7 @@ finalize_solution(Ipopt::SolverReturn status,
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
 template <class GridType>
-void computeAveragePressureIPOpt(const Dune::FieldVector<double,GridType::dimension>& resultantForce,
+void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>& resultantForce,
                             const Dune::FieldVector<double,GridType::dimension>& resultantTorque,
                             const BoundaryPatch<GridType>& interface,
                             const Configuration& crossSection,
