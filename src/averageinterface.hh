@@ -657,54 +657,48 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     // ///////////////////////////////////////////
     //   Loop and integrate over the interface
     // ///////////////////////////////////////////
-    ElementIterator eIt    = grid.template lbegin<0>(level);
-    ElementIterator eEndIt = grid.template lend<0>(level);
-    for (; eIt!=eEndIt; ++eIt) {
 
-        NeighborIterator nIt    = eIt->ilevelbegin();
-        NeighborIterator nEndIt = eIt->ilevelend();
+    typename BoundaryPatch<GridType>::iterator it    = interface.begin();
+    typename BoundaryPatch<GridType>::iterator endIt = interface.end();
 
-        for (; nIt!=nEndIt; ++nIt) {
+    for (; it!=endIt; ++it) {
 
-            if (!interface.contains(*eIt, nIt))
-                continue;
-
-            const typename NeighborIterator::Geometry& segmentGeometry = nIt->intersectionGlobal();
+            const typename NeighborIterator::Geometry& segmentGeometry = it->intersectionGlobal();
 
             // Get quadrature rule
             const QuadratureRule<double, dim-1>& quad = QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
 
             // Get set of shape functions on this segment
             const typename LagrangeShapeFunctionSetContainer<double,double,dim>::value_type& sfs
-                = LagrangeShapeFunctions<double,double,dim>::general(eIt->type(),1);
+                = LagrangeShapeFunctions<double,double,dim>::general(it->inside()->type(),1);
 
             /* Loop over all integration points */
             for (int ip=0; ip<quad.size(); ip++) {
                 
                 // Local position of the quadrature point
-                const FieldVector<double,dim> quadPos = nIt->intersectionSelfLocal().global(quad[ip].position());
+                const FieldVector<double,dim> quadPos = it->intersectionSelfLocal().global(quad[ip].position());
                 
                 const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
 
                 // Evaluate base functions
                 FieldVector<double,dim> posAtQuadPoint(0);
 
-                for(int i=0; i<eIt->geometry().corners(); i++) {
+                for(int i=0; i<it->inside()->geometry().corners(); i++) {
 
-                    int idx = indexSet.template subIndex<dim>(*eIt, i);
+                    int idx = indexSet.template subIndex<dim>(*it->inside(), i);
 
                     // Deformation at the quadrature point 
                     posAtQuadPoint.axpy(sfs[i].evaluateFunction(0,quadPos), deformation[idx]);
                 }
 
-                const FieldMatrix<double,dim,dim>& inv = eIt->geometry().jacobianInverseTransposed(quadPos);
+                const FieldMatrix<double,dim,dim>& inv = it->inside()->geometry().jacobianInverseTransposed(quadPos);
                 
                 /**********************************************/
                 /* compute gradients of the shape functions   */
                 /**********************************************/
-                std::vector<FieldVector<double, dim> > shapeGrads(eIt->geometry().corners());
+                std::vector<FieldVector<double, dim> > shapeGrads(it->inside()->geometry().corners());
                 
-                for (int dof=0; dof<eIt->geometry().corners(); dof++) {
+                for (int dof=0; dof<it->inside()->geometry().corners(); dof++) {
                     
                     FieldVector<double,dim> tmp;
                     for (int i=0; i<dim; i++)
@@ -727,8 +721,8 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                         
                         F[i][j] = (i==j) ? 1 : 0;
                         
-                        for (int k=0; k<eIt->geometry().corners(); k++)
-                            F[i][j] += deformation[indexSet.template subIndex<dim>(*eIt, k)][i]*shapeGrads[k][j];
+                        for (int k=0; k<it->inside()->geometry().corners(); k++)
+                            F[i][j] += deformation[indexSet.template subIndex<dim>(*it->inside(), k)][i]*shapeGrads[k][j];
                         
                     }
                     
@@ -746,8 +740,6 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                         deformationGradient[i][j] += F[i][j] * quad[ip].weight() * integrationElement;
 
             }
-
-        }
 
     }
 
