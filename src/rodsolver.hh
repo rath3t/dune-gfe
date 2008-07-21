@@ -7,7 +7,7 @@
 #include <dune/istl/bvector.hh>
 
 #include <dune/ag-common/boxconstraint.hh>
-#include <dune/ag-common/h1seminorm.hh>
+#include <dune/ag-common/norm/h1seminorm.hh>
 #include <dune/ag-common/iterativesolver.hh>
 
 #include "rodassembler.hh"

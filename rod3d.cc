@@ -9,7 +9,7 @@
 
 
 #include <dune/ag-common/iterativesolver.hh>
-#include <dune/ag-common/energynorm.hh>
+#include <dune/ag-common/norm/energynorm.hh>
 
 #include "src/configuration.hh"
 #include "src/roddifference.hh"

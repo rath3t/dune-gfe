@@ -12,7 +12,7 @@
 #include <dune/ag-common/mmgstep.hh>
 #include <dune/ag-common/iterativesolver.hh>
 #include <dune/ag-common/geomestimator.hh>
-#include <dune/ag-common/energynorm.hh>
+#include <dune/ag-common/norm/energynorm.hh>
 #include <dune/ag-common/contactobsrestrict.hh>
 
 #include "src/rodwriter.hh"

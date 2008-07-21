@@ -11,8 +11,8 @@
 #include <dune/ag-common/contactobsrestrict.hh>
 #include <dune/ag-common/iterativesolver.hh>
 
-#include <dune/ag-common/energynorm.hh>
-#include <dune/ag-common/h1seminorm.hh>
+#include <dune/ag-common/norm/energynorm.hh>
+#include <dune/ag-common/norm/h1seminorm.hh>
 
 #include "configuration.hh"
 #include "quaternion.hh"

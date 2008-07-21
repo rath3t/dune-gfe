@@ -23,7 +23,7 @@
 #include <dune/ag-common/quadraticipopt.hh>
 #endif
 #include <dune/ag-common/readbitfield.hh>
-#include <dune/ag-common/energynorm.hh>
+#include <dune/ag-common/norm/energynorm.hh>
 #include <dune/ag-common/boundarypatch.hh>
 #include <dune/ag-common/prolongboundarypatch.hh>
 #include <dune/ag-common/sampleonbitfield.hh>
