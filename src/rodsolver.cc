@@ -7,7 +7,7 @@
 #include <dune/disc/operators/p1operator.hh>
 
 #include <dune/ag-common/trustregiongsstep.hh>
-#include <dune/ag-common/mmgstep.hh>
+#include <dune/ag-common/solver/mmgstep.hh>
 #include <dune/ag-common/contactobsrestrict.hh>
 #include <dune/ag-common/iterativesolver.hh>
 
