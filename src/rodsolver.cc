@@ -7,12 +7,12 @@
 #include <dune/disc/operators/p1operator.hh>
 
 #include <dune/ag-common/trustregiongsstep.hh>
-#include <dune/ag-common/solver/mmgstep.hh>
+#include <dune/ag-common/solvers/mmgstep.hh>
 #include <dune/ag-common/contactobsrestrict.hh>
 #include <dune/ag-common/iterativesolver.hh>
 
-#include <dune/ag-common/norm/energynorm.hh>
-#include <dune/ag-common/norm/h1seminorm.hh>
+#include <dune/ag-common/norms/energynorm.hh>
+#include <dune/ag-common/norms/h1seminorm.hh>
 
 #include "configuration.hh"
 #include "quaternion.hh"
@@ -277,7 +277,7 @@ void RodSolver<GridType>::solve()
     
             // Write statistics of the initial solution
             // Compute the energy norm
-            oldError = h1SemiNorm_->compute(exactSolution);
+            oldError = h1SemiNorm_->operator()(exactSolution);
     
             for (int j=0; j<multigridIterations_; j++) {
         
@@ -303,7 +303,7 @@ void RodSolver<GridType>::solve()
                 //std::cout << "error\n" << intermediateSol << std::endl;
 
                 // Compute the H1 norm
-                double error = h1SemiNorm_->compute(intermediateSol);
+                double error = h1SemiNorm_->operator()(intermediateSol);
 
                 convRate = error / oldError;
                 totalConvRate *= convRate;
