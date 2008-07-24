@@ -4,11 +4,6 @@
 #LDADD = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS)
 #AM_CPPFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS)
 
-# Include and linker paths to the IPOpt library
-IPOPT_CPP_DIR  = /home/haile/sander/Ipopt-3.3.5/build
-IPOPT_LDADD    = -L$(IPOPT_CPP_DIR)/lib -lipopt -llapack -lblas -lgfortran
-IPOPT_CPPFLAGS = -I$(IPOPT_CPP_DIR)/include -DHAVE_IPOPT_CPP
-
 noinst_PROGRAMS = staticrod staticrod2 rod3d dirneucoupling
 
 staticrod_SOURCES = staticrod.cc
@@ -18,7 +13,7 @@ rod3d_SOURCES = rod3d.cc
 dirneucoupling_SOURCES  = dirneucoupling.cc
 dirneucoupling_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
 dirneucoupling_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
-                          $(IPOPT_LDADD) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
+                          $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
 
 # don't follow the full GNU-standard
 # we need automake 1.5
