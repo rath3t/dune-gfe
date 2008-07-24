@@ -9,6 +9,13 @@
 #include <dune/ag-common/surfmassmatrix.hh>
 #include "svd.hh"
 
+#ifdef HAVE_IPOPT
+#include "coin/IpTNLP.hpp"
+#include "coin/IpIpoptApplication.hpp"
+#else
+#error You need IPOpt for this header!
+#endif
+
 template <class GridType>
 class PressureAverager : public Ipopt::TNLP
 {
