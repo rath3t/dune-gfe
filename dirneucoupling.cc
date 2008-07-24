@@ -17,13 +17,10 @@
 #include <dune/ag-common/iterativesolver.hh>
 #include <dune/ag-common/projectedblockgsstep.hh>
 #ifdef HAVE_IPOPT
-#include <dune/ag-common/linearipopt.hh>
-#endif
-#ifdef HAVE_IPOPT_CPP
 #include <dune/ag-common/quadraticipopt.hh>
 #endif
 #include <dune/ag-common/readbitfield.hh>
-#include <dune/ag-common/norm/energynorm.hh>
+#include <dune/ag-common/norms/energynorm.hh>
 #include <dune/ag-common/boundarypatch.hh>
 #include <dune/ag-common/prolongboundarypatch.hh>
 #include <dune/ag-common/sampleonbitfield.hh>
@@ -303,9 +300,6 @@ int main (int argc, char *argv[]) try
 
     // First create a gauss-seidel base solver
 #ifdef HAVE_IPOPT
-    LinearIPOptSolver<VectorType> baseSolver;
-#endif
-#ifdef HAVE_IPOPT_CPP
     QuadraticIPOptSolver<MatrixType,VectorType> baseSolver;
 #endif
     baseSolver.verbosity_ = NumProc::QUIET;
