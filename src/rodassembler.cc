@@ -662,7 +662,7 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
 
     Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<GridType,double> localStiffness(K, A);
+    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
     // //////////////////////////////////////////////////////////////////
     //   Store pointers to all elements so we can access them by index
@@ -904,7 +904,7 @@ assembleGradient(const std::vector<Configuration>& sol,
 
     Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<GridType,double> localStiffness(K, A);
+    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
     grad.resize(sol.size());
     grad = 0;
@@ -963,7 +963,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
     Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<GridType,double> localStiffness(K, A);
+    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
     Dune::array<Configuration,2> localReferenceConfiguration;
     Dune::array<Configuration,2> localSolution;
@@ -1008,7 +1008,7 @@ getStrain(const std::vector<Configuration>& sol,
 
     Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<GridType,double> localStiffness(K, A);
+    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
     // Strain defined on each element
     strain.resize(indexSet.size(0));
@@ -1128,7 +1128,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             
             Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
             Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-            RodLocalStiffness<GridType,double> localStiffness(K, A);
+            RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
             double pos = nIt->intersectionSelfLocal()[0];
 

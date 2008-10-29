@@ -49,6 +49,7 @@ template <class GridType>
 void RodSolver<GridType>::setup(const GridType& grid,
                                 const RodAssembler<GridType>* rodAssembler,
                                 const SolutionType& x,
+                                const BlockBitField<blocksize>& dirichletNodes,
                                 double tolerance,
                                 int maxTrustRegionSteps,
                                 double initialTrustRegionRadius,
@@ -80,26 +81,11 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     int numLevels = grid_->maxLevel()+1;
 
-    // ////////////////////////////////////////////
-    //   Construct array with the Dirichlet nodes
-    // ////////////////////////////////////////////
-    dirichletNodes_.resize(numLevels);
-    for (int i=0; i<numLevels; i++) {
-        
-        dirichletNodes_[i].resize( blocksize * grid.size(i,1), false );
-        
-        for (int j=0; j<blocksize; j++) {
-            dirichletNodes_[i][j] = true;
-            dirichletNodes_[i][dirichletNodes_[i].size()-1-j] = true;
-        }
-
-    }
-
     // ////////////////////////////////
     //   Create a multigrid solver
     // ////////////////////////////////
 
-    // First create a gauss-seidel base solver
+    // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType, CorrectionType>* baseSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
     EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
@@ -118,7 +104,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>(numLevels);
 
     mmgStep->setMGType(mu_, nu1_, nu2_);
-    mmgStep->dirichletNodes_    = &dirichletNodes_;
+    mmgStep->ignoreNodes        = &dirichletNodes;
     mmgStep->basesolver_        = baseSolver;
     mmgStep->presmoother_       = presmoother;
     mmgStep->postsmoother_      = postsmoother; 
@@ -131,7 +117,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
     LeafP1Function<GridType,double> u(grid),f(grid);
-    LaplaceLocalStiffness<GridType,double> laplaceStiffness;
+    LaplaceLocalStiffness<typename GridType::LeafGridView,double> laplaceStiffness;
     LeafP1OperatorAssembler<GridType,double,1>* A = new LeafP1OperatorAssembler<GridType,double,1>(grid);
     A->assemble(laplaceStiffness,u,f);
 

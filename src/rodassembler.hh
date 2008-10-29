@@ -10,17 +10,17 @@
 #include <dune/ag-common/boundarypatch.hh>
 #include "configuration.hh"
 
-template<class GridType, class RT>
+template<class GridView, class RT>
 class RodLocalStiffness 
-    : public Dune::LocalStiffness<RodLocalStiffness<GridType,RT>,GridType,RT,6>
+    : public Dune::LocalStiffness<GridView,RT,6>
 {
     // grid types
-    typedef typename GridType::ctype DT;
-    typedef typename GridType::template Codim<0>::Entity Entity;
-    typedef typename GridType::template Codim<0>::EntityPointer EntityPointer;
+    typedef typename GridView::Grid::ctype DT;
+    typedef typename GridView::template Codim<0>::Entity Entity;
+    typedef typename GridView::template Codim<0>::EntityPointer EntityPointer;
     
     // some other sizes
-    enum {dim=GridType::dimension};
+    enum {dim=GridView::dimension};
 
     // Quadrature order used for the extension and shear energy
     enum {shearQuadOrder = 2};
@@ -37,7 +37,7 @@ public:
     // to allocate the correct size of (dense) blocks with a FieldMatrix
     enum {m=blocksize};
 
-    enum {SIZE = Dune::LocalStiffness<RodLocalStiffness,GridType,RT,m>::SIZE};
+    enum {SIZE = Dune::LocalStiffness<GridView,RT,m>::SIZE};
     
     // types for matrics, vectors and boundary conditions
     typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
@@ -59,7 +59,7 @@ public:
         
         // For the time being:  all boundary conditions are homogeneous Neumann
         // This means no boundary condition handling is done at all
-        for (int i=0; i<Dune::LocalStiffness<RodLocalStiffness,GridType,RT,m>::SIZE; i++)
+        for (int i=0; i<SIZE; i++)
             for (size_t j=0; j<this->bctype[i].size(); j++)
                 this->bctype[i][j] = Dune::BoundaryConditions::neumann;
     }
@@ -75,7 +75,7 @@ public:
         
         // For the time being:  all boundary conditions are homogeneous Neumann
         // This means no boundary condition handling is done at all
-        for (int i=0; i<Dune::LocalStiffness<RodLocalStiffness,GridType,RT,m>::SIZE; i++)
+        for (int i=0; i<SIZE; i++)
             for (size_t j=0; j<this->bctype[i].size(); j++)
                 this->bctype[i][j] = Dune::BoundaryConditions::neumann;
     }
@@ -91,10 +91,23 @@ public:
       \param[in]  localSolution Current local solution, because this is a nonlinear assembler
       @param[in]  k    order of Lagrange basis
     */
-    template<typename TypeTag>
     void assemble (const Entity& e, 
-                   const Dune::BlockVector<Dune::FieldVector<double, dim> >& localSolution,
-                   int k=1);
+                   const Dune::BlockVector<Dune::FieldVector<double, 6> >& localSolution,
+                   int k=1)
+    {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
+
+    /** \todo Remove this once this methods is not in base class LocalStiffness anymore */
+    void assemble (const Entity& e, int k=1)
+    {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
+
+    void assembleBoundaryCondition (const Entity& e, int k=1)
+    {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
 
     
     RT energy (const Entity& e,
