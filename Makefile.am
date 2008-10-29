@@ -1,8 +1,8 @@
 # $Id$
 
 # possible options
-#LDADD = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS)
-#AM_CPPFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS)
+LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
+AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
 noinst_PROGRAMS = staticrod staticrod2 rod3d dirneucoupling
 
