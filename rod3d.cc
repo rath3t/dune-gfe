@@ -76,8 +76,6 @@ int main (int argc, char *argv[]) try
 
     grid.globalRefine(numLevels-1);
 
-    std::vector<BitField> dirichletNodes(1);
-
     SolutionType x(grid.size(grid.maxLevel(),1));
 
     // //////////////////////////
@@ -119,15 +117,12 @@ int main (int argc, char *argv[]) try
     std::cout << "director 1:  " << x[x.size()-1].q.director(1) << std::endl;
     std::cout << "director 2:  " << x[x.size()-1].q.director(2) << std::endl;
 
-    dirichletNodes.resize(numLevels);
-    for (int i=0; i<numLevels; i++) {
+    BlockBitField<blocksize> dirichletNodes(grid.size(1));
+    dirichletNodes.unsetAll();
         
-        dirichletNodes[i].resize( blocksize * grid.size(i,1), false );
-        
-        for (int j=0; j<blocksize; j++) {
-            dirichletNodes[i][j] = true;
-            dirichletNodes[i][dirichletNodes[i].size()-1-j] = true;
-        }
+    for (int j=0; j<blocksize; j++) {
+        dirichletNodes[0][j] = true;
+        dirichletNodes[dirichletNodes.size()-1][j] = true;
     }
     
     // ///////////////////////////////////////////
@@ -140,6 +135,7 @@ int main (int argc, char *argv[]) try
     rodSolver.setup(grid, 
                     &rodAssembler,
                     x,
+                    dirichletNodes,
                     tolerance,
                     maxTrustRegionSteps,
                     initialTrustRegionRadius,
