@@ -124,7 +124,7 @@ int main (int argc, char *argv[]) try
     MonotoneMGStep<MatrixType, VectorType> multigridStep(1);
 
     multigridStep.setMGType(mu, nu1, nu2);
-    multigridStep.dirichletNodes_    = &dirichletNodes;
+    multigridStep.dirichletNodes_    = &dirichletNodes[0];
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.presmoother_       = &presmoother;
     multigridStep.postsmoother_      = &postsmoother;    
