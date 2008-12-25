@@ -1,6 +1,6 @@
 #include <config.h>
 
-#include <dune/common/bitfield.hh>
+#include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
 
 #include <dune/grid/onedgrid.hh>
@@ -31,7 +31,7 @@ using std::string;
 void setTrustRegionObstacles(double trustRegionRadius,
                              std::vector<BoxConstraint<double,blocksize> >& trustRegionObstacles,
                              const std::vector<BoxConstraint<double,blocksize> >& trueObstacles,
-                             const BitField& dirichletNodes)
+                             const BitSetVector<blocksize>& dirichletNodes)
 {
     //std::cout << "True obstacles\n" << trueObstacles << std::endl;
 
@@ -39,7 +39,7 @@ void setTrustRegionObstacles(double trustRegionRadius,
 
         for (int k=0; k<blocksize; k++) {
 
-            if (dirichletNodes[j*blocksize+k])
+            if (dirichletNodes[j][k])
                 continue;
 
             trustRegionObstacles[j].lower(k) =
@@ -99,8 +99,8 @@ int main (int argc, char *argv[]) try
     GridType grid(numRodBaseElements, 0, 1);
 
     std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(1);
-    std::vector<BitField> hasObstacle(1);
-    std::vector<BitField> dirichletNodes(1);
+    std::vector<BitSetVector<1> > hasObstacle(1);
+    std::vector<BitSetVector<blocksize> > dirichletNodes(1);
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -124,7 +124,7 @@ int main (int argc, char *argv[]) try
     MonotoneMGStep<MatrixType, VectorType> multigridStep(1);
 
     multigridStep.setMGType(mu, nu1, nu2);
-    multigridStep.dirichletNodes_    = &dirichletNodes[0];
+    multigridStep.ignoreNodes_       = &dirichletNodes[0];
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.presmoother_       = &presmoother;
     multigridStep.postsmoother_      = &postsmoother;    
@@ -168,12 +168,11 @@ int main (int argc, char *argv[]) try
         dirichletNodes.resize(toplevel+1);
         for (int i=0; i<=toplevel; i++) {
             
-            dirichletNodes[i].resize( blocksize * grid.size(i,1), false );
+            dirichletNodes[i].resize( grid.size(i,1), false );
             
-            for (int j=0; j<blocksize; j++) {
-                dirichletNodes[i][j] = true;
-                dirichletNodes[i][dirichletNodes[i].size()-1-j] = true;
-            }
+            dirichletNodes[i][0]     = true;
+            dirichletNodes[i].back() = true;
+
         }
         
         // ////////////////////////////////////////////////////////////

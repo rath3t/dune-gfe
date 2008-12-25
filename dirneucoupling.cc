@@ -10,7 +10,7 @@
 #include <dune/grid/io/file/amirameshwriter.hh>
 
 
-#include <dune/common/bitfield.hh>
+#include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
 
 #include <dune/ag-common/multigridstep.hh>
@@ -165,7 +165,7 @@ int main (int argc, char *argv[]) try
     rodGrid.globalRefine(numLevels-1);
     grid.globalRefine(numLevels-1);
 
-    std::vector<BitField> dirichletNodes(1);
+    std::vector<BitSetVector<dim> > dirichletNodes(1);
 
     RodSolutionType rodX(rodGrid.size(1));
 
@@ -219,11 +219,10 @@ int main (int argc, char *argv[]) try
     dirichletNodes.resize(toplevel+1);
     for (int i=0; i<=toplevel; i++) {
         
-        dirichletNodes[i].resize( dim*grid.size(i,dim));
+        dirichletNodes[i].resize( grid.size(i,dim));
 
         for (int j=0; j<grid.size(i,dim); j++)
-            for (int k=0; k<dim; k++)
-                dirichletNodes[i][j*dim+k] = dirichletBoundary[i].containsVertex(j);
+            dirichletNodes[i][j] = dirichletBoundary[i].containsVertex(j);
         
     }
 
@@ -242,7 +241,7 @@ int main (int argc, char *argv[]) try
     //   Assemble 3d linear elasticity problem
     // //////////////////////////////////////////
     LeafP1Function<GridType,double,dim> u(grid),f(grid);
-    LinearElasticityLocalStiffness<GridType,double> lstiff(E, nu);
+    LinearElasticityLocalStiffness<GridType::LeafGridView,double> lstiff(E, nu);
     LeafP1OperatorAssembler<GridType,double,dim> hessian3d(grid);
     hessian3d.assemble(lstiff,u,f);
 
@@ -260,8 +259,18 @@ int main (int argc, char *argv[]) try
     x3d = 0;
     for (int i=0; i<x3d.size(); i++) 
         for (int j=0; j<dim; j++)
-            if (dirichletNodes[toplevel][i*dim+j])
+            if (dirichletNodes[toplevel][i][j])
                 x3d[i][j] = dirichletValues[toplevel][i][j];
+
+    // ///////////////////////////////////////////
+    //   Dirichlet nodes for the rod problem
+    // ///////////////////////////////////////////
+
+    BitSetVector<6> rodDirichletNodes(rodGrid.size(1));
+    rodDirichletNodes.unsetAll();
+        
+    rodDirichletNodes[0] = true;
+    rodDirichletNodes.back() = true;
 
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
@@ -274,6 +283,7 @@ int main (int argc, char *argv[]) try
     rodSolver.setup(rodGrid, 
                     &rodAssembler,
                     rodX,
+                    rodDirichletNodes,
                     trTolerance,
                     maxTrustRegionSteps,
                     initialTrustRegionRadius,
@@ -311,7 +321,7 @@ int main (int argc, char *argv[]) try
     MultigridStep<MatrixType, VectorType> multigridStep(*hessian3d, x3d, rhs3d, 1);
 
     multigridStep.setMGType(mu, nu1, nu2);
-    multigridStep.dirichletNodes_    = &dirichletNodes;
+    multigridStep.ignoreNodes_       = &dirichletNodes.back();
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.presmoother_       = &presmoother;
     multigridStep.postsmoother_      = &postsmoother;    
@@ -382,7 +392,7 @@ int main (int argc, char *argv[]) try
         //   Extract Neumann values and transfer it to the 3d object
         // ///////////////////////////////////////////////////////////
 
-        BitField couplingBitfield(rodX.size(),false);
+        BitSetVector<1> couplingBitfield(rodX.size(),false);
         // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
         couplingBitfield[0] = true;
         BoundaryPatch<RodGridType> couplingBoundary(rodGrid, rodGrid.maxLevel(), couplingBitfield);

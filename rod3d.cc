@@ -1,6 +1,6 @@
 #include <config.h>
 
-#include <dune/common/bitfield.hh>
+#include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
 
 #include <dune/grid/onedgrid.hh>
@@ -117,13 +117,11 @@ int main (int argc, char *argv[]) try
     std::cout << "director 1:  " << x[x.size()-1].q.director(1) << std::endl;
     std::cout << "director 2:  " << x[x.size()-1].q.director(2) << std::endl;
 
-    BlockBitField<blocksize> dirichletNodes(grid.size(1));
+    BitSetVector<blocksize> dirichletNodes(grid.size(1));
     dirichletNodes.unsetAll();
         
-    for (int j=0; j<blocksize; j++) {
-        dirichletNodes[0][j] = true;
-        dirichletNodes[dirichletNodes.size()-1][j] = true;
-    }
+    dirichletNodes[0] = true;
+    dirichletNodes.back() = true;
     
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem

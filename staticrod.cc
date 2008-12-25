@@ -1,6 +1,6 @@
 #include <config.h>
 
-#include <dune/common/bitfield.hh>
+#include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
 
 #include <dune/grid/onedgrid.hh>
@@ -29,7 +29,7 @@ using std::string;
 void setTrustRegionObstacles(double trustRegionRadius,
                              std::vector<BoxConstraint<double,blocksize> >& trustRegionObstacles,
                              const std::vector<BoxConstraint<double,blocksize> >& trueObstacles,
-                             const BitField& dirichletNodes)
+                             const BitSetVector<blocksize>& dirichletNodes)
 {
     //std::cout << "True obstacles\n" << trueObstacles << std::endl;
 
@@ -37,7 +37,7 @@ void setTrustRegionObstacles(double trustRegionRadius,
 
         for (int k=0; k<blocksize; k++) {
 
-            if (dirichletNodes[j*blocksize+k])
+            if (dirichletNodes[j][k])
                 continue;
 
             trustRegionObstacles[j].lower(k) =
@@ -96,16 +96,15 @@ int main (int argc, char *argv[]) try
     int numRodElements = rod.size(maxlevel, 0);
 
     
-    std::vector<BitField> dirichletNodes;
+    std::vector<BitSetVector<blocksize> > dirichletNodes;
     dirichletNodes.resize(maxLevel+1);
     for (int i=0; i<=maxlevel; i++) {
 
-        dirichletNodes[i].resize( blocksize * rod.size(i,1), false );
+        dirichletNodes[i].resize(rod.size(i,1), false );
 
-        for (int j=0; j<blocksize; j++) {
-            dirichletNodes[i][j] = true;
-            dirichletNodes[i][dirichletNodes[i].size()-1-j] = true;
-        }
+        dirichletNodes[i][0] = true;
+        dirichletNodes[i].back() = true;
+
     }
 
     // ////////////////////////////////////////////////////////////
@@ -148,7 +147,7 @@ int main (int argc, char *argv[]) try
     //   Create obstacles
     // //////////////////////////////////////////////////////////
 
-    std::vector<BitField> hasObstacle;
+    std::vector<BitSetVector<1> > hasObstacle;
     hasObstacle.resize(maxLevel+1);
     for (int i=0; i<hasObstacle.size(); i++) {
         hasObstacle[i].resize(rod.size(i, 1));
@@ -191,7 +190,7 @@ int main (int argc, char *argv[]) try
     MonotoneMGStep<MatrixType, VectorType> multigridStep(maxlevel+1);
 
     multigridStep.setMGType(mu, nu1, nu2);
-    multigridStep.dirichletNodes_    = &dirichletNodes[maxlevel];
+    multigridStep.ignoreNodes_       = &dirichletNodes[maxlevel];
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.presmoother_       = &presmoother;
     multigridStep.postsmoother_      = &postsmoother;    
