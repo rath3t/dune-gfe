@@ -37,8 +37,6 @@ public:
     // to allocate the correct size of (dense) blocks with a FieldMatrix
     enum {m=blocksize};
 
-    enum {SIZE = Dune::LocalStiffness<GridView,RT,m>::SIZE};
-    
     // types for matrics, vectors and boundary conditions
     typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
     typedef Dune::FieldVector<RT,m> VBlockType;   // one entry in the global vectors
@@ -54,15 +52,7 @@ public:
 
     //! Default Constructor
     RodLocalStiffness ()
-    {
-        // this->currentsize_ = 0;
-        
-        // For the time being:  all boundary conditions are homogeneous Neumann
-        // This means no boundary condition handling is done at all
-        for (int i=0; i<SIZE; i++)
-            for (size_t j=0; j<this->bctype[i].size(); j++)
-                this->bctype[i][j] = Dune::BoundaryConditions::neumann;
-    }
+    {}
 
     //! Default Constructor
     RodLocalStiffness (const Dune::array<double,3>& K, const Dune::array<double,3>& A)
@@ -71,13 +61,6 @@ public:
             K_[i] = K[i];
             A_[i] = A[i];
         }
-        // this->currentsize_ = 0;
-        
-        // For the time being:  all boundary conditions are homogeneous Neumann
-        // This means no boundary condition handling is done at all
-        for (int i=0; i<SIZE; i++)
-            for (size_t j=0; j<this->bctype[i].size(); j++)
-                this->bctype[i][j] = Dune::BoundaryConditions::neumann;
     }
     
     //! assemble local stiffness matrix for given element and order
@@ -210,7 +193,7 @@ public:
 
                 referenceConfiguration_[idx].r[0] = 0;
                 referenceConfiguration_[idx].r[1] = 0;
-                referenceConfiguration_[idx].r[2] = it->geometry()[0][0];
+                referenceConfiguration_[idx].r[2] = it->geometry().corner(0)[0];
                 referenceConfiguration_[idx].q = Quaternion<double>::identity();
             }
 
