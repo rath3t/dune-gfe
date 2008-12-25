@@ -3,13 +3,14 @@
 
 #include <vector>
 
+#include <dune/common/bitsetvector.hh>
+
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
 #include <dune/ag-common/boxconstraint.hh>
 #include <dune/ag-common/norms/h1seminorm.hh>
 #include <dune/ag-common/iterativesolver.hh>
-#include <dune/ag-common/blockbitfield.hh>
 
 #include "rodassembler.hh"
 
@@ -41,7 +42,7 @@ public:
     void setup(const GridType& grid, 
                const RodAssembler<GridType>* rodAssembler,
                const SolutionType& x,
-               const BlockBitField<blocksize>& dirichletNodes,
+               const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
                int maxTrustRegionSteps,
                double initialTrustRegionRadius,
@@ -110,7 +111,7 @@ protected:
 
     /** \brief Dummy fields containing 'true' everywhere.  The multigrid step
         expects them :-( */
-    std::vector<Dune::BitField> hasObstacle_;
+    std::vector<Dune::BitSetVector<1> > hasObstacle_;
 
     /** \brief The norm used to measure multigrid convergence */
     H1SemiNorm<CorrectionType>* h1SemiNorm_;

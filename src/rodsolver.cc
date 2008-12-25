@@ -1,4 +1,4 @@
-#include <dune/common/bitfield.hh>
+#include <dune/common/bitsetvector.hh>
 
 #include <dune/istl/io.hh>
 
@@ -49,7 +49,7 @@ template <class GridType>
 void RodSolver<GridType>::setup(const GridType& grid,
                                 const RodAssembler<GridType>* rodAssembler,
                                 const SolutionType& x,
-                                const BlockBitField<blocksize>& dirichletNodes,
+                                const Dune::BitSetVector<blocksize>& dirichletNodes,
                                 double tolerance,
                                 int maxTrustRegionSteps,
                                 double initialTrustRegionRadius,
@@ -104,7 +104,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>(numLevels);
 
     mmgStep->setMGType(mu_, nu1_, nu2_);
-    mmgStep->ignoreNodes        = &dirichletNodes;
+    mmgStep->ignoreNodes_       = &dirichletNodes;
     mmgStep->basesolver_        = baseSolver;
     mmgStep->presmoother_       = presmoother;
     mmgStep->postsmoother_      = postsmoother; 
