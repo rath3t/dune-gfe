@@ -375,7 +375,7 @@ assembleGradient(const Entity& element,
     for (size_t i=0; i<gradient.size(); i++)
         gradient[i] = 0;
 
-    double intervalLength = element.geometry()[1][0] - element.geometry()[0][0];
+    double intervalLength = element.geometry().corner(1)[0] - element.geometry().corner(0)[0];
 
     // ///////////////////////////////////////////////////////////////////////////////////
     //   Reduced integration to avoid locking:  assembly is split into a shear part 
@@ -1130,7 +1130,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
             RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
-            double pos = nIt->intersectionSelfLocal()[0];
+            double pos = nIt->intersectionSelfLocal().corner(0);
 
             Dune::array<Configuration,2> localSolution = {sol[indexSet.template subIndex<1>(*eIt,0)],
                                                           sol[indexSet.template subIndex<1>(*eIt,1)]};
