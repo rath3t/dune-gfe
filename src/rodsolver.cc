@@ -8,7 +8,8 @@
 
 #include <dune/ag-common/trustregiongsstep.hh>
 #include <dune/ag-common/solvers/mmgstep.hh>
-#include <dune/ag-common/contactobsrestrict.hh>
+#include <dune/ag-common/transferoperators/truncatedcompressedmgtransfer.hh>
+#include <dune/ag-common/mandelobsrestrictor.hh>
 #include <dune/ag-common/iterativesolver.hh>
 
 #include <dune/ag-common/norms/energynorm.hh>
@@ -108,7 +109,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     mmgStep->basesolver_        = baseSolver;
     mmgStep->presmoother_       = presmoother;
     mmgStep->postsmoother_      = postsmoother; 
-    mmgStep->obstacleRestrictor_= new ContactObsRestriction<CorrectionType>();
+    mmgStep->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType>();
     mmgStep->hasObstacle_       = &hasObstacle_;
     mmgStep->obstacles_         = &trustRegionObstacles_;
     mmgStep->verbosity_         = Solver::QUIET;
@@ -172,7 +173,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     mmgStep->mgTransfer_.resize(numLevels-1);
     
     for (int i=0; i<mmgStep->mgTransfer_.size(); i++){
-        TruncatedMGTransfer<CorrectionType>* newTransferOp = new TruncatedMGTransfer<CorrectionType>;
+        TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
         newTransferOp->setup(*grid_,i,i+1);
         mmgStep->mgTransfer_[i] = newTransferOp;
     }
