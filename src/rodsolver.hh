@@ -10,7 +10,7 @@
 
 #include <dune/ag-common/boxconstraint.hh>
 #include <dune/ag-common/norms/h1seminorm.hh>
-#include <dune/ag-common/iterativesolver.hh>
+#include <dune/ag-common/solvers/loopsolver.hh>
 
 #include "rodassembler.hh"
 
@@ -18,7 +18,7 @@
 
 /** \brief Riemannian trust-region solver for 3d Cosserat rod problems */
 template <class GridType>
-class RodSolver : public Solver
+class RodSolver : public IterativeSolver<std::vector<Configuration>, Dune::BitSetVector<6> >
 { 
     const static int blocksize = 6;
 
@@ -30,12 +30,10 @@ class RodSolver : public Solver
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef std::vector<Configuration>                                             SolutionType;
 
-    static void setTrustRegionObstacles(double trustRegionRadius,
-                                        std::vector<BoxConstraint<field_type,blocksize> >& trustRegionObstacles);
 public:
 
     RodSolver()
-        : Solver(0,NumProc::FULL),
+        : IterativeSolver<std::vector<Configuration>, Dune::BitSetVector<6> >(0,100,NumProc::FULL),
           hessianMatrix_(NULL), h1SemiNorm_(NULL)
     {}
 
@@ -104,10 +102,7 @@ protected:
     const RodAssembler<GridType>* rodAssembler_;
 
     /** \brief The multigrid solver */
-    IterativeSolver<CorrectionType>* mmgSolver_;
-
-    /** \brief The hierarchy of trust-region obstacles */
-    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles_;
+    LoopSolver<CorrectionType>* mmgSolver_;
 
     /** \brief Dummy fields containing 'true' everywhere.  The multigrid step
         expects them :-( */

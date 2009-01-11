@@ -12,10 +12,11 @@
 #include <dune/ag-common/boundarypatch.hh>
 #include <dune/ag-common/projectedblockgsstep.hh>
 #include <dune/ag-common/solvers/mmgstep.hh>
-#include <dune/ag-common/iterativesolver.hh>
+#include <dune/ag-common/solvers/loopsolver.hh>
 #include <dune/ag-common/geomestimator.hh>
 #include <dune/ag-common/norms/energynorm.hh>
-#include <dune/ag-common/contactobsrestrict.hh>
+#include <dune/ag-common/mandelobsrestrictor.hh>
+#include <dune/ag-common/transferoperators/truncatedcompressedmgtransfer.hh>
 
 #include "src/rodwriter.hh"
 #include "src/planarrodassembler.hh"
@@ -111,7 +112,7 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
 
-    IterativeSolver<VectorType> baseSolver(&baseSolverStep,
+    LoopSolver<VectorType> baseSolver(&baseSolverStep,
                                                        baseIt,
                                                        baseTolerance,
                                                        &baseEnergyNorm,
@@ -131,12 +132,12 @@ int main (int argc, char *argv[]) try
     multigridStep.hasObstacle_       = &hasObstacle;
     multigridStep.obstacles_         = &trustRegionObstacles;
     multigridStep.verbosity_         = Solver::QUIET;
-    multigridStep.obstacleRestrictor_ = new ContactObsRestriction<VectorType>;
+    multigridStep.obstacleRestrictor_ = new MandelObstacleRestrictor<VectorType>;
 
 
     EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    IterativeSolver<VectorType> solver(&multigridStep,
+    LoopSolver<VectorType> solver(&multigridStep,
                                                    numIt,
                                                    tolerance,
                                                    &energyNorm,
@@ -231,7 +232,7 @@ int main (int argc, char *argv[]) try
         multigridStep.mgTransfer_.resize(toplevel);
 
         for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
-            TruncatedMGTransfer<VectorType>* newTransferOp = new TruncatedMGTransfer<VectorType>;
+            TruncatedCompressedMGTransfer<VectorType>* newTransferOp = new TruncatedCompressedMGTransfer<VectorType>;
             newTransferOp->setup(grid,i,i+1);
             multigridStep.mgTransfer_[i] = newTransferOp;
         }

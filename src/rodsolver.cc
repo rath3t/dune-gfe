@@ -17,34 +17,13 @@
 
 #include "configuration.hh"
 #include "quaternion.hh"
+#include "maxnormtrustregion.hh"
 
 // for debugging
 #include "../test/fdcheck.hh"
 
 // Number of degrees of freedom: 
 // 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod
-//const int blocksize = 6;
-
-template <class GridType>
-void RodSolver<GridType>::
-setTrustRegionObstacles(double trustRegionRadius,
-                        std::vector<BoxConstraint<field_type,blocksize> >& trustRegionObstacles)
-{
-    for (int j=0; j<trustRegionObstacles.size(); j++) {
-
-        for (int k=0; k<blocksize; k++) {
-
-            trustRegionObstacles[j].lower(k) = -trustRegionRadius;
-            trustRegionObstacles[j].upper(k) =  trustRegionRadius;
-
-        }
-        
-    }
-
-    //std::cout << trustRegionObstacles << std::endl;
-//     exit(0);
-}
-
 
 template <class GridType>
 void RodSolver<GridType>::setup(const GridType& grid,
@@ -91,12 +70,11 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
 
-    IterativeSolver<CorrectionType>* baseSolver 
-        = new IterativeSolver<CorrectionType>(baseSolverStep,
-                                                          baseIt_,
-                                                          baseTolerance_,
-                                                          baseEnergyNorm,
-                                                          Solver::QUIET);
+    LoopSolver<CorrectionType>* baseSolver = new LoopSolver<CorrectionType>(baseSolverStep,
+                                                                            baseIt_,
+                                                                            baseTolerance_,
+                                                                            baseEnergyNorm,
+                                                                            Solver::QUIET);
 
     // Make pre and postsmoothers
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -111,7 +89,6 @@ void RodSolver<GridType>::setup(const GridType& grid,
     mmgStep->postsmoother_      = postsmoother; 
     mmgStep->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType>();
     mmgStep->hasObstacle_       = &hasObstacle_;
-    mmgStep->obstacles_         = &trustRegionObstacles_;
     mmgStep->verbosity_         = Solver::QUIET;
 
     // //////////////////////////////////////////////////////////////////////////////////////
@@ -129,7 +106,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
 
-    mmgSolver_ = new IterativeSolver<CorrectionType>(mmgStep,
+    mmgSolver_ = new LoopSolver<CorrectionType>(mmgStep,
                                                      multigridIterations_,
                                                      qpTolerance_,
                                                      h1SemiNorm_,
@@ -159,11 +136,6 @@ void RodSolver<GridType>::setup(const GridType& grid,
     for (int i=0; i<hasObstacle_.size(); i++)
         hasObstacle_[i].resize(grid_->size(i, 1),true);
     
-    trustRegionObstacles_.resize(numLevels);
-    
-    for (int i=0; i<numLevels; i++)
-        trustRegionObstacles_[i].resize(grid_->size(i,1));
-    
     // ////////////////////////////////////
     //   Create the transfer operators
     // ////////////////////////////////////
@@ -183,10 +155,10 @@ void RodSolver<GridType>::setup(const GridType& grid,
 template <class GridType>
 void RodSolver<GridType>::solve()
 {
-    using namespace Dune;
+    MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
 
-    double trustRegionRadius = initialTrustRegionRadius_;
-
+    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles(dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->numLevels_);
+    
     // /////////////////////////////////////////////////////
     //   Set up the log file, if requested
     // /////////////////////////////////////////////////////
@@ -195,7 +167,7 @@ void RodSolver<GridType>::solve()
 
         fp = fopen("statistics", "w");
         if (!fp)
-            DUNE_THROW(IOError, "Couldn't open statistics file for writing!");
+            DUNE_THROW(Dune::IOError, "Couldn't open statistics file for writing!");
     
     }
 
@@ -207,7 +179,7 @@ void RodSolver<GridType>::solve()
         if (this->verbosity_ == FULL) {
             std::cout << "----------------------------------------------------" << std::endl;
             std::cout << "      Trust-Region Step Number: " << i 
-                      << ",     radius: " << trustRegionRadius
+                      << ",     radius: " << trustRegion.radius()
                       << ",     energy: " << rodAssembler_->computeEnergy(x_) << std::endl;
             std::cout << "----------------------------------------------------" << std::endl;
         }
@@ -225,11 +197,11 @@ void RodSolver<GridType>::solve()
 
         rhs *= -1;
 
-        // Create trust-region obstacle on maxlevel
-        setTrustRegionObstacles(trustRegionRadius,
-                                trustRegionObstacles_[grid_->maxLevel()]);
-        
         dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
+
+        trustRegionObstacles.back() = trustRegion.obstacles();
+        dynamic_cast<MonotoneMGStep<MatrixType, CorrectionType>*>(mmgSolver_->iterationStep_)->obstacles_ = &trustRegionObstacles;
+
         
         mmgSolver_->preprocess();
         
@@ -248,7 +220,7 @@ void RodSolver<GridType>::solve()
         if (instrumented_) {
 
             fprintf(fp, "Trust-region step: %d, trust-region radius: %g\n",
-                    i, trustRegionRadius);
+                    i, trustRegion.radius());
                     
             // ///////////////////////////////////////////////////////////////
             //   Compute and measure progress against the exact solution
@@ -276,7 +248,7 @@ void RodSolver<GridType>::solve()
                 
                 FILE* fpInt = fopen(iSolFilename, "rb");
                 if (!fpInt)
-                    DUNE_THROW(IOError, "Couldn't open intermediate solution");
+                    DUNE_THROW(Dune::IOError, "Couldn't open intermediate solution");
                 for (int k=0; k<intermediateSol.size(); k++)
                     for (int l=0; l<blocksize; l++)
                         fread(&intermediateSol[k][l], sizeof(double), 1, fpInt);
@@ -396,7 +368,7 @@ void RodSolver<GridType>::solve()
             // very successful iteration
             
             x_ = newIterate;
-            trustRegionRadius *= 2;
+            trustRegion.scale(2);
             
         } else if ( (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
@@ -405,7 +377,7 @@ void RodSolver<GridType>::solve()
             
         } else {
             // unsuccessful iteration
-            trustRegionRadius /= 2;
+            trustRegion.scale(0.5);
             if (this->verbosity_ == FULL)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }

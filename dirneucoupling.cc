@@ -14,7 +14,7 @@
 #include <dune/common/configparser.hh>
 
 #include <dune/ag-common/multigridstep.hh>
-#include <dune/ag-common/iterativesolver.hh>
+#include <dune/ag-common/solvers/loopsolver.hh>
 #include <dune/ag-common/projectedblockgsstep.hh>
 #ifdef HAVE_IPOPT
 #include <dune/ag-common/quadraticipopt.hh>
@@ -331,7 +331,7 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    IterativeSolver<VectorType> solver(&multigridStep,
+    LoopSolver<VectorType> solver(&multigridStep,
                                                    // IPOpt doesn't like to be started in the solution
                                                    (numLevels!=1) ? multigridIterations : 1,
                                                    mgTolerance,
@@ -347,7 +347,7 @@ int main (int argc, char *argv[]) try
     multigridStep.mgTransfer_.resize(toplevel);
     
     for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
-        TruncatedMGTransfer<VectorType>* newTransferOp = new TruncatedMGTransfer<VectorType>;
+        TruncatedCompressedMGTransfer<VectorType>* newTransferOp = new TruncatedCompressedMGTransfer<VectorType>;
         newTransferOp->setup(grid,i,i+1);
         multigridStep.mgTransfer_[i] = newTransferOp;
     }
