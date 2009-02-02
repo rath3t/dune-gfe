@@ -14,7 +14,7 @@
 #include "src/configuration.hh"
 #include "src/roddifference.hh"
 #include "src/rodwriter.hh"
-#include "src/quaternion.hh"
+#include "src/rotation.hh"
 #include "src/rodassembler.hh"
 #include "src/rodsolver.hh"
 
@@ -86,7 +86,7 @@ int main (int argc, char *argv[]) try
         x[i].r[0] = 0;
         x[i].r[1] = 0;
         x[i].r[2] = double(i)/(x.size()-1);
-        x[i].q = Quaternion<double>::identity();
+        x[i].q    = Rotation<3,double>::identity();
     }
 
     // /////////////////////////////////////////
@@ -102,7 +102,7 @@ int main (int argc, char *argv[]) try
     axis[2] = parameterSet.get("dirichletAxisZ", double(0));
     double angle = parameterSet.get("dirichletAngle", double(0));
 
-    x.back().q = Quaternion<double>(axis, M_PI*angle/180);
+    x.back().q = Rotation<3,double>(axis, M_PI*angle/180);
 
     // backup for error measurement later
     SolutionType initialIterate = x;

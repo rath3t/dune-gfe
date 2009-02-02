@@ -54,7 +54,7 @@ void makeStraightRod(RodSolutionType& rod, int n,
                      const FieldVector<double,3>& beginning, const FieldVector<double,3>& end)
 {
     // Compute the correct orientation
-    Quaternion<double> orientation = Quaternion<double>::identity();
+    Rotation<3,double> orientation = Rotation<3,double>::identity();
 
     FieldVector<double,3> zAxis(0);
     zAxis[2] = 1;
@@ -69,7 +69,7 @@ void makeStraightRod(RodSolutionType& rod, int n,
     double angle = std::acos(zAxis * d3);
 
     if (angle != 0)
-        orientation = Quaternion<double>(axis, angle);
+        orientation = Rotation<3,double>(axis, angle);
 
     // Set the values
     rod.resize(n);
@@ -195,7 +195,7 @@ int main (int argc, char *argv[]) try
     axis[2] = parameterSet.get("dirichletAxisZ", double(0));
     double angle = parameterSet.get("dirichletAngle", double(0));
 
-    rodX.back().q = Quaternion<double>(axis, M_PI*angle/180);
+    rodX.back().q = Rotation<3,double>(axis, M_PI*angle/180);
 
     // Backup initial rod iterate for later reference
     RodSolutionType initialIterateRod = rodX;
@@ -451,7 +451,7 @@ int main (int argc, char *argv[]) try
             lambda.r[j] = (1-damping) * lambda.r[j] 
                 + damping * (referenceInterface.r[j] + averageInterface.r[j]);
 
-        lambda.q = Quaternion<double>::interpolate(lambda.q, 
+        lambda.q = Rotation<3,double>::interpolate(lambda.q, 
                                                    referenceInterface.q.mult(averageInterface.q), 
                                                    damping);
 
@@ -709,11 +709,11 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
     LeafAmiraMeshWriter<GridType> amiraMeshWriter(grid);
-    amiraMeshWriter.addVertexData(x3d, grid.leafIndexSet());
+    amiraMeshWriter.addVertexData(x3d, grid.leafView());
 
     BlockVector<FieldVector<double,1> > stress;
     Stress<GridType,dim>::getStress(grid, x3d, stress, E, nu);
-    amiraMeshWriter.addVertexData(stress, grid.leafIndexSet());
+    amiraMeshWriter.addVertexData(stress, grid.leafView());
 
     amiraMeshWriter.write(resultPath + "grid.result");
 
