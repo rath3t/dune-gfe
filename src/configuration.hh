@@ -2,7 +2,7 @@
 #define CONFIGURATION_HH
 
 #include <dune/common/fvector.hh>
-#include "quaternion.hh"
+#include "rotation.hh"
 
 /** \brief Configuration of a nonlinear rod in 3d */
 struct Configuration 
@@ -11,7 +11,7 @@ struct Configuration
     Dune::FieldVector<double,3> r;
 
     // Rotational part
-    Quaternion<double> q;
+    Rotation<3,double> q;
 
 };
 

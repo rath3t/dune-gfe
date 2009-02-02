@@ -70,7 +70,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
 
-    LoopSolver<CorrectionType>* baseSolver = new LoopSolver<CorrectionType>(baseSolverStep,
+    ::LoopSolver<CorrectionType>* baseSolver = new ::LoopSolver<CorrectionType>(baseSolverStep,
                                                                             baseIt_,
                                                                             baseTolerance_,
                                                                             baseEnergyNorm,
@@ -106,7 +106,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
 
-    mmgSolver_ = new LoopSolver<CorrectionType>(mmgStep,
+    mmgSolver_ = new ::LoopSolver<CorrectionType>(mmgStep,
                                                      multigridIterations_,
                                                      qpTolerance_,
                                                      h1SemiNorm_,
@@ -318,7 +318,7 @@ void RodSolver<GridType>::solve()
                 newIterate[j].r[k] += corr[j][k];
             
             // Add rotational correction
-            Quaternion<double> qCorr = Quaternion<double>::exp(corr[j][3], corr[j][4], corr[j][5]);
+            Rotation<3,double> qCorr = Rotation<3,double>::exp(corr[j][3], corr[j][4], corr[j][5]);
             newIterate[j].q = newIterate[j].q.mult(qCorr);
             
         }

@@ -167,7 +167,7 @@ public:
             if (i<3)
                 c.r[i] += eps;
             else
-                c.q = c.q.mult(Quaternion<double>::exp((i==3)*eps, 
+                c.q = c.q.mult(Rotation<3,double>::exp((i==3)*eps, 
                                                        (i==4)*eps, 
                                                        (i==5)*eps));
         }
@@ -194,7 +194,7 @@ public:
                 referenceConfiguration_[idx].r[0] = 0;
                 referenceConfiguration_[idx].r[1] = 0;
                 referenceConfiguration_[idx].r[2] = it->geometry().corner(0)[0];
-                referenceConfiguration_[idx].q = Quaternion<double>::identity();
+                referenceConfiguration_[idx].q = Rotation<3,double>::identity();
             }
 
         }
