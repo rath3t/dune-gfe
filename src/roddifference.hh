@@ -16,7 +16,7 @@ Dune::BlockVector<Dune::FieldVector<double,6> > computeRodDifference(const std::
             result[i][j] = a[i].r[j] - b[i].r[j];
         
         // Subtract orientations on the tangent space of 'a'
-        Dune::FieldVector<double,3> v = Quaternion<double>::difference(a[i].q, b[i].q);
+        Dune::FieldVector<double,3> v = Rotation<3,double>::difference(a[i].q, b[i].q);
 
         // Compute difference on T_a SO(3)
         for (int j=0; j<3; j++)

@@ -61,7 +61,7 @@ void globalRodRefine(GridType& grid, std::vector<Configuration>& x)
                 x[indexSet.template subIndex<1>(*eIt,i)].r = (p0.r + p1.r);
                 x[indexSet.template subIndex<1>(*eIt,i)].r *= 0.5;
                 x[indexSet.template subIndex<1>(*eIt,i)].q
-                    = Quaternion<double>::interpolate(p0.q, p1.q, 0.5);
+                    = Rotation<3,double>::interpolate(p0.q, p1.q, 0.5);
 
             }
 

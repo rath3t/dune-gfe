@@ -98,10 +98,10 @@ public:
                const Dune::array<Configuration,2>& localReferenceConfiguration,
                int k=1);
 
-    static void interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
+    static void interpolationDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                         Dune::array<Quaternion<double>,6>& grad);
 
-    static void interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
+    static void interpolationVelocityDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad);
 
     Dune::FieldVector<double, 6> getStrain(const Dune::array<Configuration,2>& localSolution,
@@ -115,7 +115,7 @@ public:
                           Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
     
     template <class T>
-    static Dune::FieldVector<T,3> darboux(const Quaternion<T>& q, const Dune::FieldVector<T,4>& q_s) 
+    static Dune::FieldVector<T,3> darboux(const Rotation<3,T>& q, const Dune::FieldVector<T,4>& q_s) 
     {
         Dune::FieldVector<double,3> u;  // The Darboux vector
         

@@ -73,7 +73,7 @@ energy(const Entity& element,
 
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
-interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
+interpolationDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                         Dune::array<Quaternion<double>,6>& grad)
 {
     // Clear output array
@@ -83,18 +83,18 @@ interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, doub
     // The derivatives with respect to w^1
 
     // Compute q_1^{-1}q_0
-    Quaternion<RT> q1InvQ0 = q1;
+    Rotation<3,RT> q1InvQ0 = q1;
     q1InvQ0.invert();
     q1InvQ0 = q1InvQ0.mult(q0);
 
     {
     // Compute v = (1-s) \exp^{-1} ( q_1^{-1} q_0)
-    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q1InvQ0);
+        Dune::FieldVector<RT,3> v = Rotation<3,RT>::expInv(q1InvQ0);
     v *= (1-s);
 
-    Dune::FieldMatrix<RT,4,3> dExp_v = Quaternion<RT>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<3,RT>::Dexp(v);
 
-    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q1InvQ0);
+    Dune::FieldMatrix<RT,3,4> dExpInv = Rotation<3,RT>::DexpInv(q1InvQ0);
 
     Dune::FieldMatrix<RT,4,4> mat(0);
     for (int i=0; i<4; i++)
@@ -120,18 +120,18 @@ interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, doub
     // The derivatives with respect to w^1
 
     // Compute q_0^{-1}
-    Quaternion<RT> q0InvQ1 = q0;
+    Rotation<3,RT> q0InvQ1 = q0;
     q0InvQ1.invert();
     q0InvQ1 = q0InvQ1.mult(q1);
 
     {
     // Compute v = s \exp^{-1} ( q_0^{-1} q_1)
-    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q0InvQ1);
+        Dune::FieldVector<RT,3> v = Rotation<3,RT>::expInv(q0InvQ1);
     v *= s;
 
-    Dune::FieldMatrix<RT,4,3> dExp_v = Quaternion<RT>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<3,RT>::Dexp(v);
 
-    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q0InvQ1);
+    Dune::FieldMatrix<RT,3,4> dExpInv = Rotation<3,RT>::DexpInv(q0InvQ1);
 
     Dune::FieldMatrix<RT,4,4> mat(0);
     for (int i=0; i<4; i++)
@@ -158,7 +158,7 @@ interpolationDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, doub
 
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
-interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& q1, double s,
+interpolationVelocityDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad)
 {
     // Clear output array
@@ -166,20 +166,20 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
         grad[i] = 0;
 
     // Compute q_0^{-1}
-    Quaternion<RT> q0Inv = q0;
+    Rotation<3,RT> q0Inv = q0;
     q0Inv.invert();
 
 
     // Compute v = s \exp^{-1} ( q_0^{-1} q_1)
-    Dune::FieldVector<RT,3> v = Quaternion<RT>::expInv(q0Inv.mult(q1));
+    Dune::FieldVector<RT,3> v = Rotation<3,RT>::expInv(q0Inv.mult(q1));
     v *= s/intervalLength;
 
-    Dune::FieldMatrix<RT,4,3> dExp_v = Quaternion<RT>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<3,RT>::Dexp(v);
 
     Dune::array<Dune::FieldMatrix<RT,3,3>, 4> ddExp;
-    Quaternion<RT>::DDexp(v, ddExp);
+    Rotation<3,RT>::DDexp(v, ddExp);
 
-    Dune::FieldMatrix<RT,3,4> dExpInv = Quaternion<RT>::DexpInv(q0Inv.mult(q1));
+    Dune::FieldMatrix<RT,3,4> dExpInv = Rotation<3,RT>::DexpInv(q0Inv.mult(q1));
 
     Dune::FieldMatrix<RT,4,4> mat(0);
     for (int i=0; i<4; i++)
@@ -199,7 +199,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
             dw[j] = 0.5*(i==j);  // dExp_v_0[j][i];
 
         // \xi = \exp^{-1} q_0^{-1} q_1
-        Dune::FieldVector<RT,3> xi = Quaternion<RT>::expInv(q0Inv.mult(q1));
+        Dune::FieldVector<RT,3> xi = Rotation<3,RT>::expInv(q0Inv.mult(q1));
 
         Quaternion<RT> addend0;
         addend0 = 0;
@@ -214,7 +214,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
         dwConj = dwConj.mult(q0Inv.mult(q1));
 
         Dune::FieldVector<RT,3> dxi(0);
-        Quaternion<RT>::DexpInv(q0Inv.mult(q1)).umv(dwConj, dxi);
+        Rotation<3,RT>::DexpInv(q0Inv.mult(q1)).umv(dwConj, dxi);
 
         Quaternion<RT> vHv;
         for (int j=0; j<4; j++) {
@@ -249,7 +249,7 @@ interpolationVelocityDerivative(const Quaternion<RT>& q0, const Quaternion<RT>& 
             dw[j] = 0.5 * ((i-3)==j);  // dw[j] = dExp_v_0[j][i-3];
 
         // \xi = \exp^{-1} q_0^{-1} q_1
-        Dune::FieldVector<RT,3> xi = Quaternion<RT>::expInv(q0Inv.mult(q1));
+        Dune::FieldVector<RT,3> xi = Rotation<3,RT>::expInv(q0Inv.mult(q1));
 
         //  \parder{\xi}{w^1_j} = ...
         Dune::FieldVector<RT,3> dxi(0);
@@ -329,10 +329,10 @@ getStrain(const Dune::array<Configuration,2>& localSolution,
         r_s[i] = localSolution[0].r[i]*shapeGrad[0][0] + localSolution[1].r[i]*shapeGrad[1][0];
         
     // Interpolate the rotation at the quadrature point
-    Quaternion<double> q = Quaternion<double>::interpolate(localSolution[0].q, localSolution[1].q, pos);
+    Rotation<3,double> q = Rotation<3,double>::interpolate(localSolution[0].q, localSolution[1].q, pos);
         
     // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-    Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
+    Quaternion<double> q_s = Rotation<3,double>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
                                                                        pos);
     // Transformation from the reference element
     q_s *= inv[0][0];
@@ -421,7 +421,7 @@ assembleGradient(const Entity& element,
             r_s[i] = solution[0].r[i]*shapeGrad[0] + solution[1].r[i]*shapeGrad[1];
         
         // Interpolate current rotation at this quadrature point
-        Quaternion<double> q = Quaternion<double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
+        Rotation<3,double> q = Rotation<3,double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
         
         // The current strain
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
@@ -490,10 +490,10 @@ assembleGradient(const Entity& element,
         double weight = bendingQuad[pt].weight() * integrationElement;
         
         // Interpolate current rotation at this quadrature point
-        Quaternion<double> q = Quaternion<double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
+        Rotation<3,double> q = Rotation<3,double>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
         
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
-        Quaternion<double> q_s = Quaternion<double>::interpolateDerivative(solution[0].q, solution[1].q,
+        Quaternion<double> q_s = Rotation<3,double>::interpolateDerivative(solution[0].q, solution[1].q,
                                                                            quadPos);
         // Transformation from the reference element
         q_s *= inv[0][0];
@@ -529,6 +529,8 @@ assembleGradient(const Entity& element,
                 for (int m=0; m<3; m++) {
                     
                     // Compute derivative of the strain
+                    /** \todo Is this formula correct?  It seems strange to call
+                        B(m) for a _derivative_ of a rotation */
                     double du_dvij_m = 2 * (dq_dwij[i*3+j].B(m) * q_s)
                         + 2* ( q.B(m) * dq_ds_dwij[i*3+j]);
                     
