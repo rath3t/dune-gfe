@@ -412,7 +412,7 @@ int main (int argc, char *argv[]) try
                                               neumannValues);
 
         rhs3d = 0;
-        assembleAndAddNeumannTerm<GridType, VectorType>(interfaceBoundary[grid.maxLevel()],
+        assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[grid.maxLevel()],
                                                         neumannValues,
                                                         rhs3d);
 
