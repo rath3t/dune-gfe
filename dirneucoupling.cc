@@ -13,14 +13,14 @@
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
 
-#include <dune/ag-common/multigridstep.hh>
-#include <dune/ag-common/solvers/loopsolver.hh>
-#include <dune/ag-common/projectedblockgsstep.hh>
+#include <dune-solvers/iterationsteps/multigridstep.hh>
+#include <dune-solvers/solvers/loopsolver.hh>
+#include <dune-solvers/iterationsteps/projectedblockgsstep.hh>
 #ifdef HAVE_IPOPT
 #include <dune/ag-common/quadraticipopt.hh>
 #endif
 #include <dune/ag-common/readbitfield.hh>
-#include <dune/ag-common/norms/energynorm.hh>
+#include <dune-solvers/norms/energynorm.hh>
 #include <dune/ag-common/boundarypatch.hh>
 #include <dune/ag-common/prolongboundarypatch.hh>
 #include <dune/ag-common/sampleonbitfield.hh>

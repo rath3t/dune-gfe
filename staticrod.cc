@@ -8,13 +8,12 @@
 #include <dune/istl/io.hh>
 
 #include <dune/ag-common/boundarypatch.hh>
-#include <dune/ag-common/projectedblockgsstep.hh>
-#include <dune/ag-common/solvers/mmgstep.hh>
-#include <dune/ag-common/solvers/loopsolver.hh>
-#include <dune/ag-common/geomestimator.hh>
-#include <dune/ag-common/norms/energynorm.hh>
-#include <dune/ag-common/mandelobsrestrictor.hh>
-#include <dune/ag-common/transferoperators/truncatedcompressedmgtransfer.hh>
+#include <dune-solvers/iterationsteps/projectedblockgsstep.hh>
+#include <dune-solvers/iterationsteps/mmgstep.hh>
+#include <dune-solvers/solvers/loopsolver.hh>
+#include <dune-solvers/norms/energynorm.hh>
+#include <dune-solvers/transferoperators/mandelobsrestrictor.hh>
+#include <dune-solvers/transferoperators/truncatedcompressedmgtransfer.hh>
 
 #include "src/rodwriter.hh"
 #include "src/planarrodassembler.hh"

@@ -8,8 +8,8 @@
 #include <dune/istl/io.hh>
 
 
-#include <dune/ag-common/iterativesolver.hh>
-#include <dune/ag-common/norms/energynorm.hh>
+#include <dune-solvers/solvers/iterativesolver.hh>
+#include <dune-solvers/norms/energynorm.hh>
 
 #include "src/configuration.hh"
 #include "src/roddifference.hh"

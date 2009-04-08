@@ -6,14 +6,14 @@
 #include <dune/disc/miscoperators/laplace.hh>
 #include <dune/disc/operators/p1operator.hh>
 
-#include <dune/ag-common/trustregiongsstep.hh>
-#include <dune/ag-common/solvers/mmgstep.hh>
-#include <dune/ag-common/transferoperators/truncatedcompressedmgtransfer.hh>
-#include <dune/ag-common/mandelobsrestrictor.hh>
-#include <dune/ag-common/iterativesolver.hh>
+#include <dune-solvers/iterationsteps/trustregiongsstep.hh>
+#include <dune-solvers/iterationsteps/mmgstep.hh>
+#include <dune-solvers/transferoperators/truncatedcompressedmgtransfer.hh>
+#include <dune-solvers/transferoperators/mandelobsrestrictor.hh>
+#include <dune-solvers/solvers/iterativesolver.hh>
 
-#include <dune/ag-common/norms/energynorm.hh>
-#include <dune/ag-common/norms/h1seminorm.hh>
+#include <dune-solvers/norms/energynorm.hh>
+#include <dune-solvers/norms/h1seminorm.hh>
 
 #include "configuration.hh"
 #include "quaternion.hh"

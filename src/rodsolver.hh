@@ -8,9 +8,9 @@
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
-#include <dune/ag-common/boxconstraint.hh>
-#include <dune/ag-common/norms/h1seminorm.hh>
-#include <dune/ag-common/solvers/loopsolver.hh>
+#include <dune-solvers/boxconstraint.hh>
+#include <dune-solvers/norms/h1seminorm.hh>
+#include <dune-solvers/solvers/loopsolver.hh>
 
 #include "rodassembler.hh"
 
