@@ -8,7 +8,7 @@ void infinitesimalVariation(Configuration& c, double eps, int i)
     if (i<3)
         c.r[i] += eps;
     else
-        c.q = c.q.mult(Quaternion<double>::exp((i==3)*eps, 
+        c.q = c.q.mult(Rotation<3,double>::exp((i==3)*eps, 
                                                (i==4)*eps, 
                                                (i==5)*eps));
 }
@@ -263,9 +263,9 @@ void expHessianFD()
                 //                                            - 2*assembler.computeEnergy(x) 
                 //                                            + assembler.computeEnergy(backward)) / (eps*eps);
                 
-                hessian  = Quaternion<double>::exp(forward);
-                hessian += Quaternion<double>::exp(backward);
-                hessian.axpy(-2, Quaternion<double>::exp(0,0,0));
+                hessian  = Rotation<3,double>::exp(forward);
+                hessian += Rotation<3,double>::exp(backward);
+                hessian.axpy(-2, Rotation<3,double>::exp(0,0,0));
                 hessian /= eps*eps;
                 
             } else {
@@ -283,10 +283,10 @@ void expHessianFD()
                 backwardBackward[j] -= eps;
                 
                 
-                hessian  = Quaternion<double>::exp(forwardForward);
-                hessian += Quaternion<double>::exp(backwardBackward);
-                hessian -= Quaternion<double>::exp(forwardBackward);
-                hessian -= Quaternion<double>::exp(backwardForward);
+                hessian  = Rotation<3,double>::exp(forwardForward);
+                hessian += Rotation<3,double>::exp(backwardBackward);
+                hessian -= Rotation<3,double>::exp(forwardBackward);
+                hessian -= Rotation<3,double>::exp(backwardForward);
                 hessian /= 4*eps*eps;
                 
             }
