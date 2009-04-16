@@ -1,10 +1,10 @@
 #ifndef ROD_REFINE_HH
 #define ROD_REFINE_HH
 
-#include "configuration.hh"
+#include "rigidbodymotion.hh"
 
 template <class GridType>
-void globalRodRefine(GridType& grid, std::vector<Configuration>& x)
+void globalRodRefine(GridType& grid, std::vector<RigidBodyMotion<3> >& x)
 {
     // Should be a static assertion
     assert(GridType::dimension == 1);
@@ -19,7 +19,7 @@ void globalRodRefine(GridType& grid, std::vector<Configuration>& x)
     const typename GridType::Traits::LocalIdSet&    idSet    = grid.localIdSet();
     const typename GridType::Traits::LeafIndexSet& indexSet = grid.leafIndexSet();
 
-    std::map<typename GridType::Traits::LocalIdSet::IdType, Configuration> dofMap;
+    std::map<typename GridType::Traits::LocalIdSet::IdType, RigidBodyMotion<3> > dofMap;
 
     VertexIterator vIt    = grid.template leafbegin<1>();
     VertexIterator vEndIt = grid.template leafend<1>();
@@ -55,8 +55,8 @@ void globalRodRefine(GridType& grid, std::vector<Configuration>& x)
 
             } else {
                 // Interpolate
-                Configuration p0 = dofMap[idSet.template subId<1>(*eIt->father(),0)];
-                Configuration p1 = dofMap[idSet.template subId<1>(*eIt->father(),1)];
+                RigidBodyMotion<3> p0 = dofMap[idSet.template subId<1>(*eIt->father(),0)];
+                RigidBodyMotion<3> p1 = dofMap[idSet.template subId<1>(*eIt->father(),1)];
 
                 x[indexSet.template subIndex<1>(*eIt,i)].r = (p0.r + p1.r);
                 x[indexSet.template subIndex<1>(*eIt,i)].r *= 0.5;
