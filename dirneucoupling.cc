@@ -29,7 +29,7 @@
 
 #include "src/quaternion.hh"
 #include "src/rodassembler.hh"
-#include "src/configuration.hh"
+#include "src/rigidbodymotion.hh"
 #include "src/averageinterface.hh"
 #include "src/rodsolver.hh"
 #include "src/roddifference.hh"
@@ -45,7 +45,7 @@ using std::vector;
 // Some types that I need
 //typedef BCRSMatrix<FieldMatrix<double, dim, dim> > OperatorType;
 //typedef BlockVector<FieldVector<double, dim> >     VectorType;
-typedef vector<Configuration>                      RodSolutionType;
+typedef vector<RigidBodyMotion<dim> >              RodSolutionType;
 typedef BlockVector<FieldVector<double, 6> >       RodDifferenceType;
 
 
@@ -89,8 +89,6 @@ int main (int argc, char *argv[]) try
     // Some types that I need
     typedef BCRSMatrix<FieldMatrix<double, dim, dim> >   MatrixType;
     typedef BlockVector<FieldVector<double, dim> >       VectorType;
-    typedef std::vector<Configuration>                   RodSolutionType;
-    typedef BlockVector<FieldVector<double, 6> >         RodDifferenceType;
 
     // parse data file
     ConfigParser parameterSet;
@@ -357,8 +355,8 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////
 
     // Init interface value
-    Configuration referenceInterface = rodX[0];
-    Configuration lambda = referenceInterface;
+    RigidBodyMotion<3> referenceInterface = rodX[0];
+    RigidBodyMotion<3> lambda = referenceInterface;
     FieldVector<double,3> lambdaForce(0);
     FieldVector<double,3> lambdaTorque(0);
 
@@ -432,7 +430,7 @@ int main (int argc, char *argv[]) try
         //   Extract new interface position and orientation
         // ///////////////////////////////////////////////////////////
 
-        Configuration averageInterface;
+        RigidBodyMotion<3> averageInterface;
         computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
 
         //averageInterface.r[0] = averageInterface.r[1] = 0;

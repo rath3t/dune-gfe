@@ -15,7 +15,7 @@
 #include <dune-solvers/norms/energynorm.hh>
 #include <dune-solvers/norms/h1seminorm.hh>
 
-#include "configuration.hh"
+#include "rigidbodymotion.hh"
 #include "quaternion.hh"
 #include "maxnormtrustregion.hh"
 

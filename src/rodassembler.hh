@@ -8,7 +8,7 @@
 #include <dune/disc/operators/localstiffness.hh>
 
 #include <dune/ag-common/boundarypatch.hh>
-#include "configuration.hh"
+#include "rigidbodymotion.hh"
 
 
     /** \brief The FEM operator for an extensible, shearable rod
@@ -41,10 +41,10 @@
         Dune::array<double,3> A_;
 
         /** \brief The stress-free configuration */
-        std::vector<Configuration> referenceConfiguration_;
+        std::vector<RigidBodyMotion<3> > referenceConfiguration_;
 
         /** \todo Only for the fd approximations */
-        static void infinitesimalVariation(Configuration& c, double eps, int i)
+        static void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
         {
             if (i<3)
                 c.r[i] += eps;
@@ -118,33 +118,33 @@
 
         /** \brief Assemble the tangent stiffness matrix
          */
-        void assembleMatrix(const std::vector<Configuration>& sol,
+        void assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
                             Dune::BCRSMatrix<MatrixBlock>& matrix) const;
 
         /** \brief Assemble the tangent stiffness matrix using a finite difference approximation
          */
-        void assembleMatrixFD(const std::vector<Configuration>& sol,
+        void assembleMatrixFD(const std::vector<RigidBodyMotion<3> >& sol,
                               Dune::BCRSMatrix<MatrixBlock>& matrix) const;
 
-        void assembleGradient(const std::vector<Configuration>& sol,
+        void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
         /** \brief Compute the energy of a deformation state */
-        double computeEnergy(const std::vector<Configuration>& sol) const;
+        double computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const;
 
         void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
 
-        void getStrain(const std::vector<Configuration>& sol, 
+        void getStrain(const std::vector<RigidBodyMotion<3> >& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
 
-        void getStress(const std::vector<Configuration>& sol, 
+        void getStress(const std::vector<RigidBodyMotion<3> >& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const;
 
         /** \brief Return resultant force across boundary in canonical coordinates 
 
         \note Linear run-time in the size of the grid */
         Dune::FieldVector<double,3> getResultantForce(const BoundaryPatch<GridType>& boundary, 
-                                                      const std::vector<Configuration>& sol,
+                                                      const std::vector<RigidBodyMotion<3> >& sol,
                                                       Dune::FieldVector<double,3>& canonicalTorque) const;
 
     protected:

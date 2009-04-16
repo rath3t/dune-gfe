@@ -409,7 +409,7 @@ template <class GridType>
 void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>& resultantForce,
                             const Dune::FieldVector<double,GridType::dimension>& resultantTorque,
                             const BoundaryPatch<GridType>& interface,
-                            const Configuration& crossSection,
+                            const RigidBodyMotion<3>& crossSection,
                             Dune::BlockVector<Dune::FieldVector<double, GridType::dimension> >& pressure)
 {
     const GridType& grid = interface.getGrid();
@@ -640,7 +640,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 template <class GridType>
 void computeAverageInterface(const BoundaryPatch<GridType>& interface,
                              const Dune::BlockVector<Dune::FieldVector<double,GridType::dimension> > deformation,
-                             Configuration& average)
+                             RigidBodyMotion<3>& average)
 {
     using namespace Dune;
 

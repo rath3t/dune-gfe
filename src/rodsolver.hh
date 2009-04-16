@@ -14,11 +14,11 @@
 
 #include "rodassembler.hh"
 
-#include "configuration.hh"
+#include "rigidbodymotion.hh"
 
 /** \brief Riemannian trust-region solver for 3d Cosserat rod problems */
 template <class GridType>
-class RodSolver : public IterativeSolver<std::vector<Configuration>, Dune::BitSetVector<6> >
+class RodSolver : public IterativeSolver<std::vector<RigidBodyMotion<3> >, Dune::BitSetVector<6> >
 { 
     const static int blocksize = 6;
 
@@ -28,12 +28,12 @@ class RodSolver : public IterativeSolver<std::vector<Configuration>, Dune::BitSe
     // Some types that I need
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
-    typedef std::vector<Configuration>                                             SolutionType;
+    typedef std::vector<RigidBodyMotion<3> >                                             SolutionType;
 
 public:
 
     RodSolver()
-        : IterativeSolver<std::vector<Configuration>, Dune::BitSetVector<6> >(0,100,NumProc::FULL),
+        : IterativeSolver<std::vector<RigidBodyMotion<3> >, Dune::BitSetVector<6> >(0,100,NumProc::FULL),
           hessianMatrix_(NULL), h1SemiNorm_(NULL)
     {}
 

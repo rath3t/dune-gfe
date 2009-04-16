@@ -48,7 +48,7 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 
 template <class GridType>
 void RodAssembler<GridType>::
-assembleMatrix(const std::vector<Configuration>& sol,
+assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix) const
 {
     using namespace Dune;
@@ -74,7 +74,7 @@ assembleMatrix(const std::vector<Configuration>& sol,
         mat.setSize(numOfBaseFct, numOfBaseFct);
 
         // Extract local solution
-        std::vector<Configuration> localSolution(numOfBaseFct);
+        std::vector<RigidBodyMotion<3> > localSolution(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
@@ -102,7 +102,7 @@ assembleMatrix(const std::vector<Configuration>& sol,
 
 template <class GridType>
 void RodAssembler<GridType>::
-assembleMatrixFD(const std::vector<Configuration>& sol,
+assembleMatrixFD(const std::vector<RigidBodyMotion<3> >& sol,
                  Dune::BCRSMatrix<MatrixBlock>& matrix) const
 {
     using namespace Dune;
@@ -114,13 +114,13 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
-    std::vector<Configuration> forwardSolution = sol;
-    std::vector<Configuration> backwardSolution = sol;
+    std::vector<RigidBodyMotion<3> > forwardSolution = sol;
+    std::vector<RigidBodyMotion<3> > backwardSolution = sol;
 
-    std::vector<Configuration> forwardForwardSolution = sol;
-    std::vector<Configuration> forwardBackwardSolution = sol;
-    std::vector<Configuration> backwardForwardSolution = sol;
-    std::vector<Configuration> backwardBackwardSolution = sol;
+    std::vector<RigidBodyMotion<3> > forwardForwardSolution = sol;
+    std::vector<RigidBodyMotion<3> > forwardBackwardSolution = sol;
+    std::vector<RigidBodyMotion<3> > backwardForwardSolution = sol;
+    std::vector<RigidBodyMotion<3> > backwardBackwardSolution = sol;
 
     // ////////////////////////////////////////////////////
     //   Create local assembler
@@ -144,8 +144,8 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
     for (; eIt!=eEndIt; ++eIt)
         elements[indexSet.index(*eIt)] = eIt;
 
-    Dune::array<Configuration,2> localReferenceConfiguration;
-    Dune::array<Configuration,2> localSolution;
+    Dune::array<RigidBodyMotion<3>,2> localReferenceConfiguration;
+    Dune::array<RigidBodyMotion<3>,2> localSolution;
 
     // ///////////////////////////////////////////////////////////////
     //   Loop over all blocks of the outer matrix
@@ -353,7 +353,7 @@ assembleMatrixFD(const std::vector<Configuration>& sol,
 
 template <class GridType>
 void RodAssembler<GridType>::
-assembleGradient(const std::vector<Configuration>& sol,
+assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
     using namespace Dune;
@@ -385,13 +385,13 @@ assembleGradient(const std::vector<Configuration>& sol,
         const int nDofs = 2;
 
         // Extract local solution
-        array<Configuration,nDofs> localSolution;
+        array<RigidBodyMotion<3>,nDofs> localSolution;
         
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Extract local reference configuration
-        array<Configuration,nDofs> localReferenceConfiguration;
+        array<RigidBodyMotion<3>,nDofs> localReferenceConfiguration;
         
         for (int i=0; i<nDofs; i++)
             localReferenceConfiguration[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
@@ -412,7 +412,7 @@ assembleGradient(const std::vector<Configuration>& sol,
 
 template <class GridType>
 double RodAssembler<GridType>::
-computeEnergy(const std::vector<Configuration>& sol) const
+computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const
 {
     using namespace Dune;
 
@@ -431,8 +431,8 @@ computeEnergy(const std::vector<Configuration>& sol) const
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
     RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
-    Dune::array<Configuration,2> localReferenceConfiguration;
-    Dune::array<Configuration,2> localSolution;
+    Dune::array<RigidBodyMotion<3>,2> localReferenceConfiguration;
+    Dune::array<RigidBodyMotion<3>,2> localSolution;
 
     ElementLeafIterator it    = grid_->template leafbegin<0>();
     ElementLeafIterator endIt = grid_->template leafend<0>();
@@ -458,7 +458,7 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
 template <class GridType>
 void RodAssembler<GridType>::
-getStrain(const std::vector<Configuration>& sol,
+getStrain(const std::vector<RigidBodyMotion<3> >& sol,
           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const
 {
     using namespace Dune;
@@ -493,7 +493,7 @@ getStrain(const std::vector<Configuration>& sol,
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
         int numOfBaseFct = baseSet.size();
 
-        array<Configuration,2> localSolution;
+        array<RigidBodyMotion<3>,2> localSolution;
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -530,7 +530,7 @@ getStrain(const std::vector<Configuration>& sol,
 
 template <class GridType>
 void RodAssembler<GridType>::
-getStress(const std::vector<Configuration>& sol,
+getStress(const std::vector<RigidBodyMotion<3> >& sol,
           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const
 {
     // Get the strain
@@ -552,7 +552,7 @@ getStress(const std::vector<Configuration>& sol,
 template <class GridType>
 Dune::FieldVector<double,3> RodAssembler<GridType>::
 getResultantForce(const BoundaryPatch<GridType>& boundary, 
-                  const std::vector<Configuration>& sol,
+                  const std::vector<RigidBodyMotion<3> >& sol,
                   Dune::FieldVector<double,3>& canonicalTorque) const
 {
     using namespace Dune;
@@ -598,9 +598,9 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 
             double pos = nIt->intersectionSelfLocal().corner(0);
 
-            Dune::array<Configuration,2> localSolution = {sol[indexSet.template subIndex<1>(*eIt,0)],
+            Dune::array<RigidBodyMotion<3>,2> localSolution = {sol[indexSet.template subIndex<1>(*eIt,0)],
                                                           sol[indexSet.template subIndex<1>(*eIt,1)]};
-            Dune::array<Configuration,2> localRefConf  = {referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)],
+            Dune::array<RigidBodyMotion<3>,2> localRefConf  = {referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)],
                                                           referenceConfiguration_[indexSet.template subIndex<1>(*eIt,1)]};
 
             FieldVector<double, blocksize> strain          = localStiffness.getStrain(localSolution, *eIt, pos);

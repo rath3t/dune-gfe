@@ -1,8 +1,8 @@
 #ifndef ROD_DIFFERENCE_HH
 #define ROD_DIFFERENCE_HH
 
-Dune::BlockVector<Dune::FieldVector<double,6> > computeRodDifference(const std::vector<Configuration>& a,
-                                                                     const std::vector<Configuration>& b)
+Dune::BlockVector<Dune::FieldVector<double,6> > computeRodDifference(const std::vector<RigidBodyMotion<3> >& a,
+                                                                     const std::vector<RigidBodyMotion<3> >& b)
 {
     if (a.size() != b.size())
         DUNE_THROW(Dune::Exception, "a and b have to have the same length!");

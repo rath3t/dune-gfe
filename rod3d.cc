@@ -11,7 +11,7 @@
 #include <dune-solvers/solvers/iterativesolver.hh>
 #include <dune-solvers/norms/energynorm.hh>
 
-#include "src/configuration.hh"
+#include "src/rigidbodymotion.hh"
 #include "src/roddifference.hh"
 #include "src/rodwriter.hh"
 #include "src/rotation.hh"
@@ -36,7 +36,7 @@ double computeEnergyNormSquared(const BlockVector<FieldVector<double,6> >& x,
 
 int main (int argc, char *argv[]) try
 {
-    typedef std::vector<Configuration> SolutionType;
+    typedef std::vector<RigidBodyMotion<3> > SolutionType;
 
     // parse data file
     ConfigParser parameterSet;

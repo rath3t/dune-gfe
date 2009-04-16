@@ -8,7 +8,7 @@
 #include <dune/disc/operators/localstiffness.hh>
 
 #include <dune/ag-common/boundarypatch.hh>
-#include "configuration.hh"
+#include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
 class RodLocalStiffness 
@@ -94,8 +94,8 @@ public:
 
     
     RT energy (const Entity& e,
-               const Dune::array<Configuration,2>& localSolution,
-               const Dune::array<Configuration,2>& localReferenceConfiguration,
+               const Dune::array<RigidBodyMotion<3>,2>& localSolution,
+               const Dune::array<RigidBodyMotion<3>,2>& localReferenceConfiguration,
                int k=1);
 
     static void interpolationDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
@@ -104,14 +104,14 @@ public:
     static void interpolationVelocityDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad);
 
-    Dune::FieldVector<double, 6> getStrain(const Dune::array<Configuration,2>& localSolution,
+    Dune::FieldVector<double, 6> getStrain(const Dune::array<RigidBodyMotion<3>,2>& localSolution,
                                            const Entity& element,
                                            const Dune::FieldVector<double,1>& pos) const;
 
     /** \brief Assemble the element gradient of the energy functional */
     void assembleGradient(const Entity& element,
-                          const Dune::array<Configuration,2>& solution,
-                          const Dune::array<Configuration,2>& referenceConfiguration,
+                          const Dune::array<RigidBodyMotion<3>,2>& solution,
+                          const Dune::array<RigidBodyMotion<3>,2>& referenceConfiguration,
                           Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
     
     template <class T>
@@ -131,8 +131,8 @@ public:
 template <class GridType, class RT>
 RT RodLocalStiffness<GridType, RT>::
 energy(const Entity& element,
-       const Dune::array<Configuration,2>& localSolution,
-       const Dune::array<Configuration,2>& localReferenceConfiguration,
+       const Dune::array<RigidBodyMotion<3>,2>& localSolution,
+       const Dune::array<RigidBodyMotion<3>,2>& localReferenceConfiguration,
        int k)
 {
     RT energy = 0;
@@ -404,7 +404,7 @@ interpolationVelocityDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& 
 
 template <class GridType, class RT>
 Dune::FieldVector<double, 6> RodLocalStiffness<GridType, RT>::
-getStrain(const Dune::array<Configuration,2>& localSolution,
+getStrain(const Dune::array<RigidBodyMotion<3>,2>& localSolution,
           const Entity& element,
           const Dune::FieldVector<double,1>& pos) const
 {
@@ -480,8 +480,8 @@ getStrain(const Dune::array<Configuration,2>& localSolution,
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
 assembleGradient(const Entity& element,
-                 const Dune::array<Configuration,2>& solution,
-                 const Dune::array<Configuration,2>& referenceConfiguration,
+                 const Dune::array<RigidBodyMotion<3>,2>& solution,
+                 const Dune::array<RigidBodyMotion<3>,2>& referenceConfiguration,
                  Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const
 {
     using namespace Dune;

@@ -5,7 +5,7 @@
 
 #include <dune/common/exceptions.hh>
 
-#include "configuration.hh"
+#include "rigidbodymotion.hh"
 
 /** \brief Write a planar rod
  */
@@ -89,7 +89,7 @@ void writeRod(const Dune::BlockVector<Dune::FieldVector<double,3> >& rod,
 
 /** \brief Write a spatial rod
  */
-void writeRod(const std::vector<Configuration>& rod, 
+void writeRod(const std::vector<RigidBodyMotion<3> >& rod, 
               const std::string& filename)
 {
     int nPoints = rod.size();
