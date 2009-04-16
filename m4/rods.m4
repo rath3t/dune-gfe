@@ -1,0 +1,7 @@
+AC_DEFUN([RODS_CHECKS],[
+#  AC_REQUIRE([DUNE_IPOPT])
+])
+
+AC_DEFUN([RODS_CHECK_MODULE],[
+  DUNE_CHECK_MODULES([rods], [dune/src/rotation.hh])
+])
