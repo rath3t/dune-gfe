@@ -28,10 +28,8 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
             
             for (j=0; j<it->template count<gridDim>(); j++) {
                 
-                //int iIdx = it->template subIndex<gridDim>(i);
-                //int jIdx = it->template subIndex<gridDim>(j);
-                int iIdx = indexSet.template subIndex<gridDim>(*it,i);
-                int jIdx = indexSet.template subIndex<gridDim>(*it,j);
+                int iIdx = indexSet.subIndex(*it,i,gridDim);
+                int jIdx = indexSet.subIndex(*it,j,gridDim);
                 
                 nb.add(iIdx, jIdx);
                 
@@ -73,8 +71,7 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
         BlockVector<FieldVector<double, blocksize> > localSolution(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
-            //localSolution[i] = sol[functionSpace_.mapToGlobal(*it,i)];
-            localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // setup matrix 
         getLocalMatrix( *it, localSolution, numOfBaseFct, mat);
@@ -82,13 +79,11 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) { 
             
-            //int row = functionSpace_.mapToGlobal( *it , i );
-            int row = indexSet.template subIndex<gridDim>(*it,i);
+            int row = indexSet.subIndex(*it,i,gridDim);
 
             for (int j=0; j<numOfBaseFct; j++ ) {
                 
-                //int col = functionSpace_.mapToGlobal( *it , j );    
-                int col = indexSet.template subIndex<gridDim>(*it,j);
+                int col = indexSet.subIndex(*it,j,gridDim);
                 matrix[row][col] += mat[i][j];
                 
             }
@@ -293,7 +288,7 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
         FieldVector<double, blocksize> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Get quadrature rule
         const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
@@ -349,7 +344,7 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
 
             for (int dof=0; dof<numOfBaseFct; dof++) {
 
-                int globalDof = indexSet.template subIndex<gridDim>(*it,dof);
+                int globalDof = indexSet.subIndex(*it,dof,gridDim);
 
                 //printf("globalDof: %d   partA1: %g   partA3: %g\n", globalDof, partA1, partA3);
 
@@ -400,7 +395,7 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
         FieldVector<double, blocksize> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Get quadrature rule
         const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);

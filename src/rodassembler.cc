@@ -568,8 +568,8 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
             
             for (j=0; j<it->template count<gridDim>(); j++) {
                 
-                int iIdx = indexSet.template subIndex<gridDim>(*it,i);
-                int jIdx = indexSet.template subIndex<gridDim>(*it,j);
+                int iIdx = indexSet.subIndex(*it,i,gridDim);
+                int jIdx = indexSet.subIndex(*it,j,gridDim);
                 
                 nb.add(iIdx, jIdx);
                 
@@ -924,13 +924,13 @@ assembleGradient(const std::vector<Configuration>& sol,
         array<Configuration,nDofs> localSolution;
         
         for (int i=0; i<nDofs; i++)
-            localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Extract local reference configuration
         array<Configuration,nDofs> localReferenceConfiguration;
         
         for (int i=0; i<nDofs; i++)
-            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.template subIndex<gridDim>(*it,i)];
+            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
 
         // Assemble local gradient
         array<FieldVector<double,blocksize>, nDofs> localGradient;
@@ -939,7 +939,7 @@ assembleGradient(const std::vector<Configuration>& sol,
 
         // Add to global gradient
         for (int i=0; i<nDofs; i++)
-            grad[indexSet.template subIndex<gridDim>(*it,i)] += localGradient[i];
+            grad[indexSet.subIndex(*it,i,gridDim)] += localGradient[i];
 
     }
 
@@ -978,8 +978,8 @@ computeEnergy(const std::vector<Configuration>& sol) const
 
         for (int i=0; i<2; i++) {
 
-            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.template subIndex<gridDim>(*it,i)];
-            localSolution[i]               = sol[indexSet.template subIndex<gridDim>(*it,i)];
+            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
+            localSolution[i]               = sol[indexSet.subIndex(*it,i,gridDim)];
 
         }
 
@@ -1032,7 +1032,7 @@ getStrain(const std::vector<Configuration>& sol,
         array<Configuration,2> localSolution;
         
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Get quadrature rule
         const int polOrd = 2;
@@ -1119,7 +1119,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 
         for (; nIt!=nEndIt; ++nIt) {
 
-            if (!boundary.contains(*eIt, nIt->numberInSelf()))
+            if (!boundary.contains(*eIt, nIt->indexInInside()))
                 continue;
 
             // //////////////////////////////////////////////
