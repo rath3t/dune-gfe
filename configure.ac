@@ -2,13 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.50)
-AC_INIT(rods, 1.0, sander@mi.fu-berlin.de)
-AM_INIT_AUTOMAKE(rods, 1.0, sander@mi.fu-berlin.de)
+DUNE_AC_INIT
+AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([staticrod.cc])
 AM_CONFIG_HEADER([config.h])
 
+DUNE_SYMLINK
 # we need no more than the standard DUNE-stuff
-DUNE_CHECK_ALL_M([dune-common], [dune-grid], [dune-istl], [dune-disc])
+DUNE_CHECK_ALL
 
 # implicitly set the Dune-flags everywhere
 AC_SUBST(AM_CPPFLAGS, $DUNE_CPPFLAGS)
