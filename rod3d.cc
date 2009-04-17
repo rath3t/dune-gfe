@@ -12,7 +12,7 @@
 #include <dune-solvers/norms/energynorm.hh>
 
 #include "src/rigidbodymotion.hh"
-#include "src/roddifference.hh"
+#include "src/geodesicdifference.hh"
 #include "src/rodwriter.hh"
 #include "src/rotation.hh"
 #include "src/rodassembler.hh"
@@ -180,7 +180,7 @@ int main (int argc, char *argv[]) try
 
     // Compute error of the initial iterate
     typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
-    RodDifferenceType rodDifference = computeRodDifference(exactSolution, initialIterate);
+    RodDifferenceType rodDifference = computeGeodesicDifference(exactSolution, initialIterate);
     double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
 
     int i;
@@ -206,7 +206,7 @@ int main (int argc, char *argv[]) try
         //   Compute error
         // /////////////////////////////////////////////////////
 
-        rodDifference = computeRodDifference(exactSolution, intermediateSolution);
+        rodDifference = computeGeodesicDifference(exactSolution, intermediateSolution);
         
         error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
         
