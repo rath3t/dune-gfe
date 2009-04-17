@@ -5,16 +5,17 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
-#include <dune/disc/operators/localstiffness.hh>
 
 #include <dune/ag-common/boundarypatch.hh>
+
 #include "rigidbodymotion.hh"
+#include "geodesicfeassembler.hh"
 
-
-    /** \brief The FEM operator for an extensible, shearable rod
-     */
-    template <class GridType>
-    class RodAssembler {
+/** \brief The FEM operator for an extensible, shearable rod
+ */
+template <class GridType>
+class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >
+{
         
         typedef typename GridType::template Codim<0>::Entity EntityType;
         typedef typename GridType::template Codim<0>::EntityPointer EntityPointer;
@@ -47,6 +48,7 @@
         
         //! ???
         RodAssembler(const GridType &grid) : 
+            GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >(grid.leafView()),
             grid_(&grid)
         { 
             // Set dummy material parameters
@@ -69,8 +71,6 @@
             }
 
         }
-
-        ~RodAssembler() {}
 
         void setParameters(double k1, double k2, double k3, 
                            double a1, double a2, double a3) {
