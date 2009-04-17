@@ -7,7 +7,6 @@
 #include <dune/istl/matrix.hh>
 #include <dune/disc/operators/localstiffness.hh>
 
-#include <dune/ag-common/boundarypatch.hh>
 #include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
