@@ -152,7 +152,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
             localReferenceConfiguration[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
 
         // Assemble local gradient
-        array<FieldVector<double,blocksize>, nDofs> localGradient;
+        std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
 
         localStiffness.localReferenceConfiguration_ = localReferenceConfiguration;
         localStiffness.assembleGradient(*it, localSolution, localGradient);

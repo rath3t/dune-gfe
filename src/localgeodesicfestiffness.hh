@@ -87,8 +87,8 @@ public:
 
     /** \brief Assemble the element gradient of the energy functional */
     virtual void assembleGradient(const Entity& element,
-                          const std::vector<TargetSpace>& solution,
-                          Dune::array<Dune::FieldVector<double,blocksize>, 2>& gradient) const;
+                                  const std::vector<TargetSpace>& solution,
+                                  std::vector<Dune::FieldVector<double,blocksize> >& gradient) const;
     
 };
 
@@ -96,13 +96,15 @@ template <class GridView, class TargetSpace>
 void LocalGeodesicFEStiffness<GridView, TargetSpace>::
 assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
-                 Dune::array<Dune::FieldVector<double,blocksize>, 2>& localGradient) const
+                 std::vector<Dune::FieldVector<double,blocksize> >& localGradient) const
 {
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
 
     double eps = 1e-6;
+
+    localGradient.resize(localSolution.size());
 
     std::vector<TargetSpace> forwardSolution = localSolution;
     std::vector<TargetSpace> backwardSolution = localSolution;

@@ -89,7 +89,7 @@ public:
     /** \brief Assemble the element gradient of the energy functional */
     void assembleGradient(const Entity& element,
                           const std::vector<RigidBodyMotion<3> >& solution,
-                          Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
+                          std::vector<Dune::FieldVector<double,6> >& gradient) const;
     
     template <class T>
     static Dune::FieldVector<T,3> darboux(const Rotation<3,T>& q, const Dune::FieldVector<T,4>& q_s) 
@@ -458,7 +458,7 @@ template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
 assembleGradient(const Entity& element,
                  const std::vector<RigidBodyMotion<3> >& solution,
-                 Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const
+                 std::vector<Dune::FieldVector<double,6> >& gradient) const
 {
     using namespace Dune;
 
@@ -468,6 +468,7 @@ assembleGradient(const Entity& element,
     const int numOfBaseFct = baseSet.size();  
         
     // init
+    gradient.resize(numOfBaseFct);
     for (size_t i=0; i<gradient.size(); i++)
         gradient[i] = 0;
 
