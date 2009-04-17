@@ -14,7 +14,6 @@ class HarmonicEnergyLocalStiffness
     // grid types
     typedef typename GridView::Grid::ctype DT;
     typedef typename GridView::template Codim<0>::Entity Entity;
-    typedef typename GridView::template Codim<0>::EntityPointer EntityPointer;
     
     // some other sizes
     enum {gridDim=GridView::dimension};
@@ -33,30 +32,10 @@ public:
     HarmonicEnergyLocalStiffness ()
     {}
 
-    /** \brief assemble local stiffness matrix for given element
-    */
-    void assemble (const Entity& e, 
-                   const Dune::BlockVector<Dune::FieldVector<double, 6> >& localSolution,
-                   int k=1)
-    {
-        DUNE_THROW(Dune::NotImplemented, "!");
-    }
-
-    void assembleBoundaryCondition (const Entity& e, int k=1)
-    {
-        DUNE_THROW(Dune::NotImplemented, "!");
-    }
-
-    
+    /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
-               const Dune::array<RigidBodyMotion<3>,2>& localSolution) const;
+               const std::vector<TargetSpace>& localSolution) const;
 
-    /** \brief Assemble the element gradient of the energy functional */
-    void assembleGradient(const Entity& element,
-                          const Dune::array<RigidBodyMotion<3>,2>& solution,
-                          const Dune::array<RigidBodyMotion<3>,2>& referenceConfiguration,
-                          Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
-    
 };
 
 template <class GridType, class RT>
@@ -66,56 +45,35 @@ energy(const Entity& element,
 {
     RT energy = 0;
     
-    // ///////////////////////////////////////////////////////////////////////////////
-    //   The following two loops are a reduced integration scheme.  We integrate
-    //   the transverse shear and extensional energy with a first-order quadrature
-    //   formula, even though it should be second order.  This prevents shear-locking.
-    // ///////////////////////////////////////////////////////////////////////////////
+    assert(element.type().isSimplex());
 
-    const Dune::QuadratureRule<double, 1>& shearingQuad 
-        = Dune::QuadratureRules<double, 1>::rule(element.type(), shearQuadOrder);
+    int quadOrder = gridDim;
+
+    const Dune::QuadratureRule<double, 1>& quad 
+        = Dune::QuadratureRules<double, 1>::rule(element.type(), quadOrder);
     
-    for (size_t pt=0; pt<shearingQuad.size(); pt++) {
+    for (size_t pt=0; pt<quad.size(); pt++) {
         
         // Local position of the quadrature point
-        const Dune::FieldVector<double,1>& quadPos = shearingQuad[pt].position();
+        const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
         
         const double integrationElement = element.geometry().integrationElement(quadPos);
         
-        double weight = shearingQuad[pt].weight() * integrationElement;
-        
-        Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
-        
-        // The reference strain
-        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
-        
-        for (int i=0; i<3; i++)
-            energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
+        double weight = quad[pt].weight() * integrationElement;
+
+        for (int comp=0; comp<4; comp++) {
+
+            for (int dir=0; dir<gridDim; dir++) {
+
+                double derivative = localGeodesicFunction.evaluateDerivative(comp, dir);
+                energy += weight * derivative * derivative;
+
+            }
+
+        }
 
     }
     
-    // Get quadrature rule
-    const Dune::QuadratureRule<double, 1>& bendingQuad 
-        = Dune::QuadratureRules<double, 1>::rule(element.type(), bendingQuadOrder);
-    
-    for (size_t pt=0; pt<bendingQuad.size(); pt++) {
-        
-        // Local position of the quadrature point
-        const Dune::FieldVector<double,1>& quadPos = bendingQuad[pt].position();
-        
-        double weight = bendingQuad[pt].weight() * element.geometry().integrationElement(quadPos);
-        
-        Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
-        
-        // The reference strain
-        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
-        
-        // Part II: the bending and twisting energy
-        for (int i=0; i<3; i++)
-            energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
-        
-    }
-
     return energy;
 }
 
