@@ -34,6 +34,9 @@ class Rotation<3,T> : public Quaternion<T>
 
 public:
 
+    /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
+    typedef Dune::FieldVector<T,3> TangentVector;
+
     /** \brief Default constructor creates the identity element */
     Rotation()
         : Quaternion<T>(0,0,0,1)

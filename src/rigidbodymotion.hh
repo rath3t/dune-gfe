@@ -8,6 +8,9 @@
 template <int dim, class ctype=double>
 struct RigidBodyMotion
 {
+    /** \brief Type of an infinitesimal rigid body motion */
+    typedef Dune::FieldVector<ctype, (dim==3) ? 6 : 3> TangentVector;
+
     // Translational part
     Dune::FieldVector<ctype, dim> r;
 
