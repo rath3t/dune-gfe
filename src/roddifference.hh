@@ -1,6 +1,8 @@
 #ifndef ROD_DIFFERENCE_HH
 #define ROD_DIFFERENCE_HH
 
+#include "rigidbodymotion.hh"
+
 Dune::BlockVector<Dune::FieldVector<double,6> > computeRodDifference(const std::vector<RigidBodyMotion<3> >& a,
                                                                      const std::vector<RigidBodyMotion<3> >& b)
 {
