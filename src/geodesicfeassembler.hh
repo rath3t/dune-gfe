@@ -29,7 +29,7 @@ class GeodesicFEAssembler {
     
     const GridView gridView_; 
 
-    const LocalGeodesicFEStiffness<GridView,TargetSpace>* localStiffness_;
+    LocalGeodesicFEStiffness<GridView,TargetSpace>* localStiffness_;
 
 public:
     
@@ -65,14 +65,14 @@ template <class GridView, class TargetSpace>
 void GeodesicFEAssembler<GridView,TargetSpace>::
 getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
-    const typename GridView::IndexSet& indexSet = gridView_->indexSet();
+    const typename GridView::IndexSet& indexSet = gridView_.indexSet();
     
-    int n = gridView_->size(gridDim);
+    int n = gridView_.size(gridDim);
     
     nb.resize(n, n);
     
-    ElementIterator it    = gridView_->template begin<0>();
-    ElementIterator endit = gridView_->template end<0>  ();
+    ElementIterator it    = gridView_.template begin<0>();
+    ElementIterator endit = gridView_.template end<0>  ();
     
     for (; it!=endit; ++it) {
         
@@ -93,6 +93,91 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
     
 }
 
+template <class GridView, class TargetSpace>
+void GeodesicFEAssembler<GridView,TargetSpace>::
+assembleMatrix(const std::vector<TargetSpace>& sol,
+               Dune::BCRSMatrix<MatrixBlock>& matrix) const
+{
+    const typename GridView::IndexSet& indexSet = gridView_.indexSet();
+
+    Dune::MatrixIndexSet neighborsPerVertex;
+    getNeighborsPerVertex(neighborsPerVertex);
+    
+    matrix = 0;
+    
+    ElementIterator it    = gridView_.template begin<0>();
+    ElementIterator endit = gridView_.template end<0>  ();
+
+    for( ; it != endit; ++it ) {
+        
+        const int numOfBaseFct = it->template count<gridDim>();  
+        
+        // Extract local solution
+        std::vector<TargetSpace> localSolution(numOfBaseFct);
+        
+        for (int i=0; i<numOfBaseFct; i++)
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
+
+        // setup matrix 
+        localStiffness_->assemble(*it, localSolution);
+
+        // Add element matrix to global stiffness matrix
+        for(int i=0; i<numOfBaseFct; i++) { 
+            
+            int row = indexSet.subIndex(*it,i,gridDim);
+
+            for (int j=0; j<numOfBaseFct; j++ ) {
+                
+                int col = indexSet.subIndex(*it,j,gridDim);
+                matrix[row][col] += localStiffness_->mat(i,j);
+                
+            }
+        }
+
+    }
+
+}
+
+template <class GridView, class TargetSpace>
+void GeodesicFEAssembler<GridView,TargetSpace>::
+assembleGradient(const std::vector<TargetSpace>& sol,
+                 Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
+{
+    const typename GridView::IndexSet& indexSet = gridView_.indexSet();
+
+    if (sol.size()!=gridView_.size(gridDim))
+        DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
+
+    grad.resize(sol.size());
+    grad = 0;
+
+    ElementIterator it    = gridView_->template begin<0>();
+    ElementIterator endIt = gridView_->template end<0>();
+
+    // Loop over all elements
+    for (; it!=endIt; ++it) {
+
+        // A 1d grid has two vertices
+        const int nDofs = it->template count<gridDim>();
+
+        // Extract local solution
+        std::vector<TargetSpace> localSolution(nDofs);
+        
+        for (int i=0; i<nDofs; i++)
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
+
+        // Assemble local gradient
+        std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
+
+        localStiffness_->assembleGradient(*it, localSolution, localGradient);
+
+        // Add to global gradient
+        for (int i=0; i<nDofs; i++)
+            grad[indexSet.subIndex(*it,i,gridDim)] += localGradient[i];
+
+    }
+
+}
 
 
 template <class GridView, class TargetSpace>
