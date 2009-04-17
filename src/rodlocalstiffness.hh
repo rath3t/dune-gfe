@@ -74,9 +74,7 @@ public:
 
     
     virtual RT energy (const Entity& e,
-                       const std::vector<RigidBodyMotion<3> >& localSolution
-                       //, const std::vector<RigidBodyMotion<3> >& localReferenceConfiguration,
-                       ) const;
+                       const std::vector<RigidBodyMotion<3> >& localSolution) const;
 
     static void interpolationDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                         Dune::array<Quaternion<double>,6>& grad);
