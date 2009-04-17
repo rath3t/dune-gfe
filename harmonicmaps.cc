@@ -9,7 +9,7 @@
 #include <dune-solvers/solvers/iterativesolver.hh>
 #include <dune-solvers/norms/energynorm.hh>
 
-#include "src/roddifference.hh"
+#include "src/geodesicdifference.hh"
 #include "src/rodwriter.hh"
 #include "src/rotation.hh"
 #include "src/geodesicfeassembler.hh"
@@ -133,7 +133,6 @@ int main (int argc, char *argv[]) try
     writeRod(x, resultPath + "rod3d.result");
 #endif
 
-#if 0
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
     // //////////////////////////////////////////////////////////
@@ -145,11 +144,11 @@ int main (int argc, char *argv[]) try
     //   for use of the energy norm it creates.
     // //////////////////////////////////////////////////////////
 
-    BCRSMatrix<FieldMatrix<double, 6, 6> > hessian;
-    MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
-    rodAssembler.getNeighborsPerVertex(indices);
-    indices.exportIdx(hessian);
-    rodAssembler.assembleMatrixFD(exactSolution, hessian);
+    BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > hessian;
+//     MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
+//     assembler.getNeighborsPerVertex(indices);
+//     indices.exportIdx(hessian);
+    assembler.assembleMatrix(exactSolution, hessian);
 
 
     double error = std::numeric_limits<double>::max();
@@ -160,9 +159,9 @@ int main (int argc, char *argv[]) try
     std::ofstream statisticsFile((resultPath + "trStatistics").c_str());
 
     // Compute error of the initial iterate
-    typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
-    RodDifferenceType rodDifference = computeRodDifference(exactSolution, initialIterate);
-    double oldError = std::sqrt(computeEnergyNormSquared(rodDifference, hessian));
+    typedef BlockVector<FieldVector<double,blocksize> > DifferenceType;
+    DifferenceType geodesicDifference = computeGeodesicDifference(exactSolution, initialIterate);
+    double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
 
     int i;
     for (i=0; i<maxTrustRegionSteps; i++) {
@@ -177,8 +176,7 @@ int main (int argc, char *argv[]) try
         if (!fp)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
         for (int j=0; j<intermediateSolution.size(); j++) {
-            fread(&intermediateSolution[j].r, sizeof(double), 3, fp);
-            fread(&intermediateSolution[j].q, sizeof(double), 4, fp);
+            fread(&intermediateSolution[j], sizeof(double), 4, fp);
         }
         
         fclose(fp);
@@ -187,9 +185,9 @@ int main (int argc, char *argv[]) try
         //   Compute error
         // /////////////////////////////////////////////////////
 
-        rodDifference = computeRodDifference(exactSolution, intermediateSolution);
+        geodesicDifference = computeGeodesicDifference(exactSolution, intermediateSolution);
         
-        error = std::sqrt(computeEnergyNormSquared(rodDifference, hessian));
+        error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
         
 
         double convRate = error / oldError;
@@ -205,7 +203,6 @@ int main (int argc, char *argv[]) try
         oldError = error;
         
     }            
-#endif
 
     // //////////////////////////////
  } catch (Exception e) {
