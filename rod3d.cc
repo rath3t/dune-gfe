@@ -18,21 +18,12 @@
 #include "src/rodassembler.hh"
 #include "src/rodsolver.hh"
 
-// Number of degrees of freedom: 
-// 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod
-const int blocksize = 6;
+typedef RigidBodyMotion<3> TargetSpace;
+
+const int blocksize = TargetSpace::TangentVector::size;
 
 using namespace Dune;
 using std::string;
-
-double computeEnergyNormSquared(const BlockVector<FieldVector<double,6> >& x,
-                                const BCRSMatrix<FieldMatrix<double, 6, 6> >& matrix)
-{
-    BlockVector<FieldVector<double, 6> > tmp(x.size());
-    tmp = 0;
-    matrix.umv(x,tmp);
-    return x*tmp;
-}
 
 int main (int argc, char *argv[]) try
 {
@@ -190,7 +181,7 @@ int main (int argc, char *argv[]) try
     // Compute error of the initial iterate
     typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
     RodDifferenceType rodDifference = computeRodDifference(exactSolution, initialIterate);
-    double oldError = std::sqrt(computeEnergyNormSquared(rodDifference, hessian));
+    double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
 
     int i;
     for (i=0; i<maxTrustRegionSteps; i++) {
@@ -217,7 +208,7 @@ int main (int argc, char *argv[]) try
 
         rodDifference = computeRodDifference(exactSolution, intermediateSolution);
         
-        error = std::sqrt(computeEnergyNormSquared(rodDifference, hessian));
+        error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
         
 
         double convRate = error / oldError;
