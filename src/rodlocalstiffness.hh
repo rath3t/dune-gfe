@@ -91,7 +91,6 @@ public:
     /** \brief Assemble the element gradient of the energy functional */
     void assembleGradient(const Entity& element,
                           const std::vector<RigidBodyMotion<3> >& solution,
-                          const std::vector<RigidBodyMotion<3> >& referenceConfiguration,
                           Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
     
     template <class T>
@@ -461,7 +460,6 @@ template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
 assembleGradient(const Entity& element,
                  const std::vector<RigidBodyMotion<3> >& solution,
-                 const std::vector<RigidBodyMotion<3> >& referenceConfiguration,
                  Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const
 {
     using namespace Dune;
@@ -527,7 +525,7 @@ assembleGradient(const Entity& element,
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
         
         // The reference strain
-        FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration, element, quadPos);
+        FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration_, element, quadPos);
         
         
         // dd_dvij[m][i][j] = \parder {(d_k)_i} {q}
@@ -603,7 +601,7 @@ assembleGradient(const Entity& element,
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
         
         // The reference strain
-        FieldVector<double,blocksize> referenceStrain = getStrain(referenceConfiguration, element, quadPos);
+        FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration_, element, quadPos);
         
         // First derivatives of the position
         array<Quaternion<double>,6> dq_dwij;
