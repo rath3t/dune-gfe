@@ -12,7 +12,7 @@
 #include <dune-solvers/norms/h1seminorm.hh>
 #include <dune-solvers/solvers/loopsolver.hh>
 
-#include "rodassembler.hh"
+#include "geodesicfeassembler.hh"
 
 #include "rigidbodymotion.hh"
 
@@ -38,7 +38,7 @@ public:
     {}
 
     void setup(const GridType& grid, 
-               const RodAssembler<GridType>* rodAssembler,
+               const GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >* rodAssembler,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
@@ -99,7 +99,7 @@ protected:
     MatrixType* hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const RodAssembler<GridType>* rodAssembler_;
+    const GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >* assembler_;
 
     /** \brief The multigrid solver */
     LoopSolver<CorrectionType>* mmgSolver_;

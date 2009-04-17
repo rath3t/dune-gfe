@@ -27,7 +27,7 @@
 
 template <class GridType>
 void RodSolver<GridType>::setup(const GridType& grid,
-                                const RodAssembler<GridType>* rodAssembler,
+                                const GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >* assembler,
                                 const SolutionType& x,
                                 const Dune::BitSetVector<blocksize>& dirichletNodes,
                                 double tolerance,
@@ -45,7 +45,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     using namespace Dune;
 
     grid_ = &grid;
-    rodAssembler_             = rodAssembler;
+    assembler_             = assembler;
     x_                        = x;
     tolerance_                = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
@@ -125,7 +125,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
 
     hessianMatrix_ = new MatrixType;
     MatrixIndexSet indices(grid_->size(1), grid_->size(1));
-    rodAssembler_->getNeighborsPerVertex(indices);
+    assembler_->getNeighborsPerVertex(indices);
     indices.exportIdx(*hessianMatrix_);
     
     // //////////////////////////////////////////////////////////
@@ -180,7 +180,7 @@ void RodSolver<GridType>::solve()
             std::cout << "----------------------------------------------------" << std::endl;
             std::cout << "      Trust-Region Step Number: " << i 
                       << ",     radius: " << trustRegion.radius()
-                      << ",     energy: " << rodAssembler_->computeEnergy(x_) << std::endl;
+                      << ",     energy: " << assembler_->computeEnergy(x_) << std::endl;
             std::cout << "----------------------------------------------------" << std::endl;
         }
 
@@ -188,9 +188,8 @@ void RodSolver<GridType>::solve()
         CorrectionType corr(x_.size());
         corr = 0;
 
-        rodAssembler_->assembleGradient(x_, rhs);
-        rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
-        //rodAssembler_->assembleMatrixFD(x_, *hessianMatrix_);
+        assembler_->assembleGradient(x_, rhs);
+        assembler_->assembleMatrix(x_, *hessianMatrix_);
 
         //gradientFDCheck(x_, rhs, *rodAssembler_);
         //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
@@ -324,8 +323,8 @@ void RodSolver<GridType>::solve()
         }
         
         /** \todo Don't always recompute oldEnergy */
-        double oldEnergy = rodAssembler_->computeEnergy(x_);
-        double energy    = rodAssembler_->computeEnergy(newIterate); 
+        double oldEnergy = assembler_->computeEnergy(x_);
+        double energy    = assembler_->computeEnergy(newIterate); 
         
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
