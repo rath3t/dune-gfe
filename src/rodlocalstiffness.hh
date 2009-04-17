@@ -6,6 +6,7 @@
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
 #include <dune/disc/operators/localstiffness.hh>
+#include<dune/disc/operators/boundaryconditions.hh>
 
 #include "rigidbodymotion.hh"
 
@@ -13,6 +14,8 @@ template<class GridView, class RT>
 class RodLocalStiffness 
     : public Dune::LocalStiffness<GridView,RT,6>
 {
+    typedef RigidBodyMotion<3> TargetSpace;
+
     // grid types
     typedef typename GridView::Grid::ctype DT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -26,6 +29,22 @@ class RodLocalStiffness
 
     // Quadrature order used for the bending and torsion energy
     enum {bendingQuadOrder = 2};
+
+public:
+    /** \brief For the fd approximations 
+        \todo This is public because RodAssembler uses it
+    */
+    static void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
+    {
+        if (i<3)
+            c.r[i] += eps;
+        else
+            c.q = c.q.mult(Rotation<3,double>::exp((i==3)*eps, 
+                                                   (i==4)*eps, 
+                                                   (i==5)*eps));
+    }
+    
+    std::vector<RigidBodyMotion<3> > localReferenceConfiguration_;
 
 public:
     
@@ -61,17 +80,11 @@ public:
             A_[i] = A[i];
         }
     }
+
+    void assemble(const Entity& e,
+                  const std::vector<TargetSpace>& localSolution);
     
-    //! assemble local stiffness matrix for given element and order
-    /*! On exit the following things have been done:
-      - The stiffness matrix for the given entity and polynomial degree has been assembled and is
-      accessible with the mat() method.
-      - The boundary conditions have been evaluated and are accessible with the bc() method
-      - The right hand side has been assembled. It contains either the value of the essential boundary
-      condition or the assembled source term and neumann boundary condition. It is accessible via the rhs() method.
-      @param[in]  e    a codim 0 entity reference
-      \param[in]  localSolution Current local solution, because this is a nonlinear assembler
-      @param[in]  k    order of Lagrange basis
+    /** \brief assemble local stiffness matrix for given element and order
     */
     void assemble (const Entity& e, 
                    const Dune::BlockVector<Dune::FieldVector<double, 6> >& localSolution,
@@ -93,8 +106,8 @@ public:
 
     
     RT energy (const Entity& e,
-               const Dune::array<RigidBodyMotion<3>,2>& localSolution,
-               const Dune::array<RigidBodyMotion<3>,2>& localReferenceConfiguration,
+               const std::vector<RigidBodyMotion<3> >& localSolution,
+               const std::vector<RigidBodyMotion<3> >& localReferenceConfiguration,
                int k=1);
 
     static void interpolationDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
@@ -103,14 +116,14 @@ public:
     static void interpolationVelocityDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad);
 
-    Dune::FieldVector<double, 6> getStrain(const Dune::array<RigidBodyMotion<3>,2>& localSolution,
+    Dune::FieldVector<double, 6> getStrain(const std::vector<RigidBodyMotion<3> >& localSolution,
                                            const Entity& element,
                                            const Dune::FieldVector<double,1>& pos) const;
 
     /** \brief Assemble the element gradient of the energy functional */
     void assembleGradient(const Entity& element,
-                          const Dune::array<RigidBodyMotion<3>,2>& solution,
-                          const Dune::array<RigidBodyMotion<3>,2>& referenceConfiguration,
+                          const std::vector<RigidBodyMotion<3> >& solution,
+                          const std::vector<RigidBodyMotion<3> >& referenceConfiguration,
                           Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
     
     template <class T>
@@ -130,8 +143,8 @@ public:
 template <class GridType, class RT>
 RT RodLocalStiffness<GridType, RT>::
 energy(const Entity& element,
-       const Dune::array<RigidBodyMotion<3>,2>& localSolution,
-       const Dune::array<RigidBodyMotion<3>,2>& localReferenceConfiguration,
+       const std::vector<RigidBodyMotion<3> >& localSolution,
+       const std::vector<RigidBodyMotion<3> >& localReferenceConfiguration,
        int k)
 {
     RT energy = 0;
@@ -403,7 +416,7 @@ interpolationVelocityDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& 
 
 template <class GridType, class RT>
 Dune::FieldVector<double, 6> RodLocalStiffness<GridType, RT>::
-getStrain(const Dune::array<RigidBodyMotion<3>,2>& localSolution,
+getStrain(const std::vector<RigidBodyMotion<3> >& localSolution,
           const Entity& element,
           const Dune::FieldVector<double,1>& pos) const
 {
@@ -479,8 +492,8 @@ getStrain(const Dune::array<RigidBodyMotion<3>,2>& localSolution,
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
 assembleGradient(const Entity& element,
-                 const Dune::array<RigidBodyMotion<3>,2>& solution,
-                 const Dune::array<RigidBodyMotion<3>,2>& referenceConfiguration,
+                 const std::vector<RigidBodyMotion<3> >& solution,
+                 const std::vector<RigidBodyMotion<3> >& referenceConfiguration,
                  Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const
 {
     using namespace Dune;
@@ -665,6 +678,168 @@ assembleGradient(const Entity& element,
         
     }
 }
+
+
+template <class GridType, class RT>
+void RodLocalStiffness<GridType,RT>::
+assemble(const Entity& element,
+         const std::vector<TargetSpace>& localSolution)
+{
+    // 1 degree of freedom per element vertex
+    int nDofs = element.template count<dim>();
+
+    // Clear assemble data
+    this->setcurrentsize(nDofs);
+
+    this->A = 0;
+
+    for (int i=0; i<nDofs; i++) {
+        this->b[i] = 0;
+        for (int j=0; j<this->bctype[i].size(); j++)
+            this->bctype[i][j] = Dune::BoundaryConditions::neumann;
+    }
+
+    double eps = 1e-4;
+
+    typedef typename Dune::Matrix<Dune::FieldMatrix<double,6,6> >::row_type::iterator ColumnIterator;
+
+    // ///////////////////////////////////////////////////////////
+    //   Compute gradient by finite-difference approximation
+    // ///////////////////////////////////////////////////////////
+    std::vector<RigidBodyMotion<3> > forwardSolution  = localSolution;
+    std::vector<RigidBodyMotion<3> > backwardSolution = localSolution;
+
+    std::vector<RigidBodyMotion<3> > forwardForwardSolution   = localSolution;
+    std::vector<RigidBodyMotion<3> > forwardBackwardSolution  = localSolution;
+    std::vector<RigidBodyMotion<3> > backwardForwardSolution  = localSolution;
+    std::vector<RigidBodyMotion<3> > backwardBackwardSolution = localSolution;
+
+    // ///////////////////////////////////////////////////////////////
+    //   Loop over all blocks of the element matrix
+    // ///////////////////////////////////////////////////////////////
+    for (int i=0; i<this->A.N(); i++) {
+
+        ColumnIterator cIt    = this->A[i].begin();
+        ColumnIterator cEndIt = this->A[i].end();
+
+        for (; cIt!=cEndIt; ++cIt) {
+
+            // compute only the upper right triangular matrix
+            if (cIt.index() < i)
+                continue;
+
+            // ////////////////////////////////////////////////////////////////////////////
+            //   Compute a finite-difference approximation of this hessian matrix block
+            // ////////////////////////////////////////////////////////////////////////////
+
+            for (int j=0; j<6; j++) {
+
+                for (int k=0; k<6; k++) {
+
+                    // compute only the upper right triangular matrix
+                    if (i==cIt.index() && k<j)
+                        continue;
+
+                    // Diagonal entries
+                    if (i==cIt.index() && j==k) {
+
+                        infinitesimalVariation(forwardSolution[i], eps, j);
+                        infinitesimalVariation(backwardSolution[i], -eps, j);
+
+                        double forwardEnergy  = energy(element, forwardSolution, localReferenceConfiguration_);
+                        
+                        double solutionEnergy = energy(element, localSolution, localReferenceConfiguration_);
+                        
+                        double backwardEnergy = energy(element, backwardSolution, localReferenceConfiguration_);
+
+                        // Second derivative
+                        (*cIt)[j][k] = (forwardEnergy - 2*solutionEnergy + backwardEnergy) / (eps*eps);
+                        
+                        forwardSolution[i]  = localSolution[i];
+                        backwardSolution[i] = localSolution[i];
+
+                    } else {
+
+                        // Off-diagonal entries
+                        infinitesimalVariation(forwardForwardSolution[i],             eps, j);
+                        infinitesimalVariation(forwardForwardSolution[cIt.index()],   eps, k);
+                        infinitesimalVariation(forwardBackwardSolution[i],            eps, j);
+                        infinitesimalVariation(forwardBackwardSolution[cIt.index()], -eps, k);
+                        infinitesimalVariation(backwardForwardSolution[i],           -eps, j);
+                        infinitesimalVariation(backwardForwardSolution[cIt.index()],  eps, k);
+                        infinitesimalVariation(backwardBackwardSolution[i],          -eps, j);
+                        infinitesimalVariation(backwardBackwardSolution[cIt.index()],-eps, k);
+
+                        double forwardForwardEnergy = energy(element, forwardForwardSolution, localReferenceConfiguration_);
+                        
+                        double forwardBackwardEnergy = energy(element, forwardBackwardSolution, localReferenceConfiguration_);
+                        
+                        double backwardForwardEnergy = energy(element, backwardForwardSolution, localReferenceConfiguration_);
+                        
+                        double backwardBackwardEnergy = energy(element, backwardBackwardSolution, localReferenceConfiguration_);
+                        
+                        (*cIt)[j][k] = (forwardForwardEnergy + backwardBackwardEnergy
+                                        - forwardBackwardEnergy - backwardForwardEnergy) / (4*eps*eps);
+                        
+                        forwardForwardSolution[i]             = localSolution[i];
+                        forwardForwardSolution[cIt.index()]   = localSolution[cIt.index()];
+                        forwardBackwardSolution[i]            = localSolution[i];
+                        forwardBackwardSolution[cIt.index()]  = localSolution[cIt.index()];
+                        backwardForwardSolution[i]            = localSolution[i];
+                        backwardForwardSolution[cIt.index()]  = localSolution[cIt.index()];
+                        backwardBackwardSolution[i]           = localSolution[i];
+                        backwardBackwardSolution[cIt.index()] = localSolution[cIt.index()];
+                        
+                    }
+                            
+                }
+
+            }
+
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////
+    //   Symmetrize the matrix
+    //   This is possible expensive, but I want to be absolute sure
+    //   that the matrix is symmetric.
+    // ///////////////////////////////////////////////////////////////
+    for (int i=0; i<this->A.N(); i++) {
+
+        ColumnIterator cIt    = this->A[i].begin();
+        ColumnIterator cEndIt = this->A[i].end();
+
+        for (; cIt!=cEndIt; ++cIt) {
+
+            if (cIt.index()>i)
+                continue;
+
+
+            if (cIt.index()==i) {
+
+                for (int j=1; j<6; j++)
+                    for (int k=0; k<j; k++)
+                        (*cIt)[j][k] = (*cIt)[k][j];
+
+            } else {
+
+                const Dune::FieldMatrix<double,6,6>& other = this->A[cIt.index()][i];
+
+                for (int j=0; j<6; j++)
+                    for (int k=0; k<6; k++)
+                        (*cIt)[j][k] = other[k][j];
+
+
+            }
+
+
+        }
+
+    }
+
+}
+
 
 #endif
 

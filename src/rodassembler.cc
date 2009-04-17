@@ -51,77 +51,6 @@ void RodAssembler<GridType>::
 assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix) const
 {
-    using namespace Dune;
-
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
-
-    MatrixIndexSet neighborsPerVertex;
-    getNeighborsPerVertex(neighborsPerVertex);
-    
-    matrix = 0;
-    
-    ElementIterator it    = grid_->template lbegin<0>( grid_->maxLevel() );
-    ElementIterator endit = grid_->template lend<0> ( grid_->maxLevel() );
-
-    Matrix<MatrixBlock> mat;
-    
-    for( ; it != endit; ++it ) {
-        
-        const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
-        const int numOfBaseFct = baseSet.size();  
-        
-        mat.setSize(numOfBaseFct, numOfBaseFct);
-
-        // Extract local solution
-        std::vector<RigidBodyMotion<3> > localSolution(numOfBaseFct);
-        
-        for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.template subIndex<gridDim>(*it,i)];
-
-        // setup matrix 
-        //getLocalMatrix( it, localSolution, sol, numOfBaseFct, mat);
-        DUNE_THROW(NotImplemented, "getLocalMatrix");
-
-        // Add element matrix to global stiffness matrix
-        for(int i=0; i<numOfBaseFct; i++) { 
-            
-            int row = indexSet.template subIndex<gridDim>(*it,i);
-
-            for (int j=0; j<numOfBaseFct; j++ ) {
-                
-                int col = indexSet.template subIndex<gridDim>(*it,j);
-                matrix[row][col] += mat[i][j];
-                
-            }
-        }
-
-    }
-
-}
-
-template <class GridType>
-void RodAssembler<GridType>::
-assembleMatrixFD(const std::vector<RigidBodyMotion<3> >& sol,
-                 Dune::BCRSMatrix<MatrixBlock>& matrix) const
-{
-    using namespace Dune;
-
-    double eps = 1e-4;
-
-    typedef typename Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> >::row_type::iterator ColumnIterator;
-
-    // ///////////////////////////////////////////////////////////
-    //   Compute gradient by finite-difference approximation
-    // ///////////////////////////////////////////////////////////
-    std::vector<RigidBodyMotion<3> > forwardSolution = sol;
-    std::vector<RigidBodyMotion<3> > backwardSolution = sol;
-
-    std::vector<RigidBodyMotion<3> > forwardForwardSolution = sol;
-    std::vector<RigidBodyMotion<3> > forwardBackwardSolution = sol;
-    std::vector<RigidBodyMotion<3> > backwardForwardSolution = sol;
-    std::vector<RigidBodyMotion<3> > backwardBackwardSolution = sol;
-
     // ////////////////////////////////////////////////////
     //   Create local assembler
     // ////////////////////////////////////////////////////
@@ -130,226 +59,52 @@ assembleMatrixFD(const std::vector<RigidBodyMotion<3> >& sol,
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
     RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
-    // //////////////////////////////////////////////////////////////////
-    //   Store pointers to all elements so we can access them by index
-    // //////////////////////////////////////////////////////////////////
+    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
 
-    const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
-
-    std::vector<EntityPointer> elements(grid_->size(0),grid_->template leafbegin<0>());
+    Dune::MatrixIndexSet neighborsPerVertex;
+    getNeighborsPerVertex(neighborsPerVertex);
     
-    typename GridType::template Codim<0>::LeafIterator eIt    = grid_->template leafbegin<0>();
-    typename GridType::template Codim<0>::LeafIterator eEndIt = grid_->template leafend<0>();
+    matrix = 0;
+    
+    ElementIterator it    = grid_->template lbegin<0>( grid_->maxLevel() );
+    ElementIterator endit = grid_->template lend<0> ( grid_->maxLevel() );
 
-    for (; eIt!=eEndIt; ++eIt)
-        elements[indexSet.index(*eIt)] = eIt;
+    for( ; it != endit; ++it ) {
+        
+        const Dune::LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
+            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
+        const int numOfBaseFct = baseSet.size();  
+        
+        // Extract local solution
+        std::vector<RigidBodyMotion<3> > localSolution(numOfBaseFct);
+        
+        for (int i=0; i<numOfBaseFct; i++)
+            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
-    Dune::array<RigidBodyMotion<3>,2> localReferenceConfiguration;
-    Dune::array<RigidBodyMotion<3>,2> localSolution;
+        localStiffness.localReferenceConfiguration_.resize(numOfBaseFct);
+        
+        for (int i=0; i<numOfBaseFct; i++)
+            localStiffness.localReferenceConfiguration_[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
 
-    // ///////////////////////////////////////////////////////////////
-    //   Loop over all blocks of the outer matrix
-    // ///////////////////////////////////////////////////////////////
-    for (int i=0; i<matrix.N(); i++) {
+        // setup matrix 
+        localStiffness.assemble(*it, localSolution);
 
-        ColumnIterator cIt    = matrix[i].begin();
-        ColumnIterator cEndIt = matrix[i].end();
+        // Add element matrix to global stiffness matrix
+        for(int i=0; i<numOfBaseFct; i++) { 
+            
+            int row = indexSet.subIndex(*it,i,gridDim);
 
-        for (; cIt!=cEndIt; ++cIt) {
-
-            // compute only the upper right triangular matrix
-            if (cIt.index() < i)
-                continue;
-
-            // ////////////////////////////////////////////////////////////////////////////
-            //   Compute a finite-difference approximation of this hessian matrix block
-            // ////////////////////////////////////////////////////////////////////////////
-
-            for (int j=0; j<6; j++) {
-
-                for (int k=0; k<6; k++) {
-
-                    // compute only the upper right triangular matrix
-                    if (i==cIt.index() && k<j)
-                        continue;
-
-                    if (i==cIt.index() && j==k) {
-
-                        double forwardEnergy = 0;
-                        double solutionEnergy = 0;
-                        double backwardEnergy = 0;
-
-                        infinitesimalVariation(forwardSolution[i], eps, j);
-                        infinitesimalVariation(backwardSolution[i], -eps, j);
-
-                        if (i != grid_->size(1)-1) {
-
-                            localReferenceConfiguration[0] = referenceConfiguration_[i];
-                            localReferenceConfiguration[1] = referenceConfiguration_[i+1];
-
-                            localSolution[0] = forwardSolution[i];
-                            localSolution[1] = forwardSolution[i+1];
-
-                            forwardEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
-
-                            localSolution[0] = sol[i];
-                            localSolution[1] = sol[i+1];
-
-                            solutionEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
-
-                            localSolution[0] = backwardSolution[i];
-                            localSolution[1] = backwardSolution[i+1];
-
-                            backwardEnergy += localStiffness.energy(*elements[i], localSolution, localReferenceConfiguration);
-
-                        } 
-
-                        if (i != 0) {
-
-                            localReferenceConfiguration[0] = referenceConfiguration_[i-1];
-                            localReferenceConfiguration[1] = referenceConfiguration_[i];
-
-                            localSolution[0] = forwardSolution[i-1];
-                            localSolution[1] = forwardSolution[i];
-
-                            forwardEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
-
-                            localSolution[0] = sol[i-1];
-                            localSolution[1] = sol[i];
-
-                            solutionEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
-
-                            localSolution[0] = backwardSolution[i-1];
-                            localSolution[1] = backwardSolution[i];
-
-                            backwardEnergy += localStiffness.energy(*elements[i-1], localSolution, localReferenceConfiguration);
-
-                        } 
-
-                        // Second derivative
-                        (*cIt)[j][k] = (forwardEnergy - 2*solutionEnergy + backwardEnergy) / (eps*eps);
-                        
-                        forwardSolution[i]  = sol[i];
-                        backwardSolution[i] = sol[i];
-
-                    } else {
-
-                        double forwardForwardEnergy = 0;
-                        double forwardBackwardEnergy = 0;
-                        double backwardForwardEnergy = 0;
-                        double backwardBackwardEnergy = 0;
-
-                        infinitesimalVariation(forwardForwardSolution[i],             eps, j);
-                        infinitesimalVariation(forwardForwardSolution[cIt.index()],   eps, k);
-                        infinitesimalVariation(forwardBackwardSolution[i],            eps, j);
-                        infinitesimalVariation(forwardBackwardSolution[cIt.index()], -eps, k);
-                        infinitesimalVariation(backwardForwardSolution[i],           -eps, j);
-                        infinitesimalVariation(backwardForwardSolution[cIt.index()],  eps, k);
-                        infinitesimalVariation(backwardBackwardSolution[i],          -eps, j);
-                        infinitesimalVariation(backwardBackwardSolution[cIt.index()],-eps, k);
-
-                        std::set<int> elementsInvolved;
-                        if (i>0)
-                            elementsInvolved.insert(i-1);
-                        if (i<grid_->size(1)-1)
-                            elementsInvolved.insert(i);
-                        if (cIt.index()>0)
-                            elementsInvolved.insert(cIt.index()-1);
-                        if (cIt.index()<grid_->size(1)-1)
-                            elementsInvolved.insert(cIt.index());
-
-                        for (typename std::set<int>::iterator it = elementsInvolved.begin();
-                             it != elementsInvolved.end();
-                             ++it) {
-
-                            localReferenceConfiguration[0] = referenceConfiguration_[*it];
-                            localReferenceConfiguration[1] = referenceConfiguration_[*it+1];
-
-                            localSolution[0] = forwardForwardSolution[*it];
-                            localSolution[1] = forwardForwardSolution[*it+1];
-
-                            forwardForwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
-
-                            localSolution[0] = forwardBackwardSolution[*it];
-                            localSolution[1] = forwardBackwardSolution[*it+1];
-
-                            forwardBackwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
-
-                            localSolution[0] = backwardForwardSolution[*it];
-                            localSolution[1] = backwardForwardSolution[*it+1];
-
-                            backwardForwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
-
-                            localSolution[0] = backwardBackwardSolution[*it];
-                            localSolution[1] = backwardBackwardSolution[*it+1];
-
-                            backwardBackwardEnergy += localStiffness.energy(*elements[*it], localSolution, localReferenceConfiguration);
-
-
-                        }
-
-                        (*cIt)[j][k] = (forwardForwardEnergy + backwardBackwardEnergy
-                                        - forwardBackwardEnergy - backwardForwardEnergy) / (4*eps*eps);
-                        
-                        forwardForwardSolution[i]             = sol[i];
-                        forwardForwardSolution[cIt.index()]   = sol[cIt.index()];
-                        forwardBackwardSolution[i]            = sol[i];
-                        forwardBackwardSolution[cIt.index()]  = sol[cIt.index()];
-                        backwardForwardSolution[i]            = sol[i];
-                        backwardForwardSolution[cIt.index()]  = sol[cIt.index()];
-                        backwardBackwardSolution[i]           = sol[i];
-                        backwardBackwardSolution[cIt.index()] = sol[cIt.index()];
-                        
-                    }
-                            
-                }
-
+            for (int j=0; j<numOfBaseFct; j++ ) {
+                
+                int col = indexSet.subIndex(*it,j,gridDim);
+                matrix[row][col] += localStiffness.mat(i,j);
+                
             }
-
-        }
-
-    }
-
-    // ///////////////////////////////////////////////////////////////
-    //   Symmetrize the matrix
-    //   This is possible expensive, but I want to be absolute sure
-    //   that the matrix is symmetric.
-    // ///////////////////////////////////////////////////////////////
-    for (int i=0; i<matrix.N(); i++) {
-
-        ColumnIterator cIt    = matrix[i].begin();
-        ColumnIterator cEndIt = matrix[i].end();
-
-        for (; cIt!=cEndIt; ++cIt) {
-
-            if (cIt.index()>i)
-                continue;
-
-
-            if (cIt.index()==i) {
-
-                for (int j=1; j<6; j++)
-                    for (int k=0; k<j; k++)
-                        (*cIt)[j][k] = (*cIt)[k][j];
-
-            } else {
-
-                const FieldMatrix<double,6,6>& other = matrix[cIt.index()][i];
-
-                for (int j=0; j<6; j++)
-                    for (int k=0; k<6; k++)
-                        (*cIt)[j][k] = other[k][j];
-
-
-            }
-
-
         }
 
     }
 
 }
-
 
 template <class GridType>
 void RodAssembler<GridType>::
@@ -385,13 +140,13 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
         const int nDofs = 2;
 
         // Extract local solution
-        array<RigidBodyMotion<3>,nDofs> localSolution;
+        std::vector<RigidBodyMotion<3> > localSolution(nDofs);
         
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Extract local reference configuration
-        array<RigidBodyMotion<3>,nDofs> localReferenceConfiguration;
+        std::vector<RigidBodyMotion<3> > localReferenceConfiguration(nDofs);
         
         for (int i=0; i<nDofs; i++)
             localReferenceConfiguration[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
@@ -431,8 +186,8 @@ computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const
     Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
     RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
-    Dune::array<RigidBodyMotion<3>,2> localReferenceConfiguration;
-    Dune::array<RigidBodyMotion<3>,2> localSolution;
+    std::vector<RigidBodyMotion<3> > localReferenceConfiguration(2);
+    std::vector<RigidBodyMotion<3> > localSolution(2);
 
     ElementLeafIterator it    = grid_->template leafbegin<0>();
     ElementLeafIterator endIt = grid_->template leafend<0>();
@@ -493,7 +248,7 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
         int numOfBaseFct = baseSet.size();
 
-        array<RigidBodyMotion<3>,2> localSolution;
+        std::vector<RigidBodyMotion<3> > localSolution(2);
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];

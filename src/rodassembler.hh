@@ -43,17 +43,6 @@
         /** \brief The stress-free configuration */
         std::vector<RigidBodyMotion<3> > referenceConfiguration_;
 
-        /** \todo Only for the fd approximations */
-        static void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
-        {
-            if (i<3)
-                c.r[i] += eps;
-            else
-                c.q = c.q.mult(Rotation<3,double>::exp((i==3)*eps, 
-                                                       (i==4)*eps, 
-                                                       (i==5)*eps));
-        }
-    
     public:
         
         //! ???
@@ -120,11 +109,6 @@
          */
         void assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
                             Dune::BCRSMatrix<MatrixBlock>& matrix) const;
-
-        /** \brief Assemble the tangent stiffness matrix using a finite difference approximation
-         */
-        void assembleMatrixFD(const std::vector<RigidBodyMotion<3> >& sol,
-                              Dune::BCRSMatrix<MatrixBlock>& matrix) const;
 
         void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;

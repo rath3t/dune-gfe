@@ -168,7 +168,7 @@ int main (int argc, char *argv[]) try
     MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
     rodAssembler.getNeighborsPerVertex(indices);
     indices.exportIdx(hessian);
-    rodAssembler.assembleMatrixFD(exactSolution, hessian);
+    rodAssembler.assembleMatrix(exactSolution, hessian);
 
 
     double error = std::numeric_limits<double>::max();

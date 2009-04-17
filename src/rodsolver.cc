@@ -189,8 +189,8 @@ void RodSolver<GridType>::solve()
         corr = 0;
 
         rodAssembler_->assembleGradient(x_, rhs);
-        //rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
-        rodAssembler_->assembleMatrixFD(x_, *hessianMatrix_);
+        rodAssembler_->assembleMatrix(x_, *hessianMatrix_);
+        //rodAssembler_->assembleMatrixFD(x_, *hessianMatrix_);
 
         //gradientFDCheck(x_, rhs, *rodAssembler_);
         //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
