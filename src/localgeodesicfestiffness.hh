@@ -87,13 +87,37 @@ public:
     
 };
 
-template <class GridType, class TargetSpace>
-void LocalGeodesicFEStiffness<GridType, TargetSpace>::
+template <class GridView, class TargetSpace>
+void LocalGeodesicFEStiffness<GridView, TargetSpace>::
 assembleGradient(const Entity& element,
-                 const std::vector<TargetSpace>& solution,
-                 Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const
+                 const std::vector<TargetSpace>& localSolution,
+                 Dune::array<Dune::FieldVector<double,6>, 2>& localGradient) const
 {
- 
+    // ///////////////////////////////////////////////////////////
+    //   Compute gradient by finite-difference approximation
+    // ///////////////////////////////////////////////////////////
+
+    double eps = 1e-6;
+
+    std::vector<TargetSpace> forwardSolution = localSolution;
+    std::vector<TargetSpace> backwardSolution = localSolution;
+
+    for (size_t i=0; i<localSolution.size(); i++) {
+        
+        for (int j=0; j<6; j++) {
+            
+            infinitesimalVariation(forwardSolution[i],   eps, j);
+            infinitesimalVariation(backwardSolution[i], -eps, j);
+            
+            localGradient[i][j] = (energy(element,forwardSolution) - energy(element,backwardSolution))
+                / (2*eps);
+            
+            forwardSolution[i]  = localSolution[i];
+            backwardSolution[i] = localSolution[i];
+        }
+        
+    }
+
 }
 
 
