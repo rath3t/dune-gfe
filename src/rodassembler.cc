@@ -202,7 +202,8 @@ computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const
 
         }
 
-        energy += localStiffness.energy(*it, localSolution, localReferenceConfiguration);
+        localStiffness.localReferenceConfiguration_ = localReferenceConfiguration;
+        energy += localStiffness.energy(*it, localSolution);
 
     }
 
