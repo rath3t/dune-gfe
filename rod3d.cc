@@ -16,7 +16,7 @@
 #include "src/rodwriter.hh"
 #include "src/rotation.hh"
 #include "src/rodassembler.hh"
-#include "src/rodsolver.hh"
+#include "src/riemanniantrsolver.hh"
 
 typedef RigidBodyMotion<3> TargetSpace;
 
@@ -120,7 +120,7 @@ int main (int argc, char *argv[]) try
     RodAssembler<GridType> rodAssembler(grid);
     rodAssembler.setShapeAndMaterial(A, J1, J2, E, nu);
 
-    RodSolver<GridType> rodSolver;
+    RiemannianTrustRegionSolver<GridType,RigidBodyMotion<3> > rodSolver;
     rodSolver.setup(grid, 
                     &rodAssembler,
                     x,

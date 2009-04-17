@@ -16,11 +16,14 @@
 
 #include "rigidbodymotion.hh"
 
-/** \brief Riemannian trust-region solver for 3d Cosserat rod problems */
-template <class GridType>
-class RodSolver : public IterativeSolver<std::vector<RigidBodyMotion<3> >, Dune::BitSetVector<6> >
+/** \brief Riemannian trust-region solver for geodesic finite-element problems */
+template <class GridType, class TargetSpace>
+class RiemannianTrustRegionSolver 
+    : public IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<6> >
 { 
-    const static int blocksize = 6;
+    const static int blocksize = TargetSpace::TangentVector::size;
+
+    const static int gridDim = GridType::dimension;
 
     // Centralize the field type here
     typedef double field_type;
@@ -28,17 +31,17 @@ class RodSolver : public IterativeSolver<std::vector<RigidBodyMotion<3> >, Dune:
     // Some types that I need
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
-    typedef std::vector<RigidBodyMotion<3> >                                             SolutionType;
+    typedef std::vector<TargetSpace>                                               SolutionType;
 
 public:
 
-    RodSolver()
-        : IterativeSolver<std::vector<RigidBodyMotion<3> >, Dune::BitSetVector<6> >(0,100,NumProc::FULL),
+    RiemannianTrustRegionSolver()
+        : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
           hessianMatrix_(NULL), h1SemiNorm_(NULL)
     {}
 
     void setup(const GridType& grid, 
-               const GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >* rodAssembler,
+               const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* rodAssembler,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
@@ -99,7 +102,7 @@ protected:
     MatrixType* hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >* assembler_;
+    const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* assembler_;
 
     /** \brief The multigrid solver */
     LoopSolver<CorrectionType>* mmgSolver_;
@@ -116,6 +119,6 @@ protected:
 
 };
 
-#include "rodsolver.cc"
+#include "riemanniantrsolver.cc"
 
 #endif

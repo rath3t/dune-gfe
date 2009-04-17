@@ -15,39 +15,33 @@
 #include <dune-solvers/norms/energynorm.hh>
 #include <dune-solvers/norms/h1seminorm.hh>
 
-#include "rigidbodymotion.hh"
-#include "quaternion.hh"
 #include "maxnormtrustregion.hh"
 
 // for debugging
 #include "../test/fdcheck.hh"
 
-// Number of degrees of freedom: 
-// 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod
-
-template <class GridType>
-void RodSolver<GridType>::setup(const GridType& grid,
-                                const GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >* assembler,
-                                const SolutionType& x,
-                                const Dune::BitSetVector<blocksize>& dirichletNodes,
-                                double tolerance,
-                                int maxTrustRegionSteps,
-                                double initialTrustRegionRadius,
-                                int multigridIterations,
-                                double mgTolerance,
-                                int mu, 
-                                int nu1,
-                                int nu2,
-                                int baseIterations,
-                                double baseTolerance,
-                                bool instrumented)
+template <class GridType, class TargetSpace>
+void RiemannianTrustRegionSolver<GridType,TargetSpace>::
+setup(const GridType& grid,
+      const GeodesicFEAssembler<typename GridType::LeafGridView,TargetSpace>* assembler,
+      const SolutionType& x,
+      const Dune::BitSetVector<blocksize>& dirichletNodes,
+      double tolerance,
+      int maxTrustRegionSteps,
+      double initialTrustRegionRadius,
+      int multigridIterations,
+      double mgTolerance,
+      int mu, 
+      int nu1,
+      int nu2,
+      int baseIterations,
+      double baseTolerance,
+      bool instrumented)
 {
-    using namespace Dune;
-
-    grid_ = &grid;
-    assembler_             = assembler;
+    grid_                     = &grid;
+    assembler_                = assembler;
     x_                        = x;
-    tolerance_                = tolerance;
+    this->tolerance_          = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
     initialTrustRegionRadius_ = initialTrustRegionRadius;
     multigridIterations_      = multigridIterations;
@@ -94,12 +88,12 @@ void RodSolver<GridType>::setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
-    LeafP1Function<GridType,double> u(grid),f(grid);
-    LaplaceLocalStiffness<typename GridType::LeafGridView,double> laplaceStiffness;
-    LeafP1OperatorAssembler<GridType,double,1>* A = new LeafP1OperatorAssembler<GridType,double,1>(grid);
+    Dune::LeafP1Function<GridType,double> u(grid),f(grid);
+    Dune::LaplaceLocalStiffness<typename GridType::LeafGridView,double> laplaceStiffness;
+    Dune::LeafP1OperatorAssembler<GridType,double,1>* A = new Dune::LeafP1OperatorAssembler<GridType,double,1>(grid);
     A->assemble(laplaceStiffness,u,f);
 
-    typedef typename LeafP1OperatorAssembler<GridType,double,1>::RepresentationType LaplaceMatrixType;
+    typedef typename Dune::LeafP1OperatorAssembler<GridType,double,1>::RepresentationType LaplaceMatrixType;
 
     if (h1SemiNorm_)
         delete h1SemiNorm_;
@@ -124,7 +118,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
         delete hessianMatrix_;
 
     hessianMatrix_ = new MatrixType;
-    MatrixIndexSet indices(grid_->size(1), grid_->size(1));
+    Dune::MatrixIndexSet indices(grid_->size(1), grid_->size(1));
     assembler_->getNeighborsPerVertex(indices);
     indices.exportIdx(*hessianMatrix_);
     
@@ -134,7 +128,7 @@ void RodSolver<GridType>::setup(const GridType& grid,
     
     hasObstacle_.resize(numLevels);
     for (int i=0; i<hasObstacle_.size(); i++)
-        hasObstacle_[i].resize(grid_->size(i, 1),true);
+        hasObstacle_[i].resize(grid_->size(i, gridDim),true);
     
     // ////////////////////////////////////
     //   Create the transfer operators
@@ -152,8 +146,8 @@ void RodSolver<GridType>::setup(const GridType& grid,
     
 }
 
-template <class GridType>
-void RodSolver<GridType>::solve()
+template <class GridType, class TargetSpace>
+void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 {
     MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
 
@@ -176,7 +170,7 @@ void RodSolver<GridType>::solve()
     // /////////////////////////////////////////////////////
     for (int i=0; i<maxTrustRegionSteps_; i++) {
         
-        if (this->verbosity_ == FULL) {
+        if (this->verbosity_ == Solver::FULL) {
             std::cout << "----------------------------------------------------" << std::endl;
             std::cout << "      Trust-Region Step Number: " << i 
                       << ",     radius: " << trustRegion.radius()
@@ -284,7 +278,7 @@ void RodSolver<GridType>::solve()
             
         }
 
-        if (this->verbosity_ == FULL) {
+        if (this->verbosity_ == NumProc::FULL) {
             double translationMax = 0;
             double rotationMax    = 0;
             for (size_t j=0; j<corr.size(); j++) {
@@ -296,11 +290,11 @@ void RodSolver<GridType>::solve()
             printf("infinity norm of the correction: %g %g\n", translationMax, rotationMax);
         }
 
-        if (corr.infinity_norm() < tolerance_) {
-            if (this->verbosity_ == FULL)
+        if (corr.infinity_norm() < this->tolerance_) {
+            if (this->verbosity_ == NumProc::FULL)
                 std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
-            if (this->verbosity_ != QUIET)
+            if (this->verbosity_ != NumProc::QUIET)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
             break;
         }
@@ -334,7 +328,7 @@ void RodSolver<GridType>::solve()
         hessianMatrix_->umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
         
-        if (this->verbosity_ == FULL) {
+        if (this->verbosity_ == NumProc::FULL) {
             std::cout << "Absolute model decrease: " << modelDecrease 
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
             std::cout << "Relative model decrease: " << modelDecrease / energy
@@ -344,16 +338,16 @@ void RodSolver<GridType>::solve()
         assert(modelDecrease >= 0);
         
         if (energy >= oldEnergy) {
-            if (this->verbosity_ == FULL)
+            if (this->verbosity_ == NumProc::FULL)
                 printf("Richtung ist keine Abstiegsrichtung!\n");
         }
 
         if (energy >= oldEnergy &&
             (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9)) {
-            if (this->verbosity_ == FULL)
+            if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
-            if (this->verbosity_ != QUIET)
+            if (this->verbosity_ != NumProc::QUIET)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
 
             x_ = newIterate;
@@ -377,12 +371,12 @@ void RodSolver<GridType>::solve()
         } else {
             // unsuccessful iteration
             trustRegion.scale(0.5);
-            if (this->verbosity_ == FULL)
+            if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
         
         //  Write current energy
-        if (this->verbosity_ == FULL)
+        if (this->verbosity_ == NumProc::FULL)
             std::cout << "--- Current energy: " << energy << " ---" << std::endl;
 
         // /////////////////////////////////////////////////////////////////////
