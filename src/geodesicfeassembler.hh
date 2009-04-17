@@ -40,21 +40,17 @@ public:
     
     /** \brief Assemble the tangent stiffness matrix
      */
-    void assembleMatrix(const std::vector<TargetSpace>& sol,
+    virtual void assembleMatrix(const std::vector<TargetSpace>& sol,
                         Dune::BCRSMatrix<MatrixBlock>& matrix) const;
     
     /** \brief Assemble the gradient */
-    void assembleGradient(const std::vector<TargetSpace>& sol,
+    virtual void assembleGradient(const std::vector<TargetSpace>& sol,
                           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
-    /** \brief Assemble the gradient using a finite difference approximation */
-    void assembleGradientFD(const std::vector<TargetSpace>& sol,
-                          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
-    
     /** \brief Compute the energy of a deformation state */
-    double computeEnergy(const std::vector<TargetSpace>& sol) const;
+    virtual double computeEnergy(const std::vector<TargetSpace>& sol) const;
     
-protected:
+    //protected:
     void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
     
 }; // end class
@@ -151,8 +147,8 @@ assembleGradient(const std::vector<TargetSpace>& sol,
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = gridView_->template begin<0>();
-    ElementIterator endIt = gridView_->template end<0>();
+    ElementIterator it    = gridView_.template begin<0>();
+    ElementIterator endIt = gridView_.template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
