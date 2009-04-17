@@ -21,9 +21,7 @@ class LocalGeodesicFEStiffness
     // some other sizes
     enum {gridDim=GridView::dimension};
 
-public:
     /** \brief For the fd approximations 
-        \todo This is public because RodAssembler uses it
     */
     static void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
     {
@@ -35,10 +33,17 @@ public:
                                                    (i==5)*eps));
     }
 
+    static void infinitesimalVariation(Rotation<3,double>& c, double eps, int i)
+    {
+        c = c.mult(Rotation<3,double>::exp((i==0)*eps, 
+                                           (i==1)*eps, 
+                                           (i==2)*eps));
+    }
+
 public:
     
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
-    enum { blocksize = 6 };
+    enum { blocksize = TargetSpace::TangentVector::size };
 
     // define the number of components of your system, this is used outside
     // to allocate the correct size of (dense) blocks with a FieldMatrix
@@ -59,7 +64,7 @@ public:
     /** \brief assemble local stiffness matrix for given element and order
     */
     void assemble (const Entity& e, 
-                   const Dune::BlockVector<Dune::FieldVector<double, 6> >& localSolution,
+                   const Dune::BlockVector<Dune::FieldVector<double, blocksize> >& localSolution,
                    int k=1)
     {
         DUNE_THROW(Dune::NotImplemented, "!");
@@ -83,7 +88,7 @@ public:
     /** \brief Assemble the element gradient of the energy functional */
     virtual void assembleGradient(const Entity& element,
                           const std::vector<TargetSpace>& solution,
-                          Dune::array<Dune::FieldVector<double,6>, 2>& gradient) const;
+                          Dune::array<Dune::FieldVector<double,blocksize>, 2>& gradient) const;
     
 };
 
@@ -91,7 +96,7 @@ template <class GridView, class TargetSpace>
 void LocalGeodesicFEStiffness<GridView, TargetSpace>::
 assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
-                 Dune::array<Dune::FieldVector<double,6>, 2>& localGradient) const
+                 Dune::array<Dune::FieldVector<double,blocksize>, 2>& localGradient) const
 {
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
@@ -104,7 +109,7 @@ assembleGradient(const Entity& element,
 
     for (size_t i=0; i<localSolution.size(); i++) {
         
-        for (int j=0; j<6; j++) {
+        for (int j=0; j<blocksize; j++) {
             
             infinitesimalVariation(forwardSolution[i],   eps, j);
             infinitesimalVariation(backwardSolution[i], -eps, j);
@@ -142,18 +147,18 @@ assemble(const Entity& element,
 
     double eps = 1e-4;
 
-    typedef typename Dune::Matrix<Dune::FieldMatrix<double,6,6> >::row_type::iterator ColumnIterator;
+    typedef typename Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> >::row_type::iterator ColumnIterator;
 
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
-    std::vector<RigidBodyMotion<3> > forwardSolution  = localSolution;
-    std::vector<RigidBodyMotion<3> > backwardSolution = localSolution;
+    std::vector<TargetSpace> forwardSolution  = localSolution;
+    std::vector<TargetSpace> backwardSolution = localSolution;
 
-    std::vector<RigidBodyMotion<3> > forwardForwardSolution   = localSolution;
-    std::vector<RigidBodyMotion<3> > forwardBackwardSolution  = localSolution;
-    std::vector<RigidBodyMotion<3> > backwardForwardSolution  = localSolution;
-    std::vector<RigidBodyMotion<3> > backwardBackwardSolution = localSolution;
+    std::vector<TargetSpace> forwardForwardSolution   = localSolution;
+    std::vector<TargetSpace> forwardBackwardSolution  = localSolution;
+    std::vector<TargetSpace> backwardForwardSolution  = localSolution;
+    std::vector<TargetSpace> backwardBackwardSolution = localSolution;
 
     // ///////////////////////////////////////////////////////////////
     //   Loop over all blocks of the element matrix
@@ -173,9 +178,9 @@ assemble(const Entity& element,
             //   Compute a finite-difference approximation of this hessian matrix block
             // ////////////////////////////////////////////////////////////////////////////
 
-            for (int j=0; j<6; j++) {
+            for (int j=0; j<blocksize; j++) {
 
-                for (int k=0; k<6; k++) {
+                for (int k=0; k<blocksize; k++) {
 
                     // compute only the upper right triangular matrix
                     if (i==cIt.index() && k<j)
@@ -259,16 +264,16 @@ assemble(const Entity& element,
 
             if (cIt.index()==i) {
 
-                for (int j=1; j<6; j++)
+                for (int j=1; j<blocksize; j++)
                     for (int k=0; k<j; k++)
                         (*cIt)[j][k] = (*cIt)[k][j];
 
             } else {
 
-                const Dune::FieldMatrix<double,6,6>& other = this->A[cIt.index()][i];
+                const Dune::FieldMatrix<double,blocksize,blocksize>& other = this->A[cIt.index()][i];
 
-                for (int j=0; j<6; j++)
-                    for (int k=0; k<6; k++)
+                for (int j=0; j<blocksize; j++)
+                    for (int k=0; k<blocksize; k++)
                         (*cIt)[j][k] = other[k][j];
 
 
