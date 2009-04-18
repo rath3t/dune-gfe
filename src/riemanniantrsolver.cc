@@ -304,17 +304,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         // ////////////////////////////////////////////////////
         
         SolutionType newIterate = x_;
-        for (int j=0; j<newIterate.size(); j++) {
-            
-            // Add translational correction
-            for (int k=0; k<3; k++)
-                newIterate[j].r[k] += corr[j][k];
-            
-            // Add rotational correction
-            Rotation<3,double> qCorr = Rotation<3,double>::exp(corr[j][3], corr[j][4], corr[j][5]);
-            newIterate[j].q = newIterate[j].q.mult(qCorr);
-            
-        }
+        for (int j=0; j<newIterate.size(); j++) 
+            newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
         
         /** \todo Don't always recompute oldEnergy */
         double oldEnergy = assembler_->computeEnergy(x_);

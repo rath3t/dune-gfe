@@ -89,7 +89,7 @@ public:
 
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
-    static Quaternion<T> exp(const Dune::FieldVector<T,3>& v) {
+    static Rotation<3,T> exp(const Dune::FieldVector<T,3>& v) {
         return exp(v[0], v[1], v[2]);
     }
 
@@ -112,6 +112,12 @@ public:
         q[3] = std::cos(normV/2);
 
         return q;
+    }
+
+    /** \brief The exponential map from a given point $p \in SO(3)$. */
+    static Rotation<3,T> exp(const Rotation<3,T>& p, const TangentVector& v) {
+        Rotation<3,T> corr = exp(v);
+        return p.mult(corr);
     }
 
     static Dune::FieldMatrix<T,4,3> Dexp(const Dune::FieldVector<T,3>& v) {

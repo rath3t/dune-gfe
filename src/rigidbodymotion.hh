@@ -9,7 +9,25 @@ template <int dim, class ctype=double>
 struct RigidBodyMotion
 {
     /** \brief Type of an infinitesimal rigid body motion */
-    typedef Dune::FieldVector<ctype, (dim==3) ? 6 : 3> TangentVector;
+    typedef Dune::FieldVector<ctype, dim + Rotation<dim,ctype>::TangentVector::size> TangentVector;
+
+    /** \brief The exponential map from a given point $p \in SE(d)$. */
+    static RigidBodyMotion<dim,ctype> exp(const RigidBodyMotion<dim,ctype>& p, const TangentVector& v) {
+
+        RigidBodyMotion<dim,ctype> result;
+
+        // Add translational correction
+        for (int i=0; i<dim; i++)
+            result.r[i] = p.r[i] + v[i];
+
+        // Add rotational correction
+        typename Rotation<dim,ctype>::TangentVector qCorr;
+        for (int i=0; i<Rotation<dim,ctype>::TangentVector::size; i++)
+            qCorr[i] = v[dim+i];
+
+        result.q = Rotation<dim,ctype>::exp(p.q, qCorr);
+        return result;
+    }
 
     /** \brief Compute difference vector from a to b on the tangent space of a */
     static TangentVector difference(const RigidBodyMotion<dim,ctype>& a,
