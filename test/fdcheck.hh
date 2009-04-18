@@ -2,6 +2,7 @@
 #define ASSEMBLER_FINITE_DIFFERENCE_CHECK
 
 #include "src/rigidbodymotion.hh"
+#include "src/rodassembler.hh"
 
 #define ABORT_ON_ERROR
 
