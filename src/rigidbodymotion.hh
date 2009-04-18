@@ -11,6 +11,26 @@ struct RigidBodyMotion
     /** \brief Type of an infinitesimal rigid body motion */
     typedef Dune::FieldVector<ctype, (dim==3) ? 6 : 3> TangentVector;
 
+    /** \brief Compute difference vector from a to b on the tangent space of a */
+    static TangentVector difference(const RigidBodyMotion<dim,ctype>& a,
+                                    const RigidBodyMotion<dim,ctype>& b) {
+
+        TangentVector result;
+
+        // Usual linear difference
+        for (int i=0; i<dim; i++)
+            result[i] = a.r[i] - b.r[i];
+
+        // Subtract orientations on the tangent space of 'a'
+        typename Rotation<dim,ctype>::TangentVector v = Rotation<dim,ctype>::difference(a.q, b.q);
+
+        // Compute difference on T_a SO(3)
+        for (int i=0; i<Rotation<dim,ctype>::TangentVector::size; i++)
+            result[i+dim] = v[i];
+
+        return result;
+    }
+
     // Translational part
     Dune::FieldVector<ctype, dim> r;
 
