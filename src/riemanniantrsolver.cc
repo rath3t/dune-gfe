@@ -383,15 +383,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             if (!fpRod)
                 DUNE_THROW(SolverError, "Couldn't open file " << iRodFilename << " for writing");
             
-            for (int j=0; j<x_.size(); j++) {
-
-                for (int k=0; k<3; k++)
-                    fwrite(&x_[j].r[k], sizeof(double), 1, fpRod);
-
-                for (int k=0; k<4; k++)  // 3d hardwired here!
-                    fwrite(&x_[j].q[k], sizeof(double), 1, fpRod);
-
-            }
+            for (int j=0; j<x_.size(); j++)
+                fwrite(&x_[j], sizeof(TargetSpace), 1, fpRod);
 
             fclose(fpRod);
 
