@@ -19,7 +19,8 @@
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType, class TargetSpace>
 class RiemannianTrustRegionSolver 
-    : public IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<6> >
+    : public IterativeSolver<std::vector<TargetSpace>,
+                             Dune::BitSetVector<TargetSpace::TangentVector::size> >
 { 
     const static int blocksize = TargetSpace::TangentVector::size;
 
