@@ -5,11 +5,14 @@
 #include "rotation.hh"
 
 /** \brief A rigid-body motion in, R^d, i.e., a member of SE(d) */
-template <int dim, class ctype=double>
+template <int dim, class T=double>
 struct RigidBodyMotion
 {
     /** \brief Type of an infinitesimal rigid body motion */
-    typedef Dune::FieldVector<ctype, dim + Rotation<dim,ctype>::TangentVector::size> TangentVector;
+    typedef Dune::FieldVector<T, dim + Rotation<dim,T>::TangentVector::size> TangentVector;
+
+    /** \brief The type used for coordinates */
+    typedef T ctype;
 
     /** \brief The exponential map from a given point $p \in SE(d)$. */
     static RigidBodyMotion<dim,ctype> exp(const RigidBodyMotion<dim,ctype>& p, const TangentVector& v) {
