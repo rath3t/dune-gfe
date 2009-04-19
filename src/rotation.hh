@@ -34,6 +34,9 @@ class Rotation<3,T> : public Quaternion<T>
 
 public:
 
+    /** \brief The type used for coordinates */
+    typedef T ctype;
+
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,3> TangentVector;
 
