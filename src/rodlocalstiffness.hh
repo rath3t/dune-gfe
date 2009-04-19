@@ -1,13 +1,13 @@
 #ifndef ROD_LOCAL_STIFFNESS_HH
 #define ROD_LOCAL_STIFFNESS_HH
 
-#include <dune/istl/bcrsmatrix.hh>
 #include <dune/common/fmatrix.hh>
-#include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
-#include "localgeodesicfestiffness.hh"
-#include<dune/disc/operators/boundaryconditions.hh>
+#include <dune/grid/common/quadraturerules.hh>
+#include <dune/disc/operators/boundaryconditions.hh>
+#include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 
+#include "localgeodesicfestiffness.hh"
 #include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
