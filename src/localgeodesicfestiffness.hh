@@ -15,7 +15,7 @@ class LocalGeodesicFEStiffness
 
     // grid types
     typedef typename GridView::Grid::ctype DT;
-    typedef double RT;
+    typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
     
     // some other sizes
