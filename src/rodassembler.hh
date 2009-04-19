@@ -9,6 +9,7 @@
 #include <dune/ag-common/boundarypatch.hh>
 
 #include "rigidbodymotion.hh"
+#include "rodlocalstiffness.hh"
 #include "geodesicfeassembler.hh"
 
 /** \brief The FEM operator for an extensible, shearable rod
@@ -47,9 +48,11 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
     public:
         
         //! ???
-        RodAssembler(const GridType &grid) : 
-            GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >(grid.leafView()),
-            grid_(&grid)
+    RodAssembler(const GridType &grid,
+                 RodLocalStiffness<typename GridType::LeafGridView,double>* localStiffness) : 
+        GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >(grid.leafView(),
+                                                                                  localStiffness),
+        grid_(&grid)
         { 
             // Set dummy material parameters
             K_[0] = K_[1] = K_[2] = 1;

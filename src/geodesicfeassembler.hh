@@ -34,8 +34,10 @@ class GeodesicFEAssembler {
 public:
     
     /** \brief Constructor for a given grid */
-    GeodesicFEAssembler(const GridView& gridView) : 
-        gridView_(gridView)
+    GeodesicFEAssembler(const GridView& gridView,
+                        LocalGeodesicFEStiffness<GridView,TargetSpace>* localStiffness)
+        : gridView_(gridView),
+          localStiffness_(localStiffness)
     {}
     
     /** \brief Assemble the tangent stiffness matrix
