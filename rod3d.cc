@@ -117,7 +117,10 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
-    RodAssembler<GridType> rodAssembler(grid);
+
+    RodLocalStiffness<GridType::LeafGridView,double> localStiffness;
+
+    RodAssembler<GridType> rodAssembler(grid, &localStiffness);
     rodAssembler.setShapeAndMaterial(A, J1, J2, E, nu);
 
     RiemannianTrustRegionSolver<GridType,RigidBodyMotion<3> > rodSolver;
