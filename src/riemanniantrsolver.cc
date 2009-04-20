@@ -183,7 +183,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         corr = 0;
 
         assembler_->assembleGradient(x_, rhs);
-        assembler_->assembleMatrix(x_, *hessianMatrix_);
+        assembler_->assembleMatrix(x_, 
+                                   *hessianMatrix_, 
+                                   i==0    // assemble occupation pattern only for the first call
+                                   );
 
         //gradientFDCheck(x_, rhs, *rodAssembler_);
         //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
@@ -278,17 +281,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             
         }
 
-        if (this->verbosity_ == NumProc::FULL) {
-            double translationMax = 0;
-            double rotationMax    = 0;
-            for (size_t j=0; j<corr.size(); j++) {
-                for (int k=0; k<3; k++) {
-                    translationMax = std::max(translationMax, corr[j][k]);
-                    rotationMax    = std::max(rotationMax, corr[j][k+3]);
-                }
-            }
-            printf("infinity norm of the correction: %g %g\n", translationMax, rotationMax);
-        }
+        if (this->verbosity_ == NumProc::FULL)
+            std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
         if (corr.infinity_norm() < this->tolerance_) {
             if (this->verbosity_ == NumProc::FULL)

@@ -43,7 +43,8 @@ public:
     /** \brief Assemble the tangent stiffness matrix
      */
     virtual void assembleMatrix(const std::vector<TargetSpace>& sol,
-                        Dune::BCRSMatrix<MatrixBlock>& matrix) const;
+                                Dune::BCRSMatrix<MatrixBlock>& matrix,
+                                bool computeOccupationPattern=true) const;
     
     /** \brief Assemble the gradient */
     virtual void assembleGradient(const std::vector<TargetSpace>& sol,
@@ -94,13 +95,19 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 template <class GridView, class TargetSpace>
 void GeodesicFEAssembler<GridView,TargetSpace>::
 assembleMatrix(const std::vector<TargetSpace>& sol,
-               Dune::BCRSMatrix<MatrixBlock>& matrix) const
+               Dune::BCRSMatrix<MatrixBlock>& matrix,
+               bool computeOccupationPattern) const
 {
     const typename GridView::IndexSet& indexSet = gridView_.indexSet();
 
-    Dune::MatrixIndexSet neighborsPerVertex;
-    getNeighborsPerVertex(neighborsPerVertex);
-    
+    if (computeOccupationPattern) {
+
+        Dune::MatrixIndexSet neighborsPerVertex;
+        getNeighborsPerVertex(neighborsPerVertex);
+        neighborsPerVertex.exportIdx(matrix);
+
+    }
+
     matrix = 0;
     
     ElementIterator it    = gridView_.template begin<0>();
