@@ -12,11 +12,12 @@
 #include "src/geodesicdifference.hh"
 #include "src/rodwriter.hh"
 #include "src/rotation.hh"
+#include "src/harmonicenergystiffness.hh"
 #include "src/geodesicfeassembler.hh"
-#include "src/rodsolver.hh"
+#include "src/riemanniantrsolver.hh"
 
 // grid dimension
-const int dim = 3;
+const int dim = 2;
 
 // Image space of the geodesic fe functions
 typedef Rotation<3,double> TargetSpace;
@@ -94,38 +95,42 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
-    GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView());
+
+    HarmonicEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> harmonicEnergyLocalStiffness;
+
+    GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView(),
+                                                                      &harmonicEnergyLocalStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
-#if 0
-    RodSolver<GridType> rodSolver;
-    rodSolver.setup(grid, 
-                    &assembler,
-                    x,
-                    dirichletNodes,
-                    tolerance,
-                    maxTrustRegionSteps,
-                    initialTrustRegionRadius,
-                    multigridIterations,
-                    mgTolerance,
-                    mu, nu1, nu2,
-                    baseIterations,
-                    baseTolerance,
-                    instrumented);
 
+    RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
+    solver.setup(grid, 
+                 &assembler,
+                 x,
+                 dirichletNodes,
+                 tolerance,
+                 maxTrustRegionSteps,
+                 initialTrustRegionRadius,
+                 multigridIterations,
+                 mgTolerance,
+                 mu, nu1, nu2,
+                 baseIterations,
+                 baseTolerance,
+                 instrumented);
+    
     // /////////////////////////////////////////////////////
     //   Solve!
     // /////////////////////////////////////////////////////
-
-    std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
     
-    rodSolver.setInitialSolution(x);
-    rodSolver.solve();
+    std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
 
-    x = rodSolver.getSol();
-#endif
+    solver.setInitialSolution(x);
+    solver.solve();
+
+    x = solver.getSol();
+
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
