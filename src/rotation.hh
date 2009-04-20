@@ -40,6 +40,9 @@ public:
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,3> TangentVector;
 
+    /** \brief A tangent vector as a vector in the surrounding coordinate space */
+    typedef Quaternion<T> EmbeddedTangentVector;
+
     /** \brief Default constructor creates the identity element */
     Rotation()
         : Quaternion<T>(0,0,0,1)
