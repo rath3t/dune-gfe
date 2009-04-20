@@ -283,6 +283,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
 
     assert(dim==1 || dim==2);
 
+    return result;
 }
 
 #endif
