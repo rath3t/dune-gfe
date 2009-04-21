@@ -191,14 +191,18 @@ template <int dim, class ctype, class TargetSpace>
 TargetSpace LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluate(const Dune::FieldVector<ctype, dim>& local)
 {
-    assert(dim==2);
-    ctype extraCoord = 1-local[0]-local[1];
-    ctype factor = extraCoord+local[0];
+    ctype extraCoord = 1;
+    for (int i=0; i<dim; i++)
+        extraCoord -= local[i];
 
-    TargetSpace result = TargetSpace::interpolate(coefficients_[0], coefficients_[1], local[0]/factor);
+    ctype normalizingFactor = extraCoord+local[0];
 
-    for (int i=1; i<dim; i++)
-        result = TargetSpace::interpolate(result, coefficients_[i+1], local[i]);
+    TargetSpace result = TargetSpace::interpolate(coefficients_[0], coefficients_[1], local[0]/normalizingFactor);
+
+    for (int i=1; i<dim; i++) {
+        normalizingFactor += local[i];
+        result = TargetSpace::interpolate(result, coefficients_[i+1], local[i] / normalizingFactor);
+    }
 
     return result;
 }
