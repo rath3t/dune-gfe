@@ -69,13 +69,32 @@ energy(const Entity& element,
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivativeFD(quadPos);
 
         // The derivative of the function defined on the actual element
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> derivative(0);
 
         for (int comp=0; comp<4; comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
+
+        TargetSpace value = localGeodesicFEFunction.evaluate(quadPos);
+
+        for (int i=0; i<gridDim; i++) {
+            double dotproduct = 0;
+            for (int j=0; j<4; j++)
+                dotproduct += value[j]*derivative[j][i];
+            assert(std::fabs(dotproduct) < 1e-6);
+        }
+
+#if 0
+        double derivativenorm0 = 0;
+        double derivativenorm1 = 0;
+        for (int i=0; i<4; i++) {
+            derivativenorm0 += derivative[i][0]*derivative[i][0];
+            derivativenorm1 += derivative[i][1]*derivative[i][1];
+        }
+        std::cout << "Derivative norm: " << derivativenorm0 << ",  " << derivativenorm1 << std::endl;
+#endif
 
         for (int comp=0; comp<4; comp++) {
 
@@ -85,7 +104,7 @@ energy(const Entity& element,
         }
 
     }
-    
+
     return energy;
 }
 
