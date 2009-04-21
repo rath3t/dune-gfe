@@ -36,6 +36,9 @@ public:
     /** \brief Evaluate the derivative of the function */
     Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local);
 
+    /** \brief Evaluate the derivative of the function using a finite-difference approximation*/
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local);
+
 private:
 
     /** \brief Compute the derivate of geodesic interpolation wrt to the initial point
@@ -278,6 +281,52 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
         
         for (int i=0; i<EmbeddedTangentVector::size; i++)
             result[i][1] = tmp[i];
+
+    }
+
+    assert(dim==1 || dim==2);
+
+    return result;
+}
+template <int dim, class ctype, class TargetSpace>
+Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
+evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local)
+{
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> result;
+
+    if (dim==1) {
+
+        EmbeddedTangentVector tmp = TargetSpace::interpolateDerivative(coefficients_[0], coefficients_[1], local[0]);
+
+        for (int i=0; i<EmbeddedTangentVector::size; i++)
+            result[i][0] = tmp[i];
+
+    }
+
+    if (dim==2) {
+
+        double eps = 1e-6;
+
+        Dune::FieldVector<ctype, dim> fX = local;
+        Dune::FieldVector<ctype, dim> bX = local;
+        Dune::FieldVector<ctype, dim> fY = local;
+        Dune::FieldVector<ctype, dim> bY = local;
+
+        fX[0] += eps;
+        bX[0] -= eps;
+        fY[1] += eps;
+        bY[1] -= eps;
+
+        Quaternion<double> dX = (evaluate(fX) - evaluate(bX));
+        Quaternion<double> dY = (evaluate(fY) - evaluate(bY));
+
+        dX /= 2*eps;
+        dY /= 2*eps;
+
+        for (int i=0; i<EmbeddedTangentVector::size; i++){
+            result[i][0] = dX[i];
+            result[i][1] = dY[i];
+        }
 
     }
 
