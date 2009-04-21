@@ -5,6 +5,7 @@
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/io/file/amirameshreader.hh>
+#include <dune/grid/io/file/amirameshwriter.hh>
 
 #include <dune-solvers/solvers/iterativesolver.hh>
 #include <dune-solvers/norms/energynorm.hh>
@@ -17,7 +18,7 @@
 #include "src/riemanniantrsolver.hh"
 
 // grid dimension
-const int dim = 2;
+const int dim = 3;
 
 // Image space of the geodesic fe functions
 typedef Rotation<3,double> TargetSpace;
@@ -73,10 +74,18 @@ int main (int argc, char *argv[]) try
     //   Initial solution
     // //////////////////////////
 
-    for (int i=0; i<x.size(); i++) {
-        x[i] = Rotation<3,double>::identity();
-    }
+    FieldVector<double,3> yAxis(0);
+    yAxis[1] = 1;
 
+    GridType::LeafGridView::Codim<dim>::Iterator vIt    = grid.leafbegin<dim>();
+    GridType::LeafGridView::Codim<dim>::Iterator vEndIt = grid.leafend<dim>();
+
+    for (; vIt!=vEndIt; ++vIt) {
+        int idx = grid.leafIndexSet().index(*vIt);
+        double angle = vIt->geometry().corner(0)[0];
+        x[idx] = Rotation<3,double>(yAxis,angle);
+    }
+        
     // backup for error measurement later
     SolutionType initialIterate = x;
 
@@ -88,7 +97,7 @@ int main (int argc, char *argv[]) try
     allNodes.setAll();
     LeafBoundaryPatch<GridType> dirichletBoundary(grid, allNodes);
 
-    BitSetVector<blocksize> dirichletNodes(grid.size(1));
+    BitSetVector<blocksize> dirichletNodes(grid.size(dim));
     for (int i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
     
@@ -125,6 +134,10 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////
     
     std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
+    //exit(0);
+    LeafAmiraMeshWriter<GridType> amiramesh;
+    amiramesh.addGrid(grid.leafView());
+    amiramesh.write("resultGrid", 1);
 
     solver.setInitialSolution(x);
     solver.solve();
@@ -150,9 +163,6 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////////////////////
 
     BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > hessian;
-//     MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
-//     assembler.getNeighborsPerVertex(indices);
-//     indices.exportIdx(hessian);
     assembler.assembleMatrix(exactSolution, hessian);
 
 
