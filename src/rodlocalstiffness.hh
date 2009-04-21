@@ -177,7 +177,7 @@ interpolationDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, doub
     for (int i=0; i<6; i++)
         grad[i] = 0;
 
-    // The derivatives with respect to w^1
+    // The derivatives with respect to w^0
 
     // Compute q_1^{-1}q_0
     Rotation<3,RT> q1InvQ0 = q1;
