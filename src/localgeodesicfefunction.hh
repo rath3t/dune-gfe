@@ -195,13 +195,17 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
     for (int i=0; i<dim; i++)
         extraCoord -= local[i];
 
-    ctype normalizingFactor = extraCoord+local[0];
+    ctype normalizingFactor = extraCoord;
 
-    TargetSpace result = TargetSpace::interpolate(coefficients_[0], coefficients_[1], local[0]/normalizingFactor);
+    TargetSpace result = coefficients_[0];
 
-    for (int i=1; i<dim; i++) {
+    for (int i=0; i<dim; i++) {
+        assert(local[i]>=0);
         normalizingFactor += local[i];
-        result = TargetSpace::interpolate(result, coefficients_[i+1], local[i] / normalizingFactor);
+        result = TargetSpace::interpolate(result, coefficients_[i+1], 
+                                          (std::abs(normalizingFactor) > 1e-10)
+                                          ? local[i] / normalizingFactor
+                                          : 0);
     }
 
     return result;
