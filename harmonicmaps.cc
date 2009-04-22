@@ -82,7 +82,7 @@ int main (int argc, char *argv[]) try
 
     for (; vIt!=vEndIt; ++vIt) {
         int idx = grid.leafIndexSet().index(*vIt);
-        double angle = vIt->geometry().corner(0)[0];
+        double angle = 2*(vIt->geometry().corner(0).two_norm());
         x[idx] = Rotation<3,double>(yAxis,angle);
     }
         
