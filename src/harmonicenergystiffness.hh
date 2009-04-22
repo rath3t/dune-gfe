@@ -52,7 +52,7 @@ energy(const Entity& element,
     
     LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(element.type(), localSolution);
 
-    int quadOrder = gridDim;
+    int quadOrder = 1;//gridDim;
 
     const Dune::QuadratureRule<double, gridDim>& quad 
         = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
@@ -87,13 +87,15 @@ energy(const Entity& element,
         }
 
 #if 0
-        double derivativenorm0 = 0;
-        double derivativenorm1 = 0;
-        for (int i=0; i<4; i++) {
-            derivativenorm0 += derivative[i][0]*derivative[i][0];
-            derivativenorm1 += derivative[i][1]*derivative[i][1];
+        std::cout << "Derivative norm: ";
+        
+        for (int i=0; i<gridDim; i++) {
+            double derivativenorm = 0;
+            for (int j=0; j<4; j++)
+                derivativenorm += derivative[j][i]*derivative[j][i];
+            std::cout << derivativenorm << ",    ";
         }
-        std::cout << "Derivative norm: " << derivativenorm0 << ",  " << derivativenorm1 << std::endl;
+        std::cout << std::endl;
 #endif
 
         for (int comp=0; comp<4; comp++) {
