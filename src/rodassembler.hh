@@ -38,13 +38,6 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
     public:
         const GridType* grid_; 
         
-        /** \brief Material constants */
-        Dune::array<double,3> K_;
-        Dune::array<double,3> A_;
-
-        /** \brief The stress-free configuration */
-        std::vector<RigidBodyMotion<3> > referenceConfiguration_;
-
     public:
         
         //! ???
@@ -54,11 +47,7 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
                                                                                   localStiffness),
         grid_(&grid)
         { 
-            // Set dummy material parameters
-            K_[0] = K_[1] = K_[2] = 1;
-            A_[0] = A_[1] = A_[2] = 1;
-
-            referenceConfiguration_.resize(grid.size(gridDim));
+            std::vector<RigidBodyMotion<3> > referenceConfiguration(grid.size(gridDim));
 
             typename GridType::template Codim<gridDim>::LeafIterator it    = grid.template leafbegin<gridDim>();
             typename GridType::template Codim<gridDim>::LeafIterator endIt = grid.template leafend<gridDim>();
@@ -67,45 +56,13 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
 
                 int idx = grid.leafIndexSet().index(*it);
 
-                referenceConfiguration_[idx].r[0] = 0;
-                referenceConfiguration_[idx].r[1] = 0;
-                referenceConfiguration_[idx].r[2] = it->geometry().corner(0)[0];
-                referenceConfiguration_[idx].q = Rotation<3,double>::identity();
+                referenceConfiguration[idx].r[0] = 0;
+                referenceConfiguration[idx].r[1] = 0;
+                referenceConfiguration[idx].r[2] = it->geometry().corner(0)[0];
+                referenceConfiguration[idx].q = Rotation<3,double>::identity();
             }
 
-        }
-
-        void setParameters(double k1, double k2, double k3, 
-                           double a1, double a2, double a3) {
-            K_[0] = k1;
-            K_[1] = k2;
-            K_[2] = k3;
-            A_[0] = a1;
-            A_[1] = a2;
-            A_[2] = a3;
-        }
-
-        /** \brief Set shape constants and material parameters
-            \param A The rod section area
-            \param J1, J2 The geometric moments (Flächenträgheitsmomente)
-            \param E Young's modulus
-            \param nu Poisson number
-        */
-        void setShapeAndMaterial(double A, double J1, double J2, double E, double nu) 
-        {
-            // shear modulus
-            double G = E/(2+2*nu);
-
-            K_[0] = E * J1;
-            K_[1] = E * J2;
-            K_[2] = G * (J1 + J2);
-
-            A_[0] = G * A;
-            A_[1] = G * A;
-            A_[2] = E * A;
-
-            //printf("%g %g %g   %g %g %g\n", K_[0], K_[1], K_[2], A_[0], A_[1], A_[2]);
-            //exit(0);
+            dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
         }
 
         /** \brief Assemble the tangent stiffness matrix

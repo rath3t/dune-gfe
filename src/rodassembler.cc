@@ -51,14 +51,6 @@ void RodAssembler<GridType>::
 assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix) const
 {
-    // ////////////////////////////////////////////////////
-    //   Create local assembler
-    // ////////////////////////////////////////////////////
-
-    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
-    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
-
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
 
     Dune::MatrixIndexSet neighborsPerVertex;
@@ -81,13 +73,8 @@ assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
-        localStiffness.localReferenceConfiguration_.resize(numOfBaseFct);
-        
-        for (int i=0; i<numOfBaseFct; i++)
-            localStiffness.localReferenceConfiguration_[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
-
         // setup matrix 
-        localStiffness.assemble(*it, localSolution);
+        this->localStiffness_->assemble(*it, localSolution);
 
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) { 
@@ -97,7 +84,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
             for (int j=0; j<numOfBaseFct; j++ ) {
                 
                 int col = indexSet.subIndex(*it,j,gridDim);
-                matrix[row][col] += localStiffness.mat(i,j);
+                matrix[row][col] += this->localStiffness_->mat(i,j);
                 
             }
         }
@@ -119,14 +106,6 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
     if (sol.size()!=grid_->size(maxlevel, gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
-    // ////////////////////////////////////////////////////
-    //   Create local assembler
-    // ////////////////////////////////////////////////////
-
-    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
-    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
-
     grad.resize(sol.size());
     grad = 0;
 
@@ -145,17 +124,10 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
-        // Extract local reference configuration
-        std::vector<RigidBodyMotion<3> > localReferenceConfiguration(nDofs);
-        
-        for (int i=0; i<nDofs; i++)
-            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
-
         // Assemble local gradient
         std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
 
-        localStiffness.localReferenceConfiguration_ = localReferenceConfiguration;
-        localStiffness.assembleGradient(*it, localSolution, localGradient);
+        this->localStiffness_->assembleGradient(*it, localSolution, localGradient);
 
         // Add to global gradient
         for (int i=0; i<nDofs; i++)
@@ -179,15 +151,6 @@ computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
-    // ////////////////////////////////////////////////////
-    //   Create local assembler
-    // ////////////////////////////////////////////////////
-
-    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
-    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
-
-    std::vector<RigidBodyMotion<3> > localReferenceConfiguration(2);
     std::vector<RigidBodyMotion<3> > localSolution(2);
 
     ElementLeafIterator it    = grid_->template leafbegin<0>();
@@ -196,15 +159,10 @@ computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const
     // Loop over all elements
     for (; it!=endIt; ++it) {
 
-        for (int i=0; i<2; i++) {
-
-            localReferenceConfiguration[i] = referenceConfiguration_[indexSet.subIndex(*it,i,gridDim)];
+        for (int i=0; i<2; i++)
             localSolution[i]               = sol[indexSet.subIndex(*it,i,gridDim)];
 
-        }
-
-        localStiffness.localReferenceConfiguration_ = localReferenceConfiguration;
-        energy += localStiffness.energy(*it, localSolution);
+        energy += this->localStiffness_->energy(*it, localSolution);
 
     }
 
@@ -224,14 +182,6 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
-
-    // ////////////////////////////////////////////////////
-    //   Create local assembler
-    // ////////////////////////////////////////////////////
-
-    Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
-    Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-    RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
 
     // Strain defined on each element
     strain.resize(indexSet.size(0));
@@ -266,7 +216,7 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
 
             double weight = quad[pt].weight() * it->geometry().integrationElement(quadPos);
 
-            FieldVector<double,blocksize> localStrain = localStiffness.getStrain(localSolution, *it, quad[pt].position());
+            FieldVector<double,blocksize> localStrain = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->getStrain(localSolution, *it, quad[pt].position());
             
             // Sum it all up
             strain[elementIdx].axpy(weight, localStrain);
@@ -295,13 +245,13 @@ getStress(const std::vector<RigidBodyMotion<3> >& sol,
 
     // Get reference strain
     Dune::BlockVector<Dune::FieldVector<double, blocksize> > referenceStrain;
-    getStrain(referenceConfiguration_, referenceStrain);
+    getStrain(dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_, referenceStrain);
 
     // Linear diagonal constitutive law
     for (size_t i=0; i<stress.size(); i++) {
         for (int j=0; j<3; j++) {
-            stress[i][j]   = (stress[i][j]   - referenceStrain[i][j])   * A_[j];
-            stress[i][j+3] = (stress[i][j+3] - referenceStrain[i][j+3]) * K_[j];
+            stress[i][j]   = (stress[i][j]   - referenceStrain[i][j])   * dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->A_[j];
+            stress[i][j+3] = (stress[i][j+3] - referenceStrain[i][j+3]) * dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->K_[j];
         }
     }
 }
@@ -347,29 +297,23 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             //   Compute force across this boundary face
             // //////////////////////////////////////////////
 
-            //   Create local assembler
-            
-            Dune::array<double,3> K = {K_[0], K_[1], K_[2]};
-            Dune::array<double,3> A = {A_[0], A_[1], A_[2]};
-            RodLocalStiffness<typename GridType::LeafGridView,double> localStiffness(K, A);
-
             double pos = nIt->intersectionSelfLocal().corner(0);
 
             Dune::array<RigidBodyMotion<3>,2> localSolution = {sol[indexSet.template subIndex<1>(*eIt,0)],
-                                                          sol[indexSet.template subIndex<1>(*eIt,1)]};
-            Dune::array<RigidBodyMotion<3>,2> localRefConf  = {referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)],
-                                                          referenceConfiguration_[indexSet.template subIndex<1>(*eIt,1)]};
+                                                               sol[indexSet.template subIndex<1>(*eIt,1)]};
+            Dune::array<RigidBodyMotion<3>,2> localRefConf  = {dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)],
+                                                               dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,1)]};
 
-            FieldVector<double, blocksize> strain          = localStiffness.getStrain(localSolution, *eIt, pos);
-            FieldVector<double, blocksize> referenceStrain = localStiffness.getStrain(localRefConf, *eIt, pos);
+            FieldVector<double, blocksize> strain          = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->getStrain(localSolution, *eIt, pos);
+            FieldVector<double, blocksize> referenceStrain = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->getStrain(localRefConf, *eIt, pos);
 
             FieldVector<double,3> localStress;
             for (int i=0; i<3; i++)
-                localStress[i] = (strain[i] - referenceStrain[i]) * A_[i];
+                localStress[i] = (strain[i] - referenceStrain[i]) * dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->A_[i];
 
             FieldVector<double,3> localTorque;
             for (int i=0; i<3; i++)
-                localTorque[i] = (strain[i+3] - referenceStrain[i+3]) * K_[i];
+                localTorque[i] = (strain[i+3] - referenceStrain[i+3]) * dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->K_[i];
 
             // Transform stress given with respect to the basis given by the three directors to
             // the canonical basis of R^3

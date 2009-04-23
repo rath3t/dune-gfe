@@ -30,7 +30,9 @@ class RodLocalStiffness
     enum {bendingQuadOrder = 2};
 
 public:
-    std::vector<RigidBodyMotion<3> > localReferenceConfiguration_;
+
+    /** \brief The stress-free configuration */
+    std::vector<RigidBodyMotion<3> > referenceConfiguration_;
 
 public:
     
@@ -54,12 +56,12 @@ public:
     Dune::array<double,3> K_;
     Dune::array<double,3> A_;
 
-    //! Default Constructor
-    RodLocalStiffness ()
-    {}
+    GridView gridView_;
 
-    //! Default Constructor
-    RodLocalStiffness (const Dune::array<double,3>& K, const Dune::array<double,3>& A)
+    //! Constructor
+    RodLocalStiffness (const GridView& gridView,
+                       const Dune::array<double,3>& K, const Dune::array<double,3>& A)
+        : gridView_(gridView)
     {
         for (int i=0; i<3; i++) {
             K_[i] = K[i];
@@ -67,14 +69,57 @@ public:
         }
     }
 
-    void assembleBoundaryCondition (const Entity& e, int k=1)
+    /** \brief Constructor setting shape constants and material parameters
+        \param A The rod section area
+        \param J1, J2 The geometric moments (Flächenträgheitsmomente)
+        \param E Young's modulus
+        \param nu Poisson number
+    */
+    RodLocalStiffness (const GridView& gridView,
+                       double A, double J1, double J2, double E, double nu)
+        : gridView_(gridView)
     {
-        DUNE_THROW(Dune::NotImplemented, "!");
+        // shear modulus
+        double G = E/(2+2*nu);
+        
+        K_[0] = E * J1;
+        K_[1] = E * J2;
+        K_[2] = G * (J1 + J2);
+        
+        A_[0] = G * A;
+        A_[1] = G * A;
+        A_[2] = E * A;
     }
 
     
+
+    void setReferenceConfiguration(const std::vector<RigidBodyMotion<3> >& referenceConfiguration) {
+        referenceConfiguration_ = referenceConfiguration;
+    }
+    
     virtual RT energy (const Entity& e,
                        const std::vector<RigidBodyMotion<3> >& localSolution) const;
+
+    /** \brief Assemble the element gradient of the energy functional */
+    void assembleGradient(const Entity& element,
+                          const std::vector<RigidBodyMotion<3> >& solution,
+                          std::vector<Dune::FieldVector<double,6> >& gradient) const;
+    
+    Dune::FieldVector<double, 6> getStrain(const std::vector<RigidBodyMotion<3> >& localSolution,
+                                           const Entity& element,
+                                           const Dune::FieldVector<double,1>& pos) const;
+
+protected:
+
+    void getLocalReferenceConfiguration(const Entity& element, 
+                                        std::vector<RigidBodyMotion<3> >& localReferenceConfiguration) const {
+
+        int numOfBaseFct = element.template count<dim>();
+        localReferenceConfiguration.resize(numOfBaseFct);
+        
+        for (int i=0; i<numOfBaseFct; i++)
+            localReferenceConfiguration[i] = referenceConfiguration_[gridView_.indexSet().subIndex(element,i,dim)];
+    }
 
     static void interpolationDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                         Dune::array<Quaternion<double>,6>& grad);
@@ -82,15 +127,6 @@ public:
     static void interpolationVelocityDerivative(const Rotation<3,RT>& q0, const Rotation<3,RT>& q1, double s,
                                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad);
 
-    Dune::FieldVector<double, 6> getStrain(const std::vector<RigidBodyMotion<3> >& localSolution,
-                                           const Entity& element,
-                                           const Dune::FieldVector<double,1>& pos) const;
-
-    /** \brief Assemble the element gradient of the energy functional */
-    void assembleGradient(const Entity& element,
-                          const std::vector<RigidBodyMotion<3> >& solution,
-                          std::vector<Dune::FieldVector<double,6> >& gradient) const;
-    
     template <class T>
     static Dune::FieldVector<T,3> darboux(const Rotation<3,T>& q, const Dune::FieldVector<T,4>& q_s) 
     {
@@ -109,11 +145,13 @@ template <class GridType, class RT>
 RT RodLocalStiffness<GridType, RT>::
 energy(const Entity& element,
        const std::vector<RigidBodyMotion<3> >& localSolution
-       //, const std::vector<RigidBodyMotion<3> >& localReferenceConfiguration,
        ) const
 {
     RT energy = 0;
     
+    std::vector<RigidBodyMotion<3> > localReferenceConfiguration;
+    getLocalReferenceConfiguration(element, localReferenceConfiguration);
+
     // ///////////////////////////////////////////////////////////////////////////////
     //   The following two loops are a reduced integration scheme.  We integrate
     //   the transverse shear and extensional energy with a first-order quadrature
@@ -135,7 +173,7 @@ energy(const Entity& element,
         Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
         
         // The reference strain
-        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration_, element, quadPos);
+        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
         
         for (int i=0; i<3; i++)
             energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
@@ -156,7 +194,7 @@ energy(const Entity& element,
         Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
         
         // The reference strain
-        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration_, element, quadPos);
+        Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
         
         // Part II: the bending and twisting energy
         for (int i=0; i<3; i++)
@@ -462,6 +500,9 @@ assembleGradient(const Entity& element,
 {
     using namespace Dune;
 
+    std::vector<RigidBodyMotion<3> > localReferenceConfiguration;
+    getLocalReferenceConfiguration(element, localReferenceConfiguration);
+
     // Extract local solution on this element
     const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
         = Dune::LagrangeShapeFunctions<double, double, 1>::general(element.type(), 1); // first order
@@ -524,7 +565,7 @@ assembleGradient(const Entity& element,
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
         
         // The reference strain
-        FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration_, element, quadPos);
+        FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
         
         
         // dd_dvij[m][i][j] = \parder {(d_k)_i} {q}
@@ -600,7 +641,7 @@ assembleGradient(const Entity& element,
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
         
         // The reference strain
-        FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration_, element, quadPos);
+        FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
         
         // First derivatives of the position
         array<Quaternion<double>,6> dq_dwij;
