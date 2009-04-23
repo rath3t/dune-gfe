@@ -299,10 +299,13 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
 
             double pos = nIt->intersectionSelfLocal().corner(0);
 
-            Dune::array<RigidBodyMotion<3>,2> localSolution = {sol[indexSet.template subIndex<1>(*eIt,0)],
-                                                               sol[indexSet.template subIndex<1>(*eIt,1)]};
-            Dune::array<RigidBodyMotion<3>,2> localRefConf  = {dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)],
-                                                               dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,1)]};
+            std::vector<RigidBodyMotion<3> > localSolution(2);
+            localSolution[0] = sol[indexSet.template subIndex<1>(*eIt,0)];
+            localSolution[1] = sol[indexSet.template subIndex<1>(*eIt,1)];
+
+            std::vector<RigidBodyMotion<3> > localRefConf(2);
+            localRefConf[0] = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)];
+            localRefConf[1] = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,1)];
 
             FieldVector<double, blocksize> strain          = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->getStrain(localSolution, *eIt, pos);
             FieldVector<double, blocksize> referenceStrain = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->getStrain(localRefConf, *eIt, pos);
