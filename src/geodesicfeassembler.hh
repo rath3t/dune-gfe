@@ -29,6 +29,8 @@ class GeodesicFEAssembler {
     
     const GridView gridView_; 
 
+protected:
+
     LocalGeodesicFEStiffness<GridView,TargetSpace>* localStiffness_;
 
 public:
