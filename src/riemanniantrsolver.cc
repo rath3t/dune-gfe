@@ -100,15 +100,16 @@ setup(const GridType& grid,
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
 
-    mmgSolver_ = new ::LoopSolver<CorrectionType>(mmgStep,
+    innerSolver_ = new ::LoopSolver<CorrectionType>(mmgStep,
                                                      multigridIterations_,
                                                      qpTolerance_,
                                                      h1SemiNorm_,
                                                      Solver::QUIET);
 
     // Write all intermediate solutions, if requested
-    if (instrumented_)
-        mmgSolver_->historyBuffer_ = "tmp/mgHistory";
+    if (instrumented_
+        && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_))
+        dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_)->historyBuffer_ = "tmp/mgHistory";
 
     // ////////////////////////////////////////////////////////////
     //    Create Hessian matrix and its occupation structure
@@ -149,11 +150,19 @@ setup(const GridType& grid,
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 {
+    MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
+
+    // if the inner solver is a monotone multigrid set up a max-norm trust-region
+    if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_)) {
+        mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_)->iterationStep_);
+    
+    }    
+
     MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
 
-    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles(dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->numLevels_);
-    
-    // /////////////////////////////////////////////////////
+    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles(mgStep->numLevels_);
+
+   // /////////////////////////////////////////////////////
     //   Set up the log file, if requested
     // /////////////////////////////////////////////////////
     FILE* fp;
@@ -193,23 +202,23 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         rhs *= -1;
 
-        dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
+        mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
 
         trustRegionObstacles.back() = trustRegion.obstacles();
-        dynamic_cast<MonotoneMGStep<MatrixType, CorrectionType>*>(mmgSolver_->iterationStep_)->obstacles_ = &trustRegionObstacles;
+        mgStep->obstacles_ = &trustRegionObstacles;
 
         
-        mmgSolver_->preprocess();
+        innerSolver_->preprocess();
         
-        dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->preprocess();
+        mgStep->preprocess();
         
         
         // /////////////////////////////
         //    Solve !
         // /////////////////////////////
-        mmgSolver_->solve();
+        innerSolver_->solve();
         
-        corr = dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(mmgSolver_->iterationStep_)->getSol();
+        corr = mgStep->getSol();
         
         //std::cout << "Correction: " << std::endl << corr << std::endl;
         

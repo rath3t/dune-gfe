@@ -10,7 +10,7 @@
 
 #include <dune-solvers/boxconstraint.hh>
 #include <dune-solvers/norms/h1seminorm.hh>
-#include <dune-solvers/solvers/loopsolver.hh>
+#include <dune-solvers/solvers/solver.hh>
 
 #include "geodesicfeassembler.hh"
 
@@ -105,8 +105,8 @@ protected:
     /** \brief The assembler for the material law */
     const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* assembler_;
 
-    /** \brief The multigrid solver */
-    LoopSolver<CorrectionType>* mmgSolver_;
+    /** \brief The solver for the quadratic inner problems */
+    Solver* innerSolver_;
 
     /** \brief Dummy fields containing 'true' everywhere.  The multigrid step
         expects them :-( */
