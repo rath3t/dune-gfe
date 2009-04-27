@@ -44,13 +44,8 @@ setup(const GridType& grid,
     this->tolerance_          = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
     initialTrustRegionRadius_ = initialTrustRegionRadius;
-    multigridIterations_      = multigridIterations;
-    qpTolerance_              = mgTolerance;
-    mu_                       = mu;
-    nu1_                      = nu1;
-    nu2_                      = nu2;
-    baseIt_                   = baseIterations;
-    baseTolerance_            = baseTolerance;
+    innerIterations_          = multigridIterations;
+    innerTolerance_           = mgTolerance;
     instrumented_             = instrumented;
 
     int numLevels = grid_->maxLevel()+1;
@@ -65,8 +60,8 @@ setup(const GridType& grid,
     EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
 
     ::LoopSolver<CorrectionType>* baseSolver = new ::LoopSolver<CorrectionType>(baseSolverStep,
-                                                                            baseIt_,
-                                                                            baseTolerance_,
+                                                                            baseIterations,
+                                                                            baseTolerance,
                                                                             baseEnergyNorm,
                                                                             Solver::QUIET);
 
@@ -76,7 +71,7 @@ setup(const GridType& grid,
 
     MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>(numLevels);
 
-    mmgStep->setMGType(mu_, nu1_, nu2_);
+    mmgStep->setMGType(mu, nu1, nu2);
     mmgStep->ignoreNodes_       = &dirichletNodes;
     mmgStep->basesolver_        = baseSolver;
     mmgStep->presmoother_       = presmoother;
@@ -101,10 +96,10 @@ setup(const GridType& grid,
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
 
     innerSolver_ = new ::LoopSolver<CorrectionType>(mmgStep,
-                                                     multigridIterations_,
-                                                     qpTolerance_,
-                                                     h1SemiNorm_,
-                                                     Solver::QUIET);
+                                                    innerIterations_,
+                                                    innerTolerance_,
+                                                    h1SemiNorm_,
+                                                    Solver::QUIET);
 
     // Write all intermediate solutions, if requested
     if (instrumented_
@@ -240,7 +235,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             // Compute the energy norm
             oldError = h1SemiNorm_->operator()(exactSolution);
     
-            for (int j=0; j<multigridIterations_; j++) {
+            for (int j=0; j<innerIterations_; j++) {
         
                 // read iteration from file
                 CorrectionType intermediateSol(grid_->size(1));

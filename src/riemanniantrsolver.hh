@@ -79,25 +79,11 @@ protected:
     /** \brief Maximum number of trust-region steps */
     int maxTrustRegionSteps_;
 
-    /** \brief Maximum number of iterations of the multigrid basesolver */
-    int baseIt_;
-
-    double baseTolerance_;
-
-    /** \brief Number of coarse multigrid iterations (1 for a V-cycle, 2 for a W-cycle) */
-    int mu_;
-
-    /** \brief Number of multigrid presmoothing steps */
-    int nu1_;
-
-    /** \brief Number of multigrid postsmoothing steps */
-    int nu2_;
-
     /** \brief Maximum number of multigrid iterations */
-    int multigridIterations_;
+    int innerIterations_;
 
     /** \brief Error tolerance of the multigrid QP solver */
-    double qpTolerance_;
+    double innerTolerance_;
 
     /** \brief Hessian matrix */
     std::auto_ptr<MatrixType> hessianMatrix_;
