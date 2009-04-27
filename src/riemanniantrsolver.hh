@@ -41,6 +41,7 @@ public:
           hessianMatrix_(std::auto_ptr<MatrixType>(NULL)), h1SemiNorm_(NULL)
     {}
 
+    /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid, 
                const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* rodAssembler,
                const SolutionType& x,
@@ -56,6 +57,18 @@ public:
                int baseIterations,
                double baseTolerance,
                bool instrumented);
+
+    /** \brief Set up the solver using a truncated cg method as the inner solver */
+    void setupTCG(const GridType& grid, 
+                  const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* rodAssembler,
+                  const SolutionType& x,
+                  const Dune::BitSetVector<blocksize>& dirichletNodes,
+                  double tolerance,
+                  int maxTrustRegionSteps,
+                  double initialTrustRegionRadius,
+                  int innerIterations,
+                  double innerTolerance,
+                  bool instrumented);
 
     void solve();
 

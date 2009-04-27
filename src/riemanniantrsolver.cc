@@ -6,16 +6,20 @@
 #include <dune/disc/miscoperators/laplace.hh>
 #include <dune/disc/operators/p1operator.hh>
 
+// For using a monotone multigrid as the inner solver
 #include <dune-solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune-solvers/iterationsteps/mmgstep.hh>
 #include <dune-solvers/transferoperators/truncatedcompressedmgtransfer.hh>
 #include <dune-solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune-solvers/solvers/iterativesolver.hh>
+#include "maxnormtrustregion.hh"
+
+// For using a truncated cg as the inner solver
+#include <dune-solvers/solvers/tcgsolver.hh>
 
 #include <dune-solvers/norms/energynorm.hh>
 #include <dune-solvers/norms/h1seminorm.hh>
 
-#include "maxnormtrustregion.hh"
 
 // for debugging
 #include "../test/fdcheck.hh"
@@ -23,20 +27,20 @@
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::
 setup(const GridType& grid,
-      const GeodesicFEAssembler<typename GridType::LeafGridView,TargetSpace>* assembler,
-      const SolutionType& x,
-      const Dune::BitSetVector<blocksize>& dirichletNodes,
-      double tolerance,
-      int maxTrustRegionSteps,
-      double initialTrustRegionRadius,
-      int multigridIterations,
-      double mgTolerance,
-      int mu, 
-      int nu1,
-      int nu2,
-      int baseIterations,
-      double baseTolerance,
-      bool instrumented)
+         const GeodesicFEAssembler<typename GridType::LeafGridView,TargetSpace>* assembler,
+         const SolutionType& x,
+         const Dune::BitSetVector<blocksize>& dirichletNodes,
+         double tolerance,
+         int maxTrustRegionSteps,
+         double initialTrustRegionRadius,
+         int multigridIterations,
+         double mgTolerance,
+         int mu, 
+         int nu1,
+         int nu2,
+         int baseIterations,
+         double baseTolerance,
+         bool instrumented)
 {
     grid_                     = &grid;
     assembler_                = assembler;
@@ -137,6 +141,74 @@ setup(const GridType& grid,
         mmgStep->mgTransfer_[i] = newTransferOp;
     }
     
+}
+
+
+template <class GridType, class TargetSpace>
+void RiemannianTrustRegionSolver<GridType,TargetSpace>::
+setupTCG(const GridType& grid,
+         const GeodesicFEAssembler<typename GridType::LeafGridView,TargetSpace>* assembler,
+         const SolutionType& x,
+         const Dune::BitSetVector<blocksize>& dirichletNodes,
+         double tolerance,
+         int maxTrustRegionSteps,
+         double initialTrustRegionRadius,
+         int innerIterations,
+         double innerTolerance,
+         bool instrumented)
+{
+    grid_                     = &grid;
+    assembler_                = assembler;
+    x_                        = x;
+    this->tolerance_          = tolerance;
+    maxTrustRegionSteps_      = maxTrustRegionSteps;
+    initialTrustRegionRadius_ = initialTrustRegionRadius;
+    innerIterations_          = innerIterations;
+    innerTolerance_           = innerTolerance;
+    instrumented_             = instrumented;
+
+    // ////////////////////////////////////////////////////////////
+    //    Create Hessian matrix and its occupation structure
+    // ////////////////////////////////////////////////////////////
+    
+    hessianMatrix_ = std::auto_ptr<MatrixType>(new MatrixType);
+    Dune::MatrixIndexSet indices(grid_->size(1), grid_->size(1));
+    assembler_->getNeighborsPerVertex(indices);
+    indices.exportIdx(*hessianMatrix_);
+    
+    // //////////////////////////////////////////////////////////////////////////////////////
+    //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
+    // //////////////////////////////////////////////////////////////////////////////////////
+    Dune::LeafP1Function<GridType,double> u(grid),f(grid);
+    Dune::LaplaceLocalStiffness<typename GridType::LeafGridView,double> laplaceStiffness;
+    Dune::LeafP1OperatorAssembler<GridType,double,1>* A = new Dune::LeafP1OperatorAssembler<GridType,double,1>(grid);
+    A->assemble(laplaceStiffness,u,f);
+
+    typedef typename Dune::LeafP1OperatorAssembler<GridType,double,1>::RepresentationType LaplaceMatrixType;
+
+    if (h1SemiNorm_)
+        delete h1SemiNorm_;
+
+    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
+
+    // ////////////////////////////////////////////////////
+    //   Create a truncated conjugate gradient solver
+    // ////////////////////////////////////////////////////
+
+    innerSolver_ = new TruncatedCGSolver<MatrixType,CorrectionType>(*hessianMatrix_,
+                                                                    x,
+                                                                    this->rhs_,
+                                                                    innerIterations_,
+                                                                    innerTolerance_,
+                                                                    h1SemiNorm_,
+                                                                    initialTrustRegionRadius,
+                                                                    Solver::QUIET);
+
+    // Write all intermediate solutions, if requested
+    if (instrumented_
+        && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_))
+        dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_)->historyBuffer_ = "tmp/mgHistory";
+
 }
 
 template <class GridType, class TargetSpace>
