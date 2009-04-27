@@ -31,8 +31,8 @@
 #include "src/rodassembler.hh"
 #include "src/rigidbodymotion.hh"
 #include "src/averageinterface.hh"
-#include "src/rodsolver.hh"
-#include "src/roddifference.hh"
+#include "src/riemanniantrsolver.hh"
+#include "src/geodesicdifference.hh"
 #include "src/rodwriter.hh"
 
 // Space dimension
@@ -273,11 +273,13 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
-    RodAssembler<RodGridType> rodAssembler(rodGrid);
-    rodAssembler.setShapeAndMaterial(rodA, rodJ1, rodJ2, rodE, rodNu);
 
+    RodLocalStiffness<RodGridType::LeafGridView,double> rodLocalStiffness(rodGrid.leafView(),
+                                                                       rodA, rodJ1, rodJ2, rodE, rodNu);
 
-    RodSolver<RodGridType> rodSolver;
+    RodAssembler<RodGridType> rodAssembler(rodGrid, &rodLocalStiffness);
+
+    RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> > rodSolver;
     rodSolver.setup(rodGrid, 
                     &rodAssembler,
                     rodX,
@@ -509,7 +511,7 @@ int main (int argc, char *argv[]) try
                                               std::fabs(oldSolution3d[j][k])/ std::fabs(x3d[j][k]));
 
         // the rod
-        RodDifferenceType rodDiff = computeRodDifference(oldSolutionRod, rodX);
+        RodDifferenceType rodDiff = computeGeodesicDifference(oldSolutionRod, rodX);
         double maxRodRelCorrection = 0;
         for (size_t j=0; j<rodX.size(); j++)
             for (int k=0; k<dim; k++)
@@ -517,7 +519,7 @@ int main (int argc, char *argv[]) try
                                               std::fabs(rodDiff[j][k])/ std::fabs(rodX[j].r[k]));
 
         // Absolute corrections
-        double maxRodCorrection = computeRodDifference(oldSolutionRod, rodX).infinity_norm();
+        double maxRodCorrection = computeGeodesicDifference(oldSolutionRod, rodX).infinity_norm();
         double max3dCorrection  = oldSolution3d.infinity_norm();
 
 
@@ -566,7 +568,7 @@ int main (int argc, char *argv[]) try
     MatrixIndexSet indices(exactSolRod.size(), exactSolRod.size());
     rodAssembler.getNeighborsPerVertex(indices);
     indices.exportIdx(hessianRod);
-    rodAssembler.assembleMatrixFD(exactSolRod, hessianRod);
+    rodAssembler.assembleMatrix(exactSolRod, hessianRod);
 
 
     double error = std::numeric_limits<double>::max();
@@ -582,7 +584,7 @@ int main (int argc, char *argv[]) try
     oldError += EnergyNorm<MatrixType,VectorType>::normSquared(exactSol3d, *hessian3d);
     
     // Error of the initial rod iterate
-    RodDifferenceType rodDifference = computeRodDifference(initialIterateRod, exactSolRod);
+    RodDifferenceType rodDifference = computeGeodesicDifference(initialIterateRod, exactSolRod);
     oldError += EnergyNorm<BCRSMatrix<FieldMatrix<double,6,6> >,RodDifferenceType>::normSquared(rodDifference, hessianRod);
 
     oldError = std::sqrt(oldError);
@@ -642,7 +644,7 @@ int main (int argc, char *argv[]) try
         VectorType solBackup0 = intermediateSol3d;
         solBackup0 -= exactSol3d;
 
-        RodDifferenceType rodDifference = computeRodDifference(exactSolRod, intermediateSolRod);
+        RodDifferenceType rodDifference = computeGeodesicDifference(exactSolRod, intermediateSolRod);
         
         error = std::sqrt(EnergyNorm<MatrixType,VectorType>::normSquared(solBackup0, *hessian3d)
                           +
