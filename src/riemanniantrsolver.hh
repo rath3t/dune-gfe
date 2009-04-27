@@ -38,7 +38,7 @@ public:
 
     RiemannianTrustRegionSolver()
         : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
-          hessianMatrix_(NULL), h1SemiNorm_(NULL)
+          hessianMatrix_(std::auto_ptr<MatrixType>(NULL)), h1SemiNorm_(NULL)
     {}
 
     void setup(const GridType& grid, 
@@ -100,7 +100,7 @@ protected:
     double qpTolerance_;
 
     /** \brief Hessian matrix */
-    MatrixType* hessianMatrix_;
+    std::auto_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
     const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* assembler_;
