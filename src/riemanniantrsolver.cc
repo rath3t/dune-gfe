@@ -274,8 +274,6 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         
         innerSolver_->preprocess();
         
-        mgStep->preprocess();
-        
         
         // /////////////////////////////
         //    Solve !
