@@ -169,6 +169,10 @@ int main (int argc, char *argv[]) try
     BlockVector<FieldVector<double, 6> > strain(x.size()-1);
     rodAssembler.getStrain(x,strain);
 
+    // If convergence measurement is not desired stop here
+    if (!instrumented)
+        exit(0);
+
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
     // //////////////////////////////////////////////////////////
