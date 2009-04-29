@@ -4,11 +4,14 @@
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
 AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
-noinst_PROGRAMS = staticrod staticrod2 rod3d harmonicmaps dirneucoupling
+noinst_PROGRAMS = staticrod staticrod2 rod3d harmonicmaps dirneucoupling rod-eoc
 
 staticrod_SOURCES = staticrod.cc
 staticrod2_SOURCES = staticrod2.cc
 rod3d_SOURCES = rod3d.cc
+
+rod_eoc_SOURCES = rod-eoc.cc
+
 harmonicmaps_SOURCES = harmonicmaps.cc
 harmonicmaps_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
 harmonicmaps_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
