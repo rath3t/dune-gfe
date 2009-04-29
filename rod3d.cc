@@ -124,6 +124,7 @@ int main (int argc, char *argv[]) try
     RodAssembler<GridType> rodAssembler(grid, &localStiffness);
 
     RiemannianTrustRegionSolver<GridType,RigidBodyMotion<3> > rodSolver;
+#if 0
     rodSolver.setup(grid, 
                     &rodAssembler,
                     x,
@@ -137,6 +138,18 @@ int main (int argc, char *argv[]) try
                     baseIterations,
                     baseTolerance,
                     instrumented);
+#else
+    rodSolver.setupTCG(grid, 
+                       &rodAssembler,
+                       x,
+                       dirichletNodes,
+                       tolerance,
+                       maxTrustRegionSteps,
+                       initialTrustRegionRadius,
+                       multigridIterations,
+                       mgTolerance,
+                       instrumented);
+#endif
 
     // /////////////////////////////////////////////////////
     //   Solve!
