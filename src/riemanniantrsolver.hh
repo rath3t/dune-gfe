@@ -1,5 +1,5 @@
-#ifndef ROD_SOLVER_HH
-#define ROD_SOLVER_HH
+#ifndef RIEMANNIAN_TRUST_REGION_SOLVER_HH
+#define RIEMANNIAN_TRUST_REGION_SOLVER_HH
 
 #include <vector>
 
