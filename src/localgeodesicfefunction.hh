@@ -6,6 +6,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/geometrytype.hh>
 
+#include <dune/src/averagedistanceassembler.hh>
+#include <dune/src/targetspacertrsolver.hh>
 
 /** \brief A geodesic function from the reference element to a manifold 
     
@@ -66,6 +68,30 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
 
     return result;
 #endif
+
+    Dune::FieldVector<ctype, dim+1> barycentricCoordinates;
+
+    barycentricCoordinates[0] = 1;
+    for (int i=0; i<dim; i++) {
+        barycentricCoordinates[0] -= local[i];
+         barycentricCoordinates[i+1] = local[i];
+    }
+
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, barycentricCoordinates);
+
+    TargetSpaceRiemannianTRSolver<TargetSpace> solver;
+
+    solver.setup(&assembler,
+                 coefficients_[0],   // initial iterate
+                 20,      // maxTrustRegionSteps
+                 1,       // initial trust region radius
+                 20,      // inner iterations
+                 1e-8     // inner tolerance
+                 );
+
+    solver.solve();
+
+    return solver.getSol();
 }
 
 template <int dim, class ctype, class TargetSpace>
