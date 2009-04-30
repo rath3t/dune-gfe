@@ -111,6 +111,9 @@ protected:
         expects them :-( */
     std::vector<Dune::BitSetVector<1> > hasObstacle_;
 
+    /** \brief The Dirichlet nodes */
+    const Dune::BitSetVector<blocksize>* ignoreNodes_;
+
     /** \brief The norm used to measure multigrid convergence */
     H1SemiNorm<CorrectionType>* h1SemiNorm_;
     
