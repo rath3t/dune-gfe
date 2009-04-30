@@ -17,6 +17,7 @@
 #include "src/rodassembler.hh"
 #include "src/riemanniantrsolver.hh"
 #include "src/rodrefine.hh"
+#include "src/rodwriter.hh"
 
 typedef Dune::OneDGrid GridType;
 
@@ -190,6 +191,10 @@ int main (int argc, char *argv[]) try
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++)
             globalRodRefine(grid, solution);
+
+        std::stringstream numberAsAscii;
+        numberAsAscii << i;
+        writeRod(solution, "rodGrid_" + numberAsAscii.str());
 
         assert(referenceSolution.size() == solution.size());
 
