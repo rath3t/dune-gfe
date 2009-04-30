@@ -30,7 +30,8 @@ using namespace Dune;
 using std::string;
 
 void solve (const GridType& grid,
-            SolutionType& x, int numLevels,
+            SolutionType& x, 
+            int numLevels,
             const TargetSpace& dirichletValue,
             ConfigParser& parameters)
 {
@@ -84,7 +85,7 @@ void solve (const GridType& grid,
     RodAssembler<GridType> rodAssembler(grid, &localStiffness);
 
     RiemannianTrustRegionSolver<GridType,RigidBodyMotion<3> > rodSolver;
-#if 0
+#if 1
     rodSolver.setup(grid, 
                     &rodAssembler,
                     x,
@@ -94,9 +95,9 @@ void solve (const GridType& grid,
                     initialTrustRegionRadius,
                     multigridIterations,
                     innerTolerance,
-                    mu, nu1, nu2,
-                    baseIterations,
-                    baseTolerance,
+                    1, 3, 3,
+                    100,     // iterations of the base solver
+                    1e-8,    // base tolerance
                     false);  // instrumentation
 #else
     rodSolver.setupTCG(grid, 
