@@ -14,8 +14,6 @@
 
 #include "geodesicfeassembler.hh"
 
-#include "rigidbodymotion.hh"
-
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType, class TargetSpace>
 class RiemannianTrustRegionSolver 
