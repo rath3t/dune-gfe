@@ -49,18 +49,18 @@ void globalRodRefine(GridType& grid, std::vector<RigidBodyMotion<3> >& x)
 
         for (int i=0; i<2; i++) {
 
-            if (dofMap.find(idSet.template subId<1>(*eIt,i)) != dofMap.end()) {
+            if (dofMap.find(idSet.subId(*eIt,i,1)) != dofMap.end()) {
 
-                x[indexSet.template subIndex<1>(*eIt,i)] = dofMap[idSet.template subId<1>(*eIt,i)];
+                x[indexSet.subIndex(*eIt,i,1)] = dofMap[idSet.subId(*eIt,i,1)];
 
             } else {
                 // Interpolate
-                RigidBodyMotion<3> p0 = dofMap[idSet.template subId<1>(*eIt->father(),0)];
-                RigidBodyMotion<3> p1 = dofMap[idSet.template subId<1>(*eIt->father(),1)];
+                RigidBodyMotion<3> p0 = dofMap[idSet.subId(*eIt->father(),0,1)];
+                RigidBodyMotion<3> p1 = dofMap[idSet.subId(*eIt->father(),1,1)];
 
-                x[indexSet.template subIndex<1>(*eIt,i)].r = (p0.r + p1.r);
-                x[indexSet.template subIndex<1>(*eIt,i)].r *= 0.5;
-                x[indexSet.template subIndex<1>(*eIt,i)].q
+                x[indexSet.subIndex(*eIt,i,1)].r = (p0.r + p1.r);
+                x[indexSet.subIndex(*eIt,i,1)].r *= 0.5;
+                x[indexSet.subIndex(*eIt,i,1)].q
                     = Rotation<3,double>::interpolate(p0.q, p1.q, 0.5);
 
             }
