@@ -7,6 +7,8 @@
 
 #include <dune/istl/io.hh>
 
+#include <dune/disc/miscoperators/massmatrix.hh>
+#include <dune/disc/miscoperators/laplace.hh>
 
 #include <dune-solvers/solvers/iterativesolver.hh>
 #include <dune-solvers/norms/energynorm.hh>
@@ -173,12 +175,23 @@ int main (int argc, char *argv[]) try
     solve(referenceGrid, referenceSolution, numLevels, dirichletValue, parameterSet);
 
 
+    // //////////////////////////////////////////////////////////////////////
+    //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
+    // //////////////////////////////////////////////////////////////////////
+
+    Dune::LeafP1Function<GridType,double> u(referenceGrid),f(referenceGrid);
+
+    Dune::MassMatrixLocalStiffness<GridType::LeafGridView,double,1> massMatrixStiffness;
+    Dune::LeafP1OperatorAssembler<GridType,double,1> massMatrix(referenceGrid);
+    massMatrix.assemble(massMatrixStiffness,u,f);
+
+    Dune::LaplaceLocalStiffness<GridType::LeafGridView,double> laplaceStiffness;
+    Dune::LeafP1OperatorAssembler<GridType,double,1> laplace(referenceGrid);
+    laplace.assemble(laplaceStiffness,u,f);
 
     // ///////////////////////////////////////////////////////////
     //   Compute on all coarser levels, and compare
     // ///////////////////////////////////////////////////////////
-
-    
     
     for (int i=1; i<=numLevels; i++) {
 
@@ -199,9 +212,22 @@ int main (int argc, char *argv[]) try
 
         assert(referenceSolution.size() == solution.size());
 
+        BlockVector<TargetSpace::TangentVector> difference = computeGeodesicDifference(solution,referenceSolution);
+
+        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > h1Norm(*laplace);
+        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > l2Norm(*massMatrix);
+
         // Compute max-norm difference
         std::cout << "Level: " << i-1 
-                  << ",   max-norm error: " << computeGeodesicDifference(solution,referenceSolution).infinity_norm()
+                  << ",   max-norm error: " << difference.infinity_norm()
+                  << std::endl;
+
+        std::cout << "Level: " << i-1 
+                  << ",   L2 error: " << l2Norm(difference)
+                  << std::endl;
+
+        std::cout << "Level: " << i-1 
+                  << ",   H1 error: " << h1Norm(difference)
                   << std::endl;
 
     }    
