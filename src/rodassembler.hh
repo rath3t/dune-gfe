@@ -65,11 +65,6 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
             dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
         }
 
-        /** \brief Assemble the tangent stiffness matrix
-         */
-        void assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
-                            Dune::BCRSMatrix<MatrixBlock>& matrix) const;
-
         void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 

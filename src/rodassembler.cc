@@ -45,54 +45,6 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
     
 }
 
-
-template <class GridType>
-void RodAssembler<GridType>::
-assembleMatrix(const std::vector<RigidBodyMotion<3> >& sol,
-               Dune::BCRSMatrix<MatrixBlock>& matrix) const
-{
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
-
-    Dune::MatrixIndexSet neighborsPerVertex;
-    getNeighborsPerVertex(neighborsPerVertex);
-    
-    matrix = 0;
-    
-    ElementIterator it    = grid_->template lbegin<0>( grid_->maxLevel() );
-    ElementIterator endit = grid_->template lend<0> ( grid_->maxLevel() );
-
-    for( ; it != endit; ++it ) {
-        
-        const Dune::LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
-        const int numOfBaseFct = baseSet.size();  
-        
-        // Extract local solution
-        std::vector<RigidBodyMotion<3> > localSolution(numOfBaseFct);
-        
-        for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
-
-        // setup matrix 
-        this->localStiffness_->assemble(*it, localSolution);
-
-        // Add element matrix to global stiffness matrix
-        for(int i=0; i<numOfBaseFct; i++) { 
-            
-            int row = indexSet.subIndex(*it,i,gridDim);
-
-            for (int j=0; j<numOfBaseFct; j++ ) {
-                
-                int col = indexSet.subIndex(*it,j,gridDim);
-                matrix[row][col] += this->localStiffness_->mat(i,j);
-                
-            }
-        }
-
-    }
-
-}
-
 template <class GridType>
 void RodAssembler<GridType>::
 assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
