@@ -3,8 +3,9 @@
 #include <dune/istl/io.hh>
 
 #include <dune/disc/functions/p1function.hh>
-#include <dune/disc/miscoperators/laplace.hh>
 #include <dune/disc/operators/p1operator.hh>
+#include <dune/disc/miscoperators/laplace.hh>
+#include <dune/disc/miscoperators/massmatrix.hh>
 
 // For using a monotone multigrid as the inner solver
 #include <dune-solvers/iterationsteps/trustregiongsstep.hh>
@@ -180,18 +181,27 @@ setupTCG(const GridType& grid,
     
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
+    //   This is used to measure convergence of the inner solver
     // //////////////////////////////////////////////////////////////////////////////////////
     Dune::LeafP1Function<GridType,double> u(grid),f(grid);
     Dune::LaplaceLocalStiffness<typename GridType::LeafGridView,double> laplaceStiffness;
     Dune::LeafP1OperatorAssembler<GridType,double,1>* A = new Dune::LeafP1OperatorAssembler<GridType,double,1>(grid);
     A->assemble(laplaceStiffness,u,f);
 
-    typedef typename Dune::LeafP1OperatorAssembler<GridType,double,1>::RepresentationType LaplaceMatrixType;
-
     if (h1SemiNorm_)
         delete h1SemiNorm_;
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
+
+    // //////////////////////////////////////////////////////////////////////////////////////
+    //   Assemble a mass matrix to create a norm that's equivalent to the L2-norm
+    //   This is used to to define the trust region
+    // //////////////////////////////////////////////////////////////////////////////////////
+
+    Dune::LeafP1Function<GridType,double,blocksize> uvv(grid),fvv(grid);
+    Dune::MassMatrixLocalStiffness<typename GridType::LeafGridView,double,blocksize> massMatrixStiffness;
+    Dune::LeafP1OperatorAssembler<GridType,double,blocksize>* B = new Dune::LeafP1OperatorAssembler<GridType,double,blocksize>(grid);
+    B->assemble(massMatrixStiffness,uvv,fvv);
 
     // ////////////////////////////////////////////////////
     //   Create a truncated conjugate gradient solver
@@ -200,6 +210,7 @@ setupTCG(const GridType& grid,
     innerSolver_ = new TruncatedCGSolver<MatrixType,CorrectionType>(innerIterations_,
                                                                     innerTolerance_,
                                                                     h1SemiNorm_,
+                                                                    &**B,  // the norm of the trust region
                                                                     Solver::FULL);
 
     // Write all intermediate solutions, if requested
