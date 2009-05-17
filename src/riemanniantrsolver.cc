@@ -203,11 +203,30 @@ setupTCG(const GridType& grid,
     Dune::LeafP1OperatorAssembler<GridType,double,blocksize>* B = new Dune::LeafP1OperatorAssembler<GridType,double,blocksize>(grid);
     B->assemble(massMatrixStiffness,uvv,fvv);
 
+    // /////////////////////////////////////////////////////////
+    //   Scale rotational components
+    // /////////////////////////////////////////////////////////
+#warning RigidBody-specific stuff hardwired into the RiemannianTRSolver!
+
+    int alpha = 1;
+    for (int i=0; i<(**B).N(); i++) {
+
+        // make matrix row an identity row
+        typename MatrixType::row_type::Iterator cIt    = (**B)[i].begin();
+        typename MatrixType::row_type::Iterator cEndIt = (**B)[i].end();
+        
+        for (; cIt!=cEndIt; ++cIt)
+            for (int j=0; j<3; j++)
+                (*cIt)[j][j] *= alpha;
+
+    }
+
     // ////////////////////////////////////////////////////
     //   Create a truncated conjugate gradient solver
     // ////////////////////////////////////////////////////
 
-    innerSolver_ = new TruncatedCGSolver<MatrixType,CorrectionType>(innerIterations_,
+    innerSolver_ = new TruncatedCGSolver<MatrixType,CorrectionType>(NULL,   // the preconditioner
+                                                                    innerIterations_,
                                                                     innerTolerance_,
                                                                     h1SemiNorm_,
                                                                     &**B,  // the norm of the trust region
@@ -310,6 +329,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         }
 
+        // The cg solver overwrites the rhs.  Therefore it is given a copy
+        CorrectionType backupRhs = rhs;
 
         if (mgStep) {  // inner solver is a monotone multigrid
 
@@ -321,7 +342,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         } else {       // inner solver is a truncated cg
 
             assert((dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_)));
-            dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_)->setProblem(*hessianMatrix_, &corr, &rhs, trustRegion.radius());
+            dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_)->setProblem(*hessianMatrix_, 
+                                                                                                  &corr, 
+                                                                                                  &backupRhs, 
+                                                                                                  trustRegion.radius());
 
         }
 
@@ -335,9 +359,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         
         if (mgStep)
             corr = mgStep->getSol();
-        
+
         //std::cout << "Correction: " << std::endl << corr << std::endl;
-        
+
         if (instrumented_) {
 
             fprintf(fp, "Trust-region step: %d, trust-region radius: %g\n",
