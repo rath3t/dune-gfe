@@ -135,7 +135,7 @@ public:
 
             for (int m=0; m<3; m++) {
                 
-                result[m][i] = (norm==0) 
+                result[m][i] = (norm<1e10) 
                     /** \todo Isn't there a better way to implement this stably? */
                     ? 0.5 * (i==m) 
                     : 0.5 * std::cos(norm/2) * v[i] * v[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - v[i]*v[m]/(norm*norm));
@@ -152,7 +152,7 @@ public:
                       Dune::array<Dune::FieldMatrix<T,3,3>, 4>& result) {
 
         T norm = v.two_norm();
-        if (norm==0) {
+        if (norm<=1e-10) {
 
             for (int m=0; m<4; m++)
                 result[m] = 0;
