@@ -216,7 +216,7 @@ getResultantForce(const LevelBoundaryPatch<GridType>& boundary,
 {
     using namespace Dune;
 
-    if (grid_ != &boundary.getGrid())
+    if (grid_ != &boundary.gridView().grid())
         DUNE_THROW(Dune::Exception, "The boundary patch has to match the grid of the assembler!");
 
     const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
@@ -274,7 +274,7 @@ getResultantForce(const LevelBoundaryPatch<GridType>& boundary,
             // the canonical basis of R^3
 
             FieldMatrix<double,3,3> orientationMatrix;
-            sol[indexSet.subIndex(*eIt,nIt->indexInInside())].q.matrix(orientationMatrix,1);
+            sol[indexSet.subIndex(*eIt,nIt->indexInInside(),1)].q.matrix(orientationMatrix);
             
             orientationMatrix.umv(localStress, canonicalStress);
             
