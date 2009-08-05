@@ -69,6 +69,8 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
     return result;
 #endif
 
+#warning Some code out-commented
+#if 0
     Dune::FieldVector<ctype, dim+1> barycentricCoordinates;
 
     barycentricCoordinates[0] = 1;
@@ -92,6 +94,7 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
     solver.solve();
 
     return solver.getSol();
+#endif
 }
 
 template <int dim, class ctype, class TargetSpace>

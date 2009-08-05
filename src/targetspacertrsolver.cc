@@ -28,7 +28,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType, CorrectionType>* innerSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
-    EnergyNorm<MatrixType, CorrectionType>* energyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
+    EnergyNorm<MatrixType, CorrectionType>* energyNorm = new EnergyNorm<MatrixType, CorrectionType>(*innerSolverStep);
 
     innerSolver_ = new ::LoopSolver<CorrectionType>(innerSolverStep,
                                                     innerIterations,
@@ -49,6 +49,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 template <class TargetSpace>
 void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 {
+#if 0
     MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
 
     std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep) 
@@ -182,5 +183,5 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
             std::cout << "--- Current energy: " << energy << " ---" << std::endl;
 
     }
-
+#endif
 }
