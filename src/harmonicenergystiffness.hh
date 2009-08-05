@@ -49,8 +49,10 @@ energy(const Entity& element,
        const std::vector<TargetSpace>& localSolution) const
 {
     RT energy = 0;
+
+    assert(element.type().isSimplex());
     
-    LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(element.type(), localSolution);
+    LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(localSolution);
 
     int quadOrder = 1;//gridDim;
 
