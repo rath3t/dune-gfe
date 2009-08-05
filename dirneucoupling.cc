@@ -17,7 +17,7 @@
 #include <dune-solvers/solvers/loopsolver.hh>
 #include <dune-solvers/iterationsteps/projectedblockgsstep.hh>
 #ifdef HAVE_IPOPT
-#include <dune/ag-common/quadraticipopt.hh>
+#include <dune-solvers/solvers/quadraticipopt.hh>
 #endif
 #include <dune/ag-common/readbitfield.hh>
 #include <dune-solvers/norms/energynorm.hh>
@@ -208,7 +208,7 @@ int main (int argc, char *argv[]) try
     dirichletValues[0].resize(grid.size(0, dim));
     AmiraMeshReader<int>::readFunction(dirichletValues[0], path + dirichletValuesFile);
 
-    std::vector<BoundaryPatch<GridType> > dirichletBoundary;
+    std::vector<LevelBoundaryPatch<GridType> > dirichletBoundary;
     dirichletBoundary.resize(numLevels);
     dirichletBoundary[0].setup(grid, 0);
     readBoundaryPatch(dirichletBoundary[0], path + dirichletNodesFile);
@@ -229,7 +229,7 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////
     //   Determine the interface boundary
     // /////////////////////////////////////////////////////
-    std::vector<BoundaryPatch<GridType> > interfaceBoundary;
+    std::vector<LevelBoundaryPatch<GridType> > interfaceBoundary;
     interfaceBoundary.resize(numLevels);
     interfaceBoundary[0].setup(grid, 0);
     readBoundaryPatch(interfaceBoundary[0], path + interfaceNodesFile);
@@ -395,7 +395,7 @@ int main (int argc, char *argv[]) try
         BitSetVector<1> couplingBitfield(rodX.size(),false);
         // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
         couplingBitfield[0] = true;
-        BoundaryPatch<RodGridType> couplingBoundary(rodGrid, rodGrid.maxLevel(), couplingBitfield);
+        LevelBoundaryPatch<RodGridType> couplingBoundary(rodGrid, rodGrid.maxLevel(), couplingBitfield);
 
         FieldVector<double,dim> resultantForce, resultantTorque;
         resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
