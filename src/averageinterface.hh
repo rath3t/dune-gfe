@@ -29,7 +29,7 @@ class PressureAverager : public Ipopt::TNLP
 
 public:
     /** \brief Constructor */
-    PressureAverager(const BoundaryPatch<GridType>* patch,
+    PressureAverager(const LevelBoundaryPatch<GridType>* patch,
                      Dune::BlockVector<Dune::FieldVector<double,dim> >* result,
                      const Dune::FieldVector<double,dim>& resultantForce,
                      const Dune::FieldVector<double,dim>& resultantTorque,
@@ -111,7 +111,7 @@ public:
     */
     const double jacobianCutoff_;
 
-    const BoundaryPatch<GridType>* patch_;
+    const LevelBoundaryPatch<GridType>* patch_;
 
     double patchArea_;
 
@@ -408,11 +408,11 @@ finalize_solution(Ipopt::SolverReturn status,
 template <class GridType>
 void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>& resultantForce,
                             const Dune::FieldVector<double,GridType::dimension>& resultantTorque,
-                            const BoundaryPatch<GridType>& interface,
+                            const LevelBoundaryPatch<GridType>& interface,
                             const RigidBodyMotion<3>& crossSection,
                             Dune::BlockVector<Dune::FieldVector<double, GridType::dimension> >& pressure)
 {
-    const GridType& grid = interface.getGrid();
+    const GridType& grid = interface.gridView().grid();
     const int level      = interface.level();
     const typename GridType::Traits::LevelIndexSet& indexSet = grid.levelIndexSet(level);
     const int dim        = GridType::dimension;
@@ -456,8 +456,8 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     Dune::BlockVector<Dune::FieldVector<double,1> > nodalWeights(interface.numVertices());
     nodalWeights = 0;
 
-    typename BoundaryPatch<GridType>::iterator it    = interface.begin();
-    typename BoundaryPatch<GridType>::iterator endIt = interface.end();
+    typename LevelBoundaryPatch<GridType>::iterator it    = interface.begin();
+    typename LevelBoundaryPatch<GridType>::iterator endIt = interface.end();
 
     for (; it!=endIt; ++it) {
 
@@ -638,7 +638,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 }
 
 template <class GridType>
-void computeAverageInterface(const BoundaryPatch<GridType>& interface,
+void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
                              const Dune::BlockVector<Dune::FieldVector<double,GridType::dimension> > deformation,
                              RigidBodyMotion<3>& average)
 {
@@ -648,7 +648,7 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     typedef typename GridType::template Codim<0>::Entity EntityType;
     typedef typename EntityType::LevelIntersectionIterator NeighborIterator;
 
-    const GridType& grid = interface.getGrid();
+    const GridType& grid = interface.gridView().grid();
     const int level      = interface.level();
     const typename GridType::Traits::LevelIndexSet& indexSet = grid.levelIndexSet(level);
     const int dim        = GridType::dimension;
@@ -665,8 +665,8 @@ void computeAverageInterface(const BoundaryPatch<GridType>& interface,
     //   Loop and integrate over the interface
     // ///////////////////////////////////////////
 
-    typename BoundaryPatch<GridType>::iterator it    = interface.begin();
-    typename BoundaryPatch<GridType>::iterator endIt = interface.end();
+    typename LevelBoundaryPatch<GridType>::iterator it    = interface.begin();
+    typename LevelBoundaryPatch<GridType>::iterator endIt = interface.end();
 
     for (; it!=endIt; ++it) {
 
