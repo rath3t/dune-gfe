@@ -210,7 +210,7 @@ getStress(const std::vector<RigidBodyMotion<3> >& sol,
 
 template <class GridType>
 Dune::FieldVector<double,3> RodAssembler<GridType>::
-getResultantForce(const BoundaryPatch<GridType>& boundary, 
+getResultantForce(const LevelBoundaryPatch<GridType>& boundary, 
                   const std::vector<RigidBodyMotion<3> >& sol,
                   Dune::FieldVector<double,3>& canonicalTorque) const
 {
@@ -274,7 +274,7 @@ getResultantForce(const BoundaryPatch<GridType>& boundary,
             // the canonical basis of R^3
 
             FieldMatrix<double,3,3> orientationMatrix;
-            sol[indexSet.template subIndex<1>(*eIt,nIt->numberInSelf())].q.matrix(orientationMatrix);
+            sol[indexSet.subIndex(*eIt,nIt->indexInInside())].q.matrix(orientationMatrix,1);
             
             orientationMatrix.umv(localStress, canonicalStress);
             
