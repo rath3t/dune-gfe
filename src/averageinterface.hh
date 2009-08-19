@@ -462,7 +462,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     for (; it!=endIt; ++it) {
 
             const Dune::LagrangeShapeFunctionSet<ctype, field_type, dim-1>& baseSet
-                = Dune::LagrangeShapeFunctions<ctype, field_type, dim-1>::general(it->intersectionGlobal().type(),1);
+                = Dune::LagrangeShapeFunctions<ctype, field_type, dim-1>::general(it->geometry().type(),1);
 
             const Dune::ReferenceElement<double,dim>& refElement = Dune::ReferenceElements<double, dim>::general(it->inside()->type());
 
@@ -474,23 +474,23 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                 for (int j=0; j<3; j++)
                     mu_tilde[i][j] = 0;
 
-            for (int i=0; i<it->intersectionGlobal().corners(); i++) {
+            for (int i=0; i<it->geometry().corners(); i++) {
                 
                 const Dune::QuadratureRule<double, dim-1>& quad 
-                    = Dune::QuadratureRules<double, dim-1>::rule(it->intersectionGlobal().type(), dim-1);
+                    = Dune::QuadratureRules<double, dim-1>::rule(it->geometry().type(), dim-1);
                 
                 for (size_t qp=0; qp<quad.size(); qp++) {
                     
                     // Local position of the quadrature point
                     const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
                     
-                    const double integrationElement = it->intersectionGlobal().integrationElement(quadPos);
+                    const double integrationElement = it->geometry().integrationElement(quadPos);
                     
                     // \mu_i = \int_t \varphi_i \ds
                     mu[i] += quad[qp].weight() * integrationElement * baseSet[i].evaluateFunction(0,quadPos);
                     
                     // \tilde{\mu}_i^j = \int_t \varphi_i \times (x - x_0) \ds
-                    Dune::FieldVector<double,dim> worldPos = it->intersectionGlobal().global(quadPos);
+                    Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
 
                     for (int j=0; j<dim; j++) {
 
@@ -510,8 +510,8 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             // Set up matrix
             for (int i=0; i<baseSet.size(); i++) {
                 
-                int faceIdxi = refElement.subEntity(it->numberInSelf(), 1, i, dim);
-                int subIndex = globalToLocal[indexSet.template subIndex<dim>(*it->inside(), faceIdxi)];
+                int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
+                int subIndex = globalToLocal[indexSet.subIndex(*it->inside(), faceIdxi, dim)];
 
                 nodalWeights[subIndex] += mu[i];
                 for (int j=0; j<dim; j++)
@@ -588,10 +588,10 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     for (it=interface.begin(); it!=endIt; ++it) {
 
             const Dune::LagrangeShapeFunctionSet<double, double, dim-1>& baseSet
-                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(it->intersectionGlobal().type(),1);
+                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(it->geometry().type(),1);
             
             const Dune::QuadratureRule<double, dim-1>& quad 
-                = Dune::QuadratureRules<double, dim-1>::rule(it->intersectionGlobal().type(), dim-1);
+                = Dune::QuadratureRules<double, dim-1>::rule(it->geometry().type(), dim-1);
             
             const Dune::ReferenceElement<double,dim>& refElement = Dune::ReferenceElements<double, dim>::general(it->inside()->type());
 
@@ -600,15 +600,15 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                 // Local position of the quadrature point
                 const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
                 
-                const double integrationElement = it->intersectionGlobal().integrationElement(quadPos);
+                const double integrationElement = it->geometry().integrationElement(quadPos);
                 
                 // Evaluate function
                 Dune::FieldVector<double,dim> localPressure(0);
                 
                 for (size_t i=0; i<baseSet.size(); i++) {
 
-                    int faceIdxi = refElement.subEntity(it->numberInSelf(), 1, i, dim);
-                    int subIndex = indexSet.template subIndex<dim>(*it->inside(), faceIdxi);
+                    int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
+                    int subIndex = indexSet.subIndex(*it->inside(), faceIdxi, dim);
                     
                     localPressure.axpy(baseSet[i].evaluateFunction(0,quadPos),
                                        pressure[subIndex]);
@@ -619,7 +619,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                 outputForce.axpy(quad[qp].weight()*integrationElement, localPressure);
 
                 // Sum up the total torque   \int (x - x_0) \times f dx
-                Dune::FieldVector<double,dim> worldPos = it->intersectionGlobal().global(quadPos);
+                Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
                 outputTorque.axpy(quad[qp].weight()*integrationElement, 
                                   crossProduct(worldPos - crossSection.r, localPressure));
 
@@ -670,7 +670,7 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
 
     for (; it!=endIt; ++it) {
 
-            const typename NeighborIterator::Geometry& segmentGeometry = it->intersectionGlobal();
+            const typename NeighborIterator::Geometry& segmentGeometry = it->geometry();
 
             // Get quadrature rule
             const QuadratureRule<double, dim-1>& quad = QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
@@ -683,7 +683,7 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
             for (int ip=0; ip<quad.size(); ip++) {
                 
                 // Local position of the quadrature point
-                const FieldVector<double,dim> quadPos = it->intersectionSelfLocal().global(quad[ip].position());
+                const FieldVector<double,dim> quadPos = it->geometryInInside().global(quad[ip].position());
                 
                 const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
 
@@ -692,7 +692,7 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
 
                 for(int i=0; i<it->inside()->geometry().corners(); i++) {
 
-                    int idx = indexSet.template subIndex<dim>(*it->inside(), i);
+                    int idx = indexSet.subIndex(*it->inside(), i, dim);
 
                     // Deformation at the quadrature point 
                     posAtQuadPoint.axpy(sfs[i].evaluateFunction(0,quadPos), deformation[idx]);
@@ -729,7 +729,7 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
                         F[i][j] = (i==j) ? 1 : 0;
                         
                         for (int k=0; k<it->inside()->geometry().corners(); k++)
-                            F[i][j] += deformation[indexSet.template subIndex<dim>(*it->inside(), k)][i]*shapeGrads[k][j];
+                            F[i][j] += deformation[indexSet.subIndex(*it->inside(), k, dim)][i]*shapeGrads[k][j];
                         
                     }
                     

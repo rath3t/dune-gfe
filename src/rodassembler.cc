@@ -249,15 +249,15 @@ getResultantForce(const LevelBoundaryPatch<GridType>& boundary,
             //   Compute force across this boundary face
             // //////////////////////////////////////////////
 
-            double pos = nIt->intersectionSelfLocal().corner(0);
+            double pos = nIt->geometryInInside().corner(0);
 
             std::vector<RigidBodyMotion<3> > localSolution(2);
-            localSolution[0] = sol[indexSet.template subIndex<1>(*eIt,0)];
-            localSolution[1] = sol[indexSet.template subIndex<1>(*eIt,1)];
+            localSolution[0] = sol[indexSet.subIndex(*eIt,0,1)];
+            localSolution[1] = sol[indexSet.subIndex(*eIt,1,1)];
 
             std::vector<RigidBodyMotion<3> > localRefConf(2);
-            localRefConf[0] = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,0)];
-            localRefConf[1] = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.template subIndex<1>(*eIt,1)];
+            localRefConf[0] = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.subIndex(*eIt,0,1)];
+            localRefConf[1] = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.subIndex(*eIt,1,1)];
 
             FieldVector<double, blocksize> strain          = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->getStrain(localSolution, *eIt, pos);
             FieldVector<double, blocksize> referenceStrain = dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->getStrain(localRefConf, *eIt, pos);
