@@ -312,7 +312,7 @@ int main (int argc, char *argv[]) try
     multigridStep.mgTransfer_.resize(toplevel);
     
     for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
-        TruncatedCompressedMGTransfer<VectorType>* newTransferOp = new TruncatedCompressedMGTransfer<VectorType>;
+        CompressedMultigridTransfer<VectorType>* newTransferOp = new CompressedMultigridTransfer<VectorType>;
         newTransferOp->setup(grid,i,i+1);
         multigridStep.mgTransfer_[i] = newTransferOp;
     }
