@@ -35,6 +35,7 @@
 #include "src/riemanniantrsolver.hh"
 #include "src/geodesicdifference.hh"
 #include "src/rodwriter.hh"
+#include "src/makestraightrod.hh"
 
 // Space dimension
 const int dim = 3;
@@ -49,41 +50,6 @@ using std::vector;
 typedef vector<RigidBodyMotion<dim> >              RodSolutionType;
 typedef BlockVector<FieldVector<double, 6> >       RodDifferenceType;
 
-
-// Make a straight rod from two given endpoints
-void makeStraightRod(RodSolutionType& rod, int n,
-                     const FieldVector<double,3>& beginning, const FieldVector<double,3>& end)
-{
-    // Compute the correct orientation
-    Rotation<3,double> orientation = Rotation<3,double>::identity();
-
-    FieldVector<double,3> zAxis(0);
-    zAxis[2] = 1;
-    FieldVector<double,3> axis = crossProduct(end-beginning, zAxis);
-
-    if (axis.two_norm() != 0)
-        axis /= -axis.two_norm();
-
-    FieldVector<double,3> d3 = end-beginning;
-    d3 /= d3.two_norm();
-
-    double angle = std::acos(zAxis * d3);
-
-    if (angle != 0)
-        orientation = Rotation<3,double>(axis, angle);
-
-    // Set the values
-    rod.resize(n);
-    for (int i=0; i<n; i++) {
-
-        rod[i].r = beginning;
-        rod[i].r.axpy(double(i) / (n-1), end-beginning);
-        rod[i].q = orientation;
-
-    }
-
-
-}
 
 int main (int argc, char *argv[]) try
 {
@@ -171,14 +137,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
-#if 0
-    for (int i=0; i<rodX.size(); i++) {
-        rodX[i].r[0] = 0.5;
-        rodX[i].r[1] = 0.5;
-        rodX[i].r[2] = 5 + (i* 5.0 /(rodX.size()-1));
-        rodX[i].q = Quaternion<double>::identity();
-    }
-#endif
+
     makeStraightRod(rodX, rodGrid.size(1), rodRestEndPoint[0], rodRestEndPoint[1]);
 
     // /////////////////////////////////////////
