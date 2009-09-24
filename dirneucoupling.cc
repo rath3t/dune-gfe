@@ -471,16 +471,10 @@ int main (int argc, char *argv[]) try
         std::stringstream iAsAscii;
         iAsAscii << i;
         std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
-            
-        FILE* fp = fopen(iSolFilename.c_str(), "wb");
-        if (!fp)
-            DUNE_THROW(SolverError, "Couldn't open file " << iSolFilename << " for writing");
-            
-        for (int j=0; j<x3d.size(); j++)
-            for (int k=0; k<dim; k++)
-                fwrite(&x3d[j][k], sizeof(double), 1, fp);
 
-        fclose(fp);
+        LeafAmiraMeshWriter<GridType> amiraMeshWriter;
+        amiraMeshWriter.addVertexData(x3d, grid.leafView());
+        amiraMeshWriter.write(iSolFilename);
 
         // Then the rod
         iSolFilename = resultPath + "tmp/intermediateRodSolution_" + iAsAscii.str();
@@ -619,19 +613,13 @@ int main (int argc, char *argv[]) try
         std::stringstream iAsAscii;
         iAsAscii << i;
         std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
-            
-        FILE* fpInt = fopen(iSolFilename.c_str(), "rb");
-        if (!fpInt)
-            DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
-        for (int j=0; j<intermediateSol3d.size(); j++)
-            fread(&intermediateSol3d[j], sizeof(double), dim, fpInt);
-        
-        fclose(fpInt);
+      
+        AmiraMeshReader<int>::readFunction(intermediateSol3d, iSolFilename);
 
         // Read rod solution from file
         iSolFilename = resultPath + "tmp/intermediateRodSolution_" + iAsAscii.str();
             
-        fpInt = fopen(iSolFilename.c_str(), "rb");
+        FILE* fpInt = fopen(iSolFilename.c_str(), "rb");
         if (!fpInt)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
         for (int j=0; j<intermediateSolRod.size(); j++) {
