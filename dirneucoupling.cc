@@ -719,7 +719,7 @@ int main (int argc, char *argv[]) try
 
     BlockVector<FieldVector<double,1> > stress;
     Stress<GridType>::getStress(grid, x3d, stress, E, nu);
-    amiraMeshWriter.addVertexData(stress, grid.leafView());
+    amiraMeshWriter.addCellData(stress, grid.leafView());
 
     amiraMeshWriter.write(resultPath + "grid.result");
 
