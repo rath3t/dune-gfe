@@ -7,8 +7,10 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/disc/miscoperators/massmatrix.hh>
-#include <dune/disc/miscoperators/laplace.hh>
+#include <dune/ag-common/functionspacebases/p1nodalbasis.hh>
+#include <dune/ag-common/assemblers/operatorassembler.hh>
+#include <dune/ag-common/assemblers/localassemblers/laplaceassembler.hh>
+#include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
 
 #include <dune-solvers/solvers/iterativesolver.hh>
 #include <dune-solvers/norms/energynorm.hh>
@@ -179,15 +181,18 @@ int main (int argc, char *argv[]) try
     //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
     // //////////////////////////////////////////////////////////////////////
 
-    Dune::LeafP1Function<GridType,double> u(referenceGrid),f(referenceGrid);
+    typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
+    FEBasis basis(referenceGrid.leafView());
+    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
 
-    Dune::MassMatrixLocalStiffness<GridType::LeafGridView,double,1> massMatrixStiffness;
-    Dune::LeafP1OperatorAssembler<GridType,double,1> massMatrix(referenceGrid);
-    massMatrix.assemble(massMatrixStiffness,u,f);
+    LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;
+    MassAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> massMatrixLocalAssembler;
 
-    Dune::LaplaceLocalStiffness<GridType::LeafGridView,double> laplaceStiffness;
-    Dune::LeafP1OperatorAssembler<GridType,double,1> laplace(referenceGrid);
-    laplace.assemble(laplaceStiffness,u,f);
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
+    ScalarMatrixType laplace, massMatrix;
+
+    operatorAssembler.assemble(laplaceLocalAssembler, laplace);
+    operatorAssembler.assemble(massMatrixLocalAssembler, massMatrix);
 
     // ///////////////////////////////////////////////////////////
     //   Compute on all coarser levels, and compare
@@ -214,8 +219,8 @@ int main (int argc, char *argv[]) try
 
         BlockVector<TargetSpace::TangentVector> difference = computeGeodesicDifference(solution,referenceSolution);
 
-        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > h1Norm(*laplace);
-        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > l2Norm(*massMatrix);
+        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > h1Norm(laplace);
+        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > l2Norm(massMatrix);
 
         // Compute max-norm difference
         std::cout << "Level: " << i-1 

@@ -3,12 +3,9 @@
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/uggrid.hh>
 
-#include <dune/disc/elasticity/linearelasticityassembler.hh>
-#include <dune/disc/operators/p1operator.hh>
 #include <dune/istl/io.hh>
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
-
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
@@ -26,6 +23,10 @@
 #include <dune/ag-common/sampleonbitfield.hh>
 #include <dune/ag-common/neumannassembler.hh>
 #include <dune/ag-common/computestress.hh>
+
+#include <dune/ag-common/functionspacebases/q1nodalbasis.hh>
+#include <dune/ag-common/assemblers/operatorassembler.hh>
+#include <dune/ag-common/assemblers/localassemblers/stvenantkirchhoffassembler.hh>
 
 #include "src/quaternion.hh"
 #include "src/rodassembler.hh"
@@ -238,10 +239,15 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////// 
     //   Assemble 3d linear elasticity problem
     // //////////////////////////////////////////
-    LeafP1Function<GridType,double,dim> u(grid),f(grid);
-    LinearElasticityLocalStiffness<GridType::LeafGridView,double> lstiff(E, nu);
-    LeafP1OperatorAssembler<GridType,double,dim> hessian3d(grid);
-    hessian3d.assemble(lstiff,u,f);
+
+    typedef Q1NodalBasis<GridType::LeafGridView,double> FEBasis;
+    FEBasis basis(grid.leafView());
+    OperatorAssembler<FEBasis,FEBasis> assembler(basis, basis);
+
+    StVenantKirchhoffAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> localAssembler(E, nu);
+    MatrixType stiffnessMatrix3d;
+
+    assembler.assemble(localAssembler, stiffnessMatrix3d);
 
     // ////////////////////////////////////////////////////////////
     //    Create solution and rhs vectors
@@ -318,7 +324,7 @@ int main (int argc, char *argv[]) try
     // Make pre and postsmoothers
     BlockGSStep<MatrixType, VectorType> presmoother, postsmoother;
 
-    MultigridStep<MatrixType, VectorType> multigridStep(*hessian3d, x3d, rhs3d, 1);
+    MultigridStep<MatrixType, VectorType> multigridStep(stiffnessMatrix3d, x3d, rhs3d, 1);
 
     multigridStep.setMGType(mu, nu1, nu2);
     multigridStep.ignoreNodes_       = &dirichletNodes.back();
@@ -419,7 +425,7 @@ int main (int argc, char *argv[]) try
         // ///////////////////////////////////////////////////////////
         //   Solve the Neumann problem for the 3d body
         // ///////////////////////////////////////////////////////////
-        multigridStep.setProblem(*hessian3d, x3d, rhs3d, grid.maxLevel()+1);
+        multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
         
         solver.preprocess();
         multigridStep.preprocess();
@@ -500,9 +506,9 @@ int main (int argc, char *argv[]) try
         // ////////////////////////////////////////////
 
         // the 3d body
-        double oldNorm = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, *hessian3d);
+        double oldNorm = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, stiffnessMatrix3d);
         oldSolution3d -= x3d;
-        double normOfCorrection = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, *hessian3d);
+        double normOfCorrection = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, stiffnessMatrix3d);
 
         double max3dRelCorrection = 0;
         for (size_t j=0; j<x3d.size(); j++)
@@ -581,7 +587,7 @@ int main (int argc, char *argv[]) try
     
     // This should really be exactSol-initialSol, but we're starting
     // from zero anyways
-    oldError += EnergyNorm<MatrixType,VectorType>::normSquared(exactSol3d, *hessian3d);
+    oldError += EnergyNorm<MatrixType,VectorType>::normSquared(exactSol3d, stiffnessMatrix3d);
     
     // Error of the initial rod iterate
     RodDifferenceType rodDifference = computeGeodesicDifference(initialIterateRod, exactSolRod);
@@ -646,7 +652,7 @@ int main (int argc, char *argv[]) try
 
         RodDifferenceType rodDifference = computeGeodesicDifference(exactSolRod, intermediateSolRod);
         
-        error = std::sqrt(EnergyNorm<MatrixType,VectorType>::normSquared(solBackup0, *hessian3d)
+        error = std::sqrt(EnergyNorm<MatrixType,VectorType>::normSquared(solBackup0, stiffnessMatrix3d)
                           +
                           EnergyNorm<BCRSMatrix<FieldMatrix<double,6,6> >,RodDifferenceType>::normSquared(rodDifference, hessianRod));
         
@@ -712,7 +718,7 @@ int main (int argc, char *argv[]) try
     amiraMeshWriter.addVertexData(x3d, grid.leafView());
 
     BlockVector<FieldVector<double,1> > stress;
-    Stress<GridType,dim>::getStress(grid, x3d, stress, E, nu);
+    Stress<GridType>::getStress(grid, x3d, stress, E, nu);
     amiraMeshWriter.addVertexData(stress, grid.leafView());
 
     amiraMeshWriter.write(resultPath + "grid.result");

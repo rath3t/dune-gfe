@@ -2,10 +2,10 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/disc/functions/p1function.hh>
-#include <dune/disc/operators/p1operator.hh>
-#include <dune/disc/miscoperators/laplace.hh>
-#include <dune/disc/miscoperators/massmatrix.hh>
+#include <dune/ag-common/functionspacebases/p1nodalbasis.hh>
+#include <dune/ag-common/assemblers/operatorassembler.hh>
+#include <dune/ag-common/assemblers/localassemblers/laplaceassembler.hh>
+#include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
 
 // For using a monotone multigrid as the inner solver
 #include <dune-solvers/iterationsteps/trustregiongsstep.hh>
@@ -89,17 +89,20 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
-    Dune::LeafP1Function<GridType,double> u(grid),f(grid);
-    Dune::LaplaceLocalStiffness<typename GridType::LeafGridView,double> laplaceStiffness;
-    Dune::LeafP1OperatorAssembler<GridType,double,1>* A = new Dune::LeafP1OperatorAssembler<GridType,double,1>(grid);
-    A->assemble(laplaceStiffness,u,f);
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+    FEBasis basis(grid.leafView());
+    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
 
-    typedef typename Dune::LeafP1OperatorAssembler<GridType,double,1>::RepresentationType LaplaceMatrixType;
+    LaplaceAssembler<GridType, typename FEBasis::LocalFiniteElement, typename FEBasis::LocalFiniteElement> laplaceStiffness;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
+    ScalarMatrixType* A = new ScalarMatrixType;
+
+    operatorAssembler.assemble(laplaceStiffness, *A);
 
     if (h1SemiNorm_)
         delete h1SemiNorm_;
 
-    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
+    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
 
     innerSolver_ = new ::LoopSolver<CorrectionType>(mmgStep,
                                                     innerIterations_,
@@ -183,25 +186,30 @@ setupTCG(const GridType& grid,
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     //   This is used to measure convergence of the inner solver
     // //////////////////////////////////////////////////////////////////////////////////////
-    Dune::LeafP1Function<GridType,double> u(grid),f(grid);
-    Dune::LaplaceLocalStiffness<typename GridType::LeafGridView,double> laplaceStiffness;
-    Dune::LeafP1OperatorAssembler<GridType,double,1>* A = new Dune::LeafP1OperatorAssembler<GridType,double,1>(grid);
-    A->assemble(laplaceStiffness,u,f);
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+    FEBasis basis(grid.leafView());
+    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
+
+    LaplaceAssembler<GridType, typename FEBasis::LocalFiniteElement, typename FEBasis::LocalFiniteElement> laplaceStiffness;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
+    ScalarMatrixType* A = new ScalarMatrixType;
+
+    operatorAssembler.assemble(laplaceStiffness, *A);
 
     if (h1SemiNorm_)
         delete h1SemiNorm_;
 
-    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(**A);
+    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
 
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a mass matrix to create a norm that's equivalent to the L2-norm
     //   This is used to to define the trust region
     // //////////////////////////////////////////////////////////////////////////////////////
 
-    Dune::LeafP1Function<GridType,double,blocksize> uvv(grid),fvv(grid);
-    Dune::MassMatrixLocalStiffness<typename GridType::LeafGridView,double,blocksize> massMatrixStiffness;
-    Dune::LeafP1OperatorAssembler<GridType,double,blocksize>* B = new Dune::LeafP1OperatorAssembler<GridType,double,blocksize>(grid);
-    B->assemble(massMatrixStiffness,uvv,fvv);
+    MassAssembler<GridType, typename FEBasis::LocalFiniteElement, typename FEBasis::LocalFiniteElement> massMatrixStiffness;
+    MatrixType* B = new MatrixType;
+
+    operatorAssembler.assemble(massMatrixStiffness, *B);
 
     // /////////////////////////////////////////////////////////
     //   Scale rotational components
@@ -209,11 +217,11 @@ setupTCG(const GridType& grid,
 #warning RigidBody-specific stuff hardwired into the RiemannianTRSolver!
 
     int alpha = 1;
-    for (int i=0; i<(**B).N(); i++) {
+    for (int i=0; i<B->N(); i++) {
 
         // make matrix row an identity row
-        typename MatrixType::row_type::Iterator cIt    = (**B)[i].begin();
-        typename MatrixType::row_type::Iterator cEndIt = (**B)[i].end();
+        typename MatrixType::row_type::Iterator cIt    = (*B)[i].begin();
+        typename MatrixType::row_type::Iterator cEndIt = (*B)[i].end();
         
         for (; cIt!=cEndIt; ++cIt)
             for (int j=0; j<3; j++)
@@ -229,7 +237,7 @@ setupTCG(const GridType& grid,
                                                                     innerIterations_,
                                                                     innerTolerance_,
                                                                     h1SemiNorm_,
-                                                                    &**B,  // the norm of the trust region
+                                                                    B,  // the norm of the trust region
                                                                     Solver::FULL);
 
     // Write all intermediate solutions, if requested
