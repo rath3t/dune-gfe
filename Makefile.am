@@ -4,7 +4,7 @@
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
 AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
-noinst_PROGRAMS = staticrod staticrod2 rod3d harmonicmaps dirneucoupling rod-eoc
+noinst_PROGRAMS = staticrod staticrod2 rod3d harmonicmaps dirneucoupling neudircoupling rod-eoc
 
 staticrod_SOURCES = staticrod.cc
 staticrod2_SOURCES = staticrod2.cc
@@ -20,6 +20,11 @@ harmonicmaps_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMES
 dirneucoupling_SOURCES  = dirneucoupling.cc
 dirneucoupling_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
 dirneucoupling_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
+                          $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
+
+neudircoupling_SOURCES  = neudircoupling.cc
+neudircoupling_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
+neudircoupling_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
                           $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
 
 # don't follow the full GNU-standard
