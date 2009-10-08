@@ -65,6 +65,14 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
             dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
         }
 
+    void setNeumannData(const Dune::FieldVector<double, 3>& leftForce,
+                        const Dune::FieldVector<double, 3>& leftTorque,
+                        const Dune::FieldVector<double, 3>& rightForce,
+                        const Dune::FieldVector<double, 3>& rightTorque)
+    {
+        DUNE_THROW(Dune::NotImplemented, "setNeumannData");
+    }
+
         void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
