@@ -321,7 +321,7 @@ int main (int argc, char *argv[]) try
 
     // Init interface value
     RigidBodyMotion<3> referenceInterface = rodX[0];
-    RigidBodyMotion<3> lambda = referenceInterface;
+    //RigidBodyMotion<3> lambda = referenceInterface;
     FieldVector<double,3> lambdaForce(0);
     FieldVector<double,3> lambdaTorque(0);
 
@@ -331,7 +331,7 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<maxDirichletNeumannSteps; i++) {
         
         std::cout << "----------------------------------------------------" << std::endl;
-        std::cout << "      Dirichlet-Neumann Step Number: " << i << std::endl;
+        std::cout << "      Dirichlet-Neumann Step Number: " << i           << std::endl;
         std::cout << "----------------------------------------------------" << std::endl;
         
         // Backup of the current solution for the error computation later on
@@ -339,11 +339,11 @@ int main (int argc, char *argv[]) try
         RodSolutionType oldSolutionRod = rodX;
 
         // //////////////////////////////////////////////////
-        //   Dirichlet step for the rod
+        //   Neumann step for the rod
         // //////////////////////////////////////////////////
 
-        rodX[0] = lambda;
         rodSolver.setInitialSolution(rodX);
+        rodAssembler.setNeumannData(lambdaForce, lambdaTorque, FieldVector<double,3>(0), FieldVector<double,3>(0));
         rodSolver.solve();
 
         rodX = rodSolver.getSol();
@@ -352,35 +352,46 @@ int main (int argc, char *argv[]) try
 //             std::cout << rodX[j] << std::endl;
 
         // ///////////////////////////////////////////////////////////
-        //   Extract Neumann values and transfer it to the 3d object
+        //   Extract Dirichlet values and transfer it to the 3d object
         // ///////////////////////////////////////////////////////////
 
-        BitSetVector<1> couplingBitfield(rodX.size(),false);
         // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-        couplingBitfield[0] = true;
-        LevelBoundaryPatch<RodGridType> couplingBoundary(rodGrid, rodGrid.maxLevel(), couplingBitfield);
+        RigidBodyMotion<3> resultantConfiguration = rodX[0];
 
-        FieldVector<double,dim> resultantForce, resultantTorque;
-        resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
+        std::cout << "Resultant configuration: " << resultantConfiguration << std::endl;
 
-        std::cout << "resultant force: " << resultantForce << std::endl;
-        std::cout << "resultant torque: " << resultantTorque << std::endl;
+        // Compute difference to the reference interface
+        /** \todo This is a group operation --> put it into the RigidBodyMotion class */
+        RigidBodyMotion<3> differenceToReferenceInterface = referenceInterface;
+        differenceToReferenceInterface.q.invert();
+        differenceToReferenceInterface.r *= -1;
+        differenceToReferenceInterface.q.mult(resultantConfiguration.q);
+        differenceToReferenceInterface.r += resultantConfiguration.r;
 
-        VectorType neumannValues(rhs3d.size());
 
-        // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-        computeAveragePressure<GridType>(resultantForce, resultantTorque, 
-                                              interfaceBoundary[grid.maxLevel()], 
-                                              rodX[0],
-                                              neumannValues);
 
-        rhs3d = 0;
-        assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[grid.maxLevel()],
-                                                        neumannValues,
-                                                        rhs3d);
+        GridType::Codim<dim>::LeafIterator vIt    = grid.leafbegin<dim>();
+        GridType::Codim<dim>::LeafIterator vEndIt = grid.leafend<dim>();
+
+        for (; vIt!=vEndIt; ++vIt) {
+
+            unsigned int idx = grid.leafIndexSet().index(*vIt);
+
+            // Consider only vertices on the interface boundary
+            if (interfaceBoundary.back().containsVertex(idx))
+                continue;
+
+            // apply the rigid body motion to the vertex position and subtract the old position
+            FieldMatrix<double,3,3> rotationMatrix;
+            differenceToReferenceInterface.q.matrix(rotationMatrix);
+            rotationMatrix.mv(vIt->geometry().corner(0), rhs3d[idx]);
+            rhs3d[idx] += differenceToReferenceInterface.r;
+            rhs3d[idx] -= vIt->geometry().corner(0);
+
+        }
 
         // ///////////////////////////////////////////////////////////
-        //   Solve the Neumann problem for the 3d body
+        //   Solve the Dirichlet problem for the 3d body
         // ///////////////////////////////////////////////////////////
         multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
         
@@ -392,33 +403,38 @@ int main (int argc, char *argv[]) try
         x3d = multigridStep.getSol();
 
         // ///////////////////////////////////////////////////////////
-        //   Extract new interface position and orientation
+        //   Extract new interface resultant force and torque
         // ///////////////////////////////////////////////////////////
 
-        RigidBodyMotion<3> averageInterface;
-        computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
+        FieldVector<double,3> resultantForce(0);
+        FieldVector<double,3> resultantTorque(0);
 
-        //averageInterface.r[0] = averageInterface.r[1] = 0;
-        //averageInterface.q = Quaternion<double>::identity();
-        std::cout << "average interface: " << averageInterface << std::endl;
+        VectorType residual = rhs3d;
+        stiffnessMatrix3d.mmv(x3d, residual);
 
-        std::cout << "director 0:  " << averageInterface.q.director(0) << std::endl;
-        std::cout << "director 1:  " << averageInterface.q.director(1) << std::endl;
-        std::cout << "director 2:  " << averageInterface.q.director(2) << std::endl;
-        std::cout << std::endl;
+        for (vIt=grid.leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
+
+            unsigned int idx = grid.leafIndexSet().index(*vIt);
+
+            if (interfaceBoundary.back().containsVertex(idx)) {
+                resultantForce += residual[idx];
+                resultantTorque += crossProduct(residual[idx], vIt->geometry().corner(0)-resultantConfiguration.r);
+            }
+        }
+
+        std::cout << "average force:  " << resultantForce  << std::endl;
+        std::cout << "average torque: " << resultantTorque << std::endl;
 
         // ///////////////////////////////////////////////////////////
         //   Compute new damped interface value
         // ///////////////////////////////////////////////////////////
-        for (int j=0; j<dim; j++)
-            lambda.r[j] = (1-damping) * lambda.r[j] 
-                + damping * (referenceInterface.r[j] + averageInterface.r[j]);
+        for (int j=0; j<dim; j++) {
+            lambdaForce[j]  = (1-damping) * lambdaForce[j] + damping * resultantForce[j];
+            lambdaTorque[j] = (1-damping) * lambdaTorque[j] + damping * resultantTorque[j];
+        }
 
-        lambda.q = Rotation<3,double>::interpolate(lambda.q, 
-                                                   referenceInterface.q.mult(averageInterface.q), 
-                                                   damping);
-
-        std::cout << "Lambda: " << lambda << std::endl;
+        std::cout << "Lambda force: "  << lambdaForce << std::endl;
+        std::cout << "Lambda torque: " << lambdaTorque << std::endl;
 
         // ////////////////////////////////////////////////////////////////////////
         //   Write the two iterates to disk for later convergence rate measurement
