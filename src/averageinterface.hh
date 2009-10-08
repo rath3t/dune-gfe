@@ -670,7 +670,7 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
 
     for (; it!=endIt; ++it) {
 
-            const typename NeighborIterator::Geometry& segmentGeometry = it->geometry();
+        const typename NeighborIterator::Intersection::Geometry& segmentGeometry = it->geometry();
 
             // Get quadrature rule
             const QuadratureRule<double, dim-1>& quad = QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
