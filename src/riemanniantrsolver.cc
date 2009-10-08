@@ -211,24 +211,6 @@ setupTCG(const GridType& grid,
 
     operatorAssembler.assemble(massMatrixStiffness, *B);
 
-    // /////////////////////////////////////////////////////////
-    //   Scale rotational components
-    // /////////////////////////////////////////////////////////
-#warning RigidBody-specific stuff hardwired into the RiemannianTRSolver!
-
-    int alpha = 1;
-    for (int i=0; i<B->N(); i++) {
-
-        // make matrix row an identity row
-        typename MatrixType::row_type::Iterator cIt    = (*B)[i].begin();
-        typename MatrixType::row_type::Iterator cEndIt = (*B)[i].end();
-        
-        for (; cIt!=cEndIt; ++cIt)
-            for (int j=0; j<3; j++)
-                (*cIt)[j][j] *= alpha;
-
-    }
-
     // ////////////////////////////////////////////////////
     //   Create a truncated conjugate gradient solver
     // ////////////////////////////////////////////////////
