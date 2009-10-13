@@ -446,7 +446,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 
     // Create the surface mass matrix
     Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > massMatrix;
-    assembleSurfaceMassMatrix<GridType,1>(interface, massMatrix);
+    assembleSurfaceMassMatrix<typename GridType::LevelGridView, 1>(interface, massMatrix);
 
     // Make global-to-local array
     std::vector<int> globalToLocal;
