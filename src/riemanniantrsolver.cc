@@ -80,8 +80,7 @@ setup(const GridType& grid,
     mmgStep->setMGType(mu, nu1, nu2);
     mmgStep->ignoreNodes_       = &dirichletNodes;
     mmgStep->basesolver_        = baseSolver;
-    mmgStep->presmoother_       = presmoother;
-    mmgStep->postsmoother_      = postsmoother; 
+    mmgStep->setSmoother(presmoother, postsmoother);
     mmgStep->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType>();
     mmgStep->hasObstacle_       = &hasObstacle_;
     mmgStep->verbosity_         = Solver::QUIET;
