@@ -401,7 +401,64 @@ finalize_solution(Ipopt::SolverReturn status,
 
 }
 
+/** \param center Compute total torque around this point
+ */
+template <class GridView>
+void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
+                                const Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& pressure,
+                                const Dune::FieldVector<double,3>& center,
+                                Dune::FieldVector<double,3>& outputForce, Dune::FieldVector<double,3>& outputTorque)
+{
+    outputForce = outputTorque = 0;
 
+    const int dim = GridView::dimension;
+
+    for (typename BoundaryPatchBase<GridView>::iterator it=interface.begin(); 
+         it != interface.end(); 
+         ++it) {
+
+            const Dune::LagrangeShapeFunctionSet<double, double, dim-1>& baseSet
+                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(it->type(),1);
+            
+            const Dune::QuadratureRule<double, dim-1>& quad 
+                = Dune::QuadratureRules<double, dim-1>::rule(it->type(), dim-1);
+            
+            const Dune::GenericReferenceElement<double,dim>& refElement 
+                = Dune::GenericReferenceElements<double, dim>::general(it->inside()->type());
+
+            for (size_t qp=0; qp<quad.size(); qp++) {
+                
+                // Local position of the quadrature point
+                const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
+                
+                const double integrationElement = it->geometry().integrationElement(quadPos);
+                
+                // Evaluate function
+                Dune::FieldVector<double,dim> localPressure(0);
+                
+                for (size_t i=0; i<baseSet.size(); i++) {
+
+                    int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
+                    int subIndex = interface.gridView().indexSet().subIndex(*it->inside(), faceIdxi, dim);
+                    
+                    localPressure.axpy(baseSet[i].evaluateFunction(0,quadPos),
+                                       pressure[subIndex]);
+
+                }
+
+                // Sum up the total force
+                outputForce.axpy(quad[qp].weight()*integrationElement, localPressure);
+
+                // Sum up the total torque   \int (x - x_0) \times f dx
+                Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
+                outputTorque.axpy(quad[qp].weight()*integrationElement, 
+                                  crossProduct(worldPos - center, localPressure));
+
+            }
+
+    }
+
+}
 
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
@@ -462,9 +519,9 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     for (; it!=endIt; ++it) {
 
             const Dune::LagrangeShapeFunctionSet<ctype, field_type, dim-1>& baseSet
-                = Dune::LagrangeShapeFunctions<ctype, field_type, dim-1>::general(it->geometry().type(),1);
+                = Dune::LagrangeShapeFunctions<ctype, field_type, dim-1>::general(it->type(),1);
 
-            const Dune::ReferenceElement<double,dim>& refElement = Dune::ReferenceElements<double, dim>::general(it->inside()->type());
+            const Dune::GenericReferenceElement<double,dim>& refElement = Dune::GenericReferenceElements<double, dim>::general(it->inside()->type());
 
             // four rows because a face may have no more than four vertices
             Dune::FieldVector<double,4> mu(0);
@@ -582,50 +639,10 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     // /////////////////////////////////////////////////////////////////////////////////////
     //   Compute the overall force and torque to see whether the preceding code is correct
     // /////////////////////////////////////////////////////////////////////////////////////
-#if 1
+
     Dune::FieldVector<double,3> outputForce(0), outputTorque(0);
 
-    for (it=interface.begin(); it!=endIt; ++it) {
-
-            const Dune::LagrangeShapeFunctionSet<double, double, dim-1>& baseSet
-                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(it->geometry().type(),1);
-            
-            const Dune::QuadratureRule<double, dim-1>& quad 
-                = Dune::QuadratureRules<double, dim-1>::rule(it->geometry().type(), dim-1);
-            
-            const Dune::ReferenceElement<double,dim>& refElement = Dune::ReferenceElements<double, dim>::general(it->inside()->type());
-
-            for (size_t qp=0; qp<quad.size(); qp++) {
-                
-                // Local position of the quadrature point
-                const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
-                
-                const double integrationElement = it->geometry().integrationElement(quadPos);
-                
-                // Evaluate function
-                Dune::FieldVector<double,dim> localPressure(0);
-                
-                for (size_t i=0; i<baseSet.size(); i++) {
-
-                    int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
-                    int subIndex = indexSet.subIndex(*it->inside(), faceIdxi, dim);
-                    
-                    localPressure.axpy(baseSet[i].evaluateFunction(0,quadPos),
-                                       pressure[subIndex]);
-
-                }
-
-                // Sum up the total force
-                outputForce.axpy(quad[qp].weight()*integrationElement, localPressure);
-
-                // Sum up the total torque   \int (x - x_0) \times f dx
-                Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
-                outputTorque.axpy(quad[qp].weight()*integrationElement, 
-                                  crossProduct(worldPos - crossSection.r, localPressure));
-
-            }
-
-    }
+    computeTotalForceAndTorque(interface, pressure, crossSection.r, outputForce, outputTorque);
 
     outputForce  -= resultantForce;
     outputTorque -= resultantTorque;
@@ -633,7 +650,6 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     assert( outputTorque.infinity_norm() < 1e-6 );
 //     std::cout << "Output force:  " << outputForce << std::endl;
 //     std::cout << "Output torque: " << outputTorque << "      " << resultantTorque[0]/outputTorque[0] << std::endl;
-#endif
 
 }
 
