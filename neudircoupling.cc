@@ -1,14 +1,14 @@
 #include <config.h>
 
+#include <dune/common/bitsetvector.hh>
+#include <dune/common/configparser.hh>
+
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/uggrid.hh>
-
-#include <dune/istl/io.hh>
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
 
-#include <dune/common/bitsetvector.hh>
-#include <dune/common/configparser.hh>
+#include <dune/istl/solvers.hh>
 
 #include <dune-solvers/iterationsteps/multigridstep.hh>
 #include <dune-solvers/solvers/loopsolver.hh>
@@ -128,8 +128,6 @@ int main (int argc, char *argv[]) try
     rodGrid.globalRefine(numLevels-1);
     grid.globalRefine(numLevels-1);
 
-    std::vector<BitSetVector<dim> > dirichletNodes(1);
-
     RodSolutionType rodX(rodGrid.size(1));
 
     // //////////////////////////
@@ -161,28 +159,21 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////
     //   Determine the Dirichlet nodes
     // /////////////////////////////////////////////////////
-    std::vector<VectorType> dirichletValues;
-    dirichletValues.resize(toplevel+1);
-    dirichletValues[0].resize(grid.size(0, dim));
-    AmiraMeshReader<int>::readFunction(dirichletValues[0], path + dirichletValuesFile);
+    VectorType coarseDirichletValues(grid.size(0, dim));
+    AmiraMeshReader<int>::readFunction(coarseDirichletValues, path + dirichletValuesFile);
 
-    std::vector<LevelBoundaryPatch<GridType> > dirichletBoundary;
-    dirichletBoundary.resize(numLevels);
-    dirichletBoundary[0].setup(grid, 0);
-    readBoundaryPatch(dirichletBoundary[0], path + dirichletNodesFile);
-    PatchProlongator<GridType>::prolong(dirichletBoundary);
+    LevelBoundaryPatch<GridType> coarseDirichletBoundary(grid,0);
+    readBoundaryPatch(coarseDirichletBoundary, path + dirichletNodesFile);
+    
+    LeafBoundaryPatch<GridType> dirichletBoundary;
+    PatchProlongator<GridType>::prolong(coarseDirichletBoundary, dirichletBoundary);
 
-    dirichletNodes.resize(toplevel+1);
-    for (int i=0; i<=toplevel; i++) {
-        
-        dirichletNodes[i].resize( grid.size(i,dim));
+    BitSetVector<dim> dirichletNodes(grid.size(dim));
+    for (int i=0; i<dirichletNodes.size(); i++)
+        dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
-        for (int j=0; j<grid.size(i,dim); j++)
-            dirichletNodes[i][j] = dirichletBoundary[i].containsVertex(j);
-        
-    }
-
-    sampleOnBitField(grid, dirichletValues, dirichletNodes);
+    VectorType dirichletValues;
+    sampleOnBitField(grid, coarseDirichletValues, dirichletValues, dirichletNodes);
     
     // /////////////////////////////////////////////////////
     //   Determine the interface boundary
@@ -206,6 +197,18 @@ int main (int argc, char *argv[]) try
 
     assembler.assemble(localAssembler, stiffnessMatrix3d);
 
+    // /////////////////////////////////////////////////////////////////////// 
+    //   Assemble the mass matrix of the interface boundary.
+    //   It is needed to compute the strong normal stresses resulting from
+    //   the Dirichlet boundary conditions.
+    // ///////////////////////////////////////////////////////////////////////
+
+    MatrixType surfaceMassMatrix;
+    assembleSurfaceMassMatrix<GridType::LevelGridView,dim>(interfaceBoundary.back(), surfaceMassMatrix);
+
+    std::vector<int> globalToLocal;
+    interfaceBoundary.back().makeGlobalToLocal(globalToLocal);
+
     // ////////////////////////////////////////////////////////////
     //    Create solution and rhs vectors
     // ////////////////////////////////////////////////////////////
@@ -220,8 +223,16 @@ int main (int argc, char *argv[]) try
     x3d = 0;
     for (int i=0; i<x3d.size(); i++) 
         for (int j=0; j<dim; j++)
-            if (dirichletNodes[toplevel][i][j])
-                x3d[i][j] = dirichletValues[toplevel][i][j];
+            if (dirichletNodes[i][j])
+                x3d[i][j] = dirichletValues[i][j];
+
+    // ///////////////////////////////////////////////////////////////////
+    //   Add the interface boundary nodes to the set of Dirichlet nodes
+    // ///////////////////////////////////////////////////////////////////
+
+    for (int i=0; i<dirichletNodes.size(); i++)
+        for (int j=0; j<dim; j++)
+            dirichletNodes[i][j] = dirichletNodes[i][j] || interfaceBoundary.back().containsVertex(i);
 
     // ///////////////////////////////////////////
     //   Dirichlet nodes for the rod problem
@@ -284,7 +295,7 @@ int main (int argc, char *argv[]) try
     MultigridStep<MatrixType, VectorType> multigridStep(stiffnessMatrix3d, x3d, rhs3d, 1);
 
     multigridStep.setMGType(mu, nu1, nu2);
-    multigridStep.ignoreNodes_       = &dirichletNodes.back();
+    multigridStep.ignoreNodes_       = &dirichletNodes;
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.presmoother_       = &presmoother;
     multigridStep.postsmoother_      = &postsmoother;    
@@ -294,12 +305,12 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    LoopSolver<VectorType> solver(&multigridStep,
-                                                   // IPOpt doesn't like to be started in the solution
-                                                   (numLevels!=1) ? multigridIterations : 1,
-                                                   mgTolerance,
-                                                   &energyNorm,
-                                                   Solver::QUIET);
+    ::LoopSolver<VectorType> solver(&multigridStep,
+                                    // IPOpt doesn't like to be started in the solution
+                                    (numLevels!=1) ? multigridIterations : 1,
+                                    mgTolerance,
+                                    &energyNorm,
+                                    Solver::QUIET);
 
     // ////////////////////////////////////
     //   Create the transfer operators
@@ -378,15 +389,16 @@ int main (int argc, char *argv[]) try
             unsigned int idx = grid.leafIndexSet().index(*vIt);
 
             // Consider only vertices on the interface boundary
-            if (interfaceBoundary.back().containsVertex(idx))
-                continue;
+            if (interfaceBoundary.back().containsVertex(idx)) {
 
-            // apply the rigid body motion to the vertex position and subtract the old position
-            FieldMatrix<double,3,3> rotationMatrix;
-            differenceToReferenceInterface.q.matrix(rotationMatrix);
-            rotationMatrix.mv(vIt->geometry().corner(0), rhs3d[idx]);
-            rhs3d[idx] += differenceToReferenceInterface.r;
-            rhs3d[idx] -= vIt->geometry().corner(0);
+                // apply the rigid body motion to the vertex position and subtract the old position
+                FieldMatrix<double,3,3> rotationMatrix;
+                differenceToReferenceInterface.q.matrix(rotationMatrix);
+                rotationMatrix.mv(vIt->geometry().corner(0), x3d[idx]);
+                x3d[idx] += differenceToReferenceInterface.r;
+                x3d[idx] -= vIt->geometry().corner(0);
+
+            }
 
         }
 
@@ -409,18 +421,35 @@ int main (int argc, char *argv[]) try
         FieldVector<double,3> resultantForce(0);
         FieldVector<double,3> resultantTorque(0);
 
-        VectorType residual = rhs3d;
-        stiffnessMatrix3d.mmv(x3d, residual);
+        // the weak normal stress, or, in other words, the residual
+        VectorType weakNormalStress = rhs3d;
+        stiffnessMatrix3d.mmv(x3d, weakNormalStress);
 
-        for (vIt=grid.leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
+        // consider only the coefficients on the interface boundary
+        VectorType localWeakNormalStress(interfaceBoundary.back().numVertices());
+        for (int j=0; j<globalToLocal.size(); j++)
+            if (globalToLocal[j] != -1)
+                localWeakNormalStress[globalToLocal[j]] = weakNormalStress[j];
 
-            unsigned int idx = grid.leafIndexSet().index(*vIt);
+        // Compute the strong normal stress, which is the weak stress divided by the surface mass matrix
+        VectorType localStrongNormalStress = localWeakNormalStress;  // initial value
 
-            if (interfaceBoundary.back().containsVertex(idx)) {
-                resultantForce += residual[idx];
-                resultantTorque += crossProduct(residual[idx], vIt->geometry().corner(0)-resultantConfiguration.r);
-            }
-        }
+        // Make small cg solver
+        MatrixAdapter<MatrixType,VectorType,VectorType> op(surfaceMassMatrix);
+        SeqILU0<MatrixType,VectorType,VectorType> ilu0(surfaceMassMatrix,1.0);
+        CGSolver<VectorType> cgsolver(op,ilu0,1E-4,100,0); 
+        Dune::InverseOperatorResult statistics;
+        cgsolver.apply(localStrongNormalStress, localWeakNormalStress, statistics);
+
+        VectorType strongNormalStress(weakNormalStress.size());
+        strongNormalStress = 0;
+        for (int j=0; j<globalToLocal.size(); j++)
+            if (globalToLocal[j] != -1)
+                strongNormalStress[j] = localStrongNormalStress[globalToLocal[j]];
+
+
+        computeTotalForceAndTorque(interfaceBoundary.back(), strongNormalStress, resultantConfiguration.r, 
+                                   resultantForce, resultantTorque);
 
         std::cout << "average force:  " << resultantForce  << std::endl;
         std::cout << "average torque: " << resultantTorque << std::endl;
