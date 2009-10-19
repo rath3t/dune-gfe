@@ -87,6 +87,19 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
 
     }
 
+    // ///////////////////////////////////////////////////////////////////////
+    //   Add the contributions of the Neumann data.  Since the boundary is
+    //   zero-dimensional these are not integrals but simply values
+    //   added at the first and last vertex.
+    // \todo We use again that the numbering goes from left to right!
+    // ///////////////////////////////////////////////////////////////////////
+    for (int i=0; i<3; i++) {
+        grad[0][i]               += leftNeumannForce_[i];
+        grad[0][i+3]             += leftNeumannTorque_[i];
+        grad[grad.size()-1][i]   += rightNeumannForce_[i];
+        grad[grad.size()-1][i+3] += rightNeumannTorque_[i];
+    }
+
 }
 
 

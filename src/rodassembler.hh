@@ -36,7 +36,13 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
         
         /** \todo public only for debugging! */
     public:
-        const GridType* grid_; 
+        const GridType* grid_;
+
+    protected:
+    Dune::FieldVector<double, 3> leftNeumannForce_;
+    Dune::FieldVector<double, 3> leftNeumannTorque_;
+    Dune::FieldVector<double, 3> rightNeumannForce_;
+    Dune::FieldVector<double, 3> rightNeumannTorque_;
         
     public:
         
@@ -45,7 +51,8 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
                  RodLocalStiffness<typename GridType::LeafGridView,double>* localStiffness) : 
         GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >(grid.leafView(),
                                                                                   localStiffness),
-        grid_(&grid)
+        grid_(&grid),
+        leftNeumannForce_(0), leftNeumannTorque_(0), rightNeumannForce_(0), rightNeumannTorque_(0)
         { 
             std::vector<RigidBodyMotion<3> > referenceConfiguration(grid.size(gridDim));
 
@@ -70,7 +77,10 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
                         const Dune::FieldVector<double, 3>& rightForce,
                         const Dune::FieldVector<double, 3>& rightTorque)
     {
-        DUNE_THROW(Dune::NotImplemented, "setNeumannData");
+        leftNeumannForce_   = leftForce;
+        leftNeumannTorque_  = leftTorque;
+        rightNeumannForce_  = rightForce;
+        rightNeumannTorque_ = rightTorque;
     }
 
         void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
