@@ -98,7 +98,7 @@ int main (int argc, char *argv[]) try
     double rodE   = parameterSet.get<double>("rodE");
     double rodNu  = parameterSet.get<double>("rodNu");
 
-    std::tr1::array<FieldVector<double,3>,2> rodRestEndPoint;
+    Dune::array<FieldVector<double,3>,2> rodRestEndPoint;
     rodRestEndPoint[0][0] = parameterSet.get<double>("rodRestEndPoint0X");
     rodRestEndPoint[0][1] = parameterSet.get<double>("rodRestEndPoint0Y");
     rodRestEndPoint[0][2] = parameterSet.get<double>("rodRestEndPoint0Z");
@@ -297,8 +297,7 @@ int main (int argc, char *argv[]) try
     multigridStep.setMGType(mu, nu1, nu2);
     multigridStep.ignoreNodes_       = &dirichletNodes;
     multigridStep.basesolver_        = &baseSolver;
-    multigridStep.presmoother_       = &presmoother;
-    multigridStep.postsmoother_      = &postsmoother;    
+    multigridStep.setSmoother(&presmoother, &postsmoother);
     multigridStep.verbosity_         = Solver::QUIET;
 
 
