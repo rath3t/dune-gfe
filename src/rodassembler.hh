@@ -89,8 +89,6 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
         /** \brief Compute the energy of a deformation state */
         double computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const;
 
-        void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
-
         void getStrain(const std::vector<RigidBodyMotion<3> >& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
 

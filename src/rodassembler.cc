@@ -10,41 +10,6 @@
 #include "src/rodlocalstiffness.hh"
 
 
-
-template <class GridType>
-void RodAssembler<GridType>::
-getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
-{
-    const int gridDim = GridType::dimension;
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
-    
-    int i, j;
-    int n = grid_->size(grid_->maxLevel(), gridDim);
-    
-    nb.resize(n, n);
-    
-    ElementIterator it    = grid_->template lbegin<0>( grid_->maxLevel() );
-    ElementIterator endit = grid_->template lend<0>  ( grid_->maxLevel() );
-    
-    for (; it!=endit; ++it) {
-        
-        for (i=0; i<it->template count<gridDim>(); i++) {
-            
-            for (j=0; j<it->template count<gridDim>(); j++) {
-                
-                int iIdx = indexSet.subIndex(*it,i,gridDim);
-                int jIdx = indexSet.subIndex(*it,j,gridDim);
-                
-                nb.add(iIdx, jIdx);
-                
-            }
-            
-        }
-        
-    }
-    
-}
-
 template <class GridType>
 void RodAssembler<GridType>::
 assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
