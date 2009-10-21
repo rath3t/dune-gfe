@@ -85,7 +85,9 @@ public:
     virtual RT energy (const Entity& e,
                        const std::vector<TargetSpace>& localSolution) const = 0;
 
-    /** \brief Assemble the element gradient of the energy functional */
+    /** \brief Assemble the element gradient of the energy functional 
+
+    The default implementation in this class uses a finite difference approximation */
     virtual void assembleGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<Dune::FieldVector<double,blocksize> >& gradient) const;
