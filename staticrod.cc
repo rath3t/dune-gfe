@@ -192,8 +192,7 @@ int main (int argc, char *argv[]) try
     multigridStep.setMGType(mu, nu1, nu2);
     multigridStep.ignoreNodes_       = &dirichletNodes[maxlevel];
     multigridStep.basesolver_        = &baseSolver;
-    multigridStep.presmoother_       = &presmoother;
-    multigridStep.postsmoother_      = &postsmoother;    
+    multigridStep.setSmoother(&presmoother, &postsmoother);
     multigridStep.hasObstacle_       = &hasObstacle;
     multigridStep.obstacles_         = &trustRegionObstacles;
     multigridStep.obstacleRestrictor_ = new MandelObstacleRestrictor<VectorType>;

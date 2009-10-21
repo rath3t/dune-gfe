@@ -127,8 +127,7 @@ int main (int argc, char *argv[]) try
     multigridStep.setMGType(mu, nu1, nu2);
     multigridStep.ignoreNodes_       = &dirichletNodes[0];
     multigridStep.basesolver_        = &baseSolver;
-    multigridStep.presmoother_       = &presmoother;
-    multigridStep.postsmoother_      = &postsmoother;    
+    multigridStep.setSmoother(&presmoother, &postsmoother);
     multigridStep.hasObstacle_       = &hasObstacle;
     multigridStep.obstacles_         = &trustRegionObstacles;
     multigridStep.verbosity_         = Solver::QUIET;
