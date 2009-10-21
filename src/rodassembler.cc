@@ -75,7 +75,21 @@ computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const
 {
     double energy = GeodesicFEAssembler<typename GridType::LeafGridView,RigidBodyMotion<3> >::computeEnergy(sol);
 
+    // ///////////////////////////////////////////////////////////////////////
+    //   Add the contributions of the Neumann data.  Since the boundary is
+    //   zero-dimensional these are not integrals but simply values
+    //   added at the first and last vertex.
+    // \todo We use again that the numbering goes from left to right!
+    // ///////////////////////////////////////////////////////////////////////
+
+    energy += sol[0].r * leftNeumannForce_;
+    //energy += Rotation<3,double>::expInv(sol[0].q) * leftNeumannTorque_;
+
+    energy += sol.back().r * rightNeumannForce_;
+    //energy += Rotation<3,double>::expInv(sol.back().q) * rightNeumannTorque_;
+
     return energy;
+
 }
 
 
