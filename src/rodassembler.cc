@@ -10,6 +10,7 @@
 #include "src/rodlocalstiffness.hh"
 
 
+
 template <class GridType>
 void RodAssembler<GridType>::
 assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
@@ -72,32 +73,9 @@ template <class GridType>
 double RodAssembler<GridType>::
 computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const
 {
-    using namespace Dune;
-
-    double energy = 0;
-    
-    const typename GridType::Traits::LeafIndexSet& indexSet = grid_->leafIndexSet();
-
-    if (sol.size()!=indexSet.size(gridDim))
-        DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
-
-    std::vector<RigidBodyMotion<3> > localSolution(2);
-
-    ElementLeafIterator it    = grid_->template leafbegin<0>();
-    ElementLeafIterator endIt = grid_->template leafend<0>();
-
-    // Loop over all elements
-    for (; it!=endIt; ++it) {
-
-        for (int i=0; i<2; i++)
-            localSolution[i]               = sol[indexSet.subIndex(*it,i,gridDim)];
-
-        energy += this->localStiffness_->energy(*it, localSolution);
-
-    }
+    double energy = GeodesicFEAssembler<typename GridType::LeafGridView,RigidBodyMotion<3> >::computeEnergy(sol);
 
     return energy;
-
 }
 
 
