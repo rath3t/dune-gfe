@@ -102,20 +102,6 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
                                                       const std::vector<RigidBodyMotion<3> >& sol,
                                                       Dune::FieldVector<double,3>& canonicalTorque) const;
 
-    protected:
-
-        template <class T>
-        static Dune::FieldVector<T,3> darboux(const Quaternion<T>& q, const Dune::FieldVector<T,4>& q_s) 
-        {
-            Dune::FieldVector<double,3> u;  // The Darboux vector
-
-            u[0] = 2 * (q.B(0) * q_s);
-            u[1] = 2 * (q.B(1) * q_s);
-            u[2] = 2 * (q.B(2) * q_s);
-
-            return u;
-        }
-        
     }; // end class
 
 #include "rodassembler.cc"
