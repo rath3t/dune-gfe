@@ -14,17 +14,16 @@
 
 /** \brief The FEM operator for an extensible, shearable rod
  */
-template <class GridType>
-class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >
+template <class GridView>
+class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
 {
         
-        typedef typename GridType::template Codim<0>::Entity EntityType;
-        typedef typename GridType::template Codim<0>::EntityPointer EntityPointer;
-        typedef typename GridType::template Codim<0>::LevelIterator ElementIterator;
-        typedef typename GridType::template Codim<0>::LeafIterator ElementLeafIterator;
+    //typedef typename GridType::template Codim<0>::Entity EntityType;
+    //typedef typename GridType::template Codim<0>::EntityPointer EntityPointer;
+    typedef typename GridView::template Codim<0>::Iterator ElementIterator;
 
         //! Dimension of the grid.  This needs to be one!
-        enum { gridDim = GridType::dimension };
+        enum { gridDim = GridView::dimension };
 
         enum { elementOrder = 1};
 
@@ -36,7 +35,7 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
         
         /** \todo public only for debugging! */
     public:
-        const GridType* grid_;
+        GridView gridView_;
 
     protected:
     Dune::FieldVector<double, 3> leftNeumannForce_;
@@ -47,21 +46,20 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
     public:
         
         //! ???
-    RodAssembler(const GridType &grid,
-                 RodLocalStiffness<typename GridType::LeafGridView,double>* localStiffness) : 
-        GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<3> >(grid.leafView(),
-                                                                                  localStiffness),
-        grid_(&grid),
-        leftNeumannForce_(0), leftNeumannTorque_(0), rightNeumannForce_(0), rightNeumannTorque_(0)
+    RodAssembler(const GridView &gridView,
+                 RodLocalStiffness<GridView,double>* localStiffness) 
+        : GeodesicFEAssembler<GridView, RigidBodyMotion<3> >(gridView,localStiffness),
+          gridView_(gridView),
+          leftNeumannForce_(0), leftNeumannTorque_(0), rightNeumannForce_(0), rightNeumannTorque_(0)
         { 
-            std::vector<RigidBodyMotion<3> > referenceConfiguration(grid.size(gridDim));
+            std::vector<RigidBodyMotion<3> > referenceConfiguration(gridView.size(gridDim));
 
-            typename GridType::template Codim<gridDim>::LeafIterator it    = grid.template leafbegin<gridDim>();
-            typename GridType::template Codim<gridDim>::LeafIterator endIt = grid.template leafend<gridDim>();
+            typename GridView::template Codim<gridDim>::Iterator it    = gridView.template begin<gridDim>();
+            typename GridView::template Codim<gridDim>::Iterator endIt = gridView.template end<gridDim>();
 
             for (; it != endIt; ++it) {
 
-                int idx = grid.leafIndexSet().index(*it);
+                int idx = gridView.indexSet().index(*it);
 
                 referenceConfiguration[idx].r[0] = 0;
                 referenceConfiguration[idx].r[1] = 0;
@@ -69,7 +67,7 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
                 referenceConfiguration[idx].q = Rotation<3,double>::identity();
             }
 
-            dynamic_cast<RodLocalStiffness<typename GridType::LeafGridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
+            dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
         }
 
     void setNeumannData(const Dune::FieldVector<double, 3>& leftForce,
@@ -98,7 +96,7 @@ class RodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView,
         /** \brief Return resultant force across boundary in canonical coordinates 
 
         \note Linear run-time in the size of the grid */
-        Dune::FieldVector<double,3> getResultantForce(const LevelBoundaryPatch<GridType>& boundary, 
+        Dune::FieldVector<double,3> getResultantForce(const BoundaryPatchBase<GridView>& boundary, 
                                                       const std::vector<RigidBodyMotion<3> >& sol,
                                                       Dune::FieldVector<double,3>& canonicalTorque) const;
 
