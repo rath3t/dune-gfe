@@ -243,10 +243,8 @@ getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
 //             assert( std::abs(localStress[2]-canonicalStress*sol[0].q.director(2)) < 1e-6 );
 
             // Multiply force times boundary normal to get the transmitted force
-            /** \todo The minus sign comes from the coupling conditions.  It
-                should really be in the Dirichlet-Neumann code. */
-            canonicalStress *= -it->unitOuterNormal(FieldVector<double,0>(0))[0];
-            canonicalTorque *= -it->unitOuterNormal(FieldVector<double,0>(0))[0];
+            canonicalStress *= it->unitOuterNormal(FieldVector<double,0>(0))[0];
+            canonicalTorque *= it->unitOuterNormal(FieldVector<double,0>(0))[0];
             
     }
 
