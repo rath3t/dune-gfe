@@ -96,7 +96,8 @@ class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
         /** \brief Return resultant force across boundary in canonical coordinates 
 
         \note Linear run-time in the size of the grid */
-        Dune::FieldVector<double,3> getResultantForce(const BoundaryPatchBase<GridView>& boundary, 
+        template <class PatchGridView>
+        Dune::FieldVector<double,3> getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
                                                       const std::vector<RigidBodyMotion<3> >& sol,
                                                       Dune::FieldVector<double,3>& canonicalTorque) const;
 

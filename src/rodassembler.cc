@@ -178,8 +178,9 @@ getStress(const std::vector<RigidBodyMotion<3> >& sol,
 }
 
 template <class GridView>
+template <class PatchGridView>
 Dune::FieldVector<double,3> RodAssembler<GridView>::
-getResultantForce(const BoundaryPatchBase<GridView>& boundary, 
+getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
                   const std::vector<RigidBodyMotion<3> >& sol,
                   Dune::FieldVector<double,3>& canonicalTorque) const
 {
@@ -197,8 +198,8 @@ getResultantForce(const BoundaryPatchBase<GridView>& boundary,
     canonicalTorque = 0;
 
     // Loop over the given boundary
-    typename BoundaryPatchBase<GridView>::iterator it    = boundary.begin();
-    typename BoundaryPatchBase<GridView>::iterator endIt = boundary.end();
+    typename BoundaryPatchBase<PatchGridView>::iterator it    = boundary.begin();
+    typename BoundaryPatchBase<PatchGridView>::iterator endIt = boundary.end();
 
     for (; it!=endIt; ++it) {
 
