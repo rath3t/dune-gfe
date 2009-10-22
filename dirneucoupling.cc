@@ -364,6 +364,10 @@ int main (int argc, char *argv[]) try
         FieldVector<double,dim> resultantForce, resultantTorque;
         resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
 
+        // Flip orientation
+        resultantForce  *= -1;
+        resultantTorque *= -1;
+        
         std::cout << "resultant force: " << resultantForce << std::endl;
         std::cout << "resultant torque: " << resultantTorque << std::endl;
 
