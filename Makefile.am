@@ -4,9 +4,8 @@
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
 AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
-noinst_PROGRAMS = staticrod staticrod2 rod3d harmonicmaps dirneucoupling neudircoupling rod-eoc
+noinst_PROGRAMS = staticrod2 rod3d harmonicmaps dirneucoupling neudircoupling rod-eoc
 
-staticrod_SOURCES = staticrod.cc
 staticrod2_SOURCES = staticrod2.cc
 rod3d_SOURCES = rod3d.cc
 
