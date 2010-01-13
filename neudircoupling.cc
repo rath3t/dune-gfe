@@ -335,6 +335,8 @@ int main (int argc, char *argv[]) try
     FieldVector<double,3> lambdaForce(0);
     FieldVector<double,3> lambdaTorque(0);
 
+    lambdaForce[2] = -5000;
+
     //
     double normOfOldCorrection = 0;
     int dnStepsActuallyTaken = 0;
@@ -360,6 +362,24 @@ int main (int argc, char *argv[]) try
 
 //         for (int j=0; j<rodX.size(); j++)
 //             std::cout << rodX[j] << std::endl;
+
+        // Get resultant force, just for checking
+        BitSetVector<1> couplingBitfield(rodX.size(),false);
+        couplingBitfield[0] = true;
+        LeafBoundaryPatch<RodGridType> couplingBoundary(rodGrid, couplingBitfield);
+
+        FieldVector<double,dim> resultantForceDebug, resultantTorqueDebug;
+        resultantForceDebug  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorqueDebug);
+
+        // Flip orientation
+        resultantForceDebug  *= -1;
+        resultantTorqueDebug *= -1;
+
+        std::cout << "debugging: resultant force: " << resultantForceDebug 
+                  << "   norm: " << resultantForceDebug.two_norm() << std::endl;
+        std::cout << "debugging: resultant torque: " << resultantTorqueDebug 
+                  << "   norm: " << resultantTorqueDebug.two_norm() << std::endl;
+
 
         // ///////////////////////////////////////////////////////////
         //   Extract Dirichlet values and transfer it to the 3d object
