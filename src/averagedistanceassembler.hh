@@ -1,6 +1,8 @@
 #ifndef AVERAGE_DISTANCE_ASSEMBLER_HH
 #define AVERAGE_DISTANCE_ASSEMBLER_HH
 
+#include <vector>
+
 #include "rotation.hh"
 
 template <class TargetSpace>

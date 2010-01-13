@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <dune/common/fvector.hh>
+#include <dune/ag-common/crossproduct.hh>
+
 #include "rotation.hh"
 
 /** \brief Make a straight rod from two given endpoints

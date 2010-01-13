@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include <dune/common/exceptions.hh>
+#include <dune/istl/bvector.hh>
 
 #include "rigidbodymotion.hh"
 

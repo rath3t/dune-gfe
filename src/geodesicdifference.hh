@@ -1,6 +1,10 @@
 #ifndef GEODESIC_DIFFERENCE_HH
 #define GEODESIC_DIFFERENCE_HH
 
+#include <vector>
+
+#include <dune/istl/bvector.hh>
+
 template <class TargetSpace>
 Dune::BlockVector<typename TargetSpace::TangentVector> computeGeodesicDifference(const std::vector<TargetSpace>& a,
                                                                                  const std::vector<TargetSpace>& b)
