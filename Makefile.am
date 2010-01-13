@@ -1,10 +1,12 @@
 # $Id$
 
+SUBDIRS = m4 src test
+
 # possible options
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
 AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
-noinst_PROGRAMS = rodobstacle rod3d harmonicmaps dirneucoupling neudircoupling rod-eoc
+noinst_PROGRAMS = rodobstacle rod3d harmonicmaps dirneucoupling neudircoupling rod-eoc 
 
 rodobstacle_SOURCES = rodobstacle.cc
 rod3d_SOURCES = rod3d.cc
@@ -29,3 +31,6 @@ neudircoupling_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAM
 # don't follow the full GNU-standard
 # we need automake 1.5
 AUTOMAKE_OPTIONS = foreign 1.5
+
+include $(top_srcdir)/am/global-rules
+include $(top_srcdir)/am/top-rules
