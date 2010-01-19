@@ -8,8 +8,8 @@
 #include <dune/istl/io.hh>
 
 
-#include <dune-solvers/solvers/iterativesolver.hh>
-#include <dune-solvers/norms/energynorm.hh>
+#include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/norms/energynorm.hh>
 
 #include "src/rigidbodymotion.hh"
 #include "src/geodesicdifference.hh"

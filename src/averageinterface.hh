@@ -7,7 +7,7 @@
 #include <dune/ag-common/dgindexset.hh>
 #include <dune/ag-common/crossproduct.hh>
 #include <dune/ag-common/surfmassmatrix.hh>
-#include <dune-solvers/numproc.hh>
+#include <dune/solvers/numproc.hh>
 
 #include "svd.hh"
 #include "rigidbodymotion.hh"

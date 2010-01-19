@@ -8,9 +8,9 @@
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
-#include <dune-solvers/boxconstraint.hh>
-#include <dune-solvers/norms/h1seminorm.hh>
-#include <dune-solvers/solvers/solver.hh>
+#include <dune/solvers/boxconstraint.hh>
+#include <dune/solvers/norms/h1seminorm.hh>
+#include <dune/solvers/solvers/solver.hh>
 
 #include "geodesicfeassembler.hh"
 

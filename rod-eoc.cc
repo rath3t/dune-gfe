@@ -12,8 +12,8 @@
 #include <dune/ag-common/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
 
-#include <dune-solvers/solvers/iterativesolver.hh>
-#include <dune-solvers/norms/energynorm.hh>
+#include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/norms/energynorm.hh>
 
 #include "src/rigidbodymotion.hh"
 #include "src/geodesicdifference.hh"

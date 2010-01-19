@@ -9,12 +9,12 @@
 
 #include <dune/disc/operators/p1operator.hh>
 
-#include <dune-solvers/iterationsteps/projectedblockgsstep.hh>
-#include <dune-solvers/iterationsteps/mmgstep.hh>
-#include <dune-solvers/solvers/loopsolver.hh>
-#include <dune-solvers/norms/energynorm.hh>
-#include <dune-solvers/transferoperators/mandelobsrestrictor.hh>
-#include <dune-solvers/transferoperators/truncatedcompressedmgtransfer.hh>
+#include <dune/solvers/iterationsteps/projectedblockgsstep.hh>
+#include <dune/solvers/iterationsteps/mmgstep.hh>
+#include <dune/solvers/solvers/loopsolver.hh>
+#include <dune/solvers/norms/energynorm.hh>
+#include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
+#include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
 #include <dune/ag-common/estimators/geometricmarking.hh>
 #include <dune/ag-common/boundarypatch.hh>
 

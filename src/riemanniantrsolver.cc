@@ -8,18 +8,18 @@
 #include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
 
 // For using a monotone multigrid as the inner solver
-#include <dune-solvers/iterationsteps/trustregiongsstep.hh>
-#include <dune-solvers/iterationsteps/mmgstep.hh>
-#include <dune-solvers/transferoperators/truncatedcompressedmgtransfer.hh>
-#include <dune-solvers/transferoperators/mandelobsrestrictor.hh>
-#include <dune-solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/iterationsteps/trustregiongsstep.hh>
+#include <dune/solvers/iterationsteps/mmgstep.hh>
+#include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
+#include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
+#include <dune/solvers/solvers/iterativesolver.hh>
 #include "maxnormtrustregion.hh"
 
 // For using a truncated cg as the inner solver
-#include <dune-solvers/solvers/tcgsolver.hh>
+#include <dune/solvers/solvers/tcgsolver.hh>
 
-#include <dune-solvers/norms/energynorm.hh>
-#include <dune-solvers/norms/h1seminorm.hh>
+#include <dune/solvers/norms/energynorm.hh>
+#include <dune/solvers/norms/h1seminorm.hh>
 
 
 // for debugging

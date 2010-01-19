@@ -7,8 +7,8 @@
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
 
-#include <dune-solvers/solvers/iterativesolver.hh>
-#include <dune-solvers/norms/energynorm.hh>
+#include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/norms/energynorm.hh>
 
 #include "src/geodesicdifference.hh"
 #include "src/rodwriter.hh"
