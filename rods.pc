@@ -1,0 +1,14 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+CXX=g++ -std=c++0x
+CC=gcc
+DEPENDENCIES= dune-common   dune-grid   dune-istl   dune-disc   dune-solvers   ag-common  
+
+Name: rods
+Version: 0.0
+Description: Dune (Distributed and Unified Numerics Environment) rods module
+Requires: ${DEPENDENCIES}
+Libs:
+Cflags: -I${includedir}

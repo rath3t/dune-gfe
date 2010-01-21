@@ -18,7 +18,10 @@ LIBS="$DUNE_LIBS"
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-                 test/Makefile])
+                 test/Makefile
+                 m4/Makefile
+                 rods.pc
+                ])
 AC_OUTPUT
 
 # finally print the summary information

@@ -1,5 +1,8 @@
 # $Id$
 
+# we need the module file to be able to build via dunecontrol
+EXTRA_DIST=dune.module
+
 SUBDIRS = m4 src test
 
 # possible options
