@@ -7,8 +7,6 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/disc/operators/p1operator.hh>
-
 #include <dune/solvers/iterationsteps/projectedblockgsstep.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
@@ -334,18 +332,9 @@ int main (int argc, char *argv[]) try
         
         estimator.estimate(grid, (toplevel<=minLevel) ? refineAll : refineCondition);
 
-        P1FunctionManager<GridType,double> functionManager(grid);
-        LeafP1Function<GridType,double,blocksize> sol(grid);
-        *sol = x;
-
-        grid.preAdapt();
-        sol.preAdapt();
+        std::cout << "  #### WARNING: function not transferred to the next level! #### " << std::endl;
         grid.adapt();
-
-        sol.postAdapt(functionManager);
-        grid.postAdapt();
-
-        x = *sol;
+        x.resize(grid.size(1));
 
         //writeRod(x, "solutions/rod_1.result");
     }
