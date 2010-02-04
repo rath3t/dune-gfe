@@ -79,25 +79,27 @@ int main (int argc, char *argv[]) try
     parameterSet.parseFile("staticrod2.parset");
 
     // read solver settings
-    const int minLevel         = parameterSet.get("minLevel", int(0));
-    const int maxLevel         = parameterSet.get("maxLevel", int(0));
-    const int maxNewtonSteps   = parameterSet.get("maxNewtonSteps", int(0));
-    const int numIt            = parameterSet.get("numIt", int(0));
-    const int nu1              = parameterSet.get("nu1", int(0));
-    const int nu2              = parameterSet.get("nu2", int(0));
-    const int mu               = parameterSet.get("mu", int(0));
-    const int baseIt           = parameterSet.get("baseIt", int(0));
-    const double tolerance     = parameterSet.get("tolerance", double(0));
-    const double baseTolerance = parameterSet.get("baseTolerance", double(0));
+    const int minLevel         = parameterSet.get<int>("minLevel");
+    const int maxLevel         = parameterSet.get<int>("maxLevel");
+    const int maxNewtonSteps   = parameterSet.get<int>("maxNewtonSteps");
+    const int numIt            = parameterSet.get<int>("numIt");
+    const int nu1              = parameterSet.get<int>("nu1");
+    const int nu2              = parameterSet.get<int>("nu2");
+    const int mu               = parameterSet.get<int>("mu");
+    const int baseIt           = parameterSet.get<int>("baseIt");
+    const double tolerance     = parameterSet.get<double>("tolerance");
+    const double baseTolerance = parameterSet.get<double>("baseTolerance");
     
     // Problem settings
-    const int numRodBaseElements = parameterSet.get("numRodBaseElements", int(0));
+    const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
     
     // ///////////////////////////////////////
     //    Create the two grids
     // ///////////////////////////////////////
     typedef OneDGrid GridType;
     GridType grid(numRodBaseElements, 0, 1);
+
+    std::cout << "Grid has " << grid.size(0,0) << " elements and " << grid.size(0,1) << " vertices." << std::endl;
 
     std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(1);
     std::vector<BitSetVector<1> > hasObstacle(1);
