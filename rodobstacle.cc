@@ -74,7 +74,7 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ConfigParser parameterSet;
-    parameterSet.parseFile("staticrod2.parset");
+    parameterSet.parseFile("rodobstacle.parset");
 
     // read solver settings
     const int minLevel         = parameterSet.get<int>("minLevel");
@@ -96,8 +96,6 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     typedef OneDGrid GridType;
     GridType grid(numRodBaseElements, 0, 1);
-
-    std::cout << "Grid has " << grid.size(0,0) << " elements and " << grid.size(0,1) << " vertices." << std::endl;
 
     std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(1);
     std::vector<BitSetVector<1> > hasObstacle(1);
