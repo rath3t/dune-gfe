@@ -292,12 +292,8 @@ int main (int argc, char *argv[]) try
              double oldEnergy = rodAssembler.computeEnergy(x); 
              double energy    = rodAssembler.computeEnergy(newIterate); 
 
-             if (energy >= oldEnergy) {
-                 printf("Richtung ist keine Abstiegsrichtung!\n");
-//                  std::cout << "corr[0]\n" << corr[0] << std::endl;
-
-                 exit(0);
-             }
+             if (energy >= oldEnergy) 
+                 DUNE_THROW(SolverError, "Richtung ist keine Abstiegsrichtung!");
                  
              //  Add correction to the current solution
              x += corr;
