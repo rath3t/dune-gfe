@@ -57,14 +57,14 @@ namespace Dune
 
         /** \brief Assemble the tangent stiffness matrix and the right hand side
          */
-        void assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
+        void assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
                             BCRSMatrix<MatrixBlock>& matrix);
         
-        void assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
+        void assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
                               BlockVector<FieldVector<double, blocksize> >& grad) const;
 
         /** \brief Compute the energy of a deformation state */
-        double computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const;
+        double computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const;
 
         void getNeighborsPerVertex(MatrixIndexSet& nb) const;
         
@@ -73,7 +73,7 @@ namespace Dune
         /** \brief Compute the element tangent stiffness matrix  */
         template <class MatrixType>
         void getLocalMatrix( EntityType &entity, 
-                             const BlockVector<FieldVector<double, blocksize> >& localSolution, 
+                             const std::vector<RigidBodyMotion<2> >& localSolution, 
                              const int matSize, MatrixType& mat) const;
 
         

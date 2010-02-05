@@ -20,7 +20,6 @@
 #include "src/planarrodassembler.hh"
 
 
-// Number of degrees of freedom: 
 // 3 (x, y, theta) for a planar rod
 const int blocksize = 3;
 
@@ -70,7 +69,8 @@ int main (int argc, char *argv[]) try
 {
     // Some types that I need
     typedef BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > MatrixType;
-    typedef BlockVector<FieldVector<double, blocksize> >     VectorType;
+    typedef BlockVector<FieldVector<double, blocksize> >           CorrectionType;
+    typedef std::vector<RigidBodyMotion<2> >                       SolutionType;
 
     // parse data file
     ConfigParser parameterSet;
@@ -106,21 +106,21 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////
 
     // First create a gauss-seidel base solver
-    ProjectedBlockGSStep<MatrixType, VectorType> baseSolverStep;
+    ProjectedBlockGSStep<MatrixType, CorrectionType> baseSolverStep;
 
-    EnergyNorm<MatrixType, VectorType> baseEnergyNorm(baseSolverStep);
+    EnergyNorm<MatrixType, CorrectionType> baseEnergyNorm(baseSolverStep);
 
-    LoopSolver<VectorType> baseSolver(&baseSolverStep,
+    LoopSolver<CorrectionType> baseSolver(&baseSolverStep,
                                                        baseIt,
                                                        baseTolerance,
                                                        &baseEnergyNorm,
                                                        Solver::QUIET);
 
     // Make pre and postsmoothers
-    ProjectedBlockGSStep<MatrixType, VectorType> presmoother;
-    ProjectedBlockGSStep<MatrixType, VectorType> postsmoother;
+    ProjectedBlockGSStep<MatrixType, CorrectionType> presmoother;
+    ProjectedBlockGSStep<MatrixType, CorrectionType> postsmoother;
 
-    MonotoneMGStep<MatrixType, VectorType> multigridStep(1);
+    MonotoneMGStep<MatrixType, CorrectionType> multigridStep(1);
 
     multigridStep.setMGType(mu, nu1, nu2);
     multigridStep.ignoreNodes_       = &dirichletNodes[0];
@@ -129,12 +129,12 @@ int main (int argc, char *argv[]) try
     multigridStep.hasObstacle_       = &hasObstacle;
     multigridStep.obstacles_         = &trustRegionObstacles;
     multigridStep.verbosity_         = Solver::QUIET;
-    multigridStep.obstacleRestrictor_ = new MandelObstacleRestrictor<VectorType>;
+    multigridStep.obstacleRestrictor_ = new MandelObstacleRestrictor<CorrectionType>;
 
 
-    EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
+    EnergyNorm<MatrixType, CorrectionType> energyNorm(multigridStep);
 
-    LoopSolver<VectorType> solver(&multigridStep,
+    LoopSolver<CorrectionType> solver(&multigridStep,
                                                    numIt,
                                                    tolerance,
                                                    &energyNorm,
@@ -142,18 +142,18 @@ int main (int argc, char *argv[]) try
 
     double trustRegionRadius = 0.1;
 
-    VectorType rhs;
-    VectorType x(grid.size(0,1));
-    VectorType corr;
+    CorrectionType rhs;
+    SolutionType x(grid.size(0,1));
+    CorrectionType corr;
 
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
 
     for (int i=0; i<x.size(); i++) {
-        x[i][0] = 1.0/(x.size()-1);
-        x[i][1] = 0;
-        x[i][2] = 0;
+        x[i].r[0] = double(i)/(x.size()-1);
+        x[i].r[1] = 0;
+        x[i].q    = Rotation<2,double>::identity();
     }
 
 
@@ -216,7 +216,7 @@ int main (int argc, char *argv[]) try
         for (int i=0; i<trueObstacles[toplevel].size(); i++) {
             trueObstacles[toplevel][i].clear();
             //trueObstacles[toplevel][i].val[0] =     - x[i][0];
-            trueObstacles[toplevel][i].upper(0) = 0.1 - x[i][0];
+            trueObstacles[toplevel][i].upper(0) = 0.1 - x[i].r[0];
         }
         
 
@@ -233,7 +233,7 @@ int main (int argc, char *argv[]) try
         multigridStep.mgTransfer_.resize(toplevel);
 
         for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
-            TruncatedCompressedMGTransfer<VectorType>* newTransferOp = new TruncatedCompressedMGTransfer<VectorType>;
+            TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
             newTransferOp->setup(grid,i,i+1);
             multigridStep.mgTransfer_[i] = newTransferOp;
         }
@@ -262,7 +262,7 @@ int main (int argc, char *argv[]) try
                                     trueObstacles[toplevel],
                                     dirichletNodes[toplevel]);
 
-            dynamic_cast<MultigridStep<MatrixType,VectorType>*>(solver.iterationStep_)->setProblem(hessianMatrix, corr, rhs, toplevel+1);
+            dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(solver.iterationStep_)->setProblem(hessianMatrix, corr, rhs, toplevel+1);
 
             solver.preprocess();
 
@@ -285,8 +285,10 @@ int main (int argc, char *argv[]) try
              // ////////////////////////////////////////////////////
              //   Check whether trust-region step can be accepted
              // ////////////////////////////////////////////////////
-             /** \todo Faster with expression templates */
-             VectorType newIterate = x;  newIterate += corr;
+
+             SolutionType newIterate = x;
+             for (int j=0; j<newIterate.size(); j++) 
+                 newIterate[j] = RigidBodyMotion<2>::exp(newIterate[j], corr[j]);
 
              /** \todo Don't always recompute oldEnergy */
              double oldEnergy = rodAssembler.computeEnergy(x); 
@@ -296,7 +298,8 @@ int main (int argc, char *argv[]) try
                  DUNE_THROW(SolverError, "Richtung ist keine Abstiegsrichtung!");
                  
              //  Add correction to the current solution
-             x += corr;
+             for (int j=0; j<x.size(); j++) 
+                 x[j] = RigidBodyMotion<2>::exp(x[j], corr[j]);
 
              // Subtract correction from the current obstacle
              for (int k=0; k<corr.size(); k++)
@@ -314,7 +317,7 @@ int main (int argc, char *argv[]) try
         std::string lagrangeFilename = "pressure/lagrange_" + levelAsAscii.str();
         std::ofstream lagrangeFile(lagrangeFilename.c_str());
         
-        VectorType lagrangeMultipliers;
+        CorrectionType lagrangeMultipliers;
         rodAssembler.assembleGradient(x, lagrangeMultipliers);
         lagrangeFile << lagrangeMultipliers << std::endl;
         

@@ -10,7 +10,7 @@
 
 /** \brief Write a planar rod
  */
-void writeRod(const Dune::BlockVector<Dune::FieldVector<double,3> >& rod, 
+void writeRod(const std::vector<RigidBodyMotion<2> >& rod, 
               const std::string& filename)
 {
     int nLines = rod.size() + 1 + 3*rod.size();
@@ -69,18 +69,18 @@ void writeRod(const Dune::BlockVector<Dune::FieldVector<double,3> >& rod,
 
     // The center axis
     for (int i=0; i<rod.size(); i++)
-        outfile << rod[i][0] << "  " << rod[i][1] << "  0" << std::endl;
+        outfile << rod[i].r[0] << "  " << rod[i].r[1] << "  0" << std::endl;
 
     // The directors
     for (int i=0; i<rod.size(); i++) {
 
         Dune::FieldVector<double, 2> director;
-        director[0] = -cos(rod[i][2]);
-        director[1] = sin(rod[i][2]);
+        director[0] = -cos(rod[i].q.angle_);
+        director[1] = sin(rod[i].q.angle_);
         director *= directorLength;
 
-        outfile << rod[i][0]+director[0] << "  " << rod[i][1]+director[1] << "  0 " << std::endl;
-        outfile << rod[i][0]-director[0] << "  " << rod[i][1]-director[1] << "  0 " << std::endl;
+        outfile << rod[i].r[0]+director[0] << "  " << rod[i].r[1]+director[1] << "  0 " << std::endl;
+        outfile << rod[i].r[0]-director[0] << "  " << rod[i].r[1]-director[1] << "  0 " << std::endl;
 
     }
 

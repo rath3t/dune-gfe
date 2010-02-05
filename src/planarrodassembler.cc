@@ -43,7 +43,7 @@ getNeighborsPerVertex(MatrixIndexSet& nb) const
 
 template <class GridType, int polOrd>
 void Dune::PlanarRodAssembler<GridType, polOrd>::
-assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
+assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
                BCRSMatrix<MatrixBlock>& matrix)
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -68,7 +68,7 @@ assembleMatrix(const BlockVector<FieldVector<double, blocksize> >& sol,
         mat.setSize(numOfBaseFct, numOfBaseFct);
 
         // Extract local solution
-        BlockVector<FieldVector<double, blocksize> > localSolution(numOfBaseFct);
+        std::vector<RigidBodyMotion<2> > localSolution(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -102,7 +102,7 @@ template <class GridType, int polOrd>
 template <class MatrixType>
 void Dune::PlanarRodAssembler<GridType, polOrd>::
 getLocalMatrix( EntityType &entity, 
-                const BlockVector<FieldVector<double, blocksize> >& localSolution,
+                const std::vector<RigidBodyMotion<2> >& localSolution,
                 const int matSize, MatrixType& localMat) const
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -162,10 +162,10 @@ getLocalMatrix( EntityType &entity,
         //   Interpolate
         // //////////////////////////////////
         
-        double x_s     = localSolution[0][0]*shapeGrad[0][0] + localSolution[1][0]*shapeGrad[1][0];
-        double y_s     = localSolution[0][1]*shapeGrad[0][0] + localSolution[1][1]*shapeGrad[1][0];
+        double x_s     = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
+        double y_s     = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
 
-        double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
+        double theta   = localSolution[0].q.angle_*shapeFunction[0] + localSolution[1].q.angle_*shapeFunction[1];
 
         for (int i=0; i<matSize; i++) {
 
@@ -262,7 +262,7 @@ getLocalMatrix( EntityType &entity,
 
 template <class GridType, int polOrd>
 void Dune::PlanarRodAssembler<GridType, polOrd>::
-assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
+assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
                  BlockVector<FieldVector<double, blocksize> >& grad) const
 {
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -285,7 +285,7 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         const int numOfBaseFct = baseSet.size();  
         
-        FieldVector<double, blocksize> localSolution[numOfBaseFct];
+        RigidBodyMotion<2> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -329,11 +329,11 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
             //   Interpolate
             // //////////////////////////////////
 
-            double x_s     = localSolution[0][0]*shapeGrad[0][0] + localSolution[1][0]*shapeGrad[1][0];
-            double y_s     = localSolution[0][1]*shapeGrad[0][0] + localSolution[1][1]*shapeGrad[1][0];
-            double theta_s = localSolution[0][2]*shapeGrad[0][0] + localSolution[1][2]*shapeGrad[1][0];
+            double x_s     = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
+            double y_s     = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
+            double theta_s = localSolution[0].q.angle_*shapeGrad[0][0] + localSolution[1].q.angle_*shapeGrad[1][0];
 
-            double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
+            double theta   = localSolution[0].q.angle_*shapeFunction[0] + localSolution[1].q.angle_*shapeFunction[1];
 
             // /////////////////////////////////////////////
             //   Sum it all up
@@ -371,7 +371,7 @@ assembleGradient(const BlockVector<FieldVector<double, blocksize> >& sol,
 
 template <class GridType, int polOrd>
 double Dune::PlanarRodAssembler<GridType, polOrd>::
-computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
+computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
 {
     const int maxlevel = grid_->maxLevel();
     double energy = 0;
@@ -392,7 +392,7 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
             = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
         int numOfBaseFct = baseSet.size();
 
-        FieldVector<double, blocksize> localSolution[numOfBaseFct];
+        RigidBodyMotion<2> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -440,11 +440,11 @@ computeEnergy(const BlockVector<FieldVector<double, blocksize> >& sol) const
             //   Interpolate
             // //////////////////////////////////
 
-            double x_s     = localSolution[0][0]*shapeGrad[0][0] + localSolution[1][0]*shapeGrad[1][0];
-            double y_s     = localSolution[0][1]*shapeGrad[0][0] + localSolution[1][1]*shapeGrad[1][0];
-            double theta_s = localSolution[0][2]*shapeGrad[0][0] + localSolution[1][2]*shapeGrad[1][0];
+            double x_s     = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
+            double y_s     = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
+            double theta_s = localSolution[0].q.angle_*shapeGrad[0][0] + localSolution[1].q.angle_*shapeGrad[1][0];
 
-            double theta   = localSolution[0][2]*shapeFunction[0] + localSolution[1][2]*shapeFunction[1];
+            double theta   = localSolution[0].q.angle_*shapeFunction[0] + localSolution[1].q.angle_*shapeFunction[1];
 
             // /////////////////////////////////////////////
             //   Sum it all up
