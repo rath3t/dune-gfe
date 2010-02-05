@@ -19,6 +19,42 @@ class Rotation
 
 };
 
+/** \brief Specialization for dim==2
+*/
+template <class T>
+class Rotation<2,T>
+{
+public:
+    /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
+    typedef Dune::FieldVector<T,1> TangentVector;
+
+    /** \brief Default constructor, create the identity rotation */
+    Rotation() 
+        : angle_(0)
+    {}
+
+    /** \brief Return the identity element */
+    static Rotation<2,T> identity() {
+        // Default constructor creates an identity
+        Rotation<2,T> id;
+        return id;
+    }
+
+    /** \brief The exponential map from a given point $p \in SO(3)$. */
+    static Rotation<2,T> exp(const Rotation<2,T>& p, const TangentVector& v) {
+        Rotation<2,T> result = p;
+        result.angle_ += v;
+        return result;
+    }
+
+
+    //private:
+
+    // We store the rotation as an angle
+    double angle_;
+};
+
+
 /** \brief Specialization for dim==3 
 
 Uses unit quaternion coordinates.
@@ -445,5 +481,7 @@ public:
     }
     
 };
+
+
 
 #endif
