@@ -5,7 +5,7 @@
 
 #include <dune/grid/common/quadraturerules.hh>
 
-#include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
+#include <dune/localfunctions/lagrange/p1.hh>
 
 template <class GridType, int polOrd>
 void Dune::PlanarRodAssembler<GridType, polOrd>::
@@ -60,10 +60,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
     
     for( ; it != endit; ++it ) {
         
-        //const BaseFunctionSetType & baseSet = functionSpace_.getBaseFunctionSet( *it );
-        const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
-        const int numOfBaseFct = baseSet.size();  
+        const int numOfBaseFct = 2;  
         
         mat.setSize(numOfBaseFct, numOfBaseFct);
 
@@ -114,12 +111,10 @@ getLocalMatrix( EntityType &entity,
         for (int j=0; j<matSize; j++)
             localMat[i][j] = 0;
     
-    //const BaseFunctionSetType & baseSet = this->functionSpace_.getBaseFunctionSet( entity );
-    const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(entity.geometry().type(), elementOrder);
+    P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
 
     // Get quadrature rule
-    const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(entity.geometry().type(), polOrd);
+    const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(entity.type(), polOrd);
     
     /* Loop over all integration points */
     for (int ip=0; ip<quad.size(); ip++) {
@@ -137,26 +132,18 @@ getLocalMatrix( EntityType &entity,
         /**********************************************/
         /* compute gradients of the shape functions   */
         /**********************************************/
+        std::vector<FieldMatrix<double,1,gridDim> > referenceElementGradients(ndof);
+        localFiniteElement.localBasis().evaluateJacobian(quadPos,referenceElementGradients);
+
         std::vector<FieldVector<double,gridDim> > shapeGrad(ndof);
         
-        for (int dof=0; dof<ndof; dof++) {
-            
-            //baseSet.jacobian(dof, quadPos, shapeGrad[dof]);
-            for (int i=0; i<gridDim; i++)
-                shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
-            
-            // multiply with jacobian inverse 
-            FieldVector<double,gridDim> tmp(0);
-            inv.umv(shapeGrad[dof], tmp);
-            shapeGrad[dof] = tmp;
-
-        }
+        // multiply with jacobian inverse 
+        for (int dof=0; dof<ndof; dof++)
+            inv.mv(referenceElementGradients[dof][0], shapeGrad[dof]);
         
         
-        double shapeFunction[matSize];
-        for(int i=0; i<matSize; i++) 
-            //baseSet.eval(i,quadPos,shapeFunction[i]);
-            shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
+        std::vector<FieldVector<double,1> > shapeFunction;
+        localFiniteElement.localBasis().evaluateFunction(quadPos,shapeFunction);
 
         // //////////////////////////////////
         //   Interpolate
@@ -281,9 +268,8 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
     for (; it!=endIt; ++it) {
 
         // Extract local solution on this element
-        const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
-        const int numOfBaseFct = baseSet.size();  
+        P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
+        const int numOfBaseFct = localFiniteElement.localBasis().size();  
         
         RigidBodyMotion<2> localSolution[numOfBaseFct];
         
@@ -291,7 +277,7 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Get quadrature rule
-        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
+        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
@@ -303,27 +289,21 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
         
             double weight = quad[pt].weight() * integrationElement;
             
-            // ///////////////////////////////////////
-            //   Compute deformation gradient
-            // ///////////////////////////////////////
+            /**********************************************/
+            /* compute gradients of the shape functions   */
+            /**********************************************/
+            std::vector<FieldMatrix<double,1,gridDim> > referenceElementGradients(numOfBaseFct);
+            localFiniteElement.localBasis().evaluateJacobian(quadPos,referenceElementGradients);
+            
             std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
             
-            for (int dof=0; dof<numOfBaseFct; dof++) {
-                
-                for (int i=0; i<gridDim; i++)
-                    shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
+            // multiply with jacobian inverse 
+            for (int dof=0; dof<numOfBaseFct; dof++)
+                inv.mv(referenceElementGradients[dof][0], shapeGrad[dof]);
 
-                // multiply with jacobian inverse 
-                FieldVector<double,gridDim> tmp(0);
-                inv.umv(shapeGrad[dof], tmp);
-                shapeGrad[dof] = tmp;
-                
-            }
-
-            // Get the value of the shape functions
-            double shapeFunction[2];
-            for(int i=0; i<2; i++) 
-                shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
+            // Get the values of the shape functions
+            std::vector<FieldVector<double,1> > shapeFunction;
+            localFiniteElement.localBasis().evaluateFunction(quadPos,shapeFunction);
 
             // //////////////////////////////////
             //   Interpolate
@@ -388,9 +368,9 @@ computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
     for (; it!=endIt; ++it) {
 
         // Extract local solution on this element
-        const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->geometry().type(), elementOrder);
-        int numOfBaseFct = baseSet.size();
+        P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
+
+        int numOfBaseFct = localFiniteElement.localBasis().size();
 
         RigidBodyMotion<2> localSolution[numOfBaseFct];
         
@@ -398,7 +378,7 @@ computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Get quadrature rule
-        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->geometry().type(), polOrd);
+        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
@@ -410,31 +390,21 @@ computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
         
             double weight = quad[pt].weight() * integrationElement;
             
-            // ///////////////////////////////////////
-            //   Compute deformation gradient
-            // ///////////////////////////////////////
+            /**********************************************/
+            /* compute gradients of the shape functions   */
+            /**********************************************/
+            std::vector<FieldMatrix<double,1,gridDim> > referenceElementGradients(numOfBaseFct);
+            localFiniteElement.localBasis().evaluateJacobian(quadPos,referenceElementGradients);
+            
             std::vector<FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
             
-            for (int dof=0; dof<numOfBaseFct; dof++) {
-                
-                for (int i=0; i<gridDim; i++)
-                    shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,quadPos);
-                //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
-                
-                // multiply with jacobian inverse 
-                FieldVector<double,gridDim> tmp(0);
-                inv.umv(shapeGrad[dof], tmp);
-                shapeGrad[dof] = tmp;
-                //std::cout << "Gradient " << dof << ": " << shape_grads[dof] << std::endl;
-
-                
-                
-            }
+            // multiply with jacobian inverse 
+            for (int dof=0; dof<numOfBaseFct; dof++)
+                inv.mv(referenceElementGradients[dof][0], shapeGrad[dof]);
 
             // Get the value of the shape functions
-            double shapeFunction[2];
-            for(int i=0; i<2; i++) 
-                shapeFunction[i] = baseSet[i].evaluateFunction(0,quadPos);
+            std::vector<FieldVector<double,1> > shapeFunction;
+            localFiniteElement.localBasis().evaluateFunction(quadPos,shapeFunction);
 
             // //////////////////////////////////
             //   Interpolate
