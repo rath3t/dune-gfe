@@ -48,27 +48,6 @@ template <int dim, class ctype, class TargetSpace>
 TargetSpace LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluate(const Dune::FieldVector<ctype, dim>& local)
 {
-#if 0   // Interpolation using recursive geodesic cones, doesn't work :-(
-    ctype extraCoord = 1;
-    for (int i=0; i<dim; i++)
-        extraCoord -= local[i];
-
-    ctype normalizingFactor = extraCoord;
-
-    TargetSpace result = coefficients_[0];
-
-    for (int i=0; i<dim; i++) {
-        assert(local[i]>=0);
-        normalizingFactor += local[i];
-        result = TargetSpace::interpolate(result, coefficients_[i+1], 
-                                          (std::abs(normalizingFactor) > 1e-10)
-                                          ? local[i] / normalizingFactor
-                                          : 0);
-    }
-
-    return result;
-#endif
-
 #warning Some code out-commented
 #if 0
     Dune::FieldVector<ctype, dim+1> barycentricCoordinates;
