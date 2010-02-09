@@ -2,6 +2,8 @@
 // For using a monotone multigrid as the inner solver
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/norms/energynorm.hh>
+
 #include "maxnormtrustregion.hh"
 
 template <class TargetSpace>
