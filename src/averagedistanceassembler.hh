@@ -19,8 +19,8 @@ class AverageDistanceAssembler<Rotation<3,double> >
 
 public:
 
-    AverageDistanceAssembler(const std::vector<TargetSpace> coefficients,
-                             const std::vector<double> weights)
+    AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
+                             const std::vector<double>& weights)
         : coefficients_(coefficients),
           weights_(weights)
     {}
