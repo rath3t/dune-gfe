@@ -28,7 +28,7 @@ public:
     double value(const TargetSpace& x) {
 
         double result = 0;
-        for (int i=0; i<coefficients_.size(); i++) {
+        for (size_t i=0; i<coefficients_.size(); i++) {
             double dist = TargetSpace::distance(coefficients_[i], x);
             result += 0.5*weights_[i]*dist*dist;
         }
