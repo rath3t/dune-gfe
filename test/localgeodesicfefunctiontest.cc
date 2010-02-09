@@ -6,6 +6,7 @@
 #include <dune/grid/common/quadraturerules.hh>
 
 #include <dune/src/rotation.hh>
+#include <dune/src/realtuple.hh>
 #include <dune/src/localgeodesicfefunction.hh>
 
 // Domain dimension
@@ -57,7 +58,18 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 
 }
 
-int main()
+void testRealTuples()
+{
+    typedef RealTuple<1> TargetSpace;
+
+    std::vector<TargetSpace> corners = {TargetSpace(1),
+                                        TargetSpace(2),
+                                        TargetSpace(3)};
+
+    testPermutationInvariance(corners);
+}
+
+void testRotations()
 {
     typedef Rotation<3,double> TargetSpace;
 
@@ -75,5 +87,11 @@ int main()
     corners[2] = Rotation<3,double>(zAxis,0.1);
 
     testPermutationInvariance(corners);
+}
 
+
+int main()
+{
+    testRealTuples();
+    testRotations();
 }
