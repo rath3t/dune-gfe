@@ -8,45 +8,35 @@
 #include <dune/src/rotation.hh>
 #include <dune/src/localgeodesicfefunction.hh>
 
+// Domain dimension
+const int dim = 2;
+
 using namespace Dune;
 
-int main()
+/** \brief Test whether interpolation is invariant under permutation of the simplex vertices
+ */
+template <class TargetSpace>
+void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 {
-    typedef Rotation<3,double> TargetSpace;
+    std::vector<TargetSpace> cornersRotated1(dim+1);
+    std::vector<TargetSpace> cornersRotated2(dim+1);
 
-    const int dim = 2;
+    cornersRotated1[0] = cornersRotated2[2] = corners[1];
+    cornersRotated1[1] = cornersRotated2[0] = corners[2];
+    cornersRotated1[2] = cornersRotated2[1] = corners[0];
+    
+    LocalGeodesicFEFunction<2,double,TargetSpace> f0(corners);
+    LocalGeodesicFEFunction<2,double,TargetSpace> f1(cornersRotated1);
+    LocalGeodesicFEFunction<2,double,TargetSpace> f2(cornersRotated2);
 
-    FieldVector<double,3> xAxis(0);
-    xAxis[0] = 1;
-    FieldVector<double,3> yAxis(0);
-    yAxis[1] = 1;
-    FieldVector<double,3> zAxis(0);
-    zAxis[2] = 1;
-
-
-
-    TargetSpace v0 = Rotation<3,double>(xAxis,1);
-    TargetSpace v1 = Rotation<3,double>(yAxis,2);
-    TargetSpace v2 = Rotation<3,double>(zAxis,3);
-
-    std::vector<TargetSpace> coef0(3), coef1(3), coef2(3);
-    coef0[0] = v0;  coef0[1] = v1;  coef0[2] = v2;
-    coef1[0] = v2;  coef1[1] = v0;  coef1[2] = v1;
-    coef2[0] = v1;  coef2[1] = v2;  coef2[2] = v0;
-
-    GeometryType triangle;
-    triangle.makeTriangle();
-
-    LocalGeodesicFEFunction<2,double,TargetSpace> f0(triangle, coef0);
-    LocalGeodesicFEFunction<2,double,TargetSpace> f1(triangle, coef1);
-    LocalGeodesicFEFunction<2,double,TargetSpace> f2(triangle, coef2);
-
+    // A quadrature rule as a set of test points
     int quadOrder = 1;
 
     const Dune::QuadratureRule<double, dim>& quad 
-        = Dune::QuadratureRules<double, dim>::rule(triangle, quadOrder);
+        = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
+        
         const Dune::FieldVector<double,dim>& quadPos = quad[pt].position();
 
         Dune::FieldVector<double,dim> l0 = quadPos;
@@ -65,6 +55,25 @@ int main()
 
     }
 
+}
 
+int main()
+{
+    typedef Rotation<3,double> TargetSpace;
+
+    FieldVector<double,3> xAxis(0);
+    xAxis[0] = 1;
+    FieldVector<double,3> yAxis(0);
+    yAxis[1] = 1;
+    FieldVector<double,3> zAxis(0);
+    zAxis[2] = 1;
+
+
+    std::vector<TargetSpace> corners(dim+1);
+    corners[0] = Rotation<3,double>(xAxis,0.1);
+    corners[1] = Rotation<3,double>(yAxis,0.1);
+    corners[2] = Rotation<3,double>(zAxis,0.1);
+
+    testPermutationInvariance(corners);
 
 }
