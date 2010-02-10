@@ -48,9 +48,8 @@ template <int dim, class ctype, class TargetSpace>
 TargetSpace LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluate(const Dune::FieldVector<ctype, dim>& local)
 {
-#warning Some code out-commented
-#if 0
-    Dune::FieldVector<ctype, dim+1> barycentricCoordinates;
+    // First compute the coordinates on the standard simplex (in R^{n+1})
+    std::vector<ctype> barycentricCoordinates(dim+1);
 
     barycentricCoordinates[0] = 1;
     for (int i=0; i<dim; i++) {
@@ -64,6 +63,7 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
 
     solver.setup(&assembler,
                  coefficients_[0],   // initial iterate
+                 1e-3,    // tolerance
                  20,      // maxTrustRegionSteps
                  1,       // initial trust region radius
                  20,      // inner iterations
@@ -73,7 +73,6 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
     solver.solve();
 
     return solver.getSol();
-#endif
 }
 
 template <int dim, class ctype, class TargetSpace>
