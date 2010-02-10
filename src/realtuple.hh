@@ -26,17 +26,19 @@ public:
     /** \brief Construction from a scalar */
     RealTuple(double v)
     {
-        data_.assign(v);
+        data_ = v;
+    }
+
+    /** \brief The exponention map */
+    static RealTuple exp(const RealTuple& p, const TangentVector& v) {
+        return RealTuple(p.data_+v);
     }
 
     /** \brief Geodesic distance between two points 
 
     Simply the Euclidean distance */
     static double distance(const RealTuple& a, const RealTuple& b) {
-        double result = 0;
-        for (int i=0; i<N; i++)
-            result += (a.data_[0] - b.data_[0]) * (a.data_[0] - b.data_[0]);
-        return std::sqrt(result);
+        return (a.data_ - b.data_).two_norm();
     }
 
     
@@ -48,7 +50,7 @@ public:
 
 private:
     
-    Dune::array<double,N> data_;
+    Dune::FieldVector<double,N> data_;
 
 };
 
