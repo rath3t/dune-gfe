@@ -9,6 +9,7 @@
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class TargetSpace>
 class TargetSpaceRiemannianTRSolver 
+    : public NumProc
 //     : public IterativeSolver<std::vector<TargetSpace>,
 //                             Dune::BitSetVector<TargetSpace::TangentVector::size> >
 { 
