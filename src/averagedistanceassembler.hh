@@ -18,7 +18,7 @@ public:
           weights_(weights)
     {}
 
-    double value(const TargetSpace& x) {
+    double value(const TargetSpace& x) const {
 
         double result = 0;
         for (size_t i=0; i<coefficients_.size(); i++) {
