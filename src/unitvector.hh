@@ -18,6 +18,15 @@ public:
         return *this;
     }
 
+     /** \brief The exponention map */
+    static UnitVector exp(const UnitVector& p, const TangentVector& v) {
+        const double norm = v.two_norm();
+        UnitVector result = p;
+        result.data_ *= std::cos(norm);
+        result.data_.axpy(std::sin(norm)/norm, v);
+        return result;
+    }
+
     /** \brief Length of the great arc connecting the two points */
      static double distance(const UnitVector& a, const UnitVector& b) {
         return std::acos(a.data_ * b.data_);
