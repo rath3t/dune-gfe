@@ -30,13 +30,13 @@ public:
     }
 
     void assembleGradient(const TargetSpace& x,
-                          typename TargetSpace::EmbeddedTangentVector& gradient)
+                          typename TargetSpace::EmbeddedTangentVector& gradient) const
     {
         DUNE_THROW(Dune::NotImplemented, "assembleGradient");
     }
 
     void assembleMatrix(const TargetSpace& x,
-                        Dune::FieldMatrix<double,size,size>& matrix)
+                        Dune::FieldMatrix<double,size,size>& matrix) const
     {
         DUNE_THROW(Dune::NotImplemented, "assembleMatrix");
     }
@@ -63,7 +63,7 @@ public:
           weights_(weights)
     {}
 
-    double value(const TargetSpace& x) {
+    double value(const TargetSpace& x) const {
 
         double result = 0;
         for (size_t i=0; i<coefficients_.size(); i++) {
@@ -75,13 +75,13 @@ public:
     }
 
     void assembleGradient(const TargetSpace& x,
-                          TargetSpace::TangentVector& gradient)
+                          TargetSpace::TangentVector& gradient) const
     {
         DUNE_THROW(Dune::NotImplemented, "assembleGradient");
     }
 
     void assembleMatrix(const TargetSpace& x,
-                        Dune::FieldMatrix<double,size,size>& matrix)
+                        Dune::FieldMatrix<double,size,size>& matrix) const
     {
         DUNE_THROW(Dune::NotImplemented, "assembleMatrix");
     }
