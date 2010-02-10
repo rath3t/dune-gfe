@@ -50,12 +50,8 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 template <class TargetSpace>
 void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 {
-#if 0
-    MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
-
-    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep) 
-                                                                                         ? mgStep->numLevels_
-                                                                                         : 0);
+    MaxNormTrustRegion<blocksize> trustRegion(1,   // we have only one block
+                                              initialTrustRegionRadius_);
 
     // /////////////////////////////////////////////////////
     //   Trust-Region Solver
@@ -71,11 +67,13 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         }
 
         CorrectionType rhs;
-        CorrectionType corr(x_.size());
+        CorrectionType corr(1);  // length is 1 _block_
         corr = 0;
 
-        assembler_->assembleGradient(x_, rhs);
-        assembler_->assembleMatrix(x_, hesseMatrix);
+        MatrixType hesseMatrix;
+
+        assembler_->assembleGradient(x_, rhs[0]);
+        assembler_->assembleMatrix(x_, hesseMatrix[0][0]);
 
         //gradientFDCheck(x_, rhs, *rodAssembler_);
         //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
@@ -83,10 +81,9 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // The right hand side is the _negative_ gradient
         rhs *= -1;
 
-        mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
+        dynamic_cast<LinearIterationStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->setProblem(hesseMatrix, corr, rhs);
         
-        trustRegionObstacles.back() = trustRegion.obstacles();
-        mgStep->obstacles_ = &trustRegionObstacles;
+        dynamic_cast<TrustRegionGSStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->obstacles_ = &trustRegion.obstacles();
         
         innerSolver_->preprocess();
         
@@ -96,7 +93,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         
         innerSolver_->solve();
         
-        corr = mgStep->getSol();
+        corr = innerSolver_->iterationStep_->getSol();
         
         //std::cout << "Correction: " << std::endl << corr << std::endl;
         
@@ -118,7 +115,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // ////////////////////////////////////////////////////
         
         TargetSpace newIterate = x_;
-        newIterate = TargetSpace::exp(newIterate, corr);
+        newIterate = TargetSpace::exp(newIterate, corr[0]);
         
         /** \todo Don't always recompute oldEnergy */
         double oldEnergy = assembler_->value(x_);
@@ -129,10 +126,10 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // Note that rhs = -g
         CorrectionType tmp(corr.size());
         tmp = 0;
-        hessianMatrix_->umv(corr, tmp);
+        hesseMatrix.umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
         
-        if (/* this->verbosity_ == NumProc::FULL */) {
+        if (this->verbosity_ == NumProc::FULL) {
             std::cout << "Absolute model decrease: " << modelDecrease 
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
             std::cout << "Relative model decrease: " << modelDecrease / energy
@@ -184,5 +181,5 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
             std::cout << "--- Current energy: " << energy << " ---" << std::endl;
 
     }
-#endif
+
 }
