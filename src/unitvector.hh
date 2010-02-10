@@ -18,6 +18,11 @@ public:
         return *this;
     }
 
+    /** \brief Length of the great arc connecting the two points */
+     static double distance(const UnitVector& a, const UnitVector& b) {
+        return std::acos(a.data_ * b.data_);
+    }
+
     /** \brief Write LocalKey object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const UnitVector& unitVector)
     {
