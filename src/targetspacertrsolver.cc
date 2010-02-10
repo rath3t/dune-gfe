@@ -17,7 +17,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
         double innerTolerance)
 {
     x_                        = x;
-    this->tolerance_          = tolerance;
+    tolerance_                = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
     initialTrustRegionRadius_ = initialTrustRegionRadius;
     innerIterations_          = innerIterations;
@@ -42,8 +42,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     //   Create obstacles
     // //////////////////////////////////////////////////////////
     
-    innerSolverStep->obstacle_->resize(1);
-    innerSolverStep->obstacle_->setAll();
+    //innerSolverStep->hasObstacle_ = &dummyObstacle_;
     
 }
 

@@ -18,8 +18,10 @@ class TargetSpaceRiemannianTRSolver
     typedef double field_type;
 
     // Some types that I need
-    typedef Dune::FieldMatrix<field_type, blocksize, blocksize> MatrixType;
-    typedef Dune::FieldVector<field_type, blocksize>           CorrectionType;
+    // The types have the dynamic outer type because the dune-solvers solvers expect
+    // this sort of type.
+    typedef Dune::Matrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
+    typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >       CorrectionType;
 
 public:
 
@@ -49,6 +51,9 @@ protected:
     /** \brief The solution vector */
     TargetSpace x_;
 
+    /** \brief Tolerance of the solver */
+    double tolerance_;
+
     /** \brief The initial trust-region radius in the maximum-norm */
     double initialTrustRegionRadius_;
 
@@ -61,11 +66,14 @@ protected:
     /** \brief Error tolerance of the multigrid QP solver */
     double innerTolerance_;
 
-    /** \brief The assembler for the material law */
+    /** \brief The assembler for the average-distance functional */
     const AverageDistanceAssembler<TargetSpace>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
-    ::LoopSolver<Dune::array<CorrectionType,1> >* innerSolver_;
+    ::LoopSolver<CorrectionType>* innerSolver_;
+
+//     /** \brief Dummy field for the trustregiongsstep */
+//     Dune::BitSetVector<blocksize> dummyObstacle_;
 
 };
 
