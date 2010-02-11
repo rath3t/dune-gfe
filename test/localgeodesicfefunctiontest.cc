@@ -7,6 +7,8 @@
 
 #include <dune/src/rotation.hh>
 #include <dune/src/realtuple.hh>
+#include <dune/src/unitvector.hh>
+
 #include <dune/src/localgeodesicfefunction.hh>
 
 // Domain dimension
@@ -31,7 +33,7 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
     LocalGeodesicFEFunction<2,double,TargetSpace> f2(cornersRotated2);
 
     // A quadrature rule as a set of test points
-    int quadOrder = 1;
+    int quadOrder = 3;
 
     const Dune::QuadratureRule<double, dim>& quad 
         = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
@@ -43,16 +45,24 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
         Dune::FieldVector<double,dim> l0 = quadPos;
         Dune::FieldVector<double,dim> l1, l2;
 
-        l1[0] = 1-quadPos[0]-quadPos[1];
-        l1[1] = quadPos[0];
+        l1[0] = quadPos[1];
+        l1[1] = 1-quadPos[0]-quadPos[1];
 
-        l2[0] = quadPos[1];
-        l2[1] = 1-quadPos[0]-quadPos[1];
+        l2[0] = 1-quadPos[0]-quadPos[1];
+        l2[1] = quadPos[0];
 
+        // evaluate the three functions
+        TargetSpace v0 = f0.evaluate(l0);
+        TargetSpace v1 = f1.evaluate(l1);
+        TargetSpace v2 = f2.evaluate(l2);
         
-        std::cout << f0.evaluate(l0) << std::endl;
-        std::cout << f1.evaluate(l1) << std::endl;
-        std::cout << f2.evaluate(l2) << std::endl;
+        // Check that they are all equal
+        assert(TargetSpace::distance(v0,v1) < 1e-5);
+        assert(TargetSpace::distance(v0,v2) < 1e-5);
+
+        std::cout << v0 << std::endl;
+        std::cout << v1 << std::endl;
+        std::cout << v2 << std::endl;
 
     }
 
@@ -65,6 +75,23 @@ void testRealTuples()
     std::vector<TargetSpace> corners = {TargetSpace(1),
                                         TargetSpace(2),
                                         TargetSpace(3)};
+
+    testPermutationInvariance(corners);
+}
+
+void testUnitVectors()
+{
+    typedef UnitVector<3> TargetSpace;
+
+    std::vector<TargetSpace> corners(dim+1);
+
+    FieldVector<double,3> input;
+    input[0] = 1;  input[1] = 0;  input[2] = 0;
+    corners[0] = input;
+    input[0] = 0;  input[1] = 1;  input[2] = 0;
+    corners[1] = input;
+    input[0] = 0;  input[1] = 0;  input[2] = 1;
+    corners[2] = input;
 
     testPermutationInvariance(corners);
 }
@@ -92,6 +119,7 @@ void testRotations()
 
 int main()
 {
-    testRealTuples();
-    testRotations();
+    //testRealTuples();
+    testUnitVectors();
+    //testRotations();
 }
