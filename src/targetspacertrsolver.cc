@@ -67,11 +67,11 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
             std::cout << "----------------------------------------------------" << std::endl;
         }
 
-        CorrectionType rhs;
+        CorrectionType rhs(1);   // length is 1 _block_
         CorrectionType corr(1);  // length is 1 _block_
         corr = 0;
 
-        MatrixType hesseMatrix;
+        MatrixType hesseMatrix(1,1);
 
         assembler_->assembleGradient(x_, rhs[0]);
         assembler_->assembleMatrix(x_, hesseMatrix[0][0]);
