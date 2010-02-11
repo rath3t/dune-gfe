@@ -41,6 +41,12 @@ public:
         return (a.data_ - b.data_).two_norm();
     }
 
+    /** \brief Compute the gradient of the distance function keeping the first argument fixed
+     */
+    static EmbeddedTangentVector derivativeOfDistanceWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+        EmbeddedTangentVector gradient = a.data_ - b.data_;
+        return -gradient/distance(a,b);
+    }
     
     /** \brief Write LocalKey object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const RealTuple& realTuple)
