@@ -33,9 +33,16 @@ public:
                           typename TargetSpace::EmbeddedTangentVector& gradient) const
     {
         gradient = 0;
+#if 0  // This old code uses the derivative of dist(,), which is (frequently, at least)
+        // not differentiable at 0
         for (size_t i=0; i<coefficients_.size(); i++)
             gradient.axpy(weights_[i]*TargetSpace::distance(coefficients_[i], x),
                           TargetSpace::derivativeOfDistanceWRTSecondArgument(coefficients_[i], x));
+#else
+        for (size_t i=0; i<coefficients_.size(); i++)
+            gradient.axpy(0.5*weights_[i], 
+                          TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
+#endif
     }
 
     void assembleMatrix(const TargetSpace& x,
