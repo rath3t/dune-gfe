@@ -32,7 +32,10 @@ public:
     void assembleGradient(const TargetSpace& x,
                           typename TargetSpace::EmbeddedTangentVector& gradient) const
     {
-        DUNE_THROW(Dune::NotImplemented, "assembleGradient");
+        gradient = 0;
+        for (size_t i=0; i<coefficients_.size(); i++)
+            gradient.axpy(weights_[i]*TargetSpace::distance(coefficients_[i], x),
+                          TargetSpace::derivativeOfDistanceWRTSecondArgument(coefficients_[i], x));
     }
 
     void assembleMatrix(const TargetSpace& x,
