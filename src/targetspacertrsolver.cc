@@ -16,6 +16,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
       int innerIterations,
         double innerTolerance)
 {
+    assembler_                = assembler;
     x_                        = x;
     tolerance_                = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
