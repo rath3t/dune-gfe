@@ -48,6 +48,14 @@ public:
         return -gradient/distance(a,b);
     }
     
+    /** \brief Compute the gradient of the squared distance function keeping the first argument fixed
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+        return -2*(a.data_ - b.data_);
+    }
+    
     /** \brief Write LocalKey object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const RealTuple& realTuple)
     {
