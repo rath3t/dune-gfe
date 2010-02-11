@@ -32,6 +32,16 @@ public:
         return std::acos(a.data_ * b.data_);
     }
 
+    /** \brief Compute the gradient of the squared distance function keeping the first argument fixed
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& a, const UnitVector& b) {
+        EmbeddedTangentVector result = a.data_;
+        result *= -2*std::acos(a.data_ * b.data_) / std::sqrt(1-(a.data_*b.data_)*(a.data_*b.data_));
+        return result;
+    }
+
     /** \brief Write LocalKey object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const UnitVector& unitVector)
     {
