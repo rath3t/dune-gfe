@@ -41,7 +41,9 @@ public:
     void assembleMatrix(const TargetSpace& x,
                         Dune::FieldMatrix<double,size,size>& matrix) const
     {
-        DUNE_THROW(Dune::NotImplemented, "assembleMatrix");
+        for (int i=0; i<size; i++)
+            for (int j=0; j<size; j++)
+                matrix[i][j] = (i==j);
     }
 
     const std::vector<TargetSpace> coefficients_;
