@@ -71,7 +71,7 @@ protected:
     const AverageDistanceAssembler<TargetSpace>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
-    ::LoopSolver<CorrectionType>* innerSolver_;
+    std::auto_ptr< ::LoopSolver<CorrectionType> > innerSolver_;
 
 //     /** \brief Dummy field for the trustregiongsstep */
 //     Dune::BitSetVector<blocksize> dummyObstacle_;

@@ -33,11 +33,11 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 
     EnergyNorm<MatrixType, CorrectionType>* energyNorm = new EnergyNorm<MatrixType, CorrectionType>(*innerSolverStep);
 
-    innerSolver_ = new ::LoopSolver<CorrectionType>(innerSolverStep,
-                                                    innerIterations,
-                                                    innerTolerance,
-                                                    energyNorm,
-                                                    Solver::QUIET);
+    innerSolver_ = std::auto_ptr< ::LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(innerSolverStep,
+                                                                                                  innerIterations,
+                                                                                                  innerTolerance,
+                                                                                                  energyNorm,
+                                                                                                  Solver::QUIET));
 
     // //////////////////////////////////////////////////////////
     //   Create obstacles
