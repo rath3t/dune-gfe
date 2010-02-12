@@ -20,6 +20,9 @@ public:
 
      /** \brief The exponention map */
     static UnitVector exp(const UnitVector& p, const TangentVector& v) {
+
+        assert( std::abs(p.data_*v) < 1e-7 );
+
         const double norm = v.two_norm();
         UnitVector result = p;
         result.data_ *= std::cos(norm);
@@ -37,8 +40,23 @@ public:
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& a, const UnitVector& b) {
+        double x = a.data_ * b.data_;
+        const double eps = 1e-12;
+
         EmbeddedTangentVector result = a.data_;
-        result *= -2*std::acos(a.data_ * b.data_) / std::sqrt(1-(a.data_*b.data_)*(a.data_*b.data_));
+
+        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
+            result *= -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
+        } else {
+            result *= -2*std::acos(x) / std::sqrt(1-x*x);
+        }
+
+        // Project gradient onto the tangent plane at b in order to obtain the surface gradient
+        result.axpy(-1*(b.data_*result), b.data_);
+
+        // Gradient must be a tangent vector at b, in other words, orthogonal to it
+        assert( std::abs(b.data_ * result) < 1e-7);
+
         return result;
     }
 
