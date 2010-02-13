@@ -53,7 +53,6 @@ public:
     // types for matrics, vectors and boundary conditions
     typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
     typedef Dune::FieldVector<RT,m> VBlockType;   // one entry in the global vectors
-    typedef Dune::array<Dune::BoundaryConditions::Flags,m> BCBlockType;     // componentwise boundary conditions
 
     /** \brief Assemble the local stiffness matrix at the current position
 
