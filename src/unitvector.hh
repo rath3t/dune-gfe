@@ -8,6 +8,9 @@ class UnitVector
 {
 public:
 
+    /** \brief The type used for coordinates */
+    typedef double ctype;
+
     typedef Dune::FieldVector<double,dim> TangentVector;
     typedef Dune::FieldVector<double,dim> EmbeddedTangentVector;
 
