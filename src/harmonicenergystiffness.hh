@@ -24,19 +24,6 @@ public:
     //! Dimension of a tangent space
     enum { blocksize = TargetSpace::TangentVector::size };
 
-#if 0
-    // types for matrics, vectors and boundary conditions
-    typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
-    typedef Dune::FieldVector<RT,m> VBlockType;   // one entry in the global vectors
-    typedef Dune::array<Dune::BoundaryConditions::Flags,m> BCBlockType;     // componentwise boundary conditions
-#endif
-
-#if 0
-    //! Default Constructor
-    HarmonicEnergyLocalStiffness ()
-    {}
-#endif
-
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
                const std::vector<TargetSpace>& localSolution) const;
