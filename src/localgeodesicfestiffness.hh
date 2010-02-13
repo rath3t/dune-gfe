@@ -5,9 +5,8 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
-#include <dune/disc/operators/localstiffness.hh>
-#include<dune/disc/operators/boundaryconditions.hh>
 
+#include "localstiffness.hh"
 #include "rigidbodymotion.hh"
 
 template<class GridView, class TargetSpace>
@@ -144,12 +143,6 @@ assemble(const Entity& element,
     this->setcurrentsize(nDofs);
 
     this->A = 0;
-
-    for (int i=0; i<nDofs; i++) {
-        this->b[i] = 0;
-        for (int j=0; j<this->bctype[i].size(); j++)
-            this->bctype[i][j] = Dune::BoundaryConditions::neumann;
-    }
 
     double eps = 1e-4;
 
