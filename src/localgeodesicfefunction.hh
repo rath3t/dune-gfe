@@ -117,7 +117,7 @@ evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local)
         forward[i]  += eps;
         backward[i] -= eps;
         
-        EmbeddedTangentVector fdDer = evaluate(forward) - evaluate(backward);
+        EmbeddedTangentVector fdDer = evaluate(forward).globalCoordinates() - evaluate(backward).globalCoordinates();
         fdDer /= 2*eps;
         
         for (int j=0; j<EmbeddedTangentVector::size; j++)
