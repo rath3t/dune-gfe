@@ -8,6 +8,8 @@
 #include <dune/disc/operators/localstiffness.hh>
 #include<dune/disc/operators/boundaryconditions.hh>
 
+#include "rigidbodymotion.hh"
+
 template<class GridView, class TargetSpace>
 class LocalGeodesicFEStiffness 
     : public Dune::LocalStiffness<GridView,double,TargetSpace::TangentVector::size>

@@ -4,7 +4,7 @@
 #ifndef SVD_HH
 #define SVD_HH
 
-#include <math.h>
+#include <cmath.h>
 
 
 template <class T>
@@ -19,10 +19,10 @@ template <class T>
 T pythag(T a, T b)
 {
     T absa,absb;
-    absa=std::abs(a);
-    absb=std::abs(b);
+    absa=std::fabs(a);
+    absb=std::fabs(b);
     if (absa > absb) 
-        return absa*sqrt(1.0+SQR(absb/absa));
+        return absa*std::sqrt(1.0+SQR(absb/absa));
     else 
         return (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb)));
 }

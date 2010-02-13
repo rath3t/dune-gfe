@@ -7,6 +7,8 @@
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
 
+#include "rigidbodymotion.hh"
+
 namespace Dune 
 {
 

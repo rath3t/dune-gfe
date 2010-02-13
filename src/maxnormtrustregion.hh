@@ -1,6 +1,10 @@
 #ifndef MAX_NORM_TRUST_REGION_HH
 #define MAX_NORM_TRUST_REGION_HH
 
+#include <vector>
+
+#include <dune/solvers/boxconstraint.hh>
+
 template <int blocksize>
 class MaxNormTrustRegion
 {

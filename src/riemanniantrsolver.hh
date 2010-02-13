@@ -10,7 +10,7 @@
 
 #include <dune/solvers/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
-#include <dune/solvers/solvers/solver.hh>
+#include <dune/solvers/solvers/iterativesolver.hh>
 
 #include "geodesicfeassembler.hh"
 

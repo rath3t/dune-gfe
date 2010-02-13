@@ -2,6 +2,7 @@
 #define ROD_WRITER_HH
 
 #include <fstream>
+#include <vector>
 
 #include <dune/common/exceptions.hh>
 #include <dune/istl/bvector.hh>

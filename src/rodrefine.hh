@@ -1,6 +1,9 @@
 #ifndef ROD_REFINE_HH
 #define ROD_REFINE_HH
 
+#include <vector>
+#include <map>
+
 #include "rigidbodymotion.hh"
 
 template <class GridType>
