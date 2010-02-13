@@ -63,9 +63,11 @@ energy(const Entity& element,
         // The derivative of the function defined on the actual element
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> derivative(0);
 
-        for (int comp=0; comp<4; comp++)
+        for (int comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
 
+#if 0
+        // old debugging: the image of the derivative mapping must be tangent to the TargetSpace
         TargetSpace value = localGeodesicFEFunction.evaluate(quadPos);
 
         for (int i=0; i<gridDim; i++) {
@@ -74,25 +76,16 @@ energy(const Entity& element,
                 dotproduct += value[j]*derivative[j][i];
             assert(std::fabs(dotproduct) < 1e-6);
         }
-
-#if 0
-        std::cout << "Derivative norm: ";
-        
-        for (int i=0; i<gridDim; i++) {
-            double derivativenorm = 0;
-            for (int j=0; j<4; j++)
-                derivativenorm += derivative[j][i]*derivative[j][i];
-            std::cout << derivativenorm << ",    ";
-        }
-        std::cout << std::endl;
 #endif
 
-        for (int comp=0; comp<4; comp++) {
+#if 0
+        std::cout << "Derivative norm squared: " << derivative.frobenius_norm2() << std::endl;
+#endif
 
-            for (int dir=0; dir<gridDim; dir++)
-                energy += weight * derivative[comp][dir] * derivative[comp][dir];
-
-        }
+        // Add the local energy density
+        // The Frobenius norm is the correct norm here if the metric of TargetSpace is the identity.
+        // (And if the metric of the domain space is the identity, which it always is here.)
+        energy += weight * derivative.frobenius_norm2();
 
     }
 
