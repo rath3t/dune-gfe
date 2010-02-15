@@ -304,14 +304,11 @@ class LocalGeodesicFEStiffness <GridView,UnitVector<dim> >
 
     /** \brief For the fd approximations 
     */
-    static void infinitesimalVariation(UnitVector<dim>& c, double eps, int i)
+    static Dune::FieldVector<double,dim> infinitesimalVariation(UnitVector<dim>& c, double eps, int i)
     {
-        DUNE_THROW(Dune::NotImplemented, "infinitesimalVariation");
-#if 0
-        c = c.mult(Rotation<3,double>::exp((i==0)*eps, 
-                                           (i==1)*eps, 
-                                           (i==2)*eps));
-#endif
+        Dune::FieldVector<double,dim> result = c.globalCoordinates();
+        result[i] += eps;
+        return result;
     }
 
 public:
@@ -373,8 +370,7 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<Dune::FieldVector<double,blocksize> >& localGradient) const
 {
-    DUNE_THROW(Dune::NotImplemented, "!");
-#if 0
+
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
@@ -399,9 +395,12 @@ assembleGradient(const Entity& element,
             forwardSolution[i]  = localSolution[i];
             backwardSolution[i] = localSolution[i];
         }
+
+        // Project gradient in embedding space onto the tangent space
+        localGradient[i] = localSolution[i].projectOntoTangentSpace(localGradient[i]);
         
     }
-#endif
+
 }
 
 
@@ -410,8 +409,7 @@ void LocalGeodesicFEStiffness<GridType,UnitVector<dim> >::
 assemble(const Entity& element,
          const std::vector<TargetSpace>& localSolution)
 {
-    DUNE_THROW(Dune::NotImplemented, "!");
-#if 0
+#warning Dummy Hessian implementation
 
     // 1 degree of freedom per element vertex
     int nDofs = element.template count<gridDim>();
@@ -421,6 +419,10 @@ assemble(const Entity& element,
 
     this->A = 0;
 
+    for (int i=0; i<nDofs; i++)
+        for (int j=0; j<blocksize; j++)
+            this->A[i][i][j][j] = 1;
+#if 0
     double eps = 1e-4;
 
     typedef typename Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> >::row_type::iterator ColumnIterator;
