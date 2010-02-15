@@ -55,11 +55,18 @@ public:
         }
 
         // Project gradient onto the tangent plane at b in order to obtain the surface gradient
-        result.axpy(-1*(b.data_*result), b.data_);
+        result = b.projectOntoTangentSpace(result);
 
         // Gradient must be a tangent vector at b, in other words, orthogonal to it
         assert( std::abs(b.data_ * result) < 1e-7);
 
+        return result;
+    }
+
+    /** \brief Project tangent vector of R^n onto the tangent space */
+    EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
+        EmbeddedTangentVector result = v;
+        result.axpy(-1*(data_*result), data_);
         return result;
     }
 
