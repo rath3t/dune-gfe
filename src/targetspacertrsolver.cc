@@ -23,6 +23,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     initialTrustRegionRadius_ = initialTrustRegionRadius;
     innerIterations_          = innerIterations;
     innerTolerance_           = innerTolerance;
+    this->verbosity_          = NumProc::QUIET;
 
     // ////////////////////////////////
     //   Create a projected gauss-seidel solver
@@ -173,12 +174,12 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         } else {
             // unsuccessful iteration
             trustRegion.scale(0.5);
- //            if (this->verbosity_ == NumProc::FULL)
+            if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
         
         //  Write current energy
-//         if (this->verbosity_ == NumProc::FULL)
+        if (this->verbosity_ == NumProc::FULL)
             std::cout << "--- Current energy: " << energy << " ---" << std::endl;
 
     }
