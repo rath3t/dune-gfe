@@ -21,7 +21,7 @@ public:
         return *this;
     }
 
-     /** \brief The exponention map */
+     /** \brief The exponential map */
     static UnitVector exp(const UnitVector& p, const TangentVector& v) {
 
         assert( std::abs(p.data_*v) < 1e-7 );
