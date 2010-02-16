@@ -35,7 +35,16 @@ public:
 
     /** \brief Length of the great arc connecting the two points */
      static double distance(const UnitVector& a, const UnitVector& b) {
-        return std::acos(a.data_ * b.data_);
+
+         // Not nice: we are in a class for unit vectors, but the class is actually
+         // supposed to handle perturbations of unit vectors as well.  Therefore
+         // we normalize here.
+         double x = a.data_ * b.data_/a.data_.two_norm()/b.data_.two_norm();
+         
+         // paranoia:  if the argument is just eps larger than 1 acos returns NaN
+         x = std::min(x,1.0);
+         
+         return std::acos(x);
     }
 
     /** \brief Compute the gradient of the squared distance function keeping the first argument fixed
