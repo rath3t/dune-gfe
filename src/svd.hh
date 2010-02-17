@@ -4,7 +4,7 @@
 #ifndef SVD_HH
 #define SVD_HH
 
-#include <cmath.h>
+#include <cmath>
 
 
 template <class T>
@@ -30,7 +30,7 @@ T pythag(T a, T b)
 
 /** 
     Given a matrix a[1..m][1..n], this routine computes its singular value decomposition, A =
-    U ·W ·V^T . The matrix U replaces a on output. The diagonal matrix of singular values W is out-
+    U W V^T . The matrix U replaces a on output. The diagonal matrix of singular values W is out-
     put as a vector w[1..n]. The matrix V (not the transpose V T ) is output as v[1..n][1..n].
 */
 template <class T, int m, int n>
