@@ -64,6 +64,8 @@ public:
 
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             result *= -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
+        } else if (x < -1+eps) {  // a and b are conjugate.  The function is not differentiable
+            DUNE_THROW(Dune::Exception, "Distance is not differentiable for conjugate points!");
         } else {
             result *= -2*std::acos(x) / std::sqrt(1-x*x);
         }
