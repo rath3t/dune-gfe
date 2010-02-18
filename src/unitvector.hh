@@ -6,6 +6,11 @@
 template <int dim>
 class UnitVector
 {
+    /** \brief Computes sin(x/2) / x without getting unstable for small x */
+    static double sinc(const double& x) {
+        return (x < 1e-4) ? 1 + (x*x/6) : std::sin(x)/x;
+    }
+
 public:
 
     /** \brief The type used for coordinates */
@@ -29,7 +34,7 @@ public:
         const double norm = v.two_norm();
         UnitVector result = p;
         result.data_ *= std::cos(norm);
-        result.data_.axpy(std::sin(norm)/norm, v);
+        result.data_.axpy(sinc(norm), v);
         return result;
     }
 
