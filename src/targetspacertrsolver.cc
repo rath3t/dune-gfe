@@ -40,6 +40,8 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
                                                                                                   energyNorm,
                                                                                                   Solver::QUIET));
 
+    innerSolver_->useRelativeError_ = false;
+
     // //////////////////////////////////////////////////////////
     //   Create obstacles
     // //////////////////////////////////////////////////////////
