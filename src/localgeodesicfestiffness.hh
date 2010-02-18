@@ -304,7 +304,7 @@ class LocalGeodesicFEStiffness <GridView,UnitVector<dim> >
 
     /** \brief For the fd approximations 
     */
-    static Dune::FieldVector<double,dim> infinitesimalVariation(UnitVector<dim>& c, double eps, int i)
+    static Dune::FieldVector<double,dim> infinitesimalVariation(const UnitVector<dim>& c, double eps, int i)
     {
         Dune::FieldVector<double,dim> result = c.globalCoordinates();
         result[i] += eps;
@@ -386,12 +386,13 @@ assembleGradient(const Entity& element,
         
         for (int j=0; j<blocksize; j++) {
             
-            infinitesimalVariation(forwardSolution[i],   eps, j);
-            infinitesimalVariation(backwardSolution[i], -eps, j);
-            
+            // Brute force: the return value does not have unit norm.  Stuff it in there anyways
+            forwardSolution[i].data_  = infinitesimalVariation(localSolution[i],  eps, j);
+            backwardSolution[i].data_ = infinitesimalVariation(localSolution[i], -eps, j);
+
             localGradient[i][j] = (energy(element,forwardSolution) - energy(element,backwardSolution))
                 / (2*eps);
-            
+
             forwardSolution[i]  = localSolution[i];
             backwardSolution[i] = localSolution[i];
         }
