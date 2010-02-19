@@ -39,8 +39,8 @@ public:
 
 private:
 
-    static Dune::FieldVector<ctype,dim+1> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
-        Dune::FieldVector<ctype,dim+1> result;
+    static std::vector<ctype> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
+        std::vector<ctype> result(dim+1);
         result[0] = 1;
         for (int i=0; i<dim; i++) {
             result[0]  -= local[i];
@@ -59,15 +59,9 @@ TargetSpace LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluate(const Dune::FieldVector<ctype, dim>& local)
 {
     // First compute the coordinates on the standard simplex (in R^{n+1})
-    std::vector<ctype> barycentricCoordinates(dim+1);
+    std::vector<ctype> w = barycentricCoordinates(local);
 
-    barycentricCoordinates[0] = 1;
-    for (int i=0; i<dim; i++) {
-        barycentricCoordinates[0] -= local[i];
-         barycentricCoordinates[i+1] = local[i];
-    }
-
-    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, barycentricCoordinates);
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
     TargetSpaceRiemannianTRSolver<TargetSpace> solver;
 
@@ -129,7 +123,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
     Dune::FMatrixHelp::multMatrix(dFdw,B, RHS);
 
     // the actual system matrix
-    Dune::FieldVector<ctype,dim+1> w = barycentricCoordinates(local);
+    std::vector<ctype> w = barycentricCoordinates(local);
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,dim+1,dim+1> dFdq(0);
