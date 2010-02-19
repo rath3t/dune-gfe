@@ -46,6 +46,7 @@ private:
             result[0]  -= local[i];
             result[i+1] = local[i];
         }
+        return result;
     }
         
 
