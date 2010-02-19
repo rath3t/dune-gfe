@@ -57,8 +57,8 @@ public:
                          Dune::FieldMatrix<double,size,size>& matrix) const
     {
         matrix = 0;
-        for (int i=0; i<dim+1; i++)
-            matrix.axpy(w[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q));
+        for (int i=0; i<coefficients_.size(); i++)
+            matrix.axpy(weights_[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
     }
 
     const std::vector<TargetSpace> coefficients_;
