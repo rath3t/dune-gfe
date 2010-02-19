@@ -77,7 +77,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         MatrixType hesseMatrix(1,1);
 
         assembler_->assembleGradient(x_, rhs[0]);
-        assembler_->assembleMatrix(x_, hesseMatrix[0][0]);
+        assembler_->assembleHessianApproximation(x_, hesseMatrix[0][0]);
 
         //gradientFDCheck(x_, rhs, *rodAssembler_);
         //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
