@@ -130,10 +130,10 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
 
     // the actual system matrix
     Dune::FieldVector<ctype,dim+1> w = barycentricCoordinates(local);
-
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
+    
     Dune::FieldMatrix<ctype,dim+1,dim+1> dFdq(0);
-    for (int i=0; i<dim+1; i++)
-        dFdq.axpy(w[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q));
+    assembler.assembleHessian(q,dFdq);
 
     // ////////////////////////////////////
     //   solve the system
