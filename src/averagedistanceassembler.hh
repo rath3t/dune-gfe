@@ -53,6 +53,14 @@ public:
                 matrix[i][j] = (i==j);
     }
 
+    void assembleHessian(const TargetSpace& x,
+                         Dune::FieldMatrix<double,size,size>& matrix) const
+    {
+        matrix = 0;
+        for (int i=0; i<dim+1; i++)
+            matrix.axpy(w[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q));
+    }
+
     const std::vector<TargetSpace> coefficients_;
 
     const std::vector<double> weights_;
