@@ -63,7 +63,7 @@ energy(const Entity& element,
         // The derivative of the function defined on the actual element
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> derivative(0);
 
-        for (int comp=0; comp<referenceDerivative.N(); comp++)
+        for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
 
 #if 0
