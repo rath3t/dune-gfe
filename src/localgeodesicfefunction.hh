@@ -39,6 +39,16 @@ public:
 
 private:
 
+    static Dune::FieldVector<ctype,dim+1> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
+        Dune::FieldVector<ctype,dim+1> result;
+        result[0] = 1;
+        for (int i=0; i<dim; i++) {
+            result[0]  -= local[i];
+            result[i+1] = local[i];
+        }
+    }
+        
+
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
 
@@ -81,6 +91,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
 {
     Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> result;
 
+#if 0  // this is probably faster than the general implementation, but we leave it out for testing purposes
     if (dim==1) {
 
         EmbeddedTangentVector tmp = TargetSpace::interpolateDerivative(coefficients_[0], coefficients_[1], local[0]);
@@ -89,14 +100,57 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
             result[i][0] = tmp[i];
 
     }
+#endif
 
-    if (dim==2) {
+    // ////////////////////////////////////////////////////////////////////////
+    //  The derivative is evaluated using the implicit function theorem.
+    //  Hence we need to solve a small system of linear equations.
+    // ////////////////////////////////////////////////////////////////////////
 
-        DUNE_THROW(Dune::NotImplemented, "evaluateDerivative");
+    // the function value at the point where we are evaluation the derivative
+    TargetSpace q = evaluate(local);
+
+    // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
+    Dune::FieldMatrix<ctype,dim+1,dim> B;
+    B[0] = -1;
+    for (int i=0; i<dim; i++)
+        for (int j=0; j<dim; j++)
+            B[i+1][j] = (i==j);
+
+    // compute negative derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w
+    Dune::FieldMatrix<ctype,dim+1,dim+1> dFdw;
+    for (int i=0; i<dim+1; i++)
+        dFdw[i] = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
+
+    dFdw *= -1;
+
+    // multiply the two previous matrices: the result is the right hand side
+    Dune::FieldMatrix<ctype,dim+1,dim> RHS;
+    Dune::FMatrixHelp::multMatrix(dFdw,B, RHS);
+
+    // the actual system matrix
+    Dune::FieldVector<ctype,dim+1> w = barycentricCoordinates(local);
+
+    Dune::FieldMatrix<ctype,dim+1,dim+1> dFdq(0);
+    for (int i=0; i<dim+1; i++)
+        dFdq.axpy(w[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q));
+
+    // ////////////////////////////////////
+    //   solve the system
+    // ////////////////////////////////////
+
+    for (int i=0; i<dim; i++) {
+
+        Dune::FieldVector<ctype,dim+1> rhs, x;
+        for (int j=0; j<dim+1; j++)
+            rhs[j] = RHS[j][i];
+
+        dFdq.solve(x, rhs);
+
+        for (int j=0; j<dim+1; j++)
+            result[j][i] = x[j];
 
     }
-
-    assert(dim==1 || dim==2);
 
     return result;
 }
