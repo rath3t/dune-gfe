@@ -103,6 +103,75 @@ class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
 
     }; // end class
 
+
+/** \brief The FEM operator for a 2D extensible, shearable rod
+ */
+template <class GridType, int polOrd>
+class PlanarRodAssembler {
+    
+    typedef typename GridType::template Codim<0>::Entity EntityType;
+    typedef typename GridType::template Codim<0>::LevelIterator ElementIterator;
+    
+    //! Dimension of the grid.  This needs to be one!
+    enum { gridDim = GridType::dimension };
+    
+    enum { elementOrder = 1};
+    
+    //! Each block is x, y, theta
+    enum { blocksize = 3 };
+    
+    //!
+    typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
+    
+    const GridType* grid_; 
+    
+    /** \brief Material constants */
+    double B;
+    double A1;
+    double A3;
+    
+public:
+    
+    //! ???
+    PlanarRodAssembler(const GridType &grid) : 
+        grid_(&grid)
+    { 
+        B = 1;
+        A1 = 1;
+        A3 = 1;
+    }
+    
+    ~PlanarRodAssembler() {}
+    
+    void setParameters(double b, double a1, double a3) {
+        B  = b;
+        A1 = a1;
+        A3 = a3;
+    }
+    
+    /** \brief Assemble the tangent stiffness matrix and the right hand side
+     */
+    void assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
+                        Dune::BCRSMatrix<MatrixBlock>& matrix);
+    
+    void assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
+                          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
+    
+    /** \brief Compute the energy of a deformation state */
+    double computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const;
+    
+    void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
+    
+protected:
+    
+    /** \brief Compute the element tangent stiffness matrix  */
+    template <class MatrixType>
+    void getLocalMatrix( EntityType &entity, 
+                         const std::vector<RigidBodyMotion<2> >& localSolution, 
+                         const int matSize, MatrixType& mat) const;
+    
+}; // end class
+
 #include "rodassembler.cc"
 
 #endif

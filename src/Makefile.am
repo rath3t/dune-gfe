@@ -11,6 +11,6 @@ srcinclude_HEADERS = averagedistanceassembler.hh localgeodesicfefunction.hh \
                      geodesicdifference.hh makestraightrod.hh rigidbodymotion.hh \
                      rotation.hh geodesicfeassembler.hh maxnormtrustregion.hh \
                      rodassembler.hh svd.hh harmonicenergystiffness.hh \
-                     planarrodassembler.hh  rodlocalstiffness.hh  targetspacertrsolver.hh
+                     rodlocalstiffness.hh  targetspacertrsolver.hh
 
 include $(top_srcdir)/am/global-rules
