@@ -5,7 +5,6 @@
 
 #include <dune/grid/common/quadraturerules.hh>
 
-#include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 #include <dune/localfunctions/lagrange/p1.hh>
 
 #include "src/rodlocalstiffness.hh"
@@ -118,9 +117,8 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
         int elementIdx = indexSet.index(*it);
 
         // Extract local solution on this element
-        const LagrangeShapeFunctionSet<double, double, gridDim> & baseSet 
-            = Dune::LagrangeShapeFunctions<double, double, gridDim>::general(it->type(), elementOrder);
-        int numOfBaseFct = baseSet.size();
+        Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
+        int numOfBaseFct = localFiniteElement.localCoefficients().size();
 
         std::vector<RigidBodyMotion<3> > localSolution(2);
         
