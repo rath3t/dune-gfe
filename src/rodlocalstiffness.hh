@@ -537,7 +537,7 @@ assembleGradient(const Entity& element,
         // ///////////////////////////////////////
         //   Compute deformation gradient
         // ///////////////////////////////////////
-        double shapeGrad[numOfBaseFct];
+        FieldVector<double,1> shapeGrad[numOfBaseFct];
         
         for (int dof=0; dof<numOfBaseFct; dof++) {
             
