@@ -4,7 +4,6 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 #include <dune/grid/common/quadraturerules.hh>
-#include <dune/disc/operators/boundaryconditions.hh>
 #include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
 
 #include "localgeodesicfestiffness.hh"
@@ -46,7 +45,6 @@ public:
     // types for matrics, vectors and boundary conditions
     typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
     typedef Dune::FieldVector<RT,m> VBlockType;   // one entry in the global vectors
-    typedef Dune::array<Dune::BoundaryConditions::Flags,m> BCBlockType;     // componentwise boundary conditions
 
     // /////////////////////////////////
     //   The material parameters
