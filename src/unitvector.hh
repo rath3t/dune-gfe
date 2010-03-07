@@ -11,6 +11,17 @@ class UnitVector
         return (x < 1e-4) ? 1 + (x*x/6) : std::sin(x)/x;
     }
 
+    /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
+    static double derivativeOfArcCosSquared(const double& x) {
+        const double eps = 1e-12;
+        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
+            return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
+        } else if (x < -1+eps) {  // The function is not differentiable
+            DUNE_THROW(Dune::Exception, "Distance is not differentiable for conjugate points!");
+        } else
+            return -2*std::acos(x) / std::sqrt(1-x*x);
+    }
+
 public:
 
     /** \brief The type used for coordinates */
@@ -58,17 +69,10 @@ public:
      */
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& a, const UnitVector& b) {
         double x = a.data_ * b.data_;
-        const double eps = 1e-12;
 
         EmbeddedTangentVector result = a.data_;
 
-        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            result *= -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
-        } else if (x < -1+eps) {  // a and b are conjugate.  The function is not differentiable
-            DUNE_THROW(Dune::Exception, "Distance is not differentiable for conjugate points!");
-        } else {
-            result *= -2*std::acos(x) / std::sqrt(1-x*x);
-        }
+        result *= derivativeOfArcCosSquared(x);
 
         // Project gradient onto the tangent plane at b in order to obtain the surface gradient
         result = b.projectOntoTangentSpace(result);
