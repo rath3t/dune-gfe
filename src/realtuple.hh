@@ -55,6 +55,20 @@ public:
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
         return -2*(a.data_ - b.data_);
     }
+
+        /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed
+
+    Unlike the distance itself the squared distance is differentiable at zero
+        */
+    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+
+        Dune::FieldMatrix<double,N,N> result;
+        for (int i=0; i<N; i++)
+            for (int j=0; j<N; j++)
+                result[i][j] = (i==j);
+
+        return result;
+    }
     
     /** \brief Write LocalKey object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const RealTuple& realTuple)
