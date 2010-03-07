@@ -100,10 +100,16 @@ public:
         DUNE_THROW(Dune::NotImplemented, "assembleGradient");
     }
 
-    void assembleMatrix(const TargetSpace& x,
-                        Dune::FieldMatrix<double,size,size>& matrix) const
+    void assembleHessianApproximation(const TargetSpace& x,
+                                      Dune::FieldMatrix<double,size,size>& matrix) const
     {
-        DUNE_THROW(Dune::NotImplemented, "assembleMatrix");
+        DUNE_THROW(Dune::NotImplemented, "assembleHessianApproximation");
+    }
+
+    void assembleHessian(const TargetSpace& x,
+                         Dune::FieldMatrix<double,size,size>& matrix) const
+    {
+        DUNE_THROW(Dune::NotImplemented, "assembleHessian");
     }
 
     const std::vector<TargetSpace> coefficients_;
