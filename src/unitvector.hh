@@ -29,7 +29,7 @@ public:
      /** \brief The exponential map */
     static UnitVector exp(const UnitVector& p, const TangentVector& v) {
 
-        assert( std::abs(p.data_*v) < 1e-7 );
+        assert( std::abs(p.data_*v) < 1e-5 );
 
         const double norm = v.two_norm();
         UnitVector result = p;
@@ -74,7 +74,44 @@ public:
         result = b.projectOntoTangentSpace(result);
 
         // Gradient must be a tangent vector at b, in other words, orthogonal to it
-        assert( std::abs(b.data_ * result) < 1e-7);
+        assert( std::abs(b.data_ * result) < 1e-5);
+
+        return result;
+    }
+
+    /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Dune::FieldMatrix<double,dim,dim> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& a, const UnitVector& b) {
+
+        Dune::FieldMatrix<double,dim,dim> result;
+
+        double sp = a.data_ * b.data_;
+
+        // Compute vector A (see notes)
+        Dune::FieldMatrix<double,1,dim> row;
+        row[0] = a.globalCoordinates();
+        row *= -1 / (1-sp*sp) * (1 + std::acos(sp)/std::sqrt(1-sp*sp) * sp);
+
+        Dune::FieldMatrix<double,dim,1> column;
+        for (int i=0; i<dim; i++)
+            column[i] = a.globalCoordinates()[i] - b.globalCoordinates()[i]*sp;
+
+        Dune::FieldMatrix<double,dim,dim> A;
+        // A = row * column
+        Dune::FMatrixHelp::multMatrix(column,row,A);
+
+        // Compute matrix B (see notes)
+        Dune::FieldMatrix<double,dim,dim> B;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++)
+                B[i][j] = (i==j)*sp + a.data_[j]*b.data_[i];
+
+        // Bring it all together
+        result = A;
+        result *= -2;
+        result.axpy(-2*std::acos(sp)/std::sqrt(1-sp*sp), B);
 
         return result;
     }
@@ -98,7 +135,7 @@ public:
     }
 
 
-private:
+    //private:
 
     Dune::FieldVector<double,dim> data_;
 };
