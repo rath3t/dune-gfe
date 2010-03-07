@@ -500,9 +500,8 @@ assembleGradient(const Entity& element,
     getLocalReferenceConfiguration(element, localReferenceConfiguration);
 
     // Extract local solution on this element
-    const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element.type(), 1); // first order
-    const int numOfBaseFct = baseSet.size();  
+    Dune::P1LocalFiniteElement<double,double,1> localFiniteElement;
+    int numOfBaseFct = localFiniteElement.localCoefficients().size();
         
     // init
     gradient.resize(numOfBaseFct);
@@ -533,15 +532,14 @@ assembleGradient(const Entity& element,
         // ///////////////////////////////////////
         //   Compute deformation gradient
         // ///////////////////////////////////////
-        FieldVector<double,1> shapeGrad[numOfBaseFct];
-        
+        std::vector<Dune::FieldMatrix<double,1,1> > shapeGrad;
+        localFiniteElement.localBasis().evaluateJacobian(quadPos, shapeGrad);
+
         for (int dof=0; dof<numOfBaseFct; dof++) {
-            
-            shapeGrad[dof] = baseSet[dof].evaluateDerivative(0,0,quadPos);
             
             // multiply with jacobian inverse 
             FieldVector<double,1> tmp(0);
-            inv.umv(shapeGrad[dof], tmp);
+            inv.umv(shapeGrad[dof][0], tmp);
             shapeGrad[dof] = tmp;
             
         }
