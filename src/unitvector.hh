@@ -115,7 +115,7 @@ public:
         // Bring it all together
         result = A;
         result *= -2;
-        result.axpy(-2*std::acos(sp)/std::sqrt(1-sp*sp), B);
+        result.axpy(derivativeOfArcCosSquared(sp), B);
 
         return result;
     }
