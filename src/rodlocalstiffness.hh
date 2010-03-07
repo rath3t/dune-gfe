@@ -4,7 +4,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 #include <dune/grid/common/quadraturerules.hh>
-#include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
+#include <dune/localfunctions/lagrange/p1.hh>
 
 #include "localgeodesicfestiffness.hh"
 #include "rigidbodymotion.hh"
@@ -430,25 +430,23 @@ getStrain(const std::vector<RigidBodyMotion<3> >& localSolution,
     Dune::FieldVector<double, 6> strain(0);
 
     // Extract local solution on this element
-    const Dune::LagrangeShapeFunctionSet<double, double, 1> & baseSet 
-        = Dune::LagrangeShapeFunctions<double, double, 1>::general(element.type(), 1);
-    int numOfBaseFct = baseSet.size();
+    Dune::P1LocalFiniteElement<double,double,1> localFiniteElement;
+    int numOfBaseFct = localFiniteElement.localCoefficients().size();
     
     const Dune::FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(pos);
     
     // ///////////////////////////////////////
     //   Compute deformation gradient
     // ///////////////////////////////////////
-    Dune::FieldVector<double,1> shapeGrad[numOfBaseFct];
+    std::vector<Dune::FieldMatrix<double,1,1> > shapeGrad;
+
+    localFiniteElement.localBasis().evaluateJacobian(pos, shapeGrad);
         
     for (int dof=0; dof<numOfBaseFct; dof++) {
             
-        for (int i=0; i<1; i++)
-            shapeGrad[dof][i] = baseSet[dof].evaluateDerivative(0,i,pos);
-        
         // multiply with jacobian inverse 
         Dune::FieldVector<double,1> tmp(0);
-        inv.umv(shapeGrad[dof], tmp);
+        inv.umv(shapeGrad[dof][0], tmp);
         shapeGrad[dof] = tmp;
         
     }
