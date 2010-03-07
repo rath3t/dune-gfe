@@ -17,7 +17,7 @@
 #include <dune/ag-common/boundarypatch.hh>
 
 #include "src/rodwriter.hh"
-#include "src/planarrodassembler.hh"
+#include "src/rodassembler.hh"
 
 
 // 3 (x, y, theta) for a planar rod
