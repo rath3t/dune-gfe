@@ -17,9 +17,20 @@ class UnitVector
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
         } else if (x < -1+eps) {  // The function is not differentiable
-            DUNE_THROW(Dune::Exception, "Distance is not differentiable for conjugate points!");
+            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else
             return -2*std::acos(x) / std::sqrt(1-x*x);
+    }
+
+    /** \brief Compute the second derivative of arccos^2 without getting unstable for x close to 1 */
+    static double secondDerivativeOfArcCosSquared(const double& x) {
+        const double eps = 1e-12;
+        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
+            return 1.0/6 - 17*(x-1)/60 + 1.0/2 - (x-1)/4;
+        } else if (x < -1+eps) {  // The function is not differentiable
+            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
+        } else
+            return 2/(1-x*x) - 2*x*std::acos(x) / std::pow(1-x*x,1.5);
     }
 
 public:
@@ -96,7 +107,7 @@ public:
         // Compute vector A (see notes)
         Dune::FieldMatrix<double,1,dim> row;
         row[0] = a.globalCoordinates();
-        row *= -1 / (1-sp*sp) * (1 + std::acos(sp)/std::sqrt(1-sp*sp) * sp);
+        row *= secondDerivativeOfArcCosSquared(sp);
 
         Dune::FieldMatrix<double,dim,1> column;
         for (int i=0; i<dim; i++)
