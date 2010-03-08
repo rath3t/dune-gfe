@@ -65,7 +65,7 @@ public:
         Dune::FieldMatrix<double,N,N> result;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
-                result[i][j] = (i==j);
+                result[i][j] = 2*(i==j);
 
         return result;
     }
