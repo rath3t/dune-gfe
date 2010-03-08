@@ -68,9 +68,9 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
 
     solver.setup(&assembler,
                  coefficients_[0],   // initial iterate
-                 1e-8,    // tolerance
+                 1e-5,    // tolerance
                  20,      // maxTrustRegionSteps
-                 1,       // initial trust region radius
+                 2,       // initial trust region radius
                  20,      // inner iterations
                  1e-8     // inner tolerance
                  );
