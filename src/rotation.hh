@@ -47,6 +47,20 @@ public:
         return result;
     }
 
+    /** \brief The exponential map from \f$ \mathfrak{so}(2) \f$ to \f$ SO(2) \f$
+     */
+    static Rotation<2,T> exp(const Dune::FieldVector<T,1>& v) {
+        Rotation<2,T> result;
+        result.angle_ = v[0];
+        return result;
+    }
+
+    /** \brief Right multiplication */
+    Rotation<2,T> mult(const Rotation<2,T>& other) const {
+        Rotation<2,T> q = *this;
+        q.angle_ += other.angle_;
+        return q;
+    }
 
     //private:
 
