@@ -27,9 +27,9 @@ class GeodesicFEAssembler {
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
     
-    const GridView gridView_; 
-
 protected:
+
+    const GridView gridView_; 
 
     LocalGeodesicFEStiffness<GridView,TargetSpace>* localStiffness_;
 
