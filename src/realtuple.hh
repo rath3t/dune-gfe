@@ -69,6 +69,11 @@ public:
 
         return result;
     }
+
+    /** \brief The global coordinates, if you really want them */
+    const Dune::FieldVector<double,N>& globalCoordinates() const {
+        return data_;
+    }
     
     /** \brief Write LocalKey object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const RealTuple& realTuple)
