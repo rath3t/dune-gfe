@@ -84,7 +84,8 @@ class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
 /** \brief The FEM operator for a 2D extensible, shearable rod
  */
 template <class GridType, int polOrd>
-class PlanarRodAssembler {
+class PlanarRodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<2> >
+{
     
     typedef typename GridType::template Codim<0>::Entity EntityType;
     typedef typename GridType::template Codim<0>::LevelIterator ElementIterator;
@@ -110,7 +111,8 @@ class PlanarRodAssembler {
 public:
     
     //! ???
-    PlanarRodAssembler(const GridType &grid) : 
+    PlanarRodAssembler(const GridType &grid) 
+        : GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<2> >(grid.leafView(),NULL), 
         grid_(&grid)
     { 
         B = 1;
