@@ -79,15 +79,15 @@ public:
 
 /** \brief The FEM operator for a 2D extensible, shearable rod
  */
-template <class GridType>
-class PlanarRodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<2> >
+template <class GridView>
+class PlanarRodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<2> >
 {
     
-    typedef typename GridType::template Codim<0>::Entity EntityType;
-    typedef typename GridType::template Codim<0>::LevelIterator ElementIterator;
+    typedef typename GridView::template Codim<0>::Entity EntityType;
+    typedef typename GridView::template Codim<0>::Iterator ElementIterator;
     
     //! Dimension of the grid.  This needs to be one!
-    enum { gridDim = GridType::dimension };
+    enum { gridDim = GridView::dimension };
     
     enum { elementOrder = 1};
     
@@ -97,8 +97,6 @@ class PlanarRodAssembler : public GeodesicFEAssembler<typename GridType::LeafGri
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
     
-    const GridType* grid_; 
-    
     /** \brief Material constants */
     double B;
     double A1;
@@ -107,9 +105,8 @@ class PlanarRodAssembler : public GeodesicFEAssembler<typename GridType::LeafGri
 public:
     
     //! ???
-    PlanarRodAssembler(const GridType &grid) 
-        : GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<2> >(grid.leafView(),NULL), 
-        grid_(&grid)
+    PlanarRodAssembler(const GridView &gridView) 
+        : GeodesicFEAssembler<GridView, RigidBodyMotion<2> >(gridView,NULL)
     { 
         B = 1;
         A1 = 1;

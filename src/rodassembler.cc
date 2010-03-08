@@ -214,19 +214,19 @@ getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
 }
 
 
-template <class GridType>
-void PlanarRodAssembler<GridType>::getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
+template <class GridView>
+void PlanarRodAssembler<GridView>::getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
-    const int gridDim = GridType::dimension;
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
+    const int gridDim = GridView::dimension;
+    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
     
     int i, j;
-    int n = grid_->size(grid_->maxLevel(), gridDim);
+    int n = this->gridView_.size(gridDim);
     
     nb.resize(n, n);
     
-    ElementIterator it    = grid_->template lbegin<0>( grid_->maxLevel() );
-    ElementIterator endit = grid_->template lend<0>  ( grid_->maxLevel() );
+    ElementIterator it    = this->gridView_.template begin<0>();
+    ElementIterator endit = this->gridView_.template end<0>  ();
     
     for (; it!=endit; ++it) {
         
@@ -247,20 +247,20 @@ void PlanarRodAssembler<GridType>::getNeighborsPerVertex(Dune::MatrixIndexSet& n
     
 }
 
-template <class GridType>
-void PlanarRodAssembler<GridType>::
+template <class GridView>
+void PlanarRodAssembler<GridView>::
 assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix)
 {
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
+    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
 
     Dune::MatrixIndexSet neighborsPerVertex;
     getNeighborsPerVertex(neighborsPerVertex);
     
     matrix = 0;
     
-    ElementIterator it    = grid_->template lbegin<0>( grid_->maxLevel() );
-    ElementIterator endit = grid_->template lend<0> ( grid_->maxLevel() );
+    ElementIterator it    = this->gridView_.template begin<0>();
+    ElementIterator endit = this->gridView_.template end<0>  ();
 
     Dune::Matrix<MatrixBlock> mat;
     
@@ -301,14 +301,14 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
 
 
 
-template <class GridType>
+template <class GridView>
 template <class MatrixType>
-void PlanarRodAssembler<GridType>::
+void PlanarRodAssembler<GridView>::
 getLocalMatrix( EntityType &entity, 
                 const std::vector<RigidBodyMotion<2> >& localSolution,
                 const int matSize, MatrixType& localMat) const
 {
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
+    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
 
     /* ndof is the number of vectors of the element */
     int ndof = matSize;
@@ -453,22 +453,21 @@ getLocalMatrix( EntityType &entity,
     
 }
 
-template <class GridType>
-void PlanarRodAssembler<GridType>::
+template <class GridView>
+void PlanarRodAssembler<GridView>::
 assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
-    const int maxlevel = grid_->maxLevel();
+    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
 
-    if (sol.size()!=grid_->size(maxlevel, gridDim))
+    if (sol.size()!=this->gridView_.size(gridDim))
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = grid_->template lbegin<0>(maxlevel);
-    ElementIterator endIt = grid_->template lend<0>(maxlevel);
+    ElementIterator it    = this->gridView_.template begin<0>();
+    ElementIterator endIt = this->gridView_.template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -555,20 +554,19 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
 }
 
 
-template <class GridType>
-double PlanarRodAssembler<GridType>::
+template <class GridView>
+double PlanarRodAssembler<GridView>::
 computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
 {
-    const int maxlevel = grid_->maxLevel();
     double energy = 0;
 
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(maxlevel);
+    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
 
-    if (sol.size()!=grid_->size(maxlevel, gridDim))
+    if (sol.size()!=this->gridView_.size(gridDim))
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
-    ElementIterator it    = grid_->template lbegin<0>(maxlevel);
-    ElementIterator endIt = grid_->template lend<0>(maxlevel);
+    ElementIterator it    = this->gridView_.template begin<0>();
+    ElementIterator endIt = this->gridView_.template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
