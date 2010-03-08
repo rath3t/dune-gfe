@@ -125,7 +125,6 @@ int main (int argc, char *argv[]) try
     multigridStep.setMGType(mu, nu1, nu2);
     multigridStep.ignoreNodes_       = &dirichletNodes;
     multigridStep.basesolver_        = &baseSolver;
-    multigridStep.setSmoother(&presmoother, &postsmoother);
     multigridStep.hasObstacle_       = &hasObstacle;
     multigridStep.obstacles_         = &trustRegionObstacles;
     multigridStep.verbosity_         = Solver::QUIET;
@@ -173,8 +172,6 @@ int main (int argc, char *argv[]) try
         dirichletNodes[0]     = true;
         dirichletNodes.back() = true;
 
-        multigridStep.ignoreNodes_ = &dirichletNodes;
-        
         // ////////////////////////////////////////////////////////////
         //    Create solution and rhs vectors
         // ////////////////////////////////////////////////////////////
@@ -222,9 +219,14 @@ int main (int argc, char *argv[]) try
         for (int i=0; i<=toplevel; i++)
             trustRegionObstacles[i].resize(grid.size(i, 1));
 
-        // ////////////////////////////////////
-        //   Create the transfer operators
-        // ////////////////////////////////////
+        // ////////////////////////////////////////////
+        //   Adjust the solver to the new hierarchy
+        // ////////////////////////////////////////////
+
+        multigridStep.setNumberOfLevels(toplevel+1);
+        multigridStep.ignoreNodes_ = &dirichletNodes;
+        multigridStep.setSmoother(&presmoother, &postsmoother);
+
         for (int k=0; k<multigridStep.mgTransfer_.size(); k++)
             delete(multigridStep.mgTransfer_[k]);
 
