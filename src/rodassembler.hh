@@ -132,8 +132,6 @@ public:
     /** \brief Compute the energy of a deformation state */
     double computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const;
     
-    void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
-    
 protected:
     
     /** \brief Compute the element tangent stiffness matrix  */

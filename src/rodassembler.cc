@@ -215,39 +215,6 @@ getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
 
 
 template <class GridView>
-void PlanarRodAssembler<GridView>::getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
-{
-    const int gridDim = GridView::dimension;
-    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
-    
-    int i, j;
-    int n = this->gridView_.size(gridDim);
-    
-    nb.resize(n, n);
-    
-    ElementIterator it    = this->gridView_.template begin<0>();
-    ElementIterator endit = this->gridView_.template end<0>  ();
-    
-    for (; it!=endit; ++it) {
-        
-        for (i=0; i<it->template count<gridDim>(); i++) {
-            
-            for (j=0; j<it->template count<gridDim>(); j++) {
-                
-                int iIdx = indexSet.subIndex(*it,i,gridDim);
-                int jIdx = indexSet.subIndex(*it,j,gridDim);
-                
-                nb.add(iIdx, jIdx);
-                
-            }
-            
-        }
-        
-    }
-    
-}
-
-template <class GridView>
 void PlanarRodAssembler<GridView>::
 assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix)
@@ -255,7 +222,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
     const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
 
     Dune::MatrixIndexSet neighborsPerVertex;
-    getNeighborsPerVertex(neighborsPerVertex);
+    this->getNeighborsPerVertex(neighborsPerVertex);
     
     matrix = 0;
     
