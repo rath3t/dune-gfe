@@ -99,7 +99,7 @@ int main (int argc, char *argv[]) try
 
     std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(1);
     std::vector<BitSetVector<1> > hasObstacle(1);
-    std::vector<BitSetVector<blocksize> > dirichletNodes(1);
+    BitSetVector<blocksize> dirichletNodes;
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -123,7 +123,7 @@ int main (int argc, char *argv[]) try
     MonotoneMGStep<MatrixType, CorrectionType> multigridStep(1);
 
     multigridStep.setMGType(mu, nu1, nu2);
-    multigridStep.ignoreNodes_       = &dirichletNodes[0];
+    multigridStep.ignoreNodes_       = &dirichletNodes;
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.setSmoother(&presmoother, &postsmoother);
     multigridStep.hasObstacle_       = &hasObstacle;
@@ -167,15 +167,13 @@ int main (int argc, char *argv[]) try
         std::cout << "      Solving on level: " << toplevel << std::endl;
         std::cout << "####################################################" << std::endl;
     
-        dirichletNodes.resize(toplevel+1);
-        for (int i=0; i<=toplevel; i++) {
+        dirichletNodes.resize( grid.size(1) );
+        dirichletNodes.unsetAll();
             
-            dirichletNodes[i].resize( grid.size(i,1), false );
-            
-            dirichletNodes[i][0]     = true;
-            dirichletNodes[i].back() = true;
+        dirichletNodes[0]     = true;
+        dirichletNodes.back() = true;
 
-        }
+        multigridStep.ignoreNodes_ = &dirichletNodes;
         
         // ////////////////////////////////////////////////////////////
         //    Create solution and rhs vectors
@@ -260,7 +258,7 @@ int main (int argc, char *argv[]) try
             setTrustRegionObstacles(trustRegionRadius,
                                     trustRegionObstacles[toplevel],
                                     trueObstacles[toplevel],
-                                    dirichletNodes[toplevel]);
+                                    dirichletNodes);
 
             dynamic_cast<MultigridStep<MatrixType,CorrectionType>*>(solver.iterationStep_)->setProblem(hessianMatrix, corr, rhs, toplevel+1);
 
