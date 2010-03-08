@@ -18,7 +18,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
 {
     using namespace Dune;
 
-    const typename GridView::Traits::IndexSet& indexSet = gridView_.indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->gridView_.indexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
@@ -26,8 +26,8 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = gridView_.template begin<0>();
-    ElementIterator endIt = gridView_.template end<0>();
+    ElementIterator it    = this->gridView_.template begin<0>();
+    ElementIterator endIt = this->gridView_.template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -62,7 +62,7 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
 {
     using namespace Dune;
 
-    const typename GridView::Traits::IndexSet& indexSet = gridView_.indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->gridView_.indexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
@@ -71,8 +71,8 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
     strain.resize(indexSet.size(0));
     strain = 0;
 
-    ElementIterator it    = gridView_.template begin<0>();
-    ElementIterator endIt = gridView_.template end<0>();
+    ElementIterator it    = this->gridView_.template begin<0>();
+    ElementIterator endIt = this->gridView_.template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -151,7 +151,7 @@ getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
     //    if (gridView_ != &boundary.gridView())
     //        DUNE_THROW(Dune::Exception, "The boundary patch has to match the grid view of the assembler!");
 
-    const typename GridView::Traits::IndexSet& indexSet = gridView_.indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->gridView_.indexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");

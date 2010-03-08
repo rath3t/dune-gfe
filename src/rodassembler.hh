@@ -33,15 +33,11 @@ class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
         //!
         typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
         
-        /** \todo public only for debugging! */
-    public:
-        GridView gridView_;
-
+public:
         //! ???
     RodAssembler(const GridView &gridView,
                  RodLocalStiffness<GridView,double>* localStiffness) 
-        : GeodesicFEAssembler<GridView, RigidBodyMotion<3> >(gridView,localStiffness),
-          gridView_(gridView)
+        : GeodesicFEAssembler<GridView, RigidBodyMotion<3> >(gridView,localStiffness)
         { 
             std::vector<RigidBodyMotion<3> > referenceConfiguration(gridView.size(gridDim));
 
