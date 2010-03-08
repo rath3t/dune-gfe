@@ -214,8 +214,8 @@ getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
 }
 
 
-template <class GridType, int polOrd>
-void PlanarRodAssembler<GridType, polOrd>::getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
+template <class GridType>
+void PlanarRodAssembler<GridType>::getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
     const int gridDim = GridType::dimension;
     const typename GridType::Traits::LevelIndexSet& indexSet = grid_->levelIndexSet(grid_->maxLevel());
@@ -247,8 +247,8 @@ void PlanarRodAssembler<GridType, polOrd>::getNeighborsPerVertex(Dune::MatrixInd
     
 }
 
-template <class GridType, int polOrd>
-void PlanarRodAssembler<GridType, polOrd>::
+template <class GridType>
+void PlanarRodAssembler<GridType>::
 assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix)
 {
@@ -301,9 +301,9 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
 
 
 
-template <class GridType, int polOrd>
+template <class GridType>
 template <class MatrixType>
-void PlanarRodAssembler<GridType, polOrd>::
+void PlanarRodAssembler<GridType>::
 getLocalMatrix( EntityType &entity, 
                 const std::vector<RigidBodyMotion<2> >& localSolution,
                 const int matSize, MatrixType& localMat) const
@@ -320,7 +320,7 @@ getLocalMatrix( EntityType &entity,
     Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
 
     // Get quadrature rule
-    const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(entity.type(), polOrd);
+    const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(entity.type(), 2);
     
     /* Loop over all integration points */
     for (int ip=0; ip<quad.size(); ip++) {
@@ -453,8 +453,8 @@ getLocalMatrix( EntityType &entity,
     
 }
 
-template <class GridType, int polOrd>
-void PlanarRodAssembler<GridType, polOrd>::
+template <class GridType>
+void PlanarRodAssembler<GridType>::
 assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
@@ -483,7 +483,7 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Get quadrature rule
-        const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
+        const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), 2);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
@@ -555,8 +555,8 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
 }
 
 
-template <class GridType, int polOrd>
-double PlanarRodAssembler<GridType, polOrd>::
+template <class GridType>
+double PlanarRodAssembler<GridType>::
 computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
 {
     const int maxlevel = grid_->maxLevel();
@@ -584,7 +584,7 @@ computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // Get quadrature rule
-        const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
+        const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), 2);
 
         for (int pt=0; pt<quad.size(); pt++) {
 

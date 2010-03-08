@@ -152,11 +152,12 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
 
     for (int i=0; i<x.size(); i++) {
-        x[i].r[1] = i;//double(i)/(x.size()-1);
         x[i].r[0] = 0;
+        x[i].r[1] = i;//double(i)/(x.size()-1);
         x[i].q    = Rotation<2,double>::identity();
     }
 
+    x.back().r[1] += 1;
 
     // /////////////////////////////////////////////////////////////////////
     //   Refinement Loop
@@ -180,7 +181,7 @@ int main (int argc, char *argv[]) try
 
 
         MatrixType hessianMatrix;
-        PlanarRodAssembler<GridType,4> rodAssembler(grid);
+        PlanarRodAssembler<GridType> rodAssembler(grid);
         
         rodAssembler.setParameters(1, 350000, 350000);
         

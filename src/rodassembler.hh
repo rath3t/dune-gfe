@@ -79,7 +79,7 @@ public:
 
 /** \brief The FEM operator for a 2D extensible, shearable rod
  */
-template <class GridType, int polOrd>
+template <class GridType>
 class PlanarRodAssembler : public GeodesicFEAssembler<typename GridType::LeafGridView, RigidBodyMotion<2> >
 {
     
