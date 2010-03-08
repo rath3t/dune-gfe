@@ -84,14 +84,16 @@ template <int dim, class ctype, class TargetSpace>
 Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
 {
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> result;
+    const int targetDim = EmbeddedTangentVector::size;
+
+    Dune::FieldMatrix<ctype, targetDim, dim> result;
 
 #if 0  // this is probably faster than the general implementation, but we leave it out for testing purposes
     if (dim==1) {
 
         EmbeddedTangentVector tmp = TargetSpace::interpolateDerivative(coefficients_[0], coefficients_[1], local[0]);
 
-        for (int i=0; i<EmbeddedTangentVector::size; i++)
+        for (int i=0; i<targetDim; i++)
             result[i][0] = tmp[i];
 
     }
@@ -113,21 +115,24 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
             B[i+1][j] = (i==j);
 
     // compute negative derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::FieldMatrix<ctype,dim+1,dim+1> dFdw;
-    for (int i=0; i<dim+1; i++)
-        dFdw[i] = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
+    Dune::FieldMatrix<ctype,targetDim,dim+1> dFdw;
+    for (int i=0; i<dim+1; i++) {
+        Dune::FieldVector<ctype,targetDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
+        for (int j=0; j<targetDim; j++)
+            dFdw[j][i] = tmp[j];
+    }
 
     dFdw *= -1;
 
     // multiply the two previous matrices: the result is the right hand side
-    Dune::FieldMatrix<ctype,dim+1,dim> RHS;
+    Dune::FieldMatrix<ctype,targetDim,dim> RHS;
     Dune::FMatrixHelp::multMatrix(dFdw,B, RHS);
 
     // the actual system matrix
     std::vector<ctype> w = barycentricCoordinates(local);
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
-    Dune::FieldMatrix<ctype,dim+1,dim+1> dFdq(0);
+    Dune::FieldMatrix<ctype,targetDim,targetDim> dFdq(0);
     assembler.assembleHessian(q,dFdq);
 
     // ////////////////////////////////////
@@ -136,13 +141,13 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
 
     for (int i=0; i<dim; i++) {
 
-        Dune::FieldVector<ctype,dim+1> rhs, x;
-        for (int j=0; j<dim+1; j++)
+        Dune::FieldVector<ctype,targetDim> rhs, x;
+        for (int j=0; j<targetDim; j++)
             rhs[j] = RHS[j][i];
 
         dFdq.solve(x, rhs);
 
-        for (int j=0; j<dim+1; j++)
+        for (int j=0; j<targetDim; j++)
             result[j][i] = x[j];
 
     }
