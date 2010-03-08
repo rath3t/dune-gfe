@@ -37,20 +37,11 @@ class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
     public:
         GridView gridView_;
 
-    protected:
-    Dune::FieldVector<double, 3> leftNeumannForce_;
-    Dune::FieldVector<double, 3> leftNeumannTorque_;
-    Dune::FieldVector<double, 3> rightNeumannForce_;
-    Dune::FieldVector<double, 3> rightNeumannTorque_;
-        
-    public:
-        
         //! ???
     RodAssembler(const GridView &gridView,
                  RodLocalStiffness<GridView,double>* localStiffness) 
         : GeodesicFEAssembler<GridView, RigidBodyMotion<3> >(gridView,localStiffness),
-          gridView_(gridView),
-          leftNeumannForce_(0), leftNeumannTorque_(0), rightNeumannForce_(0), rightNeumannTorque_(0)
+          gridView_(gridView)
         { 
             std::vector<RigidBodyMotion<3> > referenceConfiguration(gridView.size(gridDim));
 
@@ -70,22 +61,8 @@ class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
             dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
         }
 
-    void setNeumannData(const Dune::FieldVector<double, 3>& leftForce,
-                        const Dune::FieldVector<double, 3>& leftTorque,
-                        const Dune::FieldVector<double, 3>& rightForce,
-                        const Dune::FieldVector<double, 3>& rightTorque)
-    {
-        leftNeumannForce_   = leftForce;
-        leftNeumannTorque_  = leftTorque;
-        rightNeumannForce_  = rightForce;
-        rightNeumannTorque_ = rightTorque;
-    }
-
         void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
-
-        /** \brief Compute the energy of a deformation state */
-        double computeEnergy(const std::vector<RigidBodyMotion<3> >& sol) const;
 
         void getStrain(const std::vector<RigidBodyMotion<3> >& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
