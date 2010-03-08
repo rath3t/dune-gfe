@@ -241,10 +241,11 @@ int main (int argc, char *argv[]) try
         // /////////////////////////////////////////////////////
         for (int i=0; i<maxNewtonSteps; i++) {
 
-            std::cout << "----------------------------------------------------" << std::endl;
-            std::cout << "      Trust-Region Step Number: " << i << std::endl;
-            std::cout << "----------------------------------------------------" << std::endl;
-
+            std::cout << "-----------------------------------------------------------------------------" << std::endl;
+            std::cout << "      Trust-Region Step Number: " << i 
+                      << ",     radius: " << trustRegionRadius
+                      << ",     energy: " << rodAssembler.computeEnergy(x) << std::endl;
+            std::cout << "-----------------------------------------------------------------------------" << std::endl;
 
             rhs = 0;
             corr = 0;
