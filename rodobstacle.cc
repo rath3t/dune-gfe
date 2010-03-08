@@ -97,8 +97,10 @@ int main (int argc, char *argv[]) try
     typedef OneDGrid GridType;
     GridType grid(numRodBaseElements, 0, numRodBaseElements);
 
-    std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(1);
-    std::vector<BitSetVector<1> > hasObstacle(1);
+    grid.globalRefine(minLevel);
+
+    std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(minLevel+1);
+    std::vector<BitSetVector<1> > hasObstacle(minLevel+1);
     BitSetVector<blocksize> dirichletNodes;
 
     // ////////////////////////////////
@@ -142,7 +144,7 @@ int main (int argc, char *argv[]) try
     double trustRegionRadius = 0.1;
 
     CorrectionType rhs;
-    SolutionType x(grid.size(0,1));
+    SolutionType x(grid.size(1));
     CorrectionType corr;
 
     // //////////////////////////
@@ -160,7 +162,7 @@ int main (int argc, char *argv[]) try
     //   Refinement Loop
     // /////////////////////////////////////////////////////////////////////
     
-    for (int toplevel=0; toplevel<=maxLevel; toplevel++) {
+    for (int toplevel=minLevel; toplevel<=maxLevel; toplevel++) {
         
         std::cout << "####################################################" << std::endl;
         std::cout << "      Solving on level: " << toplevel << std::endl;
