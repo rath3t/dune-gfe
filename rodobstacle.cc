@@ -95,7 +95,7 @@ int main (int argc, char *argv[]) try
     //    Create the two grids
     // ///////////////////////////////////////
     typedef OneDGrid GridType;
-    GridType grid(numRodBaseElements, 0, 1);
+    GridType grid(numRodBaseElements, 0, numRodBaseElements);
 
     std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(1);
     std::vector<BitSetVector<1> > hasObstacle(1);
@@ -150,8 +150,8 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
 
     for (int i=0; i<x.size(); i++) {
-        x[i].r[0] = double(i)/(x.size()-1);
-        x[i].r[1] = 0;
+        x[i].r[1] = i;//double(i)/(x.size()-1);
+        x[i].r[0] = 0;
         x[i].q    = Rotation<2,double>::identity();
     }
 
