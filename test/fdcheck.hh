@@ -20,7 +20,7 @@ template <class GridType>
 void strainFD(const std::vector<RigidBodyMotion<3> >& x, 
               double pos,
               Dune::array<Dune::FieldMatrix<double,2,6>, 6>& fdStrainDerivatives,
-              const RodAssembler<GridType>& assembler) 
+              const RodAssembler<GridType,3>& assembler) 
 {
     assert(x.size()==2);
     double eps = 1e-8;
@@ -66,7 +66,7 @@ void strain2ndOrderFD(const std::vector<RigidBodyMotion<3> >& x,
                       double pos,
                       Dune::array<Dune::Matrix<Dune::FieldMatrix<double,6,6> >, 3>& translationDer,
                       Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer,
-                      const RodAssembler<GridType>& assembler) 
+                      const RodAssembler<GridType,3>& assembler) 
 {
     assert(x.size()==2);
     double eps = 1e-3;
@@ -177,7 +177,7 @@ void strain2ndOrderFD2(const std::vector<RigidBodyMotion<3> >& x,
                        Dune::FieldVector<double,1> shapeFunction[2],
                        Dune::array<Dune::Matrix<Dune::FieldMatrix<double,6,6> >, 3>& translationDer,
                        Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer,
-                       const RodAssembler<GridType>& assembler) 
+                       const RodAssembler<GridType,3>& assembler) 
 {
     assert(x.size()==2);
     double eps = 1e-3;
@@ -306,7 +306,7 @@ void expHessianFD()
 template <class GridType>
 void gradientFDCheck(const std::vector<RigidBodyMotion<3> >& x, 
                      const Dune::BlockVector<Dune::FieldVector<double,6> >& gradient, 
-                     const RodAssembler<GridType>& assembler)
+                     const RodAssembler<GridType,3>& assembler)
 {
 #ifndef ABORT_ON_ERROR
     static int gradientError = 0;
@@ -364,7 +364,7 @@ void gradientFDCheck(const std::vector<RigidBodyMotion<3> >& x,
 template <class GridType>
 void hessianFDCheck(const std::vector<RigidBodyMotion<3> >& x, 
                     const Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> >& hessian, 
-                    const RodAssembler<GridType>& assembler)
+                    const RodAssembler<GridType,3>& assembler)
 {
 #ifndef ABORT_ON_ERROR
     static int hessianError = 0;
