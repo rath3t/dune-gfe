@@ -1,5 +1,6 @@
 #include <config.h>
 
+#include <fenv.h>
 #include <iostream>
 
 #include <dune/common/fvector.hh>
@@ -177,6 +178,9 @@ void testRotations()
 
 int main()
 {
+    // choke on NaN
+    feenableexcept(FE_INVALID);
+
     //testRealTuples();
     testUnitVectors();
     //testRotations();
