@@ -5,4 +5,4 @@
 #Name of the module
 Module:rods
 #depending on 
-Depends:dune-common dune-grid dune-istl dune-disc dune-solvers ag-common
+Depends:dune-common dune-grid dune-istl dune-localfunctions dune-solvers ag-common
