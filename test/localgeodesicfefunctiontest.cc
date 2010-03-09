@@ -16,6 +16,31 @@ const int dim = 2;
 
 using namespace Dune;
 
+void testDerivativeTangentiality(const RealTuple<1>& x,
+                                 const FieldMatrix<double,1,dim>& derivative)
+{
+    // By construction, derivatives of RealTuples are always tangent
+}
+
+// the columns of the derivative must be tangential to the manifold
+void testDerivativeTangentiality(const UnitVector<3>& x,
+                                 const FieldMatrix<double,3,dim>& derivative)
+{
+    for (int i=0; i<dim; i++) {
+
+        // The i-th column is a tangent vector if its scalar product with the global coordinates
+        // of x vanishes.
+        double sp = 0;
+        for (int j=0; j<3; j++)
+            sp += x.globalCoordinates()[j] * derivative[j][i];
+
+
+        std::cout << "Column: " << i << ",  product: " << sp << std::endl;
+
+    }
+
+}
+
 /** \brief Test whether interpolation is invariant under permutation of the simplex vertices
  */
 template <class TargetSpace>
@@ -68,6 +93,36 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 
 }
 
+template <class TargetSpace>
+void testDerivative(const std::vector<TargetSpace>& corners)
+{
+    // Make local fe function to be tested
+    LocalGeodesicFEFunction<2,double,TargetSpace> f(corners);
+
+    // A quadrature rule as a set of test points
+    int quadOrder = 3;
+    
+    const Dune::QuadratureRule<double, dim>& quad 
+        = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
+    
+    for (size_t pt=0; pt<quad.size(); pt++) {
+        
+        const Dune::FieldVector<double,dim>& quadPos = quad[pt].position();
+
+        // evaluate actual derivative
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, dim> derivative = f.evaluateDerivative(quadPos);
+
+        // evaluate fd approximation of derivative
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, dim> fdDerivative = f.evaluateDerivativeFD(quadPos);
+
+        std::cout << "Analytical: " << std::endl << derivative << std::endl;
+        std::cout << "FD: "         << std::endl << fdDerivative << std::endl;
+
+        testDerivativeTangentiality(f.evaluate(quadPos), derivative);
+
+    }
+}
+
 void testRealTuples()
 {
     typedef RealTuple<1> TargetSpace;
@@ -77,6 +132,7 @@ void testRealTuples()
                                         TargetSpace(3)};
 
     testPermutationInvariance(corners);
+    testDerivative(corners);
 }
 
 void testUnitVectors()
@@ -94,6 +150,7 @@ void testUnitVectors()
     corners[2] = input;
 
     testPermutationInvariance(corners);
+    testDerivative(corners);
 }
 
 void testRotations()
@@ -114,6 +171,7 @@ void testRotations()
     corners[2] = Rotation<3,double>(zAxis,0.1);
 
     testPermutationInvariance(corners);
+    //testDerivative(corners);
 }
 
 
