@@ -215,7 +215,7 @@ getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
 
 
 template <class GridView>
-void PlanarRodAssembler<GridView>::
+void RodAssembler<GridView,2>::
 assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix)
 {
@@ -270,7 +270,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
 
 template <class GridView>
 template <class MatrixType>
-void PlanarRodAssembler<GridView>::
+void RodAssembler<GridView,2>::
 getLocalMatrix( EntityType &entity, 
                 const std::vector<RigidBodyMotion<2> >& localSolution,
                 const int matSize, MatrixType& localMat) const
@@ -421,7 +421,7 @@ getLocalMatrix( EntityType &entity,
 }
 
 template <class GridView>
-void PlanarRodAssembler<GridView>::
+void RodAssembler<GridView,2>::
 assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
@@ -522,7 +522,7 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
 
 
 template <class GridView>
-double PlanarRodAssembler<GridView>::
+double RodAssembler<GridView,2>::
 computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
 {
     double energy = 0;
