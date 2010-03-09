@@ -2,7 +2,7 @@
 #define AVERAGE_INTERFACE_HH
 
 #include <dune/common/fmatrix.hh>
-#include <dune/disc/shapefunctions/lagrangeshapefunctions.hh>
+#include <dune/localfunctions/lagrange/pqkfactory.hh>
 
 #include <dune/ag-common/dgindexset.hh>
 #include <dune/ag-common/crossproduct.hh>
@@ -415,13 +415,15 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
     outputForce = outputTorque = 0;
 
     const int dim = GridView::dimension;
+    Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1> finiteElementCache;
 
     for (typename BoundaryPatchBase<GridView>::iterator it=interface.begin(); 
          it != interface.end(); 
          ++it) {
 
-            const Dune::LagrangeShapeFunctionSet<double, double, dim-1>& baseSet
-                = Dune::LagrangeShapeFunctions<double, double, dim-1>::general(it->type(),1);
+        // Get shape functions
+        const typename Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1>::FiniteElementType& 
+            localFiniteElement = finiteElementCache.get(it->type());
             
             const Dune::QuadratureRule<double, dim-1>& quad 
                 = Dune::QuadratureRules<double, dim-1>::rule(it->type(), dim-1);
@@ -438,14 +440,15 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
                 
                 // Evaluate function
                 Dune::FieldVector<double,dim> localPressure(0);
+                std::vector<Dune::FieldVector<double,1> > values;
+                localFiniteElement.localBasis().evaluateFunction(quadPos,values);
                 
-                for (size_t i=0; i<baseSet.size(); i++) {
+                for (size_t i=0; i<localFiniteElement.localCoefficients().size(); i++) {
 
                     int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
                     int subIndex = interface.gridView().indexSet().subIndex(*it->inside(), faceIdxi, dim);
                     
-                    localPressure.axpy(baseSet[i].evaluateFunction(0,quadPos),
-                                       pressure[subIndex]);
+                    localPressure.axpy(values[i], pressure[subIndex]);
 
                 }
 
@@ -478,6 +481,8 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     const int dim        = GridType::dimension;
     typedef typename GridType::ctype ctype;
     typedef double field_type;
+
+    Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1> finiteElementCache;
 
     typedef typename GridType::template Codim<dim>::LevelIterator VertexIterator;
 
@@ -521,8 +526,9 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 
     for (; it!=endIt; ++it) {
 
-            const Dune::LagrangeShapeFunctionSet<ctype, field_type, dim-1>& baseSet
-                = Dune::LagrangeShapeFunctions<ctype, field_type, dim-1>::general(it->type(),1);
+        // Get shape functions
+        const typename Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1>::FiniteElementType& 
+            localFiniteElement = finiteElementCache.get(it->type());
 
             const Dune::GenericReferenceElement<double,dim>& refElement = Dune::GenericReferenceElements<double, dim>::general(it->inside()->type());
 
@@ -537,7 +543,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             for (int i=0; i<it->geometry().corners(); i++) {
                 
                 const Dune::QuadratureRule<double, dim-1>& quad 
-                    = Dune::QuadratureRules<double, dim-1>::rule(it->geometry().type(), dim-1);
+                    = Dune::QuadratureRules<double, dim-1>::rule(it->type(), dim-1);
                 
                 for (size_t qp=0; qp<quad.size(); qp++) {
                     
@@ -546,8 +552,11 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                     
                     const double integrationElement = it->geometry().integrationElement(quadPos);
                     
+                    std::vector<Dune::FieldVector<double,1> > shapeFunctionValues;
+                    localFiniteElement.localBasis().evaluateFunction(quadPos, shapeFunctionValues);
+
                     // \mu_i = \int_t \varphi_i \ds
-                    mu[i] += quad[qp].weight() * integrationElement * baseSet[i].evaluateFunction(0,quadPos);
+                    mu[i] += quad[qp].weight() * integrationElement * shapeFunctionValues[i];
                     
                     // \tilde{\mu}_i^j = \int_t \varphi_i \times (x - x_0) \ds
                     Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
@@ -556,7 +565,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 
                         // Vector-valued basis function
                         Dune::FieldVector<double,dim> phi_i(0);
-                        phi_i[j] = baseSet[i].evaluateFunction(0,quadPos);
+                        phi_i[j] = shapeFunctionValues[i];
                         
                         mu_tilde[i][j].axpy(quad[qp].weight() * integrationElement,
                                             crossProduct(worldPos-crossSection.r, phi_i));
@@ -568,7 +577,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
             }
 
             // Set up matrix
-            for (int i=0; i<baseSet.size(); i++) {
+            for (int i=0; i<localFiniteElement.localCoefficients().size(); i++) {
                 
                 int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
                 int subIndex = globalToLocal[indexSet.subIndex(*it->inside(), faceIdxi, dim)];
@@ -672,6 +681,8 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
     const typename GridType::Traits::LevelIndexSet& indexSet = grid.levelIndexSet(level);
     const int dim        = GridType::dimension;
 
+    Dune::PQkLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
+
     // ///////////////////////////////////////////
     //   Initialize output configuration
     // ///////////////////////////////////////////
@@ -695,8 +706,8 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
             const QuadratureRule<double, dim-1>& quad = QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
 
             // Get set of shape functions on this segment
-            const typename LagrangeShapeFunctionSetContainer<double,double,dim>::value_type& sfs
-                = LagrangeShapeFunctions<double,double,dim>::general(it->inside()->type(),1);
+            const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType& 
+                localFiniteElement = finiteElementCache.get(it->inside()->type());
 
             /* Loop over all integration points */
             for (int ip=0; ip<quad.size(); ip++) {
@@ -706,6 +717,9 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
                 
                 const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
 
+                std::vector<Dune::FieldVector<double,1> > values;
+                localFiniteElement.localBasis().evaluateFunction(quadPos,values);
+
                 // Evaluate base functions
                 FieldVector<double,dim> posAtQuadPoint(0);
 
@@ -714,7 +728,7 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
                     int idx = indexSet.subIndex(*it->inside(), i, dim);
 
                     // Deformation at the quadrature point 
-                    posAtQuadPoint.axpy(sfs[i].evaluateFunction(0,quadPos), deformation[idx]);
+                    posAtQuadPoint.axpy(values[i], deformation[idx]);
                 }
 
                 const FieldMatrix<double,dim,dim>& inv = it->inside()->geometry().jacobianInverseTransposed(quadPos);
@@ -722,17 +736,16 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
                 /**********************************************/
                 /* compute gradients of the shape functions   */
                 /**********************************************/
-                std::vector<FieldVector<double, dim> > shapeGrads(it->inside()->geometry().corners());
+                std::vector<FieldMatrix<double, 1, dim> > shapeGrads;
+                localFiniteElement.localBasis().evaluateJacobian(quadPos,shapeGrads);
                 
                 for (int dof=0; dof<it->inside()->geometry().corners(); dof++) {
                     
-                    FieldVector<double,dim> tmp;
-                    for (int i=0; i<dim; i++)
-                        tmp[i] = sfs[dof].evaluateDerivative(0, i, quadPos);
+                    FieldVector<double,dim> tmp = shapeGrads[dof][0];
                     
                     // multiply with jacobian inverse 
                     shapeGrads[dof] = 0;
-                    inv.umv(tmp, shapeGrads[dof]);
+                    inv.umv(tmp, shapeGrads[dof][0]);
                 }
 
                 /****************************************************/
@@ -748,7 +761,7 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
                         F[i][j] = (i==j) ? 1 : 0;
                         
                         for (int k=0; k<it->inside()->geometry().corners(); k++)
-                            F[i][j] += deformation[indexSet.subIndex(*it->inside(), k, dim)][i]*shapeGrads[k][j];
+                            F[i][j] += deformation[indexSet.subIndex(*it->inside(), k, dim)][i]*shapeGrads[k][0][j];
                         
                     }
                     
