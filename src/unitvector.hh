@@ -125,7 +125,6 @@ public:
 
         // Bring it all together
         result = A;
-        result *= -2;
         result.axpy(derivativeOfArcCosSquared(sp), B);
 
         return result;
