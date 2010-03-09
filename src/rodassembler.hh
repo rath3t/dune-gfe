@@ -12,10 +12,19 @@
 #include "rodlocalstiffness.hh"
 #include "geodesicfeassembler.hh"
 
-/** \brief The FEM operator for an extensible, shearable rod
+/** \brief The FEM operator for an extensible, shearable rod in 3d
+ */
+template <class GridView, int spaceDim>
+class RodAssembler
+{
+    dune_static_assert(spaceDim==2 || spaceDim==3, 
+                       "You can only instantiate the class RodAssembler for 2d and 3d spaces");
+};
+
+/** \brief The FEM operator for an extensible, shearable rod in 3d
  */
 template <class GridView>
-class RodAssembler : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
+class RodAssembler<GridView,3> : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
 {
         
     //typedef typename GridType::template Codim<0>::Entity EntityType;

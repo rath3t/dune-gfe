@@ -12,7 +12,7 @@
 
 
 template <class GridView>
-void RodAssembler<GridView>::
+void RodAssembler<GridView,3>::
 assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
@@ -56,7 +56,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
 
 
 template <class GridView>
-void RodAssembler<GridView>::
+void RodAssembler<GridView,3>::
 getStrain(const std::vector<RigidBodyMotion<3> >& sol,
           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const
 {
@@ -119,7 +119,7 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
 }
 
 template <class GridView>
-void RodAssembler<GridView>::
+void RodAssembler<GridView,3>::
 getStress(const std::vector<RigidBodyMotion<3> >& sol,
           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const
 {
@@ -141,7 +141,7 @@ getStress(const std::vector<RigidBodyMotion<3> >& sol,
 
 template <class GridView>
 template <class PatchGridView>
-Dune::FieldVector<double,3> RodAssembler<GridView>::
+Dune::FieldVector<double,3> RodAssembler<GridView,3>::
 getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
                   const std::vector<RigidBodyMotion<3> >& sol,
                   Dune::FieldVector<double,3>& canonicalTorque) const
