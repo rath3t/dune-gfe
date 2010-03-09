@@ -235,8 +235,6 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
         
         const int numOfBaseFct = 2;  
         
-        mat.setSize(numOfBaseFct, numOfBaseFct);
-
         // Extract local solution
         std::vector<RigidBodyMotion<2> > localSolution(numOfBaseFct);
         
@@ -244,7 +242,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // setup matrix 
-        getLocalMatrix( *it, localSolution, numOfBaseFct, mat);
+        getLocalMatrix( *it, localSolution, mat);
         
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) { 
@@ -269,20 +267,18 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
 
 
 template <class GridView>
-template <class MatrixType>
 void RodAssembler<GridView,2>::
 getLocalMatrix( EntityType &entity, 
                 const std::vector<RigidBodyMotion<2> >& localSolution,
-                const int matSize, MatrixType& localMat) const
+                Dune::Matrix<MatrixBlock>& localMat) const
 {
     const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
 
     /* ndof is the number of vectors of the element */
-    int ndof = matSize;
+    int ndof = localSolution.size();
 
-    for (int i=0; i<matSize; i++)
-        for (int j=0; j<matSize; j++)
-            localMat[i][j] = 0;
+    localMat.setSize(ndof,ndof);
+    localMat = 0;
     
     Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
 
@@ -327,9 +323,9 @@ getLocalMatrix( EntityType &entity,
 
         double theta   = localSolution[0].q.angle_*shapeFunction[0] + localSolution[1].q.angle_*shapeFunction[1];
 
-        for (int i=0; i<matSize; i++) {
+        for (int i=0; i<localMat.N(); i++) {
 
-            for (int j=0; j<matSize; j++) {
+            for (int j=0; j<localMat.M(); j++) {
 
                 // \partial J^2 / \partial x_i \partial x_j
                 localMat[i][j][0][0] += weight * shapeGrad[i][0] * shapeGrad[j][0]

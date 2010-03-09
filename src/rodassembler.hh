@@ -144,10 +144,9 @@ public:
 protected:
     
     /** \brief Compute the element tangent stiffness matrix  */
-    template <class MatrixType>
     void getLocalMatrix( EntityType &entity, 
                          const std::vector<RigidBodyMotion<2> >& localSolution, 
-                         const int matSize, MatrixType& mat) const;
+                         Dune::Matrix<MatrixBlock>& mat) const;
     
 }; // end class
 
