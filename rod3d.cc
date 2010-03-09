@@ -121,7 +121,7 @@ int main (int argc, char *argv[]) try
     RodLocalStiffness<GridType::LeafGridView,double> localStiffness(grid.leafView(),
                                                                     A, J1, J2, E, nu);
 
-    RodAssembler<GridType::LeafGridView> rodAssembler(grid.leafView(), &localStiffness);
+    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafView(), &localStiffness);
 
     RiemannianTrustRegionSolver<GridType,RigidBodyMotion<3> > rodSolver;
 #if 0
