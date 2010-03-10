@@ -24,15 +24,16 @@ void testDerivativeTangentiality(const RealTuple<1>& x,
 }
 
 // the columns of the derivative must be tangential to the manifold
-void testDerivativeTangentiality(const UnitVector<3>& x,
-                                 const FieldMatrix<double,3,dim>& derivative)
+template <int vectorDim>
+void testDerivativeTangentiality(const UnitVector<vectorDim>& x,
+                                 const FieldMatrix<double,vectorDim,dim>& derivative)
 {
     for (int i=0; i<dim; i++) {
 
         // The i-th column is a tangent vector if its scalar product with the global coordinates
         // of x vanishes.
         double sp = 0;
-        for (int j=0; j<3; j++)
+        for (int j=0; j<vectorDim; j++)
             sp += x.globalCoordinates()[j] * derivative[j][i];
 
 
@@ -150,6 +151,24 @@ void testUnitVectors()
     testDerivative(corners);
 }
 
+void testUnitVectors2()
+{
+    typedef UnitVector<2> TargetSpace;
+
+    std::vector<TargetSpace> corners(dim+1);
+
+    FieldVector<double,2> input;
+    input[0] = 1;  input[1] = 0;
+    corners[0] = input;
+    input[0] = 1;  input[1] = 0;
+    corners[1] = input;
+    input[0] = 0;  input[1] = 1;
+    corners[2] = input;
+
+    testPermutationInvariance(corners);
+    testDerivative(corners);
+}
+
 void testRotations()
 {
     typedef Rotation<3,double> TargetSpace;
@@ -179,5 +198,6 @@ int main()
 
     //testRealTuples();
     testUnitVectors();
+    testUnitVectors2();
     //testRotations();
 }
