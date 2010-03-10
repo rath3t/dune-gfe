@@ -123,6 +123,8 @@ void testDerivative(const std::vector<TargetSpace>& corners)
 
 void testRealTuples()
 {
+    std::cout << " --- Testing RealTuple<1> ---" << std::endl;
+
     typedef RealTuple<1> TargetSpace;
 
     std::vector<TargetSpace> corners = {TargetSpace(1),
@@ -135,6 +137,8 @@ void testRealTuples()
 
 void testUnitVectors()
 {
+    std::cout << " --- Testing UnitVector<3> ---" << std::endl;
+
     typedef UnitVector<3> TargetSpace;
 
     std::vector<TargetSpace> corners(dim+1);
@@ -153,6 +157,8 @@ void testUnitVectors()
 
 void testUnitVectors2()
 {
+    std::cout << " --- Testing UnitVector<2> ---" << std::endl;
+
     typedef UnitVector<2> TargetSpace;
 
     std::vector<TargetSpace> corners(dim+1);
@@ -171,6 +177,8 @@ void testUnitVectors2()
 
 void testRotations()
 {
+    std::cout << " --- Testing Rotation<3> ---" << std::endl;
+
     typedef Rotation<3,double> TargetSpace;
 
     FieldVector<double,3> xAxis(0);
