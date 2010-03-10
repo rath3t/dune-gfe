@@ -86,10 +86,6 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
         assert(TargetSpace::distance(v0,v1) < 1e-5);
         assert(TargetSpace::distance(v0,v2) < 1e-5);
 
-        std::cout << v0 << std::endl;
-        std::cout << v1 << std::endl;
-        std::cout << v2 << std::endl;
-
     }
 
 }
