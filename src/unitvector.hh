@@ -121,11 +121,11 @@ public:
         Dune::FieldMatrix<double,dim,dim> B;
         for (int i=0; i<dim; i++)
             for (int j=0; j<dim; j++)
-                B[i][j] = (i==j)*sp + a.data_[j]*b.data_[i];
+                B[i][j] = (i==j)*sp + a.data_[i]*b.data_[j];
 
         // Bring it all together
         result = A;
-        result.axpy(derivativeOfArcCosSquared(sp), B);
+        result.axpy(-1*derivativeOfArcCosSquared(sp), B);
 
         return result;
     }
