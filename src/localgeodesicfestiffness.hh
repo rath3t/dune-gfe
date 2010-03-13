@@ -35,6 +35,16 @@ class LocalGeodesicFEStiffness
                                                    (i==5)*eps));
     }
 
+    /** \brief For the fd approximations 
+    */
+    static void infinitesimalVariation(RigidBodyMotion<2>& c, double eps, int i)
+    {
+        if (i<2)
+            c.r[i] += eps;
+        else
+            c.q = c.q.mult(Rotation<2,double>::exp(Dune::FieldVector<double,1>(eps)));
+    }
+
     static void infinitesimalVariation(Rotation<3,double>& c, double eps, int i)
     {
         c = c.mult(Rotation<3,double>::exp((i==0)*eps, 
