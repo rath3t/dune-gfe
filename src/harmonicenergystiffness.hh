@@ -58,7 +58,7 @@ energy(const Entity& element,
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivativeFD(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
 
         // The derivative of the function defined on the actual element
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> derivative(0);
