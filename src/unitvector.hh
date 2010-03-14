@@ -149,7 +149,7 @@ public:
     }
 
 
-    //private:
+private:
 
     Dune::FieldVector<double,dim> data_;
 };
