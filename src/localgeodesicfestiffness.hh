@@ -396,9 +396,11 @@ assembleGradient(const Entity& element,
         
         for (int j=0; j<blocksize; j++) {
             
-            // Brute force: the return value does not have unit norm.  Stuff it in there anyways
-            forwardSolution[i].data_  = infinitesimalVariation(localSolution[i],  eps, j);
-            backwardSolution[i].data_ = infinitesimalVariation(localSolution[i], -eps, j);
+            // The return value does not have unit norm.  But assigning it to a UnitVector object
+            // will normalize it.  This amounts to an extension of the energy functional 
+            // to a neighborhood around S^n
+            forwardSolution[i]  = infinitesimalVariation(localSolution[i],  eps, j);
+            backwardSolution[i] = infinitesimalVariation(localSolution[i], -eps, j);
 
             localGradient[i][j] = (energy(element,forwardSolution) - energy(element,backwardSolution))
                 / (2*eps);
