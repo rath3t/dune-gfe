@@ -9,7 +9,7 @@ SUBDIRS = m4 src test
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
 AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
-noinst_PROGRAMS = rodobstacle rod3d harmonicmaps dirneucoupling rod-eoc 
+noinst_PROGRAMS = rodobstacle rod3d harmonicmaps harmonicmaps-eoc dirneucoupling rod-eoc 
 
 rodobstacle_SOURCES = rodobstacle.cc
 rod3d_SOURCES = rod3d.cc
@@ -19,6 +19,11 @@ rod_eoc_SOURCES = rod-eoc.cc
 harmonicmaps_SOURCES = harmonicmaps.cc
 harmonicmaps_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
 harmonicmaps_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
+                          $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
+
+harmonicmaps_eoc_SOURCES = harmonicmaps-eoc.cc
+harmonicmaps_eoc_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
+harmonicmaps_eoc_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
                           $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
 
 dirneucoupling_SOURCES  = dirneucoupling.cc

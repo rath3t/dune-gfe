@@ -1,0 +1,31 @@
+# Number of grid levels
+numLevels = 1
+
+# Tolerance of the trust region solver
+tolerance = 1e-12
+
+# Max number of steps of the trust region solver
+maxTrustRegionSteps = 200
+
+# Initial trust-region radius
+initialTrustRegionRadius = 1
+
+# Number of multigrid iterations per trust-region step
+numIt = 200
+
+# Number of base solver iterations
+baseIt = 100
+
+# Tolerance of the inner solver
+innerTolerance = 1e-5
+
+# Tolerance of the base grid solver
+baseTolerance = -1
+
+############################
+#   Problem specifications
+############################
+
+# Number of elements of the rod grid
+numBaseElements = 4
+
