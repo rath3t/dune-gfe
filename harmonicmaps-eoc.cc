@@ -6,6 +6,7 @@
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/../../doc/grids/gridfactory/structuredgridfactory.hh>
+#include <dune/grid/io/file/amirameshwriter.hh>
 
 #include <dune/ag-common/functionspacebases/p1nodalbasis.hh>
 #include <dune/ag-common/assemblers/operatorassembler.hh>
@@ -19,8 +20,7 @@
 #include "src/harmonicenergystiffness.hh"
 #include "src/geodesicfeassembler.hh"
 #include "src/riemanniantrsolver.hh"
-#include "src/rodrefine.hh"
-#include "src/rodwriter.hh"
+#include "src/geodesicfefunctionadaptor.hh"
 
 // grid dimension
 const int dim = 2;
@@ -214,17 +214,34 @@ int main (int argc, char *argv[]) try
         SolutionType solution;
         solve(grid, solution, i, parameterSet);
 
-#if 0
-        // Prolong solution to the very finest grid
-        for (int j=i; j<numLevels; j++)
-            globalRodRefine(grid, solution);
-
+        // write solution
         std::stringstream numberAsAscii;
         numberAsAscii << i;
-        writeRod(solution, "rodGrid_" + numberAsAscii.str());
 
-        assert(referenceSolution.size() == solution.size());
-#endif
+        BlockVector<FieldVector<double,3> > xEmbedded(solution.size());
+        for (int j=0; j<solution.size(); j++)
+            xEmbedded[j] = solution[j].globalCoordinates();
+        
+        LeafAmiraMeshWriter<GridType> amiramesh;
+        amiramesh.addGrid(grid->leafView());
+        amiramesh.addVertexData(xEmbedded, grid->leafView());
+        amiramesh.write("harmonic_result_" + numberAsAscii.str() + ".am");
+
+        // Prolong solution to the very finest grid
+        for (int j=i; j<numLevels; j++)
+            geodesicFEFunctionAdaptor(*grid, solution);
+
+        //assert(referenceSolution.size() == solution.size());
+
+        xEmbedded.resize(solution.size());
+        for (int j=0; j<solution.size(); j++)
+            xEmbedded[j] = solution[j].globalCoordinates();
+
+        LeafAmiraMeshWriter<GridType> amirameshRefined;
+        amirameshRefined.addGrid(grid->leafView());
+        amirameshRefined.addVertexData(xEmbedded, grid->leafView());
+        amirameshRefined.write("harmonic_result_" + numberAsAscii.str() + "_refined.am");
+
 #if 0
         BlockVector<TargetSpace::TangentVector> difference = computeGeodesicDifference(solution,referenceSolution);
 
