@@ -14,7 +14,7 @@
 #include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
-#include <dune/solvers/norms/energynorm.hh>
+#include <dune/solvers/norms/h1seminorm.hh>
 
 #include "src/unitvector.hh"
 #include "src/harmonicenergystiffness.hh"
@@ -182,7 +182,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////////////////////////////////
     //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
     // //////////////////////////////////////////////////////////////////////
-#if 0
+
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
     FEBasis basis(referenceGrid->leafView());
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
@@ -195,7 +195,7 @@ int main (int argc, char *argv[]) try
 
     operatorAssembler.assemble(laplaceLocalAssembler, laplace);
     operatorAssembler.assemble(massMatrixLocalAssembler, massMatrix);
-#endif
+
     // ///////////////////////////////////////////////////////////
     //   Compute on all coarser levels, and compare
     // ///////////////////////////////////////////////////////////
@@ -242,8 +242,13 @@ int main (int argc, char *argv[]) try
         amirameshRefined.addVertexData(xEmbedded, grid->leafView());
         amirameshRefined.write("harmonic_result_" + numberAsAscii.str() + "_refined.am");
 
-#if 0
-        BlockVector<TargetSpace::TangentVector> difference = computeGeodesicDifference(solution,referenceSolution);
+        // Interpret TargetSpace as isometrically embedded into an R^m, because this is
+        // how the corresponding Sobolev spaces are defined.
+
+        BlockVector<TargetSpace::TangentVector> difference(referenceSolution.size());
+
+        for (int j=0; j<referenceSolution.size(); j++)
+            difference[j] = solution[j].globalCoordinates() - referenceSolution[j].globalCoordinates();
 
         H1SemiNorm< BlockVector<TargetSpace::TangentVector> > h1Norm(laplace);
         H1SemiNorm< BlockVector<TargetSpace::TangentVector> > l2Norm(massMatrix);
@@ -260,7 +265,7 @@ int main (int argc, char *argv[]) try
         std::cout << "Level: " << i-1 
                   << ",   H1 error: " << h1Norm(difference)
                   << std::endl;
-#endif
+
     }    
         
  } catch (Exception e) {
