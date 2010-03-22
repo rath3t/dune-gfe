@@ -15,6 +15,8 @@ class RealTuple
 {
 public:
 
+    typedef double ctype;
+
     typedef Dune::FieldVector<double,N> EmbeddedTangentVector;
 
     typedef Dune::FieldVector<double,N> TangentVector;
@@ -27,6 +29,21 @@ public:
     RealTuple(double v)
     {
         data_ = v;
+    }
+
+    /** \brief Copy constructor */
+    RealTuple(const RealTuple<N>& other)
+        : data_(other.data_)
+    {}
+
+    /** \brief Constructor from FieldVector*/
+    RealTuple(const Dune::FieldVector<double,N>& other)
+        : data_(other)
+    {}
+
+    RealTuple& operator=(const Dune::FieldVector<double,N>& other) {
+        data_ = other;
+        return *this;
     }
 
     /** \brief The exponention map */
@@ -53,7 +70,10 @@ public:
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
-        return -2*(a.data_ - b.data_);
+        EmbeddedTangentVector result = a.data_;
+        result -= b.data_;
+        result *= -2;
+        return result;
     }
 
         /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed
