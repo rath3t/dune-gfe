@@ -52,6 +52,13 @@ class LocalGeodesicFEStiffness
                                            (i==2)*eps));
     }
 
+    static void infinitesimalVariation(RealTuple<2>& c, double eps, int i)
+    {
+        Dune::FieldVector<double,2> v(0);
+        v[i] = eps;
+        c = RealTuple<2>::exp(c,v);
+    }
+
 public:
     
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
