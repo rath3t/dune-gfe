@@ -2,6 +2,7 @@
 #define UNIT_VECTOR_HH
 
 #include <dune/common/fvector.hh>
+#include <dune/common/fmatrix.hh>
 
 template <int dim>
 class UnitVector
