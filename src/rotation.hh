@@ -33,11 +33,25 @@ public:
         : angle_(0)
     {}
 
+    Rotation(const T& angle)
+        : angle_(angle)
+    {}
+
     /** \brief Return the identity element */
     static Rotation<2,T> identity() {
         // Default constructor creates an identity
         Rotation<2,T> id;
         return id;
+    }
+
+    static T distance(const Rotation<2,T>& a, const Rotation<2,T>& b) {
+        T dist = a.angle_ - b.angle_;
+        while (dist < 0)
+            dist += 2*M_PI;
+        while (dist > 2*M_PI)
+            dist -= 2*M_PI;
+
+        return (dist <= M_PI) ? dist : 2*M_PI - dist;
     }
 
     /** \brief The exponential map from a given point $p \in SO(3)$. */
@@ -53,6 +67,16 @@ public:
         Rotation<2,T> result;
         result.angle_ = v[0];
         return result;
+    }
+
+    static TangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
+                                                                      const Rotation<2,T>& b) {
+        return -2 * distance(a,b);
+    }
+
+    static TangentVector secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
+                                                                      const Rotation<2,T>& b) {
+        return 2;
     }
 
     /** \brief Right multiplication */
