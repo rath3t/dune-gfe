@@ -84,7 +84,7 @@ public:
     */
     virtual void assemble(const Entity& e,
                   const std::vector<TargetSpace>& localSolution);
-    
+   
     /** \brief assemble local stiffness matrix for given element and order
     */
     void assemble (const Entity& e, 
@@ -99,12 +99,6 @@ public:
     {
         DUNE_THROW(Dune::NotImplemented, "!");
     }
-
-    void assembleBoundaryCondition (const Entity& e, int k=1)
-    {
-        DUNE_THROW(Dune::NotImplemented, "!");
-    }
-
     
     virtual RT energy (const Entity& e,
                        const std::vector<TargetSpace>& localSolution) const = 0;
@@ -369,12 +363,6 @@ public:
         DUNE_THROW(Dune::NotImplemented, "!");
     }
 
-    void assembleBoundaryCondition (const Entity& e, int k=1)
-    {
-        DUNE_THROW(Dune::NotImplemented, "!");
-    }
-
-    
     virtual RT energy (const Entity& e,
                        const std::vector<TargetSpace>& localSolution) const = 0;
 
