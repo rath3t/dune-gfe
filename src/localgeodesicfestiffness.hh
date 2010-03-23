@@ -52,6 +52,12 @@ class LocalGeodesicFEStiffness
                                            (i==2)*eps));
     }
 
+    static void infinitesimalVariation(Rotation<2,double>& c, double eps, int i)
+    {
+        Dune::FieldVector<double,1> v(eps);
+        c = Rotation<2,double>::exp(c,v);
+    }
+
     static void infinitesimalVariation(RealTuple<2>& c, double eps, int i)
     {
         Dune::FieldVector<double,2> v(0);
