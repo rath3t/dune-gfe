@@ -128,6 +128,9 @@ public:
         result = A;
         result.axpy(-1*derivativeOfArcCosSquared(sp), B);
 
+        for (int i=0; i<dim; i++)
+            result[i] = b.projectOntoTangentSpace(result[i]);
+
         return result;
     }
 
