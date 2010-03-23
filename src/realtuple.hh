@@ -58,13 +58,6 @@ public:
         return (a.data_ - b.data_).two_norm();
     }
 
-    /** \brief Compute the gradient of the distance function keeping the first argument fixed
-     */
-    static EmbeddedTangentVector derivativeOfDistanceWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
-        EmbeddedTangentVector gradient = a.data_ - b.data_;
-        return -gradient/distance(a,b);
-    }
-    
     /** \brief Compute the gradient of the squared distance function keeping the first argument fixed
 
     Unlike the distance itself the squared distance is differentiable at zero
