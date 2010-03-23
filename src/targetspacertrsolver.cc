@@ -143,16 +143,16 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         assert(modelDecrease >= 0);
         
         if (energy >= oldEnergy) {
-  //           if (this->verbosity_ == NumProc::FULL)
+            if (this->verbosity_ == NumProc::FULL)
                 printf("Richtung ist keine Abstiegsrichtung!\n");
         }
 
         if (energy >= oldEnergy &&
             (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9)) {
-//             if (this->verbosity_ == NumProc::FULL)
+            if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
- //            if (this->verbosity_ != NumProc::QUIET)
+            if (this->verbosity_ != NumProc::QUIET)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
 
             x_ = newIterate;
