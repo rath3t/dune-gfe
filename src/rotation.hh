@@ -83,8 +83,8 @@ public:
         return -2 * distance(a,b);
     }
 
-    static TangentVector secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
-                                                                      const Rotation<2,T>& b) {
+    static Dune::FieldMatrix<double,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
+                                                                                            const Rotation<2,T>& b) {
         return 2;
     }
 
