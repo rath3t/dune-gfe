@@ -20,13 +20,22 @@ class Rotation
 };
 
 /** \brief Specialization for dim==2
+    \tparam T The type used for coordinates
 */
 template <class T>
 class Rotation<2,T>
 {
 public:
+    /** \brief The type used for coordinates */
+    typedef T ctype;
+
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,1> TangentVector;
+
+    /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix
+
+    This vector is not really embedded in anything.  I have to make my notation more consistent! */
+    typedef Dune::FieldVector<T,1> EmbeddedTangentVector;
 
     /** \brief Default constructor, create the identity rotation */
     Rotation() 
