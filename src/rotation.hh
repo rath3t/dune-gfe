@@ -80,7 +80,10 @@ public:
 
     static TangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
                                                                       const Rotation<2,T>& b) {
-        return -2 * distance(a,b);
+        // This assertion is here to remind me of the following laziness:
+        // The difference has to be computed modulo 2\pi
+        assert( std::fabs(a.angle_ - b.angle_) <= M_PI );
+        return -2 * (a.angle_ - b.angle_);
     }
 
     static Dune::FieldMatrix<double,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
