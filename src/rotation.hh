@@ -104,6 +104,13 @@ public:
     double angle_;
 };
 
+//! Send configuration to output stream
+template <class T>
+std::ostream& operator<< (std::ostream& s, const Rotation<2,T>& c)
+  {
+      return s << "[" << c.angle_ << "  (" << std::sin(c.angle_) << " " << std::cos(c.angle_) << ") ]";
+  }
+
 
 /** \brief Specialization for dim==3 
 
