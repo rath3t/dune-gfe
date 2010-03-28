@@ -9,6 +9,7 @@
 #include "localstiffness.hh"
 #include "rigidbodymotion.hh"
 #include "unitvector.hh"
+#include "realtuple.hh"
 
 template<class GridView, class TargetSpace>
 class LocalGeodesicFEStiffness 
@@ -58,11 +59,12 @@ class LocalGeodesicFEStiffness
         c = Rotation<2,double>::exp(c,v);
     }
 
-    static void infinitesimalVariation(RealTuple<2>& c, double eps, int i)
+    template <int N>
+    static void infinitesimalVariation(RealTuple<N>& c, double eps, int i)
     {
-        Dune::FieldVector<double,2> v(0);
+        Dune::FieldVector<double,N> v(0);
         v[i] = eps;
-        c = RealTuple<2>::exp(c,v);
+        c = RealTuple<N>::exp(c,v);
     }
 
 public:
