@@ -425,8 +425,6 @@ void LocalGeodesicFEStiffness<GridType,UnitVector<dim> >::
 assemble(const Entity& element,
          const std::vector<TargetSpace>& localSolution)
 {
-#warning Dummy Hessian implementation
-
     // 1 degree of freedom per element vertex
     int nDofs = element.template count<gridDim>();
 
@@ -435,10 +433,63 @@ assemble(const Entity& element,
 
     this->A = 0;
 
+#if 1
+#warning Dummy Hessian implementation
     for (int i=0; i<nDofs; i++)
         for (int j=0; j<blocksize; j++)
             this->A[i][i][j][j] = 1;
-#if 0
+#else
+
+#if 1
+
+    // ///////////////////////////////////////////////////////////
+    //   Compute gradient by finite-difference approximation
+    // ///////////////////////////////////////////////////////////
+
+    double eps = 1e-6;
+
+    std::vector<TargetSpace> forwardSolution = localSolution;
+    std::vector<TargetSpace> backwardSolution = localSolution;
+
+    for (size_t i=0; i<localSolution.size(); i++) {
+        
+        for (int j=0; j<blocksize; j++) {
+            
+            // The return value does not have unit norm.  But assigning it to a UnitVector object
+            // will normalize it.  This amounts to an extension of the energy functional 
+            // to a neighborhood around S^n
+            forwardSolution[i]  = infinitesimalVariation(localSolution[i],  eps, j);
+            backwardSolution[i] = infinitesimalVariation(localSolution[i], -eps, j);
+
+            std::vector<Dune::FieldVector<double,blocksize> > forwardGradient;
+            std::vector<Dune::FieldVector<double,blocksize> > backwardGradient;
+            assembleGradient(element, forwardSolution, forwardGradient);
+            assembleGradient(element, backwardSolution, backwardGradient);
+
+            for (int k=0; k<localSolution.size(); k++)
+                for (int l=0; l<blocksize; l++)
+                    this->A[i][k][j][l] = (forwardGradient[k][l] - backwardGradient[k][l]) / (2*eps);
+
+            forwardSolution[i]  = localSolution[i];
+            backwardSolution[i] = localSolution[i];
+
+        }
+
+    }
+
+        // Project gradient in embedding space onto the tangent space
+    for (size_t i=0; i<localSolution.size(); i++) 
+        for (size_t j=0; j<localSolution.size(); j++)
+            for (int k=0; k<blocksize; k++)
+                this->A[i][j][k] = localSolution[j].projectOntoTangentSpace(this->A[i][j][k]);
+                
+                
+
+
+
+#else
+
+
     double eps = 1e-4;
 
     typedef typename Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> >::row_type::iterator ColumnIterator;
@@ -577,6 +628,7 @@ assemble(const Entity& element,
         }
 
     }
+#endif
 #endif
 }
 
