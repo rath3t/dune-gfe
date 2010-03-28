@@ -89,7 +89,7 @@ energy(const Entity& element,
 
     }
 
-    return energy;
+    return 0.5 * energy;
 }
 
 #endif
