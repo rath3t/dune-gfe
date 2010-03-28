@@ -9,6 +9,8 @@
 #include <dune/src/averagedistanceassembler.hh>
 #include <dune/src/targetspacertrsolver.hh>
 
+#include <dune/src/svd.hh>
+
 /** \brief A geodesic function from the reference element to a manifold 
     
 \tparam dim Dimension of the reference element
@@ -20,6 +22,7 @@ class LocalGeodesicFEFunction
 {
     
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
+    static const int targetDim = EmbeddedTangentVector::size;
 
 public:
 
@@ -48,7 +51,34 @@ private:
         }
         return result;
     }
+
+    static Dune::FieldMatrix<double,targetDim,targetDim> pseudoInverse(const Dune::FieldMatrix<double,targetDim,targetDim>& A)
+    {
+        Dune::FieldMatrix<double,targetDim,targetDim> U = A;
+        Dune::FieldVector<double,targetDim> W;
+        Dune::FieldMatrix<double,targetDim,targetDim> V;
+
+        svdcmp(U,W,V);
+
+        // pseudoInv = V W^{-1} U^T
+        Dune::FieldMatrix<double,targetDim,targetDim> UT;
+
+        for (int i=0; i<targetDim; i++)
+            for (int j=0; j<targetDim; j++)
+                UT[i][j] = U[j][i];
+
+        for (int i=0; i<targetDim; i++) {
+            if (std::abs(W[i]) > 1e-12)  // Diagonal may be zero, that's why we're using the pseudo inverse
+                UT[i] /= W[i];
+            else
+                UT[i] = 0;
+        }
+
+        Dune::FieldMatrix<double,targetDim,targetDim> pseudoInv;
+        Dune::FMatrixHelp::multMatrix(V,UT,pseudoInv);
         
+        return pseudoInv;
+    }
 
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
@@ -104,7 +134,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
     //  Hence we need to solve a small system of linear equations.
     // ////////////////////////////////////////////////////////////////////////
 
-    // the function value at the point where we are evaluation the derivative
+    // the function value at the point where we are evaluating the derivative
     TargetSpace q = evaluate(local);
 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
@@ -139,13 +169,19 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
     //   solve the system
     // ////////////////////////////////////
 
+    // dFDq is not invertible, if the target space is embedded into a higher-dimensional
+    // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
+    // best way, though.
+    Dune::FieldMatrix<ctype,targetDim,targetDim> dFdqPseudoInv = pseudoInverse(dFdq);
+
     for (int i=0; i<dim; i++) {
 
         Dune::FieldVector<ctype,targetDim> rhs, x;
         for (int j=0; j<targetDim; j++)
             rhs[j] = RHS[j][i];
 
-        dFdq.solve(x, rhs);
+        //dFdq.solve(x, rhs);
+        dFdqPseudoInv.mv(rhs,x);
 
         for (int j=0; j<targetDim; j++)
             result[j][i] = x[j];
