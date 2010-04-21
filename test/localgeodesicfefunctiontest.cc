@@ -143,12 +143,22 @@ void testUnitVectors()
 
     std::vector<TargetSpace> corners(dim+1);
 
+    // test some simplex
     FieldVector<double,3> input;
     input[0] = 1;  input[1] = 0;  input[2] = 0;
     corners[0] = input;
     input[0] = 0;  input[1] = 1;  input[2] = 0;
     corners[1] = input;
     input[0] = 0;  input[1] = 0;  input[2] = 1;
+    corners[2] = input;
+
+    testPermutationInvariance(corners);
+    testDerivative(corners);
+
+    // test the constant function, i.e., everything is mapped onto a single point
+    input[0] = 1;  input[1] = 0;  input[2] = 0;
+    corners[0] = input;
+    corners[1] = input;
     corners[2] = input;
 
     testPermutationInvariance(corners);
