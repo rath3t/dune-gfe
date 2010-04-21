@@ -1,27 +1,48 @@
 #include <config.h>
 
+#include <fenv.h>
+
+//#define UNITVECTOR2
+#define UNITVECTOR3
+//#define ROTATION2
+//#define REALTUPLE1
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
 
 #include <dune/grid/uggrid.hh>
+#include <dune/grid/onedgrid.hh>
+#include <dune/grid/../../doc/grids/gridfactory/structuredgridfactory.hh>
+
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include "src/geodesicdifference.hh"
-#include "src/rodwriter.hh"
 #include "src/rotation.hh"
+#include "src/unitvector.hh"
+#include "src/realtuple.hh"
 #include "src/harmonicenergystiffness.hh"
 #include "src/geodesicfeassembler.hh"
 #include "src/riemanniantrsolver.hh"
 
 // grid dimension
-const int dim = 3;
+const int dim = 2;
 
 // Image space of the geodesic fe functions
-typedef Rotation<3,double> TargetSpace;
+#ifdef ROTATION2
+typedef Rotation<2,double> TargetSpace;
+#endif
+#ifdef UNITVECTOR2
+typedef UnitVector<2> TargetSpace;
+#endif
+#ifdef UNITVECTOR3
+typedef UnitVector<3> TargetSpace;
+#endif
+#ifdef REALTUPLE1
+typedef RealTuple<1> TargetSpace;
+#endif
 
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::size;
@@ -30,6 +51,8 @@ using namespace Dune;
 
 int main (int argc, char *argv[]) try
 {
+    //feenableexcept(FE_INVALID);
+
     typedef std::vector<TargetSpace> SolutionType;
 
     // parse data file
@@ -61,33 +84,17 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
-    typedef UGGrid<dim> GridType;
-    GridType grid;
-    grid.setRefinementType(GridType::COPY);
-    AmiraMeshReader<GridType>::read(grid, path + gridFile);
+    typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
+    array<unsigned int,dim> elements;
+    elements.fill(4);
+    shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
+                                                                                      FieldVector<double,dim>(1),
+                                                                                      elements);
+    GridType& grid = *gridPtr.get();
 
     grid.globalRefine(numLevels-1);
 
     SolutionType x(grid.size(dim));
-
-    // //////////////////////////
-    //   Initial solution
-    // //////////////////////////
-
-    FieldVector<double,3> yAxis(0);
-    yAxis[1] = 1;
-
-    GridType::LeafGridView::Codim<dim>::Iterator vIt    = grid.leafbegin<dim>();
-    GridType::LeafGridView::Codim<dim>::Iterator vEndIt = grid.leafend<dim>();
-
-    for (; vIt!=vEndIt; ++vIt) {
-        int idx = grid.leafIndexSet().index(*vIt);
-        double angle = 2*(vIt->geometry().corner(0).two_norm());
-        x[idx] = Rotation<3,double>(yAxis,angle);
-    }
-        
-    // backup for error measurement later
-    SolutionType initialIterate = x;
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -101,6 +108,76 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
     
+    // //////////////////////////
+    //   Initial solution
+    // //////////////////////////
+
+    FieldVector<double,3> yAxis(0);
+    yAxis[1] = 1;
+
+    GridType::LeafGridView::Codim<dim>::Iterator vIt    = grid.leafbegin<dim>();
+    GridType::LeafGridView::Codim<dim>::Iterator vEndIt = grid.leafend<dim>();
+
+    for (; vIt!=vEndIt; ++vIt) {
+        int idx = grid.leafIndexSet().index(*vIt);
+
+#ifdef REALTUPLE1
+        FieldVector<double,1> v;
+#elif defined UNITVECTOR3
+        FieldVector<double,3> v;
+#else
+        FieldVector<double,2> v;
+#endif
+        FieldVector<double,dim> pos = vIt->geometry().corner(0);
+        FieldVector<double,3> axis;
+        axis[0] = pos[0];  axis[1] = pos[1]; axis[2] = 1;
+        Rotation<3,double> rotation(axis, pos.two_norm()*M_PI*1.5);
+
+        //dirichletNodes[idx] = pos[0]<0.01 || pos[0] > 0.99;
+
+        if (dirichletNodes[idx][0]) {
+//             FieldMatrix<double,3,3> rMat;
+//             rotation.matrix(rMat);
+//             v = rMat[2];
+#ifdef UNITVECTOR3
+            v[0] = std::sin(pos[0]*M_PI);
+            v[1] = 0;
+            v[2] = std::cos(pos[0]*M_PI);
+#endif
+#ifdef UNITVECTOR2
+            v[0] = std::sin(pos[0]*M_PI);
+            v[1] = std::cos(pos[0]*M_PI);
+#endif
+#if defined ROTATION2 || defined REALTUPLE1
+            v[0] = pos[0]*M_PI;
+#endif
+        } else {
+#ifdef UNITVECTOR2
+            v[0] = 1;
+            v[1] = 0;
+#endif
+#ifdef UNITVECTOR3
+            v[0] = 1;
+            v[1] = 0;
+            v[2] = 0;
+#endif
+#if defined ROTATION2 || defined REALTUPLE1
+            v[0] = 0.5*M_PI;
+#endif
+        }            
+
+#if defined UNITVECTOR2 || defined UNITVECTOR3 || defined REALTUPLE1
+        x[idx] = v;
+#endif
+#if defined ROTATION2 
+        x[idx] = v[0];
+#endif
+
+    }
+        
+    // backup for error measurement later
+    SolutionType initialIterate = x;
+
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
@@ -135,15 +212,41 @@ int main (int argc, char *argv[]) try
     
     std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
     //exit(0);
-    LeafAmiraMeshWriter<GridType> amiramesh;
-    amiramesh.addGrid(grid.leafView());
-    amiramesh.write("resultGrid", 1);
 
     solver.setInitialSolution(x);
     solver.solve();
 
     x = solver.getSol();
 
+    BlockVector<FieldVector<double,3> > xEmbedded(x.size());
+    for (int i=0; i<x.size(); i++) {
+#ifdef UNITVECTOR2
+        xEmbedded[i][0] = x[i].globalCoordinates()[0];
+        xEmbedded[i][1] = 0;
+        xEmbedded[i][2] = x[i].globalCoordinates()[1];
+#endif
+#ifdef UNITVECTOR3
+        xEmbedded[i][0] = x[i].globalCoordinates()[0];
+        xEmbedded[i][1] = x[i].globalCoordinates()[1];
+        xEmbedded[i][2] = x[i].globalCoordinates()[2];
+#endif
+#ifdef ROTATION2
+        xEmbedded[i][0] = std::sin(x[i].angle_);
+        xEmbedded[i][1] = 0;
+        xEmbedded[i][2] = std::cos(x[i].angle_);
+#endif
+#ifdef REALTUPLE1
+        xEmbedded[i][0] = std::sin(x[i].globalCoordinates()[0]);
+        xEmbedded[i][1] = 0;
+        xEmbedded[i][2] = std::cos(x[i].globalCoordinates()[0]);
+#endif
+    }
+
+    LeafAmiraMeshWriter<GridType> amiramesh;
+    amiramesh.addGrid(grid.leafView());
+    amiramesh.addVertexData(xEmbedded, grid.leafView());
+    amiramesh.write("resultGrid", 1);
+    
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
@@ -217,7 +320,7 @@ int main (int argc, char *argv[]) try
 
         oldError = error;
         
-    }            
+    }
 
     // //////////////////////////////
  } catch (Exception e) {
