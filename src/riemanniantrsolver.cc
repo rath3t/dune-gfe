@@ -103,16 +103,16 @@ setup(const GridType& grid,
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
 
-    innerSolver_ = new ::LoopSolver<CorrectionType>(mmgStep,
-                                                    innerIterations_,
-                                                    innerTolerance_,
-                                                    h1SemiNorm_,
-                                                    Solver::QUIET);
+    innerSolver_ = std::shared_ptr<LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(mmgStep,
+                                                                                                   innerIterations_,
+                                                                                                   innerTolerance_,
+                                                                                                   h1SemiNorm_,
+                                                                                                 Solver::QUIET));
 
     // Write all intermediate solutions, if requested
     if (instrumented_
-        && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_))
-        dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_)->historyBuffer_ = "tmp/mgHistory";
+        && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get()))
+        dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get())->historyBuffer_ = "tmp/mgHistory";
 
     // ////////////////////////////////////////////////////////////
     //    Create Hessian matrix and its occupation structure
@@ -234,8 +234,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
 
     // if the inner solver is a monotone multigrid set up a max-norm trust-region
-    if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_)) {
-        mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_)->iterationStep_);
+    if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
+        mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())->iterationStep_);
     
     }    
 
@@ -330,8 +330,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         
         } else {       // inner solver is a truncated cg
 
-            assert((dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_)));
-            dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_)->setProblem(*hessianMatrix_, 
+            assert((dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_.get())));
+            dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_.get())->setProblem(*hessianMatrix_, 
                                                                                                   &corr, 
                                                                                                   &backupRhs, 
                                                                                                   trustRegion.radius());

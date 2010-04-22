@@ -103,7 +103,7 @@ protected:
     const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
-    Solver* innerSolver_;
+    std::shared_ptr<Solver> innerSolver_;
 
     /** \brief Dummy fields containing 'true' everywhere.  The multigrid step
         expects them :-( */
