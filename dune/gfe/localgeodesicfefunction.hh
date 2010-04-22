@@ -6,10 +6,10 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/geometrytype.hh>
 
-#include <dune/src/averagedistanceassembler.hh>
-#include <dune/src/targetspacertrsolver.hh>
+#include <dune/gfe/averagedistanceassembler.hh>
+#include <dune/gfe/targetspacertrsolver.hh>
 
-#include <dune/src/svd.hh>
+#include <dune/gfe/svd.hh>
 
 /** \brief A geodesic function from the reference element to a manifold 
     

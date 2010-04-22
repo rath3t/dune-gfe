@@ -1,8 +1,8 @@
 #ifndef ASSEMBLER_FINITE_DIFFERENCE_CHECK
 #define ASSEMBLER_FINITE_DIFFERENCE_CHECK
 
-#include "src/rigidbodymotion.hh"
-#include "src/rodassembler.hh"
+#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/rodassembler.hh>
 
 #define ABORT_ON_ERROR
 

@@ -23,7 +23,7 @@
 
 
 // for debugging
-#include "../test/fdcheck.hh"
+#include <test/fdcheck.hh>
 
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::

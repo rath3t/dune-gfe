@@ -16,8 +16,8 @@
 #include <dune/ag-common/estimators/geometricmarking.hh>
 #include <dune/ag-common/boundarypatch.hh>
 
-#include "src/rodwriter.hh"
-#include "src/rodassembler.hh"
+#include <dune/gfe/rodwriter.hh>
+#include <dune/gfe/rodassembler.hh>
 
 
 // 3 (x, y, theta) for a planar rod

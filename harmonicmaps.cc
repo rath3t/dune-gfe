@@ -20,12 +20,12 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include "src/rotation.hh"
-#include "src/unitvector.hh"
-#include "src/realtuple.hh"
-#include "src/harmonicenergystiffness.hh"
-#include "src/geodesicfeassembler.hh"
-#include "src/riemanniantrsolver.hh"
+#include <dune/gfe/rotation.hh>
+#include <dune/gfe/unitvector.hh>
+#include <dune/gfe/realtuple.hh>
+#include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
 
 // grid dimension
 const int dim = 2;

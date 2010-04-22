@@ -7,7 +7,7 @@
 
 #include <dune/localfunctions/lagrange/p1.hh>
 
-#include "src/rodlocalstiffness.hh"
+#include <dune/gfe/rodlocalstiffness.hh>
 
 
 
