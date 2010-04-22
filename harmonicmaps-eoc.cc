@@ -77,15 +77,18 @@ void solve (const shared_ptr<GridType>& grid,
         FieldVector<double,2> pos = vIt->geometry().corner(0);
         FieldVector<double,3> axis;
         axis[0] = pos[0];  axis[1] = pos[1]; axis[2] = 1;
-        Rotation<3,double> rotation(axis, pos.two_norm()*M_PI*1.5);
+        Rotation<3,double> rotation(axis, pos.two_norm()*M_PI*3);
 
         if (dirichletNodes[idx][0]) {
-//             FieldMatrix<double,3,3> rMat;
-//             rotation.matrix(rMat);
-//             v = rMat[2];
+#if 1
+            FieldMatrix<double,3,3> rMat;
+            rotation.matrix(rMat);
+            v = rMat[2];
+#else
             v[0] = std::sin(pos[0]*M_PI);
             v[1] = 0;
             v[2] = std::cos(pos[0]*M_PI);
+#endif
         } else {
             v[0] = 1;
             v[1] = 0;
@@ -168,7 +171,7 @@ int main (int argc, char *argv[]) try
     //    Create the reference grid
 
     array<unsigned int,dim> elements;
-    elements.fill(4);
+    elements.fill(numBaseElements);
     shared_ptr<GridType> referenceGrid = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
                                                                                             FieldVector<double,dim>(1),
                                                                                             elements);
@@ -177,7 +180,6 @@ int main (int argc, char *argv[]) try
     //  Solve the rod Dirichlet problem
     SolutionType referenceSolution;
     solve(referenceGrid, referenceSolution, numLevels, parameterSet);
-
 
     // //////////////////////////////////////////////////////////////////////
     //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
@@ -232,7 +234,7 @@ int main (int argc, char *argv[]) try
             geodesicFEFunctionAdaptor(*grid, solution);
 
         //assert(referenceSolution.size() == solution.size());
-
+#if 0
         xEmbedded.resize(solution.size());
         for (int j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
@@ -241,7 +243,7 @@ int main (int argc, char *argv[]) try
         amirameshRefined.addGrid(grid->leafView());
         amirameshRefined.addVertexData(xEmbedded, grid->leafView());
         amirameshRefined.write("harmonic_result_" + numberAsAscii.str() + "_refined.am");
-
+#endif
         // Interpret TargetSpace as isometrically embedded into an R^m, because this is
         // how the corresponding Sobolev spaces are defined.
 
