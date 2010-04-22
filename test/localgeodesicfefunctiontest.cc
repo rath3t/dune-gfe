@@ -6,11 +6,11 @@
 #include <dune/common/fvector.hh>
 #include <dune/grid/common/quadraturerules.hh>
 
-#include <dune/src/rotation.hh>
-#include <dune/src/realtuple.hh>
-#include <dune/src/unitvector.hh>
+#include <dune/gfe/rotation.hh>
+#include <dune/gfe/realtuple.hh>
+#include <dune/gfe/unitvector.hh>
 
-#include <dune/src/localgeodesicfefunction.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
 
 // Domain dimension
 const int dim = 2;

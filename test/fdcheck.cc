@@ -1,18 +1,14 @@
 #include <config.h>
 
-#include <dune/common/bitfield.hh>
 #include <dune/common/configparser.hh>
 
 #include <dune/grid/onedgrid.hh>
 
 #include <dune/istl/io.hh>
 
-
-#include "../common/iterativesolver.hh"
-
-#include "src/configuration.hh"
-#include "src/quaternion.hh"
-#include "src/rodassembler.hh"
+#include <dune/gfe/configuration.hh>
+#include <dune/gfe/quaternion.hh>
+#include <dune/gfe/rodassembler.hh>
 
 #include "fdcheck.hh"
 

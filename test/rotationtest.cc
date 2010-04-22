@@ -4,8 +4,8 @@
 
 #include <dune/common/fmatrix.hh>
 
-#include "src/quaternion.hh"
-#include "src/svd.hh"
+#include <dune/gfe/quaternion.hh>
+#include <dune/gfe/svd.hh>
 
 using namespace Dune;
 

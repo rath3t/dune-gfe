@@ -5,13 +5,12 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/common/bitfield.hh>
-#include "src/quaternion.hh"
+#include <dune/gfe/quaternion.hh>
 
-#include "src/rodassembler.hh"
+#include <dune/gfe/rodassembler.hh>
 
-#include "src/configuration.hh"
-#include "src/rodwriter.hh"
+#include <dune/gfe/configuration.hh>
+#include <dune/gfe/rodwriter.hh>
 
 // Number of degrees of freedom: 
 // 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod

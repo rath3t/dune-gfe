@@ -1,8 +1,8 @@
 
 #include <dune/grid/uggrid.hh>
 
-#include <dune/src/unitvector.hh>
-#include <dune/src/harmonicenergystiffness.hh>
+#include <dune/gfe/unitvector.hh>
+#include <dune/gfe/harmonicenergystiffness.hh>
 
 const int dim = 2;
 

@@ -1,7 +1,7 @@
 #include <config.h>
 
-#include <dune/src/unitvector.hh>
-#include <dune/src/rotation.hh>
+#include <dune/gfe/unitvector.hh>
+#include <dune/gfe/rotation.hh>
 
 
 using namespace Dune;
