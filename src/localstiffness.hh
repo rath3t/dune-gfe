@@ -172,7 +172,7 @@ namespace Dune
             return A.N();
 	}
 
-  protected:
+  public:
 	// assembled data
 	Matrix<MBlockType> A;
     
