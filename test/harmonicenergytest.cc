@@ -85,4 +85,15 @@ int main(int argc, char** argv)
     coefficients[2] = uv;
     
     testEnergy<GridType>(grid, coefficients);
+
+    // //////////////////////////////////////////////////////////
+    //   Test the approximation to the Hesse matrix
+    // //////////////////////////////////////////////////////////
+    
+    HarmonicEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> assembler;
+
+    assembler.assemble(*grid->leafbegin<0>(), coefficients);
+
+    std::cout << "Hessian: \n" << assembler.A[0][0] << std::endl;
+
 }
