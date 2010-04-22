@@ -15,13 +15,13 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include "src/rigidbodymotion.hh"
-#include "src/geodesicdifference.hh"
-#include "src/rotation.hh"
-#include "src/rodassembler.hh"
-#include "src/riemanniantrsolver.hh"
-#include "src/rodrefine.hh"
-#include "src/rodwriter.hh"
+#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/geodesicdifference.hh>
+#include <dune/gfe/rotation.hh>
+#include <dune/gfe/rodassembler.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/rodrefine.hh>
+#include <dune/gfe/rodwriter.hh>
 
 typedef Dune::OneDGrid GridType;
 

@@ -16,11 +16,11 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 
-#include "src/unitvector.hh"
-#include "src/harmonicenergystiffness.hh"
-#include "src/geodesicfeassembler.hh"
-#include "src/riemanniantrsolver.hh"
-#include "src/geodesicfefunctionadaptor.hh"
+#include <dune/gfe/unitvector.hh>
+#include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/geodesicfefunctionadaptor.hh>
 
 // grid dimension
 const int dim = 2;

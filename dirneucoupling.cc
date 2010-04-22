@@ -28,14 +28,14 @@
 #include <dune/ag-common/assemblers/operatorassembler.hh>
 #include <dune/ag-common/assemblers/localassemblers/stvenantkirchhoffassembler.hh>
 
-#include "src/quaternion.hh"
-#include "src/rodassembler.hh"
-#include "src/rigidbodymotion.hh"
-#include "src/averageinterface.hh"
-#include "src/riemanniantrsolver.hh"
-#include "src/geodesicdifference.hh"
-#include "src/rodwriter.hh"
-#include "src/makestraightrod.hh"
+#include <dune/gfe/quaternion.hh>
+#include <dune/gfe/rodassembler.hh>
+#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/averageinterface.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/geodesicdifference.hh>
+#include <dune/gfe/rodwriter.hh>
+#include <dune/gfe/makestraightrod.hh>
 
 // Space dimension
 const int dim = 3;
