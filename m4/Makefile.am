@@ -1,4 +1,4 @@
-ALLM4S = rods.m4
+ALLM4S = dune-gfe.m4
 
 aclocaldir = $(datadir)/aclocal
 aclocal_DATA = $(ALLM4S)

@@ -1,4 +1,4 @@
-# $Id: Makefile.am 5716 2009-11-20 12:23:19Z dedner $
+# $Id: $
 
 SUBDIRS =
 

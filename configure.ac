@@ -16,10 +16,11 @@ AC_SUBST(AM_LDFLAGS, $DUNE_LDFLAGS)
 LIBS="$DUNE_LIBS"
 
 AC_CONFIG_FILES([Makefile
-                 src/Makefile
+                 dune/Makefile
+                 dune/gfe/Makefile
                  test/Makefile
                  m4/Makefile
-                 rods.pc
+                 dune-gfe.pc
                 ])
 AC_OUTPUT
 
