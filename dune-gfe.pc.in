@@ -8,7 +8,7 @@ DEPENDENCIES=@REQUIRES@
 
 Name: @PACKAGE_NAME@
 Version: @VERSION@
-Description: Dune (Distributed and Unified Numerics Environment) rods module
+Description: Dune dune-gfe module, contains the implementation of geodesic finite elements
 Requires: ${DEPENDENCIES}
 Libs:
 Cflags: -I${includedir}
