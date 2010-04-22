@@ -76,26 +76,6 @@ namespace Dune
 	{
 	}
 
-	//! assemble local stiffness matrix including boundary conditions for given element and order
-	/*! On exit the following things have been done:
-	  - The stiffness matrix for the given entity and polynomial degree has been assembled and is
-        accessible with the mat() method.
-	  - The boundary conditions have been evaluated and are accessible with the bc() method. 
-        The boundary conditions are either neumann, process or dirichlet. Neumann indicates
-        that the corresponding node (assuming a nodal basis) is at the Neumann boundary, process
-        indicates that the node is at a process boundary (arising from the parallel decomposition of the mesh).
-        Process boundaries are treated as homogeneous Dirichlet conditions, i.e. the corresponding value
-        in the right hand side is set to 0. Finally, Dirichlet indicates that the node is at the Dirichlet
-        boundary.  
-	  - The right hand side has been assembled. It contains either the value of the essential boundary
-        condition or the assembled source term and neumann boundary condition. 
-		It is accessible via the rhs() method.
-
-	  @param[in]  e    a codim 0 entity reference
-	  @param[in]  k    order of Lagrange basis (default is 1)
-	 */
-      virtual void assemble (const Entity& e, int k=1) = 0;
-
       /** \brief assemble local stiffness matrix including boundary conditions for given element and order
           
       Unlike the method with only two arguments, this one additionally takes the local solution in order
