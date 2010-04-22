@@ -7,7 +7,6 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([rod3d.cc])
 AM_CONFIG_HEADER([config.h])
 
-DUNE_SYMLINK
 # we need no more than the standard DUNE-stuff
 DUNE_CHECK_ALL
 
