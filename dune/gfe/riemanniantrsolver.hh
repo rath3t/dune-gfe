@@ -56,18 +56,6 @@ public:
                double baseTolerance,
                bool instrumented);
 
-    /** \brief Set up the solver using a truncated cg method as the inner solver */
-    void setupTCG(const GridType& grid, 
-                  const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* rodAssembler,
-                  const SolutionType& x,
-                  const Dune::BitSetVector<blocksize>& dirichletNodes,
-                  double tolerance,
-                  int maxTrustRegionSteps,
-                  double initialTrustRegionRadius,
-                  int innerIterations,
-                  double innerTolerance,
-                  bool instrumented);
-
     void solve();
 
     void setInitialSolution(const SolutionType& x) {

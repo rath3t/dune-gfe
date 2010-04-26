@@ -7,16 +7,13 @@
 #include <dune/ag-common/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
 
-// For using a monotone multigrid as the inner solver
+// Using a monotone multigrid as the inner solver
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include "maxnormtrustregion.hh"
-
-// For using a truncated cg as the inner solver
-#include <dune/solvers/solvers/tcgsolver.hh>
 
 #include <dune/solvers/norms/energynorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
@@ -149,86 +146,6 @@ setup(const GridType& grid,
 
 
 template <class GridType, class TargetSpace>
-void RiemannianTrustRegionSolver<GridType,TargetSpace>::
-setupTCG(const GridType& grid,
-         const GeodesicFEAssembler<typename GridType::LeafGridView,TargetSpace>* assembler,
-         const SolutionType& x,
-         const Dune::BitSetVector<blocksize>& dirichletNodes,
-         double tolerance,
-         int maxTrustRegionSteps,
-         double initialTrustRegionRadius,
-         int innerIterations,
-         double innerTolerance,
-         bool instrumented)
-{
-    grid_                     = &grid;
-    assembler_                = assembler;
-    x_                        = x;
-    this->tolerance_          = tolerance;
-    maxTrustRegionSteps_      = maxTrustRegionSteps;
-    initialTrustRegionRadius_ = initialTrustRegionRadius;
-    innerIterations_          = innerIterations;
-    innerTolerance_           = innerTolerance;
-    instrumented_             = instrumented;
-    ignoreNodes_              = &dirichletNodes;
-
-    // ////////////////////////////////////////////////////////////
-    //    Create Hessian matrix and its occupation structure
-    // ////////////////////////////////////////////////////////////
-    
-    hessianMatrix_ = std::auto_ptr<MatrixType>(new MatrixType);
-    Dune::MatrixIndexSet indices(grid_->size(1), grid_->size(1));
-    assembler_->getNeighborsPerVertex(indices);
-    indices.exportIdx(*hessianMatrix_);
-    
-    // //////////////////////////////////////////////////////////////////////////////////////
-    //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
-    //   This is used to measure convergence of the inner solver
-    // //////////////////////////////////////////////////////////////////////////////////////
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
-    FEBasis basis(grid.leafView());
-    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
-
-    LaplaceAssembler<GridType, typename FEBasis::LocalFiniteElement, typename FEBasis::LocalFiniteElement> laplaceStiffness;
-    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
-    ScalarMatrixType* A = new ScalarMatrixType;
-
-    operatorAssembler.assemble(laplaceStiffness, *A);
-
-    if (h1SemiNorm_)
-        delete h1SemiNorm_;
-
-    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
-
-    // //////////////////////////////////////////////////////////////////////////////////////
-    //   Assemble a mass matrix to create a norm that's equivalent to the L2-norm
-    //   This is used to to define the trust region
-    // //////////////////////////////////////////////////////////////////////////////////////
-
-    MassAssembler<GridType, typename FEBasis::LocalFiniteElement, typename FEBasis::LocalFiniteElement> massMatrixStiffness;
-    MatrixType* B = new MatrixType;
-
-    operatorAssembler.assemble(massMatrixStiffness, *B);
-
-    // ////////////////////////////////////////////////////
-    //   Create a truncated conjugate gradient solver
-    // ////////////////////////////////////////////////////
-
-    innerSolver_ = new TruncatedCGSolver<MatrixType,CorrectionType>(NULL,   // the preconditioner
-                                                                    innerIterations_,
-                                                                    innerTolerance_,
-                                                                    h1SemiNorm_,
-                                                                    B,  // the norm of the trust region
-                                                                    Solver::FULL);
-
-    // Write all intermediate solutions, if requested
-    if (instrumented_
-        && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_))
-        dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_)->historyBuffer_ = "tmp/mgHistory";
-
-}
-
-template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 {
     MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
@@ -318,25 +235,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         }
 
-        // The cg solver overwrites the rhs.  Therefore it is given a copy
-        CorrectionType backupRhs = rhs;
-
-        if (mgStep) {  // inner solver is a monotone multigrid
-
-            mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
-
-            trustRegionObstacles.back() = trustRegion.obstacles();
-            mgStep->obstacles_ = &trustRegionObstacles;
+        mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
         
-        } else {       // inner solver is a truncated cg
-
-            assert((dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_.get())));
-            dynamic_cast<TruncatedCGSolver<MatrixType,CorrectionType>*>(innerSolver_.get())->setProblem(*hessianMatrix_, 
-                                                                                                  &corr, 
-                                                                                                  &backupRhs, 
-                                                                                                  trustRegion.radius());
-
-        }
+        trustRegionObstacles.back() = trustRegion.obstacles();
+        mgStep->obstacles_ = &trustRegionObstacles;
 
         innerSolver_->preprocess();
         
