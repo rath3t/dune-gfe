@@ -72,14 +72,6 @@ public:
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
     enum { blocksize = TargetSpace::TangentVector::size };
 
-    // define the number of components of your system, this is used outside
-    // to allocate the correct size of (dense) blocks with a FieldMatrix
-    enum {m=blocksize};
-
-    // types for matrics, vectors and boundary conditions
-    typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
-    typedef Dune::FieldVector<RT,m> VBlockType;   // one entry in the global vectors
-
     /** \brief Assemble the local stiffness matrix at the current position
 
     This default implementation used finite-difference approximations to compute the second derivatives
@@ -87,15 +79,6 @@ public:
     virtual void assemble(const Entity& e,
                   const std::vector<TargetSpace>& localSolution);
    
-    /** \brief assemble local stiffness matrix for given element and order
-    */
-    void assemble (const Entity& e, 
-                   const Dune::BlockVector<Dune::FieldVector<double, blocksize> >& localSolution,
-                   int k=1)
-    {
-        DUNE_THROW(Dune::NotImplemented, "!");
-    }
-
     /** \todo Remove this once this methods is not in base class LocalStiffness anymore */
     void assemble (const Entity& e, int k=1)
     {
@@ -335,14 +318,6 @@ public:
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
     enum { blocksize = TargetSpace::EmbeddedTangentVector::size };
 
-    // define the number of components of your system, this is used outside
-    // to allocate the correct size of (dense) blocks with a FieldMatrix
-    enum {m=blocksize};
-
-    // types for matrics, vectors and boundary conditions
-    typedef Dune::FieldMatrix<RT,m,m> MBlockType; // one entry in the stiffness matrix
-    typedef Dune::FieldVector<RT,m> VBlockType;   // one entry in the global vectors
-
     /** \brief Assemble the local stiffness matrix at the current position
 
     This default implementation used finite-difference approximations to compute the second derivatives
@@ -350,15 +325,6 @@ public:
     virtual void assemble(const Entity& e,
                   const std::vector<TargetSpace>& localSolution);
     
-    /** \brief assemble local stiffness matrix for given element and order
-    */
-    void assemble (const Entity& e, 
-                   const Dune::BlockVector<Dune::FieldVector<double, blocksize> >& localSolution,
-                   int k=1)
-    {
-        DUNE_THROW(Dune::NotImplemented, "!");
-    }
-
     virtual RT energy (const Entity& e,
                        const std::vector<TargetSpace>& localSolution) const = 0;
 
