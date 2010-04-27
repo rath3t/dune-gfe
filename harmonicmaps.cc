@@ -2,8 +2,8 @@
 
 #include <fenv.h>
 
-//#define UNITVECTOR2
-#define UNITVECTOR3
+#define UNITVECTOR2
+//#define UNITVECTOR3
 //#define ROTATION2
 //#define REALTUPLE1
 
@@ -278,7 +278,8 @@ int main (int argc, char *argv[]) try
 
     // Compute error of the initial iterate
     typedef BlockVector<FieldVector<double,blocksize> > DifferenceType;
-    DifferenceType geodesicDifference = computeGeodesicDifference(exactSolution, initialIterate);
+#warning computeGeodesicDifference outcommented
+    DifferenceType geodesicDifference = DifferenceType(0);//computeGeodesicDifference(exactSolution, initialIterate);
     double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
 
     int i;
@@ -303,7 +304,8 @@ int main (int argc, char *argv[]) try
         //   Compute error
         // /////////////////////////////////////////////////////
 
-        geodesicDifference = computeGeodesicDifference(exactSolution, intermediateSolution);
+#warning computeGeodesicDifference outcommented
+        geodesicDifference = DifferenceType(0);//computeGeodesicDifference(exactSolution, intermediateSolution);
         
         error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
         
