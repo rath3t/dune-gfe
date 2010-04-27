@@ -39,7 +39,11 @@ public:
     /** \brief The type used for coordinates */
     typedef double ctype;
 
+    /** \brief Global coordinates wrt an isometric embedding function are available */
+    static const bool isometricallyEmbedded = true;
+
     typedef Dune::FieldVector<double,dim-1> TangentVector;
+
     typedef Dune::FieldVector<double,dim> EmbeddedTangentVector;
 
     UnitVector<dim>& operator=(const Dune::FieldVector<double,dim>& vector)
@@ -47,6 +51,17 @@ public:
         data_ = vector;
         data_ /= data_.two_norm();
         return *this;
+    }
+
+     /** \brief The exponential map */
+    static UnitVector exp(const UnitVector& p, const TangentVector& v) {
+
+        Dune::FieldMatrix<double,dim-1,dim> frame = p.orthonormalFrame();
+
+        EmbeddedTangentVector ev;
+        frame.mtv(v,ev);
+            
+        return exp(p,ev);
     }
 
      /** \brief The exponential map */
@@ -144,6 +159,23 @@ public:
     /** \brief The global coordinates, if you really want them */
     const Dune::FieldVector<double,dim>& globalCoordinates() const {
         return data_;
+    }
+
+    /** \brief Compute an orthonormal basis of the tangent space of S^n.
+
+    This basis is of course not globally continuous.
+    */
+    Dune::FieldMatrix<double,dim-1,dim> orthonormalFrame() const {
+
+        Dune::FieldMatrix<double,dim-1,dim> result;
+        
+        if (dim==2) {
+            result[0][0] = -data_[1];
+            result[0][1] =  data_[0];
+        } else
+            DUNE_THROW(Dune::NotImplemented, "orthonormalFrame for dim!=2!");
+        
+        return result;
     }
 
     /** \brief Write LocalKey object to output stream */
