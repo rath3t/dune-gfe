@@ -45,7 +45,7 @@ typedef RealTuple<1> TargetSpace;
 #endif
 
 // Tangent vector of the image space
-const int blocksize = TargetSpace::TangentVector::size;
+const int blocksize = TargetSpace::EmbeddedTangentVector::size;
 
 using namespace Dune;
 

@@ -13,7 +13,7 @@ class TargetSpaceRiemannianTRSolver
 //     : public IterativeSolver<std::vector<TargetSpace>,
 //                             Dune::BitSetVector<TargetSpace::TangentVector::size> >
 { 
-    const static int blocksize = TargetSpace::TangentVector::size;
+    const static int blocksize = TargetSpace::EmbeddedTangentVector::size;
 
     // Centralize the field type here
     typedef double field_type;

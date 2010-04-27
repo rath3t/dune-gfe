@@ -309,7 +309,7 @@ assemble(const Entity& element,
 /** \brief Specialization for unit vectors */
 template<class GridView, int dim>
 class LocalGeodesicFEStiffness <GridView,UnitVector<dim> >
-    : public Dune::LocalStiffness<GridView,double,UnitVector<dim>::TangentVector::size>
+    : public Dune::LocalStiffness<GridView,double,UnitVector<dim>::EmbeddedTangentVector::size>
 {
     typedef UnitVector<dim> TargetSpace;
 
@@ -333,7 +333,7 @@ class LocalGeodesicFEStiffness <GridView,UnitVector<dim> >
 public:
     
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
-    enum { blocksize = TargetSpace::TangentVector::size };
+    enum { blocksize = TargetSpace::EmbeddedTangentVector::size };
 
     // define the number of components of your system, this is used outside
     // to allocate the correct size of (dense) blocks with a FieldMatrix

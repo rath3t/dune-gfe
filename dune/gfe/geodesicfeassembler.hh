@@ -22,7 +22,7 @@ class GeodesicFEAssembler {
     enum { gridDim = GridView::dimension };
     
     //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::size };
+    enum { blocksize = TargetSpace::EmbeddedTangentVector::size };
     
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;

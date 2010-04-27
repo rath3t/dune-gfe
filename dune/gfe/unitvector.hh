@@ -39,7 +39,7 @@ public:
     /** \brief The type used for coordinates */
     typedef double ctype;
 
-    typedef Dune::FieldVector<double,dim> TangentVector;
+    typedef Dune::FieldVector<double,dim-1> TangentVector;
     typedef Dune::FieldVector<double,dim> EmbeddedTangentVector;
 
     UnitVector<dim>& operator=(const Dune::FieldVector<double,dim>& vector)
@@ -50,7 +50,7 @@ public:
     }
 
      /** \brief The exponential map */
-    static UnitVector exp(const UnitVector& p, const TangentVector& v) {
+    static UnitVector exp(const UnitVector& p, const EmbeddedTangentVector& v) {
 
         assert( std::abs(p.data_*v) < 1e-5 );
 

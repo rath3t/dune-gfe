@@ -18,9 +18,9 @@
 template <class GridType, class TargetSpace>
 class RiemannianTrustRegionSolver 
     : public IterativeSolver<std::vector<TargetSpace>,
-                             Dune::BitSetVector<TargetSpace::TangentVector::size> >
+                             Dune::BitSetVector<TargetSpace::EmbeddedTangentVector::size> >
 { 
-    const static int blocksize = TargetSpace::TangentVector::size;
+    const static int blocksize = TargetSpace::EmbeddedTangentVector::size;
 
     const static int gridDim = GridType::dimension;
 
