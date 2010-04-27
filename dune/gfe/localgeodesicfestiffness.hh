@@ -6,14 +6,12 @@
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
 
-#include "localstiffness.hh"
 #include "rigidbodymotion.hh"
 #include "unitvector.hh"
 #include "realtuple.hh"
 
 template<class GridView, class TargetSpace>
 class LocalGeodesicFEStiffness 
-    : public Dune::LocalStiffness<GridView,double,TargetSpace::TangentVector::size>
 {
 
     // grid types
@@ -94,6 +92,9 @@ public:
     virtual void assembleGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<Dune::FieldVector<double,blocksize> >& gradient) const;
+
+    // assembled data
+    Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
     
 };
 
@@ -292,7 +293,6 @@ assemble(const Entity& element,
 /** \brief Specialization for unit vectors */
 template<class GridView, int dim>
 class LocalGeodesicFEStiffness <GridView,UnitVector<dim> >
-    : public Dune::LocalStiffness<GridView,double,UnitVector<dim>::EmbeddedTangentVector::size>
 {
     typedef UnitVector<dim> TargetSpace;
 
@@ -334,6 +334,9 @@ public:
     virtual void assembleGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<Dune::FieldVector<double,blocksize> >& gradient) const;
+
+    // assembled data
+    Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
     
 };
 
@@ -389,15 +392,15 @@ assemble(const Entity& element,
     int nDofs = element.template count<gridDim>();
 
     // Clear assemble data
-    this->setcurrentsize(nDofs);
+    A_.setSize(nDofs, nDofs);
 
-    this->A = 0;
+    A_ = 0;
 
 #if 1
 #warning Dummy Hessian implementation
     for (int i=0; i<nDofs; i++)
         for (int j=0; j<blocksize; j++)
-            this->A[i][i][j][j] = 1;
+            A_[i][i][j][j] = 1;
 #else
 
     // ///////////////////////////////////////////////////////////

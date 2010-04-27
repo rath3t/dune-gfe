@@ -136,7 +136,7 @@ assembleMatrix(const std::vector<TargetSpace>& sol,
             for (int j=0; j<numOfBaseFct; j++ ) {
                 
                 int col = indexSet.subIndex(*it,j,gridDim);
-                matrix[row][col] += localStiffness_->mat(i,j);
+                matrix[row][col] += localStiffness_->A_[i][j];
                 
             }
         }
