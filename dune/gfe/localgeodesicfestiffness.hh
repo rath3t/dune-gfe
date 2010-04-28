@@ -316,7 +316,7 @@ class LocalGeodesicFEStiffness <GridView,UnitVector<dim> >
 public:
     
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
-    enum { blocksize = TargetSpace::EmbeddedTangentVector::size };
+    enum { blocksize = TargetSpace::TangentVector::size };
 
     /** \brief Assemble the local stiffness matrix at the current position
 
@@ -331,9 +331,16 @@ public:
     /** \brief Assemble the element gradient of the energy functional 
 
     The default implementation in this class uses a finite difference approximation */
+    virtual void assembleEmbeddedGradient(const Entity& element,
+                                          const std::vector<TargetSpace>& solution,
+                                          std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
+
+    /** \brief Assemble the element gradient of the energy functional 
+
+    The default implementation in this class uses a finite difference approximation */
     virtual void assembleGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
-                                  std::vector<Dune::FieldVector<double,blocksize> >& gradient) const;
+                                  std::vector<typename TargetSpace::TangentVector>& gradient) const;
 
     // assembled data
     Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
@@ -342,10 +349,12 @@ public:
 
 template <class GridView, int dim>
 void LocalGeodesicFEStiffness<GridView, UnitVector<dim> >::
-assembleGradient(const Entity& element,
-                 const std::vector<TargetSpace>& localSolution,
-                 std::vector<Dune::FieldVector<double,blocksize> >& localGradient) const
+assembleEmbeddedGradient(const Entity& element,
+                         const std::vector<TargetSpace>& localSolution,
+                         std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
 {
+
+    const int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::size;
 
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
@@ -360,7 +369,7 @@ assembleGradient(const Entity& element,
 
     for (size_t i=0; i<localSolution.size(); i++) {
         
-        for (int j=0; j<blocksize; j++) {
+        for (int j=0; j<embeddedBlocksize; j++) {
             
             // The return value does not have unit norm.  But assigning it to a UnitVector object
             // will normalize it.  This amounts to an extension of the energy functional 
@@ -382,6 +391,24 @@ assembleGradient(const Entity& element,
 
 }
 
+template <class GridView, int dim>
+void LocalGeodesicFEStiffness<GridView, UnitVector<dim> >::
+assembleGradient(const Entity& element,
+                 const std::vector<TargetSpace>& localSolution,
+                 std::vector<typename TargetSpace::TangentVector>& localGradient) const
+{
+    std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
+
+    // first compute the gradient in embedded coordinates
+    assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient);
+
+    // transform to coordinates on the tangent space
+    localGradient.resize(embeddedLocalGradient.size());
+
+    for (size_t i=0; i<localGradient.size(); i++)
+        localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
+
+}
 
 template <class GridType, int dim>
 void LocalGeodesicFEStiffness<GridType,UnitVector<dim> >::

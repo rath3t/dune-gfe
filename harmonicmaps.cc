@@ -45,7 +45,7 @@ typedef RealTuple<1> TargetSpace;
 #endif
 
 // Tangent vector of the image space
-const int blocksize = TargetSpace::EmbeddedTangentVector::size;
+const int blocksize = TargetSpace::TangentVector::size;
 
 using namespace Dune;
 
@@ -253,6 +253,8 @@ int main (int argc, char *argv[]) try
 #if 0
     writeRod(x, resultPath + "rod3d.result");
 #endif
+
+    exit(0);
 
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
