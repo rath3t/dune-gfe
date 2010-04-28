@@ -41,7 +41,7 @@ public:
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid, 
-               const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* rodAssembler,
+               const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* assembler,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
