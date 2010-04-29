@@ -372,7 +372,7 @@ public:
         std::vector<TargetSpace> backwardSolution = localSolution;
         
         
-        for (int j=0; j<blocksize; j++) {
+        for (int j=0; j<embeddedBlocksize; j++) {
             
             // The return value does not have unit norm.  But assigning it to a UnitVector object
             // will normalize it.  This amounts to an extension of the energy functional 
