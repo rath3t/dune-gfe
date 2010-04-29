@@ -16,11 +16,11 @@ class LocalGeodesicFEStiffnessImp
 public:
 
     template <int N>
-    static void infinitesimalVariation(RealTuple<N>& c, double eps, int i)
+    static Dune::FieldVector<double,N> infinitesimalVariation(const RealTuple<N>& c, double eps, int i)
     {
         Dune::FieldVector<double,N> v(0);
         v[i] = eps;
-        c = RealTuple<N>::exp(c,v);
+        return RealTuple<N>::exp(c,v).globalCoordinates();
     }
 
     /** \brief For the fd approximations 
