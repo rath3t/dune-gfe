@@ -77,12 +77,6 @@ public:
     virtual void assemble(const Entity& e,
                   const std::vector<TargetSpace>& localSolution);
    
-    /** \todo Remove this once this methods is not in base class LocalStiffness anymore */
-    void assemble (const Entity& e, int k=1)
-    {
-        DUNE_THROW(Dune::NotImplemented, "!");
-    }
-    
     virtual RT energy (const Entity& e,
                        const std::vector<TargetSpace>& localSolution) const = 0;
 
