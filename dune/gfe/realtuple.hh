@@ -86,9 +86,28 @@ public:
         return result;
     }
 
+    /** \brief Project tangent vector of R^n onto the tangent space */
+    EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
+        return v;
+    }
+
     /** \brief The global coordinates, if you really want them */
     const Dune::FieldVector<double,N>& globalCoordinates() const {
         return data_;
+    }
+
+    /** \brief Compute an orthonormal basis of the tangent space of S^n.
+
+    This basis is of course not globally continuous.
+    */
+    Dune::FieldMatrix<double,N,N> orthonormalFrame() const {
+
+        Dune::FieldMatrix<double,N,N> result;
+        
+        for (int i=0; i<N; i++)
+            for (int j=0; j<N; j++)
+                result[i][j] = (i==j);
+        return result;
     }
     
     /** \brief Write LocalKey object to output stream */
