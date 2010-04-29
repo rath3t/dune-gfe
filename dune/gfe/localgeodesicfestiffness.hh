@@ -516,9 +516,6 @@ assemble(const Entity& element,
 
     }
 
-    std::cout << "embeddedHessian" << std::endl;
-    printmatrix(std::cout, embeddedHessian, "embeddedHessian", "--");
-
     // transform to local tangent space bases
     std::vector<Dune::FieldMatrix<double,blocksize,embeddedBlocksize> > orthonormalFrames(nDofs);
     std::vector<Dune::FieldMatrix<double,embeddedBlocksize,blocksize> > orthonormalFramesTransposed(nDofs);
@@ -542,9 +539,6 @@ assemble(const Entity& element,
 
         }
     
-    std::cout << "localHessian" << std::endl;
-    printmatrix(std::cout, A_, "localHessian", "--");
-
 #endif
 }
 
