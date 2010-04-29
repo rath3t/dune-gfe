@@ -17,6 +17,9 @@ public:
 
     typedef double ctype;
 
+    /** \brief Global coordinates wrt an isometric embedding function are available */
+    static const bool globalIsometricCoordinates = true;
+
     typedef Dune::FieldVector<double,N> EmbeddedTangentVector;
 
     typedef Dune::FieldVector<double,N> TangentVector;

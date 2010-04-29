@@ -40,7 +40,7 @@ public:
     typedef double ctype;
 
     /** \brief Global coordinates wrt an isometric embedding function are available */
-    static const bool isometricallyEmbedded = true;
+    static const bool globalIsometricCoordinates = true;
 
     typedef Dune::FieldVector<double,dim-1> TangentVector;
 
