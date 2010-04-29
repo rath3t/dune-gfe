@@ -318,6 +318,9 @@ public:
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
     enum { blocksize = TargetSpace::TangentVector::size };
 
+    //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
+    enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::size };
+
     /** \brief Assemble the local stiffness matrix at the current position
 
     This default implementation used finite-difference approximations to compute the second derivatives
@@ -341,6 +344,59 @@ public:
     virtual void assembleGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::TangentVector>& gradient) const;
+    
+    void embeddedGradientOfEmbeddedGradient(const Entity& element,
+                                            const std::vector<TargetSpace>& localSolution,
+                                            int component,
+                                            std::vector<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& gradient) const {
+        
+        double eps = 1e-6;
+        
+        gradient.resize(localSolution.size());
+        std::fill(gradient.begin(), gradient.end(), Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize>(0));
+        
+        std::vector<TargetSpace> forwardSolution = localSolution;
+        std::vector<TargetSpace> backwardSolution = localSolution;
+        
+        
+        for (int j=0; j<blocksize; j++) {
+            
+            // The return value does not have unit norm.  But assigning it to a UnitVector object
+            // will normalize it.  This amounts to an extension of the energy functional 
+            // to a neighborhood around S^n
+            forwardSolution[component]  = infinitesimalVariation(localSolution[component],  eps, j);
+            backwardSolution[component] = infinitesimalVariation(localSolution[component], -eps, j);
+            
+            std::vector<Dune::FieldVector<double,embeddedBlocksize> > forwardGradient;
+            std::vector<Dune::FieldVector<double,embeddedBlocksize> > backwardGradient;
+            assembleEmbeddedGradient(element, forwardSolution, forwardGradient);
+            assembleEmbeddedGradient(element, backwardSolution, backwardGradient);
+
+            for (int k=0; k<localSolution.size(); k++)
+                for (int l=0; l<embeddedBlocksize; l++)
+                    gradient[k][j][l] = (forwardGradient[k][l] - backwardGradient[k][l]) / (2*eps);
+
+            forwardSolution[component]  = localSolution[component];
+            backwardSolution[component] = localSolution[component];
+
+            // Project each column vector onto the tangent space
+
+        // Project gradient in embedding space onto the tangent space
+            for (size_t i=0; i<localSolution.size(); i++)
+                for (int j=0; j<embeddedBlocksize; j++) {
+                    Dune::FieldVector<double,embeddedBlocksize> tmp;
+                    for (int k=0; k<embeddedBlocksize; k++)
+                        tmp[k] = gradient[i][k][j];
+                    tmp = localSolution[i].projectOntoTangentSpace(tmp);
+                    for (int k=0; k<embeddedBlocksize; k++)
+                        gradient[i][k][j] = tmp[k];
+                }
+                
+
+        }
+
+
+    }
 
     // assembled data
     Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
@@ -410,6 +466,9 @@ assembleGradient(const Entity& element,
 
 }
 
+// ///////////////////////////////////////////////////////////
+//   Compute gradient by finite-difference approximation
+// ///////////////////////////////////////////////////////////
 template <class GridType, int dim>
 void LocalGeodesicFEStiffness<GridType,UnitVector<dim> >::
 assemble(const Entity& element,
@@ -430,47 +489,49 @@ assemble(const Entity& element,
             A_[i][i][j][j] = 1;
 #else
 
-    // ///////////////////////////////////////////////////////////
-    //   Compute gradient by finite-difference approximation
-    // ///////////////////////////////////////////////////////////
+    // first compute the Hessian in the embedding space
+    Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
 
-    double eps = 1e-6;
-
-    std::vector<TargetSpace> forwardSolution = localSolution;
-    std::vector<TargetSpace> backwardSolution = localSolution;
+    std::vector<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > embeddedGradient;
 
     for (size_t i=0; i<localSolution.size(); i++) {
-        
-        for (int j=0; j<blocksize; j++) {
-            
-            // The return value does not have unit norm.  But assigning it to a UnitVector object
-            // will normalize it.  This amounts to an extension of the energy functional 
-            // to a neighborhood around S^n
-            forwardSolution[i]  = infinitesimalVariation(localSolution[i],  eps, j);
-            backwardSolution[i] = infinitesimalVariation(localSolution[i], -eps, j);
 
-            std::vector<Dune::FieldVector<double,blocksize> > forwardGradient;
-            std::vector<Dune::FieldVector<double,blocksize> > backwardGradient;
-            assembleGradient(element, forwardSolution, forwardGradient);
-            assembleGradient(element, backwardSolution, backwardGradient);
+        embeddedGradientOfEmbeddedGradient(element,localSolution, i, embeddedGradient);
 
-            for (int k=0; k<localSolution.size(); k++)
-                for (int l=0; l<blocksize; l++)
-                    this->A[i][k][j][l] = (forwardGradient[k][l] - backwardGradient[k][l]) / (2*eps);
-
-            forwardSolution[i]  = localSolution[i];
-            backwardSolution[i] = localSolution[i];
-
-        }
+        for (int j=0; j<localSolution.size(); j++)
+            embeddedHessian[i][j] = embeddedGradient[j];
 
     }
 
-        // Project gradient in embedding space onto the tangent space
-    for (size_t i=0; i<localSolution.size(); i++) 
-        for (size_t j=0; j<localSolution.size(); j++)
+    std::cout << "embeddedHessian" << std::endl;
+    printmatrix(std::cout, embeddedHessian, "embeddedHessian", "--");
+
+    // transform to local tangent space bases
+    std::vector<Dune::FieldMatrix<double,blocksize,embeddedBlocksize> > orthonormalFrames(nDofs);
+    std::vector<Dune::FieldMatrix<double,embeddedBlocksize,blocksize> > orthonormalFramesTransposed(nDofs);
+
+    for (size_t i=0; i<nDofs; i++) {
+        orthonormalFrames[i] = localSolution[i].orthonormalFrame();
+
+        for (int j=0; j<embeddedBlocksize; j++)
             for (int k=0; k<blocksize; k++)
-                this->A[i][j][k] = localSolution[j].projectOntoTangentSpace(this->A[i][j][k]);
-                
+                orthonormalFramesTransposed[i][j][k] = orthonormalFrames[i][k][j];
+
+    }
+
+    for (size_t i=0; i<nDofs; i++)
+        for (size_t j=0; j<nDofs; j++) {
+
+            Dune::FieldMatrix<double,blocksize,embeddedBlocksize> tmp;
+            Dune::FMatrixHelp::multMatrix(orthonormalFrames[i],embeddedHessian[i][j],tmp);
+            A_[i][j] = tmp.rightmultiplyany(orthonormalFramesTransposed[j]);
+            
+
+        }
+    
+    std::cout << "localHessian" << std::endl;
+    printmatrix(std::cout, A_, "localHessian", "--");
+
 #endif
 }
 
