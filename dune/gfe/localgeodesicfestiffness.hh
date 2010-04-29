@@ -143,9 +143,9 @@ assemble(const Entity& element,
     int nDofs = element.template count<gridDim>();
 
     // Clear assemble data
-    this->setcurrentsize(nDofs);
+    A_.setSize(nDofs,nDofs);
 
-    this->A = 0;
+    A_ = 0;
 
     double eps = 1e-4;
 
@@ -165,10 +165,10 @@ assemble(const Entity& element,
     // ///////////////////////////////////////////////////////////////
     //   Loop over all blocks of the element matrix
     // ///////////////////////////////////////////////////////////////
-    for (int i=0; i<this->A.N(); i++) {
+    for (int i=0; i<A_.N(); i++) {
 
-        ColumnIterator cIt    = this->A[i].begin();
-        ColumnIterator cEndIt = this->A[i].end();
+        ColumnIterator cIt    = A_[i].begin();
+        ColumnIterator cEndIt = A_[i].end();
 
         for (; cIt!=cEndIt; ++cIt) {
 
@@ -253,10 +253,10 @@ assemble(const Entity& element,
     //   This is possible expensive, but I want to be absolute sure
     //   that the matrix is symmetric.
     // ///////////////////////////////////////////////////////////////
-    for (int i=0; i<this->A.N(); i++) {
+    for (int i=0; i<A_.N(); i++) {
 
-        ColumnIterator cIt    = this->A[i].begin();
-        ColumnIterator cEndIt = this->A[i].end();
+        ColumnIterator cIt    = A_[i].begin();
+        ColumnIterator cEndIt = A_[i].end();
 
         for (; cIt!=cEndIt; ++cIt) {
 
@@ -272,7 +272,7 @@ assemble(const Entity& element,
 
             } else {
 
-                const Dune::FieldMatrix<double,blocksize,blocksize>& other = this->A[cIt.index()][i];
+                const Dune::FieldMatrix<double,blocksize,blocksize>& other = A_[cIt.index()][i];
 
                 for (int j=0; j<blocksize; j++)
                     for (int k=0; k<blocksize; k++)
