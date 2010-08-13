@@ -126,7 +126,7 @@ assembleMatrix(const std::vector<TargetSpace>& sol,
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
         // setup matrix 
-        localStiffness_->assemble(*it, localSolution);
+        localStiffness_->assembleHessian(*it, localSolution);
 
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) { 

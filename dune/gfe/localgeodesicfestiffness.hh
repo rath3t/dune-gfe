@@ -102,7 +102,7 @@ public:
 
     This default implementation used finite-difference approximations to compute the second derivatives
     */
-    virtual void assemble(const Entity& e,
+    virtual void assembleHessian(const Entity& e,
                   const std::vector<TargetSpace>& localSolution);
    
     virtual RT energy (const Entity& e,
@@ -158,7 +158,7 @@ assembleGradient(const Entity& element,
 
 template <class GridView, class TargetSpace>
 void LocalGeodesicFEStiffness<GridView,TargetSpace>::
-assemble(const Entity& element,
+assembleHessian(const Entity& element,
          const std::vector<TargetSpace>& localSolution)
 {
     // 1 degree of freedom per element vertex
@@ -338,7 +338,7 @@ public:
 
     This default implementation used finite-difference approximations to compute the second derivatives
     */
-    virtual void assemble(const Entity& e,
+    virtual void assembleHessian(const Entity& e,
                   const std::vector<TargetSpace>& localSolution);
     
     virtual RT energy (const Entity& e,
@@ -484,7 +484,7 @@ assembleGradient(const Entity& element,
 // ///////////////////////////////////////////////////////////
 template <class GridType, int dim>
 void LocalGeodesicFEStiffness<GridType,UnitVector<dim> >::
-assemble(const Entity& element,
+assembleHessian(const Entity& element,
          const std::vector<TargetSpace>& localSolution)
 {
     // 1 degree of freedom per element vertex
