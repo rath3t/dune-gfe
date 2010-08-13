@@ -43,6 +43,18 @@ public:
 
 private:
 
+    /** \brief The linear part of the map that turns coordinates on the reference simplex into coordinates on the standard simplex 
+        \todo A special-purpose implementation of this matrix may lead to some speed-up */
+    static Dune::FieldMatrix<ctype,dim+1,dim> referenceToBarycentricLinearPart()
+    {
+        Dune::FieldMatrix<ctype,dim+1,dim> B;
+        B[0] = -1;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++)
+                B[i+1][j] = (i==j);
+        return B;
+    }
+        
     static std::vector<ctype> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
         std::vector<ctype> result(dim+1);
         result[0] = 1;
@@ -139,11 +151,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
     TargetSpace q = evaluate(local);
 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
-    Dune::FieldMatrix<ctype,dim+1,dim> B;
-    B[0] = -1;
-    for (int i=0; i<dim; i++)
-        for (int j=0; j<dim; j++)
-            B[i+1][j] = (i==j);
+    Dune::FieldMatrix<ctype,dim+1,dim> B = referenceToBarycentricLinearPart();
 
     // compute negative derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w
     Dune::FieldMatrix<ctype,targetDim,dim+1> dFdw;
