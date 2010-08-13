@@ -11,6 +11,24 @@
 
 #include <dune/gfe/svd.hh>
 
+//! calculates ret = A * B
+template< class K, int m, int n, int p >
+Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, const Dune::FieldMatrix< K, n, p > &B)
+{
+    typedef typename Dune::FieldMatrix< K, m, p > :: size_type size_type;
+    Dune::FieldMatrix< K, m, p > ret;
+        
+    for( size_type i = 0; i < m; ++i ) {
+        
+        for( size_type j = 0; j < p; ++j ) {
+            ret[ i ][ j ] = K( 0 );
+            for( size_type k = 0; k < n; ++k )
+                ret[ i ][ j ] += A[ i ][ k ] * B[ k ][ j ];
+        }
+    }
+    return ret;
+}
+
 /** \brief A function defined by simplicial geodesic interpolation 
            from the reference element to a Riemannian manifold.
     
@@ -87,12 +105,9 @@ private:
                 UT[i] = 0;
         }
 
-        Dune::FieldMatrix<double,targetDim,targetDim> pseudoInv;
-        Dune::FMatrixHelp::multMatrix(V,UT,pseudoInv);
-        
-        return pseudoInv;
+        return V*UT;
     }
-
+    
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
 
@@ -164,8 +179,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
     dFdw *= -1;
 
     // multiply the two previous matrices: the result is the right hand side
-    Dune::FieldMatrix<ctype,targetDim,dim> RHS;
-    Dune::FMatrixHelp::multMatrix(dFdw,B, RHS);
+    Dune::FieldMatrix<ctype,targetDim,dim> RHS = dFdw * B;
 
     // the actual system matrix
     std::vector<ctype> w = barycentricCoordinates(local);
