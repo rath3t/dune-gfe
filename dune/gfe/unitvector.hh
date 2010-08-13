@@ -178,7 +178,7 @@ public:
         return result;
     }
 
-    /** \brief Write LocalKey object to output stream */
+    /** \brief Write unit vector object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const UnitVector& unitVector)
     {
         return s << unitVector.data_;
