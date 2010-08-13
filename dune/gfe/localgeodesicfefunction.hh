@@ -153,7 +153,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
     Dune::FieldMatrix<ctype,dim+1,dim> B = referenceToBarycentricLinearPart();
 
-    // compute negative derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w
+    // compute negative derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
     Dune::FieldMatrix<ctype,targetDim,dim+1> dFdw;
     for (int i=0; i<dim+1; i++) {
         Dune::FieldVector<ctype,targetDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
