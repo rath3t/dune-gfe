@@ -11,7 +11,8 @@
 
 #include <dune/gfe/svd.hh>
 
-/** \brief A geodesic function from the reference element to a manifold 
+/** \brief A function defined by simplicial geodesic interpolation 
+           from the reference element to a Riemannian manifold.
     
 \tparam dim Dimension of the reference element
 \tparam ctype Type used for coordinates on the reference element
@@ -37,7 +38,7 @@ public:
     /** \brief Evaluate the derivative of the function */
     Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local);
 
-    /** \brief Evaluate the derivative of the function using a finite-difference approximation*/
+    /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
     Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local);
 
 private:
