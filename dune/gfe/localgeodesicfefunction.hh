@@ -51,13 +51,13 @@ public:
     {}
 
     /** \brief Evaluate the function */
-    TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local);
+    TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
 
     /** \brief Evaluate the derivative of the function */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local);
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
 
     /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local);
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
 
 private:
 
@@ -115,7 +115,7 @@ private:
 
 template <int dim, class ctype, class TargetSpace>
 TargetSpace LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
-evaluate(const Dune::FieldVector<ctype, dim>& local)
+evaluate(const Dune::FieldVector<ctype, dim>& local) const
 {
     // First compute the coordinates on the standard simplex (in R^{n+1})
     std::vector<ctype> w = barycentricCoordinates(local);
@@ -140,7 +140,7 @@ evaluate(const Dune::FieldVector<ctype, dim>& local)
 
 template <int dim, class ctype, class TargetSpace>
 Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
-evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
+evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 {
     const int targetDim = EmbeddedTangentVector::size;
 
@@ -216,7 +216,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local)
 
 template <int dim, class ctype, class TargetSpace>
 Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
-evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local)
+evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
 {
     double eps = 1e-6;
 
