@@ -12,7 +12,7 @@
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/onedgrid.hh>
-#include <dune/grid/common/structuredgridfactory.hh>
+#include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
