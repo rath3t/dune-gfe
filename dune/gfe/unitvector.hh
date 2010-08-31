@@ -27,7 +27,7 @@ class UnitVector
     static double secondDerivativeOfArcCosSquared(const double& x) {
         const double eps = 1e-12;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return 1.0/6 - 17*(x-1)/60 + 1.0/2 - (x-1)/4;
+            return 2.0/3 - 8*(x-1)/15;
         } else if (x < -1+eps) {  // The function is not differentiable
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else
