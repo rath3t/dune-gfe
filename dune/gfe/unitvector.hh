@@ -34,6 +34,19 @@ class UnitVector
             return 2/(1-x*x) - 2*x*std::acos(x) / std::pow(1-x*x,1.5);
     }
 
+    /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
+    static double thirdDerivativeOfArcCosSquared(const double& x) {
+        const double eps = 1e-12;
+        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
+            return -8.0/15 + 24*(x-1)/35;
+        } else if (x < -1+eps) {  // The function is not differentiable
+            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
+        } else {
+            double d = 1-x*x;
+            return 6*x/(d*d) - 6*x*x*std::acos(x)/(d*d*std::sqrt(d)) - 2*std::acos(x)/(d*std::sqrt(d));
+        }
+    }
+
 public:
 
     /** \brief The type used for coordinates */
