@@ -27,6 +27,11 @@ public:
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
                const std::vector<TargetSpace>& localSolution) const;
+               
+    /** \brief Assemble the gradient of the energy functional on one element */
+    virtual void assembleEmbeddedGradient(const Entity& element,
+                                  const std::vector<TargetSpace>& solution,
+                                  std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
 
 };
 
@@ -90,6 +95,69 @@ energy(const Entity& element,
     }
 
     return 0.5 * energy;
+}
+
+
+template <class GridView, class TargetSpace>
+void HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
+assembleEmbeddedGradient(const Entity& element,
+                 const std::vector<TargetSpace>& localSolution,
+                 std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
+{
+    // initialize gradient
+    localGradient.resize(localSolution.size());
+    std::fill(localGradient.begin(), localGradient.end(), typename TargetSpace::TangentVector(0));
+
+    // Set up local gfe function from the  local coefficients
+    LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(localSolution);
+
+    // I am not sure about the correct quadrature order
+    int quadOrder = 1;//gridDim;
+
+    // numerical quadrature loop
+    const Dune::QuadratureRule<double, gridDim>& quad 
+        = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
+    
+    for (size_t pt=0; pt<quad.size(); pt++) {
+        
+        // Local position of the quadrature point
+        const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
+        
+        const double integrationElement = element.geometry().integrationElement(quadPos);
+
+        const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+        
+        double weight = quad[pt].weight() * integrationElement;
+
+        // The derivative of the local function defined on the reference element
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+
+        // The derivative of the function defined on the actual element
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> derivative;
+
+        for (size_t comp=0; comp<referenceDerivative.N(); comp++)
+            jacobianInverseTransposed.mv(referenceDerivative[comp], derivative[comp]);
+        
+        // loop over all the element's degrees of freedom and compute the gradient wrt it
+        for (size_t i=0; i<localSolution.size(); i++) {
+         
+            Dune::array<Dune::FieldMatrix<double,gridDim,TargetSpace::EmbeddedTangentVector::size>, TargetSpace::EmbeddedTangentVector::size> derivativeDerivative;
+            localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivativeDerivative);
+        
+            for (int j=0; j<derivative.rows; j++) {
+                
+                for (int k=0; k<derivative.cols; k++) {
+                    
+                    localGradient[i].axpy(weight*derivative[j][k], derivativeDerivative[j][k]);
+                    
+                }
+                
+            }
+            
+            
+            
+        }
+    }
 }
 
 #endif
