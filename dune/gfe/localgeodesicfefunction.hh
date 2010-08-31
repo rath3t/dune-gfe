@@ -10,6 +10,7 @@
 #include <dune/gfe/targetspacertrsolver.hh>
 
 #include <dune/gfe/svd.hh>
+#include <dune/gfe/tensor3.hh>
 
 //! calculates ret = A * B
 template< class K, int m, int n, int p >
@@ -290,11 +291,11 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     assembler.assembleHessian(q,dFdq);
     
     //
-    std::array<Dune::FieldMatrix<double,targetDim,targetDim>, dim+1> dcDqF;
+    Tensor3<double,dim+1,targetDim,targetDim> dcDqF;
     
     
     
-    std::array<Dune::FieldMatrix<double,targetDim,dim+1>, dim+1> dcDwF;
+    Tensor3<double,dim+1,targetDim,dim+1> dcDwF;
     for (size_t i=0; i<dcDwF.size(); i++)
         dcDwF[i] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[i], q);
     
