@@ -4,6 +4,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
 
+#include <dune/gfe/tensor3.hh>
+
 template <int dim>
 class UnitVector
 {
@@ -201,6 +203,47 @@ public:
 
         return result;
     }
+    
+    
+    /** \brief Compute the mixed second derivate \partial d^3 / \partial da db^2
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Tensor3<double,dim,dim,dim> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const UnitVector& a, const UnitVector& b) {
+
+        Tensor3<double,dim,dim,dim> result;
+
+        double sp = a.data_ * b.data_;
+        
+        // The identity matrix
+        Dune::FieldMatrix<double,dim,dim> identity(0);
+        for (int i=0; i<dim; i++)
+            identity[i][i] = 1;
+        
+        // The projection matrix onto the tangent space at b
+        Dune::FieldMatrix<double,dim,dim> projection;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++)
+                projection[i][j] = (i==j) - b.globalCoordinates()[i]*b.globalCoordinates()[j];
+        
+        // The derivative of the projection matrix at b with respect to b
+        Dune::FieldMatrix<double,dim,dim> derivativeProjection;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++)
+                derivativeProjection[i][j] = -sp*(i==j) - b.globalCoordinates()[i]*a.globalCoordinates()[j];
+
+        Dune::FieldVector<double,dim> aProjected = b.projectOntoTangentSpace(a.globalCoordinates());
+        
+        result = thirdDerivativeOfArcCosSquared(sp)  * Tensor3<double,dim,dim,dim>::product(b.globalCoordinates(),a.globalCoordinates(),aProjected)
+                + secondDerivativeOfArcCosSquared(sp) * (Tensor3<double,dim,dim,dim>::product(identity,aProjected)
+                                                         + Tensor3<double,dim,dim,dim>::product(a.globalCoordinates(),projection)
+                                                         + Tensor3<double,dim,dim,dim>::product(b.globalCoordinates(),derivativeProjection))
+               - derivativeOfArcCosSquared(sp)       * Tensor3<double,dim,dim,dim>::product(identity,b.globalCoordinates())
+               - derivativeOfArcCosSquared(sp)       * Tensor3<double,dim,dim,dim>::product(b.globalCoordinates(),identity);
+               
+        return result;
+    }
+    
     
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
