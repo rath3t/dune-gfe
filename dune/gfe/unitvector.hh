@@ -164,7 +164,10 @@ public:
         row[0] = b.globalCoordinates();
         row *= secondDerivativeOfArcCosSquared(sp);
 
-        Dune::FieldMatrix<double,dim,1> column = b.projectOntoTangentSpace(a.globalCoordinates());
+        Dune::FieldVector<double,dim> tmp = b.projectOntoTangentSpace(a.globalCoordinates());
+        Dune::FieldMatrix<double,dim,1> column;
+        for (int i=0; i<dim; i++)  // turn row vector into column vector
+            column[i] = tmp[i];
 
         Dune::FieldMatrix<double,dim,dim> A;
         // A = row * column
