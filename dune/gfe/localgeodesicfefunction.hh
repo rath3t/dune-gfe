@@ -290,11 +290,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     Dune::FieldMatrix<ctype,targetDim,targetDim> dFdq(0);
     assembler.assembleHessian(q,dFdq);
     
-    //
-    Tensor3<double,dim+1,targetDim,targetDim> dcDqF;
-    
-    
-    
+   
     Tensor3<double,dim+1,targetDim,dim+1> dcDwF;
     for (size_t i=0; i<dcDwF.size(); i++)
         dcDwF[i] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[i], q);
@@ -308,7 +304,12 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     // Put it all together
     for (size_t i=0; i<result.size(); i++) {
         
-            result[i] = dFdqPseudoInv * ( dcDqF[i] * dFdqPseudoInv * dFdw - dcDwF[i]) * B;   
+        //
+        Tensor3<double,targetDim,targetDim,targetDim> dcDqF
+           =  TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(coefficients_[i], q);
+    
+    
+        result[i] = dFdqPseudoInv * ( dcDqF[i] * dFdqPseudoInv * dFdw - dcDwF[i]) * B;   
      
     }
     
