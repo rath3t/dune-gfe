@@ -149,6 +149,43 @@ public:
         return result;
     }
 
+    /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Dune::FieldMatrix<double,dim,dim> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const UnitVector& a, const UnitVector& b) {
+
+        Dune::FieldMatrix<double,dim,dim> result;
+
+        double sp = a.data_ * b.data_;
+
+        // Compute vector A (see notes)
+        Dune::FieldMatrix<double,1,dim> row;
+        row[0] = b.globalCoordinates();
+        row *= secondDerivativeOfArcCosSquared(sp);
+
+        Dune::FieldMatrix<double,dim,1> column = b.projectOntoTangentSpace(a.globalCoordinates());
+
+        Dune::FieldMatrix<double,dim,dim> A;
+        // A = row * column
+        Dune::FMatrixHelp::multMatrix(column,row,A);
+
+        // Compute matrix B (see notes)
+        Dune::FieldMatrix<double,dim,dim> B;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++)
+                B[i][j] = (i==j) - b.data_[i]*b.data_[j];
+
+        // Bring it all together
+        result = A;
+        result.axpy(derivativeOfArcCosSquared(sp), B);
+
+        for (int i=0; i<dim; i++)
+            result[i] = a.projectOntoTangentSpace(result[i]);
+
+        return result;
+    }
+    
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
         EmbeddedTangentVector result = v;
