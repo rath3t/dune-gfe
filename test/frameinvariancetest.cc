@@ -9,7 +9,7 @@
 
 #include <dune/gfe/rodassembler.hh>
 
-#include <dune/gfe/configuration.hh>
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/rodwriter.hh>
 
 // Number of degrees of freedom: 
@@ -25,7 +25,7 @@ int main (int argc, char *argv[]) try
     // Some types that I need
     typedef BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > MatrixType;
     typedef BlockVector<FieldVector<double, blocksize> >           CorrectionType;
-    typedef std::vector<Configuration>                              SolutionType;
+    typedef std::vector<RigidBodyMotion<3> >                       SolutionType;
 
     // Problem settings
     const int numRodBaseElements = 1;
@@ -88,14 +88,15 @@ int main (int argc, char *argv[]) try
     writeRod(x,"rod");
     writeRod(rotatedX, "rotated");
 
-    RodLocalStiffness<GridType,double> assembler;
+    RodLocalStiffness<GridType::LeafGridView,double> assembler(grid.leafView(),
+                                                               1,1,1,1e6,0.3);
 
     for (int i=1; i<2; i++) {
 
         double p = double(i)/2;
 
-        assembler.getStrain(x,grid.lbegin<0>(0), p);
-        assembler.getStrain(rotatedX,grid.lbegin<0>(0), p);
+        assembler.getStrain(x,*grid.lbegin<0>(0), p);
+        assembler.getStrain(rotatedX,*grid.lbegin<0>(0), p);
 
     }
 
