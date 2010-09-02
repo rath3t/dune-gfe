@@ -24,6 +24,12 @@ double energy(const UnitVector<dim>& a, const FieldVector<double,dim>& b)
 }
 
 template <int dim>
+double energy(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b)
+{
+    return UnitVector<dim>::distance(a,b) * UnitVector<dim>::distance(a,b);
+}
+
+template <int dim>
 void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector<dim>& b)
 {
     
@@ -92,6 +98,31 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
 
     FieldMatrix<double,dim,dim> d1d2 = UnitVector<dim>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(a, b);
     
+    // finite-difference approximation
+    FieldMatrix<double,dim,dim> d1d2_fd;
+    
+    for (size_t i=0; i<dim; i++) {
+        for (size_t j=0; j<dim; j++) {
+            
+            FieldVector<double,dim> aPlus  = a.globalCoordinates();
+            FieldVector<double,dim> aMinus = a.globalCoordinates();
+            aPlus[i]  += eps;
+            aMinus[i] -= eps;
+
+            FieldVector<double,dim> bPlus  = b.globalCoordinates();
+            FieldVector<double,dim> bMinus = b.globalCoordinates();
+            bPlus[i]  += eps;
+            bMinus[i] -= eps;
+                
+            d1d2_fd[i][j] = (energy(aPlus,bPlus) + energy(aMinus,bMinus)
+                            - energy(aPlus,bMinus) - energy(aMinus,bPlus)) / (4*eps*eps);
+
+        }
+    }
+    
+    std::cout << "Analytical:\n" << d1d2 << std::endl;
+    std::cout << "FD        :\n" << d1d2_fd << std::endl;
+
     
     /////////////////////////////////////////////////////////////////////////////////////////////
     //  Test mixed third derivative with respect to first (once) and second (twice) argument
