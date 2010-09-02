@@ -4,6 +4,9 @@
 /** \file
     \brief A third-rank tensor
     */
+
+#include <dune/common/array.hh>
+#include <dune/common/fmatrix.hh>
     
 template <class T, int N1, int N2, int N3>
 class Tensor3
