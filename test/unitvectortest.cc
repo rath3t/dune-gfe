@@ -111,8 +111,8 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
 
             FieldVector<double,dim> bPlus  = b.globalCoordinates();
             FieldVector<double,dim> bMinus = b.globalCoordinates();
-            bPlus[i]  += eps;
-            bMinus[i] -= eps;
+            bPlus[j]  += eps;
+            bMinus[j] -= eps;
                 
             d1d2_fd[i][j] = (energy(aPlus,bPlus) + energy(aMinus,bMinus)
                             - energy(aPlus,bMinus) - energy(aMinus,bPlus)) / (4*eps*eps);
