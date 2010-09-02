@@ -48,9 +48,11 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
         d2_fd[i] = (energy(a,bPlus) - energy(a,bMinus)) / (2*eps);
     }
     
-    std::cout << "Analytical: " << d2 << std::endl;
-    std::cout << "FD        : " << d2_fd << std::endl;
-    
+    if ( (d2 - d2_fd).infinity_norm() > 100*eps ) {
+        std::cout << "Analytical gradient does not match fd approximation." << std::endl;
+        std::cout << "d2 Analytical: " << d2 << std::endl;
+        std::cout << "d2 FD        : " << d2_fd << std::endl;
+    }
     
     ///////////////////////////////////////////////////////////////////
     //  Test second derivative with respect to second argument
@@ -89,8 +91,13 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
         }
     }
     
-    std::cout << "Analytical:\n" << d2d2 << std::endl;
-    std::cout << "FD        :\n" << d2d2_fd << std::endl;
+    FieldMatrix<double,dim,dim> d2d2_diff = d2d2;
+    d2d2_diff -= d2d2_fd;
+    if ( (d2d2_diff).infinity_norm() > 100*eps ) {
+        std::cout << "Analytical second derivative does not match fd approximation." << std::endl;
+        std::cout << "d2d2 Analytical:" << std::endl << d2d2 << std::endl;
+        std::cout << "d2d2 FD        :" << std::endl << d2d2_fd << std::endl;
+    }
     
     //////////////////////////////////////////////////////////////////////////////
     //  Test mixed second derivative with respect to first and second argument
@@ -120,8 +127,13 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
         }
     }
     
-    std::cout << "Analytical:\n" << d1d2 << std::endl;
-    std::cout << "FD        :\n" << d1d2_fd << std::endl;
+    FieldMatrix<double,dim,dim> d1d2_diff = d1d2;
+    d1d2_diff -= d1d2_fd;
+    if ( (d1d2_diff).infinity_norm() > 100*eps ) {
+        std::cout << "Analytical mixed second derivative does not match fd approximation." << std::endl;
+        std::cout << "d1d2 Analytical:" << std::endl << d1d2 << std::endl;
+        std::cout << "d1d2 FD        :" << std::endl << d1d2_fd << std::endl;
+    }
 
     
     /////////////////////////////////////////////////////////////////////////////////////////////
