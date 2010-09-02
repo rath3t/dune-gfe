@@ -5,7 +5,7 @@ LDADD = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS)
 AM_CPPFLAGS += $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) -Wall
 
 check_PROGRAMS = frameinvariancetest rotationtest fdcheck localgeodesicfefunctiontest \
-                 harmonicenergytest averagedistanceassemblertest unitcircletest
+                 harmonicenergytest averagedistanceassemblertest unitvectortest
 
 frameinvariancetest_SOURCES = frameinvariancetest.cc
 
@@ -19,7 +19,7 @@ harmonicenergytest_SOURCES = harmonicenergytest.cc
 
 averagedistanceassemblertest_SOURCES = averagedistanceassemblertest.cc
 
-unitcircletest_SOURCES = unitcircletest.cc
+unitvectortest_SOURCES = unitvectortest.cc
 
 # don't follow the full GNU-standard
 # we need automake 1.5
