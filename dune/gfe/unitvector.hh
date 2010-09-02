@@ -60,6 +60,25 @@ public:
     typedef Dune::FieldVector<double,dim-1> TangentVector;
 
     typedef Dune::FieldVector<double,dim> EmbeddedTangentVector;
+    
+    /** \brief Default constructor */
+    UnitVector()
+    {}
+    
+    /** \brief Constructor from a vector.  The vector gets normalized */
+    UnitVector(const Dune::FieldVector<double,dim>& vector)
+        : data_(vector)
+    {
+        data_ /= data_.two_norm();
+    }
+    
+    /** \brief Constructor from an array.  The array gets normalized */
+    UnitVector(const Dune::array<double,dim>& vector)
+    {
+        for (int i=0; i<dim; i++)
+            data_[i] = vector[i];
+        data_ /= data_.two_norm();
+    }
 
     UnitVector<dim>& operator=(const Dune::FieldVector<double,dim>& vector)
     {
