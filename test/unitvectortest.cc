@@ -11,9 +11,16 @@ using namespace Dune;
 
 const double eps = 1e-6;
 
-double square(double a)
+template <int dim>
+double energy(const UnitVector<dim>& a, const UnitVector<dim>& b)
 {
-    return a*a;
+    return UnitVector<dim>::distance(a,b) * UnitVector<dim>::distance(a,b);
+}
+
+template <int dim>
+double energy(const UnitVector<dim>& a, const FieldVector<double,dim>& b)
+{
+    return UnitVector<dim>::distance(a,b) * UnitVector<dim>::distance(a,b);
 }
 
 template <int dim>
@@ -32,7 +39,7 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
         FieldVector<double,dim> bMinus = b.globalCoordinates();
         bPlus[i]  += eps;
         bMinus[i] -= eps;
-        d2_fd[i] = (square(UnitVector<dim>::distance(a,bPlus)) - square(UnitVector<dim>::distance(a,bMinus))) / (2*eps);
+        d2_fd[i] = (energy(a,bPlus) - energy(a,bMinus)) / (2*eps);
     }
     
     std::cout << "Analytical: " << d2 << std::endl;
@@ -57,7 +64,7 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
                 bPlus[i]  += eps;
                 bMinus[i] -= eps;
 
-                d2d2_fd[i][i] = (square(UnitVector<dim>::distance(a,bPlus)) - 2*square(UnitVector<dim>::distance(a,b)) + square(UnitVector<dim>::distance(a,bMinus))) / (eps*eps);
+                d2d2_fd[i][i] = (energy(a,bPlus) - 2*energy(a,b) + energy(a,bMinus)) / (eps*eps);
             } else {
                 
                 FieldVector<double,dim> bPlusPlus   = b.globalCoordinates();
@@ -70,8 +77,8 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
                 bMinusPlus[i]  -= eps;  bMinusPlus[j]  += eps;
                 bMinusMinus[i] -= eps;  bMinusMinus[j] -= eps;
             
-                d2d2_fd[i][j] = (square(UnitVector<dim>::distance(a,bPlusPlus)) + square(UnitVector<dim>::distance(a,bMinusMinus))
-                                        - square(UnitVector<dim>::distance(a,bPlusMinus)) - square(UnitVector<dim>::distance(a,bMinusPlus))) / (4*eps*eps);
+                d2d2_fd[i][j] = (energy(a,bPlusPlus) + energy(a,bMinusMinus)
+                                        - energy(a,bPlusMinus) - energy(a,bMinusPlus)) / (4*eps*eps);
             }
         }
     }
