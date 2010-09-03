@@ -30,35 +30,8 @@ double energy(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b
 }
 
 template <int dim>
-void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector<dim>& b)
+FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const UnitVector<dim>& a, const UnitVector<dim>& b)
 {
-    
-    ///////////////////////////////////////////////////////////////////
-    //  Test derivative with respect to second argument
-    ///////////////////////////////////////////////////////////////////
-    typename UnitVector<dim>::EmbeddedTangentVector d2 =  UnitVector<dim>::derivativeOfDistanceSquaredWRTSecondArgument(a, b);    
-
-    // finite-difference approximation
-    typename UnitVector<dim>::EmbeddedTangentVector d2_fd;
-    for (size_t i=0; i<dim; i++) {
-        FieldVector<double,dim> bPlus  = b.globalCoordinates();
-        FieldVector<double,dim> bMinus = b.globalCoordinates();
-        bPlus[i]  += eps;
-        bMinus[i] -= eps;
-        d2_fd[i] = (energy(a,bPlus) - energy(a,bMinus)) / (2*eps);
-    }
-    
-    if ( (d2 - d2_fd).infinity_norm() > 100*eps ) {
-        std::cout << "Analytical gradient does not match fd approximation." << std::endl;
-        std::cout << "d2 Analytical: " << d2 << std::endl;
-        std::cout << "d2 FD        : " << d2_fd << std::endl;
-    }
-    
-    ///////////////////////////////////////////////////////////////////
-    //  Test second derivative with respect to second argument
-    ///////////////////////////////////////////////////////////////////
-    FieldMatrix<double,dim,dim> d2d2 = UnitVector<dim>::secondDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
-    
     // finite-difference approximation
     FieldMatrix<double,dim,dim> d2d2_fd;
     
@@ -90,6 +63,42 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
             }
         }
     }
+    
+    return d2d2_fd;
+}
+
+template <int dim>
+void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector<dim>& b)
+{
+    
+    ///////////////////////////////////////////////////////////////////
+    //  Test derivative with respect to second argument
+    ///////////////////////////////////////////////////////////////////
+    typename UnitVector<dim>::EmbeddedTangentVector d2 =  UnitVector<dim>::derivativeOfDistanceSquaredWRTSecondArgument(a, b);    
+
+    // finite-difference approximation
+    typename UnitVector<dim>::EmbeddedTangentVector d2_fd;
+    for (size_t i=0; i<dim; i++) {
+        FieldVector<double,dim> bPlus  = b.globalCoordinates();
+        FieldVector<double,dim> bMinus = b.globalCoordinates();
+        bPlus[i]  += eps;
+        bMinus[i] -= eps;
+        d2_fd[i] = (energy(a,bPlus) - energy(a,bMinus)) / (2*eps);
+    }
+    
+    if ( (d2 - d2_fd).infinity_norm() > 100*eps ) {
+        std::cout << "Analytical gradient does not match fd approximation." << std::endl;
+        std::cout << "d2 Analytical: " << d2 << std::endl;
+        std::cout << "d2 FD        : " << d2_fd << std::endl;
+    }
+    
+    ///////////////////////////////////////////////////////////////////
+    //  Test second derivative with respect to second argument
+    ///////////////////////////////////////////////////////////////////
+    FieldMatrix<double,dim,dim> d2d2 = UnitVector<dim>::secondDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
+    
+    // finite-difference approximation
+    FieldMatrix<double,dim,dim> d2d2_fd = getSecondDerivativeOfSecondArgumentFD(a,b);
     
     FieldMatrix<double,dim,dim> d2d2_diff = d2d2;
     d2d2_diff -= d2d2_fd;
@@ -141,6 +150,31 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
     /////////////////////////////////////////////////////////////////////////////////////////////
     
     Tensor3<double,dim,dim,dim> d1d2d2 = UnitVector<dim>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a, b);
+    
+    Tensor3<double,dim,dim,dim> d1d2d2_fd;
+    
+    for (size_t i=0; i<dim; i++) {
+        
+        FieldVector<double,dim> aPlus  = a.globalCoordinates();
+        FieldVector<double,dim> aMinus = a.globalCoordinates();
+        aPlus[i]  += eps;
+        aMinus[i] -= eps;
+
+        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD(UnitVector<dim>(aPlus),b);
+        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD(UnitVector<dim>(aMinus),b);
+        
+        d1d2d2_fd[i] = hPlus;
+        d1d2d2_fd[i] -= hMinus;
+        d1d2d2_fd[i] /= 2*eps;
+        
+    }
+    
+    if ( (d1d2d2 - d1d2d2_fd).infinity_norm() > 100*eps ) {
+        std::cout << "Analytical mixed third derivative does not match fd approximation." << std::endl;
+        std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
+        std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
+    }
+    
 }
 
 int main()
