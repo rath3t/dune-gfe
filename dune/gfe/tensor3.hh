@@ -14,6 +14,14 @@ class Tensor3
 {
     public:
 
+        T infinity_norm() const
+        {
+            dune_static_assert(N1>0, "infinity_norm not implemented for empty tensors");
+            T norm = (*this)[0].infinity_norm();
+            for (int i=1; i<N1; i++)
+                norm = std::max(norm, (*this)[i].infinity_norm());
+            return norm;
+        }
         
         static Tensor3<T,N1,N2,N3> product(const Dune::FieldVector<T,N1>& a, const Dune::FieldVector<T,N2>& b, const Dune::FieldVector<T,N3>& c)
         {
@@ -89,5 +97,16 @@ class Tensor3
     }
 
 };
+
+//! Output operator for array
+template <class T, int N1, int N2, int N3>
+inline std::ostream& operator<< (std::ostream& s, const Tensor3<T,N1,N2,N3>& tensor)
+{
+    for (int i=0; i<N1; i++) 
+        s << tensor[i];
+    return s;
+}
+
+
 
 #endif
