@@ -156,7 +156,7 @@ public:
 
         // Compute vector A (see notes)
         Dune::FieldMatrix<double,1,dim> row;
-        row[0] = a.globalCoordinates();
+        row[0] = b.projectOntoTangentSpace(a.globalCoordinates());
         row *= secondDerivativeOfArcCosSquared(sp);
 
         Dune::FieldMatrix<double,dim,1> column;
