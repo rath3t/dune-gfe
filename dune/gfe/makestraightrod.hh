@@ -21,7 +21,7 @@ void makeStraightRod(std::vector<RigidBodyMotion<dim> >& rod, int n,
 
     Dune::FieldVector<double,3> zAxis(0);
     zAxis[2] = 1;
-    Dune::FieldVector<double,3> axis = crossProduct(end-beginning, zAxis);
+    Dune::FieldVector<double,3> axis = crossProduct(Dune::FieldVector<double,3>(end-beginning), zAxis);
     if (axis.two_norm() != 0)
         axis /= -axis.two_norm();
 

@@ -458,7 +458,7 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
                 // Sum up the total torque   \int (x - x_0) \times f dx
                 Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
                 outputTorque.axpy(quad[qp].weight()*integrationElement, 
-                                  crossProduct(worldPos - center, localPressure));
+                                  crossProduct(Dune::FieldVector<double,dim>(worldPos - center), localPressure));
 
             }
 
@@ -568,7 +568,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
                         phi_i[j] = shapeFunctionValues[i];
                         
                         mu_tilde[i][j].axpy(quad[qp].weight() * integrationElement,
-                                            crossProduct(worldPos-crossSection.r, phi_i));
+                                            crossProduct(Dune::FieldVector<double,dim>(worldPos-crossSection.r), phi_i));
 
                     }
                     
