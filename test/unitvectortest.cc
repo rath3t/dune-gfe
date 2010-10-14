@@ -30,6 +30,11 @@ double energy(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b
     return TargetSpace::distance(a,b) * TargetSpace::distance(a,b);
 }
 
+/** \brief Compute the Riemannian Hessian of the squared distance function in global coordinates
+
+    The formula for the Riemannian Hessian has been taken from Absil, Mahony, Sepulchre:
+    'Optimization algorithms on matrix manifolds', page 107
+*/
 template <class TargetSpace, int dim>
 FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSpace& a, const TargetSpace& b)
 {
@@ -38,34 +43,38 @@ FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSp
     
     for (size_t i=0; i<dim; i++) {
         for (size_t j=0; j<dim; j++) {
-            
-            if (i==j) {
-            
-                FieldVector<double,dim> bPlus  = b.globalCoordinates();
-                FieldVector<double,dim> bMinus = b.globalCoordinates();
-                bPlus[i]  += eps;
-                bMinus[i] -= eps;
 
-                d2d2_fd[i][i] = (energy(a,bPlus) - 2*energy(a,b) + energy(a,bMinus)) / (eps*eps);
-            } else {
-                
-                FieldVector<double,dim> bPlusPlus   = b.globalCoordinates();
-                FieldVector<double,dim> bPlusMinus  = b.globalCoordinates();
-                FieldVector<double,dim> bMinusPlus  = b.globalCoordinates();
-                FieldVector<double,dim> bMinusMinus = b.globalCoordinates();
+            FieldVector<double,dim> epsXi(0);
+            epsXi[i] = eps;
+            FieldVector<double,dim> epsEta(0);
+            epsEta[j] = eps;
             
-                bPlusPlus[i]   += eps;  bPlusPlus[j]   += eps;
-                bPlusMinus[i]  += eps;  bPlusMinus[j]  -= eps;
-                bMinusPlus[i]  -= eps;  bMinusPlus[j]  += eps;
-                bMinusMinus[i] -= eps;  bMinusMinus[j] -= eps;
+            FieldVector<double,dim> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
+            FieldVector<double,dim> minusEpsEta = epsEta;  minusEpsEta *= -1;
             
-                d2d2_fd[i][j] = (energy(a,bPlusPlus) + energy(a,bMinusMinus)
-                                        - energy(a,bPlusMinus) - energy(a,bMinusPlus)) / (4*eps*eps);
-            }
+            double forwardValue  = energy(a,TargetSpace::exp(b,epsXi+epsEta)) - energy(a, TargetSpace::exp(b,epsXi)) - energy(a,TargetSpace::exp(b,epsEta));
+            double centerValue   = energy(a,b)                   - energy(a,b)              - energy(a,b);
+            double backwardValue = energy(a,TargetSpace::exp(b,minusEpsXi + minusEpsEta)) - energy(a, TargetSpace::exp(b,minusEpsXi)) - energy(a,TargetSpace::exp(b,minusEpsEta));
+            
+            d2d2_fd[i][j] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
+            
         }
     }
     
-    return d2d2_fd;
+    FieldMatrix<double,dim,dim> B = b.orthonormalFrame();
+    B.invert();
+    FieldMatrix<double,dim,dim> BT;
+    for (int i=0; i<dim; i++)
+        for (int j=0; j<dim; j++)
+            BT[i][j] = B[j][i];
+    
+    
+    FieldMatrix<double,dim,dim> ret1;
+    FMatrixHelp::multMatrix(d2d2_fd,B,ret1);
+    
+    FieldMatrix<double,dim,dim> ret2;
+    FMatrixHelp::multMatrix(BT,ret1,ret2);
+    return ret2;
 }
 
 template <class TargetSpace, int dim>
