@@ -156,37 +156,6 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
         std::cout << "d1d2 FD        :" << std::endl << d1d2_fd << std::endl;
     }
 
-    
-    /////////////////////////////////////////////////////////////////////////////////////////////
-    //  Test mixed third derivative with respect to first (once) and second (twice) argument
-    /////////////////////////////////////////////////////////////////////////////////////////////
-    
-    Tensor3<double,dim,dim,dim> d1d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a, b);
-    
-    Tensor3<double,dim,dim,dim> d1d2d2_fd;
-    
-    for (size_t i=0; i<dim; i++) {
-        
-        FieldVector<double,dim> aPlus  = a.globalCoordinates();
-        FieldVector<double,dim> aMinus = a.globalCoordinates();
-        aPlus[i]  += eps;
-        aMinus[i] -= eps;
-
-        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(TargetSpace(aPlus),b);
-        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(TargetSpace(aMinus),b);
-        
-        d1d2d2_fd[i] = hPlus;
-        d1d2d2_fd[i] -= hMinus;
-        d1d2d2_fd[i] /= 2*eps;
-        
-    }
-    
-    if ( (d1d2d2 - d1d2d2_fd).infinity_norm() > 100*eps ) {
-        std::cout << "Analytical mixed third derivative does not match fd approximation." << std::endl;
-        std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
-        std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
-    }
-
 }
 
 template <class TargetSpace, int dim>
