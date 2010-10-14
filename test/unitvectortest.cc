@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <dune/gfe/unitvector.hh>
+#include <dune/gfe/realtuple.hh>
 #include <dune/gfe/rotation.hh>
 
 /** \file
@@ -9,28 +10,28 @@
 
 using namespace Dune;
 
-const double eps = 1e-6;
+const double eps = 1e-5;
 
-template <int dim>
-double energy(const UnitVector<dim>& a, const UnitVector<dim>& b)
+template <class TargetSpace>
+double energy(const TargetSpace& a, const TargetSpace& b)
 {
-    return UnitVector<dim>::distance(a,b) * UnitVector<dim>::distance(a,b);
+    return TargetSpace::distance(a,b) * TargetSpace::distance(a,b);
 }
 
-template <int dim>
-double energy(const UnitVector<dim>& a, const FieldVector<double,dim>& b)
+template <class TargetSpace, int dim>
+double energy(const TargetSpace& a, const FieldVector<double,dim>& b)
 {
-    return UnitVector<dim>::distance(a,b) * UnitVector<dim>::distance(a,b);
+    return TargetSpace::distance(a,b) * TargetSpace::distance(a,b);
 }
 
-template <int dim>
+template <class TargetSpace, int dim>
 double energy(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b)
 {
-    return UnitVector<dim>::distance(a,b) * UnitVector<dim>::distance(a,b);
+    return TargetSpace::distance(a,b) * TargetSpace::distance(a,b);
 }
 
-template <int dim>
-FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const UnitVector<dim>& a, const UnitVector<dim>& b)
+template <class TargetSpace, int dim>
+FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSpace& a, const TargetSpace& b)
 {
     // finite-difference approximation
     FieldMatrix<double,dim,dim> d2d2_fd;
@@ -67,17 +68,17 @@ FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const UnitVect
     return d2d2_fd;
 }
 
-template <int dim>
-void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector<dim>& b)
+template <class TargetSpace, int dim>
+void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
 {
     
     ///////////////////////////////////////////////////////////////////
     //  Test derivative with respect to second argument
     ///////////////////////////////////////////////////////////////////
-    typename UnitVector<dim>::EmbeddedTangentVector d2 =  UnitVector<dim>::derivativeOfDistanceSquaredWRTSecondArgument(a, b);    
+    typename TargetSpace::EmbeddedTangentVector d2 =  TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(a, b);    
 
     // finite-difference approximation
-    typename UnitVector<dim>::EmbeddedTangentVector d2_fd;
+    typename TargetSpace::EmbeddedTangentVector d2_fd;
     for (size_t i=0; i<dim; i++) {
         FieldVector<double,dim> bPlus  = b.globalCoordinates();
         FieldVector<double,dim> bMinus = b.globalCoordinates();
@@ -95,10 +96,10 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
     ///////////////////////////////////////////////////////////////////
     //  Test second derivative with respect to second argument
     ///////////////////////////////////////////////////////////////////
-    FieldMatrix<double,dim,dim> d2d2 = UnitVector<dim>::secondDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
+    FieldMatrix<double,dim,dim> d2d2 = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
     
     // finite-difference approximation
-    FieldMatrix<double,dim,dim> d2d2_fd = getSecondDerivativeOfSecondArgumentFD(a,b);
+    FieldMatrix<double,dim,dim> d2d2_fd = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(a,b);
     
     FieldMatrix<double,dim,dim> d2d2_diff = d2d2;
     d2d2_diff -= d2d2_fd;
@@ -111,8 +112,8 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
     //////////////////////////////////////////////////////////////////////////////
     //  Test mixed second derivative with respect to first and second argument
     //////////////////////////////////////////////////////////////////////////////
-
-    FieldMatrix<double,dim,dim> d1d2 = UnitVector<dim>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(a, b);
+#if 0
+    FieldMatrix<double,dim,dim> d1d2 = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(a, b);
     
     // finite-difference approximation
     FieldMatrix<double,dim,dim> d1d2_fd;
@@ -149,7 +150,7 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
     //  Test mixed third derivative with respect to first (once) and second (twice) argument
     /////////////////////////////////////////////////////////////////////////////////////////////
     
-    Tensor3<double,dim,dim,dim> d1d2d2 = UnitVector<dim>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a, b);
+    Tensor3<double,dim,dim,dim> d1d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a, b);
     
     Tensor3<double,dim,dim,dim> d1d2d2_fd;
     
@@ -160,8 +161,8 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
         aPlus[i]  += eps;
         aMinus[i] -= eps;
 
-        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD(UnitVector<dim>(aPlus),b);
-        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD(UnitVector<dim>(aMinus),b);
+        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aPlus),b);
+        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aMinus),b);
         
         d1d2d2_fd[i] = hPlus;
         d1d2d2_fd[i] -= hMinus;
@@ -174,23 +175,23 @@ void testDerivativesOfSquaredDistance(const UnitVector<dim>& a, const UnitVector
         std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
         std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
     }
-    
+#endif
 }
 
 int main()
 {
     // Set up elements of S^1
-    Dune::array<double,2> w0 = {{0,1}};
+    Dune::array<double,2> w0 = {{1,0}};
     UnitVector<2> uv0(w0);
-    Dune::array<double,2> w1 = {{1,1}};
+    Dune::array<double,2> w1 = {{0,1}};
     UnitVector<2> uv1(w1);
-    testDerivativesOfSquaredDistance<2>(uv0, uv1);
+    testDerivativesOfSquaredDistance<UnitVector<2>, 2>(uv0, uv1);
     
-    Dune::array<double,3> w3_0 = {{0,1,0}};
-    UnitVector<3> v3_0(w3_0);
-    Dune::array<double,3> w3_1 = {{1,1,0}};
-    UnitVector<3> v3_1(w3_1);
-    testDerivativesOfSquaredDistance<3>(v3_0, v3_1);
+//     Dune::array<double,3> w3_0 = {{0,1,0}};
+//     UnitVector<3> v3_0(w3_0);
+//     Dune::array<double,3> w3_1 = {{1,1,0}};
+//     UnitVector<3> v3_1(w3_1);
+//     testDerivativesOfSquaredDistance<3>(v3_0, v3_1);
     
 #if 0
     // Set up elements of S^1
