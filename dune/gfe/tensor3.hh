@@ -8,11 +8,23 @@
 #include <dune/common/array.hh>
 #include <dune/common/fmatrix.hh>
     
+/** \brief A third-rank tensor
+*/
 template <class T, int N1, int N2, int N3>
 class Tensor3
     : public Dune::array<Dune::FieldMatrix<T,N2,N3>,N1>
 {
     public:
+        
+        /** \brief Default constructor */
+        Tensor3() {}
+        
+        /** \brief Constructor from a scalar */
+        Tensor3(const T& c)
+        {
+            for (int i=0; i<N1; i++)
+                (*this)[i] = c;
+        }
 
         T infinity_norm() const
         {
