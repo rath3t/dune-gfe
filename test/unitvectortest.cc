@@ -10,7 +10,7 @@
 
 using namespace Dune;
 
-const double eps = 1e-5;
+const double eps = 1e-4;
 
 template <class TargetSpace>
 double energy(const TargetSpace& a, const TargetSpace& b)
