@@ -142,8 +142,8 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
             bPlus[j]  += eps;
             bMinus[j] -= eps;
                 
-            d1d2_fd[i][j] = (energy(aPlus,bPlus) + energy(aMinus,bMinus)
-                            - energy(aPlus,bMinus) - energy(aMinus,bPlus)) / (4*eps*eps);
+            d1d2_fd[i][j] = (energy<TargetSpace>(aPlus,bPlus) + energy<TargetSpace>(aMinus,bMinus)
+                            - energy<TargetSpace>(aPlus,bMinus) - energy<TargetSpace>(aMinus,bPlus)) / (4*eps*eps);
 
         }
     }
@@ -172,8 +172,8 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
         aPlus[i]  += eps;
         aMinus[i] -= eps;
 
-        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aPlus),b);
-        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aMinus),b);
+        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(TargetSpace(aPlus),b);
+        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(TargetSpace(aMinus),b);
         
         d1d2d2_fd[i] = hPlus;
         d1d2d2_fd[i] -= hMinus;
@@ -208,8 +208,8 @@ void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const Target
         aPlus[i]  += eps;
         aMinus[i] -= eps;
 
-        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aPlus),b);
-        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aMinus),b);
+        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(TargetSpace(aPlus),b);
+        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(TargetSpace(aMinus),b);
         
         d1d2d2_fd[i] = hPlus;
         d1d2d2_fd[i] -= hMinus;
