@@ -20,6 +20,9 @@ public:
     /** \brief Global coordinates wrt an isometric embedding function are available */
     static const bool globalIsometricCoordinates = true;
 
+    /** \brief Dimension of the manifold formed by unit vectors */
+    static const int dim = N;
+
     typedef Dune::FieldVector<double,N> EmbeddedTangentVector;
 
     typedef Dune::FieldVector<double,N> TangentVector;
