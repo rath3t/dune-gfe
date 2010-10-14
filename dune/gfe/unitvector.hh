@@ -6,6 +6,10 @@
 
 #include <dune/gfe/tensor3.hh>
 
+/** \brief A unit vector in R^dim
+
+    \tparam dim Dimension of the embedding space
+*/
 template <int dim>
 class UnitVector
 {
@@ -280,13 +284,16 @@ public:
 
     This basis is of course not globally continuous.
     */
-    Dune::FieldMatrix<double,dim-1,dim> orthonormalFrame() const {
+    Dune::FieldMatrix<double,dim,dim> orthonormalFrame() const {
 
-        Dune::FieldMatrix<double,dim-1,dim> result;
+        Dune::FieldMatrix<double,dim,dim> result;
         
         if (dim==2) {
+            // spans the tangent space
             result[0][0] = -data_[1];
             result[0][1] =  data_[0];
+            // spans the normal space
+            result[1]    =  data_;
         } else
             DUNE_THROW(Dune::NotImplemented, "orthonormalFrame for dim!=2!");
         
