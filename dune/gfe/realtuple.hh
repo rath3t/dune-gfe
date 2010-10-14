@@ -118,9 +118,9 @@ public:
         return data_;
     }
 
-    /** \brief Compute an orthonormal basis of the tangent space of S^n.
+    /** \brief Compute an orthonormal basis of the tangent space of R^n.
 
-    This basis is of course not globally continuous.
+    In general this frame field, may of course not be continuous, but for RealTuples it is.
     */
     Dune::FieldMatrix<double,N,N> orthonormalFrame() const {
 
