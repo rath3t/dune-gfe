@@ -86,6 +86,28 @@ public:
         return result;
     }
 
+    /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RealTuple& a, const RealTuple& b) {
+        
+        Dune::FieldMatrix<double,N,N> result;
+        for (int i=0; i<N; i++)
+            for (int j=0; j<N; j++)
+                result[i][j] = -2*(i==j);
+
+        return result;
+    }
+    
+    /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
+
+        The result is the constant zero-tensor.
+     */
+    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RealTuple& a, const RealTuple& b) {
+        return Tensor3<double,N,N,N>(0);
+    }
+    
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
         return v;
