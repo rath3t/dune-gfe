@@ -97,11 +97,16 @@ public:
      /** \brief The exponential map */
     static UnitVector exp(const UnitVector& p, const TangentVector& v) {
 
-        Dune::FieldMatrix<double,N-1,N> frame = p.orthonormalFrame();
+        Dune::FieldMatrix<double,N,N> frame = p.orthonormalFrame();
 
         EmbeddedTangentVector ev;
-        frame.mtv(v,ev);
-            
+
+        // This is frame.mtv for the matrix consisting of the first N-1 rows
+        for( size_t i = 0; i < N; ++i ) {
+            ev[i] = 0;
+            for( size_t j = 0; j < N-1; ++j )
+                ev[i] += frame[j][i] * v[j];
+        }
         return exp(p,ev);
     }
 
