@@ -69,7 +69,7 @@ FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSp
 }
 
 template <class TargetSpace, int dim>
-void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
 {
     
     ///////////////////////////////////////////////////////////////////
@@ -93,6 +93,12 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
         std::cout << "d2 FD        : " << d2_fd << std::endl;
     }
     
+}
+
+template <class TargetSpace, int dim>
+void testHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+{
+    
     ///////////////////////////////////////////////////////////////////
     //  Test second derivative with respect to second argument
     ///////////////////////////////////////////////////////////////////
@@ -103,16 +109,21 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
     
     FieldMatrix<double,dim,dim> d2d2_diff = d2d2;
     d2d2_diff -= d2d2_fd;
-    if ( (d2d2_diff).infinity_norm() > 100*eps ) {
+    if ( (d2d2_diff).infinity_norm() > 100*eps) {
         std::cout << "Analytical second derivative does not match fd approximation." << std::endl;
         std::cout << "d2d2 Analytical:" << std::endl << d2d2 << std::endl;
         std::cout << "d2d2 FD        :" << std::endl << d2d2_fd << std::endl;
     }
     
+}
+
+template <class TargetSpace, int dim>
+void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+{
     //////////////////////////////////////////////////////////////////////////////
     //  Test mixed second derivative with respect to first and second argument
     //////////////////////////////////////////////////////////////////////////////
-#if 0
+
     FieldMatrix<double,dim,dim> d1d2 = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(a, b);
     
     // finite-difference approximation
@@ -175,18 +186,94 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
         std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
         std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
     }
-#endif
+
 }
+
+template <class TargetSpace, int dim>
+void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+{
+    
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    //  Test mixed third derivative with respect to first (once) and second (twice) argument
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    
+    Tensor3<double,dim,dim,dim> d1d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a, b);
+    
+    Tensor3<double,dim,dim,dim> d1d2d2_fd;
+    
+    for (size_t i=0; i<dim; i++) {
+        
+        FieldVector<double,dim> aPlus  = a.globalCoordinates();
+        FieldVector<double,dim> aMinus = a.globalCoordinates();
+        aPlus[i]  += eps;
+        aMinus[i] -= eps;
+
+        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aPlus),b);
+        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD(TargetSpace(aMinus),b);
+        
+        d1d2d2_fd[i] = hPlus;
+        d1d2d2_fd[i] -= hMinus;
+        d1d2d2_fd[i] /= 2*eps;
+        
+    }
+    
+    if ( (d1d2d2 - d1d2d2_fd).infinity_norm() > 100*eps ) {
+        std::cout << "Analytical mixed third derivative does not match fd approximation." << std::endl;
+        std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
+        std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
+    }
+
+}
+
+
+template <class TargetSpace, int dim>
+void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+{
+    
+    ///////////////////////////////////////////////////////////////////
+    //  Test derivative with respect to second argument
+    ///////////////////////////////////////////////////////////////////
+    
+    testDerivativeOfSquaredDistance<TargetSpace,dim>(a,b);
+    
+    ///////////////////////////////////////////////////////////////////
+    //  Test second derivative with respect to second argument
+    ///////////////////////////////////////////////////////////////////
+
+    testHessianOfSquaredDistance<TargetSpace,dim>(a,b);
+
+    //////////////////////////////////////////////////////////////////////////////
+    //  Test mixed second derivative with respect to first and second argument
+    //////////////////////////////////////////////////////////////////////////////
+
+    testMixedDerivativesOfSquaredDistance<TargetSpace,dim>(a,b);
+    
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    //  Test mixed third derivative with respect to first (once) and second (twice) argument
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    
+    testDerivativeOfHessianOfSquaredDistance<TargetSpace,dim>(a,b);
+
+}
+
 
 int main()
 {
+#if 0
     // Set up elements of S^1
     Dune::array<double,2> w0 = {{1,0}};
     UnitVector<2> uv0(w0);
     Dune::array<double,2> w1 = {{0,1}};
     UnitVector<2> uv1(w1);
     testDerivativesOfSquaredDistance<UnitVector<2>, 2>(uv0, uv1);
+#endif
     
+    // Set up elements of R^1
+    Dune::FieldVector<double,2> w0;  w0[0] = 0;  w0[1] = 1;
+    RealTuple<2> uv0(w0);
+    Dune::FieldVector<double,2> w1;  w1[0] = 1;  w1[1] = 0;
+    RealTuple<2> uv1(w1);
+    testDerivativesOfSquaredDistance<RealTuple<2>, 2>(uv0, uv1);
 //     Dune::array<double,3> w3_0 = {{0,1,0}};
 //     UnitVector<3> v3_0(w3_0);
 //     Dune::array<double,3> w3_1 = {{1,1,0}};
