@@ -4,6 +4,27 @@
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/rotation.hh>
 
+#include <typeinfo>
+
+#ifdef __GNUC__
+#include <cxxabi.h>
+#endif
+
+using Dune::FieldVector;
+using std::complex;
+
+template <class T>
+std::string className(T &t)
+{
+#ifdef __GNUC__
+  int status;
+  return abi::__cxa_demangle(typeid(t).name(),0,0,&status);
+#else
+  return typeid(t).name();
+#endif
+};
+
+
 /** \file
     \brief Unit tests for the UnitVector class
 */
@@ -98,7 +119,7 @@ void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
     }
     
     if ( (d2 - d2_fd).infinity_norm() > 100*eps ) {
-        std::cout << "Analytical gradient does not match fd approximation." << std::endl;
+        std::cout << className(a) << ": Analytical gradient does not match fd approximation." << std::endl;
         std::cout << "d2 Analytical: " << d2 << std::endl;
         std::cout << "d2 FD        : " << d2_fd << std::endl;
     }
@@ -120,7 +141,7 @@ void testHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
     FieldMatrix<double,dim,dim> d2d2_diff = d2d2;
     d2d2_diff -= d2d2_fd;
     if ( (d2d2_diff).infinity_norm() > 100*eps) {
-        std::cout << "Analytical second derivative does not match fd approximation." << std::endl;
+        std::cout << className(a) << ": Analytical second derivative does not match fd approximation." << std::endl;
         std::cout << "d2d2 Analytical:" << std::endl << d2d2 << std::endl;
         std::cout << "d2d2 FD        :" << std::endl << d2d2_fd << std::endl;
     }
@@ -161,7 +182,7 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
     FieldMatrix<double,dim,dim> d1d2_diff = d1d2;
     d1d2_diff -= d1d2_fd;
     if ( (d1d2_diff).infinity_norm() > 100*eps ) {
-        std::cout << "Analytical mixed second derivative does not match fd approximation." << std::endl;
+        std::cout << className(a) << ": Analytical mixed second derivative does not match fd approximation." << std::endl;
         std::cout << "d1d2 Analytical:" << std::endl << d1d2 << std::endl;
         std::cout << "d1d2 FD        :" << std::endl << d1d2_fd << std::endl;
     }
@@ -197,7 +218,7 @@ void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const Target
     }
     
     if ( (d1d2d2 - d1d2d2_fd).infinity_norm() > 100*eps ) {
-        std::cout << "Analytical mixed third derivative does not match fd approximation." << std::endl;
+        std::cout << className(a) << ": Analytical mixed third derivative does not match fd approximation." << std::endl;
         std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
         std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
     }
