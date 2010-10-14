@@ -39,15 +39,17 @@ template <class TargetSpace, int dim>
 FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSpace& a, const TargetSpace& b)
 {
     // finite-difference approximation
-    FieldMatrix<double,dim,dim> d2d2_fd;
+    FieldMatrix<double,dim,dim> d2d2_fd(0);
     
-    for (size_t i=0; i<dim; i++) {
-        for (size_t j=0; j<dim; j++) {
+    const size_t spaceDim = TargetSpace::dim;
+    
+    FieldMatrix<double,dim,dim> B = b.orthonormalFrame();
+    
+    for (size_t i=0; i<spaceDim; i++) {
+        for (size_t j=0; j<spaceDim; j++) {
 
-            FieldVector<double,dim> epsXi(0);
-            epsXi[i] = eps;
-            FieldVector<double,dim> epsEta(0);
-            epsEta[j] = eps;
+            FieldVector<double,dim> epsXi = B[i];    epsXi *= eps;
+            FieldVector<double,dim> epsEta = B[j];   epsEta *= eps;
             
             FieldVector<double,dim> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
             FieldVector<double,dim> minusEpsEta = epsEta;  minusEpsEta *= -1;
@@ -61,7 +63,6 @@ FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSp
         }
     }
     
-    FieldMatrix<double,dim,dim> B = b.orthonormalFrame();
     B.invert();
     FieldMatrix<double,dim,dim> BT;
     for (int i=0; i<dim; i++)
@@ -237,7 +238,7 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
 
 int main()
 {
-#if 0
+#if 1
     // Set up elements of S^1
     Dune::array<double,2> w0 = {{1,0}};
     UnitVector<2> uv0(w0);
@@ -247,11 +248,11 @@ int main()
 #endif
     
     // Set up elements of R^1
-    Dune::FieldVector<double,2> w0;  w0[0] = 0;  w0[1] = 1;
-    RealTuple<2> uv0(w0);
-    Dune::FieldVector<double,2> w1;  w1[0] = 1;  w1[1] = 0;
-    RealTuple<2> uv1(w1);
-    testDerivativesOfSquaredDistance<RealTuple<2>, 2>(uv0, uv1);
+    Dune::FieldVector<double,2> rtw0;  rtw0[0] = 0;  rtw0[1] = 1;
+    RealTuple<2> rt0(rtw0);
+    Dune::FieldVector<double,2> rtw1;  rtw1[0] = 1;  rtw1[1] = 0;
+    RealTuple<2> rt1(rtw1);
+    testDerivativesOfSquaredDistance<RealTuple<2>, 2>(rt0, rt1);
 //     Dune::array<double,3> w3_0 = {{0,1,0}};
 //     UnitVector<3> v3_0(w3_0);
 //     Dune::array<double,3> w3_1 = {{1,1,0}};
