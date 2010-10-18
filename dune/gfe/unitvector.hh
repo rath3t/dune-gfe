@@ -97,16 +97,11 @@ public:
      /** \brief The exponential map */
     static UnitVector exp(const UnitVector& p, const TangentVector& v) {
 
-        Dune::FieldMatrix<double,N,N> frame = p.orthonormalFrame();
+        Dune::FieldMatrix<double,N-1,N> frame = p.orthonormalFrame();
 
         EmbeddedTangentVector ev;
-
-        // This is frame.mtv for the matrix consisting of the first N-1 rows
-        for( size_t i = 0; i < N; ++i ) {
-            ev[i] = 0;
-            for( size_t j = 0; j < N-1; ++j )
-                ev[i] += frame[j][i] * v[j];
-        }
+        frame.mtv(v,ev);
+            
         return exp(p,ev);
     }
 
@@ -292,16 +287,13 @@ public:
 
     This basis is of course not globally continuous.
     */
-    Dune::FieldMatrix<double,N,N> orthonormalFrame() const {
+    Dune::FieldMatrix<double,N-1,N> orthonormalFrame() const {
 
-        Dune::FieldMatrix<double,N,N> result;
+        Dune::FieldMatrix<double,N-1,N> result;
         
         if (N==2) {
-            // spans the tangent space
             result[0][0] = -data_[1];
             result[0][1] =  data_[0];
-            // spans the normal space
-            result[1]    =  data_;
         } else
             DUNE_THROW(Dune::NotImplemented, "orthonormalFrame for N!=2!");
         
