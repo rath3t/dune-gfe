@@ -1,6 +1,8 @@
 #ifndef HARMONIC_ENERGY_LOCAL_STIFFNESS_HH
 #define HARMONIC_ENERGY_LOCAL_STIFFNESS_HH
 
+//#define HARMONIC_ENERGY_FD_GRADIENT
+
 #include <dune/common/fmatrix.hh>
 #include <dune/grid/common/quadraturerules.hh>
 
@@ -27,12 +29,13 @@ public:
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
                const std::vector<TargetSpace>& localSolution) const;
-               
+
+#ifndef HARMONIC_ENERGY_FD_GRADIENT
     /** \brief Assemble the gradient of the energy functional on one element */
     virtual void assembleEmbeddedGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
-
+#endif
 };
 
 template <class GridView, class TargetSpace>
@@ -97,7 +100,7 @@ energy(const Entity& element,
     return 0.5 * energy;
 }
 
-
+#ifndef HARMONIC_ENERGY_FD_GRADIENT
 template <class GridView, class TargetSpace>
 void HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
 assembleEmbeddedGradient(const Entity& element,
@@ -141,7 +144,7 @@ assembleEmbeddedGradient(const Entity& element,
         // loop over all the element's degrees of freedom and compute the gradient wrt it
         for (size_t i=0; i<localSolution.size(); i++) {
          
-            Dune::array<Dune::FieldMatrix<double,gridDim,TargetSpace::EmbeddedTangentVector::size>, TargetSpace::EmbeddedTangentVector::size> derivativeDerivative;
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, gridDim,TargetSpace::EmbeddedTangentVector::size> derivativeDerivative;
             localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivativeDerivative);
         
             for (int j=0; j<derivative.rows; j++) {
@@ -154,11 +157,11 @@ assembleEmbeddedGradient(const Entity& element,
                 
             }
             
-            
-            
         }
-    }
-}
 
+	}
+
+}
+#endif
 #endif
 

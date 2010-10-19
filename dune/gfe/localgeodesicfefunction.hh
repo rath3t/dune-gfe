@@ -44,6 +44,17 @@ Dune::FieldMatrix<K,m,n> operator- ( const Dune::FieldMatrix<K, m, n> &A, const 
     return ret;
 }
 
+#if 0
+template< class K, int m, int n>
+void transpose(Dune::FieldMatrix<K, m, n> &A)
+{
+   for( size_type i = 0; i < m; ++i )
+        for( size_type j = 0; j < i; ++j )
+			std::swap(A[i][j], A[j][i]);
+}
+#endif
+
+
 /** \brief A function defined by simplicial geodesic interpolation 
            from the reference element to a Riemannian manifold.
     
@@ -56,7 +67,7 @@ class LocalGeodesicFEFunction
 {
     
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
-    static const int targetDim = EmbeddedTangentVector::size;
+    static const int embeddedDim = EmbeddedTangentVector::size;
 
 public:
 
@@ -77,7 +88,7 @@ public:
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Dune::array<Dune::FieldMatrix<double,dim,TargetSpace::EmbeddedTangentVector::size>, TargetSpace::EmbeddedTangentVector::size>& result) const;
+                                                    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,dim,TargetSpace::EmbeddedTangentVector::size>& result) const;
 
 private:
 
@@ -103,22 +114,22 @@ private:
         return result;
     }
 
-    static Dune::FieldMatrix<double,targetDim,targetDim> pseudoInverse(const Dune::FieldMatrix<double,targetDim,targetDim>& A)
+    static Dune::FieldMatrix<double,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<double,embeddedDim,embeddedDim>& A)
     {
-        Dune::FieldMatrix<double,targetDim,targetDim> U = A;
-        Dune::FieldVector<double,targetDim> W;
-        Dune::FieldMatrix<double,targetDim,targetDim> V;
+        Dune::FieldMatrix<double,embeddedDim,embeddedDim> U = A;
+        Dune::FieldVector<double,embeddedDim> W;
+        Dune::FieldMatrix<double,embeddedDim,embeddedDim> V;
 
         svdcmp(U,W,V);
 
         // pseudoInv = V W^{-1} U^T
-        Dune::FieldMatrix<double,targetDim,targetDim> UT;
+        Dune::FieldMatrix<double,embeddedDim,embeddedDim> UT;
 
-        for (int i=0; i<targetDim; i++)
-            for (int j=0; j<targetDim; j++)
+        for (int i=0; i<embeddedDim; i++)
+            for (int j=0; j<embeddedDim; j++)
                 UT[i][j] = U[j][i];
 
-        for (int i=0; i<targetDim; i++) {
+        for (int i=0; i<embeddedDim; i++) {
             if (std::abs(W[i]) > 1e-12)  // Diagonal may be zero, that's why we're using the pseudo inverse
                 UT[i] /= W[i];
             else
@@ -162,16 +173,14 @@ template <int dim, class ctype, class TargetSpace>
 Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 {
-    const int targetDim = EmbeddedTangentVector::size;
-
-    Dune::FieldMatrix<ctype, targetDim, dim> result;
+    Dune::FieldMatrix<ctype, embeddedDim, dim> result;
 
 #if 0  // this is probably faster than the general implementation, but we leave it out for testing purposes
     if (dim==1) {
 
         EmbeddedTangentVector tmp = TargetSpace::interpolateDerivative(coefficients_[0], coefficients_[1], local[0]);
 
-        for (int i=0; i<targetDim; i++)
+        for (int i=0; i<embeddedDim; i++)
             result[i][0] = tmp[i];
 
     }
@@ -189,23 +198,23 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     Dune::FieldMatrix<ctype,dim+1,dim> B = referenceToBarycentricLinearPart();
 
     // compute negative derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::FieldMatrix<ctype,targetDim,dim+1> dFdw;
+    Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw;
     for (int i=0; i<dim+1; i++) {
-        Dune::FieldVector<ctype,targetDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
-        for (int j=0; j<targetDim; j++)
+        Dune::FieldVector<ctype,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
+        for (int j=0; j<embeddedDim; j++)
             dFdw[j][i] = tmp[j];
     }
 
     dFdw *= -1;
 
     // multiply the two previous matrices: the result is the right hand side
-    Dune::FieldMatrix<ctype,targetDim,dim> RHS = dFdw * B;
+    Dune::FieldMatrix<ctype,embeddedDim,dim> RHS = dFdw * B;
 
     // the actual system matrix
     std::vector<ctype> w = barycentricCoordinates(local);
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
-    Dune::FieldMatrix<ctype,targetDim,targetDim> dFdq(0);
+    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleHessian(q,dFdq);
 
     // ////////////////////////////////////
@@ -215,18 +224,18 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
     // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
     // best way, though.
-    Dune::FieldMatrix<ctype,targetDim,targetDim> dFdqPseudoInv = pseudoInverse(dFdq);
+    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq);
 
     for (int i=0; i<dim; i++) {
 
-        Dune::FieldVector<ctype,targetDim> rhs, x;
-        for (int j=0; j<targetDim; j++)
+        Dune::FieldVector<ctype,embeddedDim> rhs, x;
+        for (int j=0; j<embeddedDim; j++)
             rhs[j] = RHS[j][i];
 
         //dFdq.solve(x, rhs);
         dFdqPseudoInv.mv(rhs,x);
 
-        for (int j=0; j<targetDim; j++)
+        for (int j=0; j<embeddedDim; j++)
             result[j][i] = x[j];
 
     }
@@ -265,9 +274,9 @@ template <int dim, class ctype, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                            int coefficient,
-                                           Dune::array<Dune::FieldMatrix<double,dim,TargetSpace::EmbeddedTangentVector::size>, TargetSpace::EmbeddedTangentVector::size>& result) const
+                                           Tensor3<double, TargetSpace::EmbeddedTangentVector::size,dim,TargetSpace::EmbeddedTangentVector::size>& result) const
 {
-    const int targetDim = EmbeddedTangentVector::size;
+    const int embeddedDim = EmbeddedTangentVector::size;
     
     // the function value at the point where we are evaluating the derivative
     TargetSpace q = evaluate(local);
@@ -276,10 +285,10 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     Dune::FieldMatrix<ctype,dim+1,dim> B = referenceToBarycentricLinearPart();
     
     // compute derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::FieldMatrix<ctype,targetDim,dim+1> dFdw;
+    Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw;
     for (int i=0; i<dim+1; i++) {
-        Dune::FieldVector<ctype,targetDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
-        for (int j=0; j<targetDim; j++)
+        Dune::FieldVector<ctype,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
+        for (int j=0; j<embeddedDim; j++)
             dFdw[j][i] = tmp[j];
     }
     
@@ -287,29 +296,31 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     std::vector<ctype> w = barycentricCoordinates(local);
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
-    Dune::FieldMatrix<ctype,targetDim,targetDim> dFdq(0);
+    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleHessian(q,dFdq);
     
    
-    Tensor3<double,dim+1,targetDim,dim+1> dcDwF;
-    for (size_t i=0; i<dcDwF.size(); i++)
-        dcDwF[i] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[i], q);
+	Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> mixedDerivative = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
+    Tensor3<double,embeddedDim,embeddedDim,dim+1> dpDwF(0);
+	for (int i=0; i<embeddedDim; i++)
+		for (int j=0; j<embeddedDim; j++)
+			dpDwF[i][j][coefficient] = mixedDerivative[i][j];
     
     
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
     // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
     // best way, though.
-    Dune::FieldMatrix<ctype,targetDim,targetDim> dFdqPseudoInv = pseudoInverse(dFdq);
+    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq);
     
     // Put it all together
     for (size_t i=0; i<result.size(); i++) {
         
         //
-        Tensor3<double,targetDim,targetDim,targetDim> dcDqF
+        Tensor3<double,embeddedDim,embeddedDim,embeddedDim> dcDqF
            =  TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(coefficients_[i], q);
     
     
-        result[i] = dFdqPseudoInv * ( dcDqF[i] * dFdqPseudoInv * dFdw - dcDwF[i]) * B;   
+        result[i] = dFdqPseudoInv * ( dcDqF[i] * dFdqPseudoInv * dFdw - dpDwF[i]) * B;   
      
     }
     
