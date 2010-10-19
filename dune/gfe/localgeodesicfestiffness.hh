@@ -16,21 +16,21 @@ class LocalGeodesicFEStiffnessImp
 public:
 
     template <int N>
-    static Dune::FieldVector<double,N> infinitesimalVariation(const RealTuple<N>& c, double eps, int i)
+    static void infinitesimalVariation(RealTuple<N>& c, double eps, int i)
     {
         Dune::FieldVector<double,N> v(0);
         v[i] = eps;
-        return RealTuple<N>::exp(c,v).globalCoordinates();
+        c = RealTuple<N>::exp(c,v).globalCoordinates();
     }
 
     /** \brief For the fd approximations 
     */
     template <int N>
-    static Dune::FieldVector<double,N> infinitesimalVariation(const UnitVector<N>& c, double eps, int i)
+    static void infinitesimalVariation(UnitVector<N>& c, double eps, int i)
     {
         Dune::FieldVector<double,N> result = c.globalCoordinates();
         result[i] += eps;
-        return result;
+        c = result;
     }
 
 };
@@ -377,8 +377,10 @@ public:
             // The return value does not have unit norm.  But assigning it to a UnitVector object
             // will normalize it.  This amounts to an extension of the energy functional 
             // to a neighborhood around S^n
-            forwardSolution[component]  = LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(localSolution[component],  eps, j);
-            backwardSolution[component] = LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(localSolution[component], -eps, j);
+            forwardSolution[component]  = localSolution[component];
+            backwardSolution[component] = localSolution[component];
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardSolution[component],  eps, j);
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardSolution[component], -eps, j);
             
             std::vector<Dune::FieldVector<double,embeddedBlocksize> > forwardGradient;
             std::vector<Dune::FieldVector<double,embeddedBlocksize> > backwardGradient;
@@ -404,10 +406,8 @@ public:
                     for (int k=0; k<embeddedBlocksize; k++)
                         gradient[i][k][j] = tmp[k];
                 }
-                
 
         }
-
 
     }
 
@@ -443,8 +443,10 @@ assembleEmbeddedGradient(const Entity& element,
             // The return value does not have unit norm.  But assigning it to a UnitVector object
             // will normalize it.  This amounts to an extension of the energy functional 
             // to a neighborhood around S^n
-            forwardSolution[i]  = LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(localSolution[i],  eps, j);
-            backwardSolution[i] = LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(localSolution[i], -eps, j);
+            forwardSolution[i]  = localSolution[i];
+            backwardSolution[i] = localSolution[i];
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardSolution[i],  eps, j);
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardSolution[i], -eps, j);
 
             localGradient[i][j] = (energy(element,forwardSolution) - energy(element,backwardSolution))
                 / (2*eps);
