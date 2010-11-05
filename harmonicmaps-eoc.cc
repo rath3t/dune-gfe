@@ -247,13 +247,13 @@ int main (int argc, char *argv[]) try
         // Interpret TargetSpace as isometrically embedded into an R^m, because this is
         // how the corresponding Sobolev spaces are defined.
 
-        BlockVector<TargetSpace::TangentVector> difference(referenceSolution.size());
+        BlockVector<TargetSpace::CoordinateType> difference(referenceSolution.size());
 
         for (int j=0; j<referenceSolution.size(); j++)
             difference[j] = solution[j].globalCoordinates() - referenceSolution[j].globalCoordinates();
 
-        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > h1Norm(laplace);
-        H1SemiNorm< BlockVector<TargetSpace::TangentVector> > l2Norm(massMatrix);
+        H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > h1Norm(laplace);
+        H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > l2Norm(massMatrix);
 
         // Compute max-norm difference
         std::cout << "Level: " << i-1 
