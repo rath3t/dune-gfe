@@ -35,6 +35,10 @@ public:
     virtual void assembleEmbeddedGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
+                                    
+    virtual void assembleGradient(const Entity& element,
+                                  const std::vector<TargetSpace>& localSolution,
+                                  std::vector<typename TargetSpace::TangentVector>& localGradient) const;
 #endif
 };
 
@@ -109,7 +113,7 @@ assembleEmbeddedGradient(const Entity& element,
 {
     // initialize gradient
     localGradient.resize(localSolution.size());
-    std::fill(localGradient.begin(), localGradient.end(), typename TargetSpace::TangentVector(0));
+    std::fill(localGradient.begin(), localGradient.end(), typename TargetSpace::EmbeddedTangentVector(0));
 
     // Set up local gfe function from the  local coefficients
     LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(localSolution);
@@ -160,6 +164,25 @@ assembleEmbeddedGradient(const Entity& element,
         }
 
 	}
+
+}
+
+template <class GridView, class TargetSpace>
+void HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
+assembleGradient(const Entity& element,
+                 const std::vector<TargetSpace>& localSolution,
+                 std::vector<typename TargetSpace::TangentVector>& localGradient) const
+{
+    std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
+
+    // first compute the gradient in embedded coordinates
+    assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient);
+
+    // transform to coordinates on the tangent space
+    localGradient.resize(embeddedLocalGradient.size());
+
+    for (size_t i=0; i<localGradient.size(); i++)
+        localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
 
 }
 #endif
