@@ -1,8 +1,6 @@
 #ifndef HARMONIC_ENERGY_LOCAL_STIFFNESS_HH
 #define HARMONIC_ENERGY_LOCAL_STIFFNESS_HH
 
-//#define HARMONIC_ENERGY_FD_GRADIENT
-
 #include <dune/common/fmatrix.hh>
 #include <dune/grid/common/quadraturerules.hh>
 

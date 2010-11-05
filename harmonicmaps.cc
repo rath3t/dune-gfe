@@ -2,6 +2,8 @@
 
 #include <fenv.h>
 
+//#define HARMONIC_ENERGY_FD_GRADIENT
+
 #define UNITVECTOR2
 //#define UNITVECTOR3
 //#define ROTATION2

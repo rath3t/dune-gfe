@@ -1,5 +1,7 @@
 #include <config.h>
 
+#define HARMONIC_ENERGY_FD_GRADIENT
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/configparser.hh>
 
