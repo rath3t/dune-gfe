@@ -293,12 +293,38 @@ public:
     Dune::FieldMatrix<double,N-1,N> orthonormalFrame() const {
 
         Dune::FieldMatrix<double,N-1,N> result;
+
+        // Coordinates of the stereographic projection
+        Dune::FieldVector<double,N-1> X;
         
-        if (N==2) {
-            result[0][0] = -data_[1];
-            result[0][1] =  data_[0];
-        } else
-            DUNE_THROW(Dune::NotImplemented, "orthonormalFrame for N!=2!");
+        if (data_[N-1] <= 0) {
+            
+            // Stereographic projection from the north pole onto R^{N-1}
+            for (size_t i=0; i<N-1; i++)
+                X[i] = data_[i] / (1-data_[N-1]);
+            
+        } else {
+            
+            // Stereographic projection from the south pole onto R^{N-1}
+            for (size_t i=0; i<N-1; i++)
+                X[i] = data_[i] / (1+data_[N-1]);
+            
+        }
+            
+        double RSquared = X.two_norm2();
+            
+        for (size_t i=0; i<N-1; i++)
+            for (size_t j=0; j<N-1; j++)
+                // Note: the matrix is the transpose of the one in the paper
+                result[j][i] = 2*(i==j)*(1+RSquared) - 4*X[i]*X[j];
+                
+        for (size_t j=0; j<N-1; j++)
+            result[j][N-1] = 4*X[j];
+            
+        // Upper hemisphere: adapt formulas so it is the stereographic projection from the south pole
+        if (data_[N-1] > 0) 
+            for (size_t j=0; j<N-1; j++)
+                result[j][N-1] *= -1;
         
         return result;
     }
