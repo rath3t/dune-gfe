@@ -174,8 +174,10 @@ int main (int argc, char *argv[]) try
 
     array<unsigned int,dim> elements;
     elements.fill(numBaseElements);
-    shared_ptr<GridType> referenceGrid = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
-                                                                                            FieldVector<double,dim>(1),
+    FieldVector<double,dim> lowerLeft  = parameterSet.get<FieldVector<double,dim> >("lowerLeft");
+    FieldVector<double,dim> upperRight = parameterSet.get<FieldVector<double,dim> >("upperRight");
+    shared_ptr<GridType> referenceGrid = StructuredGridFactory<GridType>::createSimplexGrid(lowerLeft,
+                                                                                            upperRight,
                                                                                             elements);
     referenceGrid->globalRefine(numLevels-1);
 
@@ -208,8 +210,8 @@ int main (int argc, char *argv[]) try
 
         array<unsigned int,dim> elements;
         elements.fill(numBaseElements);
-        shared_ptr<GridType> grid = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
-                                                                                       FieldVector<double,dim>(1),
+        shared_ptr<GridType> grid = StructuredGridFactory<GridType>::createSimplexGrid(lowerLeft,
+                                                                                       upperRight,
                                                                                        elements);
 
         grid->globalRefine(i-1);

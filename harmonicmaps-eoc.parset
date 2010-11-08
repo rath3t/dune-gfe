@@ -29,3 +29,7 @@ baseTolerance = -1
 # Number of elements of the rod grid
 numBaseElements = 4
 
+# Bounding box
+lowerLeft = -2 -1
+upperRight = 2 1
+
