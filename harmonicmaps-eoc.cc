@@ -76,7 +76,7 @@ void solve (const shared_ptr<GridType>& grid,
         int idx = grid->leafIndexSet().index(*vIt);
 
         FieldVector<double,3> v;
-        FieldVector<double,2> pos = vIt->geometry().corner(0);
+        FieldVector<double,dim> pos = vIt->geometry().corner(0);
         FieldVector<double,3> axis;
         axis[0] = pos[0];  axis[1] = pos[1]; axis[2] = 1;
         Rotation<3,double> rotation(axis, pos.two_norm()*M_PI*3);
