@@ -2,10 +2,10 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/ag-common/functionspacebases/p1nodalbasis.hh>
-#include <dune/ag-common/assemblers/operatorassembler.hh>
-#include <dune/ag-common/assemblers/localassemblers/laplaceassembler.hh>
-#include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/assemblers/operatorassembler.hh>
+#include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
+#include <dune/fufem/assemblers/localassemblers/massassembler.hh>
 
 // Using a monotone multigrid as the inner solver
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
