@@ -88,7 +88,7 @@ public:
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,dim,TargetSpace::EmbeddedTangentVector::size>& result) const;
+                                                    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const;
 
 private:
 
@@ -280,7 +280,7 @@ template <int dim, class ctype, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                            int coefficient,
-                                           Tensor3<double, TargetSpace::EmbeddedTangentVector::size,dim,TargetSpace::EmbeddedTangentVector::size>& result) const
+                                           Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const
 {
     const int embeddedDim = EmbeddedTangentVector::size;
     

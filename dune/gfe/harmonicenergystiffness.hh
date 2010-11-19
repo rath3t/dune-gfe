@@ -146,14 +146,15 @@ assembleEmbeddedGradient(const Entity& element,
         // loop over all the element's degrees of freedom and compute the gradient wrt it
         for (size_t i=0; i<localSolution.size(); i++) {
          
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, gridDim,TargetSpace::EmbeddedTangentVector::size> derivativeDerivative;
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,gridDim> derivativeDerivative;
             localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivativeDerivative);
         
             for (int j=0; j<derivative.rows; j++) {
                 
                 for (int k=0; k<derivative.cols; k++) {
                     
-                    localGradient[i].axpy(weight*derivative[j][k], derivativeDerivative[j][k]);
+                    for (int l=0; l<TargetSpace::EmbeddedTangentVector::size; l++)
+                        localGradient[i][l] += weight*derivative[j][k] * derivativeDerivative[l][j][k];
                     
                 }
                 
