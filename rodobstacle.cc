@@ -13,8 +13,8 @@
 #include <dune/solvers/norms/energynorm.hh>
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
-#include <dune/ag-common/estimators/geometricmarking.hh>
-#include <dune/ag-common/boundarypatch.hh>
+#include <dune/fufem/estimators/geometricmarking.hh>
+#include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/rodwriter.hh>
 #include <dune/gfe/rodassembler.hh>
