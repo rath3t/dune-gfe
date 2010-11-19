@@ -139,6 +139,18 @@ private:
         return V*UT;
     }
     
+    /** \brief Compute derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w */
+    Dune::FieldMatrix<ctype,embeddedDim,dim+1> computeDFdw(const TargetSpace& q) const
+    {
+        Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw;
+        for (int i=0; i<dim+1; i++) {
+            Dune::FieldVector<ctype,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
+            for (int j=0; j<embeddedDim; j++)
+                dFdw[j][i] = tmp[j];
+        }
+        return dFdw;
+    }
+    
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
 
@@ -198,13 +210,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     Dune::FieldMatrix<ctype,dim+1,dim> B = referenceToBarycentricLinearPart();
 
     // compute negative derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw;
-    for (int i=0; i<dim+1; i++) {
-        Dune::FieldVector<ctype,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
-        for (int j=0; j<embeddedDim; j++)
-            dFdw[j][i] = tmp[j];
-    }
-
+    Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw = computeDFdw(q);
     dFdw *= -1;
 
     // multiply the two previous matrices: the result is the right hand side
@@ -285,12 +291,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     Dune::FieldMatrix<ctype,dim+1,dim> B = referenceToBarycentricLinearPart();
     
     // compute derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw;
-    for (int i=0; i<dim+1; i++) {
-        Dune::FieldVector<ctype,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
-        for (int j=0; j<embeddedDim; j++)
-            dFdw[j][i] = tmp[j];
-    }
+    Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw = computeDFdw(q);
     
     // the actual system matrix
     std::vector<ctype> w = barycentricCoordinates(local);
