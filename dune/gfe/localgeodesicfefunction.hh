@@ -317,11 +317,11 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     for (size_t i=0; i<result.size(); i++) {
         
         //
-        Tensor3<double,embeddedDim,embeddedDim,embeddedDim> dcDqF
+        Tensor3<double,embeddedDim,embeddedDim,embeddedDim> dvDqF
            =  TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(coefficients_[i], q);
     
     
-        result[i] = dFdqPseudoInv * ( dcDqF[i] * dFdqPseudoInv * dFdw - dpDwF[i]) * B;   
+        result[i] = dFdqPseudoInv * ( dvDqF[i] * dFdqPseudoInv * dFdw - dpDwF[i]) * B;   
      
     }
     
