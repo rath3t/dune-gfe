@@ -16,17 +16,17 @@
 #ifdef HAVE_IPOPT
 #include <dune/solvers/solvers/quadraticipopt.hh>
 #endif
-#include <dune/ag-common/readbitfield.hh>
+#include <dune/fufem/readbitfield.hh>
 #include <dune/solvers/norms/energynorm.hh>
-#include <dune/ag-common/boundarypatch.hh>
-#include <dune/ag-common/prolongboundarypatch.hh>
-#include <dune/ag-common/sampleonbitfield.hh>
-#include <dune/ag-common/neumannassembler.hh>
-#include <dune/ag-common/computestress.hh>
+#include <dune/fufem/boundarypatch.hh>
+#include <dune/fufem/prolongboundarypatch.hh>
+#include <dune/fufem/sampleonbitfield.hh>
+#include <dune/fufem/neumannassembler.hh>
+#include <dune/fufem/computestress.hh>
 
-#include <dune/ag-common/functionspacebases/q1nodalbasis.hh>
-#include <dune/ag-common/assemblers/operatorassembler.hh>
-#include <dune/ag-common/assemblers/localassemblers/stvenantkirchhoffassembler.hh>
+#include <dune/fufem/functionspacebases/q1nodalbasis.hh>
+#include <dune/fufem/assemblers/operatorassembler.hh>
+#include <dune/fufem/assemblers/localassemblers/stvenantkirchhoffassembler.hh>
 
 #include <dune/gfe/quaternion.hh>
 #include <dune/gfe/rodassembler.hh>
