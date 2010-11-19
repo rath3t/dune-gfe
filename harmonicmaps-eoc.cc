@@ -10,10 +10,10 @@
 #include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
 
-#include <dune/ag-common/functionspacebases/p1nodalbasis.hh>
-#include <dune/ag-common/assemblers/operatorassembler.hh>
-#include <dune/ag-common/assemblers/localassemblers/laplaceassembler.hh>
-#include <dune/ag-common/assemblers/localassemblers/massassembler.hh>
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/assemblers/operatorassembler.hh>
+#include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
+#include <dune/fufem/assemblers/localassemblers/massassembler.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
