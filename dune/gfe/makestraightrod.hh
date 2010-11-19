@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <dune/common/fvector.hh>
-#include <dune/ag-common/crossproduct.hh>
+#include <dune/fufem/crossproduct.hh>
 
 #include "rigidbodymotion.hh"
 

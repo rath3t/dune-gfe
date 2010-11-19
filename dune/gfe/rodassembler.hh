@@ -6,7 +6,7 @@
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
 
-#include <dune/ag-common/boundarypatch.hh>
+#include <dune/fufem/boundarypatch.hh>
 
 #include "rigidbodymotion.hh"
 #include "rodlocalstiffness.hh"

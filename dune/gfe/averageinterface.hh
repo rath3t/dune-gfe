@@ -4,9 +4,9 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
-#include <dune/ag-common/dgindexset.hh>
-#include <dune/ag-common/crossproduct.hh>
-#include <dune/ag-common/surfmassmatrix.hh>
+#include <dune/fufem/dgindexset.hh>
+#include <dune/fufem/crossproduct.hh>
+#include <dune/fufem/surfmassmatrix.hh>
 #include <dune/solvers/numproc.hh>
 
 #include "svd.hh"
