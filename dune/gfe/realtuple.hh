@@ -20,6 +20,9 @@ public:
     /** \brief Global coordinates wrt an isometric embedding function are available */
     static const bool globalIsometricCoordinates = true;
 
+    /** \brief The type used for global coordinates */
+    typedef Dune::FieldVector<double,N> CoordinateType;
+    
     /** \brief Dimension of the manifold formed by unit vectors */
     static const int dim = N;
 
