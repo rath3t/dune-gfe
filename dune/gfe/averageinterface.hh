@@ -815,4 +815,95 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
     average.q.set(deformationGradient);
 }
 
+/** \brief Set a Dirichlet value that corresponds to a given rigid body motion
+ */
+template <class GridView>
+void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
+                 Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> > deformation,
+                 const RigidBodyMotion<3>& relativeMovement)
+{
+    const typename GridView::IndexSet& indexSet = dirichletBoundary.gridView().indexSet();
+    const int dim        = GridView::dimension;
+
+    // ///////////////////////////////////////////
+    //   Loop over all vertices
+    // ///////////////////////////////////////////
+
+    typename BoundaryPatchBase<GridView>::iterator it    = dirichletBoundary.begin();
+    typename BoundaryPatchBase<GridView>::iterator endIt = dirichletBoundary.end();
+
+    for (; it!=endIt; ++it) {
+        
+        int indexInInside = it->indexInInside();
+        int nCorners  = Dune::GenericReferenceElements<double,dim>::general(it->inside()->type()).size(indexInInside, 1, dim);
+
+        for (int i=0; i<nCorners; i++) {
+            int cornerIdx = Dune::GenericReferenceElements<double,dim>::general(it->inside()->type()).subEntity(it->indexInInside(), 1, i, dim);
+            int globalIdx = indexSet.subIndex(*it->inside(), cornerIdx, dim);
+            deformation[globalIdx] = relativeMovement.r;
+#warning Rotations-Anteil fehlt noch!
+        }
+        
+    }
+    
+}
+
+template <class GridView>
+void getTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
+                            const Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> > boundaryStress,
+                            const Dune::FieldVector<double,GridView::dimensionworld>& centerOfRotation,
+                             Dune::FieldVector<double,GridView::dimensionworld>& averageForce,
+                             Dune::FieldVector<double,GridView::dimensionworld>& averageTorque
+                           )
+{
+    const int dim        = GridView::dimension;
+
+    // ///////////////////////////////////////////
+    //   Initialize output configuration
+    // ///////////////////////////////////////////
+    averageForce = 0;
+    averageTorque = 0;
+    
+    ////////////////////////////////////////////////////////////////
+    //  Interpret the Neumann value coefficients as a P1 function
+    ////////////////////////////////////////////////////////////////
+    typedef P1NodalBasis<GridView,double> P1Basis;
+    P1Basis p1Basis(interface.gridView());
+    GenericGridFunction<P1Basis, dim> neumannFunction(p1Basis, boundaryStress);
+    
+    // ///////////////////////////////////////////
+    //   Loop and integrate over the interface
+    // ///////////////////////////////////////////
+
+    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
+    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
+
+    for (; it!=endIt; ++it) {
+
+        const typename BoundaryPatchBase<GridView>::iterator::Intersection::Geometry& segmentGeometry = it->geometry();
+
+        // Get quadrature rule
+        const Dune::QuadratureRule<double, dim-1>& quad = Dune::QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
+
+        /* Loop over all integration points */
+        for (size_t ip=0; ip<quad.size(); ip++) {
+                
+            // Local position of the quadrature point
+            const Dune::FieldVector<double,dim> quadPos = it->geometryInInside().global(quad[ip].position());
+            const Dune::FieldVector<double,dim> worldPos = it->geometry().global(quad[ip].position());
+            
+            const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
+
+            Dune::FieldVector<double,dim> value;
+            neumannFunction.evalalllocal(*it->inside(), quadPos, value);
+            
+            averageForce.axpy(quad[ip].weight() * integrationElement, value);
+            averageTorque.axpy(quad[ip].weight() * integrationElement, crossProduct(value,worldPos-centerOfRotation));
+            
+        }
+
+    }
+
+}
+
 #endif
