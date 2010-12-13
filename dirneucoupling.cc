@@ -66,8 +66,13 @@ int main (int argc, char *argv[]) try
 
     // read solver settings
     const int numLevels            = parameterSet.get<int>("numLevels");
-    const double ddTolerance           = parameterSet.get<double>("ddTolerance");
-    const int maxDirichletNeumannSteps = parameterSet.get<int>("maxDirichletNeumannSteps");
+    string ddType                = parameterSet.get<string>("ddType");
+    string preconditioner        = parameterSet.get<string>("preconditioner");
+    const double ddTolerance     = parameterSet.get<double>("ddTolerance");
+    const int maxDDIterations    = parameterSet.get<int>("maxDirichletNeumannSteps");
+    const double damping         = parameterSet.get<double>("damping");
+    
+    
     const double trTolerance           = parameterSet.get<double>("trTolerance");
     const int maxTrustRegionSteps = parameterSet.get<int>("maxTrustRegionSteps");
     const int trVerbosity            = parameterSet.get<int>("trVerbosity");
@@ -79,7 +84,6 @@ int main (int argc, char *argv[]) try
     const double mgTolerance     = parameterSet.get<double>("mgTolerance");
     const double baseTolerance = parameterSet.get<double>("baseTolerance");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
-    const double damping         = parameterSet.get<double>("damping");
     string resultPath           = parameterSet.get("resultPath", "");
 
     // Problem settings
@@ -329,92 +333,239 @@ int main (int argc, char *argv[]) try
     //
     double normOfOldCorrection = 0;
     int dnStepsActuallyTaken = 0;
-    for (int i=0; i<maxDirichletNeumannSteps; i++) {
+    for (int i=0; i<maxDDIterations; i++) {
         
         std::cout << "----------------------------------------------------" << std::endl;
-        std::cout << "      Dirichlet-Neumann Step Number: " << i << std::endl;
+        std::cout << "      Domain-Decomposition- Step Number: " << i       << std::endl;
         std::cout << "----------------------------------------------------" << std::endl;
         
         // Backup of the current solution for the error computation later on
         VectorType      oldSolution3d  = x3d;
         RodSolutionType oldSolutionRod = rodX;
+        
+        RigidBodyMotion<3> averageInterface;
 
-        // //////////////////////////////////////////////////
-        //   Dirichlet step for the rod
-        // //////////////////////////////////////////////////
+        if (ddType=="FixedPointIteration") {
 
-        rodX[0] = lambda;
-        rodSolver.setInitialSolution(rodX);
-        rodSolver.solve();
+            // //////////////////////////////////////////////////
+            //   Dirichlet step for the rod
+            // //////////////////////////////////////////////////
 
-        rodX = rodSolver.getSol();
+            rodX[0] = lambda;
+            rodSolver.setInitialSolution(rodX);
+            rodSolver.solve();
+
+            rodX = rodSolver.getSol();
 
 //         for (int j=0; j<rodX.size(); j++)
 //             std::cout << rodX[j] << std::endl;
 
-        // ///////////////////////////////////////////////////////////
-        //   Extract Neumann values and transfer it to the 3d object
-        // ///////////////////////////////////////////////////////////
+            // ///////////////////////////////////////////////////////////
+            //   Extract Neumann values and transfer it to the 3d object
+            // ///////////////////////////////////////////////////////////
 
-        BitSetVector<1> couplingBitfield(rodX.size(),false);
-        // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-        couplingBitfield[0] = true;
-        LeafBoundaryPatch<RodGridType> couplingBoundary(rodGrid, couplingBitfield);
+            BitSetVector<1> couplingBitfield(rodX.size(),false);
+            // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+            couplingBitfield[0] = true;
+            LeafBoundaryPatch<RodGridType> couplingBoundary(rodGrid, couplingBitfield);
 
-        FieldVector<double,dim> resultantForce, resultantTorque;
-        resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
+            FieldVector<double,dim> resultantForce, resultantTorque;
+            resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
 
-        // Flip orientation
-        resultantForce  *= -1;
-        resultantTorque *= -1;
+            // Flip orientation
+            resultantForce  *= -1;
+            resultantTorque *= -1;
         
-        std::cout << "resultant force: " << resultantForce << std::endl;
-        std::cout << "resultant torque: " << resultantTorque << std::endl;
+            std::cout << "resultant force: " << resultantForce << std::endl;
+            std::cout << "resultant torque: " << resultantTorque << std::endl;
 
-        VectorType neumannValues(rhs3d.size());
+            VectorType neumannValues(rhs3d.size());
 
-        // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-        computeAveragePressure<GridType>(resultantForce, resultantTorque, 
+            // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+            computeAveragePressure<GridType>(resultantForce, resultantTorque, 
                                               interfaceBoundary[grid.maxLevel()], 
                                               rodX[0],
                                               neumannValues);
 
-        rhs3d = 0;
-        assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[grid.maxLevel()],
+            rhs3d = 0;
+            assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[grid.maxLevel()],
                                                         neumannValues,
                                                         rhs3d);
 
-        // ///////////////////////////////////////////////////////////
-        //   Solve the Neumann problem for the 3d body
-        // ///////////////////////////////////////////////////////////
-        multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
+            // ///////////////////////////////////////////////////////////
+            //   Solve the Neumann problem for the continuum
+            // ///////////////////////////////////////////////////////////
+            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
         
-        solver.preprocess();
-        multigridStep.preprocess();
+            solver.preprocess();
+            multigridStep.preprocess();
         
-        solver.solve();
+            solver.solve();
         
-        x3d = multigridStep.getSol();
+            x3d = multigridStep.getSol();
 
-        // ///////////////////////////////////////////////////////////
-        //   Extract new interface position and orientation
-        // ///////////////////////////////////////////////////////////
+            // ///////////////////////////////////////////////////////////
+            //   Extract new interface position and orientation
+            // ///////////////////////////////////////////////////////////
 
-        RigidBodyMotion<3> averageInterface;
-        computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
+            computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
 
         //averageInterface.r[0] = averageInterface.r[1] = 0;
         //averageInterface.q = Quaternion<double>::identity();
-        std::cout << "average interface: " << averageInterface << std::endl;
+            std::cout << "average interface: " << averageInterface << std::endl;
 
-        std::cout << "director 0:  " << averageInterface.q.director(0) << std::endl;
-        std::cout << "director 1:  " << averageInterface.q.director(1) << std::endl;
-        std::cout << "director 2:  " << averageInterface.q.director(2) << std::endl;
-        std::cout << std::endl;
+            std::cout << "director 0:  " << averageInterface.q.director(0) << std::endl;
+            std::cout << "director 1:  " << averageInterface.q.director(1) << std::endl;
+            std::cout << "director 2:  " << averageInterface.q.director(2) << std::endl;
+            std::cout << std::endl;
 
-        // ///////////////////////////////////////////////////////////
+           
+        } else if (ddType=="RichardsonIteration") {
+            
+            ///////////////////////////////////////////////////////////////////
+            //  One preconditioned Richardson step
+            ///////////////////////////////////////////////////////////////////
+            
+            ///////////////////////////////////////////////////////////////////
+            //  Evaluate the Dirichlet-to-Neumann map for the rod
+            ///////////////////////////////////////////////////////////////////
+
+            // solve a Dirichlet problem for the rod
+            rodX[0] = lambda;
+            rodSolver.setInitialSolution(rodX);
+            rodSolver.solve();
+
+            rodX = rodSolver.getSol();
+
+            //   Extract Neumann values
+
+            BitSetVector<1> couplingBitfield(rodX.size(),false);
+            // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+            couplingBitfield[0] = true;
+            LeafBoundaryPatch<RodGridType> couplingBoundary(rodGrid, couplingBitfield);
+
+            FieldVector<double,dim> resultantForce, resultantTorque;
+            resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
+
+            // Flip orientation
+            resultantForce  *= -1;
+            resultantTorque *= -1;
+        
+            std::cout << "resultant force: " << resultantForce << std::endl;
+            std::cout << "resultant torque: " << resultantTorque << std::endl;
+            
+            ///////////////////////////////////////////////////////////////////
+            //  Evaluate the Dirichlet-to-Neumann map for the continuum
+            ///////////////////////////////////////////////////////////////////
+
+            // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
+            RigidBodyMotion<3> relativeMovement;
+            relativeMovement.r = lambda.r - referenceInterface.r;
+            relativeMovement.q = referenceInterface.q;
+            relativeMovement.q.invert();
+            relativeMovement.q = lambda.q.mult(relativeMovement.q);
+            
+            setRotation(interfaceBoundary.back(), x3d, relativeMovement);
+            
+            // Solve the Dirichlet problem
+            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
+        
+            solver.preprocess();
+            multigridStep.preprocess();
+        
+            solver.solve();
+        
+            x3d = multigridStep.getSol();
+            
+            // Integrate over the residual on the coupling boundary to obtain
+            // an element of T^*SE.
+            FieldVector<double,3> continuumForce, continuumTorque;
+            
+            VectorType residual = rhs3d;
+            stiffnessMatrix3d.mmv(x3d,residual);
+            
+            /** \todo Is referenceInterface.r the correct center of rotation? */
+            getTotalForceAndTorque(interfaceBoundary.back(), residual, referenceInterface.r,
+                                   continuumForce, continuumTorque);
+            
+            ///////////////////////////////////////////////////////////////
+            //  Compute the overall Steklov-Poincare residual
+            ///////////////////////////////////////////////////////////////
+
+            FieldVector<double,3> residualForce  = resultantForce + continuumForce;
+            FieldVector<double,3> residualTorque = resultantTorque + continuumTorque;
+            
+            
+            
+            ///////////////////////////////////////////////////////////////
+            //  Apply the preconditioner
+            ///////////////////////////////////////////////////////////////
+            if (preconditioner=="DirichletNeumann") {
+                
+                ////////////////////////////////////////////////////////////////////
+                //  Preconditioner is the linearized Neumann-to-Dirichlet map
+                //  of the continuum.
+                ////////////////////////////////////////////////////////////////////
+                
+                VectorType neumannValues(rhs3d.size());
+
+                // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+                computeAveragePressure<GridType>(resultantForce, resultantTorque, 
+                                              interfaceBoundary[grid.maxLevel()], 
+                                              rodX[0],
+                                              neumannValues);
+
+                rhs3d = 0;
+                assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[grid.maxLevel()],
+                                                        neumannValues,
+                                                        rhs3d);
+
+                //   Solve the Neumann problem for the continuum
+                multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
+        
+                solver.preprocess();
+                multigridStep.preprocess();
+        
+                solver.solve();
+        
+                x3d = multigridStep.getSol();
+
+                //  Average the continuum displacement on the coupling boundary
+                computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
+                
+                
+            } else if (preconditioner=="NeumannDirichlet") {
+            
+                ////////////////////////////////////////////////////////////////////
+                //  Preconditioner is the linearized Neumann-to-Dirichlet map
+                //  of the rod.
+                ////////////////////////////////////////////////////////////////////
+
+                DUNE_THROW(NotImplemented, "Neumann-Dirichlet preconditioner not implemented yet");
+
+            } else if (preconditioner=="NeumannNeumann") {
+            
+                ////////////////////////////////////////////////////////////////////
+                //  Preconditioner is a convex combination of the linearized
+                //  Neumann-to-Dirichlet map of the continuum and the linearized
+                //  Neumann-to-Dirichlet map of the rod.
+                ////////////////////////////////////////////////////////////////////
+
+                DUNE_THROW(NotImplemented, "Neumann-Neumann preconditioner not implemented yet");
+                
+            } else if (preconditioner=="RobinRobin") {
+            
+                DUNE_THROW(NotImplemented, "Robin-Robin preconditioner not implemented yet");
+                
+            } else
+                DUNE_THROW(NotImplemented, preconditioner << " is not a known preconditioner");
+            
+        } else
+            DUNE_THROW(NotImplemented, ddType << " is not a known domain decomposition algorithm");
+
+        //////////////////////////////////////////////////////////////
         //   Compute new damped interface value
-        // ///////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////
         for (int j=0; j<dim; j++)
             lambda.r[j] = (1-damping) * lambda.r[j] 
                 + damping * (referenceInterface.r[j] + averageInterface.r[j]);
@@ -553,7 +704,7 @@ int main (int argc, char *argv[]) try
 
     // Store the history of total conv rates so we can filter out numerical
     // dirt in the end.
-    std::vector<double> totalConvRate(maxDirichletNeumannSteps+1);
+    std::vector<double> totalConvRate(maxDDIterations+1);
     totalConvRate[0] = 1;
 
 
