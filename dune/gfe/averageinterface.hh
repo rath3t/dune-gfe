@@ -611,7 +611,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     app->Options()->SetStringValue("output_file", "ipopt.out");
     app->Options()->SetStringValue("hessian_approximation", "limited-memory");
     app->Options()->SetStringValue("jac_c_constant", "yes");
-    app->Options()->SetIntegerValue("print_level", -2);
+    app->Options()->SetIntegerValue("print_level", 0);
 
     // Intialize the IpoptApplication and process the options
     Ipopt::ApplicationReturnStatus status;
