@@ -111,7 +111,15 @@ int main (int argc, char *argv[]) try
     rodRestEndPoint[1][0] = parameterSet.get<double>("rodRestEndPoint1X");
     rodRestEndPoint[1][1] = parameterSet.get<double>("rodRestEndPoint1Y");
     rodRestEndPoint[1][2] = parameterSet.get<double>("rodRestEndPoint1Z");
-
+    
+    //////////////////////////////////////////////////////////////////
+    //  Print the algorithm type so we have it in the log files
+    //////////////////////////////////////////////////////////////////
+    
+    std::cout << "Algorithm:      " << ddType << std::endl;
+    if (ddType=="RichardsonIteration")
+        std::cout << "Preconditioner: " << preconditioner << std::endl;
+    
     // ///////////////////////////////////////
     //    Create the rod grid
     // ///////////////////////////////////////
