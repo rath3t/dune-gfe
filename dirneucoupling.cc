@@ -392,7 +392,7 @@ int main (int argc, char *argv[]) try
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
             computeAveragePressure<GridType::LevelGridView>(resultantForce, resultantTorque, 
                                               interfaceBoundary[grid.maxLevel()], 
-                                              rodX[0],
+                                              rodX[0].r,
                                               neumannValues);
 
             rhs3d = 0;
@@ -520,7 +520,7 @@ int main (int argc, char *argv[]) try
                 // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
                 computeAveragePressure<GridType::LevelGridView>(resultantForce, resultantTorque, 
                                               interfaceBoundary[grid.maxLevel()], 
-                                              rodX[0],
+                                              rodX[0].r,
                                               neumannValues);
 
                 rhs3d = 0;

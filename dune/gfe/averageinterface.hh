@@ -472,7 +472,7 @@ template <class GridView>
 void computeAveragePressure(const Dune::FieldVector<double,GridView::dimension>& resultantForce,
                             const Dune::FieldVector<double,GridView::dimension>& resultantTorque,
                             const BoundaryPatchBase<GridView>& interface,
-                            const RigidBodyMotion<3>& crossSection,
+                            const Dune::FieldVector<double,GridView::dimension>& centerOfTorque,
                             Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& pressure)
 {
     const GridView& gridView                    = interface.gridView();
@@ -567,7 +567,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridView::dimension>&
                         phi_i[j] = shapeFunctionValues[i];
                         
                         mu_tilde[i][j].axpy(quad[qp].weight() * integrationElement,
-                                            crossProduct(Dune::FieldVector<double,dim>(worldPos-crossSection.r), phi_i));
+                                            crossProduct(Dune::FieldVector<double,dim>(worldPos-centerOfTorque), phi_i));
 
                     }
                     
@@ -653,7 +653,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridView::dimension>&
 
     Dune::FieldVector<double,3> outputForce(0), outputTorque(0);
 
-    computeTotalForceAndTorque(interface, pressure, crossSection.r, outputForce, outputTorque);
+    computeTotalForceAndTorque(interface, pressure, centerOfTorque, outputForce, outputTorque);
 
     outputForce  -= resultantForce;
     outputTorque -= resultantTorque;
