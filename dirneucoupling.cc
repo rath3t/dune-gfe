@@ -493,7 +493,7 @@ int main (int argc, char *argv[]) try
             stiffnessMatrix3d.mmv(x3d,residual);
             
             /** \todo Is referenceInterface.r the correct center of rotation? */
-            getTotalForceAndTorque(interfaceBoundary.back(), residual, referenceInterface.r,
+            computeTotalForceAndTorque(interfaceBoundary.back(), residual, referenceInterface.r,
                                    continuumForce, continuumTorque);
             
             ///////////////////////////////////////////////////////////////

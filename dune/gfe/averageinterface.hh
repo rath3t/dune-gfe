@@ -408,62 +408,59 @@ finalize_solution(Ipopt::SolverReturn status,
  */
 template <class GridView>
 void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
-                                const Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& pressure,
+                                const Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& boundaryStress,
                                 const Dune::FieldVector<double,3>& center,
-                                Dune::FieldVector<double,3>& outputForce, Dune::FieldVector<double,3>& outputTorque)
+                                Dune::FieldVector<double,3>& totalForce, Dune::FieldVector<double,3>& totalTorque)
 {
-    outputForce = outputTorque = 0;
-
     const int dim = GridView::dimension;
-    Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1> finiteElementCache;
 
-    for (typename BoundaryPatchBase<GridView>::iterator it=interface.begin(); 
-         it != interface.end(); 
-         ++it) {
+    // ///////////////////////////////////////////
+    //   Initialize output configuration
+    // ///////////////////////////////////////////
+    totalForce = 0;
+    totalTorque = 0;
+    
+    ////////////////////////////////////////////////////////////////
+    //  Interpret the Neumann value coefficients as a P1 function
+    ////////////////////////////////////////////////////////////////
+    typedef P1NodalBasis<GridView,double> P1Basis;
+    P1Basis p1Basis(interface.gridView());
+    GenericGridFunction<P1Basis, dim> neumannFunction(p1Basis, boundaryStress);
+    
+    // ///////////////////////////////////////////
+    //   Loop and integrate over the interface
+    // ///////////////////////////////////////////
 
-        // Get shape functions
-        const typename Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1>::FiniteElementType& 
-            localFiniteElement = finiteElementCache.get(it->type());
+    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
+    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
+
+    for (; it!=endIt; ++it) {
+
+        const typename BoundaryPatchBase<GridView>::iterator::Intersection::Geometry& segmentGeometry = it->geometry();
+
+        // Get quadrature rule
+        const Dune::QuadratureRule<double, dim-1>& quad = Dune::QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
+
+        /* Loop over all integration points */
+        for (size_t ip=0; ip<quad.size(); ip++) {
+                
+            // Local position of the quadrature point
+            const Dune::FieldVector<double,dim> quadPos = it->geometryInInside().global(quad[ip].position());
+            const Dune::FieldVector<double,dim> worldPos = it->geometry().global(quad[ip].position());
             
-            const Dune::QuadratureRule<double, dim-1>& quad 
-                = Dune::QuadratureRules<double, dim-1>::rule(it->type(), dim-1);
+            const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
+
+            Dune::FieldVector<double,dim> value;
+            neumannFunction.evalalllocal(*it->inside(), quadPos, value);
             
-            const Dune::GenericReferenceElement<double,dim>& refElement 
-                = Dune::GenericReferenceElements<double, dim>::general(it->inside()->type());
-
-            for (size_t qp=0; qp<quad.size(); qp++) {
-                
-                // Local position of the quadrature point
-                const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
-                
-                const double integrationElement = it->geometry().integrationElement(quadPos);
-                
-                // Evaluate function
-                Dune::FieldVector<double,dim> localPressure(0);
-                std::vector<Dune::FieldVector<double,1> > values;
-                localFiniteElement.localBasis().evaluateFunction(quadPos,values);
-                
-                for (size_t i=0; i<localFiniteElement.localCoefficients().size(); i++) {
-
-                    int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
-                    int subIndex = interface.gridView().indexSet().subIndex(*it->inside(), faceIdxi, dim);
-                    
-                    localPressure.axpy(values[i], pressure[subIndex]);
-
-                }
-
-                // Sum up the total force
-                outputForce.axpy(quad[qp].weight()*integrationElement, localPressure);
-
-                // Sum up the total torque   \int (x - x_0) \times f dx
-                Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
-                outputTorque.axpy(quad[qp].weight()*integrationElement, 
-                                  crossProduct(Dune::FieldVector<double,dim>(worldPos - center), localPressure));
-
-            }
+            totalForce.axpy(quad[ip].weight() * integrationElement, value);
+            totalTorque.axpy(quad[ip].weight() * integrationElement, crossProduct(worldPos-center,value));
+            
+        }
 
     }
 
+    
 }
 
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
@@ -844,64 +841,6 @@ void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
         
     }
     
-}
-
-template <class GridView>
-void getTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
-                            const Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> > boundaryStress,
-                            const Dune::FieldVector<double,GridView::dimensionworld>& centerOfRotation,
-                             Dune::FieldVector<double,GridView::dimensionworld>& averageForce,
-                             Dune::FieldVector<double,GridView::dimensionworld>& averageTorque
-                           )
-{
-    const int dim        = GridView::dimension;
-
-    // ///////////////////////////////////////////
-    //   Initialize output configuration
-    // ///////////////////////////////////////////
-    averageForce = 0;
-    averageTorque = 0;
-    
-    ////////////////////////////////////////////////////////////////
-    //  Interpret the Neumann value coefficients as a P1 function
-    ////////////////////////////////////////////////////////////////
-    typedef P1NodalBasis<GridView,double> P1Basis;
-    P1Basis p1Basis(interface.gridView());
-    GenericGridFunction<P1Basis, dim> neumannFunction(p1Basis, boundaryStress);
-    
-    // ///////////////////////////////////////////
-    //   Loop and integrate over the interface
-    // ///////////////////////////////////////////
-
-    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
-    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
-
-    for (; it!=endIt; ++it) {
-
-        const typename BoundaryPatchBase<GridView>::iterator::Intersection::Geometry& segmentGeometry = it->geometry();
-
-        // Get quadrature rule
-        const Dune::QuadratureRule<double, dim-1>& quad = Dune::QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
-
-        /* Loop over all integration points */
-        for (size_t ip=0; ip<quad.size(); ip++) {
-                
-            // Local position of the quadrature point
-            const Dune::FieldVector<double,dim> quadPos = it->geometryInInside().global(quad[ip].position());
-            const Dune::FieldVector<double,dim> worldPos = it->geometry().global(quad[ip].position());
-            
-            const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
-
-            Dune::FieldVector<double,dim> value;
-            neumannFunction.evalalllocal(*it->inside(), quadPos, value);
-            
-            averageForce.axpy(quad[ip].weight() * integrationElement, value);
-            averageTorque.axpy(quad[ip].weight() * integrationElement, crossProduct(value,worldPos-centerOfRotation));
-            
-        }
-
-    }
-
 }
 
 #endif
