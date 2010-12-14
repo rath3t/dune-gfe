@@ -19,7 +19,7 @@
 #error You need IPOpt for this header!
 #endif
 
-template <class GridType>
+template <class GridView>
 class PressureAverager : public Ipopt::TNLP
 {
     typedef double field_type;
@@ -28,11 +28,11 @@ class PressureAverager : public Ipopt::TNLP
     typedef typename MatrixType::row_type RowType;
     
 
-    enum {dim=GridType::dimension};
+    enum {dim=GridView::dimension};
 
 public:
     /** \brief Constructor */
-    PressureAverager(const LevelBoundaryPatch<GridType>* patch,
+    PressureAverager(const BoundaryPatchBase<GridView>* patch,
                      Dune::BlockVector<Dune::FieldVector<double,dim> >* result,
                      const Dune::FieldVector<double,dim>& resultantForce,
                      const Dune::FieldVector<double,dim>& resultantTorque,
@@ -114,7 +114,7 @@ public:
     */
     const double jacobianCutoff_;
 
-    const LevelBoundaryPatch<GridType>* patch_;
+    const BoundaryPatchBase<GridView>* patch_;
 
     double patchArea_;
 
@@ -140,8 +140,8 @@ private:
 };
 
 // returns the size of the problem
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 get_nlp_info(Ipopt::Index& n, Ipopt::Index& m, Ipopt::Index& nnz_jac_g,
              Ipopt::Index& nnz_h_lag, IndexStyleEnum& index_style)
 {
@@ -178,8 +178,8 @@ get_nlp_info(Ipopt::Index& n, Ipopt::Index& m, Ipopt::Index& nnz_jac_g,
 
 
 // returns the variable bounds
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 get_bounds_info(Ipopt::Index n, Ipopt::Number* x_l, Ipopt::Number* x_u,
                 Ipopt::Index m, Ipopt::Number* g_l, Ipopt::Number* g_u)
 {
@@ -203,8 +203,8 @@ get_bounds_info(Ipopt::Index n, Ipopt::Number* x_l, Ipopt::Number* x_u,
 }
 
 // returns the initial point for the problem
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 get_starting_point(Ipopt::Index n, bool init_x, Ipopt::Number* x,
                    bool init_z, Ipopt::Number* z_L, Ipopt::Number* z_U,
                    Ipopt::Index m, bool init_lambda, Ipopt::Number* lambda)
@@ -225,8 +225,8 @@ get_starting_point(Ipopt::Index n, bool init_x, Ipopt::Number* x,
 }
 
 // returns the value of the objective function
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 eval_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number& obj_value)
 {
     // Init return value
@@ -262,8 +262,8 @@ eval_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number& obj_va
 }
 
 // return the gradient of the objective function grad_{x} f(x)
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 eval_grad_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number* grad_f)
 {
     //std::cout << "### eval_grad_f ###" << std::endl;
@@ -306,8 +306,8 @@ eval_grad_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number* g
 }
 
 // return the value of the constraints: g(x)
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 eval_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Index m, Ipopt::Number* g)
 {
     for (int i=0; i<m; i++) {
@@ -332,8 +332,8 @@ eval_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Index m, Ipopt
 }
 
 // return the structure or values of the jacobian
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 eval_jac_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
            Ipopt::Index m, Ipopt::Index nele_jac, Ipopt::Index* iRow, Ipopt::Index *jCol,
            Ipopt::Number* values)
@@ -376,8 +376,8 @@ eval_jac_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
 }
 
 //return the structure or values of the hessian
-template <class GridType>
-bool PressureAverager<GridType>::
+template <class GridView>
+bool PressureAverager<GridView>::
 eval_h(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
        Ipopt::Number obj_factor, Ipopt::Index m, const Ipopt::Number* lambda,
        bool new_lambda, Ipopt::Index nele_hess, Ipopt::Index* iRow,
@@ -387,8 +387,8 @@ eval_h(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
     return false;
 }
 
-template <class GridType>
-void PressureAverager<GridType>::
+template <class GridView>
+void PressureAverager<GridView>::
 finalize_solution(Ipopt::SolverReturn status,
                   Ipopt::Index n, const Ipopt::Number* x, const Ipopt::Number* z_L, const Ipopt::Number* z_U,
                   Ipopt::Index m, const Ipopt::Number* g, const Ipopt::Number* lambda,
@@ -468,23 +468,22 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
 
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
-template <class GridType>
-void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>& resultantForce,
-                            const Dune::FieldVector<double,GridType::dimension>& resultantTorque,
-                            const LevelBoundaryPatch<GridType>& interface,
+template <class GridView>
+void computeAveragePressure(const Dune::FieldVector<double,GridView::dimension>& resultantForce,
+                            const Dune::FieldVector<double,GridView::dimension>& resultantTorque,
+                            const BoundaryPatchBase<GridView>& interface,
                             const RigidBodyMotion<3>& crossSection,
-                            Dune::BlockVector<Dune::FieldVector<double, GridType::dimension> >& pressure)
+                            Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& pressure)
 {
-    const GridType& grid = interface.gridView().grid();
-    const int level      = interface.level();
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid.levelIndexSet(level);
-    const int dim        = GridType::dimension;
-    typedef typename GridType::ctype ctype;
+    const GridView& gridView                    = interface.gridView();
+    const typename GridView::IndexSet& indexSet = gridView.indexSet();
+    const int dim                               = GridView::dimension;
+    typedef typename GridView::ctype ctype;
     typedef double field_type;
 
     Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1> finiteElementCache;
 
-    typedef typename GridType::template Codim<dim>::LevelIterator VertexIterator;
+    typedef typename GridView::template Codim<dim>::Iterator VertexIterator;
 
     // Create the matrix of constraints
     Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > constraints(2*dim, dim*interface.numVertices(),
@@ -511,7 +510,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 
     // Create the surface mass matrix
     Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > massMatrix;
-    assembleSurfaceMassMatrix<typename GridType::LevelGridView, 1>(interface, massMatrix);
+    assembleSurfaceMassMatrix<GridView, 1>(interface, massMatrix);
 
     // Make global-to-local array
     std::vector<int> globalToLocal;
@@ -521,8 +520,8 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     Dune::BlockVector<Dune::FieldVector<double,1> > nodalWeights(interface.numVertices());
     nodalWeights = 0;
 
-    typename LevelBoundaryPatch<GridType>::iterator it    = interface.begin();
-    typename LevelBoundaryPatch<GridType>::iterator endIt = interface.end();
+    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
+    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
 
     for (; it!=endIt; ++it) {
 
@@ -621,7 +620,7 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
     
     // Ask Ipopt to solve the problem
     Dune::BlockVector<Dune::FieldVector<double,dim> > localPressure;
-    Ipopt::SmartPtr<Ipopt::TNLP> defectSolverSmart = new PressureAverager<GridType>(&interface,
+    Ipopt::SmartPtr<Ipopt::TNLP> defectSolverSmart = new PressureAverager<GridView>(&interface,
                                                                                     &localPressure,
                                                                                     resultantForce,
                                                                                     resultantTorque,
@@ -665,21 +664,20 @@ void computeAveragePressure(const Dune::FieldVector<double,GridType::dimension>&
 
 }
 
-template <class GridType>
-void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
-                             const Dune::BlockVector<Dune::FieldVector<double,GridType::dimension> > deformation,
+template <class GridView>
+void computeAverageInterface(const BoundaryPatchBase<GridView>& interface,
+                             const Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> > deformation,
                              RigidBodyMotion<3>& average)
 {
     using namespace Dune;
 
-    typedef typename GridType::template Codim<0>::LevelIterator ElementIterator;
-    typedef typename GridType::template Codim<0>::Entity EntityType;
+    typedef typename GridView::template Codim<0>::Iterator ElementIterator;
+    typedef typename GridView::template Codim<0>::Entity EntityType;
     typedef typename EntityType::LevelIntersectionIterator NeighborIterator;
 
-    const GridType& grid = interface.gridView().grid();
-    const int level      = interface.level();
-    const typename GridType::Traits::LevelIndexSet& indexSet = grid.levelIndexSet(level);
-    const int dim        = GridType::dimension;
+    const GridView& gridView = interface.gridView();
+    const typename GridView::IndexSet& indexSet = gridView.indexSet();
+    const int dim        = GridView::dimension;
 
     Dune::PQkLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
 
@@ -695,8 +693,8 @@ void computeAverageInterface(const LevelBoundaryPatch<GridType>& interface,
     //   Loop and integrate over the interface
     // ///////////////////////////////////////////
 
-    typename LevelBoundaryPatch<GridType>::iterator it    = interface.begin();
-    typename LevelBoundaryPatch<GridType>::iterator endIt = interface.end();
+    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
+    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
 
     for (; it!=endIt; ++it) {
 

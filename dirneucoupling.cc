@@ -390,7 +390,7 @@ int main (int argc, char *argv[]) try
             VectorType neumannValues(rhs3d.size());
 
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-            computeAveragePressure<GridType>(resultantForce, resultantTorque, 
+            computeAveragePressure<GridType::LevelGridView>(resultantForce, resultantTorque, 
                                               interfaceBoundary[grid.maxLevel()], 
                                               rodX[0],
                                               neumannValues);
@@ -518,7 +518,7 @@ int main (int argc, char *argv[]) try
                 VectorType neumannValues(rhs3d.size());
 
                 // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-                computeAveragePressure<GridType>(resultantForce, resultantTorque, 
+                computeAveragePressure<GridType::LevelGridView>(resultantForce, resultantTorque, 
                                               interfaceBoundary[grid.maxLevel()], 
                                               rodX[0],
                                               neumannValues);
