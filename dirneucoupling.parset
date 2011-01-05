@@ -84,21 +84,13 @@ damping = 0.6
 #E     = 1e6
 #nu    = 0.3
 
-#rodRestEndPoint0X = 0.125
-#rodRestEndPoint0Y = 0.125
-#rodRestEndPoint0Z = 1
-#rodRestEndPoint1X = 0.125
-#rodRestEndPoint1Y = 0.125
-#rodRestEndPoint1Z = 2
+#rodRestEndPoint0 = 0.125 0.125 1
+#rodRestEndPoint1 = 0.125 0.125 2
 
 ## Dirichlet values
-#dirichletValueX = 0.125
-#dirichletValueY = 0.125
-#dirichletValueZ = 2.5
+#dirichletValue = 0.125 0.125 2.5
 
-#dirichletAxisX = 0
-#dirichletAxisY = 0
-#dirichletAxisZ = 1
+#dirichletAxis = 0 0 1
 #dirichletAngle = 0
 
 
@@ -123,13 +115,9 @@ damping = 0.6
 #rodNu = 0.3
 
 ## Dirichlet values
-#dirichletValueX = 0.5
-#dirichletValueY = 1.5
-#dirichletValueZ = 10
+#dirichletValue = 0.5 1.5 10
 
-#dirichletAxisX = 0
-#dirichletAxisY = 0
-#dirichletAxisZ = 1
+#dirichletAxis = 0 0 1
 #dirichletAngle = 90
 
 ########################################################
@@ -156,22 +144,12 @@ rodNu = 0.3
 E     = 1e6
 nu    = 0.3
 
-rodRestEndPoint0X = 0.625
-rodRestEndPoint0Y = 0.625
-rodRestEndPoint0Z = 1
-rodRestEndPoint1X = 0.625
-rodRestEndPoint1Y = 0.625
-rodRestEndPoint1Z = 2
-#rodRestEndPoint1X = 0.625
-#rodRestEndPoint1Y = -0.082
-#rodRestEndPoint1Z = 1.707
+rodRestEndPoint0 = 0.625 0.625 1
+rodRestEndPoint1 = 0.625 0.625 2
+#rodRestEndPoint1 = 0.625 -0.082 1.707
 
 # Dirichlet values
-dirichletValueX = 0.625
-dirichletValueY = 0.625
-dirichletValueZ = 2.5
+dirichletValue = 0.625 0.625 2.5
 
-dirichletAxisX = 0
-dirichletAxisY = 0
-dirichletAxisZ = 1
+dirichletAxis = 0 0 1
 dirichletAngle = 0

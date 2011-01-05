@@ -330,12 +330,8 @@ int main (int argc, char *argv[]) try
     double rodNu  = parameterSet.get<double>("rodNu");
 
     Dune::array<FieldVector<double,3>,2> rodRestEndPoint;
-    rodRestEndPoint[0][0] = parameterSet.get<double>("rodRestEndPoint0X");
-    rodRestEndPoint[0][1] = parameterSet.get<double>("rodRestEndPoint0Y");
-    rodRestEndPoint[0][2] = parameterSet.get<double>("rodRestEndPoint0Z");
-    rodRestEndPoint[1][0] = parameterSet.get<double>("rodRestEndPoint1X");
-    rodRestEndPoint[1][1] = parameterSet.get<double>("rodRestEndPoint1Y");
-    rodRestEndPoint[1][2] = parameterSet.get<double>("rodRestEndPoint1Z");
+    rodRestEndPoint[0] = parameterSet.get<FieldVector<double,3> >("rodRestEndPoint0");
+    rodRestEndPoint[1] = parameterSet.get<FieldVector<double,3> >("rodRestEndPoint1");
     
     //////////////////////////////////////////////////////////////////
     //  Print the algorithm type so we have it in the log files
@@ -380,14 +376,9 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
-    rodX.back().r[0] = parameterSet.get("dirichletValueX", rodRestEndPoint[1][0]);
-    rodX.back().r[1] = parameterSet.get("dirichletValueY", rodRestEndPoint[1][1]);
-    rodX.back().r[2] = parameterSet.get("dirichletValueZ", rodRestEndPoint[1][2]);
+    rodX.back().r = parameterSet.get("dirichletValue", rodRestEndPoint[1]);
 
-    FieldVector<double,3> axis;
-    axis[0] = parameterSet.get("dirichletAxisX", double(0));
-    axis[1] = parameterSet.get("dirichletAxisY", double(0));
-    axis[2] = parameterSet.get("dirichletAxisZ", double(0));
+    FieldVector<double,3> axis = parameterSet.get("dirichletAxis", FieldVector<double,3>(0));
     double angle = parameterSet.get("dirichletAngle", double(0));
 
     rodX.back().q = Rotation<3,double>(axis, M_PI*angle/180);
