@@ -50,6 +50,113 @@ using std::vector;
 typedef vector<RigidBodyMotion<dim> >              RodSolutionType;
 typedef BlockVector<FieldVector<double, 6> >       RodDifferenceType;
 
+template <class GridView, class MatrixType, class VectorType>
+class LinearizedContinuumNeumannToDirichletMap
+{
+public:
+    
+    /** \brief Constructor 
+     * 
+     */
+    LinearizedContinuumNeumannToDirichletMap(const BoundaryPatchBase<GridView>& interface,
+                                             const VectorType& weakVolumeAndNeumannTerm,
+                                             const VectorType& dirichletValues,
+                                             const LinearLocalAssembler<typename GridView::Grid,
+                                                                  typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                                                                  typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                                                                  Dune::FieldMatrix<double,3,3> >* localAssembler,
+                                             const shared_ptr<LoopSolver<VectorType> >& solver
+                                            )
+    : interface_(interface),
+      weakVolumeAndNeumannTerm_(weakVolumeAndNeumannTerm),
+      dirichletValues_(dirichletValues),
+      solver_(solver),
+      localAssembler_(localAssembler)
+    {}
+    
+    /** \brief Map a Neumann value to a Dirichlet value
+     * 
+     * \param currentIterate The continuum configuration that we are linearizing about
+     * 
+     * \return The averaged Dirichlet value
+     */
+    RigidBodyMotion<3> apply(const VectorType& currentIterate,
+                             const Dune::FieldVector<double,3>& force,
+                             const Dune::FieldVector<double,3>& torque,
+                             const Dune::FieldVector<double,3>& centerOfTorque
+                            )
+    {
+        ////////////////////////////////////////////////////
+        //  Assemble the linearized problem
+        ////////////////////////////////////////////////////
+
+        /** \todo We are actually assembling standard linear elasticity,
+         * i.e. the linearization at zero
+         */
+        typedef P1NodalBasis<GridView,double> P1Basis;
+        P1Basis basis(interface_.gridView());
+        OperatorAssembler<P1Basis,P1Basis> assembler(basis, basis);
+
+        MatrixType stiffnessMatrix;
+        assembler.assemble(*localAssembler_, stiffnessMatrix);
+    
+    
+        /////////////////////////////////////////////////////////////////////
+        //  Turn the input force and torque into a Neumann boundary field
+        /////////////////////////////////////////////////////////////////////
+        VectorType neumannValues(stiffnessMatrix.N());
+        neumannValues = 0;
+
+        // 
+        computeAveragePressure<GridView>(force, torque, 
+                                         interface_, 
+                                         centerOfTorque,
+                                         neumannValues);
+
+        // The weak form of the Neumann data
+        VectorType rhs = weakVolumeAndNeumannTerm_;
+        assembleAndAddNeumannTerm<GridView, VectorType>(interface_,
+                                                        neumannValues,
+                                                        rhs);
+
+        //   Solve the Neumann problem for the continuum
+        VectorType x = dirichletValues_;
+        assert( (dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(solver_->iterationStep_)) );
+        dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(solver_->iterationStep_)->setProblem(stiffnessMatrix, x, rhs);
+        
+        //solver.preprocess();
+        solver_->iterationStep_->preprocess();
+        
+        solver_->solve();
+        
+        x = solver_->iterationStep_->getSol();
+        
+        std::cout << "x:\n" << x << std::endl;
+
+        //  Average the continuum displacement on the coupling boundary
+        RigidBodyMotion<3> averageInterface;
+        computeAverageInterface(interface_, x, averageInterface);
+        
+        std::cout << "Average interface: " << averageInterface << std::endl;
+        
+        return averageInterface;
+     }
+     
+private:
+    
+    const VectorType& weakVolumeAndNeumannTerm_;
+    
+    const VectorType& dirichletValues_;
+    
+    const shared_ptr<LoopSolver<VectorType> > solver_;
+    
+    const BoundaryPatchBase<GridView>& interface_;
+    
+    const LinearLocalAssembler<typename GridView::Grid,
+                         typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                         typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                         Dune::FieldMatrix<double,3,3> >* localAssembler_;
+};
 
 int main (int argc, char *argv[]) try
 {
@@ -211,7 +318,7 @@ int main (int argc, char *argv[]) try
     //   Assemble 3d linear elasticity problem
     // //////////////////////////////////////////
 
-    typedef Q1NodalBasis<GridType::LeafGridView,double> FEBasis;
+    typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
     FEBasis basis(grid.leafView());
     OperatorAssembler<FEBasis,FEBasis> assembler(basis, basis);
 
@@ -307,12 +414,12 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    LoopSolver<VectorType> solver(&multigridStep,
-                                                   // IPOpt doesn't like to be started in the solution
-                                                   (numLevels!=1) ? multigridIterations : 1,
-                                                   mgTolerance,
-                                                   &energyNorm,
-                                                   Solver::QUIET);
+    shared_ptr<LoopSolver<VectorType> > solver = shared_ptr<LoopSolver<VectorType> >( new LoopSolver<VectorType>(&multigridStep,
+                                                                                                                // IPOpt doesn't like to be started in the solution
+                                                                                                                (numLevels!=1) ? multigridIterations : 1,
+                                                                                                                mgTolerance,
+                                                                                                                &energyNorm,
+                                                                                                                Solver::QUIET) );
 
     // ////////////////////////////////////
     //   Create the transfer operators
@@ -405,10 +512,10 @@ int main (int argc, char *argv[]) try
             // ///////////////////////////////////////////////////////////
             multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
         
-            solver.preprocess();
+            solver->preprocess();
             multigridStep.preprocess();
         
-            solver.solve();
+            solver->solve();
         
             x3d = multigridStep.getSol();
 
@@ -478,10 +585,10 @@ int main (int argc, char *argv[]) try
             // Solve the Dirichlet problem
             multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
         
-            solver.preprocess();
+            solver->preprocess();
             multigridStep.preprocess();
         
-            solver.solve();
+            solver->solve();
         
             x3d = multigridStep.getSol();
             
@@ -515,32 +622,13 @@ int main (int argc, char *argv[]) try
                 //  of the continuum.
                 ////////////////////////////////////////////////////////////////////
                 
-                VectorType neumannValues(rhs3d.size());
-
-                // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-                computeAveragePressure<GridType::LevelGridView>(resultantForce, resultantTorque, 
-                                              interfaceBoundary[grid.maxLevel()], 
-                                              rodX[0].r,
-                                              neumannValues);
-
-                rhs3d = 0;
-                assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[grid.maxLevel()],
-                                                        neumannValues,
-                                                        rhs3d);
-
-                //   Solve the Neumann problem for the continuum
-                multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
-        
-                solver.preprocess();
-                multigridStep.preprocess();
-        
-                solver.solve();
-        
-                x3d = multigridStep.getSol();
-
-                //  Average the continuum displacement on the coupling boundary
-                computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
-                
+                LinearizedContinuumNeumannToDirichletMap<GridType::LevelGridView,MatrixType,VectorType>
+                        linContNtDMap(interfaceBoundary.back(),
+                                      rhs3d,
+                                      dirichletValues.back(),
+                                      &localAssembler,
+                                      solver);
+                averageInterface = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
                 
             } else if (preconditioner=="NeumannDirichlet") {
             
