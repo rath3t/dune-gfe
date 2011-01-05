@@ -6,6 +6,8 @@
 
 #include "localgeodesicfefunction.hh"
 
+/** \brief Refine a grid globally and prolong a given geodesic finite element function
+ */
 template <class GridType, class TargetSpace>
 void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
 {
