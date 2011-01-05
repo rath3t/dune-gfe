@@ -9,7 +9,7 @@
 #include <dune/fufem/surfmassmatrix.hh>
 #include <dune/fufem/functions/basisgridfunction.hh>
 
-#include <dune/solvers/numproc.hh>
+#include <dune/solvers/common/numproc.hh>
 
 #include "svd.hh"
 #include "rigidbodymotion.hh"
