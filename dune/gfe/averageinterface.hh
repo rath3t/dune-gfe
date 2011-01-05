@@ -7,6 +7,8 @@
 #include <dune/fufem/dgindexset.hh>
 #include <dune/fufem/crossproduct.hh>
 #include <dune/fufem/surfmassmatrix.hh>
+#include <dune/fufem/functions/basisgridfunction.hh>
+
 #include <dune/solvers/numproc.hh>
 
 #include "svd.hh"
@@ -425,7 +427,7 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
     ////////////////////////////////////////////////////////////////
     typedef P1NodalBasis<GridView,double> P1Basis;
     P1Basis p1Basis(interface.gridView());
-    GenericGridFunction<P1Basis, dim> neumannFunction(p1Basis, boundaryStress);
+    BasisGridFunction<P1Basis, Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> > > neumannFunction(p1Basis, boundaryStress);
     
     // ///////////////////////////////////////////
     //   Loop and integrate over the interface
@@ -451,7 +453,7 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
             const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
 
             Dune::FieldVector<double,dim> value;
-            neumannFunction.evalalllocal(*it->inside(), quadPos, value);
+            neumannFunction.evaluateLocal(*it->inside(), quadPos, value);
             
             totalForce.axpy(quad[ip].weight() * integrationElement, value);
             totalTorque.axpy(quad[ip].weight() * integrationElement, crossProduct(worldPos-center,value));
