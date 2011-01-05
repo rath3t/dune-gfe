@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <dune/solvers/boxconstraint.hh>
+#include <dune/solvers/common/boxconstraint.hh>
 
 template <int blocksize>
 class MaxNormTrustRegion
