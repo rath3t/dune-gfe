@@ -3,7 +3,7 @@
 
 #include <dune/istl/matrix.hh>
 
-#include <dune/solvers/boxconstraint.hh>
+#include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
