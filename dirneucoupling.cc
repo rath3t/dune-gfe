@@ -4,6 +4,8 @@
 #include <dune/grid/uggrid.hh>
 
 #include <dune/istl/io.hh>
+#include <dune/istl/solvers.hh>
+
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
 
@@ -65,7 +67,7 @@ public:
                                                                   typename P1NodalBasis<GridView,double>::LocalFiniteElement,
                                                                   typename P1NodalBasis<GridView,double>::LocalFiniteElement,
                                                                   Dune::FieldMatrix<double,3,3> >* localAssembler,
-                                             const shared_ptr<LoopSolver<VectorType> >& solver
+                                             const shared_ptr< ::LoopSolver<VectorType> >& solver
                                             )
     : interface_(interface),
       weakVolumeAndNeumannTerm_(weakVolumeAndNeumannTerm),
@@ -78,9 +80,9 @@ public:
      * 
      * \param currentIterate The continuum configuration that we are linearizing about
      * 
-     * \return The averaged Dirichlet value
+     * \return The infinitesimal movement of the interface
      */
-    RigidBodyMotion<3> apply(const VectorType& currentIterate,
+    FieldVector<double,6> apply(const VectorType& currentIterate,
                              const Dune::FieldVector<double,3>& force,
                              const Dune::FieldVector<double,3>& torque,
                              const Dune::FieldVector<double,3>& centerOfTorque
@@ -139,7 +141,18 @@ public:
         
         std::cout << "Average interface: " << averageInterface << std::endl;
         
-        return averageInterface;
+        // Compute the linearization
+        FieldVector<double,6> interfaceCorrection;
+        interfaceCorrection[0] = averageInterface.r[0];
+        interfaceCorrection[1] = averageInterface.r[1];
+        interfaceCorrection[2] = averageInterface.r[2];
+        
+        FieldVector<double,3> infinitesimalRotation = Rotation<3,double>::expInv(averageInterface.q);
+        interfaceCorrection[3] = infinitesimalRotation[0];
+        interfaceCorrection[4] = infinitesimalRotation[1];
+        interfaceCorrection[5] = infinitesimalRotation[2];
+        
+        return interfaceCorrection;
      }
      
 private:
@@ -148,7 +161,7 @@ private:
     
     const VectorType& dirichletValues_;
     
-    const shared_ptr<LoopSolver<VectorType> > solver_;
+    const shared_ptr< ::LoopSolver<VectorType> > solver_;
     
     const BoundaryPatchBase<GridView>& interface_;
     
@@ -157,6 +170,111 @@ private:
                          typename P1NodalBasis<GridView,double>::LocalFiniteElement,
                          Dune::FieldMatrix<double,3,3> >* localAssembler_;
 };
+
+
+template <class GridView, class VectorType>
+class LinearizedRodNeumannToDirichletMap
+{
+public:
+    
+    /** \brief Constructor 
+     * 
+     */
+    LinearizedRodNeumannToDirichletMap(const BoundaryPatchBase<GridView>& interface,
+                                       LocalGeodesicFEStiffness<GridView, RigidBodyMotion<3> >* localAssembler)
+    : interface_(interface),
+      localAssembler_(localAssembler)
+    {}
+    
+    /** \brief Map a Neumann value to a Dirichlet value
+     * 
+     * \param currentIterate The rod configuration that we are linearizing about
+     * 
+     * \return The Dirichlet value
+     */
+    Dune::FieldVector<double,6> apply(const RodSolutionType& currentIterate,
+                             const Dune::FieldVector<double,3>& force,
+                             const Dune::FieldVector<double,3>& torque,
+                             const Dune::FieldVector<double,3>& centerOfTorque
+                            )
+    {
+        ////////////////////////////////////////////////////
+        //  Assemble the linearized rod problem
+        ////////////////////////////////////////////////////
+
+        typedef BCRSMatrix<FieldMatrix<double,6,6> > MatrixType;
+        GeodesicFEAssembler<GridView, RigidBodyMotion<3> > assembler(interface_.gridView(),
+                                                                     localAssembler_);
+        MatrixType stiffnessMatrix;
+        assembler.assembleMatrix(currentIterate, 
+                                 stiffnessMatrix,
+                                 true   // assemble occupation pattern
+                                );
+    
+        VectorType rhs(currentIterate.size());
+        rhs = 0;
+        assembler.assembleGradient(currentIterate, rhs);
+        
+        // The right hand side is the _negative_ gradient
+        rhs *= -1;
+
+        /////////////////////////////////////////////////////////////////////
+        //  Turn the input force and torque into a Neumann boundary field
+        /////////////////////////////////////////////////////////////////////
+
+        // The weak form of the Neumann data
+        rhs[0][0] += force[0];
+        rhs[0][1] += force[1];
+        rhs[0][2] += force[2];
+        rhs[0][3] += torque[0];
+        rhs[0][4] += torque[1];
+        rhs[0][5] += torque[2];
+        
+        ///////////////////////////////////////////////////////////
+        // Modify matrix and rhs to contain one Dirichlet node
+        ///////////////////////////////////////////////////////////
+
+        int dIdx = rhs.size()-1;   // hardwired index of the single Dirichlet node
+        rhs[dIdx] = 0;
+        stiffnessMatrix[dIdx] = 0;
+        stiffnessMatrix[dIdx][dIdx] = Dune::ScaledIdentityMatrix<double,6>(1);
+        
+        //////////////////////////////////////////////////
+        //   Solve the Neumann problem
+        //////////////////////////////////////////////////
+
+        VectorType x(rhs.size());
+        x = 0;  // initial iterate
+
+        // Technicality:  turn the matrix into a linear operator
+        Dune::MatrixAdapter<MatrixType,VectorType,VectorType> op(stiffnessMatrix);
+
+        // A preconditioner
+        Dune::SeqILU0<MatrixType,VectorType,VectorType> ilu0(stiffnessMatrix,1.0);
+
+        // A preconditioned conjugate-gradient solver
+        Dune::CGSolver<VectorType> cg(op,ilu0,1E-4,100,2);
+
+        // Object storing some statistics about the solving process
+        Dune::InverseOperatorResult statistics;
+
+        // Solve!
+        cg.apply(x, rhs, statistics);
+
+        std::cout << "x:\n" << x << std::endl;
+
+        std::cout << "Linear rod interface correction: " << x[0] << std::endl;
+        
+        return x[0];
+     }
+     
+private:
+    
+    const BoundaryPatchBase<GridView>& interface_;
+    
+    LocalGeodesicFEStiffness<GridView, RigidBodyMotion<3> >* localAssembler_;
+};
+
 
 int main (int argc, char *argv[]) try
 {
@@ -414,7 +532,7 @@ int main (int argc, char *argv[]) try
 
     EnergyNorm<MatrixType, VectorType> energyNorm(multigridStep);
 
-    shared_ptr<LoopSolver<VectorType> > solver = shared_ptr<LoopSolver<VectorType> >( new LoopSolver<VectorType>(&multigridStep,
+    shared_ptr< ::LoopSolver<VectorType> > solver = shared_ptr< ::LoopSolver<VectorType> >( new ::LoopSolver<VectorType>(&multigridStep,
                                                                                                                 // IPOpt doesn't like to be started in the solution
                                                                                                                 (numLevels!=1) ? multigridIterations : 1,
                                                                                                                 mgTolerance,
@@ -628,7 +746,7 @@ int main (int argc, char *argv[]) try
                                       dirichletValues.back(),
                                       &localAssembler,
                                       solver);
-                averageInterface = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
+                FieldVector<double,6> interfaceCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
                 
             } else if (preconditioner=="NeumannDirichlet") {
             
@@ -636,8 +754,14 @@ int main (int argc, char *argv[]) try
                 //  Preconditioner is the linearized Neumann-to-Dirichlet map
                 //  of the rod.
                 ////////////////////////////////////////////////////////////////////
+                
+                typedef BlockVector<FieldVector<double,6> >  RodVectorType;
+                
+                LinearizedRodNeumannToDirichletMap<RodGridType::LeafGridView,RodVectorType> linRodNtDMap(couplingBoundary,
+                                                                                                         &rodLocalStiffness);
 
-                DUNE_THROW(NotImplemented, "Neumann-Dirichlet preconditioner not implemented yet");
+                FieldVector<double,6> interfaceCorrection = linRodNtDMap.apply(rodX, residualForce, residualTorque, rodX[0].r);
+
 
             } else if (preconditioner=="NeumannNeumann") {
             
@@ -647,7 +771,26 @@ int main (int argc, char *argv[]) try
                 //  Neumann-to-Dirichlet map of the rod.
                 ////////////////////////////////////////////////////////////////////
 
-                DUNE_THROW(NotImplemented, "Neumann-Neumann preconditioner not implemented yet");
+                LinearizedContinuumNeumannToDirichletMap<GridType::LevelGridView,MatrixType,VectorType>
+                        linContNtDMap(interfaceBoundary.back(),
+                                      rhs3d,
+                                      dirichletValues.back(),
+                                      &localAssembler,
+                                      solver);
+
+                typedef BlockVector<FieldVector<double,6> >  RodVectorType;
+                
+                LinearizedRodNeumannToDirichletMap<RodGridType::LeafGridView,RodVectorType> linRodNtDMap(couplingBoundary,
+                                                                                                         &rodLocalStiffness);
+
+                array<double, 2> alpha = parameterSet.get<array<double,2> >("neumannNeumannWeights");
+
+                FieldVector<double,6> continuumCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
+                FieldVector<double,6> rodCorrection       = linRodNtDMap.apply(rodX, residualForce, residualTorque, rodX[0].r);
+                FieldVector<double,6> interfaceCorrection = continuumCorrection;
+                interfaceCorrection *= alpha[0];
+                interfaceCorrection.axpy(alpha[1], rodCorrection);
+                interfaceCorrection /= alpha[0] + alpha[1];
                 
             } else if (preconditioner=="RobinRobin") {
             
