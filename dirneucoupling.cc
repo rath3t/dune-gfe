@@ -643,6 +643,17 @@ int main (int argc, char *argv[]) try
             std::cout << "director 2:  " << averageInterface.q.director(2) << std::endl;
             std::cout << std::endl;
 
+            //////////////////////////////////////////////////////////////
+            //   Compute new damped interface value
+            //////////////////////////////////////////////////////////////
+            for (int j=0; j<dim; j++)
+                lambda.r[j] = (1-damping) * lambda.r[j] 
+                    + damping * (referenceInterface.r[j] + averageInterface.r[j]);
+
+            lambda.q = Rotation<3,double>::interpolate(lambda.q, 
+                                                       referenceInterface.q.mult(averageInterface.q), 
+                                                       damping);
+
            
         } else if (ddType=="RichardsonIteration") {
             
@@ -724,6 +735,9 @@ int main (int argc, char *argv[]) try
             ///////////////////////////////////////////////////////////////
             //  Apply the preconditioner
             ///////////////////////////////////////////////////////////////
+            
+            FieldVector<double,6> interfaceCorrection;
+            
             if (preconditioner=="DirichletNeumann") {
                 
                 ////////////////////////////////////////////////////////////////////
@@ -737,7 +751,8 @@ int main (int argc, char *argv[]) try
                                       dirichletValues.back(),
                                       &localAssembler,
                                       solver);
-                FieldVector<double,6> interfaceCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
+                        
+                interfaceCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
                 
             } else if (preconditioner=="NeumannDirichlet") {
             
@@ -751,7 +766,7 @@ int main (int argc, char *argv[]) try
                 LinearizedRodNeumannToDirichletMap<RodGridType::LeafGridView,RodVectorType> linRodNtDMap(couplingBoundary,
                                                                                                          &rodLocalStiffness);
 
-                FieldVector<double,6> interfaceCorrection = linRodNtDMap.apply(rodX, residualForce, residualTorque, rodX[0].r);
+                interfaceCorrection = linRodNtDMap.apply(rodX, residualForce, residualTorque, rodX[0].r);
 
 
             } else if (preconditioner=="NeumannNeumann") {
@@ -778,10 +793,10 @@ int main (int argc, char *argv[]) try
 
                 FieldVector<double,6> continuumCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
                 FieldVector<double,6> rodCorrection       = linRodNtDMap.apply(rodX, residualForce, residualTorque, rodX[0].r);
-                FieldVector<double,6> interfaceCorrection = continuumCorrection;
-                interfaceCorrection *= alpha[0];
-                interfaceCorrection.axpy(alpha[1], rodCorrection);
-                interfaceCorrection /= alpha[0] + alpha[1];
+                
+                for (int j=0; j<6; j++)
+                    interfaceCorrection[j] = (alpha[0] * continuumCorrection[j] + alpha[1] * rodCorrection[j])
+                                             / alpha[0] + alpha[1];
                 
             } else if (preconditioner=="RobinRobin") {
             
@@ -790,19 +805,15 @@ int main (int argc, char *argv[]) try
             } else
                 DUNE_THROW(NotImplemented, preconditioner << " is not a known preconditioner");
             
+            ///////////////////////////////////////////////////////////////////////////////
+            //  Apply the damped correction to the current interface value
+            ///////////////////////////////////////////////////////////////////////////////
+                
+            interfaceCorrection *= damping;
+            lambda = RigidBodyMotion<3>::exp(lambda, interfaceCorrection);
+            
         } else
             DUNE_THROW(NotImplemented, ddType << " is not a known domain decomposition algorithm");
-
-        //////////////////////////////////////////////////////////////
-        //   Compute new damped interface value
-        //////////////////////////////////////////////////////////////
-        for (int j=0; j<dim; j++)
-            lambda.r[j] = (1-damping) * lambda.r[j] 
-                + damping * (referenceInterface.r[j] + averageInterface.r[j]);
-
-        lambda.q = Rotation<3,double>::interpolate(lambda.q, 
-                                                   referenceInterface.q.mult(averageInterface.q), 
-                                                   damping);
 
         std::cout << "Lambda: " << lambda << std::endl;
 
