@@ -16,6 +16,9 @@ AC_SUBST(AM_LDFLAGS, $DUNE_LDFLAGS)
 LIBS="$DUNE_LIBS"
 
 AC_CONFIG_FILES([Makefile
+                 doc/Makefile
+                 doc/doxygen/Makefile
+                 doc/doxygen/Doxyfile
                  dune/Makefile
                  dune/gfe/Makefile
                  test/Makefile

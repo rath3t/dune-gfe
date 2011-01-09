@@ -3,7 +3,7 @@
 # we need the module file to be able to build via dunecontrol
 EXTRA_DIST=dune.module
 
-SUBDIRS = m4 dune test
+SUBDIRS = doc m4 dune test
 
 # possible options
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)

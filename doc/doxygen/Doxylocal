@@ -1,0 +1,6 @@
+INPUT                  += @top_srcdir@/dune/gfe
+EXCLUDE                += 
+EXAMPLE_PATH           +=
+EXAMPLE_PATTERNS       +=
+IMAGE_PATH             +=
+PREDEFINED             += DOXYGEN 
