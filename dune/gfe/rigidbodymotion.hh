@@ -14,6 +14,9 @@ struct RigidBodyMotion
     /** \brief Type of an infinitesimal rigid body motion */
     typedef Dune::FieldVector<T, dim + Rotation<dim,T>::TangentVector::size> TangentVector;
 
+    /** \brief Type of an infinitesimal rigid body motion */
+    typedef Dune::FieldVector<T, dim + Rotation<dim,T>::EmbeddedTangentVector::size> EmbeddedTangentVector;
+
     /** \brief The type used for coordinates */
     typedef T ctype;
 
