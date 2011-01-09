@@ -38,6 +38,16 @@ struct RigidBodyMotion
         return result;
     }
 
+    /** \brief Compute geodesic distance from a to b */
+    static T distance(const RigidBodyMotion<dim,ctype>& a, const RigidBodyMotion<dim,ctype>& b) {
+        
+        T euclideanDistanceSquared = (a.r - b.r).two_norm2();
+        
+        T rotationDistance = Rotation<dim,ctype>::distance(a.q, b.q);
+        
+        return std::sqrt(euclideanDistanceSquared + rotationDistance*rotationDistance);
+    }
+    
     /** \brief Compute difference vector from a to b on the tangent space of a */
     static TangentVector difference(const RigidBodyMotion<dim,ctype>& a,
                                     const RigidBodyMotion<dim,ctype>& b) {
