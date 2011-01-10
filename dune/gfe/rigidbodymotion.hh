@@ -67,12 +67,42 @@ struct RigidBodyMotion
 
         return result;
     }
+    
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<dim,ctype>& a,
+                                                                              const RigidBodyMotion<dim,ctype>& b) {
+
+        // linear part
+        Dune::FieldVector<ctype,dim> linearDerivative = a.r;
+        linearDerivative -= b.r;
+        linearDerivative *= -2;
+
+        // rotation part
+        typename Rotation<dim,ctype>::EmbeddedTangentVector rotationDerivative 
+                = Rotation<dim,ctype>::derivativeOfDistanceSquaredWRTSecondArgument(a.q, b.q);
+        
+        return concat(linearDerivative, rotationDerivative);
+    }
 
     // Translational part
-    Dune::FieldVector<ctype, dim> r;
+    Dune::FieldVector<ctype, dim> r;;
 
     // Rotational part
     Rotation<dim,ctype> q;
+    
+private:
+    
+    /** \brief Concatenate two FieldVectors */
+    template <int N, int M>
+    static Dune::FieldVector<ctype,N+M> concat(const Dune::FieldVector<ctype,N>& a,
+                                               const Dune::FieldVector<ctype,M>& b)
+    {
+        Dune::FieldVector<ctype,N+M> result;
+        for (int i=0; i<N; i++)
+            result[i] = a[i];
+        for (int i=0; i<M; i++)
+            result[i+N] = b[i];
+        return result;
+    }
 
 };
 
