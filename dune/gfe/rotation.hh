@@ -387,6 +387,11 @@ public:
         return v;
     }
 
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& a, 
+                                                                      const Rotation<3,T>& b) {
+        DUNE_THROW(Dune::NotImplemented, "derivativeOfDistanceSquaredWRTSecondArgument");
+    }
+    
     /** \brief Interpolate between two rotations */
     static Rotation<3,T> interpolate(const Rotation<3,T>& a, const Rotation<3,T>& b, double omega) {
 
