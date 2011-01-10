@@ -20,8 +20,14 @@ struct RigidBodyMotion
     /** \brief The type used for coordinates */
     typedef T ctype;
 
-    /** \brief The exponential map from a given point $p \in SE(d)$. */
-    static RigidBodyMotion<dim,ctype> exp(const RigidBodyMotion<dim,ctype>& p, const TangentVector& v) {
+    /** \brief The exponential map from a given point $p \in SE(d)$. 
+     
+     Why the template parameter?  Well, it should work with both TangentVector and EmbeddedTangentVector.
+     In general these differ and we could just have two exp methods.  However in 2d they do _not_ differ,
+     and then the compiler complains about having two methods with the same signature.
+     */
+    template <class TVector>
+    static RigidBodyMotion<dim,ctype> exp(const RigidBodyMotion<dim,ctype>& p, const TVector& v) {
 
         RigidBodyMotion<dim,ctype> result;
 
@@ -30,8 +36,11 @@ struct RigidBodyMotion
             result.r[i] = p.r[i] + v[i];
 
         // Add rotational correction
-        typename Rotation<dim,ctype>::TangentVector qCorr;
-        for (int i=0; i<Rotation<dim,ctype>::TangentVector::size; i++)
+        typedef typename Dune::SelectType<Dune::is_same<TVector,TangentVector>::value,
+                                          typename Rotation<dim,ctype>::TangentVector,
+                                          typename Rotation<dim,ctype>::EmbeddedTangentVector>::Type RotationTangentVector;
+        RotationTangentVector qCorr;
+        for (int i=0; i<RotationTangentVector::size; i++)
             qCorr[i] = v[dim+i];
 
         result.q = Rotation<dim,ctype>::exp(p.q, qCorr);

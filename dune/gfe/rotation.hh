@@ -225,6 +225,11 @@ public:
         return p.mult(corr);
     }
 
+    /** \brief The exponential map from a given point $p \in SO(3)$. */
+    static Rotation<3,T> exp(const Rotation<3,T>& p, const EmbeddedTangentVector& v) {
+        DUNE_THROW(Dune::NotImplemented, "exp... EmbeddedTangentVector");
+    }
+
     static Dune::FieldMatrix<T,4,3> Dexp(const Dune::FieldVector<T,3>& v) {
 
         Dune::FieldMatrix<T,4,3> result(0);
