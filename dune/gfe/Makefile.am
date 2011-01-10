@@ -16,6 +16,7 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      makestraightrod.hh \
                      maxnormtrustregion.hh \
                      quaternion.hh \
+                     realtuple.hh \
                      riemanniantrsolver.hh \
                      rigidbodymotion.hh \
                      rodassembler.hh \
@@ -23,6 +24,8 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      rodwriter.hh \
                      rotation.hh \
                      svd.hh \
-                     targetspacertrsolver.hh
+                     targetspacertrsolver.hh \
+                     tensor3.hh \
+                     unitvector.hh
 
 include $(top_srcdir)/am/global-rules
