@@ -38,6 +38,7 @@
 #include <dune/gfe/geodesicdifference.hh>
 #include <dune/gfe/rodwriter.hh>
 #include <dune/gfe/makestraightrod.hh>
+#include <dune/gfe/rodcontinuumcomplex.hh>
 
 // Space dimension
 const int dim = 3;
@@ -341,37 +342,39 @@ int main (int argc, char *argv[]) try
     if (ddType=="RichardsonIteration")
         std::cout << "Preconditioner: " << preconditioner << std::endl;
     
-    // ///////////////////////////////////////
-    //    Create the rod grid
-    // ///////////////////////////////////////
+    // ///////////////////////////////////////////////
+    //    Create the rod grid and continuum grid
+    // ///////////////////////////////////////////////
+        
     typedef OneDGrid RodGridType;
-    RodGridType rodGrid(numRodBaseElements, 0, (rodRestEndPoint[1]-rodRestEndPoint[0]).two_norm());
-
-    // ///////////////////////////////////////
-    //    Create the grid for the 3d object
-    // ///////////////////////////////////////
     typedef UGGrid<dim> GridType;
-    GridType grid;
-    grid.setRefinementType(GridType::COPY);
+
+    RodContinuumComplex<RodGridType,GridType> complex;
     
-    AmiraMeshReader<GridType>::read(grid, path + objectName);
+    complex.rodGrids_["rod"] = shared_ptr<RodGridType>
+                (new RodGridType(numRodBaseElements, 0, (rodRestEndPoint[1]-rodRestEndPoint[0]).two_norm()));
+
+    complex.continuumGrids_["continuum"] = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + objectName));
+    complex.continuumGrids_["continuum"]->setRefinementType(GridType::COPY);
+    
+    
 
     // //////////////////////////////////////
     //   Globally refine grids
     // //////////////////////////////////////
 
-    rodGrid.globalRefine(numLevels-1);
-    grid.globalRefine(numLevels-1);
+    complex.rodGrids_["rod"]->globalRefine(numLevels-1);
+    complex.continuumGrids_["continuum"]->globalRefine(numLevels-1);
 
     std::vector<BitSetVector<dim> > dirichletNodes(1);
 
-    RodSolutionType rodX(rodGrid.size(1));
+    RodSolutionType rodX(complex.rodGrids_["rod"]->size(1));
 
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
 
-    makeStraightRod(rodX, rodGrid.size(1), rodRestEndPoint[0], rodRestEndPoint[1]);
+    makeStraightRod(rodX, complex.rodGrids_["rod"]->size(1), rodRestEndPoint[0], rodRestEndPoint[1]);
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -386,40 +389,40 @@ int main (int argc, char *argv[]) try
     // Backup initial rod iterate for later reference
     RodSolutionType initialIterateRod = rodX;
 
-    int toplevel = rodGrid.maxLevel();
+    int toplevel = complex.rodGrids_["rod"]->maxLevel();
 
     // /////////////////////////////////////////////////////
     //   Determine the Dirichlet nodes
     // /////////////////////////////////////////////////////
     std::vector<VectorType> dirichletValues;
     dirichletValues.resize(toplevel+1);
-    dirichletValues[0].resize(grid.size(0, dim));
+    dirichletValues[0].resize(complex.continuumGrids_["continuum"]->size(0, dim));
     AmiraMeshReader<int>::readFunction(dirichletValues[0], path + dirichletValuesFile);
 
     std::vector<LevelBoundaryPatch<GridType> > dirichletBoundary;
     dirichletBoundary.resize(numLevels);
-    dirichletBoundary[0].setup(grid, 0);
+    dirichletBoundary[0].setup(*complex.continuumGrids_["continuum"], 0);
     readBoundaryPatch(dirichletBoundary[0], path + dirichletNodesFile);
     PatchProlongator<GridType>::prolong(dirichletBoundary);
 
     dirichletNodes.resize(toplevel+1);
     for (int i=0; i<=toplevel; i++) {
         
-        dirichletNodes[i].resize( grid.size(i,dim));
+        dirichletNodes[i].resize( complex.continuumGrids_["continuum"]->size(i,dim));
 
-        for (int j=0; j<grid.size(i,dim); j++)
+        for (int j=0; j<complex.continuumGrids_["continuum"]->size(i,dim); j++)
             dirichletNodes[i][j] = dirichletBoundary[i].containsVertex(j);
         
     }
 
-    sampleOnBitField(grid, dirichletValues, dirichletNodes);
+    sampleOnBitField(*complex.continuumGrids_["continuum"], dirichletValues, dirichletNodes);
     
     // /////////////////////////////////////////////////////
     //   Determine the interface boundary
     // /////////////////////////////////////////////////////
     std::vector<LevelBoundaryPatch<GridType> > interfaceBoundary;
     interfaceBoundary.resize(numLevels);
-    interfaceBoundary[0].setup(grid, 0);
+    interfaceBoundary[0].setup(*complex.continuumGrids_["continuum"], 0);
     readBoundaryPatch(interfaceBoundary[0], path + interfaceNodesFile);
     PatchProlongator<GridType>::prolong(interfaceBoundary);
 
@@ -428,7 +431,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////
 
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
-    FEBasis basis(grid.leafView());
+    FEBasis basis(complex.continuumGrids_["continuum"]->leafView());
     OperatorAssembler<FEBasis,FEBasis> assembler(basis, basis);
 
     StVenantKirchhoffAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> localAssembler(E, nu);
@@ -440,8 +443,8 @@ int main (int argc, char *argv[]) try
     //    Create solution and rhs vectors
     // ////////////////////////////////////////////////////////////
     
-    VectorType x3d(grid.size(toplevel,dim));
-    VectorType rhs3d(grid.size(toplevel,dim));
+    VectorType x3d(complex.continuumGrids_["continuum"]->size(toplevel,dim));
+    VectorType rhs3d(complex.continuumGrids_["continuum"]->size(toplevel,dim));
 
     // No external forces
     rhs3d = 0;
@@ -457,7 +460,7 @@ int main (int argc, char *argv[]) try
     //   Dirichlet nodes for the rod problem
     // ///////////////////////////////////////////
 
-    BitSetVector<6> rodDirichletNodes(rodGrid.size(1));
+    BitSetVector<6> rodDirichletNodes(complex.rodGrids_["rod"]->size(1));
     rodDirichletNodes.unsetAll();
         
     rodDirichletNodes[0] = true;
@@ -467,13 +470,13 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
 
-    RodLocalStiffness<RodGridType::LeafGridView,double> rodLocalStiffness(rodGrid.leafView(),
+    RodLocalStiffness<RodGridType::LeafGridView,double> rodLocalStiffness(complex.rodGrids_["rod"]->leafView(),
                                                                        rodA, rodJ1, rodJ2, rodE, rodNu);
 
-    RodAssembler<RodGridType::LeafGridView,3> rodAssembler(rodGrid.leafView(), &rodLocalStiffness);
+    RodAssembler<RodGridType::LeafGridView,3> rodAssembler(complex.rodGrids_["rod"]->leafView(), &rodLocalStiffness);
 
     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> > rodSolver;
-    rodSolver.setup(rodGrid, 
+    rodSolver.setup(*complex.rodGrids_["rod"], 
                     &rodAssembler,
                     rodX,
                     rodDirichletNodes,
@@ -540,7 +543,7 @@ int main (int argc, char *argv[]) try
     
     for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
         CompressedMultigridTransfer<VectorType>* newTransferOp = new CompressedMultigridTransfer<VectorType>;
-        newTransferOp->setup(grid,i,i+1);
+        newTransferOp->setup(*complex.continuumGrids_["continuum"],i,i+1);
         multigridStep.mgTransfer_[i] = newTransferOp;
     }
 
@@ -591,7 +594,7 @@ int main (int argc, char *argv[]) try
             BitSetVector<1> couplingBitfield(rodX.size(),false);
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
             couplingBitfield[0] = true;
-            LeafBoundaryPatch<RodGridType> couplingBoundary(rodGrid, couplingBitfield);
+            LeafBoundaryPatch<RodGridType> couplingBoundary(*complex.rodGrids_["rod"], couplingBitfield);
 
             FieldVector<double,dim> resultantForce, resultantTorque;
             resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
@@ -607,19 +610,19 @@ int main (int argc, char *argv[]) try
 
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
             computeAveragePressure<GridType::LevelGridView>(resultantForce, resultantTorque, 
-                                              interfaceBoundary[grid.maxLevel()], 
+                                              interfaceBoundary[complex.continuumGrids_["continuum"]->maxLevel()], 
                                               rodX[0].r,
                                               neumannValues);
 
             rhs3d = 0;
-            assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[grid.maxLevel()],
+            assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[complex.continuumGrids_["continuum"]->maxLevel()],
                                                         neumannValues,
                                                         rhs3d);
 
             // ///////////////////////////////////////////////////////////
             //   Solve the Neumann problem for the continuum
             // ///////////////////////////////////////////////////////////
-            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
+            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, complex.continuumGrids_["continuum"]->maxLevel()+1);
         
             solver->preprocess();
             multigridStep.preprocess();
@@ -677,7 +680,7 @@ int main (int argc, char *argv[]) try
             BitSetVector<1> couplingBitfield(rodX.size(),false);
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
             couplingBitfield[0] = true;
-            LeafBoundaryPatch<RodGridType> couplingBoundary(rodGrid, couplingBitfield);
+            LeafBoundaryPatch<RodGridType> couplingBoundary(*complex.rodGrids_["rod"], couplingBitfield);
 
             FieldVector<double,dim> resultantForce, resultantTorque;
             resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
@@ -703,7 +706,7 @@ int main (int argc, char *argv[]) try
             setRotation(interfaceBoundary.back(), x3d, relativeMovement);
             
             // Solve the Dirichlet problem
-            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, grid.maxLevel()+1);
+            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, complex.continuumGrids_["continuum"]->maxLevel()+1);
         
             solver->preprocess();
             multigridStep.preprocess();
@@ -827,7 +830,7 @@ int main (int argc, char *argv[]) try
         std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
 
         LeafAmiraMeshWriter<GridType> amiraMeshWriter;
-        amiraMeshWriter.addVertexData(x3d, grid.leafView());
+        amiraMeshWriter.addVertexData(x3d, complex.continuumGrids_["continuum"]->leafView());
         amiraMeshWriter.write(iSolFilename);
 
         // Then the rod
@@ -1056,12 +1059,12 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
-    LeafAmiraMeshWriter<GridType> amiraMeshWriter(grid);
-    amiraMeshWriter.addVertexData(x3d, grid.leafView());
+    LeafAmiraMeshWriter<GridType> amiraMeshWriter(*complex.continuumGrids_["continuum"]);
+    amiraMeshWriter.addVertexData(x3d, complex.continuumGrids_["continuum"]->leafView());
 
     BlockVector<FieldVector<double,1> > stress;
-    Stress<GridType>::getStress(grid, x3d, stress, E, nu);
-    amiraMeshWriter.addCellData(stress, grid.leafView());
+    Stress<GridType>::getStress(*complex.continuumGrids_["continuum"], x3d, stress, E, nu);
+    amiraMeshWriter.addCellData(stress, complex.continuumGrids_["continuum"]->leafView());
 
     amiraMeshWriter.write(resultPath + "grid.result");
 
