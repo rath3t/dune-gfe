@@ -20,7 +20,6 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      riemanniantrsolver.hh \
                      rigidbodymotion.hh \
                      rodassembler.hh \
-                     rodcontinuumcomplex.hh \
                      rodlocalstiffness.hh \
                      rodwriter.hh \
                      rotation.hh \
