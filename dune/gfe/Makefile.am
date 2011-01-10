@@ -1,6 +1,6 @@
 # $Id: $
 
-SUBDIRS =
+SUBDIRS = coupling
 
 AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/..
 

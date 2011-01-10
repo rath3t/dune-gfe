@@ -21,6 +21,7 @@ AC_CONFIG_FILES([Makefile
                  doc/doxygen/Doxyfile
                  dune/Makefile
                  dune/gfe/Makefile
+                 dune/gfe/coupling/Makefile
                  test/Makefile
                  m4/Makefile
                  dune-gfe.pc
