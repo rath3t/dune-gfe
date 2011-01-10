@@ -149,7 +149,8 @@ public:
     
     static void assembleGradient(const Entity& element,
                           const std::vector<TargetSpace>& localSolution,
-                          std::vector<typename TargetSpace::TangentVector>& localGradient)
+                          std::vector<typename TargetSpace::TangentVector>& localGradient,
+                                 const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
     {
         // ///////////////////////////////////////////////////////////
         //   Compute gradient by finite-difference approximation
@@ -169,7 +170,7 @@ public:
                 infinitesimalVariation(forwardSolution[i],   eps, j);
                 infinitesimalVariation(backwardSolution[i], -eps, j);
             
-                localGradient[i][j] = (energy(element,forwardSolution) - energy(element,backwardSolution))
+                localGradient[i][j] = (energyObject->energy(element,forwardSolution) - energyObject->energy(element,backwardSolution))
                     / (2*eps);
             
                 forwardSolution[i]  = localSolution[i];
