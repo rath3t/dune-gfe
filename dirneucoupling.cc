@@ -38,7 +38,7 @@
 #include <dune/gfe/geodesicdifference.hh>
 #include <dune/gfe/rodwriter.hh>
 #include <dune/gfe/makestraightrod.hh>
-#include <dune/gfe/rodcontinuumcomplex.hh>
+#include <dune/gfe/coupling/rodcontinuumcomplex.hh>
 
 // Space dimension
 const int dim = 3;
