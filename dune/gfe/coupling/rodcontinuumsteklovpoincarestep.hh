@@ -1,0 +1,519 @@
+#ifndef ROD_CONTINUUM_STEKLOV_POINCARE_STEP_HH
+#define ROD_CONTINUUM_STEKLOV_POINCARE_STEP_HH
+
+#include <vector>
+
+#include <dune/common/shared_ptr.hh>
+#include <dune/common/fvector.hh>
+#include <dune/common/fmatrix.hh>
+#include <dune/common/bitsetvector.hh>
+
+#include <dune/istl/bcrsmatrix.hh>
+#include <dune/istl/bvector.hh>
+
+#include <dune/gfe/coupling/rodcontinuumcomplex.hh>
+
+template <class GridView, class MatrixType, class VectorType>
+class LinearizedContinuumNeumannToDirichletMap
+{
+public:
+    
+    /** \brief Constructor 
+     * 
+     */
+    LinearizedContinuumNeumannToDirichletMap(const BoundaryPatchBase<GridView>& interface,
+                                             const VectorType& weakVolumeAndNeumannTerm,
+                                             const VectorType& dirichletValues,
+                                             const LinearLocalAssembler<typename GridView::Grid,
+                                                                  typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                                                                  typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                                                                  Dune::FieldMatrix<double,3,3> >* localAssembler,
+                                             const Dune::shared_ptr< ::LoopSolver<VectorType> >& solver
+                                            )
+    : interface_(interface),
+      weakVolumeAndNeumannTerm_(weakVolumeAndNeumannTerm),
+      dirichletValues_(dirichletValues),
+      solver_(solver),
+      localAssembler_(localAssembler)
+    {}
+    
+    /** \brief Map a Neumann value to a Dirichlet value
+     * 
+     * \param currentIterate The continuum configuration that we are linearizing about
+     * 
+     * \return The infinitesimal movement of the interface
+     */
+    Dune::FieldVector<double,6> apply(const VectorType& currentIterate,
+                             const Dune::FieldVector<double,3>& force,
+                             const Dune::FieldVector<double,3>& torque,
+                             const Dune::FieldVector<double,3>& centerOfTorque
+                            )
+    {
+        ////////////////////////////////////////////////////
+        //  Assemble the linearized problem
+        ////////////////////////////////////////////////////
+
+        /** \todo We are actually assembling standard linear elasticity,
+         * i.e. the linearization at zero
+         */
+        typedef P1NodalBasis<GridView,double> P1Basis;
+        P1Basis basis(interface_.gridView());
+        OperatorAssembler<P1Basis,P1Basis> assembler(basis, basis);
+
+        MatrixType stiffnessMatrix;
+        assembler.assemble(*localAssembler_, stiffnessMatrix);
+    
+    
+        /////////////////////////////////////////////////////////////////////
+        //  Turn the input force and torque into a Neumann boundary field
+        /////////////////////////////////////////////////////////////////////
+        VectorType neumannValues(stiffnessMatrix.N());
+        neumannValues = 0;
+
+        // 
+        computeAveragePressure<GridView>(force, torque, 
+                                         interface_, 
+                                         centerOfTorque,
+                                         neumannValues);
+
+        // The weak form of the Neumann data
+        VectorType rhs = weakVolumeAndNeumannTerm_;
+        assembleAndAddNeumannTerm<GridView, VectorType>(interface_,
+                                                        neumannValues,
+                                                        rhs);
+
+        //   Solve the Neumann problem for the continuum
+        VectorType x = dirichletValues_;
+        assert( (dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(solver_->iterationStep_)) );
+        dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(solver_->iterationStep_)->setProblem(stiffnessMatrix, x, rhs);
+        
+        //solver.preprocess();
+        solver_->iterationStep_->preprocess();
+        
+        solver_->solve();
+        
+        x = solver_->iterationStep_->getSol();
+        
+        std::cout << "x:\n" << x << std::endl;
+
+        //  Average the continuum displacement on the coupling boundary
+        RigidBodyMotion<3> averageInterface;
+        computeAverageInterface(interface_, x, averageInterface);
+        
+        std::cout << "Average interface: " << averageInterface << std::endl;
+        
+        // Compute the linearization
+        Dune::FieldVector<double,6> interfaceCorrection;
+        interfaceCorrection[0] = averageInterface.r[0];
+        interfaceCorrection[1] = averageInterface.r[1];
+        interfaceCorrection[2] = averageInterface.r[2];
+        
+        Dune::FieldVector<double,3> infinitesimalRotation = Rotation<3,double>::expInv(averageInterface.q);
+        interfaceCorrection[3] = infinitesimalRotation[0];
+        interfaceCorrection[4] = infinitesimalRotation[1];
+        interfaceCorrection[5] = infinitesimalRotation[2];
+        
+        return interfaceCorrection;
+     }
+     
+private:
+    
+    const VectorType& weakVolumeAndNeumannTerm_;
+    
+    const VectorType& dirichletValues_;
+    
+    const Dune::shared_ptr< ::LoopSolver<VectorType> > solver_;
+    
+    const BoundaryPatchBase<GridView>& interface_;
+    
+    const LinearLocalAssembler<typename GridView::Grid,
+                         typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                         typename P1NodalBasis<GridView,double>::LocalFiniteElement,
+                         Dune::FieldMatrix<double,3,3> >* localAssembler_;
+};
+
+
+template <class GridView, class VectorType>
+class LinearizedRodNeumannToDirichletMap
+{
+    static const int dim = 3;
+    
+    typedef std::vector<RigidBodyMotion<dim> > RodSolutionType;
+
+public:
+    
+    /** \brief Constructor 
+     * 
+     */
+    LinearizedRodNeumannToDirichletMap(const BoundaryPatchBase<GridView>& interface,
+                                       LocalGeodesicFEStiffness<GridView, RigidBodyMotion<3> >* localAssembler)
+    : interface_(interface),
+      localAssembler_(localAssembler)
+    {}
+    
+    /** \brief Map a Neumann value to a Dirichlet value
+     * 
+     * \param currentIterate The rod configuration that we are linearizing about
+     * 
+     * \return The Dirichlet value
+     */
+    Dune::FieldVector<double,6> apply(const RodSolutionType& currentIterate,
+                             const Dune::FieldVector<double,3>& force,
+                             const Dune::FieldVector<double,3>& torque,
+                             const Dune::FieldVector<double,3>& centerOfTorque
+                            )
+    {
+        ////////////////////////////////////////////////////
+        //  Assemble the linearized rod problem
+        ////////////////////////////////////////////////////
+
+        typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> > MatrixType;
+        GeodesicFEAssembler<GridView, RigidBodyMotion<3> > assembler(interface_.gridView(),
+                                                                     localAssembler_);
+        MatrixType stiffnessMatrix;
+        assembler.assembleMatrix(currentIterate, 
+                                 stiffnessMatrix,
+                                 true   // assemble occupation pattern
+                                );
+    
+        VectorType rhs(currentIterate.size());
+        rhs = 0;
+        assembler.assembleGradient(currentIterate, rhs);
+        
+        // The right hand side is the _negative_ gradient
+        rhs *= -1;
+
+        /////////////////////////////////////////////////////////////////////
+        //  Turn the input force and torque into a Neumann boundary field
+        /////////////////////////////////////////////////////////////////////
+
+        // The weak form of the Neumann data
+        rhs[0][0] += force[0];
+        rhs[0][1] += force[1];
+        rhs[0][2] += force[2];
+        rhs[0][3] += torque[0];
+        rhs[0][4] += torque[1];
+        rhs[0][5] += torque[2];
+        
+        ///////////////////////////////////////////////////////////
+        // Modify matrix and rhs to contain one Dirichlet node
+        ///////////////////////////////////////////////////////////
+
+        int dIdx = rhs.size()-1;   // hardwired index of the single Dirichlet node
+        rhs[dIdx] = 0;
+        stiffnessMatrix[dIdx] = 0;
+        stiffnessMatrix[dIdx][dIdx] = Dune::ScaledIdentityMatrix<double,6>(1);
+        
+        //////////////////////////////////////////////////
+        //   Solve the Neumann problem
+        //////////////////////////////////////////////////
+
+        VectorType x(rhs.size());
+        x = 0;  // initial iterate
+
+        // Technicality:  turn the matrix into a linear operator
+        Dune::MatrixAdapter<MatrixType,VectorType,VectorType> op(stiffnessMatrix);
+
+        // A preconditioner
+        Dune::SeqILU0<MatrixType,VectorType,VectorType> ilu0(stiffnessMatrix,1.0);
+
+        // A preconditioned conjugate-gradient solver
+        Dune::CGSolver<VectorType> cg(op,ilu0,1E-4,100,2);
+
+        // Object storing some statistics about the solving process
+        Dune::InverseOperatorResult statistics;
+
+        // Solve!
+        cg.apply(x, rhs, statistics);
+
+        std::cout << "x:\n" << x << std::endl;
+
+        std::cout << "Linear rod interface correction: " << x[0] << std::endl;
+        
+        return x[0];
+     }
+     
+private:
+    
+    const BoundaryPatchBase<GridView>& interface_;
+    
+    LocalGeodesicFEStiffness<GridView, RigidBodyMotion<3> >* localAssembler_;
+};
+
+
+template <class RodGridType, class ContinuumGridType>
+class RodContinuumSteklovPoincareStep
+{
+    static const int dim = ContinuumGridType::dimension;
+    
+    // The type used for rod configurations
+    typedef std::vector<RigidBodyMotion<dim> > RodSolutionType;
+
+    // The type used for continuum configurations
+    typedef Dune::BlockVector<Dune::FieldVector<double,dim> > VectorType;
+    
+    typedef Dune::BlockVector<Dune::FieldVector<double,6> >  RodCorrectionType;
+    
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,3,3> > MatrixType;
+                
+    typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> ContinuumFEBasis;
+    
+public:
+    
+    /** \brief Constructor */
+    RodContinuumSteklovPoincareStep(const RodContinuumComplex<RodGridType,ContinuumGridType>& complex,
+                                    const std::string& preconditioner,
+                                    const Dune::array<double,2>& alpha,
+                                    double richardsonDamping,
+                                    const RigidBodyMotion<3>& referenceInterface,
+                                    RodAssembler<typename RodGridType::LeafGridView,3>* rodAssembler,
+                                    RodLocalStiffness<typename RodGridType::LeafGridView,double>* rodLocalStiffness,
+                                    RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver,
+                                    const LevelBoundaryPatch<ContinuumGridType>* interfaceBoundary,
+                                    const MatrixType* stiffnessMatrix3d,
+                                    const VectorType* dirichletValues,
+                                    const Dune::shared_ptr< ::LoopSolver<VectorType> > solver,
+                                    StVenantKirchhoffAssembler<ContinuumGridType, 
+                                                               typename ContinuumFEBasis::LocalFiniteElement, 
+                                                               typename ContinuumFEBasis::LocalFiniteElement>* localAssembler)
+      : complex_(complex),
+        preconditioner_(preconditioner),
+        alpha_(alpha),
+        richardsonDamping_(richardsonDamping),
+        referenceInterface_(referenceInterface),
+        rodAssembler_(rodAssembler),
+        rodLocalStiffness_(rodLocalStiffness),
+        rodSolver_(rodSolver),
+        interfaceBoundary_(interfaceBoundary),
+        stiffnessMatrix3d_(stiffnessMatrix3d),
+        dirichletValues_(dirichletValues),
+        solver_(solver),
+        localAssembler_(localAssembler)
+    {}
+    
+    
+    
+    
+    
+    
+    
+        
+        
+    /** \brief Do one Steklov-Poincare step
+     * \param[in,out] lambda The old and new iterate
+     */
+    void iterate(RigidBodyMotion<3>& lambda);
+    
+private:
+    
+    //////////////////////////////////////////////////////////////////
+    //  Data members related to the coupled problem
+    //////////////////////////////////////////////////////////////////
+    RodContinuumComplex<RodGridType,ContinuumGridType> complex_;
+    
+    std::string preconditioner_;
+    
+    /** \brief Neumann-Neumann damping */
+    Dune::array<double,2> alpha_;
+
+    double richardsonDamping_;
+    
+    //////////////////////////////////////////////////////////////////
+    //  Data members related to the rod problems
+    //////////////////////////////////////////////////////////////////
+    RigidBodyMotion<dim> referenceInterface_;
+    
+    RodAssembler<typename RodGridType::LeafGridView,3>* rodAssembler_;
+    
+    RodLocalStiffness<typename RodGridType::LeafGridView,double>* rodLocalStiffness_;
+    
+    RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver_;
+    
+    //////////////////////////////////////////////////////////////////
+    //  Data members related to the continuum problems
+    //////////////////////////////////////////////////////////////////
+
+    const LevelBoundaryPatch<ContinuumGridType>* interfaceBoundary_;
+    
+    const MatrixType* stiffnessMatrix3d_;
+    
+    const VectorType* dirichletValues_;
+    
+    const Dune::shared_ptr< ::LoopSolver<VectorType> > solver_;
+    
+    /** \todo Hack:
+     * - we actually need a base class
+     * - we don't need the global ContinuumFEBasis
+     */
+    StVenantKirchhoffAssembler<ContinuumGridType, 
+                               typename ContinuumFEBasis::LocalFiniteElement, 
+                               typename ContinuumFEBasis::LocalFiniteElement>* localAssembler_;
+    
+};
+
+
+/** \brief One preconditioned Richardson step
+*/
+template <class RodGridType, class ContinuumGridType>
+void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(RigidBodyMotion<3>& lambda)
+{
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann map for the rod
+    ///////////////////////////////////////////////////////////////////
+
+    // solve a Dirichlet problem for the rod
+    RodSolutionType rodX;
+    /** \todo Using that index 0 is always the left boundary for a uniformly refined OneDGrid */
+    rodX[0] = lambda;
+#warning Dirichlet boundary not properly set
+    rodX.back() = lambda;
+    rodSolver_->setInitialSolution(rodX);
+    rodSolver_->solve();
+
+    rodX = rodSolver_->getSol();
+
+    //   Extract Neumann values
+
+    Dune::BitSetVector<1> couplingBitfield(rodX.size(),false);
+    /** \todo Using that index 0 is always the left boundary for a uniformly refined OneDGrid */
+    couplingBitfield[0] = true;
+    LeafBoundaryPatch<RodGridType> couplingBoundary(*complex_.rodGrids_["rod"], couplingBitfield);
+
+    Dune::FieldVector<double,dim> resultantForce, resultantTorque;
+    resultantForce  = rodAssembler_->getResultantForce(couplingBoundary, rodX, resultantTorque);
+
+    // Flip orientation
+    resultantForce  *= -1;
+    resultantTorque *= -1;
+        
+    std::cout << "resultant force: " << resultantForce << std::endl;
+    std::cout << "resultant torque: " << resultantTorque << std::endl;
+            
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann map for the continuum
+    ///////////////////////////////////////////////////////////////////
+    
+    VectorType x3d(complex_.continuumGrids_["continuum"]->size(dim));
+    x3d = 0;
+
+    // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
+    RigidBodyMotion<3> relativeMovement;
+    relativeMovement.r = lambda.r - referenceInterface_.r;
+    relativeMovement.q = referenceInterface_.q;
+    relativeMovement.q.invert();
+    relativeMovement.q = lambda.q.mult(relativeMovement.q);
+            
+    setRotation(*interfaceBoundary_, x3d, relativeMovement);
+    
+    // Right hand side vector: currently with Neumann and volume terms
+    VectorType rhs3d(x3d.size());
+    rhs3d = 0;
+    
+    // Solve the Dirichlet problem
+    assert( (dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(solver_->iterationStep_)) );
+    dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(solver_->iterationStep_)->setProblem(*stiffnessMatrix3d_, x3d, rhs3d);
+
+    solver_->preprocess();
+    dynamic_cast<IterationStep<VectorType>* >(solver_->iterationStep_)->preprocess();
+        
+    solver_->solve();
+        
+    x3d = dynamic_cast<IterationStep<VectorType>* >(solver_->iterationStep_)->getSol();
+            
+    // Integrate over the residual on the coupling boundary to obtain
+    // an element of T^*SE.
+    Dune::FieldVector<double,3> continuumForce, continuumTorque;
+            
+    VectorType residual = rhs3d;
+    stiffnessMatrix3d_->mmv(x3d,residual);
+            
+    /** \todo Is referenceInterface.r the correct center of rotation? */
+    computeTotalForceAndTorque(*interfaceBoundary_, residual, referenceInterface_.r,
+                               continuumForce, continuumTorque);
+            
+    ///////////////////////////////////////////////////////////////
+    //  Compute the overall Steklov-Poincare residual
+    ///////////////////////////////////////////////////////////////
+
+    Dune::FieldVector<double,3> residualForce  = resultantForce + continuumForce;
+    Dune::FieldVector<double,3> residualTorque = resultantTorque + continuumTorque;
+            
+            
+            
+    ///////////////////////////////////////////////////////////////
+    //  Apply the preconditioner
+    ///////////////////////////////////////////////////////////////
+            
+    Dune::FieldVector<double,6> interfaceCorrection;
+            
+    if (preconditioner_=="DirichletNeumann") {
+                
+        ////////////////////////////////////////////////////////////////////
+        //  Preconditioner is the linearized Neumann-to-Dirichlet map
+        //  of the continuum.
+        ////////////////////////////////////////////////////////////////////
+                
+        LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LevelGridView,MatrixType,VectorType>
+                linContNtDMap(*interfaceBoundary_,
+                              rhs3d,
+                              *dirichletValues_,
+                              localAssembler_,
+                              solver_);
+                        
+        interfaceCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
+                
+    } else if (preconditioner_=="NeumannDirichlet") {
+            
+        ////////////////////////////////////////////////////////////////////
+        //  Preconditioner is the linearized Neumann-to-Dirichlet map
+        //  of the rod.
+        ////////////////////////////////////////////////////////////////////
+                
+        LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(couplingBoundary,
+                                                                                                         rodLocalStiffness_);
+
+        interfaceCorrection = linRodNtDMap.apply(rodX, residualForce, residualTorque, rodX[0].r);
+
+
+    } else if (preconditioner_=="NeumannNeumann") {
+            
+        ////////////////////////////////////////////////////////////////////
+        //  Preconditioner is a convex combination of the linearized
+        //  Neumann-to-Dirichlet map of the continuum and the linearized
+        //  Neumann-to-Dirichlet map of the rod.
+        ////////////////////////////////////////////////////////////////////
+
+        LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LevelGridView,MatrixType,VectorType>
+                linContNtDMap(*interfaceBoundary_,
+                              rhs3d,
+                              *dirichletValues_,
+                              localAssembler_,
+                              solver_);
+
+        LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(couplingBoundary,
+                                                                                                              rodLocalStiffness_);
+
+        Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, rodX[0].r);
+        Dune::FieldVector<double,6> rodCorrection       = linRodNtDMap.apply(rodX, residualForce, residualTorque, rodX[0].r);
+                
+        for (int j=0; j<6; j++)
+            interfaceCorrection[j] = (alpha_[0] * continuumCorrection[j] + alpha_[1] * rodCorrection[j])
+                                        / alpha_[0] + alpha_[1];
+                
+    } else if (preconditioner_=="RobinRobin") {
+            
+        DUNE_THROW(Dune::NotImplemented, "Robin-Robin preconditioner not implemented yet");
+                
+    } else
+        DUNE_THROW(Dune::NotImplemented, preconditioner_ << " is not a known preconditioner");
+            
+    ///////////////////////////////////////////////////////////////////////////////
+    //  Apply the damped correction to the current interface value
+    ///////////////////////////////////////////////////////////////////////////////
+                
+    interfaceCorrection *= richardsonDamping_;
+    lambda = RigidBodyMotion<3>::exp(lambda, interfaceCorrection);
+    
+}
+
+#endif
