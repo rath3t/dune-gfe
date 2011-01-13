@@ -23,7 +23,6 @@
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/prolongboundarypatch.hh>
 #include <dune/fufem/sampleonbitfield.hh>
-#include <dune/fufem/neumannassembler.hh>
 #include <dune/fufem/computestress.hh>
 
 #include <dune/fufem/functionspacebases/q1nodalbasis.hh>
@@ -392,10 +391,17 @@ int main (int argc, char *argv[]) try
                                               rodX[0].r,
                                               neumannValues);
 
-            rhs3d = 0;
+/*            rhs3d = 0;
             assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[complex.continuumGrids_["continuum"]->maxLevel()],
                                                         neumannValues,
-                                                        rhs3d);
+                                                        rhs3d);*/
+            /** \todo The LevelBasis is a hack.  The interfaceBoundary should really by a LeafBoundaryPatch anyways */
+            typedef P1NodalBasis<GridType::LevelGridView,double> LevelBasis;
+            LevelBasis levelBasis(complex.continuumGrids_["continuum"]->levelView(toplevel));
+            BoundaryFunctionalAssembler<LevelBasis> boundaryFunctionalAssembler(levelBasis, interfaceBoundary.back());
+            BasisGridFunction<LevelBasis, VectorType> neumannValuesFunction(levelBasis, neumannValues);
+            NeumannBoundaryAssembler<GridType, FieldVector<double,dim> > localNeumannAssembler(neumannValuesFunction);
+            boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs3d, true);
 
             // ///////////////////////////////////////////////////////////
             //   Solve the Neumann problem for the continuum

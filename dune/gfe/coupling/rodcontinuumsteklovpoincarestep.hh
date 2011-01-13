@@ -11,6 +11,9 @@
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
+#include <dune/fufem/assemblers/boundaryfunctionalassembler.hh>
+#include <dune/fufem/assemblers/localassemblers/neumannboundaryassembler.hh>
+
 #include <dune/gfe/coupling/rodcontinuumcomplex.hh>
 
 template <class GridView, class MatrixType, class VectorType>
@@ -78,9 +81,11 @@ public:
 
         // The weak form of the Neumann data
         VectorType rhs = weakVolumeAndNeumannTerm_;
-        assembleAndAddNeumannTerm<GridView, VectorType>(interface_,
-                                                        neumannValues,
-                                                        rhs);
+
+        BoundaryFunctionalAssembler<P1Basis> boundaryFunctionalAssembler(basis, interface_);
+        BasisGridFunction<P1Basis,VectorType> neumannValuesFunction(basis,neumannValues);
+        NeumannBoundaryAssembler<typename GridView::Grid, Dune::FieldVector<double,3> > localNeumannAssembler(neumannValuesFunction);
+        boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs, false);
 
         //   Solve the Neumann problem for the continuum
         VectorType x = dirichletValues_;
