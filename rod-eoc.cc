@@ -20,7 +20,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/rodassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/rodrefine.hh>
+#include <dune/gfe/geodesicfefunctionadaptor.hh>
 #include <dune/gfe/rodwriter.hh>
 
 typedef Dune::OneDGrid GridType;
@@ -209,7 +209,7 @@ int main (int argc, char *argv[]) try
 
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++)
-            globalRodRefine(grid, solution);
+            geodesicFEFunctionAdaptor(grid, solution);
 
         std::stringstream numberAsAscii;
         numberAsAscii << i;
