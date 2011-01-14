@@ -28,7 +28,7 @@ public:
 \param[in] n The number of vertices
 */
 template <int dim>
-    static void makeStraightRod(std::vector<RigidBodyMotion<dim> >& rod, int n,
+    void create(std::vector<RigidBodyMotion<dim> >& rod,
                      const Dune::FieldVector<double,3>& beginning, const Dune::FieldVector<double,3>& end)
 {
     // Compute the correct orientation
@@ -48,16 +48,8 @@ template <int dim>
     if (angle != 0)
         orientation = Rotation<3,double>(axis, angle);
 
-    // Set the values
-    rod.resize(n);
-    for (int i=0; i<n; i++) {
-
-        rod[i].r = beginning;
-        rod[i].r.axpy(double(i) / (n-1), end-beginning);
-        rod[i].q = orientation;
-
-    }
-
+        // Set the values
+        create(rod, RigidBodyMotion<dim>(beginning,orientation), RigidBodyMotion<dim>(end,orientation));
 }
 
 

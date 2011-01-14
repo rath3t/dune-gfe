@@ -153,7 +153,8 @@ int main (int argc, char *argv[]) try
     //   Initial solution
     // //////////////////////////
 
-    RodFactory<RodGridType::LeafGridView>::makeStraightRod(rodX, complex.rodGrids_["rod"]->size(1), rodRestEndPoint[0], rodRestEndPoint[1]);
+    RodFactory<RodGridType::LeafGridView> rodFactory(complex.rodGrids_["rod"]->leafView());
+    rodFactory.create(rodX, rodRestEndPoint[0], rodRestEndPoint[1]);
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
