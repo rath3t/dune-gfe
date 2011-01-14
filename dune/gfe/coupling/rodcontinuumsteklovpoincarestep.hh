@@ -252,10 +252,11 @@ class RodContinuumSteklovPoincareStep
     static const int dim = ContinuumGridType::dimension;
     
     // The type used for rod configurations
-    typedef std::vector<RigidBodyMotion<dim> > RodSolutionType;
+    typedef std::vector<RigidBodyMotion<dim> > RodConfigurationType;
 
     // The type used for continuum configurations
     typedef Dune::BlockVector<Dune::FieldVector<double,dim> > VectorType;
+    typedef Dune::BlockVector<Dune::FieldVector<double,dim> > ContinuumConfigurationType;
     
     typedef Dune::BlockVector<Dune::FieldVector<double,6> >  RodCorrectionType;
     
@@ -333,7 +334,9 @@ private:
     RodLocalStiffness<typename RodGridType::LeafGridView,double>* rodLocalStiffness_;
     
     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver_;
-    
+public:    
+    std::map<std::string, RodConfigurationType> rodSubdomainSolutions_;
+private:
     //////////////////////////////////////////////////////////////////
     //  Data members related to the continuum problems
     //////////////////////////////////////////////////////////////////
@@ -354,6 +357,9 @@ private:
                                typename ContinuumFEBasis::LocalFiniteElement, 
                                typename ContinuumFEBasis::LocalFiniteElement>* localAssembler_;
     
+public:
+    std::map<std::string, ContinuumConfigurationType> continuumSubdomainSolutions_;
+private:
 };
 
 
@@ -371,7 +377,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     RigidBodyMotion<3> rodDirichletValue = complex_.rodDirichletValues_["rod"].back();
     
     // Set initial iterate
-    RodSolutionType rodX;
+    RodConfigurationType& rodX = rodSubdomainSolutions_["rod"];
     RodFactory<typename RodGridType::LeafGridView> rodFactory(complex_.rodGrids_["rod"]->leafView());
     rodFactory.create(rodX,lambda,rodDirichletValue);
     
@@ -403,7 +409,8 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
     
-    VectorType x3d(complex_.continuumGrids_["continuum"]->size(dim));
+    VectorType& x3d = continuumSubdomainSolutions_["continuum"];
+    x3d.resize(complex_.continuumGrids_["continuum"]->size(dim));
     x3d = 0;
 
     // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
