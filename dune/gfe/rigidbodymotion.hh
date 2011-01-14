@@ -19,6 +19,16 @@ struct RigidBodyMotion
 
     /** \brief The type used for coordinates */
     typedef T ctype;
+    
+    /** \brief Default constructor */
+    RigidBodyMotion()
+    {}
+    
+    /** \brief Constructor from a translation and a rotation */
+    RigidBodyMotion(const Dune::FieldVector<ctype, dim>& translation,
+                    const Rotation<dim,ctype>& rotation)
+    : r(translation), q(rotation)
+    {}
 
     /** \brief The exponential map from a given point $p \in SE(d)$. 
      
