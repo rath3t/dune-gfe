@@ -244,6 +244,7 @@ public:
 
             for (int m=0; m<3; m++) {
                 
+#warning There is a bug in the following line!
                 result[m][i] = (norm<1e10) 
                     /** \todo Isn't there a better way to implement this stably? */
                     ? 0.5 * (i==m) 
