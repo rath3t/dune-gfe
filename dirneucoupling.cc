@@ -36,7 +36,7 @@
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/geodesicdifference.hh>
 #include <dune/gfe/rodwriter.hh>
-#include <dune/gfe/makestraightrod.hh>
+#include <dune/gfe/rodfactory.hh>
 #include <dune/gfe/coupling/rodcontinuumcomplex.hh>
 #include <dune/gfe/coupling/rodcontinuumsteklovpoincarestep.hh>
 
@@ -151,7 +151,7 @@ int main (int argc, char *argv[]) try
     //   Initial solution
     // //////////////////////////
 
-    makeStraightRod(rodX, complex.rodGrids_["rod"]->size(1), rodRestEndPoint[0], rodRestEndPoint[1]);
+    RodFactory<RodGridType::LeafGridView>::makeStraightRod(rodX, complex.rodGrids_["rod"]->size(1), rodRestEndPoint[0], rodRestEndPoint[1]);
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
