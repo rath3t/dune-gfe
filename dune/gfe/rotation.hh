@@ -128,6 +128,11 @@ class Rotation<3,T> : public Quaternion<T>
         return (x < 1e-4) ? 0.5 + (x*x/48) : std::sin(x/2)/x;
     }
 
+    /** \brief Derivative of the inverse cosine */
+    static T arccosDer(const T& x) {
+        return -1 / std::sqrt(1-x*x);
+    }
+
 public:
 
     /** \brief The type used for coordinates */
@@ -392,9 +397,26 @@ public:
         return v;
     }
 
-    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& a, 
-                                                                      const Rotation<3,T>& b) {
-        DUNE_THROW(Dune::NotImplemented, "derivativeOfDistanceSquaredWRTSecondArgument");
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, 
+                                                                      const Rotation<3,T>& q) {
+        
+        T dist = distance(p,q);
+        
+        // unefficient: parts of the following have already been computed while computing the distance
+        Rotation<3,T> pInv = p;
+        pInv.invert();
+        
+        // the forth component of pInv times q
+        double pInvq_4 = - pInv[0]*q[0] - pInv[1]*q[1] - pInv[2]*q[2] + pInv[3]*q[3];
+        
+        double arccosDer_pInvq_4 = arccosDer(pInvq_4);
+        
+        EmbeddedTangentVector result;
+        result[0] = 2 * dist * (-2 * arccosDer_pInvq_4 * pInv[0]);
+        result[1] = 2 * dist * (-2 * arccosDer_pInvq_4 * pInv[1]);
+        result[2] = 2 * dist * (-2 * arccosDer_pInvq_4 * pInv[2]);
+        result[3] = 2 * dist * ( 2 * arccosDer_pInvq_4 * pInv[3]);
+        
     }
     
     /** \brief Interpolate between two rotations */
