@@ -146,6 +146,14 @@ public:
         (*this) /= this->two_norm2();
 
     }
+    
+    /** \brief Yield the inverse quaternion */
+    Quaternion<T> inverse() const {
+        
+        Quaternion<T> result = *this;
+        result.invert();
+        return result;
+    }
 
     /** \brief Create three vectors which form an orthonormal basis of \mathbb{H} together
         with this one.
