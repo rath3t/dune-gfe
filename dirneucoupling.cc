@@ -147,6 +147,8 @@ int main (int argc, char *argv[]) try
 
     RodSolutionType rodX(complex.rodGrids_["rod"]->size(1));
 
+    int toplevel = complex.rodGrids_["rod"]->maxLevel();
+
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
@@ -165,8 +167,6 @@ int main (int argc, char *argv[]) try
 
     // Backup initial rod iterate for later reference
     RodSolutionType initialIterateRod = rodX;
-
-    int toplevel = complex.rodGrids_["rod"]->maxLevel();
 
     // /////////////////////////////////////////////////////
     //   Determine the Dirichlet nodes
