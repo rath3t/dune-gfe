@@ -103,7 +103,7 @@ struct RigidBodyMotion
     }
 
     // Translational part
-    Dune::FieldVector<ctype, dim> r;;
+    Dune::FieldVector<ctype, dim> r;
 
     // Rotational part
     Rotation<dim,ctype> q;
