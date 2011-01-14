@@ -13,13 +13,13 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      harmonicenergystiffness.hh \
                      localgeodesicfefunction.hh \
                      localgeodesicfestiffness.hh \
-                     makestraightrod.hh \
                      maxnormtrustregion.hh \
                      quaternion.hh \
                      realtuple.hh \
                      riemanniantrsolver.hh \
                      rigidbodymotion.hh \
                      rodassembler.hh \
+                     rodfactory.hh \
                      rodlocalstiffness.hh \
                      rodwriter.hh \
                      rotation.hh \
