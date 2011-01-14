@@ -103,6 +103,18 @@ template <int dim>
     }
 }
 
+    /** \brief Make a rod by setting each entry to the same value
+
+    \param[out] rod The new rod
+    */
+    template <int spaceDim>
+    void create(std::vector<RigidBodyMotion<spaceDim> >& rod,
+                const RigidBodyMotion<spaceDim,double>& value)
+    {
+        rod.resize(gridView_.size(1));
+        std::fill(rod.begin(), rod.end(), value);
+    }
+    
 private:
     
     const GridView& gridView_;
