@@ -471,6 +471,10 @@ int main (int argc, char *argv[]) try
             
             rodContinuumSteklovPoincareStep.iterate(lambda);
             
+            // get the subdomain solutions
+            rodX = rodContinuumSteklovPoincareStep.rodSubdomainSolutions_["rod"];
+            x3d  = rodContinuumSteklovPoincareStep.continuumSubdomainSolutions_["continuum"];
+            
         } else
             DUNE_THROW(NotImplemented, ddType << " is not a known domain decomposition algorithm");
 
