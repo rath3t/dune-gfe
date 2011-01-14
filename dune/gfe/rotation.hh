@@ -128,9 +128,15 @@ class Rotation<3,T> : public Quaternion<T>
         return (x < 1e-4) ? 0.5 + (x*x/48) : std::sin(x/2)/x;
     }
 
-    /** \brief Derivative of the inverse cosine */
-    static T arccosDer(const T& x) {
-        return -1 / std::sqrt(1-x*x);
+    /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
+    static double derivativeOfArcCosSquared(const double& x) {
+        const double eps = 1e-12;
+        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
+            return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
+        } else if (x < -1+eps) {  // The function is not differentiable
+            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
+        } else
+            return -2*std::acos(x) / std::sqrt(1-x*x);
     }
 
 public:
@@ -421,24 +427,25 @@ public:
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, 
                                                                       const Rotation<3,T>& q) {
         
-        T dist = distance(p,q);
-        
-        // unefficient: parts of the following have already been computed while computing the distance
         Rotation<3,T> pInv = p;
         pInv.invert();
         
         // the forth component of pInv times q
         double pInvq_4 = - pInv[0]*q[0] - pInv[1]*q[1] - pInv[2]*q[2] + pInv[3]*q[3];
         
-        double arccosDer_pInvq_4 = arccosDer(pInvq_4);
+        double arccosSquaredDer_pInvq_4 = derivativeOfArcCosSquared(pInvq_4);
         
         EmbeddedTangentVector result;
-        result[0] = 2 * dist * (-2 * arccosDer_pInvq_4 * pInv[0]);
-        result[1] = 2 * dist * (-2 * arccosDer_pInvq_4 * pInv[1]);
-        result[2] = 2 * dist * (-2 * arccosDer_pInvq_4 * pInv[2]);
-        result[3] = 2 * dist * ( 2 * arccosDer_pInvq_4 * pInv[3]);
+        result[0] = -4 * arccosSquaredDer_pInvq_4 * pInv[0];
+        result[1] = -4 * arccosSquaredDer_pInvq_4 * pInv[1];
+        result[2] = -4 * arccosSquaredDer_pInvq_4 * pInv[2];
+        result[3] =  4 * arccosSquaredDer_pInvq_4 * pInv[3];
         
-        return result;
+        // project onto the tangent space at q
+        EmbeddedTangentVector projectedResult = result;
+        projectedResult.axpy(-1*(q*result), q);
+        
+        return projectedResult;
     }
     
     /** \brief Interpolate between two rotations */
