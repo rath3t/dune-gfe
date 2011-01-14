@@ -6,8 +6,9 @@
 #include <dune/fufem/crossproduct.hh>
 
 #include "rigidbodymotion.hh"
+#include <dune/gfe/localgeodesicfefunction.hh>
 
-/** \brief Make a straight rod from two given endpoints
+/** \brief Make a straight, unsheared rod from two given endpoints
 
 \param[out] rod The new rod
 \param[in] n The number of vertices
@@ -43,7 +44,60 @@ void makeStraightRod(std::vector<RigidBodyMotion<dim> >& rod, int n,
 
     }
 
+}
 
+
+/** \brief Make a rod by interpolating between two end configurations
+
+\param[out] rod The new rod
+\param[in] n The number of vertices
+*/
+template <class GridView, int spaceDim>
+void makeStraightRod(const GridView& gridView,
+                     std::vector<RigidBodyMotion<spaceDim> >& rod,
+                     const RigidBodyMotion<3,double>& beginning,
+                     const RigidBodyMotion<3,double>& end)
+{
+    dune_static_assert(GridView::dimensionworld==1, "makeStraightRod is only implemented for grids in a 1d world");
+    
+    static const int dim = GridView::dimension;  // de facto: 1
+    
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    //  Get smallest and largest coordinate, in order to create an arc-length parametrization
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    
+    typename GridView::template Codim<dim>::Iterator vIt    = gridView.template begin<dim>();
+    typename GridView::template Codim<dim>::Iterator vEndIt = gridView.template end<dim>();
+    
+    double min =  std::numeric_limits<double>::max();
+    double max = -std::numeric_limits<double>::max();
+    
+    for (; vIt != vEndIt; ++vIt) {
+        min = std::min(min, vIt->geometry().corner(0)[0]);
+        max = std::max(max, vIt->geometry().corner(0)[0]);
+    }
+    
+    ////////////////////////////////////////////////////////////////////////////////////
+    //  Make a 1d geodesic finite element function, which will do the interpolation
+    ////////////////////////////////////////////////////////////////////////////////////
+    
+    std::vector<RigidBodyMotion<3> > coefficients(2);
+    coefficients[0] = beginning;
+    coefficients[1] = end;
+
+    LocalGeodesicFEFunction<1,double,RigidBodyMotion<3> > localGFEFunction(coefficients);
+    
+    ////////////////////////////////////////////////////////////////////////////////////
+    //  Interpolate according to arc-length
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    rod.resize(gridView.size(dim));
+    
+    for (vIt = gridView.template begin<dim>(); vIt != vEndIt; ++vIt) {
+        int idx = gridView.indexSet().index(*vIt);
+        Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
+        rod[idx] = localGFEFunction.evaluate(local);
+    }
 }
 
 #endif
