@@ -438,6 +438,7 @@ public:
         result[2] = 2 * dist * (-2 * arccosDer_pInvq_4 * pInv[2]);
         result[3] = 2 * dist * ( 2 * arccosDer_pInvq_4 * pInv[3]);
         
+        return result;
     }
     
     /** \brief Interpolate between two rotations */
