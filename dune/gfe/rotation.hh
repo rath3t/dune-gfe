@@ -270,8 +270,7 @@ public:
 
             for (int m=0; m<3; m++) {
                 
-#warning There is a bug in the following line!
-                result[m][i] = (norm<1e10) 
+                result[m][i] = (norm<1e-10) 
                     /** \todo Isn't there a better way to implement this stably? */
                     ? 0.5 * (i==m) 
                     : 0.5 * std::cos(norm/2) * v[i] * v[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - v[i]*v[m]/(norm*norm));
