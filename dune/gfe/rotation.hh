@@ -230,9 +230,29 @@ public:
         return p.mult(corr);
     }
 
-    /** \brief The exponential map from a given point $p \in SO(3)$. */
+    /** \brief The exponential map from a given point $p \in SO(3)$.
+     
+        There may be a more direct way to implement this
+        
+        \param v A tangent vector in quaternion coordinates
+     */
     static Rotation<3,T> exp(const Rotation<3,T>& p, const EmbeddedTangentVector& v) {
-        DUNE_THROW(Dune::NotImplemented, "exp... EmbeddedTangentVector");
+        
+        // The vector v as a quaternion
+        Quaternion<T> vQuat(v);
+        
+        // left multiplication by the inverse base point yields a tangent vector at the identity
+        Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
+        assert( std::fabs(vAtIdentity[3] < 1e-8) );
+
+        // vAtIdentity as a skew matrix
+        TangentVector vMatrix;
+        vMatrix[0] = 2*vAtIdentity[0];
+        vMatrix[1] = 2*vAtIdentity[1];
+        vMatrix[2] = 2*vAtIdentity[2];
+        
+        // The actual exponential map
+        return exp(p, vMatrix);
     }
 
     static Dune::FieldMatrix<T,4,3> Dexp(const Dune::FieldVector<T,3>& v) {
