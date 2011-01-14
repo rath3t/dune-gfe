@@ -367,17 +367,17 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     ///////////////////////////////////////////////////////////////////
 
     // solve a Dirichlet problem for the rod
-    RodSolutionType rodX;
     /** \todo Using that the coupling boundary is the one with the lower coordinate */
-#warning Dirichlet boundary not properly set
-    RigidBodyMotion<3> rodDirichletValue;
-    rodDirichletValue.r = 0;
-    rodDirichletValue.q = Rotation<3,double>::identity();
+    RigidBodyMotion<3> rodDirichletValue = complex_.rodDirichletValues_["rod"].back();
     
+    // Set initial iterate
+    RodSolutionType rodX;
     RodFactory<typename RodGridType::LeafGridView> rodFactory(complex_.rodGrids_["rod"]->leafView());
     rodFactory.create(rodX,lambda,rodDirichletValue);
     
     rodSolver_->setInitialSolution(rodX);
+    
+    // Solve the Dirichlet problem
     rodSolver_->solve();
 
     rodX = rodSolver_->getSol();

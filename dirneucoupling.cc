@@ -165,6 +165,14 @@ int main (int argc, char *argv[]) try
     double angle = parameterSet.get("dirichletAngle", double(0));
 
     rodX.back().q = Rotation<3,double>(axis, M_PI*angle/180);
+    
+    rodFactory.create(complex.rodDirichletValues_["rod"],
+                      RigidBodyMotion<3>(FieldVector<double,3>(0), Rotation<3,double>::identity()));
+    complex.rodDirichletValues_["rod"].back() = RigidBodyMotion<3>(parameterSet.get("dirichletValue", rodRestEndPoint[1]),
+                                                                   Rotation<3,double>(axis, M_PI*angle/180));
+    BitSetVector<1> rodDNodes(complex.rodDirichletValues_["rod"].size(), false);
+    rodDNodes.back() = true;
+    complex.rodDirichletBoundaries_["rod"].setup(*complex.rodGrids_["rod"],rodDNodes);
 
     // Backup initial rod iterate for later reference
     RodSolutionType initialIterateRod = rodX;
