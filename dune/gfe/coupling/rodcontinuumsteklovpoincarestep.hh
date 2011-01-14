@@ -389,15 +389,15 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     couplingBitfield[0] = true;
     LeafBoundaryPatch<RodGridType> couplingBoundary(*complex_.rodGrids_["rod"], couplingBitfield);
 
-    Dune::FieldVector<double,dim> resultantForce, resultantTorque;
-    resultantForce  = rodAssembler_->getResultantForce(couplingBoundary, rodX, resultantTorque);
+    Dune::FieldVector<double,dim> rodForce, rodTorque;
+    rodForce = rodAssembler_->getResultantForce(couplingBoundary, rodX, rodTorque);
 
     // Flip orientation
-    resultantForce  *= -1;
-    resultantTorque *= -1;
+    rodForce  *= -1;
+    rodTorque *= -1;
         
-    std::cout << "resultant force: " << resultantForce << std::endl;
-    std::cout << "resultant torque: " << resultantTorque << std::endl;
+    std::cout << "resultant force: "  << rodForce  << ",         "
+              << "resultant torque: " << rodTorque << std::endl;
             
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
@@ -445,8 +445,8 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     //  Compute the overall Steklov-Poincare residual
     ///////////////////////////////////////////////////////////////
 
-    Dune::FieldVector<double,3> residualForce  = resultantForce + continuumForce;
-    Dune::FieldVector<double,3> residualTorque = resultantTorque + continuumTorque;
+    Dune::FieldVector<double,3> residualForce  = rodForce + continuumForce;
+    Dune::FieldVector<double,3> residualTorque = rodTorque + continuumTorque;
             
             
             
