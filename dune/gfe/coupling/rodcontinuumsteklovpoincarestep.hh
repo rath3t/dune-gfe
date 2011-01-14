@@ -415,7 +415,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
             
     setRotation(*interfaceBoundary_, x3d, relativeMovement);
     
-    // Right hand side vector: currently with Neumann and volume terms
+    // Right hand side vector: currently without Neumann and volume terms
     VectorType rhs3d(x3d.size());
     rhs3d = 0;
     
