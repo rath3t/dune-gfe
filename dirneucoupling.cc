@@ -356,8 +356,6 @@ int main (int argc, char *argv[]) try
         VectorType      oldSolution3d  = x3d;
         RodSolutionType oldSolutionRod = rodX;
         
-        RigidBodyMotion<3> averageInterface;
-
         if (ddType=="FixedPointIteration") {
 
             // //////////////////////////////////////////////////
@@ -427,6 +425,8 @@ int main (int argc, char *argv[]) try
             // ///////////////////////////////////////////////////////////
             //   Extract new interface position and orientation
             // ///////////////////////////////////////////////////////////
+
+            RigidBodyMotion<3> averageInterface;
 
             computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
 
