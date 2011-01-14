@@ -8,13 +8,27 @@
 #include "rigidbodymotion.hh"
 #include <dune/gfe/localgeodesicfefunction.hh>
 
+/** \brief A factory class that implements various ways to create rod configurations
+ */
+
+template <class GridView>
+class RodFactory
+{
+    dune_static_assert(GridView::dimensionworld==1, "RodFactory is only implemented for grids in a 1d world");
+    
+public:
+
+    RodFactory(const GridView& gridView)
+    : gridView_(gridView)
+    {}
+    
 /** \brief Make a straight, unsheared rod from two given endpoints
 
 \param[out] rod The new rod
 \param[in] n The number of vertices
 */
 template <int dim>
-void makeStraightRod(std::vector<RigidBodyMotion<dim> >& rod, int n,
+    static void makeStraightRod(std::vector<RigidBodyMotion<dim> >& rod, int n,
                      const Dune::FieldVector<double,3>& beginning, const Dune::FieldVector<double,3>& end)
 {
     // Compute the correct orientation
@@ -50,15 +64,12 @@ void makeStraightRod(std::vector<RigidBodyMotion<dim> >& rod, int n,
 /** \brief Make a rod by interpolating between two end configurations
 
 \param[out] rod The new rod
-\param[in] n The number of vertices
 */
-template <class GridView, int spaceDim>
-void makeStraightRod(const GridView& gridView,
-                     std::vector<RigidBodyMotion<spaceDim> >& rod,
+    template <int spaceDim>
+    void create(std::vector<RigidBodyMotion<spaceDim> >& rod,
                      const RigidBodyMotion<3,double>& beginning,
                      const RigidBodyMotion<3,double>& end)
 {
-    dune_static_assert(GridView::dimensionworld==1, "makeStraightRod is only implemented for grids in a 1d world");
     
     static const int dim = GridView::dimension;  // de facto: 1
     
@@ -66,8 +77,8 @@ void makeStraightRod(const GridView& gridView,
     //  Get smallest and largest coordinate, in order to create an arc-length parametrization
     //////////////////////////////////////////////////////////////////////////////////////////////
     
-    typename GridView::template Codim<dim>::Iterator vIt    = gridView.template begin<dim>();
-    typename GridView::template Codim<dim>::Iterator vEndIt = gridView.template end<dim>();
+    typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
+    typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
     
     double min =  std::numeric_limits<double>::max();
     double max = -std::numeric_limits<double>::max();
@@ -91,13 +102,18 @@ void makeStraightRod(const GridView& gridView,
     //  Interpolate according to arc-length
     ////////////////////////////////////////////////////////////////////////////////////
 
-    rod.resize(gridView.size(dim));
+    rod.resize(gridView_.size(dim));
     
-    for (vIt = gridView.template begin<dim>(); vIt != vEndIt; ++vIt) {
-        int idx = gridView.indexSet().index(*vIt);
+    for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
+        int idx = gridView_.indexSet().index(*vIt);
         Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
         rod[idx] = localGFEFunction.evaluate(local);
     }
 }
+
+private:
+    
+    const GridView& gridView_;
+};
 
 #endif
