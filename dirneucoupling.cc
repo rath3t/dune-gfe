@@ -344,7 +344,7 @@ int main (int argc, char *argv[]) try
     FieldVector<double,3> lambdaTorque(0);
 
     //
-    double normOfOldCorrection = 0;
+    double normOfOldCorrection = 1;
     int dnStepsActuallyTaken = 0;
     for (int i=0; i<maxDDIterations; i++) {
         
@@ -352,9 +352,8 @@ int main (int argc, char *argv[]) try
         std::cout << "      Domain-Decomposition- Step Number: " << i       << std::endl;
         std::cout << "----------------------------------------------------" << std::endl;
         
-        // Backup of the current solution for the error computation later on
-        VectorType      oldSolution3d  = x3d;
-        RodSolutionType oldSolutionRod = rodX;
+        // Backup of the current iterate for the error computation later on
+        RigidBodyMotion<3> oldLambda  = lambda;
         
         if (ddType=="FixedPointIteration") {
 
@@ -516,54 +515,20 @@ int main (int argc, char *argv[]) try
         //   Compute error in the energy norm
         // ////////////////////////////////////////////
 
-        // the 3d body
-        double oldNorm = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, stiffnessMatrix3d);
-        oldSolution3d -= x3d;
-        double normOfCorrection = EnergyNorm<MatrixType,VectorType>::normSquared(oldSolution3d, stiffnessMatrix3d);
+        double lengthOfCorrection = RigidBodyMotion<3>::distance(oldLambda, lambda);
 
-        double max3dRelCorrection = 0;
-        for (size_t j=0; j<x3d.size(); j++)
-            for (int k=0; k<dim; k++)
-                max3dRelCorrection = std::max(max3dRelCorrection, 
-                                              std::fabs(oldSolution3d[j][k])/ std::fabs(x3d[j][k]));
+        double convRate = lengthOfCorrection / normOfOldCorrection;
 
-        // the rod
-        RodDifferenceType rodDiff = computeGeodesicDifference(oldSolutionRod, rodX);
-        double maxRodRelCorrection = 0;
-        for (size_t j=0; j<rodX.size(); j++)
-            for (int k=0; k<dim; k++)
-                maxRodRelCorrection = std::max(maxRodRelCorrection, 
-                                              std::fabs(rodDiff[j][k])/ std::fabs(rodX[j].r[k]));
-
-        // Absolute corrections
-        double maxRodCorrection = computeGeodesicDifference(oldSolutionRod, rodX).infinity_norm();
-        double max3dCorrection  = oldSolution3d.infinity_norm();
-
-
-        std::cout << "rod correction: " << maxRodCorrection
-                  << "    rod rel correction: " <<  maxRodRelCorrection
-                  << "    3d correction: " <<  max3dCorrection
-                  << "    3d rel correction: " <<  max3dRelCorrection << std::endl;
-        
-
-        oldNorm = std::sqrt(oldNorm);
-
-        normOfCorrection = std::sqrt(normOfCorrection);
-
-        double relativeError = normOfCorrection / oldNorm;
-
-        double convRate = normOfCorrection / normOfOldCorrection;
-
-        normOfOldCorrection = normOfCorrection;
+        normOfOldCorrection = lengthOfCorrection;
 
         // Output
-        std::cout << "DD iteration: " << i << "  --  ||u^{n+1} - u^n|| / ||u^n||: " << relativeError << ",      "
+        std::cout << "DD iteration: " << i << ",      "
+                  << "interface correction: " << lengthOfCorrection << ",     "
                   << "convrate " << convRate << "\n";
 
         dnStepsActuallyTaken = i;
 
-        //if (relativeError < ddTolerance)
-        if (std::max(max3dRelCorrection,maxRodRelCorrection) < ddTolerance)
+        if (lengthOfCorrection < ddTolerance)
             break;
 
     }
