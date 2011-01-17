@@ -15,6 +15,8 @@
 template <class RodGrid, class ContinuumGrid>
 class RodContinuumComplex
 {
+    dune_static_assert(RodGrid::dimension==1, "The RodGrid has to be one-dimensional!");
+
     typedef std::vector<RigidBodyMotion<3> > RodConfiguration;
     
     typedef Dune::BlockVector<Dune::FieldVector<double,3> > ContinuumConfiguration;
