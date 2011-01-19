@@ -312,7 +312,7 @@ private:
     
     RigidBodyMotion<3>::TangentVector rodDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const;
     
-    //RigidBodyMotion<3>::TangentVector continuumDirichletToNeumannMap() const;
+    RigidBodyMotion<3>::TangentVector continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const;
     
     //////////////////////////////////////////////////////////////////
     //  Data members related to the coupled problem
@@ -358,7 +358,7 @@ private:
                                typename ContinuumFEBasis::LocalFiniteElement>* localAssembler_;
     
 public:
-    std::map<std::string, ContinuumConfigurationType> continuumSubdomainSolutions_;
+    mutable std::map<std::string, ContinuumConfigurationType> continuumSubdomainSolutions_;
 private:
 };
 
@@ -405,37 +405,15 @@ rodDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
     return result;
 }
 
-/** \brief One preconditioned Richardson step
-*/
+
 template <class RodGridType, class ContinuumGridType>
-void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(RigidBodyMotion<3>& lambda)
+RigidBodyMotion<3>::TangentVector RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
 {
-    ///////////////////////////////////////////////////////////////////
-    //  Evaluate the Dirichlet-to-Neumann map for the rod
-    ///////////////////////////////////////////////////////////////////
-
-    RigidBodyMotion<3>::TangentVector rodForceTorque = rodDirichletToNeumannMap(lambda);
-
-    // Flip orientation
-    rodForceTorque *= -1;
-
-    Dune::FieldVector<double,dim> rodForce, rodTorque;
-    for (int i=0; i<dim; i++) {
-        rodForce[i]  = rodForceTorque[i];
-        rodTorque[i] = rodForceTorque[i+dim];
-    }
+    std::pair<std::string,std::string> couplingName = std::make_pair("rod", "continuum");
     
-    std::cout << "resultant force: "  << rodForce  << ",         "
-              << "resultant torque: " << rodTorque << std::endl;
-            
-    ///////////////////////////////////////////////////////////////////
-    //  Evaluate the Dirichlet-to-Neumann map for the continuum
-    ///////////////////////////////////////////////////////////////////
-              
-    std::pair<std::string,std::string> interfaceName = std::make_pair("rod", "continuum");
-    
-    VectorType& x3d = continuumSubdomainSolutions_["continuum"];
-    x3d.resize(complex_.continuumGrids_["continuum"]->size(dim));
+    VectorType& x3d = continuumSubdomainSolutions_.find("continuum")->second;
+    x3d.resize(complex_.continuumGrids_.find("continuum")->second->size(dim));
     x3d = 0;
 
     // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
@@ -445,7 +423,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     relativeMovement.q.invert();
     relativeMovement.q = lambda.q.mult(relativeMovement.q);
             
-    setRotation(complex_.couplings_[interfaceName].continuumInterfaceBoundary_, x3d, relativeMovement);
+    setRotation(complex_.couplings_.find(couplingName)->second.continuumInterfaceBoundary_, x3d, relativeMovement);
     
     // Right hand side vector: currently without Neumann and volume terms
     VectorType rhs3d(x3d.size());
@@ -470,9 +448,58 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     stiffnessMatrix3d_->mmv(x3d,residual);
             
     /** \todo Is referenceInterface.r the correct center of rotation? */
-    computeTotalForceAndTorque(complex_.couplings_[interfaceName].continuumInterfaceBoundary_, residual, referenceInterface_.r,
+    computeTotalForceAndTorque(complex_.couplings_.find(couplingName)->second.continuumInterfaceBoundary_, residual, referenceInterface_.r,
                                continuumForce, continuumTorque);
+
+    RigidBodyMotion<3>::TangentVector result;
+    result[0] = continuumForce[0];
+    result[1] = continuumForce[1];
+    result[2] = continuumForce[2];
+    result[3] = continuumTorque[0];
+    result[4] = continuumTorque[1];
+    result[5] = continuumTorque[2];
+    
+    return result;
+}
+
+/** \brief One preconditioned Richardson step
+*/
+template <class RodGridType, class ContinuumGridType>
+void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(RigidBodyMotion<3>& lambda)
+{
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann map for the rod
+    ///////////////////////////////////////////////////////////////////
+
+    RigidBodyMotion<3>::TangentVector rodForceTorque = rodDirichletToNeumannMap(lambda);
+
+    // Flip orientation
+    rodForceTorque *= -1;
+
+    Dune::FieldVector<double,dim> rodForce, rodTorque;
+    for (int i=0; i<dim; i++) {
+        rodForce[i]  = rodForceTorque[i];
+        rodTorque[i] = rodForceTorque[i+dim];
+    }
+    
+    std::cout << "resultant rod force: "  << rodForce  << ",         "
+              << "resultant rod torque: " << rodTorque << std::endl;
             
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann map for the continuum
+    ///////////////////////////////////////////////////////////////////
+              
+    RigidBodyMotion<3>::TangentVector continuumForceTorque = continuumDirichletToNeumannMap(lambda);
+            
+    Dune::FieldVector<double,dim> continuumForce, continuumTorque;
+    for (int i=0; i<dim; i++) {
+        continuumForce[i]  = continuumForceTorque[i];
+        continuumTorque[i] = continuumForceTorque[i+dim];
+    }
+    
+    std::cout << "resultant continuum force: "  << continuumForce  << ",         "
+              << "resultant continuum torque: " << continuumTorque << std::endl;
+
     ///////////////////////////////////////////////////////////////
     //  Compute the overall Steklov-Poincare residual
     ///////////////////////////////////////////////////////////////
@@ -496,14 +523,18 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         //  of the continuum.
         ////////////////////////////////////////////////////////////////////
                 
+        // Right hand side vector: currently without Neumann and volume terms
+        VectorType rhs3d(complex_.continuumGrids_["continuum"]->size(dim));
+        rhs3d = 0;
+
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
-                linContNtDMap(complex_.couplings_[interfaceName].continuumInterfaceBoundary_,
+                linContNtDMap(complex_.couplings_[couplingName].continuumInterfaceBoundary_,
                               rhs3d,
                               *dirichletValues_,
                               localAssembler_,
                               solver_);
                         
-        interfaceCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, lambda.r);
+        interfaceCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForce, residualTorque, lambda.r);
                 
     } else if (preconditioner_=="NeumannDirichlet") {
             
@@ -526,8 +557,12 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         //  Neumann-to-Dirichlet map of the rod.
         ////////////////////////////////////////////////////////////////////
 
+        // Right hand side vector: currently without Neumann and volume terms
+        VectorType rhs3d(complex_.continuumGrids_["continuum"]->size(dim));
+        rhs3d = 0;
+
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
-                linContNtDMap(complex_.couplings_[interfaceName].continuumInterfaceBoundary_,
+                linContNtDMap(complex_.couplings_[couplingName].continuumInterfaceBoundary_,
                               rhs3d,
                               *dirichletValues_,
                               localAssembler_,
@@ -536,7 +571,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.couplings_[couplingName].rodInterfaceBoundary_,
                                                                                                               rodLocalStiffness_);
 
-        Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(x3d, residualForce, residualTorque, lambda.r);
+        Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForce, residualTorque, lambda.r);
         Dune::FieldVector<double,6> rodCorrection       = linRodNtDMap.apply(rodSubdomainSolutions_["rod"],
                                                                              residualForce, residualTorque, lambda.r);
                 
