@@ -422,7 +422,7 @@ continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
 {
     std::pair<std::string,std::string> couplingName = std::make_pair("rod", "continuum");
     
-    VectorType& x3d = continuumSubdomainSolutions_.find("continuum")->second;
+    VectorType& x3d = continuumSubdomainSolutions_["continuum"];
     x3d.resize(complex_.continuumGrid("continuum")->size(dim));
     x3d = 0;
 
