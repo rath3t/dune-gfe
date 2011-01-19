@@ -203,14 +203,23 @@ int main (int argc, char *argv[]) try
 
     sampleOnBitField(*complex.continuumGrids_["continuum"], dirichletValues, dirichletNodes);
     
-    // /////////////////////////////////////////////////////
-    //   Determine the interface boundary
-    // /////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////
+    //  Create the two interface boundary patches
+    /////////////////////////////////////////////////////////////////////
+    
+    std::pair<std::string,std::string> interfaceName = std::make_pair("rod", "continuum");
+
+    // first for the rod
+    BitSetVector<1> rodCouplingBitfield(rodX.size(),false);
+    // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+    rodCouplingBitfield[0] = true;
+    LeafBoundaryPatch<RodGridType> rodCouplingBoundary(*complex.rodGrids_["rod"], rodCouplingBitfield);
+
+    // then for the continuum
     LevelBoundaryPatch<GridType> coarseInterfaceBoundary(*complex.continuumGrids_["continuum"], 0);
     readBoundaryPatch(coarseInterfaceBoundary, path + interfaceNodesFile);
     
-    LeafBoundaryPatch<GridType> interfaceBoundary;
-    PatchProlongator<GridType>::prolong(coarseInterfaceBoundary, interfaceBoundary);
+    PatchProlongator<GridType>::prolong(coarseInterfaceBoundary, complex.couplings_[interfaceName].continuumInterfaceBoundary_);
 
     // ////////////////////////////////////////// 
     //   Assemble 3d linear elasticity problem
@@ -333,16 +342,6 @@ int main (int argc, char *argv[]) try
         multigridStep.mgTransfer_[i] = newTransferOp;
     }
     
-    /////////////////////////////////////////////////////////////////////
-    //  Create the two interface boundary patches
-    /////////////////////////////////////////////////////////////////////
-
-    BitSetVector<1> rodCouplingBitfield(rodX.size(),false);
-    // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-    rodCouplingBitfield[0] = true;
-    LeafBoundaryPatch<RodGridType> rodCouplingBoundary(*complex.rodGrids_["rod"], rodCouplingBitfield);
-
-
 
     // /////////////////////////////////////////////////////
     //   Dirichlet-Neumann Solver
@@ -399,11 +398,11 @@ int main (int argc, char *argv[]) try
 
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
             computeAveragePressure<GridType::LeafGridView>(resultantForce, resultantTorque, 
-                                              interfaceBoundary, 
+                                              complex.couplings_[interfaceName].continuumInterfaceBoundary_, 
                                               rodX[0].r,
                                               neumannValues);
 
-            BoundaryFunctionalAssembler<FEBasis> boundaryFunctionalAssembler(basis, interfaceBoundary);
+            BoundaryFunctionalAssembler<FEBasis> boundaryFunctionalAssembler(basis, complex.couplings_[interfaceName].continuumInterfaceBoundary_);
             BasisGridFunction<FEBasis, VectorType> neumannValuesFunction(basis, neumannValues);
             NeumannBoundaryAssembler<GridType, FieldVector<double,dim> > localNeumannAssembler(neumannValuesFunction);
             boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs3d, true);
@@ -426,7 +425,7 @@ int main (int argc, char *argv[]) try
 
             RigidBodyMotion<3> averageInterface;
 
-            computeAverageInterface(interfaceBoundary, x3d, averageInterface);
+            computeAverageInterface(complex.couplings_[interfaceName].continuumInterfaceBoundary_, x3d, averageInterface);
 
         //averageInterface.r[0] = averageInterface.r[1] = 0;
         //averageInterface.q = Quaternion<double>::identity();
@@ -461,7 +460,7 @@ int main (int argc, char *argv[]) try
                                                                                                   &rodAssembler,
                                                                                                   &rodLocalStiffness,
                                                                                                   &rodSolver,
-                                                                                                  &interfaceBoundary,
+                                                                                                  &complex.couplings_[interfaceName].continuumInterfaceBoundary_,
                                                                                                   &stiffnessMatrix3d,
                                                                                                   &dirichletValues.back(),
                                                                                                   solver,
