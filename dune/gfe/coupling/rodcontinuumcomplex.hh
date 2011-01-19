@@ -29,6 +29,27 @@ class RodContinuumComplex
     };
     
 public:
+    
+    /** \brief Simple const access to rod grids */
+    const Dune::shared_ptr<RodGrid> rodGrid(const std::string& name) const
+    {
+        assert(rodGrids_.find(name) != rodGrids_.end());
+        return rodGrids_.find(name)->second;
+    }
+
+    /** \brief Simple const access to continuum grids */
+    const Dune::shared_ptr<ContinuumGrid> continuumGrid(const std::string& name) const
+    {
+        assert(continuumGrids_.find(name) != continuumGrids_.end());
+        return continuumGrids_.find(name)->second;
+    }
+
+    /** \brief Simple const access to couplings */
+    const Coupling& coupling(const std::pair<std::string,std::string>& name) const
+    {
+        assert(couplings_.find(name) != couplings_.end());
+        return couplings_.find(name)->second;
+    }
 
     /////////////////////////////////////////////////////////////////////
     //  Data concerning the individual rod problems
