@@ -332,6 +332,17 @@ int main (int argc, char *argv[]) try
         newTransferOp->setup(*complex.continuumGrids_["continuum"],i,i+1);
         multigridStep.mgTransfer_[i] = newTransferOp;
     }
+    
+    /////////////////////////////////////////////////////////////////////
+    //  Create the two interface boundary patches
+    /////////////////////////////////////////////////////////////////////
+
+    BitSetVector<1> rodCouplingBitfield(rodX.size(),false);
+    // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
+    rodCouplingBitfield[0] = true;
+    LeafBoundaryPatch<RodGridType> rodCouplingBoundary(*complex.rodGrids_["rod"], rodCouplingBitfield);
+
+
 
     // /////////////////////////////////////////////////////
     //   Dirichlet-Neumann Solver
@@ -374,13 +385,8 @@ int main (int argc, char *argv[]) try
             //   Extract Neumann values and transfer it to the 3d object
             // ///////////////////////////////////////////////////////////
 
-            BitSetVector<1> couplingBitfield(rodX.size(),false);
-            // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-            couplingBitfield[0] = true;
-            LeafBoundaryPatch<RodGridType> couplingBoundary(*complex.rodGrids_["rod"], couplingBitfield);
-
             FieldVector<double,dim> resultantForce, resultantTorque;
-            resultantForce  = rodAssembler.getResultantForce(couplingBoundary, rodX, resultantTorque);
+            resultantForce  = rodAssembler.getResultantForce(rodCouplingBoundary, rodX, resultantTorque);
 
             // Flip orientation
             resultantForce  *= -1;
