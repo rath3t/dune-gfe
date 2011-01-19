@@ -275,7 +275,6 @@ public:
                                     RodAssembler<typename RodGridType::LeafGridView,3>* rodAssembler,
                                     RodLocalStiffness<typename RodGridType::LeafGridView,double>* rodLocalStiffness,
                                     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver,
-                                    const LeafBoundaryPatch<ContinuumGridType>* interfaceBoundary,
                                     const MatrixType* stiffnessMatrix3d,
                                     const VectorType* dirichletValues,
                                     const Dune::shared_ptr< ::LoopSolver<VectorType> > solver,
@@ -290,7 +289,6 @@ public:
         rodAssembler_(rodAssembler),
         rodLocalStiffness_(rodLocalStiffness),
         rodSolver_(rodSolver),
-        interfaceBoundary_(interfaceBoundary),
         stiffnessMatrix3d_(stiffnessMatrix3d),
         dirichletValues_(dirichletValues),
         solver_(solver),
@@ -345,8 +343,6 @@ private:
     //  Data members related to the continuum problems
     //////////////////////////////////////////////////////////////////
 
-    const LeafBoundaryPatch<ContinuumGridType>* interfaceBoundary_;
-    
     const MatrixType* stiffnessMatrix3d_;
     
     const VectorType* dirichletValues_;
@@ -435,6 +431,8 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
+              
+    std::pair<std::string,std::string> interfaceName = std::make_pair("rod", "continuum");
     
     VectorType& x3d = continuumSubdomainSolutions_["continuum"];
     x3d.resize(complex_.continuumGrids_["continuum"]->size(dim));
@@ -447,7 +445,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     relativeMovement.q.invert();
     relativeMovement.q = lambda.q.mult(relativeMovement.q);
             
-    setRotation(*interfaceBoundary_, x3d, relativeMovement);
+    setRotation(complex_.couplings_[interfaceName].continuumInterfaceBoundary_, x3d, relativeMovement);
     
     // Right hand side vector: currently without Neumann and volume terms
     VectorType rhs3d(x3d.size());
@@ -472,7 +470,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     stiffnessMatrix3d_->mmv(x3d,residual);
             
     /** \todo Is referenceInterface.r the correct center of rotation? */
-    computeTotalForceAndTorque(*interfaceBoundary_, residual, referenceInterface_.r,
+    computeTotalForceAndTorque(complex_.couplings_[interfaceName].continuumInterfaceBoundary_, residual, referenceInterface_.r,
                                continuumForce, continuumTorque);
             
     ///////////////////////////////////////////////////////////////
@@ -499,7 +497,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         ////////////////////////////////////////////////////////////////////
                 
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
-                linContNtDMap(*interfaceBoundary_,
+                linContNtDMap(complex_.couplings_[interfaceName].continuumInterfaceBoundary_,
                               rhs3d,
                               *dirichletValues_,
                               localAssembler_,
@@ -529,7 +527,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         ////////////////////////////////////////////////////////////////////
 
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
-                linContNtDMap(*interfaceBoundary_,
+                linContNtDMap(complex_.couplings_[interfaceName].continuumInterfaceBoundary_,
                               rhs3d,
                               *dirichletValues_,
                               localAssembler_,

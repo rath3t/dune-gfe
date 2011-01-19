@@ -460,7 +460,6 @@ int main (int argc, char *argv[]) try
                                                                                                   &rodAssembler,
                                                                                                   &rodLocalStiffness,
                                                                                                   &rodSolver,
-                                                                                                  &complex.couplings_[interfaceName].continuumInterfaceBoundary_,
                                                                                                   &stiffnessMatrix3d,
                                                                                                   &dirichletValues.back(),
                                                                                                   solver,
