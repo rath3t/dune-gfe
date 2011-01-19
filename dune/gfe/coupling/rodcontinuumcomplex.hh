@@ -21,6 +21,13 @@ class RodContinuumComplex
     
     typedef Dune::BlockVector<Dune::FieldVector<double,3> > ContinuumConfiguration;
     
+    struct Coupling
+    {
+        LeafBoundaryPatch<RodGrid> rodInterfaceBoundary_;
+        
+        LeafBoundaryPatch<ContinuumGrid> continuumInterfaceBoundary_;
+    };
+    
 public:
 
     /////////////////////////////////////////////////////////////////////
@@ -48,6 +55,12 @@ public:
 
     /** \brief The Dirichlet values for each continuum */
     std::map<std::string, ContinuumConfiguration> continuumDirichletValues_;
+    
+    /////////////////////////////////////////////////////////////////////
+    //   Data about the couplings
+    /////////////////////////////////////////////////////////////////////
+
+    std::map<std::pair<std::string,std::string>, Coupling> couplings_;
     
 };
 
