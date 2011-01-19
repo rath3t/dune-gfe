@@ -206,11 +206,11 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////
     //   Determine the interface boundary
     // /////////////////////////////////////////////////////
-    std::vector<LevelBoundaryPatch<GridType> > interfaceBoundary;
-    interfaceBoundary.resize(numLevels);
-    interfaceBoundary[0].setup(*complex.continuumGrids_["continuum"], 0);
-    readBoundaryPatch(interfaceBoundary[0], path + interfaceNodesFile);
-    PatchProlongator<GridType>::prolong(interfaceBoundary);
+    LevelBoundaryPatch<GridType> coarseInterfaceBoundary(*complex.continuumGrids_["continuum"], 0);
+    readBoundaryPatch(coarseInterfaceBoundary, path + interfaceNodesFile);
+    
+    LeafBoundaryPatch<GridType> interfaceBoundary;
+    PatchProlongator<GridType>::prolong(coarseInterfaceBoundary, interfaceBoundary);
 
     // ////////////////////////////////////////// 
     //   Assemble 3d linear elasticity problem
@@ -398,20 +398,13 @@ int main (int argc, char *argv[]) try
             VectorType neumannValues(rhs3d.size());
 
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-            computeAveragePressure<GridType::LevelGridView>(resultantForce, resultantTorque, 
-                                              interfaceBoundary[complex.continuumGrids_["continuum"]->maxLevel()], 
+            computeAveragePressure<GridType::LeafGridView>(resultantForce, resultantTorque, 
+                                              interfaceBoundary, 
                                               rodX[0].r,
                                               neumannValues);
 
-/*            rhs3d = 0;
-            assembleAndAddNeumannTerm<GridType::LevelGridView, VectorType>(interfaceBoundary[complex.continuumGrids_["continuum"]->maxLevel()],
-                                                        neumannValues,
-                                                        rhs3d);*/
-            /** \todo The LevelBasis is a hack.  The interfaceBoundary should really by a LeafBoundaryPatch anyways */
-            typedef P1NodalBasis<GridType::LevelGridView,double> LevelBasis;
-            LevelBasis levelBasis(complex.continuumGrids_["continuum"]->levelView(toplevel));
-            BoundaryFunctionalAssembler<LevelBasis> boundaryFunctionalAssembler(levelBasis, interfaceBoundary.back());
-            BasisGridFunction<LevelBasis, VectorType> neumannValuesFunction(levelBasis, neumannValues);
+            BoundaryFunctionalAssembler<FEBasis> boundaryFunctionalAssembler(basis, interfaceBoundary);
+            BasisGridFunction<FEBasis, VectorType> neumannValuesFunction(basis, neumannValues);
             NeumannBoundaryAssembler<GridType, FieldVector<double,dim> > localNeumannAssembler(neumannValuesFunction);
             boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs3d, true);
 
@@ -433,7 +426,7 @@ int main (int argc, char *argv[]) try
 
             RigidBodyMotion<3> averageInterface;
 
-            computeAverageInterface(interfaceBoundary[toplevel], x3d, averageInterface);
+            computeAverageInterface(interfaceBoundary, x3d, averageInterface);
 
         //averageInterface.r[0] = averageInterface.r[1] = 0;
         //averageInterface.q = Quaternion<double>::identity();
@@ -468,7 +461,7 @@ int main (int argc, char *argv[]) try
                                                                                                   &rodAssembler,
                                                                                                   &rodLocalStiffness,
                                                                                                   &rodSolver,
-                                                                                                  &interfaceBoundary.back(),
+                                                                                                  &interfaceBoundary,
                                                                                                   &stiffnessMatrix3d,
                                                                                                   &dirichletValues.back(),
                                                                                                   solver,
