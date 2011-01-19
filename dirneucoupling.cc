@@ -213,7 +213,7 @@ int main (int argc, char *argv[]) try
     BitSetVector<1> rodCouplingBitfield(rodX.size(),false);
     // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
     rodCouplingBitfield[0] = true;
-    LeafBoundaryPatch<RodGridType> rodCouplingBoundary(*complex.rodGrids_["rod"], rodCouplingBitfield);
+    complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(*complex.rodGrids_["rod"], rodCouplingBitfield);
 
     // then for the continuum
     LevelBoundaryPatch<GridType> coarseInterfaceBoundary(*complex.continuumGrids_["continuum"], 0);
@@ -385,7 +385,7 @@ int main (int argc, char *argv[]) try
             // ///////////////////////////////////////////////////////////
 
             FieldVector<double,dim> resultantForce, resultantTorque;
-            resultantForce  = rodAssembler.getResultantForce(rodCouplingBoundary, rodX, resultantTorque);
+            resultantForce  = rodAssembler.getResultantForce(complex.couplings_[interfaceName].rodInterfaceBoundary_, rodX, resultantTorque);
 
             // Flip orientation
             resultantForce  *= -1;
