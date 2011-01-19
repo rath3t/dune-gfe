@@ -47,11 +47,16 @@ public:
      * \return The infinitesimal movement of the interface
      */
     Dune::FieldVector<double,6> apply(const VectorType& currentIterate,
-                             const Dune::FieldVector<double,3>& force,
-                             const Dune::FieldVector<double,3>& torque,
+                                      const RigidBodyMotion<3>::TangentVector& forceTorque,
                              const Dune::FieldVector<double,3>& centerOfTorque
                             )
     {
+        Dune::FieldVector<double,3> force, torque;
+        for (int i=0; i<3; i++) {
+            force[i]  = forceTorque[i];
+            torque[i] = forceTorque[i+3];
+        }
+        
         ////////////////////////////////////////////////////
         //  Assemble the linearized problem
         ////////////////////////////////////////////////////
@@ -163,11 +168,16 @@ public:
      * \return The Dirichlet value
      */
     Dune::FieldVector<double,6> apply(const RodSolutionType& currentIterate,
-                             const Dune::FieldVector<double,3>& force,
-                             const Dune::FieldVector<double,3>& torque,
+                             const RigidBodyMotion<3>::TangentVector& forceTorque,
                              const Dune::FieldVector<double,3>& centerOfTorque
                             )
     {
+        Dune::FieldVector<double,3> force, torque;
+        for (int i=0; i<3; i++) {
+            force[i]  = forceTorque[i];
+            torque[i] = forceTorque[i+3];
+        }
+        
         ////////////////////////////////////////////////////
         //  Assemble the linearized rod problem
         ////////////////////////////////////////////////////
@@ -473,40 +483,24 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
 
     RigidBodyMotion<3>::TangentVector rodForceTorque = rodDirichletToNeumannMap(lambda);
 
-    // Flip orientation
-    rodForceTorque *= -1;
-
-    Dune::FieldVector<double,dim> rodForce, rodTorque;
-    for (int i=0; i<dim; i++) {
-        rodForce[i]  = rodForceTorque[i];
-        rodTorque[i] = rodForceTorque[i+dim];
-    }
-    
-    std::cout << "resultant rod force: "  << rodForce  << ",         "
-              << "resultant rod torque: " << rodTorque << std::endl;
+    std::cout << "resultant rod force and torque: "  << rodForceTorque << std::endl;
             
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
               
     RigidBodyMotion<3>::TangentVector continuumForceTorque = continuumDirichletToNeumannMap(lambda);
-            
-    Dune::FieldVector<double,dim> continuumForce, continuumTorque;
-    for (int i=0; i<dim; i++) {
-        continuumForce[i]  = continuumForceTorque[i];
-        continuumTorque[i] = continuumForceTorque[i+dim];
-    }
-    
-    std::cout << "resultant continuum force: "  << continuumForce  << ",         "
-              << "resultant continuum torque: " << continuumTorque << std::endl;
+
+    std::cout << "resultant continuum force and torque: "  << continuumForceTorque  << std::endl;
 
     ///////////////////////////////////////////////////////////////
     //  Compute the overall Steklov-Poincare residual
     ///////////////////////////////////////////////////////////////
 
-    Dune::FieldVector<double,3> residualForce  = rodForce + continuumForce;
-    Dune::FieldVector<double,3> residualTorque = rodTorque + continuumTorque;
-            
+    // Flip orientation to account for opposing normals
+    rodForceTorque *= -1;
+
+    RigidBodyMotion<3>::TangentVector residualForceTorque = rodForceTorque + continuumForceTorque;
             
             
     ///////////////////////////////////////////////////////////////
@@ -534,7 +528,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
                               localAssembler_,
                               solver_);
                         
-        interfaceCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForce, residualTorque, lambda.r);
+        interfaceCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForceTorque, lambda.r);
                 
     } else if (preconditioner_=="NeumannDirichlet") {
             
@@ -546,7 +540,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.couplings_[couplingName].rodInterfaceBoundary_,
                                                                                                          rodLocalStiffness_);
 
-        interfaceCorrection = linRodNtDMap.apply(rodSubdomainSolutions_["rod"], residualForce, residualTorque, lambda.r);
+        interfaceCorrection = linRodNtDMap.apply(rodSubdomainSolutions_["rod"], residualForceTorque, lambda.r);
 
 
     } else if (preconditioner_=="NeumannNeumann") {
@@ -571,9 +565,9 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.couplings_[couplingName].rodInterfaceBoundary_,
                                                                                                               rodLocalStiffness_);
 
-        Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForce, residualTorque, lambda.r);
+        Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForceTorque, lambda.r);
         Dune::FieldVector<double,6> rodCorrection       = linRodNtDMap.apply(rodSubdomainSolutions_["rod"],
-                                                                             residualForce, residualTorque, lambda.r);
+                                                                             residualForceTorque, lambda.r);
                 
         for (int j=0; j<6; j++)
             interfaceCorrection[j] = (alpha_[0] * continuumCorrection[j] + alpha_[1] * rodCorrection[j])
