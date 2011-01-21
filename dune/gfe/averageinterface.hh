@@ -816,7 +816,7 @@ void computeAverageInterface(const BoundaryPatchBase<GridView>& interface,
  */
 template <class GridView>
 void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
-                 Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> > deformation,
+                 Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> >& deformation,
                  const RigidBodyMotion<3>& relativeMovement)
 {
     const typename GridView::IndexSet& indexSet = dirichletBoundary.gridView().indexSet();
