@@ -303,7 +303,22 @@ public:
         dirichletValues_(dirichletValues),
         solver_(solver),
         localAssembler_(localAssembler)
-    {}
+    {
+        dirichletAndCouplingNodes_.resize(complex.continuumGrid("continuum")->size(dim));
+
+        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex.continuumDirichletBoundary("continuum");
+        
+        for (int i=0; i<dirichletAndCouplingNodes_.size(); i++)
+            dirichletAndCouplingNodes_[i] = dirichletBoundary.containsVertex(i);
+
+        const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary = complex.coupling(std::make_pair("rod","continuum")).continuumInterfaceBoundary_;
+
+        for (int i=0; i<dirichletAndCouplingNodes_.size(); i++) {
+            bool v = continuumInterfaceBoundary.containsVertex(i);
+            for (int j=0; j<dim; j++)
+                dirichletAndCouplingNodes_[i][j] = dirichletAndCouplingNodes_[i][j] or v;
+        }
+    }
     
     
     
@@ -358,6 +373,8 @@ private:
     const VectorType* dirichletValues_;
     
     const Dune::shared_ptr< ::LoopSolver<VectorType> > solver_;
+    
+    Dune::BitSetVector<dim> dirichletAndCouplingNodes_;
     
     /** \todo Hack:
      * - we actually need a base class
@@ -435,6 +452,9 @@ continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
 
     const LeafBoundaryPatch<ContinuumGridType>& foo = complex_.coupling(couplingName).continuumInterfaceBoundary_;
     setRotation(foo, x3d, relativeMovement);
+    
+    // Set the correct Dirichlet nodes
+    dynamic_cast<IterationStep<VectorType>* >(solver_->iterationStep_)->ignoreNodes_ = &dirichletAndCouplingNodes_;
     
     // Right hand side vector: currently without Neumann and volume terms
     VectorType rhs3d(x3d.size());
