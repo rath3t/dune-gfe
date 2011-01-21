@@ -821,6 +821,7 @@ void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
 {
     const typename GridView::IndexSet& indexSet = dirichletBoundary.gridView().indexSet();
     const int dim        = GridView::dimension;
+    const int dimworld   = GridView::dimensionworld;
 
     // ///////////////////////////////////////////
     //   Loop over all vertices
@@ -837,8 +838,23 @@ void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
         for (int i=0; i<nCorners; i++) {
             int cornerIdx = Dune::GenericReferenceElements<double,dim>::general(it->inside()->type()).subEntity(it->indexInInside(), 1, i, dim);
             int globalIdx = indexSet.subIndex(*it->inside(), cornerIdx, dim);
-            deformation[globalIdx] = relativeMovement.r;
-#warning Rotations-Anteil fehlt noch!
+
+            // Get vertex position
+            Dune::FieldVector<double,dimworld> pos = it->inside()->geometry().corner(cornerIdx);
+            
+            // Action of the rigid body motion
+            Dune::FieldMatrix<double,3,3> rotation;
+            relativeMovement.q.matrix(rotation);
+            
+            Dune::FieldVector<double,dimworld> rpos;
+            rotation.mv(pos, rpos);
+            rpos += relativeMovement.r;
+            
+            // We compute _displacements_, not positions
+            rpos -= pos;
+            
+            deformation[globalIdx] = rpos;
+            
         }
         
     }
