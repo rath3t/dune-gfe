@@ -444,6 +444,8 @@ public:
         EmbeddedTangentVector projectedResult = result;
         projectedResult.axpy(-1*(q*result), q);
         
+        assert(std::fabs(projectedResult * q) < 1e-7);
+        
         return projectedResult;
     }
     
