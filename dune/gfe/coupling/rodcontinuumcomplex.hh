@@ -43,6 +43,12 @@ public:
         assert(continuumGrids_.find(name) != continuumGrids_.end());
         return continuumGrids_.find(name)->second;
     }
+    
+    const LeafBoundaryPatch<ContinuumGrid> continuumDirichletBoundary(const std::string& name) const
+    {
+        assert(continuumDirichletBoundaries_.find(name) != continuumDirichletBoundaries_.end());
+        return continuumDirichletBoundaries_.find(name)->second;
+    }
 
     /** \brief Simple const access to couplings */
     const Coupling& coupling(const std::pair<std::string,std::string>& name) const
