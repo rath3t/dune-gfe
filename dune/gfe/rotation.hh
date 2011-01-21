@@ -249,7 +249,7 @@ public:
         
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
-        assert( std::fabs(vAtIdentity[3] < 1e-8) );
+        assert( std::fabs(vAtIdentity[3]) < 1e-8 );
 
         // vAtIdentity as a skew matrix
         TangentVector vMatrix;
