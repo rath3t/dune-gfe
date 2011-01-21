@@ -21,6 +21,24 @@ cat > "${PARAMETERFILE}" <<EOF
 # Number of grid levels
 numLevels = $2
 
+# Type of the domain decomposition algorithm
+# Currently supported:
+#  - FixedPointIteration
+#  - RichardsonIteration
+ddType = RichardsonIteration
+#ddType = FixedPointIteration
+
+# What is the preconditioner, if we are doing a Richardson iteration?
+# Possible values:
+#  - DirichletNeumann
+#  - NeumannDirichlet
+#  - NeumannNeumann
+#  - RobinRobin
+preconditioner = NeumannDirichlet
+
+#
+NeumannNeumannDamping = 1 0
+
 # Tolerance of the Dirichlet-Neumann solver
 ddTolerance = 1e-9
 
@@ -70,7 +88,7 @@ instrumented = 0
 #   Problem specifications
 ############################
 
-#path = /home/haile/sander/data/multicoupling/simplecoupling/
+#path = /home/sander/data/multicoupling/simplecoupling/
 #gridFile = hexarod.grid
 #dirichletNodes = hexarod.dn
 #dirichletValues = hexarod.nodv
@@ -92,26 +110,18 @@ instrumented = 0
 #E     = 1e6
 #nu    = 0.3
 
-#rodRestEndPoint0X = 0.125
-#rodRestEndPoint0Y = 0.125
-#rodRestEndPoint0Z = 1
-#rodRestEndPoint1X = 0.125
-#rodRestEndPoint1Y = 0.125
-#rodRestEndPoint1Z = 2
+#rodRestEndPoint0 = 0.125 0.125 1
+#rodRestEndPoint1 = 0.125 0.125 2
 
 ## Dirichlet values
-#dirichletValueX = 0.125
-#dirichletValueY = 0.125
-#dirichletValueZ = 2.5
+#dirichletValue = 0.125 0.125 2.5
 
-#dirichletAxisX = 0
-#dirichletAxisY = 0
-#dirichletAxisZ = 1
+#dirichletAxisX = 0 0 1
 #dirichletAngle = 0
 
 
 ########################################################
-#path = /home/haile/sander/data/multicoupling/simplecoupling/
+#path = /home/sander/data/multicoupling/simplecoupling/
 #gridFile = cube_5x5x5.grid
 #dirichletNodes = cube_5x5x5.dn
 #dirichletValues = cube_5x5x5.nodv
@@ -131,17 +141,13 @@ instrumented = 0
 #rodNu = 0.3
 
 ## Dirichlet values
-#dirichletValueX = 0.5
-#dirichletValueY = 1.5
-#dirichletValueZ = 10
+#dirichletValue = 0.5 1.5 10
 
-#dirichletAxisX = 0
-#dirichletAxisY = 0
-#dirichletAxisZ = 1
+#dirichletAxis = 0 0 1
 #dirichletAngle = 90
 
 ########################################################
-path = /home/haile/sander/data/multicoupling/simplecoupling/
+path = /home/sander/data/multicoupling/simplecoupling/
 gridFile = cube_4x4x4.grid
 dirichletNodes = cube_4x4x4.dn
 dirichletValues = cube_4x4x4.nodv
@@ -162,24 +168,14 @@ rodNu = 0.3
 E     = 1e6
 nu    = 0.3
 
-rodRestEndPoint0X = 0.625
-rodRestEndPoint0Y = 0.625
-rodRestEndPoint0Z = 1
-#rodRestEndPoint1X = 0.625
-#rodRestEndPoint1Y = 0.625
-#rodRestEndPoint1Z = 2
-rodRestEndPoint1X = 0.625
-rodRestEndPoint1Y = -0.082
-rodRestEndPoint1Z = 1.707
+rodRestEndPoint0 = 0.625 0.625 1
+#rodRestEndPoint1 = 0.625 0.625 2
+rodRestEndPoint1 = 0.625 -0.082 1.707
 
 # Dirichlet values
-dirichletValueX = 0.625
-dirichletValueY = 0.875
-dirichletValueZ = 2
+dirichletValue = 0.625 0.875 2
 
-dirichletAxisX = 0
-dirichletAxisY = 0
-dirichletAxisZ = 1
+dirichletAxis = 0 0 1
 dirichletAngle = 90
 
 # Where to write the results
@@ -199,7 +195,7 @@ EOF
 # run problems
 
 
-for level in 4; do
+for level in 2; do
 #for level in 1 2 3 4; do
 
     LEVELDIR=${level}"levels_rot"
