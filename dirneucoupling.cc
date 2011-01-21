@@ -143,8 +143,6 @@ int main (int argc, char *argv[]) try
     complex.rodGrids_["rod"]->globalRefine(numLevels-1);
     complex.continuumGrids_["continuum"]->globalRefine(numLevels-1);
 
-    std::vector<BitSetVector<dim> > dirichletNodes(1);
-
     RodSolutionType rodX(complex.rodGrids_["rod"]->size(1));
 
     int toplevel = complex.rodGrids_["rod"]->maxLevel();
@@ -185,23 +183,19 @@ int main (int argc, char *argv[]) try
     dirichletValues[0].resize(complex.continuumGrids_["continuum"]->size(0, dim));
     AmiraMeshReader<int>::readFunction(dirichletValues[0], path + dirichletValuesFile);
 
-    std::vector<LevelBoundaryPatch<GridType> > dirichletBoundary;
-    dirichletBoundary.resize(numLevels);
-    dirichletBoundary[0].setup(*complex.continuumGrids_["continuum"], 0);
-    readBoundaryPatch(dirichletBoundary[0], path + dirichletNodesFile);
-    PatchProlongator<GridType>::prolong(dirichletBoundary);
+    LevelBoundaryPatch<GridType> coarseDirichletBoundary;
+    coarseDirichletBoundary.setup(*complex.continuumGrids_["continuum"], 0);
+    readBoundaryPatch(coarseDirichletBoundary, path + dirichletNodesFile);
+    
+    LeafBoundaryPatch<GridType> dirichletBoundary(*complex.continuumGrids_["continuum"]);
+    PatchProlongator<GridType>::prolong(coarseDirichletBoundary, dirichletBoundary);
 
-    dirichletNodes.resize(toplevel+1);
-    for (int i=0; i<=toplevel; i++) {
-        
-        dirichletNodes[i].resize( complex.continuumGrids_["continuum"]->size(i,dim));
+    BitSetVector<dim> dirichletNodes( complex.continuumGrids_["continuum"]->size(dim) );
 
-        for (int j=0; j<complex.continuumGrids_["continuum"]->size(i,dim); j++)
-            dirichletNodes[i][j] = dirichletBoundary[i].containsVertex(j);
-        
-    }
+    for (int i=0; i<dirichletNodes.size(); i++)
+        dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
-    sampleOnBitField(*complex.continuumGrids_["continuum"], dirichletValues, dirichletNodes);
+    sampleOnBitField(*complex.continuumGrids_["continuum"], dirichletValues[0], dirichletValues.back(), dirichletNodes);
     
     /////////////////////////////////////////////////////////////////////
     //  Create the two interface boundary patches
@@ -248,7 +242,7 @@ int main (int argc, char *argv[]) try
     x3d = 0;
     for (int i=0; i<x3d.size(); i++) 
         for (int j=0; j<dim; j++)
-            if (dirichletNodes[toplevel][i][j])
+            if (dirichletNodes[i][j])
                 x3d[i][j] = dirichletValues[toplevel][i][j];
 
     // ///////////////////////////////////////////
@@ -312,7 +306,7 @@ int main (int argc, char *argv[]) try
     MultigridStep<MatrixType, VectorType> multigridStep(stiffnessMatrix3d, x3d, rhs3d, toplevel+1);
 
     multigridStep.setMGType(mu, nu1, nu2);
-    multigridStep.ignoreNodes_       = &dirichletNodes.back();
+    multigridStep.ignoreNodes_       = &dirichletNodes;
     multigridStep.basesolver_        = &baseSolver;
     multigridStep.setSmoother(&presmoother, &postsmoother);
     multigridStep.verbosity_         = Solver::QUIET;
