@@ -28,13 +28,23 @@ class RodContinuumComplex
         LeafBoundaryPatch<ContinuumGrid> continuumInterfaceBoundary_;
     };
     
+    /** \brief Holds all data for a rod subproblem */
+    struct RodData
+    {
+        Dune::shared_ptr<RodGrid> grid_;
+        
+        LeafBoundaryPatch<RodGrid> dirichletBoundary_;
+        
+        RodConfiguration dirichletValues_;
+    };
+    
 public:
     
     /** \brief Simple const access to rod grids */
     const Dune::shared_ptr<RodGrid> rodGrid(const std::string& name) const
     {
-        assert(rodGrids_.find(name) != rodGrids_.end());
-        return rodGrids_.find(name)->second;
+        assert(rods_.find(name) != rods_.end());
+        return rods_.find(name)->second.grid_;
     }
 
     /** \brief Simple const access to continuum grids */
@@ -62,13 +72,7 @@ public:
     /////////////////////////////////////////////////////////////////////
 
     /** \brief The set of rods, accessible by name (string) */
-    std::map<std::string, Dune::shared_ptr<RodGrid> > rodGrids_;
-    
-    /** \brief A Dirichlet boundary for each rod */
-    std::map<std::string, LeafBoundaryPatch<RodGrid> > rodDirichletBoundaries_;
-    
-    /** \brief The Dirichlet values for each rod */
-    std::map<std::string, RodConfiguration> rodDirichletValues_;
+    std::map<std::string, RodData > rods_;
     
     /////////////////////////////////////////////////////////////////////
     //  Data concerning the individual continuum problems

@@ -393,7 +393,7 @@ rodDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
 {
     // Create an initial iterate by interpolating between lambda and the Dirichlet value
     /** \todo Using that the coupling boundary is the one with the lower coordinate */
-    RigidBodyMotion<3> rodDirichletValue = complex_.rodDirichletValues_.find("rod")->second.back();
+    RigidBodyMotion<3> rodDirichletValue = complex_.rods_.find("rod")->second.dirichletValues_.back();
     
     // Set initial iterate
     RodConfigurationType& rodX = rodSubdomainSolutions_["rod"];

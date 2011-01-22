@@ -128,7 +128,7 @@ int main (int argc, char *argv[]) try
 
     RodContinuumComplex<RodGridType,GridType> complex;
     
-    complex.rodGrids_["rod"] = shared_ptr<RodGridType>
+    complex.rods_["rod"].grid_ = shared_ptr<RodGridType>
                 (new RodGridType(numRodBaseElements, 0, (rodRestEndPoint[1]-rodRestEndPoint[0]).two_norm()));
 
     complex.continuumGrids_["continuum"] = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + objectName));
@@ -140,18 +140,18 @@ int main (int argc, char *argv[]) try
     //   Globally refine grids
     // //////////////////////////////////////
 
-    complex.rodGrids_["rod"]->globalRefine(numLevels-1);
+    complex.rods_["rod"].grid_->globalRefine(numLevels-1);
     complex.continuumGrids_["continuum"]->globalRefine(numLevels-1);
 
-    RodSolutionType rodX(complex.rodGrids_["rod"]->size(1));
+    RodSolutionType rodX(complex.rods_["rod"].grid_->size(1));
 
-    int toplevel = complex.rodGrids_["rod"]->maxLevel();
+    int toplevel = complex.rods_["rod"].grid_->maxLevel();
 
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
 
-    RodFactory<RodGridType::LeafGridView> rodFactory(complex.rodGrids_["rod"]->leafView());
+    RodFactory<RodGridType::LeafGridView> rodFactory(complex.rods_["rod"].grid_->leafView());
     rodFactory.create(rodX, rodRestEndPoint[0], rodRestEndPoint[1]);
 
     // /////////////////////////////////////////
@@ -164,13 +164,13 @@ int main (int argc, char *argv[]) try
 
     rodX.back().q = Rotation<3,double>(axis, M_PI*angle/180);
     
-    rodFactory.create(complex.rodDirichletValues_["rod"],
+    rodFactory.create(complex.rods_["rod"].dirichletValues_,
                       RigidBodyMotion<3>(FieldVector<double,3>(0), Rotation<3,double>::identity()));
-    complex.rodDirichletValues_["rod"].back() = RigidBodyMotion<3>(parameterSet.get("dirichletValue", rodRestEndPoint[1]),
+    complex.rods_["rod"].dirichletValues_.back() = RigidBodyMotion<3>(parameterSet.get("dirichletValue", rodRestEndPoint[1]),
                                                                    Rotation<3,double>(axis, M_PI*angle/180));
-    BitSetVector<1> rodDNodes(complex.rodDirichletValues_["rod"].size(), false);
+    BitSetVector<1> rodDNodes(complex.rods_["rod"].dirichletValues_.size(), false);
     rodDNodes.back() = true;
-    complex.rodDirichletBoundaries_["rod"].setup(*complex.rodGrids_["rod"],rodDNodes);
+    complex.rods_["rod"].dirichletBoundary_.setup(*complex.rods_["rod"].grid_,rodDNodes);
 
     // Backup initial rod iterate for later reference
     RodSolutionType initialIterateRod = rodX;
@@ -208,7 +208,7 @@ int main (int argc, char *argv[]) try
     BitSetVector<1> rodCouplingBitfield(rodX.size(),false);
     // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
     rodCouplingBitfield[0] = true;
-    complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(*complex.rodGrids_["rod"], rodCouplingBitfield);
+    complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(*complex.rods_["rod"].grid_, rodCouplingBitfield);
 
     // then for the continuum
     LevelBoundaryPatch<GridType> coarseInterfaceBoundary(*complex.continuumGrids_["continuum"], 0);
@@ -250,7 +250,7 @@ int main (int argc, char *argv[]) try
     //   Dirichlet nodes for the rod problem
     // ///////////////////////////////////////////
 
-    BitSetVector<6> rodDirichletNodes(complex.rodGrids_["rod"]->size(1));
+    BitSetVector<6> rodDirichletNodes(complex.rods_["rod"].grid_->size(1));
     rodDirichletNodes.unsetAll();
         
     rodDirichletNodes[0] = true;
@@ -260,13 +260,13 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
 
-    RodLocalStiffness<RodGridType::LeafGridView,double> rodLocalStiffness(complex.rodGrids_["rod"]->leafView(),
+    RodLocalStiffness<RodGridType::LeafGridView,double> rodLocalStiffness(complex.rods_["rod"].grid_->leafView(),
                                                                        rodA, rodJ1, rodJ2, rodE, rodNu);
 
-    RodAssembler<RodGridType::LeafGridView,3> rodAssembler(complex.rodGrids_["rod"]->leafView(), &rodLocalStiffness);
+    RodAssembler<RodGridType::LeafGridView,3> rodAssembler(complex.rods_["rod"].grid_->leafView(), &rodLocalStiffness);
 
     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> > rodSolver;
-    rodSolver.setup(*complex.rodGrids_["rod"], 
+    rodSolver.setup(*complex.rods_["rod"].grid_, 
                     &rodAssembler,
                     rodX,
                     rodDirichletNodes,
