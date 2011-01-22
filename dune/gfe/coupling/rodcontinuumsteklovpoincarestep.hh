@@ -241,8 +241,6 @@ public:
         // Solve!
         cg.apply(x, rhs, statistics);
 
-        std::cout << "x:\n" << x << std::endl;
-
         std::cout << "Linear rod interface correction: " << x[0] << std::endl;
         
         return x[0];
