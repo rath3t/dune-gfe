@@ -305,46 +305,11 @@ public:
         continua_["continuum"].solver_          = solver;
         continua_["continuum"].localAssembler_  = localAssembler;
 
-        ////////////////////////////////////////////////////////////////////////////////////
-        //  For each continuum, merge the Dirichlet boundary with all interface boundaries
-        ////////////////////////////////////////////////////////////////////////////////////
-        
-        for (ContinuumIterator cIt = continua_.begin(); cIt != continua_.end(); ++cIt) {
-            
-            // name of the current continuum
-            const std::string& name = cIt->first;
-            
-            // short-cut to avoid frequent map look-up
-            Dune::BitSetVector<dim>& dirichletAndCouplingNodes = continua_[name].dirichletAndCouplingNodes_;
-        
-            dirichletAndCouplingNodes.resize(complex.continuumGrid(name)->size(dim));
-        
-            // first copy the true Dirichlet boundary
-            const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex.continua_.find(name)->second.dirichletBoundary_;
-
-            for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
-                dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
-
-            const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
-                    = complex.coupling(std::make_pair("rod",name)).continuumInterfaceBoundary_;
-
-            for (int i=0; i<dirichletAndCouplingNodes.size(); i++) {
-                bool v = continuumInterfaceBoundary.containsVertex(i);
-                for (int j=0; j<dim; j++)
-                    dirichletAndCouplingNodes[i][j] = dirichletAndCouplingNodes[i][j] or v;
-            }
-        
-        }
-        
+        mergeDirichletAndCouplingBoundaries();
     }
     
-    
-    
-    
-    
-    
-    
-        
+    void mergeDirichletAndCouplingBoundaries();
+
         
     /** \brief Do one Steklov-Poincare step
      * \param[in,out] lambda The old and new iterate
@@ -436,6 +401,45 @@ public:
     mutable std::map<std::string, ContinuumConfigurationType> continuumSubdomainSolutions_;
 private:
 };
+
+
+template <class RodGridType, class ContinuumGridType>
+void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+mergeDirichletAndCouplingBoundaries()
+{
+    ////////////////////////////////////////////////////////////////////////////////////
+    //  For each continuum, merge the Dirichlet boundary with all interface boundaries
+    ////////////////////////////////////////////////////////////////////////////////////
+        
+    for (ContinuumIterator cIt = continua_.begin(); cIt != continua_.end(); ++cIt) {
+            
+        // name of the current continuum
+        const std::string& name = cIt->first;
+            
+        // short-cut to avoid frequent map look-up
+        Dune::BitSetVector<dim>& dirichletAndCouplingNodes = continua_[name].dirichletAndCouplingNodes_;
+        
+        dirichletAndCouplingNodes.resize(complex_.continuumGrid(name)->size(dim));
+        
+        // first copy the true Dirichlet boundary
+        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continua_.find(name)->second.dirichletBoundary_;
+
+        for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
+            dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
+
+        const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
+                = complex_.coupling(std::make_pair("rod",name)).continuumInterfaceBoundary_;
+
+        for (int i=0; i<dirichletAndCouplingNodes.size(); i++) {
+            bool v = continuumInterfaceBoundary.containsVertex(i);
+            for (int j=0; j<dim; j++)
+                dirichletAndCouplingNodes[i][j] = dirichletAndCouplingNodes[i][j] or v;
+        }
+        
+    }
+        
+}
+    
 
 template <class RodGridType, class ContinuumGridType>
 RigidBodyMotion<3>::TangentVector RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
