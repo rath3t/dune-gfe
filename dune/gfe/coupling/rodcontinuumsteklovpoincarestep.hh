@@ -305,10 +305,10 @@ public:
         continua_["continuum"].solver_          = solver;
         continua_["continuum"].localAssembler_  = localAssembler;
 
-        mergeDirichletAndCouplingBoundaries();
+        mergeContinuumDirichletAndCouplingBoundaries();
     }
     
-    void mergeDirichletAndCouplingBoundaries();
+    void mergeContinuumDirichletAndCouplingBoundaries();
 
         
     /** \brief Do one Steklov-Poincare step
@@ -405,7 +405,7 @@ private:
 
 template <class RodGridType, class ContinuumGridType>
 void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
-mergeDirichletAndCouplingBoundaries()
+mergeContinuumDirichletAndCouplingBoundaries()
 {
     ////////////////////////////////////////////////////////////////////////////////////
     //  For each continuum, merge the Dirichlet boundary with all interface boundaries
