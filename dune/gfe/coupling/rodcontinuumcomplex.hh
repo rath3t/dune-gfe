@@ -21,6 +21,7 @@ class RodContinuumComplex
     
     typedef Dune::BlockVector<Dune::FieldVector<double,3> > ContinuumConfiguration;
     
+    /** \brief Holds all data for a rod/continuum coupling */
     struct Coupling
     {
         LeafBoundaryPatch<RodGrid> rodInterfaceBoundary_;
@@ -38,6 +39,16 @@ class RodContinuumComplex
         RodConfiguration dirichletValues_;
     };
     
+    /** \brief Holds all data for a continuum subproblem */
+    struct ContinuumData
+    {
+        Dune::shared_ptr<ContinuumGrid> grid_;
+        
+        LeafBoundaryPatch<ContinuumGrid> dirichletBoundary_;
+        
+        ContinuumConfiguration dirichletValues_;
+    };
+    
 public:
     
     /** \brief Simple const access to rod grids */
@@ -50,16 +61,10 @@ public:
     /** \brief Simple const access to continuum grids */
     const Dune::shared_ptr<ContinuumGrid> continuumGrid(const std::string& name) const
     {
-        assert(continuumGrids_.find(name) != continuumGrids_.end());
-        return continuumGrids_.find(name)->second;
+        assert(continua_.find(name) != continua_.end());
+        return continua_.find(name)->second.grid_;
     }
     
-    const LeafBoundaryPatch<ContinuumGrid> continuumDirichletBoundary(const std::string& name) const
-    {
-        assert(continuumDirichletBoundaries_.find(name) != continuumDirichletBoundaries_.end());
-        return continuumDirichletBoundaries_.find(name)->second;
-    }
-
     /** \brief Simple const access to couplings */
     const Coupling& coupling(const std::pair<std::string,std::string>& name) const
     {
@@ -79,13 +84,7 @@ public:
     /////////////////////////////////////////////////////////////////////
 
     /** \brief The set of continua, accessible by name (string) */
-    std::map<std::string, Dune::shared_ptr<ContinuumGrid> > continuumGrids_;
-    
-    /** \brief A Dirichlet boundary for each continuum */
-    std::map<std::string, LeafBoundaryPatch<ContinuumGrid> > continuumDirichletBoundaries_;
-
-    /** \brief The Dirichlet values for each continuum */
-    std::map<std::string, ContinuumConfiguration> continuumDirichletValues_;
+    std::map<std::string, ContinuumData> continua_;
     
     /////////////////////////////////////////////////////////////////////
     //   Data about the couplings

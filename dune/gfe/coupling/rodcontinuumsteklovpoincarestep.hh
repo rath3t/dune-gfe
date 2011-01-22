@@ -304,7 +304,7 @@ public:
     {
         dirichletAndCouplingNodes_.resize(complex.continuumGrid("continuum")->size(dim));
 
-        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex.continuumDirichletBoundary("continuum");
+        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex.continua_.find("continuum")->second.dirichletBoundary_;
         
         for (int i=0; i<dirichletAndCouplingNodes_.size(); i++)
             dirichletAndCouplingNodes_[i] = dirichletBoundary.containsVertex(i);

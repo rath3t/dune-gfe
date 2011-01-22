@@ -131,8 +131,8 @@ int main (int argc, char *argv[]) try
     complex.rods_["rod"].grid_ = shared_ptr<RodGridType>
                 (new RodGridType(numRodBaseElements, 0, (rodRestEndPoint[1]-rodRestEndPoint[0]).two_norm()));
 
-    complex.continuumGrids_["continuum"] = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + objectName));
-    complex.continuumGrids_["continuum"]->setRefinementType(GridType::COPY);
+    complex.continua_["continuum"].grid_ = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + objectName));
+    complex.continua_["continuum"].grid_->setRefinementType(GridType::COPY);
     
     
 
@@ -141,7 +141,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////
 
     complex.rods_["rod"].grid_->globalRefine(numLevels-1);
-    complex.continuumGrids_["continuum"]->globalRefine(numLevels-1);
+    complex.continua_["continuum"].grid_->globalRefine(numLevels-1);
 
     RodSolutionType rodX(complex.rods_["rod"].grid_->size(1));
 
@@ -180,23 +180,23 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////
     std::vector<VectorType> dirichletValues;
     dirichletValues.resize(toplevel+1);
-    dirichletValues[0].resize(complex.continuumGrids_["continuum"]->size(0, dim));
+    dirichletValues[0].resize(complex.continua_["continuum"].grid_->size(0, dim));
     AmiraMeshReader<int>::readFunction(dirichletValues[0], path + dirichletValuesFile);
 
     LevelBoundaryPatch<GridType> coarseDirichletBoundary;
-    coarseDirichletBoundary.setup(*complex.continuumGrids_["continuum"], 0);
+    coarseDirichletBoundary.setup(*complex.continua_["continuum"].grid_, 0);
     readBoundaryPatch(coarseDirichletBoundary, path + dirichletNodesFile);
     
-    LeafBoundaryPatch<GridType> dirichletBoundary(*complex.continuumGrids_["continuum"]);
+    LeafBoundaryPatch<GridType> dirichletBoundary(*complex.continua_["continuum"].grid_);
     PatchProlongator<GridType>::prolong(coarseDirichletBoundary, dirichletBoundary);
-    complex.continuumDirichletBoundaries_["continuum"] = dirichletBoundary;
+    complex.continua_["continuum"].dirichletBoundary_ = dirichletBoundary;
 
-    BitSetVector<dim> dirichletNodes( complex.continuumGrids_["continuum"]->size(dim) );
+    BitSetVector<dim> dirichletNodes( complex.continua_["continuum"].grid_->size(dim) );
 
     for (int i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
-    sampleOnBitField(*complex.continuumGrids_["continuum"], dirichletValues[0], dirichletValues.back(), dirichletNodes);
+    sampleOnBitField(*complex.continua_["continuum"].grid_, dirichletValues[0], dirichletValues.back(), dirichletNodes);
     
     /////////////////////////////////////////////////////////////////////
     //  Create the two interface boundary patches
@@ -211,7 +211,7 @@ int main (int argc, char *argv[]) try
     complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(*complex.rods_["rod"].grid_, rodCouplingBitfield);
 
     // then for the continuum
-    LevelBoundaryPatch<GridType> coarseInterfaceBoundary(*complex.continuumGrids_["continuum"], 0);
+    LevelBoundaryPatch<GridType> coarseInterfaceBoundary(*complex.continua_["continuum"].grid_, 0);
     readBoundaryPatch(coarseInterfaceBoundary, path + interfaceNodesFile);
     
     PatchProlongator<GridType>::prolong(coarseInterfaceBoundary, complex.couplings_[interfaceName].continuumInterfaceBoundary_);
@@ -221,7 +221,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////
 
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
-    FEBasis basis(complex.continuumGrids_["continuum"]->leafView());
+    FEBasis basis(complex.continua_["continuum"].grid_->leafView());
     OperatorAssembler<FEBasis,FEBasis> assembler(basis, basis);
 
     StVenantKirchhoffAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> localAssembler(E, nu);
@@ -233,8 +233,8 @@ int main (int argc, char *argv[]) try
     //    Create solution and rhs vectors
     // ////////////////////////////////////////////////////////////
     
-    VectorType x3d(complex.continuumGrids_["continuum"]->size(toplevel,dim));
-    VectorType rhs3d(complex.continuumGrids_["continuum"]->size(toplevel,dim));
+    VectorType x3d(complex.continua_["continuum"].grid_->size(toplevel,dim));
+    VectorType rhs3d(complex.continua_["continuum"].grid_->size(toplevel,dim));
 
     // No external forces
     rhs3d = 0;
@@ -333,7 +333,7 @@ int main (int argc, char *argv[]) try
     
     for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
         CompressedMultigridTransfer<VectorType>* newTransferOp = new CompressedMultigridTransfer<VectorType>;
-        newTransferOp->setup(*complex.continuumGrids_["continuum"],i,i+1);
+        newTransferOp->setup(*complex.continua_["continuum"].grid_,i,i+1);
         multigridStep.mgTransfer_[i] = newTransferOp;
     }
     
@@ -405,7 +405,7 @@ int main (int argc, char *argv[]) try
             // ///////////////////////////////////////////////////////////
             //   Solve the Neumann problem for the continuum
             // ///////////////////////////////////////////////////////////
-            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, complex.continuumGrids_["continuum"]->maxLevel()+1);
+            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, complex.continua_["continuum"].grid_->maxLevel()+1);
         
             solver->preprocess();
             multigridStep.preprocess();
@@ -481,7 +481,7 @@ int main (int argc, char *argv[]) try
         std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
 
         LeafAmiraMeshWriter<GridType> amiraMeshWriter;
-        amiraMeshWriter.addVertexData(x3d, complex.continuumGrids_["continuum"]->leafView());
+        amiraMeshWriter.addVertexData(x3d, complex.continua_["continuum"].grid_->leafView());
         amiraMeshWriter.write(iSolFilename);
 
         // Then the rod
@@ -676,12 +676,12 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
-    LeafAmiraMeshWriter<GridType> amiraMeshWriter(*complex.continuumGrids_["continuum"]);
-    amiraMeshWriter.addVertexData(x3d, complex.continuumGrids_["continuum"]->leafView());
+    LeafAmiraMeshWriter<GridType> amiraMeshWriter(*complex.continua_["continuum"].grid_);
+    amiraMeshWriter.addVertexData(x3d, complex.continua_["continuum"].grid_->leafView());
 
     BlockVector<FieldVector<double,1> > stress;
-    Stress<GridType>::getStress(*complex.continuumGrids_["continuum"], x3d, stress, E, nu);
-    amiraMeshWriter.addCellData(stress, complex.continuumGrids_["continuum"]->leafView());
+    Stress<GridType>::getStress(*complex.continua_["continuum"].grid_, x3d, stress, E, nu);
+    amiraMeshWriter.addCellData(stress, complex.continua_["continuum"].grid_->leafView());
 
     amiraMeshWriter.write(resultPath + "grid.result");
 
