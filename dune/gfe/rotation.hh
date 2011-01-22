@@ -244,6 +244,8 @@ public:
      */
     static Rotation<3,T> exp(const Rotation<3,T>& p, const EmbeddedTangentVector& v) {
         
+        assert( std::fabs(p*v) < 1e-8 );
+        
         // The vector v as a quaternion
         Quaternion<T> vQuat(v);
         
