@@ -270,7 +270,7 @@ class RodContinuumSteklovPoincareStep
     
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,3,3> > MatrixType;
                 
-    typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> ContinuumFEBasis;
+    typedef typename P1NodalBasis<typename ContinuumGridType::LeafGridView,double>::LocalFiniteElement ContinuumLocalFiniteElement;
     
 public:
     
@@ -286,9 +286,10 @@ public:
                                     const MatrixType* stiffnessMatrix3d,
                                     const VectorType* dirichletValues,
                                     const Dune::shared_ptr< ::LoopSolver<VectorType> > solver,
-                                    StVenantKirchhoffAssembler<ContinuumGridType, 
-                                                               typename ContinuumFEBasis::LocalFiniteElement, 
-                                                               typename ContinuumFEBasis::LocalFiniteElement>* localAssembler)
+                                    LinearLocalAssembler<ContinuumGridType, 
+                                                         ContinuumLocalFiniteElement, 
+                                                         ContinuumLocalFiniteElement,
+                                                         Dune::FieldMatrix<double,dim,dim> >* localAssembler)
       : complex_(complex),
         preconditioner_(preconditioner),
         alpha_(alpha),
@@ -342,11 +343,13 @@ private:
     //////////////////////////////////////////////////////////////////
     const RodContinuumComplex<RodGridType,ContinuumGridType>& complex_;
     
+    /** \brief Decides which preconditioner is used */
     std::string preconditioner_;
     
     /** \brief Neumann-Neumann damping */
     Dune::array<double,2> alpha_;
 
+    /** \brief Damping factor for the Richardson iteration */
     double richardsonDamping_;
     
     //////////////////////////////////////////////////////////////////
@@ -374,13 +377,10 @@ private:
     
     Dune::BitSetVector<dim> dirichletAndCouplingNodes_;
     
-    /** \todo Hack:
-     * - we actually need a base class
-     * - we don't need the global ContinuumFEBasis
-     */
-    StVenantKirchhoffAssembler<ContinuumGridType, 
-                               typename ContinuumFEBasis::LocalFiniteElement, 
-                               typename ContinuumFEBasis::LocalFiniteElement>* localAssembler_;
+    LinearLocalAssembler<ContinuumGridType, 
+                         ContinuumLocalFiniteElement, 
+                         ContinuumLocalFiniteElement,
+                         Dune::FieldMatrix<double,dim,dim> >* localAssembler_;
     
 public:
     mutable std::map<std::string, ContinuumConfigurationType> continuumSubdomainSolutions_;
