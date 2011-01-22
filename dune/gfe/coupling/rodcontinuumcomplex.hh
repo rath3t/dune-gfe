@@ -51,6 +51,9 @@ class RodContinuumComplex
     
 public:
     
+    /** \brief Iterator over the couplings */
+    typedef typename std::map<std::pair<std::string,std::string>, Coupling>::const_iterator ConstCouplingIterator;
+    
     /** \brief Simple const access to rod grids */
     const Dune::shared_ptr<RodGrid> rodGrid(const std::string& name) const
     {

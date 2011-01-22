@@ -322,6 +322,8 @@ private:
     
     RigidBodyMotion<3>::TangentVector continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const;
     
+    std::set<std::string> rodsPerContinuum(const std::string& name) const;
+    
     //////////////////////////////////////////////////////////////////
     //  Data members related to the coupled problem
     //////////////////////////////////////////////////////////////////
@@ -426,20 +428,43 @@ mergeContinuumDirichletAndCouplingBoundaries()
 
         for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
             dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
+        
+        // get the names of all the rods that we couple with
+        std::set<std::string> rodNames = rodsPerContinuum(name);
+        
+        for (std::set<std::string>::const_iterator rIt = rodNames.begin();
+             rIt != rodNames.end();
+             ++rIt) {
 
-        const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
-                = complex_.coupling(std::make_pair("rod",name)).continuumInterfaceBoundary_;
+            const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
+                    = complex_.coupling(std::make_pair(*rIt,name)).continuumInterfaceBoundary_;
 
-        for (int i=0; i<dirichletAndCouplingNodes.size(); i++) {
-            bool v = continuumInterfaceBoundary.containsVertex(i);
-            for (int j=0; j<dim; j++)
-                dirichletAndCouplingNodes[i][j] = dirichletAndCouplingNodes[i][j] or v;
+            for (int i=0; i<dirichletAndCouplingNodes.size(); i++) {
+                bool v = continuumInterfaceBoundary.containsVertex(i);
+                for (int j=0; j<dim; j++)
+                    dirichletAndCouplingNodes[i][j] = dirichletAndCouplingNodes[i][j] or v;
+            }
+            
         }
         
     }
         
 }
+
+
+template <class RodGridType, class ContinuumGridType>
+std::set<std::string> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+rodsPerContinuum(const std::string& name) const
+{
+    std::set<std::string> result;
     
+    for (typename RodContinuumComplex<RodGridType,ContinuumGridType>::ConstCouplingIterator it = complex_.couplings_.begin(); 
+         it!=complex_.couplings_.end(); ++it)
+        if (it->first.second == name)
+            result.insert(it->first.first);
+    
+    return result;
+}
 
 template <class RodGridType, class ContinuumGridType>
 RigidBodyMotion<3>::TangentVector RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
