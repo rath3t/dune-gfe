@@ -304,24 +304,38 @@ public:
         continua_["continuum"].dirichletValues_ = dirichletValues;
         continua_["continuum"].solver_          = solver;
         continua_["continuum"].localAssembler_  = localAssembler;
-        
+
         ////////////////////////////////////////////////////////////////////////////////////
         //  For each continuum, merge the Dirichlet boundary with all interface boundaries
         ////////////////////////////////////////////////////////////////////////////////////
-        continua_["continuum"].dirichletAndCouplingNodes_.resize(complex.continuumGrid("continuum")->size(dim));
-
-        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex.continua_.find("continuum")->second.dirichletBoundary_;
         
-        for (int i=0; i<continua_["continuum"].dirichletAndCouplingNodes_.size(); i++)
-            continua_["continuum"].dirichletAndCouplingNodes_[i] = dirichletBoundary.containsVertex(i);
+        for (ContinuumIterator cIt = continua_.begin(); cIt != continua_.end(); ++cIt) {
+            
+            // name of the current continuum
+            const std::string& name = cIt->first;
+            
+            // short-cut to avoid frequent map look-up
+            Dune::BitSetVector<dim>& dirichletAndCouplingNodes = continua_[name].dirichletAndCouplingNodes_;
+        
+            dirichletAndCouplingNodes.resize(complex.continuumGrid(name)->size(dim));
+        
+            // first copy the true Dirichlet boundary
+            const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex.continua_.find(name)->second.dirichletBoundary_;
 
-        const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary = complex.coupling(std::make_pair("rod","continuum")).continuumInterfaceBoundary_;
+            for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
+                dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
 
-        for (int i=0; i<continua_["continuum"].dirichletAndCouplingNodes_.size(); i++) {
-            bool v = continuumInterfaceBoundary.containsVertex(i);
-            for (int j=0; j<dim; j++)
-                continua_["continuum"].dirichletAndCouplingNodes_[i][j] = continua_["continuum"].dirichletAndCouplingNodes_[i][j] or v;
+            const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
+                    = complex.coupling(std::make_pair("rod",name)).continuumInterfaceBoundary_;
+
+            for (int i=0; i<dirichletAndCouplingNodes.size(); i++) {
+                bool v = continuumInterfaceBoundary.containsVertex(i);
+                for (int j=0; j<dim; j++)
+                    dirichletAndCouplingNodes[i][j] = dirichletAndCouplingNodes[i][j] or v;
+            }
+        
         }
+        
     }
     
     
@@ -380,6 +394,8 @@ private:
 
     std::map<std::string, RodData> rods_;
     
+    typedef typename std::map<std::string, RodData>::iterator RodIterator;
+    
 public:    
     /** \todo Should be part of RodData, too */
     mutable std::map<std::string, RodConfigurationType> rodSubdomainSolutions_;
@@ -412,6 +428,8 @@ private:
     }
 
     std::map<std::string, ContinuumData> continua_;
+
+    typedef typename std::map<std::string, ContinuumData>::iterator ContinuumIterator;
     
 public:
     /** \todo Should be part of ContinuumData, too */
