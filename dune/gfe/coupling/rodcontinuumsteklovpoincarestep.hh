@@ -442,14 +442,8 @@ continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
     x3d = 0;
 
     // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
-    RigidBodyMotion<3> relativeMovement;
-    relativeMovement.r = lambda.r - referenceInterface_.r;
-    relativeMovement.q = referenceInterface_.q;
-    relativeMovement.q.invert();
-    relativeMovement.q = lambda.q.mult(relativeMovement.q);
-
     const LeafBoundaryPatch<ContinuumGridType>& foo = complex_.coupling(couplingName).continuumInterfaceBoundary_;
-    setRotation(foo, x3d, relativeMovement);
+    setRotation(foo, x3d, referenceInterface_, lambda);
     
     // Set the correct Dirichlet nodes
     dynamic_cast<IterationStep<VectorType>* >(solver_->iterationStep_)->ignoreNodes_ = &dirichletAndCouplingNodes_;

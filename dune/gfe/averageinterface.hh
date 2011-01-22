@@ -817,11 +817,21 @@ void computeAverageInterface(const BoundaryPatchBase<GridView>& interface,
 template <class GridView>
 void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
                  Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> >& deformation,
-                 const RigidBodyMotion<3>& relativeMovement)
+                 const RigidBodyMotion<3>& referenceInterface,
+                 const RigidBodyMotion<3>& lambda)
 {
     const typename GridView::IndexSet& indexSet = dirichletBoundary.gridView().indexSet();
     const int dim        = GridView::dimension;
     const int dimworld   = GridView::dimensionworld;
+
+    // Get the relative rotation, first as a quaternion...
+    Rotation<3,double> relativeRotation;
+    relativeRotation = referenceInterface.q.inverse();
+    relativeRotation = lambda.q.mult(relativeRotation);
+
+    // ... then as a matrix
+    Dune::FieldMatrix<double,3,3> rotation;
+    relativeRotation.matrix(rotation);
 
     // ///////////////////////////////////////////
     //   Loop over all vertices
@@ -840,15 +850,12 @@ void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
             int globalIdx = indexSet.subIndex(*it->inside(), cornerIdx, dim);
 
             // Get vertex position
-            Dune::FieldVector<double,dimworld> pos = it->inside()->geometry().corner(cornerIdx);
+            const Dune::FieldVector<double,dimworld> pos = it->inside()->geometry().corner(cornerIdx);
             
             // Action of the rigid body motion
-            Dune::FieldMatrix<double,3,3> rotation;
-            relativeMovement.q.matrix(rotation);
-            
             Dune::FieldVector<double,dimworld> rpos;
-            rotation.mv(pos, rpos);
-            rpos += relativeMovement.r;
+            rotation.mv(pos-referenceInterface.r, rpos);
+            rpos += lambda.r;
             
             // We compute _displacements_, not positions
             rpos -= pos;
