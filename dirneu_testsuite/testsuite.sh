@@ -116,7 +116,7 @@ instrumented = 0
 ## Dirichlet values
 #dirichletValue = 0.125 0.125 2.5
 
-#dirichletAxisX = 0 0 1
+#dirichletAxis = 0 0 1
 #dirichletAngle = 0
 
 
@@ -133,12 +133,14 @@ instrumented = 0
 #rodA = 1
 
 # Geometric moments (here: square of edge length one)
-#rod J1 = 0.0833333
-#rod J2 = 0.0833333
+#rodJ1 = 0.0833333
+#rodJ2 = 0.0833333
 
 # Material parameters
 #rodE  = 2.5e5
 #rodNu = 0.3
+#E     = 1e6
+#nu    = 0.3
 
 ## Dirichlet values
 #dirichletValue = 0.5 1.5 10
@@ -194,6 +196,7 @@ EOF
 
 # run problems
 
+MAXPROCS=4
 
 for level in 2; do
 #for level in 1 2 3 4; do
@@ -205,13 +208,21 @@ for level in 2; do
     fi
 
     for damping in 0.6; do
+#    for damping in 0.1 0.6 0.9; do
 #    for damping in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3; do
 
         echo "Computing on "${level}" levels with damping factor "${damping}
-        runComputation $LEVELDIR $level $damping
+        runComputation $LEVELDIR $level $damping &
 
         # Append convergence rate of this run to overall list for this level
         #cat convrate >> ${LEVELDIR}/convrates
+
+        # Never have more than MAXPROCS processes
+        NPROC=$(($NPROC+1))  
+        if [ "$NPROC" -ge "$MAXPROCS" ]; then  
+          wait  
+          NPROC=0  
+        fi  
 
     done
 
