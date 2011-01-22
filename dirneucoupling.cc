@@ -189,6 +189,7 @@ int main (int argc, char *argv[]) try
     
     LeafBoundaryPatch<GridType> dirichletBoundary(*complex.continuumGrids_["continuum"]);
     PatchProlongator<GridType>::prolong(coarseDirichletBoundary, dirichletBoundary);
+    complex.continuumDirichletBoundaries_["continuum"] = dirichletBoundary;
 
     BitSetVector<dim> dirichletNodes( complex.continuumGrids_["continuum"]->size(dim) );
 
