@@ -320,8 +320,10 @@ private:
     
     RigidBodyMotion<3>::TangentVector rodDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const;
     
-    RigidBodyMotion<3>::TangentVector continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const;
-    
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> 
+        continuumDirichletToNeumannMap(const std::string& continuumName, 
+                                       const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& lambda) const;
+                                       
     std::set<std::string> rodsPerContinuum(const std::string& name) const;
     
     //////////////////////////////////////////////////////////////////
@@ -511,56 +513,85 @@ rodDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
 
 
 template <class RodGridType, class ContinuumGridType>
-RigidBodyMotion<3>::TangentVector RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
-continuumDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
+std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+continuumDirichletToNeumannMap(const std::string& continuumName, 
+                               const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& lambda) const
 {
-    std::pair<std::string,std::string> couplingName = std::make_pair("rod", "continuum");
-    
-    VectorType& x3d = continuumSubdomainSolutions_["continuum"];
-    x3d.resize(complex_.continuumGrid("continuum")->size(dim));
+    // Set initial iterate
+    VectorType& x3d = continuumSubdomainSolutions_[continuumName];
+    x3d.resize(complex_.continuumGrid(continuumName)->size(dim));
     x3d = 0;
 
-    // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
-    const LeafBoundaryPatch<ContinuumGridType>& foo = complex_.coupling(couplingName).continuumInterfaceBoundary_;
-    setRotation(foo, x3d, referenceInterface_, lambda);
+    // Copy the true Dirichlet values into it
+    const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(continuumName).dirichletBoundary_;
+    const VectorType& dirichletValues = *continuum(continuumName).dirichletValues_;
+    
+    for (size_t i=0; i<x3d.size(); i++)
+        if (dirichletBoundary.containsVertex(i))
+            x3d[i] = dirichletValues[i];
+    
+    typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::const_iterator it = lambda.begin();
+    for (; it!=lambda.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+    
+        // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
+        const LeafBoundaryPatch<ContinuumGridType>& foo = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+#warning ReferenceInterface not properly set
+        setRotation(foo, x3d, referenceInterface_, it->second);
+    
+    }
     
     // Set the correct Dirichlet nodes
-    dynamic_cast<IterationStep<VectorType>* >(continuum("continuum").solver_->iterationStep_)->ignoreNodes_ 
-           = &continuum("continuum").dirichletAndCouplingNodes_;
+    dynamic_cast<IterationStep<VectorType>* >(continuum(continuumName).solver_->iterationStep_)->ignoreNodes_ 
+           = &continuum(continuumName).dirichletAndCouplingNodes_;
     
     // Right hand side vector: currently without Neumann and volume terms
     VectorType rhs3d(x3d.size());
     rhs3d = 0;
     
     // Solve the Dirichlet problem
-    assert( (dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum("continuum").solver_->iterationStep_)) );
-    dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum("continuum").solver_->iterationStep_)->setProblem(*continuum("continuum").stiffnessMatrix_, x3d, rhs3d);
+    assert( (dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum(continuumName).solver_->iterationStep_)) );
+    dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum(continuumName).solver_->iterationStep_)->setProblem(*continuum(continuumName).stiffnessMatrix_, x3d, rhs3d);
 
-    continuum("continuum").solver_->preprocess();
-    dynamic_cast<IterationStep<VectorType>* >(continuum("continuum").solver_->iterationStep_)->preprocess();
+    continuum(continuumName).solver_->preprocess();
+    dynamic_cast<IterationStep<VectorType>* >(continuum(continuumName).solver_->iterationStep_)->preprocess();
         
-    continuum("continuum").solver_->solve();
+    continuum(continuumName).solver_->solve();
         
-    x3d = dynamic_cast<IterationStep<VectorType>* >(continuum("continuum").solver_->iterationStep_)->getSol();
+    x3d = dynamic_cast<IterationStep<VectorType>* >(continuum(continuumName).solver_->iterationStep_)->getSol();
             
     // Integrate over the residual on the coupling boundary to obtain
     // an element of T^*SE.
     Dune::FieldVector<double,3> continuumForce, continuumTorque;
             
     VectorType residual = rhs3d;
-    continuum("continuum").stiffnessMatrix_->mmv(x3d,residual);
+    continuum(continuumName).stiffnessMatrix_->mmv(x3d,residual);
+    
+    //////////////////////////////////////////////////////////////////////////////
+    //  Extract the residual stresses
+    //////////////////////////////////////////////////////////////////////////////
             
-    /** \todo Is referenceInterface.r the correct center of rotation? */
-    computeTotalForceAndTorque(complex_.coupling(couplingName).continuumInterfaceBoundary_, residual, referenceInterface_.r,
-                               continuumForce, continuumTorque);
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > result;
 
-    RigidBodyMotion<3>::TangentVector result;
-    result[0] = continuumForce[0];
-    result[1] = continuumForce[1];
-    result[2] = continuumForce[2];
-    result[3] = continuumTorque[0];
-    result[4] = continuumTorque[1];
-    result[5] = continuumTorque[2];
+    for (it = lambda.begin(); it!=lambda.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+        
+        /** \todo Is referenceInterface.r the correct center of rotation? */
+        computeTotalForceAndTorque(complex_.coupling(couplingName).continuumInterfaceBoundary_, 
+                                   residual, 
+                                   referenceInterface_.r,
+                                   continuumForce, continuumTorque);
+
+        result[couplingName][0] = continuumForce[0];
+        result[couplingName][1] = continuumForce[1];
+        result[couplingName][2] = continuumForce[2];
+        result[couplingName][3] = continuumTorque[0];
+        result[couplingName][4] = continuumTorque[1];
+        result[couplingName][5] = continuumTorque[2];
+    
+    }
     
     return result;
 }
@@ -577,13 +608,17 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     RigidBodyMotion<3>::TangentVector rodForceTorque = rodDirichletToNeumannMap(lambda);
 
     std::cout << "resultant rod force and torque: "  << rodForceTorque << std::endl;
-            
+
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
+    
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > tmpLambda;
+    tmpLambda[std::make_pair("rod","continuum")] = lambda;
               
-    RigidBodyMotion<3>::TangentVector continuumForceTorque = continuumDirichletToNeumannMap(lambda);
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > tmpContinuumForceTorque = continuumDirichletToNeumannMap("continuum", tmpLambda);
 
+    RigidBodyMotion<3>::TangentVector continuumForceTorque = tmpContinuumForceTorque[std::make_pair("rod","continuum")];
     std::cout << "resultant continuum force and torque: "  << continuumForceTorque  << std::endl;
 
     ///////////////////////////////////////////////////////////////

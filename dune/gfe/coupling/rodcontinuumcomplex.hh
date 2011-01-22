@@ -68,6 +68,13 @@ public:
         return continua_.find(name)->second.grid_;
     }
     
+    /** \brief Simple const access to continua */
+    const ContinuumData continuum(const std::string& name) const
+    {
+        assert(continua_.find(name) != continua_.end());
+        return continua_.find(name)->second;
+    }
+    
     /** \brief Simple const access to couplings */
     const Coupling& coupling(const std::pair<std::string,std::string>& name) const
     {
