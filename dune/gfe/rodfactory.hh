@@ -107,7 +107,56 @@ template <int dim>
         rod.resize(gridView_.size(1));
         std::fill(rod.begin(), rod.end(), value);
     }
+
+    /** \brief Make a rod by linearly interpolating between the end values
+
+        \note The end values are expected to be in the input container!
+        \param[in,out] rod The new rod
+    */
+    template <int spaceDim>
+    void create(std::vector<RigidBodyMotion<spaceDim> >& rod)
+    {
+        static const int dim = GridView::dimension;  // de facto: 1
+        assert(gridView_.size(dim)==rod.size());
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+        //  Get smallest and largest coordinate, in order to create an arc-length parametrization
+        //////////////////////////////////////////////////////////////////////////////////////////////
     
+        typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
+        typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
+    
+        double min =  std::numeric_limits<double>::max();
+        double max = -std::numeric_limits<double>::max();
+        RigidBodyMotion<spaceDim> beginning, end;
+    
+        for (; vIt != vEndIt; ++vIt) {
+            if (vIt->geometry().corner(0)[0] < min) {
+                min = vIt->geometry().corner(0)[0];
+                beginning = rod[gridView_.indexSet().index(*vIt)];
+            }
+            if (vIt->geometry().corner(0)[0] > max) {
+                max = vIt->geometry().corner(0)[0];
+                end = rod[gridView_.indexSet().index(*vIt)];
+            }
+        }
+    
+        ////////////////////////////////////////////////////////////////////////////////////
+        //  Interpolate according to arc-length
+        ////////////////////////////////////////////////////////////////////////////////////
+
+        rod.resize(gridView_.size(dim));
+    
+        for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
+            int idx = gridView_.indexSet().index(*vIt);
+            Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
+
+            for (int i=0; i<3; i++)
+                rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
+            rod[idx].q = Rotation<3,double>::interpolate(beginning.q, end.q, local);
+        }
+    }
+
 private:
     
     const GridView& gridView_;
