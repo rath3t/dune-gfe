@@ -55,6 +55,14 @@ public:
                int baseIterations,
                double baseTolerance,
                bool instrumented);
+    
+    void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
+    {
+        ignoreNodes_ = &ignoreNodes;
+        Dune::shared_ptr<LoopSolver<CorrectionType> > loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
+        assert(loopSolver);
+        loopSolver->iterationStep_->ignoreNodes_ = ignoreNodes_;
+    }
 
     void solve();
 
