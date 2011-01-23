@@ -603,17 +603,7 @@ rodDirichletToNeumannMap(const std::string& rodName,
         
         const LeafBoundaryPatch<RodGridType>& couplingBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
 
-        /** \todo Hack: this should be a tangent vector right away */
-        Dune::FieldVector<double,dim> rodForce, rodTorque;
-        rodForce = rod(rodName).assembler_->getResultantForce(couplingBoundary, rodX, rodTorque);
-    
-        dune_static_assert(RigidBodyMotion<3>::TangentVector::size == 2*dim, "TangentVector does not have appropriate size");
-        result[couplingName][0] = rodForce[0];
-        result[couplingName][1] = rodForce[1];
-        result[couplingName][2] = rodForce[2];
-        result[couplingName][3] = rodTorque[0];
-        result[couplingName][4] = rodTorque[1];
-        result[couplingName][5] = rodTorque[2];
+        result[couplingName] = rod(rodName).assembler_->getResultantForce(couplingBoundary, rodX);
     }
     
     return result;

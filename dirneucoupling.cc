@@ -385,9 +385,16 @@ int main (int argc, char *argv[]) try
             //   Extract Neumann values and transfer it to the 3d object
             // ///////////////////////////////////////////////////////////
 
+            RigidBodyMotion<3>::TangentVector resultantForceTorque 
+                    = rodAssembler.getResultantForce(complex.couplings_[interfaceName].rodInterfaceBoundary_, rodX);
+            
+            // separate into translational and rotational part
             FieldVector<double,dim> resultantForce, resultantTorque;
-            resultantForce  = rodAssembler.getResultantForce(complex.couplings_[interfaceName].rodInterfaceBoundary_, rodX, resultantTorque);
-
+            for (int j=0; j<dim; j++) {
+                resultantForce[j]  = resultantForceTorque[j];
+                resultantTorque[j] = resultantForceTorque[dim+j];
+            }
+            
             // Flip orientation
             resultantForce  *= -1;
             resultantTorque *= -1;
