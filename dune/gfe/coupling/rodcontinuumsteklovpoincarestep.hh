@@ -494,12 +494,6 @@ linearizedRodNeumannToDirichletMap(const RodConfigurationType& currentIterate,
 {
     std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
         
-    Dune::FieldVector<double,3> force, torque;
-    for (int i=0; i<3; i++) {
-        force[i]  = forceTorque[i];
-        torque[i] = forceTorque[i+3];
-    }
-        
     ////////////////////////////////////////////////////
     //  Assemble the linearized rod problem
     ////////////////////////////////////////////////////
@@ -527,12 +521,7 @@ linearizedRodNeumannToDirichletMap(const RodConfigurationType& currentIterate,
     /////////////////////////////////////////////////////////////////////
 
     // The weak form of the Neumann data
-    rhs[0][0] += force[0];
-    rhs[0][1] += force[1];
-    rhs[0][2] += force[2];
-    rhs[0][3] += torque[0];
-    rhs[0][4] += torque[1];
-    rhs[0][5] += torque[2];
+    rhs[0] += forceTorque;
         
     ///////////////////////////////////////////////////////////
     // Modify matrix and rhs to contain one Dirichlet node
