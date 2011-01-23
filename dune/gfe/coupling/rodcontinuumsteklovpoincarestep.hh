@@ -721,10 +721,11 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         
     }
 
-    // temporary
-    std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
-    
-    std::cout << "resultant rod force and torque: "  << rodForceTorque[interfaceName] << std::endl;
+    std::cout << "resultant rod forces and torques: "  << std::endl;
+    typedef typename std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector>::iterator ForceIterator;
+    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
 
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
@@ -744,23 +745,36 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         assert(continuumForceTorque.size() == oldSize + forceTorque.size());
         
     }
-    std::cout << "resultant continuum force and torque: "  << continuumForceTorque[interfaceName]  << std::endl;
+
+    std::cout << "resultant continuum force and torque: " << std::endl;
+    for (ForceIterator it = continuumForceTorque.begin(); it != continuumForceTorque.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
 
     ///////////////////////////////////////////////////////////////
     //  Compute the overall Steklov-Poincare residual
     ///////////////////////////////////////////////////////////////
 
-    // Flip orientation to account for opposing normals
-    rodForceTorque[interfaceName] *= -1;
+    // Flip orientation of all rod forces, to account for opposing normals.
+    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
+        it->second *= -1;
 
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> residualForceTorque;
-    residualForceTorque[interfaceName] = rodForceTorque[interfaceName] + continuumForceTorque[interfaceName];
-            
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> residualForceTorque = rodForceTorque;
+    
+    for (ForceIterator it = residualForceTorque.begin(), it2 = continuumForceTorque.begin(); 
+         it != residualForceTorque.end(); 
+         ++it, ++it2) {
+        assert(it->first == it2->first);
+        it->second += it2->second;
+    }
             
     ///////////////////////////////////////////////////////////////
     //  Apply the preconditioner
     ///////////////////////////////////////////////////////////////
             
+    // temporary
+    std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
+    
     std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
             
     if (preconditioner_=="DirichletNeumann") {
