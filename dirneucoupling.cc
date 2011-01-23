@@ -178,10 +178,8 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////
     //   Determine the Dirichlet nodes
     // /////////////////////////////////////////////////////
-    std::vector<VectorType> dirichletValues;
-    dirichletValues.resize(toplevel+1);
-    dirichletValues[0].resize(complex.continua_["continuum"].grid_->size(0, dim));
-    AmiraMeshReader<int>::readFunction(dirichletValues[0], path + dirichletValuesFile);
+    VectorType coarseDirichletValues(complex.continua_["continuum"].grid_->size(0, dim));
+    AmiraMeshReader<int>::readFunction(coarseDirichletValues, path + dirichletValuesFile);
 
     LevelBoundaryPatch<GridType> coarseDirichletBoundary;
     coarseDirichletBoundary.setup(*complex.continua_["continuum"].grid_, 0);
@@ -197,7 +195,7 @@ int main (int argc, char *argv[]) try
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
     sampleOnBitField(*complex.continua_["continuum"].grid_, 
-                     dirichletValues[0], 
+                     coarseDirichletValues, 
                      complex.continua_["continuum"].dirichletValues_, 
                      dirichletNodes);
     
@@ -243,11 +241,12 @@ int main (int argc, char *argv[]) try
     rhs3d = 0;
 
     // Set initial solution
+    const VectorType& dirichletValues = complex.continua_["continuum"].dirichletValues_;
     x3d = 0;
     for (int i=0; i<x3d.size(); i++) 
         for (int j=0; j<dim; j++)
             if (dirichletNodes[i][j])
-                x3d[i][j] = dirichletValues[toplevel][i][j];
+                x3d[i][j] = dirichletValues[i][j];
 
     // ///////////////////////////////////////////
     //   Dirichlet nodes for the rod problem
