@@ -79,9 +79,8 @@ public:
 
         \note Linear run-time in the size of the grid */
         template <class PatchGridView>
-        Dune::FieldVector<double,3> getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
-                                                      const std::vector<RigidBodyMotion<3> >& sol,
-                                                      Dune::FieldVector<double,3>& canonicalTorque) const;
+        Dune::FieldVector<double,6> getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
+                                                      const std::vector<RigidBodyMotion<3> >& sol) const;
 
     }; // end class
 
