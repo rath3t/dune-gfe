@@ -81,16 +81,6 @@ template <int dim>
     }
     
     ////////////////////////////////////////////////////////////////////////////////////
-    //  Make a 1d geodesic finite element function, which will do the interpolation
-    ////////////////////////////////////////////////////////////////////////////////////
-    
-    std::vector<RigidBodyMotion<3> > coefficients(2);
-    coefficients[0] = beginning;
-    coefficients[1] = end;
-
-    LocalGeodesicFEFunction<1,double,RigidBodyMotion<3> > localGFEFunction(coefficients);
-    
-    ////////////////////////////////////////////////////////////////////////////////////
     //  Interpolate according to arc-length
     ////////////////////////////////////////////////////////////////////////////////////
 
@@ -99,7 +89,10 @@ template <int dim>
     for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
         int idx = gridView_.indexSet().index(*vIt);
         Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
-        rod[idx] = localGFEFunction.evaluate(local);
+
+        for (int i=0; i<3; i++)
+            rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
+        rod[idx].q = Rotation<3,double>::interpolate(beginning.q, end.q, local);
     }
 }
 
