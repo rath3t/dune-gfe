@@ -468,8 +468,7 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
 template <class GridView>
-void computeAveragePressure(const Dune::FieldVector<double,GridView::dimension>& resultantForce,
-                            const Dune::FieldVector<double,GridView::dimension>& resultantTorque,
+void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>::TangentVector& resultantForceTorque,
                             const BoundaryPatchBase<GridView>& interface,
                             const Dune::FieldVector<double,GridView::dimension>& centerOfTorque,
                             Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& pressure)
@@ -599,6 +598,12 @@ void computeAveragePressure(const Dune::FieldVector<double,GridView::dimension>&
     //   Set up and start the interior-point solver
     // /////////////////////////////////////////////////////////////////////////////////////
 
+    Dune::FieldVector<double,dim> resultantForce, resultantTorque;
+    for (int i=0; i<dim; i++) {
+        resultantForce[i]  = resultantForceTorque[i];
+        resultantTorque[i] = resultantForceTorque[dim+i];
+    }
+    
     // Create a new instance of IpoptApplication
     Ipopt::SmartPtr<Ipopt::IpoptApplication> app = new Ipopt::IpoptApplication();
     
