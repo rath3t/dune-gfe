@@ -283,7 +283,6 @@ public:
                                     RodLocalStiffness<typename RodGridType::LeafGridView,double>* rodLocalStiffness,
                                     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver,
                                     const MatrixType* stiffnessMatrix3d,
-                                    const VectorType* dirichletValues,
                                     const Dune::shared_ptr< ::LoopSolver<VectorType> > solver,
                                     LinearLocalAssembler<ContinuumGridType, 
                                                          ContinuumLocalFiniteElement, 
@@ -299,16 +298,18 @@ public:
         rods_["rod"].solver_         = rodSolver;
 
         continua_["continuum"].stiffnessMatrix_ = stiffnessMatrix3d;
-        continua_["continuum"].dirichletValues_ = dirichletValues;
         continua_["continuum"].solver_          = solver;
         continua_["continuum"].localAssembler_  = localAssembler;
 
+        mergeRodDirichletAndCouplingBoundaries();
         mergeContinuumDirichletAndCouplingBoundaries();
     }
     
+    void mergeRodDirichletAndCouplingBoundaries();
+
     void mergeContinuumDirichletAndCouplingBoundaries();
 
-        
+    
     /** \brief Do one Steklov-Poincare step
      * \param[in,out] lambda The old and new iterate
      */
@@ -316,13 +317,17 @@ public:
     
 private:
     
-    RigidBodyMotion<3>::TangentVector rodDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const;
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> 
+        rodDirichletToNeumannMap(const std::string& rodName, 
+                                 const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& lambda) const;
     
     std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> 
         continuumDirichletToNeumannMap(const std::string& continuumName, 
                                        const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& lambda) const;
                                        
     std::set<std::string> rodsPerContinuum(const std::string& name) const;
+    
+    std::set<std::string> continuaPerRod(const std::string& name) const;
     
     //////////////////////////////////////////////////////////////////
     //  Data members related to the coupled problem
@@ -344,6 +349,8 @@ private:
     
     struct RodData
     {
+        Dune::BitSetVector<6> dirichletAndCouplingNodes_;
+    
         RodAssembler<typename RodGridType::LeafGridView,3>* assembler_;
     
         RodLocalStiffness<typename RodGridType::LeafGridView,double>* localStiffness_;
@@ -374,8 +381,6 @@ private:
     {
         const MatrixType* stiffnessMatrix_;
     
-        const VectorType* dirichletValues_;
-    
         Dune::shared_ptr< ::LoopSolver<VectorType> > solver_;
     
         Dune::BitSetVector<dim> dirichletAndCouplingNodes_;
@@ -402,6 +407,62 @@ public:
     mutable std::map<std::string, ContinuumConfigurationType> continuumSubdomainSolutions_;
 private:
 };
+
+
+template <class RodGridType, class ContinuumGridType>
+void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+mergeRodDirichletAndCouplingBoundaries()
+{
+    ////////////////////////////////////////////////////////////////////////////////////
+    //  For each rod, merge the Dirichlet boundary with all interface boundaries
+    //
+    //  Currently, we can really only solve rod problems with complete Dirichlet
+    //  boundary.  Hence there are more direct ways to construct the
+    //  dirichletAndCouplingNodes field.  Yet like to keep the analogy to the continuum
+    //  problem.  And maybe one day we have a more flexible rod solver, too.
+    ////////////////////////////////////////////////////////////////////////////////////
+        
+    for (RodIterator rIt = rods_.begin(); rIt != rods_.end(); ++rIt) {
+            
+        // name of the current rod
+        const std::string& name = rIt->first;
+            
+        // short-cut to avoid frequent map look-up
+        Dune::BitSetVector<6>& dirichletAndCouplingNodes = rods_[name].dirichletAndCouplingNodes_;
+        
+        dirichletAndCouplingNodes.resize(complex_.rodGrid(name)->size(1));
+        
+        // first copy the true Dirichlet boundary
+        const LeafBoundaryPatch<RodGridType>& dirichletBoundary = complex_.rods_.find(name)->second.dirichletBoundary_;
+
+        for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
+            dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
+        
+        // get the names of all the continua that we couple with
+        std::set<std::string> continuumNames = continuaPerRod(name);
+        
+        for (std::set<std::string>::const_iterator cIt = continuumNames.begin();
+             cIt != continuumNames.end();
+             ++cIt) {
+
+            const LeafBoundaryPatch<RodGridType>& rodInterfaceBoundary 
+                    = complex_.coupling(std::make_pair(name,*cIt)).rodInterfaceBoundary_;
+
+            /** \todo Use the BoundaryPatch iterator here, for increased efficiency */
+            for (int i=0; i<dirichletAndCouplingNodes.size(); i++) {
+                bool v = rodInterfaceBoundary.containsVertex(i);
+                for (int j=0; j<6; j++)
+                    dirichletAndCouplingNodes[i][j] = dirichletAndCouplingNodes[i][j] or v;
+            }
+        
+        }
+        
+        // We can only handle rod problems with a full Dirichlet boundary
+        assert(dirichletAndCouplingNodes.count()==12);
+        
+    }
+        
+}
 
 
 template <class RodGridType, class ContinuumGridType>
@@ -438,6 +499,7 @@ mergeContinuumDirichletAndCouplingBoundaries()
             const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
                     = complex_.coupling(std::make_pair(*rIt,name)).continuumInterfaceBoundary_;
 
+            /** \todo Use the BoundaryPatch iterator here, for increased efficiency */
             for (int i=0; i<dirichletAndCouplingNodes.size(); i++) {
                 bool v = continuumInterfaceBoundary.containsVertex(i);
                 for (int j=0; j<dim; j++)
@@ -466,44 +528,93 @@ rodsPerContinuum(const std::string& name) const
 }
 
 template <class RodGridType, class ContinuumGridType>
-RigidBodyMotion<3>::TangentVector RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
-rodDirichletToNeumannMap(const RigidBodyMotion<3>& lambda) const
+std::set<std::string> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+continuaPerRod(const std::string& name) const
 {
-    // Create an initial iterate by interpolating between lambda and the Dirichlet value
-    /** \todo Using that the coupling boundary is the one with the lower coordinate */
-    RigidBodyMotion<3> rodDirichletValue = complex_.rods_.find("rod")->second.dirichletValues_.back();
+    std::set<std::string> result;
     
-    // Set initial iterate
-    RodConfigurationType& rodX = rodSubdomainSolutions_["rod"];
-    RodFactory<typename RodGridType::LeafGridView> rodFactory(complex_.rodGrid("rod")->leafView());
-    rodFactory.create(rodX,lambda,rodDirichletValue);
+    for (typename RodContinuumComplex<RodGridType,ContinuumGridType>::ConstCouplingIterator it = complex_.couplings_.begin(); 
+         it!=complex_.couplings_.end(); ++it)
+        if (it->first.first == name)
+            result.insert(it->first.second);
     
-    rod("rod").solver_->setInitialSolution(rodX);
+    return result;
+}
+
+template <class RodGridType, class ContinuumGridType>
+std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+rodDirichletToNeumannMap(const std::string& rodName, 
+                               const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& lambda) const
+{
+    // container for the subdomain solution
+    RodConfigurationType& rodX = rodSubdomainSolutions_[rodName];
+    rodX.resize(complex_.rodGrid(rodName)->size(1));
+    
+    ///////////////////////////////////////////////////////////
+    //  Set the complete set of Dirichlet values
+    ///////////////////////////////////////////////////////////
+    const LeafBoundaryPatch<RodGridType>& dirichletBoundary = complex_.rod(rodName).dirichletBoundary_;
+    const RodConfigurationType& dirichletValues = complex_.rod(rodName).dirichletValues_;
+    
+    for (size_t i=0; i<rodX.size(); i++)
+        if (dirichletBoundary.containsVertex(i))
+            rodX[i] = dirichletValues[i];
+    
+    typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::const_iterator it = lambda.begin();
+    for (; it!=lambda.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+    
+        // Use \lambda as a Dirichlet value for the rod
+        const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
+
+        /** \todo Use the BoundaryPatch iterator, which will be a lot faster
+         * once we use EntitySeed for its implementation
+         */
+        for (size_t i=0; i<rodX.size(); i++)
+            if (interfaceBoundary.containsVertex(i))
+                rodX[i] = it->second;
+    }
+    
+    // Set the correct Dirichlet nodes
+    rod(rodName).solver_->setIgnoreNodes(rod(rodName).dirichletAndCouplingNodes_);
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //  Solve the Dirichlet problem
+    ////////////////////////////////////////////////////////////////////////////////
+           
+    // Set initial iterate by interpolating between the Dirichlet values
+    RodFactory<typename RodGridType::LeafGridView> rodFactory(complex_.rodGrid(rodName)->leafView());
+    rodFactory.create(rodX);
+    
+    rod(rodName).solver_->setInitialSolution(rodX);
     
     // Solve the Dirichlet problem
-    rod("rod").solver_->solve();
+    rod(rodName).solver_->solve();
 
-    rodX = rod("rod").solver_->getSol();
+    rodX = rod(rodName).solver_->getSol();
 
     //   Extract Neumann values
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > result;
 
-    Dune::BitSetVector<1> couplingBitfield(rodX.size(),false);
-    /** \todo Using that index 0 is always the left boundary for a uniformly refined OneDGrid */
-    couplingBitfield[0] = true;
-    LeafBoundaryPatch<RodGridType> couplingBoundary(*complex_.rodGrid("rod"), couplingBitfield);
+    for (it = lambda.begin(); it!=lambda.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+        
+        const LeafBoundaryPatch<RodGridType>& couplingBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
 
-    /** \todo Hack: this should be a tangent vector right away */
-    Dune::FieldVector<double,dim> rodForce, rodTorque;
-    rodForce = rod("rod").assembler_->getResultantForce(couplingBoundary, rodX, rodTorque);
+        /** \todo Hack: this should be a tangent vector right away */
+        Dune::FieldVector<double,dim> rodForce, rodTorque;
+        rodForce = rod(rodName).assembler_->getResultantForce(couplingBoundary, rodX, rodTorque);
     
-    dune_static_assert(RigidBodyMotion<3>::TangentVector::size == 2*dim, "TangentVector does not have appropriate size");
-    RigidBodyMotion<3>::TangentVector result;
-    result[0] = rodForce[0];
-    result[1] = rodForce[1];
-    result[2] = rodForce[2];
-    result[3] = rodTorque[0];
-    result[4] = rodTorque[1];
-    result[5] = rodTorque[2];
+        dune_static_assert(RigidBodyMotion<3>::TangentVector::size == 2*dim, "TangentVector does not have appropriate size");
+        result[couplingName][0] = rodForce[0];
+        result[couplingName][1] = rodForce[1];
+        result[couplingName][2] = rodForce[2];
+        result[couplingName][3] = rodTorque[0];
+        result[couplingName][4] = rodTorque[1];
+        result[couplingName][5] = rodTorque[2];
+    }
     
     return result;
 }
@@ -521,7 +632,7 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
 
     // Copy the true Dirichlet values into it
     const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(continuumName).dirichletBoundary_;
-    const VectorType& dirichletValues = *continuum(continuumName).dirichletValues_;
+    const VectorType& dirichletValues = complex_.continuum(continuumName).dirichletValues_;
     
     for (size_t i=0; i<x3d.size(); i++)
         if (dirichletBoundary.containsVertex(i))
@@ -609,15 +720,16 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     //  Evaluate the Dirichlet-to-Neumann map for the rod
     ///////////////////////////////////////////////////////////////////
 
-    RigidBodyMotion<3>::TangentVector rodForceTorque = rodDirichletToNeumannMap(lambda[interfaceName]);
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodForceTorque 
+            = rodDirichletToNeumannMap("rod", lambda);
 
-    std::cout << "resultant rod force and torque: "  << rodForceTorque << std::endl;
+    std::cout << "resultant rod force and torque: "  << rodForceTorque[interfaceName] << std::endl;
 
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
     
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > continuumForceTorque 
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumForceTorque 
             = continuumDirichletToNeumannMap("continuum", lambda);
 
     std::cout << "resultant continuum force and torque: "  << continuumForceTorque[interfaceName]  << std::endl;
@@ -627,16 +739,17 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     ///////////////////////////////////////////////////////////////
 
     // Flip orientation to account for opposing normals
-    rodForceTorque *= -1;
+    rodForceTorque[interfaceName] *= -1;
 
-    RigidBodyMotion<3>::TangentVector residualForceTorque = rodForceTorque + continuumForceTorque[interfaceName];
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> residualForceTorque;
+    residualForceTorque[interfaceName] = rodForceTorque[interfaceName] + continuumForceTorque[interfaceName];
             
             
     ///////////////////////////////////////////////////////////////
     //  Apply the preconditioner
     ///////////////////////////////////////////////////////////////
             
-    Dune::FieldVector<double,6> interfaceCorrection;
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
             
     if (preconditioner_=="DirichletNeumann") {
                 
@@ -652,13 +765,13 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
                 linContNtDMap(complex_.coupling(interfaceName).continuumInterfaceBoundary_,
                               rhs3d,
-                              *continuum("continuum").dirichletValues_,
+                              complex_.continuum("continuum").dirichletValues_,
                               continuum("continuum").localAssembler_,
                               continuum("continuum").solver_);
                         
-        interfaceCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], 
-                                                  residualForceTorque, 
-                                                  lambda[std::make_pair("rod","continuum")].r);
+        interfaceCorrection[interfaceName] = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], 
+                                                  residualForceTorque[interfaceName], 
+                                                  lambda[interfaceName].r);
                 
     } else if (preconditioner_=="NeumannDirichlet") {
             
@@ -670,9 +783,9 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.coupling(interfaceName).rodInterfaceBoundary_,
                                                                                                          rods_["rod"].localStiffness_);
 
-        interfaceCorrection = linRodNtDMap.apply(rodSubdomainSolutions_["rod"], 
-                                                 residualForceTorque, 
-                                                 lambda[std::make_pair("rod","continuum")].r);
+        interfaceCorrection[interfaceName] = linRodNtDMap.apply(rodSubdomainSolutions_["rod"], 
+                                                 residualForceTorque[interfaceName], 
+                                                 lambda[interfaceName].r);
 
 
     } else if (preconditioner_=="NeumannNeumann") {
@@ -690,7 +803,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
                 linContNtDMap(complex_.coupling(interfaceName).continuumInterfaceBoundary_,
                               rhs3d,
-                              *continuum("continuum").dirichletValues_,
+                              complex_.continuum("continuum").dirichletValues_,
                               continuum("continuum").localAssembler_,
                               continuum("continuum").solver_);
 
@@ -698,14 +811,14 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                                                                               rods_["rod"].localStiffness_);
 
         Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], 
-                                                                              residualForceTorque, 
-                                                                              lambda[std::make_pair("rod","continuum")].r);
+                                                                              residualForceTorque[interfaceName], 
+                                                                              lambda[interfaceName].r);
         Dune::FieldVector<double,6> rodCorrection       = linRodNtDMap.apply(rodSubdomainSolutions_["rod"],
-                                                                             residualForceTorque,
-                                                                             lambda[std::make_pair("rod","continuum")].r);
+                                                                             residualForceTorque[interfaceName],
+                                                                             lambda[interfaceName].r);
                 
         for (int j=0; j<6; j++)
-            interfaceCorrection[j] = (alpha_[0] * continuumCorrection[j] + alpha_[1] * rodCorrection[j])
+            interfaceCorrection[interfaceName][j] = (alpha_[0] * continuumCorrection[j] + alpha_[1] * rodCorrection[j])
                                         / alpha_[0] + alpha_[1];
                 
     } else if (preconditioner_=="RobinRobin") {
@@ -719,10 +832,10 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     //  Apply the damped correction to the current interface value
     ///////////////////////////////////////////////////////////////////////////////
                 
-    interfaceCorrection *= richardsonDamping_;
+    interfaceCorrection[interfaceName] *= richardsonDamping_;
     typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::iterator it = lambda.begin();
     for (; it!=lambda.end(); ++it) {
-        it->second = RigidBodyMotion<3>::exp(it->second, interfaceCorrection);
+        it->second = RigidBodyMotion<3>::exp(it->second, interfaceCorrection[interfaceName]);
     }
 }
 
