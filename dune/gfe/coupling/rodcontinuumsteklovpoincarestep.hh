@@ -597,12 +597,6 @@ linearizedContinuumNeumannToDirichletMap(const VectorType& currentIterate,
                                          const RigidBodyMotion<3>::TangentVector& forceTorque,
                                          const Dune::FieldVector<double,3>& centerOfTorque) const
 {
-    Dune::FieldVector<double,3> force, torque;
-    for (int i=0; i<3; i++) {
-        force[i]  = forceTorque[i];
-        torque[i] = forceTorque[i+3];
-    }
-    
     std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
         
     ////////////////////////////////////////////////////
@@ -628,7 +622,7 @@ linearizedContinuumNeumannToDirichletMap(const VectorType& currentIterate,
     neumannValues = 0;
 
     // 
-    computeAveragePressure<typename ContinuumGridType::LeafGridView>(force, torque, 
+    computeAveragePressure<typename ContinuumGridType::LeafGridView>(forceTorque, 
                                      interface, 
                                      centerOfTorque,
                                      neumannValues);
