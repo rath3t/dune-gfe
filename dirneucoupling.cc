@@ -342,10 +342,13 @@ int main (int argc, char *argv[]) try
     //   Dirichlet-Neumann Solver
     // /////////////////////////////////////////////////////
 
-    // Init interface value
     RigidBodyMotion<3> referenceInterface = rodX[0];
-    complex.couplings_[std::make_pair("rod","continuum")].referenceInterface_ = referenceInterface;
-    RigidBodyMotion<3> lambda = referenceInterface;
+    complex.couplings_[interfaceName].referenceInterface_ = referenceInterface;
+
+    // Init interface value
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > lambda;
+    lambda[interfaceName] = referenceInterface;
+    
     FieldVector<double,3> lambdaForce(0);
     FieldVector<double,3> lambdaTorque(0);
 
@@ -359,7 +362,7 @@ int main (int argc, char *argv[]) try
         std::cout << "----------------------------------------------------" << std::endl;
         
         // Backup of the current iterate for the error computation later on
-        RigidBodyMotion<3> oldLambda  = lambda;
+        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > oldLambda  = lambda;
         
         if (ddType=="FixedPointIteration") {
 
@@ -367,7 +370,7 @@ int main (int argc, char *argv[]) try
             //   Dirichlet step for the rod
             // //////////////////////////////////////////////////
 
-            rodX[0] = lambda;
+            rodX[0] = lambda[interfaceName];
             rodSolver.setInitialSolution(rodX);
             rodSolver.solve();
 
@@ -436,10 +439,10 @@ int main (int argc, char *argv[]) try
             //   Compute new damped interface value
             //////////////////////////////////////////////////////////////
             for (int j=0; j<dim; j++)
-                lambda.r[j] = (1-damping) * lambda.r[j] 
+                lambda[interfaceName].r[j] = (1-damping) * lambda[interfaceName].r[j] 
                     + damping * (referenceInterface.r[j] + averageInterface.r[j]);
 
-            lambda.q = Rotation<3,double>::interpolate(lambda.q, 
+            lambda[interfaceName].q = Rotation<3,double>::interpolate(lambda[interfaceName].q, 
                                                        referenceInterface.q.mult(averageInterface.q), 
                                                        damping);
 
@@ -469,7 +472,7 @@ int main (int argc, char *argv[]) try
         } else
             DUNE_THROW(NotImplemented, ddType << " is not a known domain decomposition algorithm");
 
-        std::cout << "Lambda: " << lambda << std::endl;
+        std::cout << "Lambda: " << lambda[interfaceName] << std::endl;
 
         // ////////////////////////////////////////////////////////////////////////
         //   Write the two iterates to disk for later convergence rate measurement
@@ -507,7 +510,7 @@ int main (int argc, char *argv[]) try
         //   Compute error in the energy norm
         // ////////////////////////////////////////////
 
-        double lengthOfCorrection = RigidBodyMotion<3>::distance(oldLambda, lambda);
+        double lengthOfCorrection = RigidBodyMotion<3>::distance(oldLambda[interfaceName], lambda[interfaceName]);
 
         double convRate = lengthOfCorrection / normOfOldCorrection;
 

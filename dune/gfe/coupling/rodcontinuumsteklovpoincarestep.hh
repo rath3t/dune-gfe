@@ -312,7 +312,7 @@ public:
     /** \brief Do one Steklov-Poincare step
      * \param[in,out] lambda The old and new iterate
      */
-    void iterate(RigidBodyMotion<3>& lambda);
+    void iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda);
     
 private:
     
@@ -599,13 +599,17 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
 /** \brief One preconditioned Richardson step
 */
 template <class RodGridType, class ContinuumGridType>
-void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(RigidBodyMotion<3>& lambda)
+void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda)
 {
+    // temporary
+    std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
+    
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the rod
     ///////////////////////////////////////////////////////////////////
 
-    RigidBodyMotion<3>::TangentVector rodForceTorque = rodDirichletToNeumannMap(lambda);
+    RigidBodyMotion<3>::TangentVector rodForceTorque = rodDirichletToNeumannMap(lambda[interfaceName]);
 
     std::cout << "resultant rod force and torque: "  << rodForceTorque << std::endl;
 
@@ -613,10 +617,7 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
     
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > tmpLambda;
-    tmpLambda[std::make_pair("rod","continuum")] = lambda;
-              
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > tmpContinuumForceTorque = continuumDirichletToNeumannMap("continuum", tmpLambda);
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > tmpContinuumForceTorque = continuumDirichletToNeumannMap("continuum", lambda);
 
     RigidBodyMotion<3>::TangentVector continuumForceTorque = tmpContinuumForceTorque[std::make_pair("rod","continuum")];
     std::cout << "resultant continuum force and torque: "  << continuumForceTorque  << std::endl;
@@ -636,7 +637,6 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     ///////////////////////////////////////////////////////////////
             
     Dune::FieldVector<double,6> interfaceCorrection;
-    std::pair<std::string,std::string> couplingName = std::make_pair("rod","continuum");
             
     if (preconditioner_=="DirichletNeumann") {
                 
@@ -650,13 +650,15 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         rhs3d = 0;
 
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
-                linContNtDMap(complex_.coupling(couplingName).continuumInterfaceBoundary_,
+                linContNtDMap(complex_.coupling(interfaceName).continuumInterfaceBoundary_,
                               rhs3d,
                               *continuum("continuum").dirichletValues_,
                               continuum("continuum").localAssembler_,
                               continuum("continuum").solver_);
                         
-        interfaceCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForceTorque, lambda.r);
+        interfaceCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], 
+                                                  residualForceTorque, 
+                                                  lambda[std::make_pair("rod","continuum")].r);
                 
     } else if (preconditioner_=="NeumannDirichlet") {
             
@@ -665,10 +667,12 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         //  of the rod.
         ////////////////////////////////////////////////////////////////////
         
-        LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.coupling(couplingName).rodInterfaceBoundary_,
+        LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.coupling(interfaceName).rodInterfaceBoundary_,
                                                                                                          rods_["rod"].localStiffness_);
 
-        interfaceCorrection = linRodNtDMap.apply(rodSubdomainSolutions_["rod"], residualForceTorque, lambda.r);
+        interfaceCorrection = linRodNtDMap.apply(rodSubdomainSolutions_["rod"], 
+                                                 residualForceTorque, 
+                                                 lambda[std::make_pair("rod","continuum")].r);
 
 
     } else if (preconditioner_=="NeumannNeumann") {
@@ -684,18 +688,21 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
         rhs3d = 0;
 
         LinearizedContinuumNeumannToDirichletMap<typename ContinuumGridType::LeafGridView,MatrixType,VectorType>
-                linContNtDMap(complex_.coupling(couplingName).continuumInterfaceBoundary_,
+                linContNtDMap(complex_.coupling(interfaceName).continuumInterfaceBoundary_,
                               rhs3d,
                               *continuum("continuum").dirichletValues_,
                               continuum("continuum").localAssembler_,
                               continuum("continuum").solver_);
 
-        LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.coupling(couplingName).rodInterfaceBoundary_,
+        LinearizedRodNeumannToDirichletMap<typename RodGridType::LeafGridView,RodCorrectionType> linRodNtDMap(complex_.coupling(interfaceName).rodInterfaceBoundary_,
                                                                                                               rods_["rod"].localStiffness_);
 
-        Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], residualForceTorque, lambda.r);
+        Dune::FieldVector<double,6> continuumCorrection = linContNtDMap.apply(continuumSubdomainSolutions_["continuum"], 
+                                                                              residualForceTorque, 
+                                                                              lambda[std::make_pair("rod","continuum")].r);
         Dune::FieldVector<double,6> rodCorrection       = linRodNtDMap.apply(rodSubdomainSolutions_["rod"],
-                                                                             residualForceTorque, lambda.r);
+                                                                             residualForceTorque,
+                                                                             lambda[std::make_pair("rod","continuum")].r);
                 
         for (int j=0; j<6; j++)
             interfaceCorrection[j] = (alpha_[0] * continuumCorrection[j] + alpha_[1] * rodCorrection[j])
@@ -713,8 +720,10 @@ void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::iterate(Rig
     ///////////////////////////////////////////////////////////////////////////////
                 
     interfaceCorrection *= richardsonDamping_;
-    lambda = RigidBodyMotion<3>::exp(lambda, interfaceCorrection);
-    
+    typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::iterator it = lambda.begin();
+    for (; it!=lambda.end(); ++it) {
+        it->second = RigidBodyMotion<3>::exp(it->second, interfaceCorrection);
+    }
 }
 
 #endif
