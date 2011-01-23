@@ -617,10 +617,10 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
     
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > tmpContinuumForceTorque = continuumDirichletToNeumannMap("continuum", lambda);
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > continuumForceTorque 
+            = continuumDirichletToNeumannMap("continuum", lambda);
 
-    RigidBodyMotion<3>::TangentVector continuumForceTorque = tmpContinuumForceTorque[std::make_pair("rod","continuum")];
-    std::cout << "resultant continuum force and torque: "  << continuumForceTorque  << std::endl;
+    std::cout << "resultant continuum force and torque: "  << continuumForceTorque[interfaceName]  << std::endl;
 
     ///////////////////////////////////////////////////////////////
     //  Compute the overall Steklov-Poincare residual
@@ -629,7 +629,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     // Flip orientation to account for opposing normals
     rodForceTorque *= -1;
 
-    RigidBodyMotion<3>::TangentVector residualForceTorque = rodForceTorque + continuumForceTorque;
+    RigidBodyMotion<3>::TangentVector residualForceTorque = rodForceTorque + continuumForceTorque[interfaceName];
             
             
     ///////////////////////////////////////////////////////////////
