@@ -196,7 +196,10 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
-    sampleOnBitField(*complex.continua_["continuum"].grid_, dirichletValues[0], dirichletValues.back(), dirichletNodes);
+    sampleOnBitField(*complex.continua_["continuum"].grid_, 
+                     dirichletValues[0], 
+                     complex.continua_["continuum"].dirichletValues_, 
+                     dirichletNodes);
     
     /////////////////////////////////////////////////////////////////////
     //  Create the two interface boundary patches
@@ -459,7 +462,6 @@ int main (int argc, char *argv[]) try
                                                                                                   &rodLocalStiffness,
                                                                                                   &rodSolver,
                                                                                                   &stiffnessMatrix3d,
-                                                                                                  &dirichletValues.back(),
                                                                                                   solver,
                                                                                                   &localAssembler);
             
