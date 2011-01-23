@@ -730,9 +730,20 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
     ///////////////////////////////////////////////////////////////////
     
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumForceTorque 
-            = continuumDirichletToNeumannMap("continuum", lambda);
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumForceTorque; 
 
+    for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
+        
+        const std::string& continuumName = it->first;
+    
+        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque 
+                = continuumDirichletToNeumannMap(continuumName, lambda);
+
+        int oldSize = continuumForceTorque.size();  // for debugging
+        continuumForceTorque.insert(forceTorque.begin(), forceTorque.end());
+        assert(continuumForceTorque.size() == oldSize + forceTorque.size());
+        
+    }
     std::cout << "resultant continuum force and torque: "  << continuumForceTorque[interfaceName]  << std::endl;
 
     ///////////////////////////////////////////////////////////////
