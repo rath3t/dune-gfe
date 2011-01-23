@@ -16,6 +16,8 @@ template <class RodGrid, class ContinuumGrid>
 class RodContinuumComplex
 {
     dune_static_assert(RodGrid::dimension==1, "The RodGrid has to be one-dimensional!");
+    
+    static const int dim = ContinuumGrid::dimension;
 
     typedef std::vector<RigidBodyMotion<3> > RodConfiguration;
     
@@ -25,8 +27,11 @@ class RodContinuumComplex
     struct Coupling
     {
         LeafBoundaryPatch<RodGrid> rodInterfaceBoundary_;
-        
+
         LeafBoundaryPatch<ContinuumGrid> continuumInterfaceBoundary_;
+        
+        /** \brief The orientation of the interface in the reference configuration */
+        RigidBodyMotion<dim> referenceInterface_;
     };
     
     /** \brief Holds all data for a rod subproblem */

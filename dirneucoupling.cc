@@ -344,6 +344,7 @@ int main (int argc, char *argv[]) try
 
     // Init interface value
     RigidBodyMotion<3> referenceInterface = rodX[0];
+    complex.couplings_[std::make_pair("rod","continuum")].referenceInterface_ = referenceInterface;
     RigidBodyMotion<3> lambda = referenceInterface;
     FieldVector<double,3> lambdaForce(0);
     FieldVector<double,3> lambdaTorque(0);
@@ -451,7 +452,6 @@ int main (int argc, char *argv[]) try
                                                                                                   preconditioner,
                                                                                                   alpha,
                                                                                                   damping,
-                                                                                                  referenceInterface,
                                                                                                   &rodAssembler,
                                                                                                   &rodLocalStiffness,
                                                                                                   &rodSolver,

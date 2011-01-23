@@ -279,7 +279,6 @@ public:
                                     const std::string& preconditioner,
                                     const Dune::array<double,2>& alpha,
                                     double richardsonDamping,
-                                    const RigidBodyMotion<3>& referenceInterface,
                                     RodAssembler<typename RodGridType::LeafGridView,3>* rodAssembler,
                                     RodLocalStiffness<typename RodGridType::LeafGridView,double>* rodLocalStiffness,
                                     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver,
@@ -293,8 +292,7 @@ public:
       : complex_(complex),
         preconditioner_(preconditioner),
         alpha_(alpha),
-        richardsonDamping_(richardsonDamping),
-        referenceInterface_(referenceInterface)
+        richardsonDamping_(richardsonDamping)
     {
         rods_["rod"].assembler_      = rodAssembler;
         rods_["rod"].localStiffness_ = rodLocalStiffness;
@@ -343,7 +341,6 @@ private:
     //////////////////////////////////////////////////////////////////
     //  Data members related to the rod problems
     //////////////////////////////////////////////////////////////////
-    RigidBodyMotion<dim> referenceInterface_;
     
     struct RodData
     {
@@ -536,9 +533,10 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
         const std::pair<std::string,std::string>& couplingName = it->first;
     
         // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
-        const LeafBoundaryPatch<ContinuumGridType>& foo = complex_.coupling(couplingName).continuumInterfaceBoundary_;
-#warning ReferenceInterface not properly set
-        setRotation(foo, x3d, referenceInterface_, it->second);
+        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
+        
+        setRotation(interfaceBoundary, x3d, referenceInterface, it->second);
     
     }
     
@@ -579,9 +577,11 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
         const std::pair<std::string,std::string>& couplingName = it->first;
         
         /** \todo Is referenceInterface.r the correct center of rotation? */
+        const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
+
         computeTotalForceAndTorque(complex_.coupling(couplingName).continuumInterfaceBoundary_, 
                                    residual, 
-                                   referenceInterface_.r,
+                                   referenceInterface.r,
                                    continuumForce, continuumTorque);
 
         result[couplingName][0] = continuumForce[0];
