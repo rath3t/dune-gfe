@@ -703,16 +703,27 @@ template <class RodGridType, class ContinuumGridType>
 void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
 iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda)
 {
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann maps for the rods
+    ///////////////////////////////////////////////////////////////////
+
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodForceTorque;
+    
+    for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
+        
+        const std::string& rodName = it->first;
+    
+        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque = rodDirichletToNeumannMap(rodName, lambda);
+
+        int oldSize = rodForceTorque.size();  // for debugging
+        rodForceTorque.insert(forceTorque.begin(), forceTorque.end());
+        assert(rodForceTorque.size() == oldSize + forceTorque.size());
+        
+    }
+
     // temporary
     std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
     
-    ///////////////////////////////////////////////////////////////////
-    //  Evaluate the Dirichlet-to-Neumann map for the rod
-    ///////////////////////////////////////////////////////////////////
-
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodForceTorque 
-            = rodDirichletToNeumannMap("rod", lambda);
-
     std::cout << "resultant rod force and torque: "  << rodForceTorque[interfaceName] << std::endl;
 
     ///////////////////////////////////////////////////////////////////
