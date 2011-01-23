@@ -80,6 +80,13 @@ public:
         return continua_.find(name)->second;
     }
     
+    /** \brief Simple const access to rods */
+    const RodData rod(const std::string& name) const
+    {
+        assert(rods_.find(name) != rods_.end());
+        return rods_.find(name)->second;
+    }
+    
     /** \brief Simple const access to couplings */
     const Coupling& coupling(const std::pair<std::string,std::string>& name) const
     {
