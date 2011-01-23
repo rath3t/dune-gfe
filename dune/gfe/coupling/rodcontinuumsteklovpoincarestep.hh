@@ -94,7 +94,8 @@ private:
      * 
      * \return The Dirichlet value
      */
-    Dune::FieldVector<double,6> linearizedRodNeumannToDirichletMap(const RodConfigurationType& currentIterate,
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>
+                linearizedRodNeumannToDirichletMap(const RodConfigurationType& currentIterate,
                                                                    const RigidBodyMotion<3>::TangentVector& forceTorque,
                                                                    const Dune::FieldVector<double,3>& centerOfTorque) const;
     
@@ -104,7 +105,8 @@ private:
      * 
      * \return The infinitesimal movement of the interface
      */
-    Dune::FieldVector<double,6> linearizedContinuumNeumannToDirichletMap(const VectorType& currentIterate,
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>
+                linearizedContinuumNeumannToDirichletMap(const VectorType& currentIterate,
                                                                          const RigidBodyMotion<3>::TangentVector& forceTorque,
                                                                          const Dune::FieldVector<double,3>& centerOfTorque) const;
                                        
@@ -487,7 +489,7 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
 * \return The Dirichlet value
 */
 template <class RodGridType, class ContinuumGridType>
-Dune::FieldVector<double,6> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
 linearizedRodNeumannToDirichletMap(const RodConfigurationType& currentIterate,
                                    const RigidBodyMotion<3>::TangentVector& forceTorque,
                                    const Dune::FieldVector<double,3>& centerOfTorque) const
@@ -556,12 +558,15 @@ linearizedRodNeumannToDirichletMap(const RodConfigurationType& currentIterate,
 
     std::cout << "Linear rod interface correction: " << x[0] << std::endl;
         
-    return x[0];
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+    interfaceCorrection[interfaceName] = x[0];
+    
+    return interfaceCorrection;
 }
 
 
 template <class RodGridType, class ContinuumGridType>
-Dune::FieldVector<double,6> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
 linearizedContinuumNeumannToDirichletMap(const VectorType& currentIterate,
                                          const RigidBodyMotion<3>::TangentVector& forceTorque,
                                          const Dune::FieldVector<double,3>& centerOfTorque) const
@@ -625,15 +630,15 @@ linearizedContinuumNeumannToDirichletMap(const VectorType& currentIterate,
     std::cout << "Average interface: " << averageInterface << std::endl;
         
     // Compute the linearization
-    Dune::FieldVector<double,6> interfaceCorrection;
-    interfaceCorrection[0] = averageInterface.r[0];
-    interfaceCorrection[1] = averageInterface.r[1];
-    interfaceCorrection[2] = averageInterface.r[2];
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+    interfaceCorrection[interfaceName][0] = averageInterface.r[0];
+    interfaceCorrection[interfaceName][1] = averageInterface.r[1];
+    interfaceCorrection[interfaceName][2] = averageInterface.r[2];
         
     Dune::FieldVector<double,3> infinitesimalRotation = Rotation<3,double>::expInv(averageInterface.q);
-    interfaceCorrection[3] = infinitesimalRotation[0];
-    interfaceCorrection[4] = infinitesimalRotation[1];
-    interfaceCorrection[5] = infinitesimalRotation[2];
+    interfaceCorrection[interfaceName][3] = infinitesimalRotation[0];
+    interfaceCorrection[interfaceName][4] = infinitesimalRotation[1];
+    interfaceCorrection[interfaceName][5] = infinitesimalRotation[2];
         
     return interfaceCorrection;
 }
@@ -726,7 +731,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         //  of the continuum.
         ////////////////////////////////////////////////////////////////////
                 
-        interfaceCorrection[interfaceName] = linearizedContinuumNeumannToDirichletMap(continuumSubdomainSolutions_["continuum"], 
+        interfaceCorrection = linearizedContinuumNeumannToDirichletMap(continuumSubdomainSolutions_["continuum"], 
                                                   residualForceTorque[interfaceName], 
                                                   lambda[interfaceName].r);
                 
@@ -737,7 +742,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         //  of the rod.
         ////////////////////////////////////////////////////////////////////
         
-        interfaceCorrection[interfaceName] = linearizedRodNeumannToDirichletMap(rodSubdomainSolutions_["rod"], 
+        interfaceCorrection = linearizedRodNeumannToDirichletMap(rodSubdomainSolutions_["rod"], 
                                                  residualForceTorque[interfaceName], 
                                                  lambda[interfaceName].r);
 
@@ -750,15 +755,15 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         //  Neumann-to-Dirichlet map of the rod.
         ////////////////////////////////////////////////////////////////////
 
-        Dune::FieldVector<double,6> continuumCorrection = linearizedContinuumNeumannToDirichletMap(continuumSubdomainSolutions_["continuum"], 
+        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> continuumCorrection = linearizedContinuumNeumannToDirichletMap(continuumSubdomainSolutions_["continuum"], 
                                                                               residualForceTorque[interfaceName], 
                                                                               lambda[interfaceName].r);
-        Dune::FieldVector<double,6> rodCorrection       = linearizedRodNeumannToDirichletMap(rodSubdomainSolutions_["rod"],
+        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> rodCorrection       = linearizedRodNeumannToDirichletMap(rodSubdomainSolutions_["rod"],
                                                                              residualForceTorque[interfaceName],
                                                                              lambda[interfaceName].r);
                 
         for (int j=0; j<6; j++)
-            interfaceCorrection[interfaceName][j] = (alpha_[0] * continuumCorrection[j] + alpha_[1] * rodCorrection[j])
+            interfaceCorrection[interfaceName][j] = (alpha_[0] * continuumCorrection[interfaceName][j] + alpha_[1] * rodCorrection[interfaceName][j])
                                         / alpha_[0] + alpha_[1];
                 
     } else if (preconditioner_=="RobinRobin") {
