@@ -388,24 +388,15 @@ int main (int argc, char *argv[]) try
             RigidBodyMotion<3>::TangentVector resultantForceTorque 
                     = rodAssembler.getResultantForce(complex.couplings_[interfaceName].rodInterfaceBoundary_, rodX);
             
-            // separate into translational and rotational part
-            FieldVector<double,dim> resultantForce, resultantTorque;
-            for (int j=0; j<dim; j++) {
-                resultantForce[j]  = resultantForceTorque[j];
-                resultantTorque[j] = resultantForceTorque[dim+j];
-            }
-            
             // Flip orientation
-            resultantForce  *= -1;
-            resultantTorque *= -1;
-        
-            std::cout << "resultant force: " << resultantForce << std::endl;
-            std::cout << "resultant torque: " << resultantTorque << std::endl;
+            resultantForceTorque  *= -1;
+
+            std::cout << "resultant force and torque: " << resultantForceTorque << std::endl;
 
             VectorType neumannValues(rhs3d.size());
 
             // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-            computeAveragePressure<GridType::LeafGridView>(resultantForce, resultantTorque, 
+            computeAveragePressure<GridType::LeafGridView>(resultantForceTorque, 
                                               complex.couplings_[interfaceName].continuumInterfaceBoundary_, 
                                               rodX[0].r,
                                               neumannValues);
