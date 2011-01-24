@@ -139,7 +139,17 @@ public:
      * \param[in,out] lambda The old and new iterate
      */
     void iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda);
-    
+
+    /** \brief Do one Steklov-Poincare step
+     * \param[in,out] lambda The old and new iterate
+     */
+    void iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda,
+                            LoopSolver<VectorType>* contactSolver,
+                            const MatrixType* totalStiffnessMatrix,
+                            const NBodyAssembler<ContinuumGridType, VectorType>* contactAssembler,
+                            const std::vector<std::string>& continuumName
+                           );
+
 private:
     
     std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> 
@@ -994,5 +1004,326 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         it->second = RigidBodyMotion<3>::exp(it->second, fIt->second);
     }
 }
+
+/** \brief One preconditioned Richardson step plus a continuum contact problem
+*/
+template <class RodGridType, class ContinuumGridType>
+void RodContinuumSteklovPoincareStep<RodGridType,ContinuumGridType>::
+iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda,
+                   LoopSolver<VectorType>* contactSolver,
+                   const MatrixType* totalStiffnessMatrix,
+                   const NBodyAssembler<ContinuumGridType, VectorType>* contactAssembler,
+                   const std::vector<std::string>& continuumName
+)
+{
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann maps for the rods
+    ///////////////////////////////////////////////////////////////////
+
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodForceTorque;
+    
+    for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
+        
+        const std::string& rodName = it->first;
+    
+        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque = rodDirichletToNeumannMap(rodName, lambda);
+
+        insert(rodForceTorque, forceTorque);
+        
+    }
+
+    std::cout << "resultant rod forces and torques: "  << std::endl;
+    typedef typename std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector>::iterator ForceIterator;
+    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
+
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann map for the continuum
+    ///////////////////////////////////////////////////////////////////
+    
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumForceTorque; 
+    
+    LinearIterationStep<MatrixType,VectorType>* multigridStep = dynamic_cast<LinearIterationStep<MatrixType,VectorType>*>(contactSolver->iterationStep_);
+
+    // Make initial iterate: we start from zero
+    std::map<std::string,VectorType> x;
+
+    for (typename RodContinuumComplex<RodGridType,ContinuumGridType>::ConstContinuumIterator it = complex_.continua_.begin();
+         it != complex_.continua_.end(); ++it) {
+        
+        // Copy the true Dirichlet values into it
+        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(it->first).dirichletBoundary_;
+        const VectorType& dirichletValues = complex_.continuum(it->first).dirichletValues_;
+
+        VectorType& thisX = x[it->first];
+        
+        thisX.resize(dirichletValues.size());
+        
+        for (size_t i=0; i<thisX.size(); i++)
+        if (dirichletBoundary.containsVertex(i))
+            thisX[i] = dirichletValues[i];
+        
+    }
+    
+    typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::const_iterator it = lambda.begin();
+    for (; it!=lambda.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+
+        // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
+        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
+        
+        setRotation(interfaceBoundary, x[couplingName.second], referenceInterface, it->second);
+    
+    }
+
+    VectorType totalX3d;
+    std::vector<VectorType> xVector(continuumName.size());
+    for (int i=0; i<continuumName.size(); i++)
+        xVector[i] = x[continuumName[i]];
+    NBodyAssembler<ContinuumGridType, VectorType>::concatenateVectors(xVector, totalX3d);
+    
+    // Make the set off all Dirichlet nodes
+    Dune::BitSetVector<dim> totalDirichletNodes(totalStiffnessMatrix->N());
+
+    int offset = 0;
+    for (int i=0; i<continuumName.size(); i++) {
+        const Dune::BitSetVector<dim>& ignoreNodes = continuum(continuumName[i]).dirichletAndCouplingNodes_;
+        for (int j=0; j<ignoreNodes.size(); j++)
+            totalDirichletNodes[offset + j] = ignoreNodes[j];
+        offset += ignoreNodes.size();
+    }
+
+
+    // separate, untransformed weak volume and Neumann terms
+    /** \todo Not implemented yet */
+    std::map<std::string,VectorType> rhs3d;
+    for (size_t i=0; i<continuumName.size(); i++) {
+        rhs3d[continuumName[i]].resize(continuum(continuumName[i]).stiffnessMatrix_->N());
+        rhs3d[continuumName[i]] = 0;
+    }
+    VectorType totalRhs3d(totalStiffnessMatrix->N());
+    totalRhs3d = 0;
+    
+    multigridStep->setProblem(*totalStiffnessMatrix, totalX3d, totalRhs3d);
+            
+    contactSolver->preprocess();
+    multigridStep->preprocess();
+            
+    contactSolver->solve();
+            
+    totalX3d = multigridStep->getSol();
+
+    // Separate 3d solution vector
+    std::vector<VectorType> x3d;
+    contactAssembler->postprocess(totalX3d, x3d);
+    
+    // the subdomain solutions in canonical coordinates, stored in a map
+    for (size_t i=0; i<x3d.size(); i++)
+        x[continuumName[i]] = x3d[i];
+    
+    //////////////////////////////////////////////////////////////////////////////
+    //  Extract the residual stresses
+    //////////////////////////////////////////////////////////////////////////////
+
+    // compute the residual for each continuum
+    std::map<std::string,VectorType> residual = rhs3d;
+    for (typename std::map<std::string,VectorType>::iterator it = residual.begin(); it != residual.end(); ++it)
+        continuum(it->first).stiffnessMatrix_->mmv(x[it->first], it->second);
+    
+    // Integrate over the residual on the coupling boundary to obtain
+    // an element of T^*SE.
+    for (typename std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >::iterator it = lambda.begin(); it!=lambda.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+        
+        /** \todo Is referenceInterface.r the correct center of rotation? */
+        const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
+
+        Dune::FieldVector<double,3> continuumForce, continuumTorque;
+            
+        computeTotalForceAndTorque(complex_.coupling(couplingName).continuumInterfaceBoundary_, 
+                                   residual[it->first.second], 
+                                   complex_.coupling(couplingName).referenceInterface_.r,
+                                   continuumForce, continuumTorque);
+
+        continuumForceTorque[couplingName][0] = continuumForce[0];
+        continuumForceTorque[couplingName][1] = continuumForce[1];
+        continuumForceTorque[couplingName][2] = continuumForce[2];
+        continuumForceTorque[couplingName][3] = continuumTorque[0];
+        continuumForceTorque[couplingName][4] = continuumTorque[1];
+        continuumForceTorque[couplingName][5] = continuumTorque[2];
+    
+    }
+
+
+    std::cout << "resultant continuum force and torque: " << std::endl;
+    for (ForceIterator it = continuumForceTorque.begin(); it != continuumForceTorque.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
+
+    ///////////////////////////////////////////////////////////////
+    //  Compute the overall Steklov-Poincare residual
+    ///////////////////////////////////////////////////////////////
+
+    // Flip orientation of all rod forces, to account for opposing normals.
+    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
+        it->second *= -1;
+
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> residualForceTorque = rodForceTorque;
+    
+    for (ForceIterator it = residualForceTorque.begin(), it2 = continuumForceTorque.begin(); 
+         it != residualForceTorque.end(); 
+         ++it, ++it2) {
+        assert(it->first == it2->first);
+        it->second += it2->second;
+    }
+            
+    ///////////////////////////////////////////////////////////////
+    //  Apply the preconditioner
+    ///////////////////////////////////////////////////////////////
+            
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+            
+    if (preconditioner_=="DirichletNeumann") {
+                
+        ////////////////////////////////////////////////////////////////////
+        //  Preconditioner is the linearized Neumann-to-Dirichlet map
+        //  of the continuum.
+        ////////////////////////////////////////////////////////////////////
+
+#warning Neumann-to-Dirichlet map not implemented yet
+#if 0
+        for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
+        
+            const std::string& continuumName = it->first;
+    
+            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumInterfaceCorrection
+                    = linearizedContinuumNeumannToDirichletMap(continuumName,
+                                                               continuumSubdomainSolutions_[continuumName], 
+                                                               residualForceTorque,
+                                                               lambda);
+
+            insert(interfaceCorrection, continuumInterfaceCorrection);
+        
+        }
+#endif
+        std::cout << "resultant continuum interface corrections: " << std::endl;
+        for (ForceIterator it = interfaceCorrection.begin(); it != interfaceCorrection.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
+
+
+    } else if (preconditioner_=="NeumannDirichlet") {
+            
+        ////////////////////////////////////////////////////////////////////
+        //  Preconditioner is the linearized Neumann-to-Dirichlet map
+        //  of the rod.
+        ////////////////////////////////////////////////////////////////////
+        
+        for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
+        
+            const std::string& rodName = it->first;
+    
+            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodInterfaceCorrection
+                    = linearizedRodNeumannToDirichletMap(rodName,
+                                                         rodSubdomainSolutions_[rodName], 
+                                                         residualForceTorque,
+                                                         lambda);
+
+            insert(interfaceCorrection, rodInterfaceCorrection);
+        
+        }
+
+        std::cout << "resultant rod interface corrections: " << std::endl;
+        for (ForceIterator it = interfaceCorrection.begin(); it != interfaceCorrection.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
+
+    } else if (preconditioner_=="NeumannNeumann") {
+            
+        ////////////////////////////////////////////////////////////////////
+        //  Preconditioner is a convex combination of the linearized
+        //  Neumann-to-Dirichlet map of the continuum and the linearized
+        //  Neumann-to-Dirichlet map of the rod.
+        ////////////////////////////////////////////////////////////////////
+
+        // First the rod preconditioners
+        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> rodCorrection;
+        
+        for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
+        
+            const std::string& rodName = it->first;
+    
+            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> tmp
+                    = linearizedRodNeumannToDirichletMap(rodName,
+                                                         rodSubdomainSolutions_[rodName], 
+                                                         residualForceTorque,
+                                                         lambda);
+
+            insert(rodCorrection, tmp);
+        
+        }
+
+        // Then the continuum preconditioners
+        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> continuumCorrection;
+        
+#warning Neumann-to-Dirichlet map not implemented yet
+#if 0
+        for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
+        
+            const std::string& continuumName = it->first;
+    
+            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> tmp
+                    = linearizedContinuumNeumannToDirichletMap(continuumName,
+                                                               continuumSubdomainSolutions_[continuumName], 
+                                                               residualForceTorque,
+                                                               lambda);
+
+            insert(continuumCorrection,tmp);
+        
+        }
+#endif
+        std::cout << "resultant interface corrections: " << std::endl;
+        for (ForceIterator it = rodCorrection.begin(); it != rodCorrection.end(); ++it) {
+
+            const std::pair<std::string,std::string> interfaceName = it->first;
+        
+            std::cout << "    [" << interfaceName.first << ", " << interfaceName.second << "]"
+                      << "  -- " << it->second 
+                      << "  -- " << continuumCorrection[interfaceName] << std::endl;
+
+            // Compute weighted combination of both
+            RigidBodyMotion<3>::TangentVector& correction = interfaceCorrection[interfaceName];
+            for (int j=0; j<6; j++)
+                correction[j] = (alpha_[0] * continuumCorrection[interfaceName][j] + alpha_[1] * rodCorrection[interfaceName][j])
+                                            / alpha_[0] + alpha_[1];
+                
+        }
+        
+    } else if (preconditioner_=="RobinRobin") {
+            
+        DUNE_THROW(Dune::NotImplemented, "Robin-Robin preconditioner not implemented yet");
+                
+    } else
+        DUNE_THROW(Dune::NotImplemented, preconditioner_ << " is not a known preconditioner");
+            
+    ///////////////////////////////////////////////////////////////////////////////
+    //  Apply the damped correction to the current interface value
+    ///////////////////////////////////////////////////////////////////////////////
+                
+    
+    ForceIterator fIt = interfaceCorrection.begin();
+    for (typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::iterator it = lambda.begin(); 
+         it!=lambda.end(); 
+         ++it, ++fIt) {
+        assert(it->first == fIt->first);
+        fIt->second *= richardsonDamping_;
+        it->second = RigidBodyMotion<3>::exp(it->second, fIt->second);
+    }
+}
+
 
 #endif
