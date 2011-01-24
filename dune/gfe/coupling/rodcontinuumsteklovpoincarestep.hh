@@ -588,7 +588,6 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
         if (couplingName.first != rodName)
             continue;
         
-        // Use 'forceTorque' as a Neumann value for the rod
         const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
 
         /** \todo Use the BoundaryPatch iterator, which will be a lot faster
@@ -597,7 +596,7 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
          */
         for (size_t i=0; i<rhs.size(); i++)
             if (interfaceBoundary.containsVertex(i))
-                interfaceCorrection[couplingName] = rhs[i];
+                interfaceCorrection[couplingName] = x[i];
     }
     
     return interfaceCorrection;
