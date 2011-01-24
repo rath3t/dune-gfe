@@ -871,9 +871,10 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     //  Apply the preconditioner
     ///////////////////////////////////////////////////////////////
             
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumCorrection;
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodCorrection;
             
-    if (preconditioner_=="DirichletNeumann") {
+    if (preconditioner_=="DirichletNeumann" or preconditioner_=="NeumannNeumann") {
                 
         ////////////////////////////////////////////////////////////////////
         //  Preconditioner is the linearized Neumann-to-Dirichlet map
@@ -890,17 +891,19 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                                residualForceTorque,
                                                                lambda);
 
-            insert(interfaceCorrection, continuumInterfaceCorrection);
+            insert(continuumCorrection, continuumInterfaceCorrection);
         
         }
 
         std::cout << "resultant continuum interface corrections: " << std::endl;
-        for (ForceIterator it = interfaceCorrection.begin(); it != interfaceCorrection.end(); ++it)
+        for (ForceIterator it = continuumCorrection.begin(); it != continuumCorrection.end(); ++it)
         std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
                   << it->second << std::endl;
 
 
-    } else if (preconditioner_=="NeumannDirichlet") {
+    } 
+    
+    if (preconditioner_=="NeumannDirichlet" or preconditioner_=="NeumannNeumann") {
             
         ////////////////////////////////////////////////////////////////////
         //  Preconditioner is the linearized Neumann-to-Dirichlet map
@@ -917,57 +920,29 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                          residualForceTorque,
                                                          lambda);
 
-            insert(interfaceCorrection, rodInterfaceCorrection);
+            insert(rodCorrection, rodInterfaceCorrection);
         
         }
 
         std::cout << "resultant rod interface corrections: " << std::endl;
-        for (ForceIterator it = interfaceCorrection.begin(); it != interfaceCorrection.end(); ++it)
+        for (ForceIterator it = rodCorrection.begin(); it != rodCorrection.end(); ++it)
         std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
                   << it->second << std::endl;
 
+    } 
+    
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+
+    if (preconditioner_=="DirichletNeumann") {
+        
+        interfaceCorrection = continuumCorrection;
+        
+    } else if (preconditioner_=="NeumannDirichlet") {
+        
+        interfaceCorrection = rodCorrection;
+    
     } else if (preconditioner_=="NeumannNeumann") {
             
-        ////////////////////////////////////////////////////////////////////
-        //  Preconditioner is a convex combination of the linearized
-        //  Neumann-to-Dirichlet map of the continuum and the linearized
-        //  Neumann-to-Dirichlet map of the rod.
-        ////////////////////////////////////////////////////////////////////
-
-        // First the rod preconditioners
-        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> rodCorrection;
-        
-        for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
-        
-            const std::string& rodName = it->first;
-    
-            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> tmp
-                    = linearizedRodNeumannToDirichletMap(rodName,
-                                                         rodSubdomainSolutions_[rodName], 
-                                                         residualForceTorque,
-                                                         lambda);
-
-            insert(rodCorrection, tmp);
-        
-        }
-
-        // Then the continuum preconditioners
-        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> continuumCorrection;
-        
-        for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
-        
-            const std::string& continuumName = it->first;
-    
-            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> tmp
-                    = linearizedContinuumNeumannToDirichletMap(continuumName,
-                                                               continuumSubdomainSolutions_[continuumName], 
-                                                               residualForceTorque,
-                                                               lambda);
-
-            insert(continuumCorrection,tmp);
-        
-        }
-
         std::cout << "resultant interface corrections: " << std::endl;
         for (ForceIterator it = rodCorrection.begin(); it != rodCorrection.end(); ++it) {
 
@@ -1185,9 +1160,10 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
     //  Apply the preconditioner
     ///////////////////////////////////////////////////////////////
             
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumCorrection;
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodCorrection;
             
-    if (preconditioner_=="DirichletNeumann") {
+    if (preconditioner_=="DirichletNeumann" or preconditioner_=="NeumannNeumann") {
                 
         ////////////////////////////////////////////////////////////////////
         //  Preconditioner is the linearized Neumann-to-Dirichlet map
@@ -1206,17 +1182,19 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
                                                                residualForceTorque,
                                                                lambda);
 
-            insert(interfaceCorrection, continuumInterfaceCorrection);
+            insert(continuumCorrection, continuumInterfaceCorrection);
         
         }
 #endif
         std::cout << "resultant continuum interface corrections: " << std::endl;
-        for (ForceIterator it = interfaceCorrection.begin(); it != interfaceCorrection.end(); ++it)
+        for (ForceIterator it = continuumCorrection.begin(); it != continuumCorrection.end(); ++it)
         std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
                   << it->second << std::endl;
 
 
-    } else if (preconditioner_=="NeumannDirichlet") {
+    } 
+    
+    if (preconditioner_=="NeumannDirichlet" or preconditioner_=="NeumannNeumann") {
             
         ////////////////////////////////////////////////////////////////////
         //  Preconditioner is the linearized Neumann-to-Dirichlet map
@@ -1233,15 +1211,27 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
                                                          residualForceTorque,
                                                          lambda);
 
-            insert(interfaceCorrection, rodInterfaceCorrection);
+            insert(rodCorrection, rodInterfaceCorrection);
         
         }
 
         std::cout << "resultant rod interface corrections: " << std::endl;
-        for (ForceIterator it = interfaceCorrection.begin(); it != interfaceCorrection.end(); ++it)
+        for (ForceIterator it = rodCorrection.begin(); it != rodCorrection.end(); ++it)
         std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
                   << it->second << std::endl;
 
+    } 
+    
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+
+    if (preconditioner_=="DirichletNeumann") {
+        
+        interfaceCorrection = continuumCorrection;
+        
+    } else if (preconditioner_=="NeumannDirichlet") {
+    
+        interfaceCorrection = rodCorrection;
+        
     } else if (preconditioner_=="NeumannNeumann") {
             
         ////////////////////////////////////////////////////////////////////
@@ -1250,42 +1240,6 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         //  Neumann-to-Dirichlet map of the rod.
         ////////////////////////////////////////////////////////////////////
 
-        // First the rod preconditioners
-        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> rodCorrection;
-        
-        for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
-        
-            const std::string& rodName = it->first;
-    
-            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> tmp
-                    = linearizedRodNeumannToDirichletMap(rodName,
-                                                         rodSubdomainSolutions_[rodName], 
-                                                         residualForceTorque,
-                                                         lambda);
-
-            insert(rodCorrection, tmp);
-        
-        }
-
-        // Then the continuum preconditioners
-        std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> continuumCorrection;
-        
-#warning Neumann-to-Dirichlet map not implemented yet
-#if 0
-        for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
-        
-            const std::string& continuumName = it->first;
-    
-            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> tmp
-                    = linearizedContinuumNeumannToDirichletMap(continuumName,
-                                                               continuumSubdomainSolutions_[continuumName], 
-                                                               residualForceTorque,
-                                                               lambda);
-
-            insert(continuumCorrection,tmp);
-        
-        }
-#endif
         std::cout << "resultant interface corrections: " << std::endl;
         for (ForceIterator it = rodCorrection.begin(); it != rodCorrection.end(); ++it) {
 
