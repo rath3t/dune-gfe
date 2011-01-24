@@ -611,8 +611,6 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
                                          const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>& forceTorque,
                                          const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& centerOfTorque) const
 {
-    std::pair<std::string,std::string> interfaceName = std::make_pair("rod", continuumName);
-        
     ////////////////////////////////////////////////////
     //  Assemble the linearized problem
     ////////////////////////////////////////////////////
@@ -621,8 +619,8 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
     * i.e. the linearization at zero
     */
     typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> P1Basis;
-    const LeafBoundaryPatch<ContinuumGridType>& interface = complex_.coupling(interfaceName).continuumInterfaceBoundary_;
-    P1Basis basis(interface.gridView());
+    const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(continuumName).dirichletBoundary_;
+    P1Basis basis(dirichletBoundary.gridView());
     OperatorAssembler<P1Basis,P1Basis> assembler(basis, basis);
 
     MatrixType stiffnessMatrix;
@@ -632,24 +630,37 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
     /////////////////////////////////////////////////////////////////////
     //  Turn the input force and torque into a Neumann boundary field
     /////////////////////////////////////////////////////////////////////
-    VectorType neumannValues(stiffnessMatrix.N());
-    neumannValues = 0;
-
-    // 
-    computeAveragePressure<typename ContinuumGridType::LeafGridView>(forceTorque.find(interfaceName)->second, 
-                                     interface, 
-                                     centerOfTorque.find(interfaceName)->second.r,
-                                     neumannValues);
-
+    
     // The weak form of the volume and Neumann data
     /** \brief Not implemented yet! */
     VectorType rhs(complex_.continuumGrid(continuumName)->size(dim));
     rhs = 0;
 
-    BoundaryFunctionalAssembler<P1Basis> boundaryFunctionalAssembler(basis, interface);
-    BasisGridFunction<P1Basis,VectorType> neumannValuesFunction(basis,neumannValues);
-    NeumannBoundaryAssembler<ContinuumGridType, Dune::FieldVector<double,3> > localNeumannAssembler(neumannValuesFunction);
-    boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs, false);
+    typedef typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>::const_iterator ForceIterator;
+    
+    for (ForceIterator it = forceTorque.begin(); it!=forceTorque.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+
+        if (couplingName.second != continuumName)
+            continue;
+        
+        // Use 'forceTorque' as a Neumann value for the rod
+        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        
+        // 
+        VectorType localNeumannValues;
+        computeAveragePressure<typename ContinuumGridType::LeafGridView>(forceTorque.find(couplingName)->second, 
+                                        interfaceBoundary, 
+                                        centerOfTorque.find(couplingName)->second.r,
+                                        localNeumannValues);
+        
+        BoundaryFunctionalAssembler<P1Basis> boundaryFunctionalAssembler(basis, interfaceBoundary);
+        BasisGridFunction<P1Basis,VectorType> neumannValuesFunction(basis,localNeumannValues);
+        NeumannBoundaryAssembler<ContinuumGridType, Dune::FieldVector<double,3> > localNeumannAssembler(neumannValuesFunction);
+        boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs, false);
+
+    }
 
     //   Solve the Neumann problem for the continuum
     VectorType x = complex_.continuum(continuumName).dirichletValues_;
@@ -662,24 +673,40 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
     continuum(continuumName).solver_->solve();
         
     x = continuum(continuumName).solver_->iterationStep_->getSol();
-        
+
+    /////////////////////////////////////////////////////////////////////////////////
     //  Average the continuum displacement on the coupling boundary
-    RigidBodyMotion<3> averageInterface;
-    computeAverageInterface(interface, x, averageInterface);
-        
-    std::cout << "Average interface: " << averageInterface << std::endl;
-        
-    // Compute the linearization
+    /////////////////////////////////////////////////////////////////////////////////
     std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> interfaceCorrection;
-    interfaceCorrection[interfaceName][0] = averageInterface.r[0];
-    interfaceCorrection[interfaceName][1] = averageInterface.r[1];
-    interfaceCorrection[interfaceName][2] = averageInterface.r[2];
+
+    for (ForceIterator it = forceTorque.begin(); it!=forceTorque.end(); ++it) {
         
-    Dune::FieldVector<double,3> infinitesimalRotation = Rotation<3,double>::expInv(averageInterface.q);
-    interfaceCorrection[interfaceName][3] = infinitesimalRotation[0];
-    interfaceCorrection[interfaceName][4] = infinitesimalRotation[1];
-    interfaceCorrection[interfaceName][5] = infinitesimalRotation[2];
+        const std::pair<std::string,std::string>& couplingName = it->first;
+
+        if (couplingName.second != continuumName)
+            continue;
         
+        // Use 'forceTorque' as a Neumann value for the rod
+        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        
+        RigidBodyMotion<3> averageInterface;
+        computeAverageInterface(interfaceBoundary, x, averageInterface);
+        
+        // Compute the linearization
+        /** \todo We could loop directly over interfaceCorrection (and save the name lookup)
+         * if we could be sure that interfaceCorrection contains all possible entries already
+         */
+        interfaceCorrection[couplingName][0] = averageInterface.r[0];
+        interfaceCorrection[couplingName][1] = averageInterface.r[1];
+        interfaceCorrection[couplingName][2] = averageInterface.r[2];
+        
+        Dune::FieldVector<double,3> infinitesimalRotation = Rotation<3,double>::expInv(averageInterface.q);
+        interfaceCorrection[couplingName][3] = infinitesimalRotation[0];
+        interfaceCorrection[couplingName][4] = infinitesimalRotation[1];
+        interfaceCorrection[couplingName][5] = infinitesimalRotation[2];
+        
+    }
+    
     return interfaceCorrection;
 }
 
