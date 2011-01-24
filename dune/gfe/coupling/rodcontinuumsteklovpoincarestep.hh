@@ -178,6 +178,16 @@ private:
     
     std::set<std::string> continuaPerRod(const std::string& name) const;
     
+    /** \brief Add the content of one map to another, aborting rather than overwriting stuff
+     */
+    template <class X, class Y>
+    static void insert(std::map<X,Y>& map1, const std::map<X,Y>& map2)
+    {
+        int oldSize = map1.size();
+        map1.insert(map2.begin(), map2.end());
+        assert(map1.size() == oldSize + map2.size());
+    }
+    
     //////////////////////////////////////////////////////////////////
     //  Data members related to the coupled problem
     //////////////////////////////////////////////////////////////////
@@ -798,9 +808,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     
         std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque = rodDirichletToNeumannMap(rodName, lambda);
 
-        int oldSize = rodForceTorque.size();  // for debugging
-        rodForceTorque.insert(forceTorque.begin(), forceTorque.end());
-        assert(rodForceTorque.size() == oldSize + forceTorque.size());
+        insert(rodForceTorque, forceTorque);
         
     }
 
@@ -823,9 +831,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque 
                 = continuumDirichletToNeumannMap(continuumName, lambda);
 
-        int oldSize = continuumForceTorque.size();  // for debugging
-        continuumForceTorque.insert(forceTorque.begin(), forceTorque.end());
-        assert(continuumForceTorque.size() == oldSize + forceTorque.size());
+        insert(continuumForceTorque, forceTorque);
         
     }
 
@@ -874,9 +880,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                                residualForceTorque,
                                                                lambda);
 
-            int oldSize = interfaceCorrection.size();  // for debugging
-            interfaceCorrection.insert(continuumInterfaceCorrection.begin(), continuumInterfaceCorrection.end());
-            assert(interfaceCorrection.size() == oldSize + continuumInterfaceCorrection.size());
+            insert(interfaceCorrection, continuumInterfaceCorrection);
         
         }
 
@@ -903,9 +907,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                          residualForceTorque,
                                                          lambda);
 
-            int oldSize = interfaceCorrection.size();  // for debugging
-            interfaceCorrection.insert(rodInterfaceCorrection.begin(), rodInterfaceCorrection.end());
-            assert(interfaceCorrection.size() == oldSize + rodInterfaceCorrection.size());
+            insert(interfaceCorrection, rodInterfaceCorrection);
         
         }
 
@@ -935,9 +937,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                          residualForceTorque,
                                                          lambda);
 
-            int oldSize = rodCorrection.size();  // for debugging
-            rodCorrection.insert(tmp.begin(), tmp.end());
-            assert(rodCorrection.size() == oldSize + tmp.size());
+            insert(rodCorrection, tmp);
         
         }
 
@@ -954,9 +954,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                                residualForceTorque,
                                                                lambda);
 
-            int oldSize = continuumCorrection.size();  // for debugging
-            continuumCorrection.insert(tmp.begin(), tmp.end());
-            assert(continuumCorrection.size() == oldSize + tmp.size());
+            insert(continuumCorrection,tmp);
         
         }
 
