@@ -1083,7 +1083,8 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
     totalRhs3d = 0;
     
     multigridStep->setProblem(*totalStiffnessMatrix, totalX3d, totalRhs3d);
-            
+    multigridStep->ignoreNodes_ = &totalDirichletNodes;
+    
     contactSolver->preprocess();
     multigridStep->preprocess();
             
@@ -1170,22 +1171,132 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         //  of the continuum.
         ////////////////////////////////////////////////////////////////////
 
-#warning Neumann-to-Dirichlet map not implemented yet
-#if 0
-        for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
+        // Make initial iterate: we start from zero
+        for (typename RodContinuumComplex<RodGridType,ContinuumGridType>::ConstContinuumIterator it = complex_.continua_.begin();
+            it != complex_.continua_.end(); ++it) {
         
-            const std::string& continuumName = it->first;
-    
-            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumInterfaceCorrection
-                    = linearizedContinuumNeumannToDirichletMap(continuumName,
-                                                               continuumSubdomainSolutions_[continuumName], 
-                                                               residualForceTorque,
-                                                               lambda);
+            // Copy the true Dirichlet values into it
+            const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(it->first).dirichletBoundary_;
+            const VectorType& dirichletValues = complex_.continuum(it->first).dirichletValues_;
 
-            insert(continuumCorrection, continuumInterfaceCorrection);
+            VectorType& thisX = x[it->first];
+        
+            thisX.resize(dirichletValues.size());
+            thisX = 0;
+    
+            for (size_t i=0; i<thisX.size(); i++)
+            if (dirichletBoundary.containsVertex(i))
+                thisX[i] = dirichletValues[i];
         
         }
-#endif
+    
+        VectorType totalX3d;
+        std::vector<VectorType> xVector(continuumName.size());
+        for (int i=0; i<continuumName.size(); i++)
+            xVector[i] = x[continuumName[i]];
+        NBodyAssembler<ContinuumGridType, VectorType>::concatenateVectors(xVector, totalX3d);
+    
+        // Make the set off all Dirichlet nodes
+        totalDirichletNodes.unsetAll();
+
+        int offset = 0;
+        for (int i=0; i<continuumName.size(); i++) {
+            const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(continuumName[i]).dirichletBoundary_;
+            for (int j=0; j<dirichletBoundary.numVertices(); j++)
+                totalDirichletNodes[offset + j] = dirichletBoundary.containsVertex(j);
+            offset += dirichletBoundary.numVertices();
+        }
+
+
+        // separate, untransformed weak volume and Neumann terms
+        /** \todo Not implemented yet */
+        std::map<std::string,VectorType> rhs3d;
+        for (size_t i=0; i<continuumName.size(); i++) {
+            rhs3d[continuumName[i]].resize(continuum(continuumName[i]).stiffnessMatrix_->N());
+            rhs3d[continuumName[i]] = 0;
+        }
+        
+        for (ForceIterator it = residualForceTorque.begin(); it!=residualForceTorque.end(); ++it) {
+        
+            const std::pair<std::string,std::string>& couplingName = it->first;
+
+            // Use 'forceTorque' as a Neumann value for the rod
+            const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        
+            // 
+            VectorType localNeumannValues;
+            computeAveragePressure<typename ContinuumGridType::LeafGridView>(it->second, 
+                                            interfaceBoundary, 
+                                            lambda.find(couplingName)->second.r,  // center of torque
+                                            localNeumannValues);
+        
+            typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> P1Basis;
+            P1Basis basis(interfaceBoundary.gridView());
+
+            BoundaryFunctionalAssembler<P1Basis> boundaryFunctionalAssembler(basis, interfaceBoundary);
+            BasisGridFunction<P1Basis,VectorType> neumannValuesFunction(basis,localNeumannValues);
+            NeumannBoundaryAssembler<ContinuumGridType, Dune::FieldVector<double,3> > localNeumannAssembler(neumannValuesFunction);
+            boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs3d[couplingName.second], false);
+
+        }
+        
+        std::vector<VectorType> rhsVector(continuumName.size());
+        for (size_t i=0; i<continuumName.size(); i++)
+            rhsVector[i] = rhs3d[continuumName[i]];
+
+        NBodyAssembler<ContinuumGridType,VectorType>::concatenateVectors(rhsVector, totalRhs3d);
+    
+        multigridStep->setProblem(*totalStiffnessMatrix, totalX3d, totalRhs3d);
+        
+        multigridStep->ignoreNodes_ = &totalDirichletNodes;
+            
+        contactSolver->preprocess();
+        multigridStep->preprocess();
+            
+        contactSolver->solve();
+            
+        totalX3d = multigridStep->getSol();
+
+        // Separate 3d solution vector
+        std::vector<VectorType> x3d;
+        contactAssembler->postprocess(totalX3d, x3d);
+    
+        // the subdomain solutions in canonical coordinates, stored in a map
+        for (size_t i=0; i<x3d.size(); i++)
+            x[continuumName[i]] = x3d[i];
+    
+        
+        /////////////////////////////////////////////////////////////////////////////////
+        //  Average the continuum displacement on the coupling boundary
+        /////////////////////////////////////////////////////////////////////////////////
+
+        for (typename RodContinuumComplex<RodGridType,ContinuumGridType>::ConstCouplingIterator it = complex_.couplings_.begin(); 
+             it!=complex_.couplings_.end(); ++it) {
+        
+            const std::pair<std::string,std::string>& couplingName = it->first;
+
+            // Use 'forceTorque' as a Neumann value for the rod
+            const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        
+            RigidBodyMotion<3> averageInterface;
+            computeAverageInterface(interfaceBoundary, x[couplingName.second], averageInterface);
+        
+            // Compute the linearization
+            /** \todo We could loop directly over interfaceCorrection (and save the name lookup)
+            * if we could be sure that interfaceCorrection contains all possible entries already
+            */
+            continuumCorrection[couplingName][0] = averageInterface.r[0];
+            continuumCorrection[couplingName][1] = averageInterface.r[1];
+            continuumCorrection[couplingName][2] = averageInterface.r[2];
+        
+            Dune::FieldVector<double,3> infinitesimalRotation = Rotation<3,double>::expInv(averageInterface.q);
+            continuumCorrection[couplingName][3] = infinitesimalRotation[0];
+            continuumCorrection[couplingName][4] = infinitesimalRotation[1];
+            continuumCorrection[couplingName][5] = infinitesimalRotation[2];
+        
+        }
+
+
         std::cout << "resultant continuum interface corrections: " << std::endl;
         for (ForceIterator it = continuumCorrection.begin(); it != continuumCorrection.end(); ++it)
         std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
