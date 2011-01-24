@@ -660,6 +660,14 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
         boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs, false);
 
     }
+    
+    // Set the correct Dirichlet nodes
+    /** \brief Don't write this BitSetVector at each iteration */
+    Dune::BitSetVector<dim> dirichletNodes(rhs.size(),false);
+    for (size_t i=0; i<dirichletNodes.size(); i++)
+        dirichletNodes[i] = dirichletBoundary.containsVertex(i);
+    dynamic_cast<IterationStep<VectorType>* >(continuum(continuumName).solver_->iterationStep_)->ignoreNodes_ 
+           = &dirichletNodes;
 
     //   Solve the Neumann problem for the continuum
     VectorType x = complex_.continuum(continuumName).dirichletValues_;
