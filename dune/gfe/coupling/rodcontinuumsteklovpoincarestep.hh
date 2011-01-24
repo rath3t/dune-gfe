@@ -497,16 +497,14 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
                                    const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>& forceTorque,
                                    const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& centerOfTorque) const
 {
-    std::pair<std::string,std::string> interfaceName = std::make_pair(rodName,"continuum");
-        
     ////////////////////////////////////////////////////
     //  Assemble the linearized rod problem
     ////////////////////////////////////////////////////
 
-    const LeafBoundaryPatch<RodGridType>& interface = complex_.coupling(interfaceName).rodInterfaceBoundary_;
+    const LeafBoundaryPatch<RodGridType>& dirichletBoundary = complex_.rod(rodName).dirichletBoundary_;
 
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> > MatrixType;
-    GeodesicFEAssembler<typename RodGridType::LeafGridView, RigidBodyMotion<3> > assembler(interface.gridView(),
+    GeodesicFEAssembler<typename RodGridType::LeafGridView, RigidBodyMotion<3> > assembler(dirichletBoundary.gridView(),
                                                                     rod(rodName).localStiffness_);
     MatrixType stiffnessMatrix;
     assembler.assembleMatrix(currentIterate, 
@@ -525,17 +523,36 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
     //  Turn the input force and torque into a Neumann boundary field
     /////////////////////////////////////////////////////////////////////
 
-    // The weak form of the Neumann data
-    rhs[0] += forceTorque.find(interfaceName)->second;
+    typedef typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>::const_iterator ForceIterator;
+    
+    for (ForceIterator it = forceTorque.begin(); it!=forceTorque.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+
+        if (couplingName.first != rodName)
+            continue;
+        
+        // Use 'forceTorque' as a Neumann value for the rod
+        const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
+
+        /** \todo Use the BoundaryPatch iterator, which will be a lot faster
+         * once we use EntitySeed for its implementation
+         */
+        for (size_t i=0; i<rhs.size(); i++)
+            if (interfaceBoundary.containsVertex(i))
+                rhs[i] += it->second;
+    }
         
     ///////////////////////////////////////////////////////////
     // Modify matrix and rhs to contain one Dirichlet node
     ///////////////////////////////////////////////////////////
 
-    int dIdx = rhs.size()-1;   // hardwired index of the single Dirichlet node
-    rhs[dIdx] = 0;
-    stiffnessMatrix[dIdx] = 0;
-    stiffnessMatrix[dIdx][dIdx] = Dune::ScaledIdentityMatrix<double,6>(1);
+    for (size_t i=0; i<rhs.size(); i++)
+        if (dirichletBoundary.containsVertex(i)) {
+            rhs[i] = 0;
+            stiffnessMatrix[i] = 0;
+            stiffnessMatrix[i][i] = Dune::ScaledIdentityMatrix<double,6>(1);
+        }
         
     //////////////////////////////////////////////////
     //   Solve the Neumann problem
@@ -559,10 +576,29 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
     // Solve!
     cg.apply(x, rhs, statistics);
 
-    std::cout << "Linear rod interface correction: " << x[0] << std::endl;
-        
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //  Extract the solution at the interface boundaries
+    ///////////////////////////////////////////////////////////////////////////////////////
     std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> interfaceCorrection;
-    interfaceCorrection[interfaceName] = x[0];
+    
+    for (ForceIterator it = forceTorque.begin(); it!=forceTorque.end(); ++it) {
+        
+        const std::pair<std::string,std::string>& couplingName = it->first;
+
+        if (couplingName.first != rodName)
+            continue;
+        
+        // Use 'forceTorque' as a Neumann value for the rod
+        const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
+
+        /** \todo Use the BoundaryPatch iterator, which will be a lot faster
+         * once we use EntitySeed for its implementation
+         * \todo We assume here that a coupling boundary consists of a single point only (not two)
+         */
+        for (size_t i=0; i<rhs.size(); i++)
+            if (interfaceBoundary.containsVertex(i))
+                interfaceCorrection[couplingName] = rhs[i];
+    }
     
     return interfaceCorrection;
 }
