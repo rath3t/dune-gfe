@@ -56,6 +56,14 @@ class RodContinuumComplex
     
 public:
     
+    /** \brief Iterator over the rods */
+    typedef typename std::map<std::string, RodData>::iterator       RodIterator;
+    typedef typename std::map<std::string, RodData>::const_iterator ConstRodIterator;
+    
+    /** \brief Iterator over the continua */
+    typedef typename std::map<std::string, ContinuumData>::iterator       ContinuumIterator;
+    typedef typename std::map<std::string, ContinuumData>::const_iterator ConstContinuumIterator;
+    
     /** \brief Iterator over the couplings */
     typedef typename std::map<std::pair<std::string,std::string>, Coupling>::const_iterator ConstCouplingIterator;
     
