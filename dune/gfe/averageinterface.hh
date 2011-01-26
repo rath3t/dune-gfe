@@ -406,6 +406,45 @@ finalize_solution(Ipopt::SolverReturn status,
 
 }
 
+template <class GridView>
+void weakToStrongBoundaryStress(const BoundaryPatchBase<GridView>& boundary,
+                               const Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& weakBoundaryStress,
+                               Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& strongBoundaryStress)
+{
+    static const int dim = GridView::dimension;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,dim,dim> > MatrixType;
+    typedef Dune::BlockVector<Dune::FieldVector<double,dim> >    VectorType;
+    
+    // turn residual (== weak form of the Neumann forces) to the strong form
+    MatrixType surfaceMassMatrix;
+    assembleSurfaceMassMatrix(boundary, surfaceMassMatrix);
+        
+    std::vector<int> globalToLocal;
+    boundary.makeGlobalToLocal(globalToLocal);
+    VectorType localWeakBoundaryStress(surfaceMassMatrix.N());
+    assert(globalToLocal.size()==weakBoundaryStress.size());
+    for (int i=0; i<globalToLocal.size(); i++)
+        if (globalToLocal[i] >= 0)
+            localWeakBoundaryStress[globalToLocal[i]] = weakBoundaryStress[i];
+        
+    VectorType localStrongBoundaryStress(surfaceMassMatrix.N());
+    localStrongBoundaryStress = 0;
+        
+    // solve with a cg solver
+    Dune::MatrixAdapter<MatrixType,VectorType,VectorType> op(surfaceMassMatrix);
+    Dune::SeqILU0<MatrixType,VectorType,VectorType> ilu0(surfaceMassMatrix,1.0);
+    Dune::CGSolver<VectorType> cg(op,ilu0,1E-4,100,0);
+    Dune::InverseOperatorResult statistics;
+    cg.apply(localStrongBoundaryStress, localWeakBoundaryStress, statistics);
+    
+    VectorType neumannForces(weakBoundaryStress.size());
+    neumannForces = 0;
+    for (int i=0; i<globalToLocal.size(); i++)
+        if (globalToLocal[i] >= 0)
+            strongBoundaryStress[i] = localStrongBoundaryStress[globalToLocal[i]];
+    
+}
+
 /** \param center Compute total torque around this point
  */
 template <class GridView>
