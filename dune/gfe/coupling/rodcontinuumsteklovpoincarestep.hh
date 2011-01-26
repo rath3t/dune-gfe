@@ -1046,6 +1046,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         VectorType& thisX = x[it->first];
         
         thisX.resize(dirichletValues.size());
+        thisX = 0;
         
         for (size_t i=0; i<thisX.size(); i++)
         if (dirichletBoundary.containsVertex(i))
