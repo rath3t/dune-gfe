@@ -992,7 +992,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
             RigidBodyMotion<3>::TangentVector& correction = interfaceCorrection[interfaceName];
             for (int j=0; j<6; j++)
                 correction[j] = (alpha_[0] * continuumCorrection[interfaceName][j] + alpha_[1] * rodCorrection[interfaceName][j])
-                                            / (alpha_[0] + alpha_[1];
+                                            / (alpha_[0] + alpha_[1]);
                 
         }
         
