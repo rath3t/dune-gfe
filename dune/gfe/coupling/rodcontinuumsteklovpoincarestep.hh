@@ -212,6 +212,10 @@ private:
     /** \brief Damping factor for the Richardson iteration */
     double richardsonDamping_;
     
+public:
+    double neumannRegularization_;
+private:
+    
     //////////////////////////////////////////////////////////////////
     //  Data members related to the rod problems
     //////////////////////////////////////////////////////////////////
@@ -609,9 +613,16 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
     RodCorrectionType rhs(currentIterate.size());
     rhs = 0;
     assembler.assembleGradient(currentIterate, rhs);
-        
+
     // The right hand side is the _negative_ gradient
     rhs *= -1;
+    
+    // If we do not have a Dirichlet boundary at all we add a scaled
+    // identity matrix.  That way the matrix gets elliptic again.
+    // Seems to be a common hack in this situation
+    for (size_t i=0; i<stiffnessMatrix.N(); i++)
+        for (int j=0; j<6; j++)
+            stiffnessMatrix[i][i][j][j] += neumannRegularization_;
 
     /////////////////////////////////////////////////////////////////////
     //  Turn the input force and torque into a Neumann boundary field
