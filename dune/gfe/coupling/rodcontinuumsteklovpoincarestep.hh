@@ -14,6 +14,10 @@
 #include <dune/fufem/assemblers/boundaryfunctionalassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/neumannboundaryassembler.hh>
 
+#if HAVE_DUNE_CONTACT
+#include <dune/contact/nbodyassembler.hh>
+#endif
+
 #include <dune/gfe/coupling/rodcontinuumcomplex.hh>
 
 
@@ -140,6 +144,7 @@ public:
      */
     void iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda);
 
+#if HAVE_DUNE_CONTACT
     /** \brief Do one Steklov-Poincare step
      * \param[in,out] lambda The old and new iterate
      */
@@ -149,6 +154,7 @@ public:
                             const NBodyAssembler<ContinuumGridType, VectorType>* contactAssembler,
                             const std::vector<std::string>& continuumName
                            );
+#endif
 
 private:
     
@@ -1003,6 +1009,8 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     }
 }
 
+
+#if HAVE_DUNE_CONTACT
 /** \brief One preconditioned Richardson step plus a continuum contact problem
 */
 template <class RodGridType, class ContinuumGridType>
@@ -1288,8 +1296,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         // the subdomain solutions in canonical coordinates, stored in a map
         for (size_t i=0; i<x3d.size(); i++)
             x[continuumName[i]] = x3d[i];
-    
-        
+
         /////////////////////////////////////////////////////////////////////////////////
         //  Average the continuum displacement on the coupling boundary
         /////////////////////////////////////////////////////////////////////////////////
@@ -1413,6 +1420,6 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         it->second = RigidBodyMotion<3>::exp(it->second, fIt->second);
     }
 }
-
+#endif   // HAVE_DUNE_CONTACT
 
 #endif
