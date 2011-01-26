@@ -433,6 +433,9 @@ rodDirichletToNeumannMap(const std::string& rodName,
     for (; it!=lambda.end(); ++it) {
         
         const std::pair<std::string,std::string>& couplingName = it->first;
+        
+        if (couplingName.first != rodName)
+            continue;
     
         // Use \lambda as a Dirichlet value for the rod
         const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
@@ -470,6 +473,9 @@ rodDirichletToNeumannMap(const std::string& rodName,
         
         const std::pair<std::string,std::string>& couplingName = it->first;
         
+        if (couplingName.first != rodName)
+            continue;
+        
         const LeafBoundaryPatch<RodGridType>& couplingBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
 
         result[couplingName] = rod(rodName).assembler_->getResultantForce(couplingBoundary, rodX);
@@ -501,6 +507,9 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
     for (; it!=lambda.end(); ++it) {
         
         const std::pair<std::string,std::string>& couplingName = it->first;
+        
+        if (couplingName.second != continuumName)
+            continue;
     
         // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
         const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
@@ -546,6 +555,9 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
         
         const std::pair<std::string,std::string>& couplingName = it->first;
         
+        if (couplingName.second != continuumName)
+            continue;
+    
         /** \todo Is referenceInterface.r the correct center of rotation? */
         const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
 
