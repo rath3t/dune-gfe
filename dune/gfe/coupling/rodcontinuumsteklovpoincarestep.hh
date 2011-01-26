@@ -1225,9 +1225,10 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         int offset = 0;
         for (int i=0; i<continuumName.size(); i++) {
             const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(continuumName[i]).dirichletBoundary_;
-            for (int j=0; j<dirichletBoundary.numVertices(); j++)
+            int nGridVertices = dirichletBoundary.gridView().indexSet().size(dim);
+            for (int j=0; j<nGridVertices; j++)
                 totalDirichletNodes[offset + j] = dirichletBoundary.containsVertex(j);
-            offset += dirichletBoundary.numVertices();
+            offset += nGridVertices;
         }
 
 
