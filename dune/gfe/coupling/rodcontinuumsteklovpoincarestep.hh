@@ -1105,7 +1105,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
     totalX3d = multigridStep->getSol();
 
     // Separate 3d solution vector
-    std::vector<VectorType> x3d;
+    std::vector<VectorType> x3d(continuumName.size());
     contactAssembler->postprocess(totalX3d, x3d);
     
     // the subdomain solutions in canonical coordinates, stored in a map
