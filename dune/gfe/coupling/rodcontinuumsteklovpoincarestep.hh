@@ -1152,13 +1152,20 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         
         const std::pair<std::string,std::string>& couplingName = it->first;
         
+        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+
+        VectorType neumannForces(residual[it->first.second].size());
+        neumannForces = 0;
+        
+        weakToStrongBoundaryStress(interfaceBoundary, residual[it->first.second], neumannForces);
+  
         /** \todo Is referenceInterface.r the correct center of rotation? */
         const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
 
         Dune::FieldVector<double,3> continuumForce, continuumTorque;
             
-        computeTotalForceAndTorque(complex_.coupling(couplingName).continuumInterfaceBoundary_, 
-                                   residual[it->first.second], 
+        computeTotalForceAndTorque(interfaceBoundary, 
+                                   neumannForces, 
                                    complex_.coupling(couplingName).referenceInterface_.r,
                                    continuumForce, continuumTorque);
 
@@ -1403,7 +1410,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
             for (int j=0; j<6; j++)
                 correction[j] = (alpha_[0] * continuumCorrection[interfaceName][j] + alpha_[1] * rodCorrection[interfaceName][j])
                                             / alpha_[0] + alpha_[1];
-                
+                                            
         }
         
     } else if (preconditioner_=="RobinRobin") {
