@@ -1034,8 +1034,6 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
     LinearIterationStep<MatrixType,VectorType>* multigridStep = dynamic_cast<LinearIterationStep<MatrixType,VectorType>*>(contactSolver->iterationStep_);
 
     // Make initial iterate: we start from zero
-    std::map<std::string,VectorType> x;
-
     for (typename RodContinuumComplex<RodGridType,ContinuumGridType>::ConstContinuumIterator it = complex_.continua_.begin();
          it != complex_.continua_.end(); ++it) {
         
@@ -1043,7 +1041,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(it->first).dirichletBoundary_;
         const VectorType& dirichletValues = complex_.continuum(it->first).dirichletValues_;
 
-        VectorType& thisX = x[it->first];
+        VectorType& thisX = continuumSubdomainSolutions_[it->first];
         
         thisX.resize(dirichletValues.size());
         thisX = 0;
@@ -1063,14 +1061,14 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
         const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
         
-        setRotation(interfaceBoundary, x[couplingName.second], referenceInterface, it->second);
+        setRotation(interfaceBoundary, continuumSubdomainSolutions_[couplingName.second], referenceInterface, it->second);
     
     }
 
     VectorType totalX3d;
     std::vector<VectorType> xVector(continuumName.size());
     for (int i=0; i<continuumName.size(); i++)
-        xVector[i] = x[continuumName[i]];
+        xVector[i] = continuumSubdomainSolutions_[continuumName[i]];
     NBodyAssembler<ContinuumGridType, VectorType>::concatenateVectors(xVector, totalX3d);
     
     // Make the set off all Dirichlet nodes
@@ -1111,7 +1109,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
     
     // the subdomain solutions in canonical coordinates, stored in a map
     for (size_t i=0; i<x3d.size(); i++)
-        x[continuumName[i]] = x3d[i];
+        continuumSubdomainSolutions_[continuumName[i]] = x3d[i];
     
     //////////////////////////////////////////////////////////////////////////////
     //  Extract the residual stresses
@@ -1120,7 +1118,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
     // compute the residual for each continuum
     std::map<std::string,VectorType> residual = rhs3d;
     for (typename std::map<std::string,VectorType>::iterator it = residual.begin(); it != residual.end(); ++it)
-        continuum(it->first).stiffnessMatrix_->mmv(x[it->first], it->second);
+        continuum(it->first).stiffnessMatrix_->mmv(continuumSubdomainSolutions_[it->first], it->second);
     
     // Integrate over the residual on the coupling boundary to obtain
     // an element of T^*SE.
@@ -1185,6 +1183,7 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         ////////////////////////////////////////////////////////////////////
 
         // Make initial iterate: we start from zero
+        std::map<std::string,VectorType> x;
         for (typename RodContinuumComplex<RodGridType,ContinuumGridType>::ConstContinuumIterator it = complex_.continua_.begin();
             it != complex_.continua_.end(); ++it) {
         
