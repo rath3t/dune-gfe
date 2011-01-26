@@ -567,12 +567,19 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
         
         if (couplingName.second != continuumName)
             continue;
-    
+        
+        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
+
+        VectorType neumannForces(residual.size());
+        neumannForces = 0;
+        
+        weakToStrongBoundaryStress(interfaceBoundary, residual, neumannForces);
+        
         /** \todo Is referenceInterface.r the correct center of rotation? */
         const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(couplingName).referenceInterface_;
 
-        computeTotalForceAndTorque(complex_.coupling(couplingName).continuumInterfaceBoundary_, 
-                                   residual, 
+        computeTotalForceAndTorque(interfaceBoundary, 
+                                   neumannForces, 
                                    referenceInterface.r,
                                    continuumForce, continuumTorque);
 
