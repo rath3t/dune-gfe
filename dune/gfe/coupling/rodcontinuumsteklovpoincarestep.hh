@@ -58,7 +58,8 @@ public:
       : complex_(complex),
         preconditioner_(preconditioner),
         alpha_(alpha),
-        richardsonDamping_(richardsonDamping)
+        richardsonDamping_(richardsonDamping),
+        neumannRegularization_(0)
     {
         rods_["rod"].assembler_      = rodAssembler;
         rods_["rod"].localStiffness_ = rodLocalStiffness;
@@ -89,7 +90,8 @@ public:
       : complex_(complex),
         preconditioner_(preconditioner),
         alpha_(alpha),
-        richardsonDamping_(richardsonDamping)
+        richardsonDamping_(richardsonDamping),
+        neumannRegularization_(0)
     {
         ///////////////////////////////////////////////////////////////////////////////////
         //  Rod-related data
