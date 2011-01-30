@@ -544,7 +544,6 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
     dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum(continuumName).solver_->iterationStep_)->setProblem(*continuum(continuumName).stiffnessMatrix_, x3d, rhs3d);
 
     continuum(continuumName).solver_->preprocess();
-    dynamic_cast<IterationStep<VectorType>* >(continuum(continuumName).solver_->iterationStep_)->preprocess();
         
     continuum(continuumName).solver_->solve();
         
@@ -795,7 +794,6 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
     dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum(continuumName).solver_->iterationStep_)->setProblem(stiffnessMatrix, x, rhs);
 
     //solver.preprocess();
-    continuum(continuumName).solver_->iterationStep_->preprocess();
         
     continuum(continuumName).solver_->solve();
         
@@ -1125,7 +1123,6 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
     multigridStep->ignoreNodes_ = &totalDirichletNodes;
     
     contactSolver->preprocess();
-    multigridStep->preprocess();
             
     contactSolver->solve();
             
@@ -1299,7 +1296,6 @@ iterateWithContact(std::map<std::pair<std::string,std::string>, RigidBodyMotion<
         multigridStep->ignoreNodes_ = &totalDirichletNodes;
             
         contactSolver->preprocess();
-        multigridStep->preprocess();
             
         contactSolver->solve();
             
