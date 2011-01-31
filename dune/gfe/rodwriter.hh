@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <vector>
+#include <ctime>
 
 #include <dune/common/exceptions.hh>
 #include <dune/istl/bvector.hh>
@@ -51,12 +52,15 @@ void writeRod(const std::vector<RigidBodyMotion<2> >& rod,
     // /////////////////////
     //   Write header
     // /////////////////////
+    
+    time_t rawtime;
+    time (&rawtime);
 
     std::ofstream outfile(filename.c_str());
 
     outfile << "# AmiraMesh 3D ASCII 2.0" << std::endl;
     outfile << std::endl;
-    outfile << "# CreationDate: Mon Jul 18 17:14:27 2005" << std::endl;
+    outfile << "# CreationDate: " << ctime(&rawtime) << std::endl;
     outfile << std::endl;
     outfile << std::endl;
     outfile << "define Lines " << nLines << std::endl;
@@ -127,11 +131,14 @@ void writeRod(const std::vector<RigidBodyMotion<3> >& rod,
     //   Write header
     // /////////////////////
 
+    time_t rawtime;
+    time (&rawtime);
+
     std::ofstream outfile(filename.c_str());
 
     outfile << "# AmiraMesh 3D ASCII 2.0" << std::endl;
     outfile << std::endl;
-    outfile << "# CreationDate: Mon Jul 18 17:14:27 2005" << std::endl;
+    outfile << "# CreationDate: " << ctime(&rawtime) << std::endl;
     outfile << std::endl;
     outfile << std::endl;
     outfile << "nNodes " << nPoints << std::endl;
@@ -184,11 +191,14 @@ void writeRodElementData(Dune::BlockVector<Dune::FieldVector<double, 1> >& data,
     //   Write header
     // /////////////////////
 
+    time_t rawtime;
+    time (&rawtime);
+
     std::ofstream outfile(filename.c_str());
 
     outfile << "# AmiraMesh 3D ASCII 2.0" << std::endl;
     outfile << std::endl;
-    outfile << "# CreationDate: Mon Jul 18 17:14:27 2005" << std::endl;
+    outfile << "# CreationDate: " << ctime(&rawtime) << std::endl;
     outfile << std::endl;
     outfile << std::endl;
     outfile << "define Segments " << data.size() << std::endl;
