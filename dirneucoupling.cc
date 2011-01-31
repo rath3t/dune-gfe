@@ -351,9 +351,6 @@ int main (int argc, char *argv[]) try
     std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > lambda;
     lambda[interfaceName] = referenceInterface;
     
-    FieldVector<double,3> lambdaForce(0);
-    FieldVector<double,3> lambdaTorque(0);
-
     //
     double normOfOldCorrection = 1;
     int dnStepsActuallyTaken = 0;
