@@ -157,19 +157,40 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
-    rodX.back().r = parameterSet.get("dirichletValue", rodRestEndPoint[1]);
-
-    FieldVector<double,3> axis = parameterSet.get("dirichletAxis", FieldVector<double,3>(0));
-    double angle = parameterSet.get("dirichletAngle", double(0));
-
-    rodX.back().q = Rotation<3,double>(axis, M_PI*angle/180);
-    
     rodFactory.create(complex.rods_["rod"].dirichletValues_,
                       RigidBodyMotion<3>(FieldVector<double,3>(0), Rotation<3,double>::identity()));
-    complex.rods_["rod"].dirichletValues_.back() = RigidBodyMotion<3>(parameterSet.get("dirichletValue", rodRestEndPoint[1]),
-                                                                   Rotation<3,double>(axis, M_PI*angle/180));
     BitSetVector<1> rodDNodes(complex.rods_["rod"].dirichletValues_.size(), false);
-    rodDNodes.back() = true;
+
+    if (parameterSet.hasKey("dirichletValue0")){
+        
+        rodX[0].r = parameterSet.get("dirichletValue0", rodRestEndPoint[0]);
+
+        FieldVector<double,3> axis = parameterSet.get("dirichletAxis0", FieldVector<double,3>(0));
+        double angle = parameterSet.get("dirichletAngle0", double(0));
+
+        rodX[0].q = Rotation<3,double>(axis, M_PI*angle/180);
+    
+        complex.rods_["rod"].dirichletValues_[0] = RigidBodyMotion<3>(parameterSet.get("dirichletValue0", rodRestEndPoint[0]),
+                                                                   Rotation<3,double>(axis, M_PI*angle/180));
+        rodDNodes[0] = true;
+        
+    }
+
+    if (parameterSet.hasKey("dirichletValue1")) {
+        
+        rodX.back().r = parameterSet.get("dirichletValue1", rodRestEndPoint[1]);
+
+        FieldVector<double,3> axis = parameterSet.get("dirichletAxis1", FieldVector<double,3>(0));
+        double angle = parameterSet.get("dirichletAngle1", double(0));
+
+        rodX.back().q = Rotation<3,double>(axis, M_PI*angle/180);
+    
+        complex.rods_["rod"].dirichletValues_.back() = RigidBodyMotion<3>(parameterSet.get("dirichletValue1", rodRestEndPoint[1]),
+                                                                   Rotation<3,double>(axis, M_PI*angle/180));
+        rodDNodes.back() = true;
+
+    } 
+
     complex.rods_["rod"].dirichletBoundary_.setup(*complex.rods_["rod"].grid_,rodDNodes);
 
     // Backup initial rod iterate for later reference
