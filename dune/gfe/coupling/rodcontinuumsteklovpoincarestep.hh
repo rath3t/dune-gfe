@@ -687,14 +687,23 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
     Dune::SeqILU0<MatrixType,RodCorrectionType,RodCorrectionType> ilu0(stiffnessMatrix,1.0);
 
     // A preconditioned conjugate-gradient solver
-    Dune::CGSolver<RodCorrectionType> cg(op,ilu0,1E-4,100,2);
+    Dune::CGSolver<RodCorrectionType> cg(op,ilu0,1E-4,100,0);
 
     // Object storing some statistics about the solving process
     Dune::InverseOperatorResult statistics;
 
     // Solve!
+#ifndef NDEBUG
+    RodCorrectionType residual = rhs;
+#endif
     cg.apply(x, rhs, statistics);
-
+    
+#ifndef NDEBUG
+    // paranoia
+    stiffnessMatrix.mmv(x,residual);
+    assert(residual.infinity_norm() < 1e-4);
+#endif
+    
     ///////////////////////////////////////////////////////////////////////////////////////
     //  Extract the solution at the interface boundaries
     ///////////////////////////////////////////////////////////////////////////////////////
