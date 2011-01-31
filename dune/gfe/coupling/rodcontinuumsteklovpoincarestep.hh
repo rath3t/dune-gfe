@@ -664,6 +664,7 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
         /** \todo Why don't we have to transform the force as well? */
         Dune::FieldVector<double,3> localForce, localTorque;
         orientationMatrix.mv(canonicalTorque,localTorque);
+        localForce = canonicalForce;
         
         RigidBodyMotion<3>::TangentVector localForceTorque;
         for (int i=0; i<3; i++) {
