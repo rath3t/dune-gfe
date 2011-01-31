@@ -381,6 +381,19 @@ int main (int argc, char *argv[]) try
     std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > lambda;
     lambda[interfaceName] = referenceInterface;
     
+    ///////////////////////////////////////////////////////////////////////////7
+    // make temporary directory for the intermediate iterates
+    ///////////////////////////////////////////////////////////////////////////7
+    char tmpPathBuffer[1000];
+    sprintf(tmpPathBuffer, "tmp.XXXXXX");
+    char* tmpPathChar = mkdtemp(tmpPathBuffer);
+    assert(tmpPathChar);
+    
+    std::string tmpPath(tmpPathChar);//resultPath + "tmp/";
+    tmpPath += "/";
+    std::cout << "tmp directory is: " << tmpPath << std::endl;
+        
+
     //
     double normOfOldCorrection = 1;
     int dnStepsActuallyTaken = 0;
@@ -507,14 +520,15 @@ int main (int argc, char *argv[]) try
         // First the 3d body
         std::stringstream iAsAscii;
         iAsAscii << i;
-        std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
+        
+        std::string iSolFilename = tmpPath + "intermediate3dSolution_" + iAsAscii.str();
 
         LeafAmiraMeshWriter<GridType> amiraMeshWriter;
         amiraMeshWriter.addVertexData(x3d, complex.continua_["continuum"].grid_->leafView());
         amiraMeshWriter.write(iSolFilename);
 
         // Then the rod
-        iSolFilename = resultPath + "tmp/intermediateRodSolution_" + iAsAscii.str();
+        iSolFilename = tmpPath + "intermediateRodSolution_" + iAsAscii.str();
 
         RodWriter::writeBinary(rodX, iSolFilename);
         
@@ -601,12 +615,12 @@ int main (int argc, char *argv[]) try
         // Read 3d solution from file
         std::stringstream iAsAscii;
         iAsAscii << i;
-        std::string iSolFilename = resultPath + "tmp/intermediate3dSolution_" + iAsAscii.str();
+        std::string iSolFilename = tmpPath + "intermediate3dSolution_" + iAsAscii.str();
       
         AmiraMeshReader<int>::readFunction(intermediateSol3d, iSolFilename);
 
         // Read rod solution from file
-        iSolFilename = resultPath + "tmp/intermediateRodSolution_" + iAsAscii.str();
+        iSolFilename = tmpPath + "intermediateRodSolution_" + iAsAscii.str();
             
         FILE* fpInt = fopen(iSolFilename.c_str(), "rb");
         if (!fpInt)
@@ -685,7 +699,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Delete temporary memory
     // //////////////////////////////
-    std::string removeTmpCommand = "rm -rf " + resultPath + "tmp/intermediate*";
+    std::string removeTmpCommand = "rm -rf " + tmpPath;
     system(removeTmpCommand.c_str());
 
     // //////////////////////////////
