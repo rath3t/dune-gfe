@@ -651,6 +651,26 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
         if (couplingName.first != rodName)
             continue;
         
+        // Transform force from canonical coordinates to coordinates given by lambda
+        Dune::FieldVector<double,3> canonicalForce, canonicalTorque;
+        for (int i=0; i<3; i++) {
+            canonicalForce[i]  = it->second[i];
+            canonicalTorque[i] = it->second[3+i];
+        }
+        
+        Dune::FieldMatrix<double,3,3> orientationMatrix;
+        centerOfTorque.find(couplingName)->second.q.matrix(orientationMatrix);
+        
+        /** \todo Why don't we have to transform the force as well? */
+        Dune::FieldVector<double,3> localForce, localTorque;
+        orientationMatrix.mv(canonicalTorque,localTorque);
+        
+        RigidBodyMotion<3>::TangentVector localForceTorque;
+        for (int i=0; i<3; i++) {
+            localForceTorque[i] = localForce[i];
+            localForceTorque[3+i] = localTorque[i];
+        }
+        
         // Use 'forceTorque' as a Neumann value for the rod
         const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
 
@@ -659,7 +679,7 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
          */
         for (size_t i=0; i<rhs.size(); i++)
             if (interfaceBoundary.containsVertex(i))
-                rhs[i] += it->second;
+                rhs[i] += localForceTorque;
     }
         
     ///////////////////////////////////////////////////////////
