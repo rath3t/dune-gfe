@@ -155,7 +155,7 @@ int main (int argc, char *argv[]) try
     rodFactory.create(rodX, rodRestEndPoint[0], rodRestEndPoint[1]);
 
     // /////////////////////////////////////////
-    //   Read Dirichlet values
+    //   Determine rod Dirichlet values
     // /////////////////////////////////////////
     rodFactory.create(complex.rods_["rod"].dirichletValues_,
                       RigidBodyMotion<3>(FieldVector<double,3>(0), Rotation<3,double>::identity()));
@@ -163,30 +163,32 @@ int main (int argc, char *argv[]) try
 
     if (parameterSet.hasKey("dirichletValue0")){
         
-        rodX[0].r = parameterSet.get("dirichletValue0", rodRestEndPoint[0]);
-
+        RigidBodyMotion<3> dirichletValue;
+        dirichletValue.r = parameterSet.get("dirichletValue0", rodRestEndPoint[0]);
         FieldVector<double,3> axis = parameterSet.get("dirichletAxis0", FieldVector<double,3>(0));
         double angle = parameterSet.get("dirichletAngle0", double(0));
+        dirichletValue.q = Rotation<3,double>(axis, M_PI*angle/180);
+        
+        rodX[0] = dirichletValue;
 
-        rodX[0].q = Rotation<3,double>(axis, M_PI*angle/180);
-    
-        complex.rods_["rod"].dirichletValues_[0] = RigidBodyMotion<3>(parameterSet.get("dirichletValue0", rodRestEndPoint[0]),
-                                                                   Rotation<3,double>(axis, M_PI*angle/180));
+        complex.rods_["rod"].dirichletValues_[0] = dirichletValue;
+        
         rodDNodes[0] = true;
         
     }
 
     if (parameterSet.hasKey("dirichletValue1")) {
         
-        rodX.back().r = parameterSet.get("dirichletValue1", rodRestEndPoint[1]);
-
+        RigidBodyMotion<3> dirichletValue;
+        dirichletValue.r = parameterSet.get("dirichletValue1", rodRestEndPoint[1]);
         FieldVector<double,3> axis = parameterSet.get("dirichletAxis1", FieldVector<double,3>(0));
         double angle = parameterSet.get("dirichletAngle1", double(0));
-
-        rodX.back().q = Rotation<3,double>(axis, M_PI*angle/180);
+        dirichletValue.q = Rotation<3,double>(axis, M_PI*angle/180);
+        
+        rodX.back() = dirichletValue;
     
-        complex.rods_["rod"].dirichletValues_.back() = RigidBodyMotion<3>(parameterSet.get("dirichletValue1", rodRestEndPoint[1]),
-                                                                   Rotation<3,double>(axis, M_PI*angle/180));
+        complex.rods_["rod"].dirichletValues_.back() = dirichletValue;
+        
         rodDNodes.back() = true;
 
     } 
@@ -197,7 +199,7 @@ int main (int argc, char *argv[]) try
     RodSolutionType initialIterateRod = rodX;
 
     // /////////////////////////////////////////////////////
-    //   Determine the Dirichlet nodes
+    //   Determine the continuum Dirichlet nodes
     // /////////////////////////////////////////////////////
     VectorType coarseDirichletValues(complex.continua_["continuum"].grid_->size(0, dim));
     AmiraMeshReader<int>::readFunction(coarseDirichletValues, path + dirichletValuesFile);
@@ -228,8 +230,12 @@ int main (int argc, char *argv[]) try
 
     // first for the rod
     BitSetVector<1> rodCouplingBitfield(rodX.size(),false);
-    // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-    rodCouplingBitfield[0] = true;
+    /** \todo Using that index 0 is always the left boundary for a uniformly refined OneDGrid */
+    if (parameterSet.hasKey("dirichletValue1")) {
+        rodCouplingBitfield[0] = true;
+    } else
+        rodCouplingBitfield.back() = true;
+
     complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(*complex.rods_["rod"].grid_, rodCouplingBitfield);
 
     // then for the continuum
@@ -365,7 +371,10 @@ int main (int argc, char *argv[]) try
     //   Dirichlet-Neumann Solver
     // /////////////////////////////////////////////////////
 
-    RigidBodyMotion<3> referenceInterface = rodX[0];
+    RigidBodyMotion<3> referenceInterface = (parameterSet.hasKey("dirichletValue1"))
+                                          ? rodX[0]
+                                          : rodX.back();
+                                          
     complex.couplings_[interfaceName].referenceInterface_ = referenceInterface;
 
     // Init interface value
