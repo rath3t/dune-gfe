@@ -708,14 +708,21 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
             continue;
         
         const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
+        
+        const typename RodGridType::LeafGridView::IndexSet& indexSet = interfaceBoundary.gridView().indexSet();
+        
+        for (typename LeafBoundaryPatch<RodGridType>::iterator bIt = interfaceBoundary.begin();
+             bIt != interfaceBoundary.end();
+             ++bIt) {
+            
+            // vertex index corresponding to the current boundary segment
+            size_t idx = indexSet.subIndex(*bIt->inside(), bIt->indexInInside(), 1);
+            
+            /** \todo We assume here that a coupling boundary consists of a single point only (not two)
+            */
+            interfaceCorrection[couplingName] = x[idx];
+        }
 
-        /** \todo Use the BoundaryPatch iterator, which will be a lot faster
-         * once we use EntitySeed for its implementation
-         * \todo We assume here that a coupling boundary consists of a single point only (not two)
-         */
-        for (size_t i=0; i<rhs.size(); i++)
-            if (interfaceBoundary.containsVertex(i))
-                interfaceCorrection[couplingName] = x[i];
     }
     
     return interfaceCorrection;
