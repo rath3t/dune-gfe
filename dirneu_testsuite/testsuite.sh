@@ -34,16 +34,16 @@ ddType = RichardsonIteration
 #  - NeumannDirichlet
 #  - NeumannNeumann
 #  - RobinRobin
-preconditioner = NeumannDirichlet
+preconditioner = $4
 
 #
-NeumannNeumannDamping = 1 0
+NeumannNeumannDamping = 0.5 0.5
 
 # Tolerance of the Dirichlet-Neumann solver
 ddTolerance = 1e-9
 
 # Max number of Dirichlet-Neumann steps
-maxDirichletNeumannSteps = 30
+maxDirichletNeumannSteps = 100
 
 # Tolerance of the trust-region solver for the rod problem
 trTolerance = 1e-12
@@ -171,48 +171,94 @@ E     = 1e6
 nu    = 0.3
 
 rodRestEndPoint0 = 0.625 0.625 1
-#rodRestEndPoint1 = 0.625 0.625 2
-rodRestEndPoint1 = 0.625 -0.082 1.707
+rodRestEndPoint1 = 0.625 0.625 2
+#rodRestEndPoint1 = 0.625 -0.082 1.707
 
 # Dirichlet values
-dirichletValue = 0.625 0.875 2
+dirichletValue1 = 0.625 0.875 2.5
 
-dirichletAxis = 0 0 1
-dirichletAngle = 90
+dirichletAxis1 = 0 0 1
+dirichletAngle1 = 90
 
 # Where to write the results
 resultPath = $RESULTPATH
 
 EOF
 
+mkdir -p ${RESULTPATH}"/tmp_"$3
+
 # run simulation
 ../dirneucoupling ${PARAMETERFILE} | tee ${LOGFILE}
+
+rm -rf ${RESULTPATH}"/tmp_"$3
 }
 
 # Parameters:
 # 1: result directory
 # 2: number of levels
 # 3: damping factor
+# 4: preconditioner
 
 # run problems
 
 MAXPROCS=4
 
-for level in 2; do
+for level in 1; do
 #for level in 1 2 3 4; do
 
-    LEVELDIR=${level}"levels_rot"
     
-    if test -e ${LEVELDIR}/convrates; then
-        rm ${LEVELDIR}/convrates
-    fi
-
-    for damping in 0.6; do
+#     if test -e ${LEVELDIR}/convrates; then
+#         rm ${LEVELDIR}/convrates
+#     fi
+    preconditioner=NeumannNeumann
+    LEVELDIR=${preconditioner}"_"${level}"levels"
+#  for damping in 0.1; do
 #    for damping in 0.1 0.6 0.9; do
-#    for damping in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3; do
+    for damping in 0.001 0.005 0.01 0.05 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0; do
 
         echo "Computing on "${level}" levels with damping factor "${damping}
-        runComputation $LEVELDIR $level $damping &
+        runComputation $LEVELDIR $level $damping $preconditioner &
+
+        # Append convergence rate of this run to overall list for this level
+        #cat convrate >> ${LEVELDIR}/convrates
+
+        # Never have more than MAXPROCS processes
+        NPROC=$(($NPROC+1))  
+        if [ "$NPROC" -ge "$MAXPROCS" ]; then  
+          wait  
+          NPROC=0  
+        fi  
+
+    done
+
+
+
+    preconditioner=DirichletNeumann
+    LEVELDIR=${preconditioner}"_"${level}"levels"
+    for damping in 0.001 0.005 0.01 0.05 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0; do
+
+        echo "Computing on "${level}" levels with damping factor "${damping}
+        runComputation $LEVELDIR $level $damping $preconditioner &
+
+        # Append convergence rate of this run to overall list for this level
+        #cat convrate >> ${LEVELDIR}/convrates
+
+        # Never have more than MAXPROCS processes
+        NPROC=$(($NPROC+1))  
+        if [ "$NPROC" -ge "$MAXPROCS" ]; then  
+          wait  
+          NPROC=0  
+        fi  
+
+    done
+
+    preconditioner=NeumannDirichlet
+    LEVELDIR=${preconditioner}"_"${level}"levels"
+    #for damping in 0.115; do
+    for damping in 0.001 0.005 0.01 0.05 0.1 0.11 0.115 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0; do
+
+        echo "Computing on "${level}" levels with damping factor "${damping}
+        runComputation $LEVELDIR $level $damping $preconditioner &
 
         # Append convergence rate of this run to overall list for this level
         #cat convrate >> ${LEVELDIR}/convrates
