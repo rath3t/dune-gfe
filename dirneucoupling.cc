@@ -160,6 +160,9 @@ int main (int argc, char *argv[]) try
     rodFactory.create(complex.rods_["rod"].dirichletValues_,
                       RigidBodyMotion<3>(FieldVector<double,3>(0), Rotation<3,double>::identity()));
     BitSetVector<1> rodDNodes(complex.rods_["rod"].dirichletValues_.size(), false);
+    
+    // we need at least one Dirichlet side
+    assert(parameterSet.hasKey("dirichletValue0") or parameterSet.hasKey("dirichletValue1"));
 
     if (parameterSet.hasKey("dirichletValue0")){
         
