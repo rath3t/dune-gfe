@@ -486,22 +486,8 @@ int main (int argc, char *argv[]) try
         // Then the rod
         iSolFilename = resultPath + "tmp/intermediateRodSolution_" + iAsAscii.str();
 
-        FILE* fpRod = fopen(iSolFilename.c_str(), "wb");
-        if (!fpRod)
-            DUNE_THROW(SolverError, "Couldn't open file " << iSolFilename << " for writing");
-            
-        for (int j=0; j<rodX.size(); j++) {
-
-            for (int k=0; k<dim; k++)
-                fwrite(&rodX[j].r[k], sizeof(double), 1, fpRod);
-
-            for (int k=0; k<4; k++)  // 3d hardwired here!
-                fwrite(&rodX[j].q[k], sizeof(double), 1, fpRod);
-
-        }
-
-        fclose(fpRod);
-
+        RodWriter::writeBinary(rodX, iSolFilename);
+        
         // ////////////////////////////////////////////
         //   Compute error in the energy norm
         // ////////////////////////////////////////////
