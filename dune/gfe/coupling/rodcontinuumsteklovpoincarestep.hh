@@ -674,12 +674,19 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
         // Use 'forceTorque' as a Neumann value for the rod
         const LeafBoundaryPatch<RodGridType>& interfaceBoundary = complex_.coupling(couplingName).rodInterfaceBoundary_;
 
-        /** \todo Use the BoundaryPatch iterator, which will be a lot faster
-         * once we use EntitySeed for its implementation
-         */
-        for (size_t i=0; i<rhs.size(); i++)
-            if (interfaceBoundary.containsVertex(i))
-                rhs[i] += localForceTorque;
+        const typename RodGridType::LeafGridView::IndexSet& indexSet = interfaceBoundary.gridView().indexSet();
+        
+        for (typename LeafBoundaryPatch<RodGridType>::iterator bIt = interfaceBoundary.begin();
+             bIt != interfaceBoundary.end();
+             ++bIt) {
+            
+            // vertex index corresponding to the current boundary segment
+            size_t idx = indexSet.subIndex(*bIt->inside(), bIt->indexInInside(), 1);
+
+            rhs[idx] += localForceTorque;
+
+        }
+
     }
         
     ///////////////////////////////////////////////////////////
