@@ -9,6 +9,33 @@
 
 #include "rigidbodymotion.hh"
 
+class RodWriter
+{
+public:
+    
+    static void writeBinary(const std::vector<RigidBodyMotion<3> >& rod, 
+                            const std::string& filename)
+    {
+        FILE* fpRod = fopen(filename.c_str(), "wb");
+        if (!fpRod)
+            DUNE_THROW(SolverError, "Couldn't open file " << filename << " for writing");
+            
+        for (int j=0; j<rod.size(); j++) {
+
+            for (int k=0; k<3; k++)
+                fwrite(&rod[j].r[k], sizeof(double), 1, fpRod);
+
+            for (int k=0; k<4; k++)  // 3d hardwired here!
+                fwrite(&rod[j].q[k], sizeof(double), 1, fpRod);
+
+        }
+
+        fclose(fpRod);
+        
+    }
+    
+};
+
 /** \brief Write a planar rod
  */
 void writeRod(const std::vector<RigidBodyMotion<2> >& rod, 
