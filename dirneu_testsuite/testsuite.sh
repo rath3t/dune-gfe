@@ -161,8 +161,10 @@ numRodBaseElements = 4
 rodA = 0.0625
 
 # Geometric moments (here: square of edge length 0.25)
-rodJ1 = 0.0013021
-rodJ2 = 0.0013021
+#rodJ1 = 0.0013021
+#rodJ2 = 0.0013021
+rodJ1 = 0.00032552
+rodJ1 = 0.00032552
 
 # Material parameters
 rodE  = 1e6
@@ -175,7 +177,7 @@ rodRestEndPoint1 = 0.625 0.625 2
 #rodRestEndPoint1 = 0.625 -0.082 1.707
 
 # Dirichlet values
-dirichletValue1 = 0.625 0.875 2.5
+dirichletValue1 = 0.625 0.875 2.0
 
 dirichletAxis1 = 0 0 1
 dirichletAngle1 = 90
