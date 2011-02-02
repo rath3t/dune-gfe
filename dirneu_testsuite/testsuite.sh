@@ -216,7 +216,7 @@ for level in 1; do
     LEVELDIR=${preconditioner}"_"${level}"levels"
 #  for damping in 0.1; do
 #    for damping in 0.1 0.6 0.9; do
-    for damping in 0.001 0.005 0.01 0.05 0.1 0.2 2.25 2.5 2.75 0.3 0.35; do
+    for damping in 0.001 0.005 0.01 0.05 0.1 0.2 0.225 0.25 0.275 0.3 0.35; do
 
         echo "Computing on "${level}" levels with damping factor "${damping}
         runComputation $LEVELDIR $level $damping $preconditioner &
@@ -257,7 +257,7 @@ for level in 1; do
     preconditioner=NeumannDirichlet
     LEVELDIR=${preconditioner}"_"${level}"levels"
     #for damping in 0.115; do
-    for damping in 0.001 0.005 0.01 0.05 0.1 0.2 2.25 2.5 2.75 0.3 0.35; do
+    for damping in 0.001 0.005 0.01 0.05 0.1 0.2 0.225 0.25 0.275 0.3 0.35; do
 
         echo "Computing on "${level}" levels with damping factor "${damping}
         runComputation $LEVELDIR $level $damping $preconditioner &
