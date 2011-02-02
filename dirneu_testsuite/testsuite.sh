@@ -164,7 +164,7 @@ rodA = 0.0625
 #rodJ1 = 0.0013021
 #rodJ2 = 0.0013021
 rodJ1 = 0.00032552
-rodJ1 = 0.00032552
+rodJ2 = 0.00032552
 
 # Material parameters
 rodE  = 1e6
