@@ -816,8 +816,10 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
     dynamic_cast<IterationStep<VectorType>* >(continuum(continuumName).solver_->iterationStep_)->ignoreNodes_ 
            = &dirichletNodes;
 
-    //   Solve the Neumann problem for the continuum
-    VectorType x = complex_.continuum(continuumName).dirichletValues_;
+    //  Initial iterate is 0,  all Dirichlet values are 0 (because we solve a correction problem
+    VectorType x(dirichletNodes.size());
+    x = 0;
+    
     assert( (dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum(continuumName).solver_->iterationStep_)) );
     dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum(continuumName).solver_->iterationStep_)->setProblem(stiffnessMatrix, x, rhs);
 
