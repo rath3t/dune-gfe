@@ -663,7 +663,7 @@ int main (int argc, char *argv[]) try
         // Only when we hit numerical dirt are they starting to wiggle around wildly.
         // We use this to detect 'the' convergence rate as the last averaged rate before
         // we hit the dirt.
-        if (convRate > oldConvRate + 0.1 && i > 5 && firstTime) {
+        if (convRate > oldConvRate + 0.15 && i > 5 && firstTime) {
 
             std::cout << "Damping: " << damping
                       << "   convRate: " << std::pow(totalConvRate[i], 1/((double)i)) 
