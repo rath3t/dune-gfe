@@ -146,8 +146,18 @@ assembleEmbeddedGradient(const Entity& element,
         // loop over all the element's degrees of freedom and compute the gradient wrt it
         for (size_t i=0; i<localSolution.size(); i++) {
          
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,gridDim> referenceDerivativeDerivative;
+            localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, referenceDerivativeDerivative);
+            
+            // multiply the transformation from the reference element to the actual element
             Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,gridDim> derivativeDerivative;
-            localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivativeDerivative);
+            for (int ii=0; ii<TargetSpace::EmbeddedTangentVector::size; ii++)
+                for (int jj=0; jj<TargetSpace::EmbeddedTangentVector::size; jj++)
+                    for (int kk=0; kk<gridDim; kk++) {
+                        derivativeDerivative[ii][jj][kk] = 0;
+                        for (int ll=0; ll<gridDim; ll++)
+                            derivativeDerivative[ii][jj][kk] += referenceDerivativeDerivative[ii][jj][ll] * jacobianInverseTransposed[kk][ll];
+                    }
         
             for (int j=0; j<derivative.rows; j++) {
                 
