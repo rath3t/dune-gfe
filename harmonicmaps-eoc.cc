@@ -3,7 +3,8 @@
 #define HARMONIC_ENERGY_FD_GRADIENT
 
 #include <dune/common/bitsetvector.hh>
-#include <dune/common/configparser.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/onedgrid.hh>
@@ -39,7 +40,7 @@ template <class GridType>
 void solve (const shared_ptr<GridType>& grid,
             SolutionType& x, 
             int numLevels,
-            ConfigParser& parameters)
+            const ParameterTree& parameters)
 {
     // read solver setting
     const double innerTolerance           = parameters.get<double>("innerTolerance");
@@ -144,11 +145,11 @@ void solve (const shared_ptr<GridType>& grid,
 int main (int argc, char *argv[]) try
 {
     // parse data file
-    ConfigParser parameterSet;
+    ParameterTree parameterSet;
     if (argc==2)
-        parameterSet.parseFile(argv[1]);
+        ParameterTreeParser::readINITree(argv[1], parameterSet);
     else
-        parameterSet.parseFile("harmonicmaps-eoc.parset");
+        ParameterTreeParser::readINITree("harmonicmaps-eoc.parset", parameterSet);
 
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");
