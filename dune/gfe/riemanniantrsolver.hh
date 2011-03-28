@@ -11,6 +11,7 @@
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/solvers/loopsolver.hh>
 
 #include "geodesicfeassembler.hh"
 
