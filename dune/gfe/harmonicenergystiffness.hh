@@ -7,6 +7,10 @@
 #include "localgeodesicfestiffness.hh"
 #include "localgeodesicfefunction.hh"
 
+#ifdef HARMONIC_ENERGY_FD_GRADIENT
+#warning Finite-difference approximation of the energy gradient
+#endif
+
 template<class GridView, class TargetSpace>
 class HarmonicEnergyLocalStiffness 
     : public LocalGeodesicFEStiffness<GridView,TargetSpace>
