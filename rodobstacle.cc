@@ -1,7 +1,8 @@
 #include <config.h>
 
 #include <dune/common/bitsetvector.hh>
-#include <dune/common/configparser.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/onedgrid.hh>
 
@@ -73,8 +74,8 @@ int main (int argc, char *argv[]) try
     typedef std::vector<RigidBodyMotion<2> >                       SolutionType;
 
     // parse data file
-    ConfigParser parameterSet;
-    parameterSet.parseFile("rodobstacle.parset");
+    ParameterTree parameterSet;
+    ParameterTreeParser::readINITree("rodobstacle.parset", parameterSet);
 
     // read solver settings
     const int minLevel         = parameterSet.get<int>("minLevel");

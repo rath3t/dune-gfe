@@ -1,7 +1,8 @@
 #include <config.h>
 
 #include <dune/common/bitsetvector.hh>
-#include <dune/common/configparser.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/onedgrid.hh>
 
@@ -30,11 +31,11 @@ int main (int argc, char *argv[]) try
     typedef std::vector<RigidBodyMotion<3> > SolutionType;
 
     // parse data file
-    ConfigParser parameterSet;
+    ParameterTree parameterSet;
     if (argc==2)
-        parameterSet.parseFile(argv[1]);
+        ParameterTreeParser::readINITree(argv[1], parameterSet);
     else
-        parameterSet.parseFile("rod3d.parset");
+        ParameterTreeParser::readINITree("rod3d.parset", parameterSet);
 
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");

@@ -1,7 +1,8 @@
 #include <config.h>
 
 #include <dune/common/bitsetvector.hh>
-#include <dune/common/configparser.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/onedgrid.hh>
 
@@ -37,7 +38,7 @@ void solve (const GridType& grid,
             SolutionType& x, 
             int numLevels,
             const TargetSpace& dirichletValue,
-            ConfigParser& parameters)
+            const ParameterTree& parameters)
 {
     // read solver setting
     const double innerTolerance           = parameters.get<double>("innerTolerance");
@@ -129,11 +130,11 @@ void solve (const GridType& grid,
 int main (int argc, char *argv[]) try
 {
     // parse data file
-    ConfigParser parameterSet;
+    ParameterTree parameterSet;
     if (argc==2)
-        parameterSet.parseFile(argv[1]);
+        ParameterTreeParser::readINITree(argv[1], parameterSet);
     else
-        parameterSet.parseFile("rod-eoc.parset");
+        ParameterTreeParser::readINITree("rod-eoc.parset", parameterSet);
 
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");

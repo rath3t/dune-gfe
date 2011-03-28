@@ -10,7 +10,8 @@
 #include <dune/grid/io/file/amirameshwriter.hh>
 
 #include <dune/common/bitsetvector.hh>
-#include <dune/common/configparser.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
 
 #include <dune/solvers/iterationsteps/multigridstep.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
@@ -61,11 +62,11 @@ int main (int argc, char *argv[]) try
     typedef BlockVector<FieldVector<double, dim> >       VectorType;
 
     // parse data file
-    ConfigParser parameterSet;
+    ParameterTree parameterSet;
     if (argc==2)
-        parameterSet.parseFile(argv[1]);
+        ParameterTreeParser::readINITree(argv[1], parameterSet);
     else
-        parameterSet.parseFile("dirneucoupling.parset");
+        ParameterTreeParser::readINITree("dirneucoupling.parset", parameterSet);
 
     // read solver settings
     const int numLevels            = parameterSet.get<int>("numLevels");
