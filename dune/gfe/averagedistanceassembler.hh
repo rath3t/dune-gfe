@@ -8,7 +8,8 @@
 template <class TargetSpace>
 class AverageDistanceAssembler
 {
-    static const int size = TargetSpace::EmbeddedTangentVector::size;
+    static const int size         = TargetSpace::TangentVector::size;
+    static const int embeddedSize = TargetSpace::EmbeddedTangentVector::size;
 
 public:
 
@@ -38,6 +39,24 @@ public:
                           TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
     }
 
+    void assembleGradient(const TargetSpace& x,
+                          typename TargetSpace::TangentVector& gradient) const
+    {
+        typename TargetSpace::EmbeddedTangentVector embeddedGradient;
+        assembleGradient(x,embeddedGradient);
+        
+        Dune::FieldMatrix<double,size,embeddedSize> orthonormalFrame = x.orthonormalFrame();
+        orthonormalFrame.mv(embeddedGradient,gradient);
+    }
+
+    void assembleHessianApproximation(const TargetSpace& x,
+                                      Dune::FieldMatrix<double,embeddedSize,embeddedSize>& matrix) const
+    {
+        for (int i=0; i<embeddedSize; i++)
+            for (int j=0; j<embeddedSize; j++)
+                matrix[i][j] = (i==j);
+    }
+
     void assembleHessianApproximation(const TargetSpace& x,
                                       Dune::FieldMatrix<double,size,size>& matrix) const
     {
@@ -47,7 +66,7 @@ public:
     }
 
     void assembleHessian(const TargetSpace& x,
-                         Dune::FieldMatrix<double,size,size>& matrix) const
+                         Dune::FieldMatrix<double,embeddedSize,embeddedSize>& matrix) const
     {
         matrix = 0;
         for (size_t i=0; i<coefficients_.size(); i++)
