@@ -325,6 +325,10 @@ public:
         if (data_[N-1] > 0) 
             for (size_t j=0; j<N-1; j++)
                 result[j][N-1] *= -1;
+            
+        // normalize the rows to make the orthogonal basis orthonormal
+        for (size_t i=0; i<N-1; i++)
+            result[i] /= result[i].two_norm();
         
         return result;
     }
