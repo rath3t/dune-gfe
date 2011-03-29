@@ -400,10 +400,6 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
         
-        //  Write current energy
-        if (this->verbosity_ == NumProc::FULL)
-            std::cout << "--- Current energy: " << energy << " ---" << std::endl;
-
         // /////////////////////////////////////////////////////////////////////
         //   Write the iterate to disk for later convergence rate measurement
         // /////////////////////////////////////////////////////////////////////
