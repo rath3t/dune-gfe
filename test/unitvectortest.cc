@@ -6,23 +6,8 @@
 
 #include <typeinfo>
 
-#ifdef __GNUC__
-#include <cxxabi.h>
-#endif
-
 using Dune::FieldVector;
 using std::complex;
-
-template <class T>
-std::string className(T &t)
-{
-#ifdef __GNUC__
-  int status;
-  return abi::__cxa_demangle(typeid(t).name(),0,0,&status);
-#else
-  return typeid(t).name();
-#endif
-};
 
 
 /** \file
@@ -56,24 +41,25 @@ double energy(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b
     The formula for the Riemannian Hessian has been taken from Absil, Mahony, Sepulchre:
     'Optimization algorithms on matrix manifolds', page 107
 */
-template <class TargetSpace, int dim>
-FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSpace& a, const TargetSpace& b)
+template <class TargetSpace, int worldDim>
+FieldMatrix<double,worldDim,worldDim> getSecondDerivativeOfSecondArgumentFD(const TargetSpace& a, const TargetSpace& b)
 {
-    // finite-difference approximation
-    FieldMatrix<double,dim,dim> d2d2_fd(0);
     
     const size_t spaceDim = TargetSpace::dim;
+
+    // finite-difference approximation
+    FieldMatrix<double,spaceDim,spaceDim> d2d2_fd(0);
     
-    FieldMatrix<double,dim,dim> B = b.orthonormalFrame();
+    FieldMatrix<double,spaceDim,worldDim> B = b.orthonormalFrame();
     
     for (size_t i=0; i<spaceDim; i++) {
         for (size_t j=0; j<spaceDim; j++) {
 
-            FieldVector<double,dim> epsXi = B[i];    epsXi *= eps;
-            FieldVector<double,dim> epsEta = B[j];   epsEta *= eps;
+            FieldVector<double,worldDim> epsXi = B[i];    epsXi *= eps;
+            FieldVector<double,worldDim> epsEta = B[j];   epsEta *= eps;
             
-            FieldVector<double,dim> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
-            FieldVector<double,dim> minusEpsEta = epsEta;  minusEpsEta *= -1;
+            FieldVector<double,worldDim> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
+            FieldVector<double,worldDim> minusEpsEta = epsEta;  minusEpsEta *= -1;
             
             double forwardValue  = energy(a,TargetSpace::exp(b,epsXi+epsEta)) - energy(a, TargetSpace::exp(b,epsXi)) - energy(a,TargetSpace::exp(b,epsEta));
             double centerValue   = energy(a,b)                   - energy(a,b)              - energy(a,b);
@@ -84,17 +70,17 @@ FieldMatrix<double,dim,dim> getSecondDerivativeOfSecondArgumentFD(const TargetSp
         }
     }
     
-    B.invert();
-    FieldMatrix<double,dim,dim> BT;
-    for (int i=0; i<dim; i++)
-        for (int j=0; j<dim; j++)
+    //B.invert();
+    FieldMatrix<double,worldDim,spaceDim> BT;
+    for (int i=0; i<worldDim; i++)
+        for (int j=0; j<spaceDim; j++)
             BT[i][j] = B[j][i];
     
     
-    FieldMatrix<double,dim,dim> ret1;
+    FieldMatrix<double,spaceDim,worldDim> ret1;
     FMatrixHelp::multMatrix(d2d2_fd,B,ret1);
     
-    FieldMatrix<double,dim,dim> ret2;
+    FieldMatrix<double,worldDim,worldDim> ret2;
     FMatrixHelp::multMatrix(BT,ret1,ret2);
     return ret2;
 }
@@ -256,17 +242,46 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
 
 }
 
+void testUnitVector2d()
+{
+    int nTestPoints = 1;
+    double testPoints[1][2][2] = {{{1,0}, {0,1}}};
+    
+    // Set up elements of S^1
+    for (int i=0; i<nTestPoints; i++) {
+        
+        Dune::array<double,2> w0 = {testPoints[i][0][0], testPoints[i][0][1]};
+        UnitVector<2> uv0(w0);
+        Dune::array<double,2> w1 = {testPoints[i][1][0], testPoints[i][1][1]};
+        UnitVector<2> uv1(w1);
+        
+        testDerivativesOfSquaredDistance<UnitVector<2>, 2>(uv0, uv1);
+        
+    }
+}
+
+void testUnitVector3d()
+{
+    int nTestPoints = 1;
+    double testPoints[1][2][3] = {{{1,0,0}, {0,1,0}}};
+    
+    // Set up elements of S^1
+    for (int i=0; i<nTestPoints; i++) {
+        
+        Dune::array<double,3> w0 = {testPoints[i][0][0], testPoints[i][0][1], testPoints[i][0][2]};
+        UnitVector<3> uv0(w0);
+        Dune::array<double,3> w1 = {testPoints[i][1][0], testPoints[i][1][1], testPoints[i][1][2]};
+        UnitVector<3> uv1(w1);
+        
+        testDerivativesOfSquaredDistance<UnitVector<3>, 3>(uv0, uv1);
+        
+    }
+}
 
 int main()
 {
-#if 1
-    // Set up elements of S^1
-    Dune::array<double,2> w0 = {{1,0}};
-    UnitVector<2> uv0(w0);
-    Dune::array<double,2> w1 = {{0,1}};
-    UnitVector<2> uv1(w1);
-    testDerivativesOfSquaredDistance<UnitVector<2>, 2>(uv0, uv1);
-#endif
+    testUnitVector2d();
+    testUnitVector3d();
     
     // Set up elements of R^1
     Dune::FieldVector<double,2> rtw0;  rtw0[0] = 0;  rtw0[1] = 1;
