@@ -1,3 +1,4 @@
+#include "config.h"
 
 #include <dune/grid/uggrid.hh>
 
@@ -92,8 +93,8 @@ int main(int argc, char** argv)
     
     HarmonicEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> assembler;
 
-    assembler.assemble(*grid->leafbegin<0>(), coefficients);
+    assembler.assembleHessian(*grid->leafbegin<0>(), coefficients);
 
-    std::cout << "Hessian: \n" << assembler.A[0][0] << std::endl;
+    std::cout << "Hessian: \n" << assembler.A_[0][0] << std::endl;
 
 }
