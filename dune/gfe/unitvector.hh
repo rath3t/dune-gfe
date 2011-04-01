@@ -158,20 +158,20 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& a, const UnitVector& b) {
+    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
 
         Dune::FieldMatrix<double,N,N> result;
 
-        double sp = a.data_ * b.data_;
+        double sp = p.data_ * q.data_;
 
         // Compute vector A (see notes)
         Dune::FieldMatrix<double,1,N> row;
-        row[0] = b.projectOntoTangentSpace(a.globalCoordinates());
+        row[0] = q.projectOntoTangentSpace(p.globalCoordinates());
         row *= secondDerivativeOfArcCosSquared(sp);
 
         Dune::FieldMatrix<double,N,1> column;
         for (int i=0; i<N; i++)
-            column[i] = a.globalCoordinates()[i] - b.globalCoordinates()[i]*sp;
+            column[i] = p.globalCoordinates()[i] - q.globalCoordinates()[i]*sp;
 
         Dune::FieldMatrix<double,N,N> A;
         // A = row * column
@@ -181,14 +181,14 @@ public:
         Dune::FieldMatrix<double,N,N> B;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
-                B[i][j] = (i==j)*sp + a.data_[i]*b.data_[j];
+                B[i][j] = (i==j)*sp + p.data_[i]*q.data_[j];
 
         // Bring it all together
         result = A;
         result.axpy(-1*derivativeOfArcCosSquared(sp), B);
 
         for (int i=0; i<N; i++)
-            result[i] = b.projectOntoTangentSpace(result[i]);
+            result[i] = q.projectOntoTangentSpace(result[i]);
 
         return result;
     }
