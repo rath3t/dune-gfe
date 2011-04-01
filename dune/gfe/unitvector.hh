@@ -227,11 +227,11 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const UnitVector& a, const UnitVector& b) {
+    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const UnitVector& p, const UnitVector& q) {
 
         Tensor3<double,N,N,N> result;
 
-        double sp = a.data_ * b.data_;
+        double sp = p.data_ * q.data_;
         
         // The identity matrix
         Dune::FieldMatrix<double,N,N> identity(0);
@@ -242,22 +242,22 @@ public:
         Dune::FieldMatrix<double,N,N> projection;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
-                projection[i][j] = (i==j) - b.globalCoordinates()[i]*b.globalCoordinates()[j];
+                projection[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
         
         // The derivative of the projection matrix at b with respect to b
         Dune::FieldMatrix<double,N,N> derivativeProjection;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
-                derivativeProjection[i][j] = -sp*(i==j) - b.globalCoordinates()[i]*a.globalCoordinates()[j];
+                derivativeProjection[i][j] = -sp*(i==j) - q.globalCoordinates()[i]*p.globalCoordinates()[j];
 
-        Dune::FieldVector<double,N> aProjected = b.projectOntoTangentSpace(a.globalCoordinates());
+        Dune::FieldVector<double,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
         
-        result = thirdDerivativeOfArcCosSquared(sp)  * Tensor3<double,N,N,N>::product(b.globalCoordinates(),a.globalCoordinates(),aProjected)
-                + secondDerivativeOfArcCosSquared(sp) * (Tensor3<double,N,N,N>::product(identity,aProjected)
-                                                         + Tensor3<double,N,N,N>::product(a.globalCoordinates(),projection)
-                                                         + Tensor3<double,N,N,N>::product(b.globalCoordinates(),derivativeProjection))
-               - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(identity,b.globalCoordinates())
-               - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(b.globalCoordinates(),identity);
+        result = thirdDerivativeOfArcCosSquared(sp)  * Tensor3<double,N,N,N>::product(q.globalCoordinates(),p.globalCoordinates(),pProjected)
+                + secondDerivativeOfArcCosSquared(sp) * (Tensor3<double,N,N,N>::product(identity,pProjected)
+                                                         + Tensor3<double,N,N,N>::product(p.globalCoordinates(),projection)
+                                                         + Tensor3<double,N,N,N>::product(q.globalCoordinates(),derivativeProjection))
+               - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(identity,q.globalCoordinates())
+               - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(q.globalCoordinates(),identity);
                
         return result;
     }
