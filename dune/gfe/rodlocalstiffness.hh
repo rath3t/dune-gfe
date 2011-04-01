@@ -519,7 +519,7 @@ assembleGradient(const Entity& element,
     // Get quadrature rule
     const QuadratureRule<double, 1>& shearingQuad = QuadratureRules<double, 1>::rule(element.type(), shearQuadOrder);
 
-    for (int pt=0; pt<shearingQuad.size(); pt++) {
+    for (size_t pt=0; pt<shearingQuad.size(); pt++) {
         
         // Local position of the quadrature point
         const FieldVector<double,1>& quadPos = shearingQuad[pt].position();

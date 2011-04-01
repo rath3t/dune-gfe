@@ -7,6 +7,7 @@
 
 #include <dune/common/exceptions.hh>
 #include <dune/istl/bvector.hh>
+#include <dune/solvers/common/numproc.hh>
 
 #include "rigidbodymotion.hh"
 
@@ -21,7 +22,7 @@ public:
         if (!fpRod)
             DUNE_THROW(SolverError, "Couldn't open file " << filename << " for writing");
             
-        for (int j=0; j<rod.size(); j++) {
+        for (size_t j=0; j<rod.size(); j++) {
 
             for (int k=0; k<3; k++)
                 fwrite(&rod[j].r[k], sizeof(double), 1, fpRod);
@@ -81,13 +82,13 @@ void writeRod(const std::vector<RigidBodyMotion<2> >& rod,
     // ///////////////////////////////////////
 
     // The center axis
-    for (int i=0; i<rod.size(); i++)
+    for (size_t i=0; i<rod.size(); i++)
         outfile << i << std::endl;
 
     outfile << "-1" << std::endl;
 
     // The directors
-    for (int i=0; i<rod.size(); i++) {
+    for (size_t i=0; i<rod.size(); i++) {
         outfile << rod.size()+2*i << std::endl;
         outfile << rod.size()+2*i+1 << std::endl;
         outfile << "-1" << std::endl;
@@ -100,11 +101,11 @@ void writeRod(const std::vector<RigidBodyMotion<2> >& rod,
     outfile << std::endl << "@2" << std::endl;
 
     // The center axis
-    for (int i=0; i<rod.size(); i++)
+    for (size_t i=0; i<rod.size(); i++)
         outfile << rod[i].r[0] << "  " << rod[i].r[1] << "  0" << std::endl;
 
     // The directors
-    for (int i=0; i<rod.size(); i++) {
+    for (size_t i=0; i<rod.size(); i++) {
 
         Dune::FieldVector<double, 2> director;
         director[0] = -cos(rod[i].q.angle_);
@@ -218,7 +219,7 @@ void writeRodElementData(Dune::BlockVector<Dune::FieldVector<double, 1> >& data,
     //   write data
     // ///////////////////////////////////////
 
-    for (int i=0; i<data.size(); i++)
+    for (size_t i=0; i<data.size(); i++)
         outfile << data[i] << std::endl;
 
     std::cout << "Result written successfully to: " << filename << std::endl;
