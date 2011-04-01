@@ -172,19 +172,15 @@ public:
         A *= secondDerivativeOfArcCosSquared(sp);
 
         // Compute matrix B (see notes)
-        Dune::FieldMatrix<double,N,N> B;
+        Dune::FieldMatrix<double,N,N> Pq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
-                B[i][j] = (i==j)*sp + p.data_[i]*q.data_[j];
+                Pq[i][j] = (i==j) - q.data_[i]*q.data_[j];
 
         // Bring it all together
-        Dune::FieldMatrix<double,N,N> result = A;
-        result.axpy(-1*derivativeOfArcCosSquared(sp), B);
+        A.axpy(-1*derivativeOfArcCosSquared(sp)*sp, Pq);
 
-        for (int i=0; i<N; i++)
-            result[i] = q.projectOntoTangentSpace(result[i]);
-
-        return result;
+        return A;
     }
 
     /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
