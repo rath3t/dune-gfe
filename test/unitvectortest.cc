@@ -241,41 +241,48 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
 
 void testUnitVector2d()
 {
-    int nTestPoints = 1;
-    double testPoints[1][2][2] = {{{1,0}, {0,1}}};
+    int nTestPoints = 2;
+    double testPoints[2][2] = {{1,0}, {0,1}};
     
     // Set up elements of S^1
     for (int i=0; i<nTestPoints; i++) {
         
-        Dune::array<double,2> w0 = {testPoints[i][0][0], testPoints[i][0][1]};
-        UnitVector<2> uv0(w0);
-        Dune::array<double,2> w1 = {testPoints[i][1][0], testPoints[i][1][1]};
-        UnitVector<2> uv1(w1);
+        for (int j=0; j<nTestPoints; j++) {
+            
+            Dune::array<double,2> w0 = {testPoints[i][0], testPoints[i][1]};
+            UnitVector<2> uv0(w0);
+            Dune::array<double,2> w1 = {testPoints[j][0], testPoints[j][1]};
+            UnitVector<2> uv1(w1);
         
-        testDerivativesOfSquaredDistance<UnitVector<2>, 2>(uv0, uv1);
+            testDerivativesOfSquaredDistance<UnitVector<2>, 2>(uv0, uv1);
+            
+        }
         
     }
 }
 
 void testUnitVector3d()
 {
-    int nTestPoints = 4;
-    double testPoints[4][2][3] = {{{1,0,0}, {0,1,0}},   
-                                  {{1,0,0}, {-0.838114, 0.356751, -0.412667}},
-                                  {{-0.490946,-0.306456,0.81551}, {-0.838114,0.356751,-0.41266}},
-                                  {{-0.944506,0.123687,-0.304319}, {-0.838114,0.356751,-0.412667}}};
+    int nTestPoints = 5;
+    double testPoints[5][3] = {{1,0,0}, {0,1,0}, {-0.838114,0.356751,-0.412667},
+                               {-0.490946,-0.306456,0.81551},{-0.944506,0.123687,-0.304319}};
                                   
     // Set up elements of S^1
     for (int i=0; i<nTestPoints; i++) {
         
-        Dune::array<double,3> w0 = {testPoints[i][0][0], testPoints[i][0][1], testPoints[i][0][2]};
-        UnitVector<3> uv0(w0);
-        Dune::array<double,3> w1 = {testPoints[i][1][0], testPoints[i][1][1], testPoints[i][1][2]};
-        UnitVector<3> uv1(w1);
+        for (int j=0; j<nTestPoints; j++) {
+            
+            Dune::array<double,3> w0 = {testPoints[i][0], testPoints[i][1], testPoints[i][2]};
+            UnitVector<3> uv0(w0);
+            Dune::array<double,3> w1 = {testPoints[j][0], testPoints[j][1], testPoints[j][2]};
+            UnitVector<3> uv1(w1);
         
-        testDerivativesOfSquaredDistance<UnitVector<3>, 3>(uv0, uv1);
+            testDerivativesOfSquaredDistance<UnitVector<3>, 3>(uv0, uv1);
+            
+        }
         
     }
+    
 }
 
 int main()
