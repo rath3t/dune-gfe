@@ -4,10 +4,7 @@
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/rotation.hh>
 
-#include <typeinfo>
-
 using Dune::FieldVector;
-using std::complex;
 
 
 /** \file
@@ -262,9 +259,12 @@ void testUnitVector2d()
 
 void testUnitVector3d()
 {
-    int nTestPoints = 1;
-    double testPoints[1][2][3] = {{{1,0,0}, {0,1,0}}};
-    
+    int nTestPoints = 4;
+    double testPoints[4][2][3] = {{{1,0,0}, {0,1,0}},   
+                                  {{1,0,0}, {-0.838114, 0.356751, -0.412667}},
+                                  {{-0.490946,-0.306456,0.81551}, {-0.838114,0.356751,-0.41266}},
+                                  {{-0.944506,0.123687,-0.304319}, {-0.838114,0.356751,-0.412667}}};
+                                  
     // Set up elements of S^1
     for (int i=0; i<nTestPoints; i++) {
         
@@ -282,7 +282,7 @@ int main()
 {
     testUnitVector2d();
     testUnitVector3d();
-    
+   
     // Set up elements of R^1
     Dune::FieldVector<double,2> rtw0;  rtw0[0] = 0;  rtw0[1] = 1;
     RealTuple<2> rt0(rtw0);
@@ -294,7 +294,7 @@ int main()
 //     Dune::array<double,3> w3_1 = {{1,1,0}};
 //     UnitVector<3> v3_1(w3_1);
 //     testDerivativesOfSquaredDistance<3>(v3_0, v3_1);
-    
+
 #if 0
     // Set up elements of S^1
     FieldVector<double,2> v;
