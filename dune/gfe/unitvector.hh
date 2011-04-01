@@ -199,16 +199,13 @@ public:
      */
     static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const UnitVector& a, const UnitVector& b) {
 
-        Dune::FieldMatrix<double,N,N> result;
-
         double sp = a.data_ * b.data_;
 
         // Compute vector A (see notes)
         Dune::FieldMatrix<double,1,N> row;
-        row[0] = b.globalCoordinates();
-        row *= secondDerivativeOfArcCosSquared(sp);
+        row[0] = b.projectOntoTangentSpace(a.globalCoordinates());
 
-        Dune::FieldVector<double,N> tmp = b.projectOntoTangentSpace(a.globalCoordinates());
+        Dune::FieldVector<double,N> tmp = a.projectOntoTangentSpace(b.globalCoordinates());
         Dune::FieldMatrix<double,N,1> column;
         for (int i=0; i<N; i++)  // turn row vector into column vector
             column[i] = tmp[i];
@@ -216,21 +213,23 @@ public:
         Dune::FieldMatrix<double,N,N> A;
         // A = row * column
         Dune::FMatrixHelp::multMatrix(column,row,A);
+        A *= secondDerivativeOfArcCosSquared(sp);
 
         // Compute matrix B (see notes)
-        Dune::FieldMatrix<double,N,N> B;
+        Dune::FieldMatrix<double,N,N> Pp, Pq;
         for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                B[i][j] = (i==j) - b.data_[i]*b.data_[j];
+            for (int j=0; j<N; j++) {
+                Pp[i][j] = (i==j) - a.data_[i]*a.data_[j];
+                Pq[i][j] = (i==j) - b.data_[i]*b.data_[j];
+            }
+            
+        Dune::FieldMatrix<double,N,N> B;
+        Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
 
         // Bring it all together
-        result = A;
-        result.axpy(derivativeOfArcCosSquared(sp), B);
+        A.axpy(derivativeOfArcCosSquared(sp), B);
 
-        for (int i=0; i<N; i++)
-            result[i] = a.projectOntoTangentSpace(result[i]);
-
-        return result;
+        return A;
     }
     
     
