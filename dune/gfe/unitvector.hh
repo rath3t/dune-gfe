@@ -233,31 +233,31 @@ public:
 
         double sp = p.data_ * q.data_;
         
-        // The identity matrix
-        Dune::FieldMatrix<double,N,N> identity(0);
+        // The projection matrix onto the tangent space at p and q
+        Dune::FieldMatrix<double,N,N> Pp, Pq;
         for (int i=0; i<N; i++)
-            identity[i][i] = 1;
+            for (int j=0; j<N; j++) {
+                Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
+                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
+            }
+            
+        Dune::FieldMatrix<double,N,N> PpPq;
+        Dune::FMatrixHelp::multMatrix(Pp,Pq,PpPq);
         
-        // The projection matrix onto the tangent space at b
-        Dune::FieldMatrix<double,N,N> projection;
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                projection[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
-        
-        // The derivative of the projection matrix at b with respect to b
-        Dune::FieldMatrix<double,N,N> derivativeProjection;
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                derivativeProjection[i][j] = -sp*(i==j) - q.globalCoordinates()[i]*p.globalCoordinates()[j];
-
         Dune::FieldVector<double,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+        Dune::FieldVector<double,N> qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
         
-        result = thirdDerivativeOfArcCosSquared(sp)  * Tensor3<double,N,N,N>::product(q.globalCoordinates(),p.globalCoordinates(),pProjected)
-                + secondDerivativeOfArcCosSquared(sp) * (Tensor3<double,N,N,N>::product(identity,pProjected)
-                                                         + Tensor3<double,N,N,N>::product(p.globalCoordinates(),projection)
-                                                         + Tensor3<double,N,N,N>::product(q.globalCoordinates(),derivativeProjection))
-               - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(identity,q.globalCoordinates())
-               - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(q.globalCoordinates(),identity);
+        Dune::FieldMatrix<double,N,N> Pq_sp = Pq;
+        Pq_sp *= sp;
+        
+        Dune::FieldVector<double,N> PpPqp;
+        PpPq.mv(p.data_,PpPqp);
+        
+        result = thirdDerivativeOfArcCosSquared(sp)    * Tensor3<double,N,N,N>::product(qProjected,pProjected,pProjected)
+                 + secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(PpPq,pProjected)
+                 + secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(PpPqp,Pq)
+                 - secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(qProjected,Pq_sp)
+                 - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(PpPq,qProjected);
                
         return result;
     }
