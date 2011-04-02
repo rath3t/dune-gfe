@@ -39,6 +39,7 @@
 #include <dune/gfe/rodwriter.hh>
 #include <dune/gfe/rodfactory.hh>
 #include <dune/gfe/coupling/rodcontinuumcomplex.hh>
+#include <dune/gfe/coupling/rodcontinuumfixedpointstep.hh>
 #include <dune/gfe/coupling/rodcontinuumsteklovpoincarestep.hh>
 
 // Space dimension
@@ -412,84 +413,21 @@ int main (int argc, char *argv[]) try
         
         if (ddType=="FixedPointIteration") {
 
-            // //////////////////////////////////////////////////
-            //   Dirichlet step for the rod
-            // //////////////////////////////////////////////////
-
-            rodX[0] = lambda[interfaceName];
-            rodSolver.setInitialSolution(rodX);
-            rodSolver.solve();
-
-            rodX = rodSolver.getSol();
-
-//         for (int j=0; j<rodX.size(); j++)
-//             std::cout << rodX[j] << std::endl;
-
-            // ///////////////////////////////////////////////////////////
-            //   Extract Neumann values and transfer it to the 3d object
-            // ///////////////////////////////////////////////////////////
-
-            RigidBodyMotion<3>::TangentVector resultantForceTorque 
-                    = rodAssembler.getResultantForce(complex.couplings_[interfaceName].rodInterfaceBoundary_, rodX);
+            RodContinuumFixedPointStep<RodGridType,GridType> rodContinuumFixedPointStep(complex,
+                                                                                        damping,
+                                                                                        &rodAssembler,
+                                                                                        &rodSolver,
+                                                                                        &stiffnessMatrix3d,
+                                                                                        solver);
             
-            // Flip orientation
-            resultantForceTorque  *= -1;
+            rodContinuumFixedPointStep.rodSubdomainSolutions_["rod"] = rodX;
+            rodContinuumFixedPointStep.continuumSubdomainSolutions_["continuum"] = x3d;
 
-            std::cout << "resultant force and torque: " << resultantForceTorque << std::endl;
-
-            VectorType neumannValues(rhs3d.size());
-
-            // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-            computeAveragePressure<GridType::LeafGridView>(resultantForceTorque, 
-                                              complex.couplings_[interfaceName].continuumInterfaceBoundary_, 
-                                              rodX[0].r,
-                                              neumannValues);
-
-            BoundaryFunctionalAssembler<FEBasis> boundaryFunctionalAssembler(basis, complex.couplings_[interfaceName].continuumInterfaceBoundary_);
-            BasisGridFunction<FEBasis, VectorType> neumannValuesFunction(basis, neumannValues);
-            NeumannBoundaryAssembler<GridType, FieldVector<double,dim> > localNeumannAssembler(neumannValuesFunction);
-            boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs3d, true);
-
-            // ///////////////////////////////////////////////////////////
-            //   Solve the Neumann problem for the continuum
-            // ///////////////////////////////////////////////////////////
-            multigridStep.setProblem(stiffnessMatrix3d, x3d, rhs3d, complex.continua_["continuum"].grid_->maxLevel()+1);
-        
-            solver->preprocess();
-            multigridStep.preprocess();
-        
-            solver->solve();
-        
-            x3d = multigridStep.getSol();
-
-            // ///////////////////////////////////////////////////////////
-            //   Extract new interface position and orientation
-            // ///////////////////////////////////////////////////////////
-
-            RigidBodyMotion<3> averageInterface;
-
-            computeAverageInterface(complex.couplings_[interfaceName].continuumInterfaceBoundary_, x3d, averageInterface);
-
-        //averageInterface.r[0] = averageInterface.r[1] = 0;
-        //averageInterface.q = Quaternion<double>::identity();
-            std::cout << "average interface: " << averageInterface << std::endl;
-
-            std::cout << "director 0:  " << averageInterface.q.director(0) << std::endl;
-            std::cout << "director 1:  " << averageInterface.q.director(1) << std::endl;
-            std::cout << "director 2:  " << averageInterface.q.director(2) << std::endl;
-            std::cout << std::endl;
-
-            //////////////////////////////////////////////////////////////
-            //   Compute new damped interface value
-            //////////////////////////////////////////////////////////////
-            for (int j=0; j<dim; j++)
-                lambda[interfaceName].r[j] = (1-damping) * lambda[interfaceName].r[j] 
-                    + damping * (referenceInterface.r[j] + averageInterface.r[j]);
-
-            lambda[interfaceName].q = Rotation<3,double>::interpolate(lambda[interfaceName].q, 
-                                                       referenceInterface.q.mult(averageInterface.q), 
-                                                       damping);
-
+            rodContinuumFixedPointStep.iterate(lambda);
+            
+            // get the subdomain solutions
+            rodX = rodContinuumFixedPointStep.rodSubdomainSolutions_["rod"];
+            x3d  = rodContinuumFixedPointStep.continuumSubdomainSolutions_["continuum"];
            
         } else if (ddType=="RichardsonIteration") {
             
