@@ -624,23 +624,6 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
 
 #if 0
 
-    ///////////////////////////////////////////////////////////////////
-    //  Evaluate the Dirichlet-to-Neumann map for the continuum
-    ///////////////////////////////////////////////////////////////////
-    
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumForceTorque; 
-
-    for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
-        
-        const std::string& continuumName = it->first;
-    
-        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque 
-                = continuumDirichletToNeumannMap(continuumName, lambda);
-
-        insert(continuumForceTorque, forceTorque);
-        
-    }
-
     std::cout << "resultant continuum force and torque: " << std::endl;
     for (ForceIterator it = continuumForceTorque.begin(); it != continuumForceTorque.end(); ++it)
         std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
@@ -699,81 +682,6 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
 
     } 
     
-    if (preconditioner_=="NeumannDirichlet" or preconditioner_=="NeumannNeumann") {
-            
-        ////////////////////////////////////////////////////////////////////
-        //  Preconditioner is the linearized Neumann-to-Dirichlet map
-        //  of the rod.
-        ////////////////////////////////////////////////////////////////////
-        
-        for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
-        
-            const std::string& rodName = it->first;
-    
-            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodInterfaceCorrection
-                    = linearizedRodNeumannToDirichletMap(rodName,
-                                                         rodSubdomainSolutions_[rodName], 
-                                                         residualForceTorque,
-                                                         lambda);
-
-            insert(rodCorrection, rodInterfaceCorrection);
-        
-        }
-
-        std::cout << "resultant rod interface corrections: " << std::endl;
-        for (ForceIterator it = rodCorrection.begin(); it != rodCorrection.end(); ++it)
-        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
-                  << it->second << std::endl;
-
-    } 
-    
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> interfaceCorrection;
-
-    if (preconditioner_=="DirichletNeumann") {
-        
-        interfaceCorrection = continuumCorrection;
-        
-    } else if (preconditioner_=="NeumannDirichlet") {
-        
-        interfaceCorrection = rodCorrection;
-    
-    } else if (preconditioner_=="NeumannNeumann") {
-            
-        std::cout << "resultant interface corrections: " << std::endl;
-        for (ForceIterator it = rodCorrection.begin(); it != rodCorrection.end(); ++it) {
-
-            const std::pair<std::string,std::string> interfaceName = it->first;
-        
-            std::cout << "    [" << interfaceName.first << ", " << interfaceName.second << "]"
-                      << "  -- " << it->second 
-                      << "  -- " << continuumCorrection[interfaceName] << std::endl;
-
-            // Compute weighted combination of both
-            RigidBodyMotion<3>::TangentVector& correction = interfaceCorrection[interfaceName];
-            for (int j=0; j<6; j++)
-                correction[j] = (alpha_[0] * continuumCorrection[interfaceName][j] + alpha_[1] * rodCorrection[interfaceName][j])
-                                            / (alpha_[0] + alpha_[1]);
-                
-        }
-        
-    } else if (preconditioner_=="RobinRobin") {
-            
-        DUNE_THROW(Dune::NotImplemented, "Robin-Robin preconditioner not implemented yet");
-                
-    } else
-        DUNE_THROW(Dune::NotImplemented, preconditioner_ << " is not a known preconditioner");
-            
-    ///////////////////////////////////////////////////////////////////////////////
-    //  Apply the damped correction to the current interface value
-    ///////////////////////////////////////////////////////////////////////////////
-                
-    typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::iterator it = lambda.begin();
-    ForceIterator fIt = interfaceCorrection.begin();
-    for (; it!=lambda.end(); ++it, ++fIt) {
-        assert(it->first == fIt->first);
-        fIt->second *= richardsonDamping_;
-        it->second = RigidBodyMotion<3>::exp(it->second, fIt->second);
-    }
 #endif
 }
 
