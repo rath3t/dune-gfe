@@ -531,7 +531,6 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
 
     // container for the subdomain solution
     RodConfigurationType& rodX = rodSubdomainSolutions_["rod"];
-    rodX.resize(complex_.rodGrid("rod")->size(1));
 
     rodX[0] = lambda[interfaceName];
     rods_["rod"].solver_->setInitialSolution(rodX);
