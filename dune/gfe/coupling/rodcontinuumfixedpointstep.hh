@@ -113,7 +113,7 @@ protected:
         rodDirichletToNeumannMap(const std::string& rodName, 
                                  const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& lambda) const;
     
-    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >
     continuumNeumannToDirichletMap(const std::string& continuumName,
                                const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>& forceTorque,
                                const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& centerOfTorque) const;
@@ -415,27 +415,21 @@ rodDirichletToNeumannMap(const std::string& rodName,
 }
 
 template <class RodGridType, class ContinuumGridType>
-std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> 
+std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> > 
 RodContinuumFixedPointStep<RodGridType,ContinuumGridType>::
 continuumNeumannToDirichletMap(const std::string& continuumName,
                                const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector>& forceTorque,
                                const std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >& centerOfTorque) const
 {
     ////////////////////////////////////////////////////
-    //  Assemble the linearized problem
+    //  Assemble the problem
     ////////////////////////////////////////////////////
 
-    /** \todo We are actually assembling standard linear elasticity,
-    * i.e. the linearization at zero
-    */
     typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> P1Basis;
     const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum(continuumName).dirichletBoundary_;
     P1Basis basis(dirichletBoundary.gridView());
-    OperatorAssembler<P1Basis,P1Basis> assembler(basis, basis);
 
-    MatrixType stiffnessMatrix;
-    assembler.assemble(*continuum(continuumName).localAssembler_, stiffnessMatrix);
-    
+    const MatrixType& stiffnessMatrix = *continuum(continuumName).stiffnessMatrix_;
     
     /////////////////////////////////////////////////////////////////////
     //  Turn the input force and torque into a Neumann boundary field
@@ -496,7 +490,7 @@ continuumNeumannToDirichletMap(const std::string& continuumName,
     /////////////////////////////////////////////////////////////////////////////////
     //  Average the continuum displacement on the coupling boundary
     /////////////////////////////////////////////////////////////////////////////////
-    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> interfaceCorrection;
+    std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> > averageInterface;
 
     for (ForceIterator it = forceTorque.begin(); it!=forceTorque.end(); ++it) {
         
@@ -508,25 +502,11 @@ continuumNeumannToDirichletMap(const std::string& continuumName,
         // Use 'forceTorque' as a Neumann value for the rod
         const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = complex_.coupling(couplingName).continuumInterfaceBoundary_;
         
-        RigidBodyMotion<3> averageInterface;
-        computeAverageInterface(interfaceBoundary, x, averageInterface);
-        
-        // Compute the linearization
-        /** \todo We could loop directly over interfaceCorrection (and save the name lookup)
-         * if we could be sure that interfaceCorrection contains all possible entries already
-         */
-        interfaceCorrection[couplingName][0] = averageInterface.r[0];
-        interfaceCorrection[couplingName][1] = averageInterface.r[1];
-        interfaceCorrection[couplingName][2] = averageInterface.r[2];
-        
-        Dune::FieldVector<double,3> infinitesimalRotation = Rotation<3,double>::expInv(averageInterface.q);
-        interfaceCorrection[couplingName][3] = infinitesimalRotation[0];
-        interfaceCorrection[couplingName][4] = infinitesimalRotation[1];
-        interfaceCorrection[couplingName][5] = infinitesimalRotation[2];
+        computeAverageInterface(interfaceBoundary, x, averageInterface[couplingName]);
         
     }
     
-    return interfaceCorrection;
+    return averageInterface;
 }
 
 
@@ -536,8 +516,6 @@ template <class RodGridType, class ContinuumGridType>
 void RodContinuumFixedPointStep<RodGridType,ContinuumGridType>::
 iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda)
 {
-    std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
-    
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann maps for the rods
     ///////////////////////////////////////////////////////////////////
@@ -560,8 +538,6 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
         std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
                   << it->second << std::endl;
 
-    RodConfigurationType rodX = rods_["rod"].solver_->getSol();
-
     ///////////////////////////////////////////////////////////////
     //  Flip orientation of all rod forces, to account for opposing normals.
     ///////////////////////////////////////////////////////////////
@@ -569,109 +545,47 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
         it->second *= -1;
 
+
+    ///////////////////////////////////////////////////////////////
+    //  Solve the Neumann problems for the continua
+    ///////////////////////////////////////////////////////////////
+            
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > averageInterface;
+            
+    for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
+        
+        const std::string& continuumName = it->first;
     
-    typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> P1Basis;
-    const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continuum("continuum").dirichletBoundary_;
-    P1Basis basis(dirichletBoundary.gridView());
+        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > localAverageInterface
+                = continuumNeumannToDirichletMap(continuumName,
+                                                rodForceTorque,
+                                                lambda);
 
-    VectorType neumannValues(basis.size());
-    VectorType rhs3d;
-    
-    // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-    computeAveragePressure<typename ContinuumGridType::LeafGridView>(rodForceTorque.begin()->second, 
-                                            complex_.coupling(interfaceName).continuumInterfaceBoundary_, 
-                                            rodX[0].r,
-                                            neumannValues);
-
-    BoundaryFunctionalAssembler<P1Basis> boundaryFunctionalAssembler(basis, complex_.coupling(interfaceName).continuumInterfaceBoundary_);
-    BasisGridFunction<P1Basis, VectorType> neumannValuesFunction(basis, neumannValues);
-    NeumannBoundaryAssembler<ContinuumGridType, Dune::FieldVector<double,dim> > localNeumannAssembler(neumannValuesFunction);
-    boundaryFunctionalAssembler.assemble(localNeumannAssembler, rhs3d, true);
-
-    // ///////////////////////////////////////////////////////////
-    //   Solve the Neumann problem for the continuum
-    // ///////////////////////////////////////////////////////////
-    VectorType& x3d = continuumSubdomainSolutions_["continuum"];
-
-    assert( (dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum("continuum").solver_->iterationStep_)) );
-    dynamic_cast<LinearIterationStep<MatrixType,VectorType>* >(continuum("continuum").solver_->iterationStep_)->setProblem(*continuum("continuum").stiffnessMatrix_, x3d, rhs3d);
-    //multigridStep.setProblem(*continua_["continuum"].stiffnessMatrix_, x3d, rhs3d, complex_.continua_["continuum"].grid_->maxLevel()+1);
+        insert(averageInterface, localAverageInterface);
         
-    continua_["continuum"].solver_->preprocess();
-        
-    continua_["continuum"].solver_->solve();
-        
-    x3d = dynamic_cast<IterationStep<VectorType>* >(continuum("continuum").solver_->iterationStep_)->getSol();
+    }
 
-    // ///////////////////////////////////////////////////////////
-    //   Extract new interface position and orientation
-    // ///////////////////////////////////////////////////////////
-
-    RigidBodyMotion<3> averageInterface;
-
-    computeAverageInterface(complex_.coupling(interfaceName).continuumInterfaceBoundary_, x3d, averageInterface);
-
-    std::cout << "average interface: " << averageInterface << std::endl;
-
-    std::cout << "director 0:  " << averageInterface.q.director(0) << std::endl;
-    std::cout << "director 1:  " << averageInterface.q.director(1) << std::endl;
-    std::cout << "director 2:  " << averageInterface.q.director(2) << std::endl;
-    std::cout << std::endl;
+    std::cout << "averaged interfaces: " << std::endl;
+    for (typename std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >::const_iterator it = averageInterface.begin(); it != averageInterface.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
 
     //////////////////////////////////////////////////////////////
     //   Compute new damped interface value
     //////////////////////////////////////////////////////////////
     
+    std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
+    
     const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(interfaceName).referenceInterface_;
 
     for (int j=0; j<dim; j++)
         lambda[interfaceName].r[j] = (1-damping_) * lambda[interfaceName].r[j] 
-                                   + damping_ * (referenceInterface.r[j] + averageInterface.r[j]);
+                                   + damping_ * (referenceInterface.r[j] + averageInterface[interfaceName].r[j]);
 
         lambda[interfaceName].q = Rotation<3,double>::interpolate(lambda[interfaceName].q, 
-                                                       referenceInterface.q.mult(averageInterface.q), 
+                                                       referenceInterface.q.mult(averageInterface[interfaceName].q), 
                                                        damping_);
 
-#if 0
-
-            
-    ///////////////////////////////////////////////////////////////
-    //  Apply the preconditioner
-    ///////////////////////////////////////////////////////////////
-            
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumCorrection;
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodCorrection;
-            
-    if (preconditioner_=="DirichletNeumann" or preconditioner_=="NeumannNeumann") {
-                
-        ////////////////////////////////////////////////////////////////////
-        //  Preconditioner is the linearized Neumann-to-Dirichlet map
-        //  of the continuum.
-        ////////////////////////////////////////////////////////////////////
-                
-        for (ContinuumIterator it = continua_.begin(); it != continua_.end(); ++it) {
-        
-            const std::string& continuumName = it->first;
-    
-            std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> continuumInterfaceCorrection
-                    = linearizedContinuumNeumannToDirichletMap(continuumName,
-                                                               continuumSubdomainSolutions_[continuumName], 
-                                                               residualForceTorque,
-                                                               lambda);
-
-            insert(continuumCorrection, continuumInterfaceCorrection);
-        
-        }
-
-        std::cout << "resultant continuum interface corrections: " << std::endl;
-        for (ForceIterator it = continuumCorrection.begin(); it != continuumCorrection.end(); ++it)
-        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
-                  << it->second << std::endl;
-
-
-    } 
-    
-#endif
 }
 
 #endif
