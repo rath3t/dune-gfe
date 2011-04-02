@@ -574,17 +574,26 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     //   Compute new damped interface value
     //////////////////////////////////////////////////////////////
     
-    std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
-    
-    const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(interfaceName).referenceInterface_;
+    typename std::map<std::pair<std::string,std::string>,RigidBodyMotion<3> >::iterator it = lambda.begin();
+    typename std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >::const_iterator aIIt = averageInterface.begin();
 
-    for (int j=0; j<dim; j++)
-        lambda[interfaceName].r[j] = (1-damping_) * lambda[interfaceName].r[j] 
-                                   + damping_ * (referenceInterface.r[j] + averageInterface[interfaceName].r[j]);
+    for (; it!=lambda.end(); ++it, ++aIIt) {
+
+        assert(it->first == aIIt->first);
+        
+        const std::pair<std::string,std::string>& interfaceName = it->first;
+        
+        const RigidBodyMotion<dim>& referenceInterface = complex_.coupling(interfaceName).referenceInterface_;
+
+        for (int j=0; j<dim; j++)
+            it->second.r[j] = (1-damping_) * it->second.r[j] 
+                                       + damping_ * (referenceInterface.r[j] + averageInterface[interfaceName].r[j]);
 
         lambda[interfaceName].q = Rotation<3,double>::interpolate(lambda[interfaceName].q, 
                                                        referenceInterface.q.mult(averageInterface[interfaceName].q), 
                                                        damping_);
+        
+    }
 
 }
 
