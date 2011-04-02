@@ -57,26 +57,15 @@ public:
         mergeContinuumDirichletAndCouplingBoundaries();
     }
 
-#if 0
     /** \brief Constructor for a general complex */
     RodContinuumFixedPointStep(const RodContinuumComplex<RodGridType,ContinuumGridType>& complex,
-                                    const std::string& preconditioner,
-                                    const Dune::array<double,2>& alpha,
-                                    double richardsonDamping,
-                                    const std::map<std::string,RodAssembler<typename RodGridType::LeafGridView,3>*>& rodAssembler,
-                                    const std::map<std::string,RodLocalStiffness<typename RodGridType::LeafGridView,double>*>& rodLocalStiffness,
-                                    const std::map<std::string,RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >*>& rodSolver,
-                                    const std::map<std::string,const MatrixType*>& stiffnessMatrix3d,
-                                    const std::map<std::string, const Dune::shared_ptr< ::LoopSolver<VectorType> > >& solver,
-                                    const std::map<std::string,LinearLocalAssembler<ContinuumGridType, 
-                                                                                    ContinuumLocalFiniteElement, 
-                                                                                    ContinuumLocalFiniteElement,
-                                                                                    Dune::FieldMatrix<double,dim,dim> >*>& localAssembler)
+                               double damping,
+                               const std::map<std::string,RodAssembler<typename RodGridType::LeafGridView,3>*>& rodAssembler,
+                               const std::map<std::string,RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >*>& rodSolver,
+                               const std::map<std::string,const MatrixType*>& stiffnessMatrix3d,
+                               const std::map<std::string, const Dune::shared_ptr< ::LoopSolver<VectorType> > >& solver)
       : complex_(complex),
-        preconditioner_(preconditioner),
-        alpha_(alpha),
-        richardsonDamping_(richardsonDamping),
-        neumannRegularization_(0)
+        damping_(damping)
     {
         ///////////////////////////////////////////////////////////////////////////////////
         //  Rod-related data
@@ -85,11 +74,6 @@ public:
              it != rodAssembler.end();
              ++it)
             rods_[it->first].assembler_ = it->second;
-        
-        for (typename std::map<std::string,RodLocalStiffness<typename RodGridType::LeafGridView,double>*>::const_iterator it = rodLocalStiffness.begin();
-             it != rodLocalStiffness.end();
-             ++it)
-            rods_[it->first].localStiffness_ = it->second;
         
         for (typename std::map<std::string,RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >*>::const_iterator it = rodSolver.begin();
              it != rodSolver.end();
@@ -109,18 +93,9 @@ public:
              ++it)
             continua_[it->first].solver_ = it->second;
         
-        for (typename std::map<std::string,LinearLocalAssembler<ContinuumGridType, 
-                                                                ContinuumLocalFiniteElement, 
-                                                                ContinuumLocalFiniteElement,
-                                                                Dune::FieldMatrix<double,dim,dim> >*>::const_iterator it = localAssembler.begin();
-             it != localAssembler.end();
-             ++it)
-            continua_[it->first].localAssembler_ = it->second;
-
         mergeRodDirichletAndCouplingBoundaries();
         mergeContinuumDirichletAndCouplingBoundaries();
     }
-#endif
 
     void mergeRodDirichletAndCouplingBoundaries();
 
