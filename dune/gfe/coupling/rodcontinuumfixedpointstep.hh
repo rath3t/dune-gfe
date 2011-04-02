@@ -339,7 +339,6 @@ continuaPerRod(const std::string& name) const
     return result;
 }
 
-#if 0
 template <class RodGridType, class ContinuumGridType>
 std::map<std::pair<std::string,std::string>,RigidBodyMotion<3>::TangentVector> RodContinuumFixedPointStep<RodGridType,ContinuumGridType>::
 rodDirichletToNeumannMap(const std::string& rodName, 
@@ -413,7 +412,6 @@ rodDirichletToNeumannMap(const std::string& rodName,
     
     return result;
 }
-#endif
 
 #if 0
 template <class RodGridType, class ContinuumGridType>
@@ -525,18 +523,29 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
 {
     std::pair<std::string,std::string> interfaceName = std::make_pair("rod","continuum");
     
-    // //////////////////////////////////////////////////
-    //   Dirichlet step for the rod
-    // //////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////
+    //  Evaluate the Dirichlet-to-Neumann maps for the rods
+    ///////////////////////////////////////////////////////////////////
 
-    // container for the subdomain solution
-    RodConfigurationType& rodX = rodSubdomainSolutions_["rod"];
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodForceTorque;
+    
+    for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
+        
+        const std::string& rodName = it->first;
+    
+        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque = rodDirichletToNeumannMap(rodName, lambda);
 
-    rodX[0] = lambda[interfaceName];
-    rods_["rod"].solver_->setInitialSolution(rodX);
-    rods_["rod"].solver_->solve();
+        insert(rodForceTorque, forceTorque);
+        
+    }
 
-    rodX = rods_["rod"].solver_->getSol();
+    std::cout << "resultant rod forces and torques: "  << std::endl;
+    typedef typename std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector>::iterator ForceIterator;
+    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
+        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
+                  << it->second << std::endl;
+
+    RodConfigurationType rodX = rods_["rod"].solver_->getSol();
 
     // ///////////////////////////////////////////////////////////
     //   Extract Neumann values and transfer it to the 3d object
@@ -614,27 +623,6 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
                                                        damping_);
 
 #if 0
-    ///////////////////////////////////////////////////////////////////
-    //  Evaluate the Dirichlet-to-Neumann maps for the rods
-    ///////////////////////////////////////////////////////////////////
-
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> rodForceTorque;
-    
-    for (RodIterator it = rods_.begin(); it != rods_.end(); ++it) {
-        
-        const std::string& rodName = it->first;
-    
-        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> forceTorque = rodDirichletToNeumannMap(rodName, lambda);
-
-        insert(rodForceTorque, forceTorque);
-        
-    }
-
-    std::cout << "resultant rod forces and torques: "  << std::endl;
-    typedef typename std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector>::iterator ForceIterator;
-    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
-        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
-                  << it->second << std::endl;
 
     ///////////////////////////////////////////////////////////////////
     //  Evaluate the Dirichlet-to-Neumann map for the continuum
