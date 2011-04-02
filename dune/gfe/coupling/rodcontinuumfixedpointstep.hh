@@ -547,17 +547,12 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
 
     RodConfigurationType rodX = rods_["rod"].solver_->getSol();
 
-    // ///////////////////////////////////////////////////////////
-    //   Extract Neumann values and transfer it to the 3d object
-    // ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////
+    //  Flip orientation of all rod forces, to account for opposing normals.
+    ///////////////////////////////////////////////////////////////
 
-    RigidBodyMotion<3>::TangentVector resultantForceTorque 
-        = rod("rod").assembler_->getResultantForce(complex_.coupling(interfaceName).rodInterfaceBoundary_, rodX);
-            
-    // Flip orientation
-    resultantForceTorque  *= -1;
-
-    std::cout << "resultant force and torque: " << resultantForceTorque << std::endl;
+    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
+        it->second *= -1;
 
     
     typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> P1Basis;
@@ -568,7 +563,7 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
     VectorType rhs3d;
     
     // Using that index 0 is always the left boundary for a uniformly refined OneDGrid
-    computeAveragePressure<typename ContinuumGridType::LeafGridView>(resultantForceTorque, 
+    computeAveragePressure<typename ContinuumGridType::LeafGridView>(rodForceTorque.begin()->second, 
                                             complex_.coupling(interfaceName).continuumInterfaceBoundary_, 
                                             rodX[0].r,
                                             neumannValues);
@@ -624,27 +619,6 @@ iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambd
 
 #if 0
 
-    std::cout << "resultant continuum force and torque: " << std::endl;
-    for (ForceIterator it = continuumForceTorque.begin(); it != continuumForceTorque.end(); ++it)
-        std::cout << "    [" << it->first.first << ", " << it->first.second << "] -- "
-                  << it->second << std::endl;
-
-    ///////////////////////////////////////////////////////////////
-    //  Compute the overall Steklov-Poincare residual
-    ///////////////////////////////////////////////////////////////
-
-    // Flip orientation of all rod forces, to account for opposing normals.
-    for (ForceIterator it = rodForceTorque.begin(); it != rodForceTorque.end(); ++it)
-        it->second *= -1;
-
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector> residualForceTorque = rodForceTorque;
-    
-    for (ForceIterator it = residualForceTorque.begin(), it2 = continuumForceTorque.begin(); 
-         it != residualForceTorque.end(); 
-         ++it, ++it2) {
-        assert(it->first == it2->first);
-        it->second += it2->second;
-    }
             
     ///////////////////////////////////////////////////////////////
     //  Apply the preconditioner
