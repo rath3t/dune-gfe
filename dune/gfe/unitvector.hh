@@ -257,7 +257,7 @@ public:
                  + secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(PpPq,pProjected)
                  + secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(PpPqp,Pq)
                  - secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(qProjected,Pq_sp)
-                 - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(PpPq,qProjected);
+                 - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(qProjected,Pq);
                
         return result;
     }
