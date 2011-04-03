@@ -59,7 +59,7 @@ class Tensor3
             return result;
         }
     
-        static Tensor3<T,N1,N2,N3> product(const Dune::FieldVector<T,N3>& a, const Dune::FieldMatrix<T,N1,N2>& bc)
+        static Tensor3<T,N1,N2,N3> product(const Dune::FieldVector<T,N1>& a, const Dune::FieldMatrix<T,N2,N3>& bc)
         {
             Tensor3<T,N1,N2,N3> result;
             
