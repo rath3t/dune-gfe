@@ -8,6 +8,7 @@
 
 #include <dune/istl/bvector.hh>
 
+#include <dune/fufem/boundarypatch.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 
 /** \brief A set of rods and a set of continua, all coupled to each other
