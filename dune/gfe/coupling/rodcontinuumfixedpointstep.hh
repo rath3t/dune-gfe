@@ -25,7 +25,7 @@
 
 /** \brief Iteration step of a fixed-point method for rod-continua couplings
  */
-emplate <class RodGridType, class ContinuumGridType>
+template <class RodGridType, class ContinuumGridType>
 class RodContinuumFixedPointStep
 : public RodContinuumDDStep<RodGridType,ContinuumGridType>
 {
