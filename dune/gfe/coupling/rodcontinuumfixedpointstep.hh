@@ -1,6 +1,10 @@
 #ifndef ROD_CONTINUUM_FIXED_POINT_STEP_HH
 #define ROD_CONTINUUM_FIXED_POINT_STEP_HH
 
+/** \file
+ * \brief Iteration step of a fixed-point method for rod-continua couplings
+ */
+
 #include <vector>
 
 // #include <dune/common/shared_ptr.hh>
@@ -19,7 +23,9 @@
 #include <dune/gfe/coupling/rodcontinuumddstep.hh>
 
 
-template <class RodGridType, class ContinuumGridType>
+/** \brief Iteration step of a fixed-point method for rod-continua couplings
+ */
+emplate <class RodGridType, class ContinuumGridType>
 class RodContinuumFixedPointStep
 : public RodContinuumDDStep<RodGridType,ContinuumGridType>
 {
@@ -105,7 +111,7 @@ public:
     void mergeContinuumDirichletAndCouplingBoundaries();
 
     
-    /** \brief Do one Steklov-Poincare step
+    /** \brief Do one fixed-point step
      * \param[in,out] lambda The old and new iterate
      */
     void iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda);
