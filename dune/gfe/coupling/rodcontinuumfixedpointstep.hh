@@ -7,18 +7,14 @@
 
 #include <vector>
 
-// #include <dune/common/shared_ptr.hh>
-// #include <dune/common/fvector.hh>
-// #include <dune/common/fmatrix.hh>
-// #include <dune/common/bitsetvector.hh>
-// 
-// #include <dune/istl/bcrsmatrix.hh>
-// #include <dune/istl/bvector.hh>
-// 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/assemblers/boundaryfunctionalassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/neumannboundaryassembler.hh>
 
+#include <dune/gfe/rodfactory.hh>
+#include <dune/gfe/rodassembler.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/averageinterface.hh>
 #include <dune/gfe/coupling/rodcontinuumcomplex.hh>
 #include <dune/gfe/coupling/rodcontinuumddstep.hh>
 

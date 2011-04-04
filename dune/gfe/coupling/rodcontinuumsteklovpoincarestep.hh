@@ -14,7 +14,12 @@
 #include <dune/fufem/assemblers/boundaryfunctionalassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/neumannboundaryassembler.hh>
 
+#include <dune/gfe/rodfactory.hh>
+#include <dune/gfe/rodassembler.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/averageinterface.hh>
 #include <dune/gfe/coupling/rodcontinuumcomplex.hh>
+#include <dune/gfe/coupling/rodcontinuumddstep.hh>
 
 
 template <class RodGridType, class ContinuumGridType>
