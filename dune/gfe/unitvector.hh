@@ -241,23 +241,22 @@ public:
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
             }
             
-        Dune::FieldMatrix<double,N,N> PpPq;
-        Dune::FMatrixHelp::multMatrix(Pp,Pq,PpPq);
-        
         Dune::FieldVector<double,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
         Dune::FieldVector<double,N> qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
         
-        Dune::FieldMatrix<double,N,N> Pq_sp = Pq;
-        Pq_sp *= sp;
-        
-        Dune::FieldVector<double,N> PpPqp;
-        PpPq.mv(p.data_,PpPqp);
-        
-        result = thirdDerivativeOfArcCosSquared(sp)    * Tensor3<double,N,N,N>::product(qProjected,pProjected,pProjected)
-                 + secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(PpPq,pProjected)
-                 + secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(PpPqp,Pq)
-                 - secondDerivativeOfArcCosSquared(sp) * Tensor3<double,N,N,N>::product(qProjected,Pq_sp)
-                 - derivativeOfArcCosSquared(sp)       * Tensor3<double,N,N,N>::product(qProjected,Pq);
+        Tensor3<double,N,N,N> derivativeOfPqOTimesPq;
+        for (int i=0; i<N; i++)
+            for (int j=0; j<N; j++)
+                for (int k=0; k<N; k++) {
+                    derivativeOfPqOTimesPq[i][j][k] = 0;
+                    for (int l=0; l<N; l++)
+                        derivativeOfPqOTimesPq[i][j][k] += Pp[i][l] * (Pq[j][l]*pProjected[k] + pProjected[j]*Pq[k][l]);
+                }
+                
+        result = thirdDerivativeOfArcCosSquared(sp)         * Tensor3<double,N,N,N>::product(qProjected,pProjected,pProjected)
+                 + secondDerivativeOfArcCosSquared(sp)      * derivativeOfPqOTimesPq
+                 - secondDerivativeOfArcCosSquared(sp) * sp * Tensor3<double,N,N,N>::product(qProjected,Pq)
+                 - derivativeOfArcCosSquared(sp)            * Tensor3<double,N,N,N>::product(qProjected,Pq);
                
         return result;
     }
