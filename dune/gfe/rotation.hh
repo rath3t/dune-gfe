@@ -125,7 +125,7 @@ class Rotation<3,T> : public Quaternion<T>
 
     /** \brief Computes sin(x/2) / x without getting unstable for small x */
     static T sincHalf(const T& x) {
-        return (x < 1e-4) ? 0.5 + (x*x/48) : std::sin(x/2)/x;
+        return (x < 1e-4) ? 0.5 - (x*x/48) : std::sin(x/2)/x;
     }
 
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
