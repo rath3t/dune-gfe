@@ -266,7 +266,7 @@ assembleHessian(const Entity& element,
     // ///////////////////////////////////////////////////////////////
     //   Loop over all blocks of the element matrix
     // ///////////////////////////////////////////////////////////////
-    for (int i=0; i<A_.N(); i++) {
+    for (size_t i=0; i<A_.N(); i++) {
 
         ColumnIterator cIt    = A_[i].begin();
         ColumnIterator cEndIt = A_[i].end();
@@ -354,7 +354,7 @@ assembleHessian(const Entity& element,
     //   This is possible expensive, but I want to be absolute sure
     //   that the matrix is symmetric.
     // ///////////////////////////////////////////////////////////////
-    for (int i=0; i<A_.N(); i++) {
+    for (size_t i=0; i<A_.N(); i++) {
 
         ColumnIterator cIt    = A_[i].begin();
         ColumnIterator cEndIt = A_[i].end();
