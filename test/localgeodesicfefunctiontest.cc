@@ -19,6 +19,53 @@ const double eps = 1e-6;
 
 using namespace Dune;
 
+/** \brief dim-dimensional multi-index
+*/
+template <int N>
+class MultiIndex
+    : public array<unsigned int,N>
+{
+
+    // The range of each component
+    unsigned int limit_;
+
+public:
+    /** \brief Constructor with a given range for each digit */
+    MultiIndex(unsigned int limit)
+        : limit_(limit)
+    {
+        std::fill(this->begin(), this->end(), 0);
+    }
+
+    /** \brief Increment the MultiIndex */
+    MultiIndex& operator++() {
+
+        for (int i=0; i<N; i++) {
+
+            // Augment digit
+            (*this)[i]++;
+
+            // If there is no carry-over we can stop here
+            if ((*this)[i]<limit_)
+                break;
+
+            (*this)[i] = 0;
+                    
+        }
+        return *this;
+    }
+
+    /** \brief Compute how many times you can call operator++ before getting to (0,...,0) again */
+    size_t cycle() const {
+        size_t result = 1;
+        for (int i=0; i<N; i++)
+            result *= limit_;
+        return result;
+    }
+
+};
+
+
 void testDerivativeTangentiality(const RealTuple<1>& x,
                                  const FieldMatrix<double,1,dim>& derivative)
 {
@@ -179,8 +226,8 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
             
             if ( (derivative - fdDerivative).infinity_norm() > eps ) {
                 std::cout << className(corners[0]) << ": Analytical derivative of gradient does not match fd approximation." << std::endl;
-                std::cout << "Analytical: " << derivative << std::endl;
-                std::cout << "FD        : " << fdDerivative << std::endl;
+                std::cout << "Analytical:\n " << derivative << std::endl;
+                std::cout << "FD        :\n " << fdDerivative << std::endl;
             }
 
             //testDerivativeTangentiality(f.evaluate(quadPos), derivative);
@@ -213,36 +260,35 @@ void testUnitVector2d()
 
     int nTestPoints = 10;
     double testPoints[10][2] = {{1,0}, {0.5,0.5}, {0,1}, {-0.5,0.5}, {-1,0}, {-0.5,-0.5}, {0,-1}, {0.5,-0.5}, {0.1,1}, {1,.1}};
-    assert(dim==2);
     
     // Set up elements of S^1
     std::vector<TargetSpace> corners(dim+1);
+    
+    MultiIndex<dim+1> index(nTestPoints);
+    int numIndices = index.cycle();
 
-    for (int i=0; i<nTestPoints; i++) {
+    for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<nTestPoints; j++) {
-
-            for (int k=0; k<nTestPoints; k++) {
-                
-                Dune::array<double,2> w0 = {testPoints[i][0], testPoints[i][1]};
-                corners[0] = UnitVector<2>(w0);
-                Dune::array<double,2> w1 = {testPoints[j][0], testPoints[j][1]};
-                corners[1] = UnitVector<2>(w1);
-                Dune::array<double,2> w2 = {testPoints[k][0], testPoints[k][1]};
-                corners[2] = UnitVector<2>(w2);
-
-                if (UnitVector<2>::distance(corners[0],corners[1]) > M_PI*0.98
-                    or UnitVector<2>::distance(corners[1],corners[2]) > M_PI*0.98
-                    or UnitVector<2>::distance(corners[2],corners[0]) > M_PI*0.98)
-                    continue;
-
-                //testPermutationInvariance(corners);
-                testDerivative(corners);
-                testDerivativeOfGradientWRTCoefficients(corners);
-                
-            }
+        for (int j=0; j<dim+1; j++) {
+            Dune::array<double,2> w = {testPoints[index[j]][0], testPoints[index[j]][1]};
+            corners[j] = UnitVector<2>(w);
         }
+
+        bool spreadOut = false;
+        for (int j=0; j<dim+1; j++)
+            for (int k=0; k<dim+1; k++)
+                if (UnitVector<2>::distance(corners[j],corners[k]) > M_PI*0.98)
+                    spreadOut = true;
+                    
+        if (spreadOut)
+            continue;
+        
+        //testPermutationInvariance(corners);
+        testDerivative(corners);
+        testDerivativeOfGradientWRTCoefficients(corners);
+                
     }
+
 }
 
 void testUnitVector3d()
@@ -261,25 +307,20 @@ void testUnitVector3d()
     // Set up elements of S^1
     std::vector<TargetSpace> corners(dim+1);
 
-    for (int i=0; i<nTestPoints; i++) {
+    MultiIndex<dim+1> index(nTestPoints);
+    int numIndices = index.cycle();
+
+    for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<nTestPoints; j++) {
-
-            for (int k=0; k<nTestPoints; k++) {
-                
-                Dune::array<double,3> w0 = {testPoints[i][0], testPoints[i][1], testPoints[i][2]};
-                corners[0] = UnitVector<3>(w0);
-                Dune::array<double,3> w1 = {testPoints[j][0], testPoints[j][1], testPoints[j][2]};
-                corners[1] = UnitVector<3>(w1);
-                Dune::array<double,3> w2 = {testPoints[k][0], testPoints[k][1], testPoints[k][2]};
-                corners[2] = UnitVector<3>(w2);
-
-                //testPermutationInvariance(corners);
-                testDerivative(corners);
-                testDerivativeOfGradientWRTCoefficients(corners);
-                
-            }
+        for (int j=0; j<dim+1; j++) {
+            Dune::array<double,3> w = {testPoints[index[j]][0], testPoints[index[j]][1]};
+            corners[j] = UnitVector<3>(w);
         }
+
+        //testPermutationInvariance(corners);
+        testDerivative(corners);
+        testDerivativeOfGradientWRTCoefficients(corners);
+                
     }
 
 }
