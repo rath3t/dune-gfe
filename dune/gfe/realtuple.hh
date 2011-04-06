@@ -3,6 +3,7 @@
 
 #include <dune/common/array.hh>
 #include <dune/common/fvector.hh>
+#include <dune/gfe/tensor3.hh>
 
 
 /** \brief Implement a tuple of real numbers as a Riemannian manifold
