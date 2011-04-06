@@ -12,14 +12,11 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 
-// Domain dimension
-const int dim = 2;
-
 const double eps = 1e-6;
 
 using namespace Dune;
 
-/** \brief dim-dimensional multi-index
+/** \brief N-dimensional multi-index
 */
 template <int N>
 class MultiIndex
@@ -66,18 +63,19 @@ public:
 };
 
 
+template <int domainDim>
 void testDerivativeTangentiality(const RealTuple<1>& x,
-                                 const FieldMatrix<double,1,dim>& derivative)
+                                 const FieldMatrix<double,1,domainDim>& derivative)
 {
     // By construction, derivatives of RealTuples are always tangent
 }
 
 // the columns of the derivative must be tangential to the manifold
-template <int vectorDim>
+template <int domainDim, int vectorDim>
 void testDerivativeTangentiality(const UnitVector<vectorDim>& x,
-                                 const FieldMatrix<double,vectorDim,dim>& derivative)
+                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {
-    for (int i=0; i<dim; i++) {
+    for (int i=0; i<domainDim; i++) {
 
         // The i-th column is a tangent vector if its scalar product with the global coordinates
         // of x vanishes.
@@ -94,11 +92,14 @@ void testDerivativeTangentiality(const UnitVector<vectorDim>& x,
 
 /** \brief Test whether interpolation is invariant under permutation of the simplex vertices
  */
-template <class TargetSpace>
+template <int domainDim, class TargetSpace>
 void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 {
-    std::vector<TargetSpace> cornersRotated1(dim+1);
-    std::vector<TargetSpace> cornersRotated2(dim+1);
+    // works only for 2d domains
+    assert(domainDim==2);
+    
+    std::vector<TargetSpace> cornersRotated1(domainDim+1);
+    std::vector<TargetSpace> cornersRotated2(domainDim+1);
 
     cornersRotated1[0] = cornersRotated2[2] = corners[1];
     cornersRotated1[1] = cornersRotated2[0] = corners[2];
@@ -111,16 +112,16 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
     // A quadrature rule as a set of test points
     int quadOrder = 3;
 
-    const Dune::QuadratureRule<double, dim>& quad 
-        = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
+    const Dune::QuadratureRule<double, domainDim>& quad 
+        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
-        const Dune::FieldVector<double,dim>& quadPos = quad[pt].position();
+        const Dune::FieldVector<double,domainDim>& quadPos = quad[pt].position();
 
-        Dune::FieldVector<double,dim> l0 = quadPos;
-        Dune::FieldVector<double,dim> l1, l2;
-
+        Dune::FieldVector<double,domainDim> l0 = quadPos;
+        Dune::FieldVector<double,domainDim> l1, l2;
+        
         l1[0] = quadPos[1];
         l1[1] = 1-quadPos[0]-quadPos[1];
 
@@ -140,7 +141,7 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 
 }
 
-template <class TargetSpace>
+template <int domainDim, class TargetSpace>
 void testDerivative(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
@@ -149,20 +150,20 @@ void testDerivative(const std::vector<TargetSpace>& corners)
     // A quadrature rule as a set of test points
     int quadOrder = 3;
     
-    const Dune::QuadratureRule<double, dim>& quad 
-        = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
+    const Dune::QuadratureRule<double, domainDim>& quad 
+        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
-        const Dune::FieldVector<double,dim>& quadPos = quad[pt].position();
+        const Dune::FieldVector<double,domainDim>& quadPos = quad[pt].position();
 
         // evaluate actual derivative
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, dim> derivative = f.evaluateDerivative(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, domainDim> derivative = f.evaluateDerivative(quadPos);
 
         // evaluate fd approximation of derivative
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, dim> fdDerivative = f.evaluateDerivativeFD(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, domainDim> fdDerivative = f.evaluateDerivativeFD(quadPos);
 
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, dim> diff = derivative;
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, domainDim> diff = derivative;
         diff -= fdDerivative;
         
         if ( diff.infinity_norm() > 100*eps ) {
@@ -176,7 +177,7 @@ void testDerivative(const std::vector<TargetSpace>& corners)
     }
 }
 
-template <class TargetSpace>
+template <int domainDim, class TargetSpace>
 void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
@@ -185,22 +186,22 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
     // A quadrature rule as a set of test points
     int quadOrder = 3;
     
-    const Dune::QuadratureRule<double, dim>& quad 
-        = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
+    const Dune::QuadratureRule<double, domainDim>& quad 
+        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
-        const Dune::FieldVector<double,dim>& quadPos = quad[pt].position();
+        const Dune::FieldVector<double,domainDim>& quadPos = quad[pt].position();
         
         // loop over the coefficients
         for (size_t i=0; i<corners.size(); i++) {
 
             // evaluate actual derivative
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, dim> derivative;
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, domainDim> derivative;
             f.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivative);
 
             // evaluate fd approximation of derivative
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, dim> fdDerivative;
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, domainDim> fdDerivative;
 
             for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
                 
@@ -215,8 +216,8 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
                 LocalGeodesicFEFunction<2,double,TargetSpace> fPlus(cornersPlus);
                 LocalGeodesicFEFunction<2,double,TargetSpace> fMinus(cornersMinus);
                 
-                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hPlus  = fPlus.evaluateDerivative(quadPos);
-                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hMinus = fMinus.evaluateDerivative(quadPos);
+                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,domainDim> hPlus  = fPlus.evaluateDerivative(quadPos);
+                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,domainDim> hMinus = fMinus.evaluateDerivative(quadPos);
         
                 fdDerivative[j]  = hPlus;
                 fdDerivative[j] -= hMinus;
@@ -238,6 +239,7 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
 }
 
 
+template <int domainDim>
 void testRealTuples()
 {
     std::cout << " --- Testing RealTuple<1> ---" << std::endl;
@@ -248,10 +250,11 @@ void testRealTuples()
                                         TargetSpace(2),
                                         TargetSpace(3)};
 
-    testPermutationInvariance(corners);
-    testDerivative(corners);
+    testPermutationInvariance<domainDim>(corners);
+    testDerivative<domainDim>(corners);
 }
 
+template <int domainDim>
 void testUnitVector2d()
 {
     std::cout << " --- Testing UnitVector<2> ---" << std::endl;
@@ -262,21 +265,21 @@ void testUnitVector2d()
     double testPoints[10][2] = {{1,0}, {0.5,0.5}, {0,1}, {-0.5,0.5}, {-1,0}, {-0.5,-0.5}, {0,-1}, {0.5,-0.5}, {0.1,1}, {1,.1}};
     
     // Set up elements of S^1
-    std::vector<TargetSpace> corners(dim+1);
+    std::vector<TargetSpace> corners(domainDim+1);
     
-    MultiIndex<dim+1> index(nTestPoints);
+    MultiIndex<domainDim+1> index(nTestPoints);
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<dim+1; j++) {
+        for (int j=0; j<domainDim+1; j++) {
             Dune::array<double,2> w = {testPoints[index[j]][0], testPoints[index[j]][1]};
             corners[j] = UnitVector<2>(w);
         }
 
         bool spreadOut = false;
-        for (int j=0; j<dim+1; j++)
-            for (int k=0; k<dim+1; k++)
+        for (int j=0; j<domainDim+1; j++)
+            for (int k=0; k<domainDim+1; k++)
                 if (UnitVector<2>::distance(corners[j],corners[k]) > M_PI*0.98)
                     spreadOut = true;
                     
@@ -284,13 +287,14 @@ void testUnitVector2d()
             continue;
         
         //testPermutationInvariance(corners);
-        testDerivative(corners);
-        testDerivativeOfGradientWRTCoefficients(corners);
+        testDerivative<domainDim>(corners);
+        testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
                 
     }
 
 }
 
+template <int domainDim>
 void testUnitVector3d()
 {
     std::cout << " --- Testing UnitVector<3> ---" << std::endl;
@@ -302,29 +306,29 @@ void testUnitVector3d()
                                {-0.490946,-0.306456,0.81551},{-0.944506,0.123687,-0.304319},
                                {-0.6,0.1,-0.2},{0.45,0.12,0.517},
                                {-0.1,0.3,-0.1},{-0.444506,0.123687,0.104319},{-0.7,-0.123687,-0.304319}};
-    assert(dim==2);
     
     // Set up elements of S^1
-    std::vector<TargetSpace> corners(dim+1);
+    std::vector<TargetSpace> corners(domainDim+1);
 
-    MultiIndex<dim+1> index(nTestPoints);
+    MultiIndex<domainDim+1> index(nTestPoints);
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<dim+1; j++) {
-            Dune::array<double,3> w = {testPoints[index[j]][0], testPoints[index[j]][1]};
+        for (int j=0; j<domainDim+1; j++) {
+            Dune::array<double,3> w = {testPoints[index[j]][0], testPoints[index[j]][1], testPoints[index[j]][2]};
             corners[j] = UnitVector<3>(w);
         }
 
         //testPermutationInvariance(corners);
-        testDerivative(corners);
-        testDerivativeOfGradientWRTCoefficients(corners);
+        testDerivative<domainDim>(corners);
+        testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
                 
     }
 
 }
 
+template <int domainDim>
 void testRotations()
 {
     std::cout << " --- Testing Rotation<3> ---" << std::endl;
@@ -339,12 +343,12 @@ void testRotations()
     zAxis[2] = 1;
 
 
-    std::vector<TargetSpace> corners(dim+1);
+    std::vector<TargetSpace> corners(domainDim+1);
     corners[0] = Rotation<3,double>(xAxis,0.1);
     corners[1] = Rotation<3,double>(yAxis,0.1);
     corners[2] = Rotation<3,double>(zAxis,0.1);
 
-    testPermutationInvariance(corners);
+    testPermutationInvariance<domainDim>(corners);
     //testDerivative(corners);
 }
 
@@ -355,7 +359,7 @@ int main()
     feenableexcept(FE_INVALID);
 
     //testRealTuples();
-    testUnitVector2d();
-    testUnitVector3d();
+    testUnitVector2d<2>();
+    testUnitVector3d<2>();
     //testRotations();
 }
