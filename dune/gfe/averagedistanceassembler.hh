@@ -30,7 +30,7 @@ public:
         return result;
     }
 
-    void assembleGradient(const TargetSpace& x,
+    void assembleEmbeddedGradient(const TargetSpace& x,
                           typename TargetSpace::EmbeddedTangentVector& gradient) const
     {
         gradient = 0;
@@ -43,13 +43,13 @@ public:
                           typename TargetSpace::TangentVector& gradient) const
     {
         typename TargetSpace::EmbeddedTangentVector embeddedGradient;
-        assembleGradient(x,embeddedGradient);
+        assembleEmbeddedGradient(x,embeddedGradient);
         
         Dune::FieldMatrix<double,size,embeddedSize> orthonormalFrame = x.orthonormalFrame();
         orthonormalFrame.mv(embeddedGradient,gradient);
     }
 
-    void assembleHessianApproximation(const TargetSpace& x,
+    void assembleEmbeddedHessianApproximation(const TargetSpace& x,
                                       Dune::FieldMatrix<double,embeddedSize,embeddedSize>& matrix) const
     {
         for (int i=0; i<embeddedSize; i++)
