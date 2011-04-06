@@ -129,6 +129,68 @@ void testDerivative(const std::vector<TargetSpace>& corners)
     }
 }
 
+template <class TargetSpace>
+void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& corners)
+{
+    // Make local fe function to be tested
+    LocalGeodesicFEFunction<2,double,TargetSpace> f(corners);
+
+    // A quadrature rule as a set of test points
+    int quadOrder = 3;
+    
+    const Dune::QuadratureRule<double, dim>& quad 
+        = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
+    
+    for (size_t pt=0; pt<quad.size(); pt++) {
+        
+        const Dune::FieldVector<double,dim>& quadPos = quad[pt].position();
+        
+        // loop over the coefficients
+        for (size_t i=0; i<corners.size(); i++) {
+
+            // evaluate actual derivative
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, dim> derivative;
+            f.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivative);
+
+            // evaluate fd approximation of derivative
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, dim> fdDerivative;
+
+            for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
+                
+                std::vector<TargetSpace> cornersPlus  = corners;
+                std::vector<TargetSpace> cornersMinus = corners;
+                FieldVector<double,dim> aPlus  = corners[i].globalCoordinates();
+                FieldVector<double,dim> aMinus = corners[i].globalCoordinates();
+                aPlus[j]  += eps;
+                aMinus[j] -= eps;
+                cornersPlus[i]  = TargetSpace(aPlus);
+                cornersMinus[i] = TargetSpace(aMinus);
+                LocalGeodesicFEFunction<2,double,TargetSpace> fPlus(cornersPlus);
+                LocalGeodesicFEFunction<2,double,TargetSpace> fMinus(cornersMinus);
+                
+                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hPlus  = fPlus.evaluateDerivative(quadPos);
+                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hMinus = fMinus.evaluateDerivative(quadPos);
+        
+                fdDerivative[j]  = hPlus;
+                fdDerivative[j] -= hMinus;
+                fdDerivative[j] /= 2*eps;
+                
+            }
+            
+            if ( (derivative - fdDerivative).infinity_norm() > eps ) {
+                std::cout << className(corners[0]) << ": Analytical derivative of gradient does not match fd approximation." << std::endl;
+                std::cout << "Analytical: " << derivative << std::endl;
+                std::cout << "FD        : " << fdDerivative << std::endl;
+            }
+
+            //testDerivativeTangentiality(f.evaluate(quadPos), derivative);
+
+        }
+        
+    }
+}
+
+
 void testRealTuples()
 {
     std::cout << " --- Testing RealTuple<1> ---" << std::endl;
@@ -174,8 +236,9 @@ void testUnitVector2d()
                     or UnitVector<2>::distance(corners[2],corners[0]) > M_PI*0.98)
                     continue;
 
-                testPermutationInvariance(corners);
+                //testPermutationInvariance(corners);
                 testDerivative(corners);
+                testDerivativeOfGradientWRTCoefficients(corners);
                 
             }
         }
@@ -211,8 +274,9 @@ void testUnitVector3d()
                 Dune::array<double,3> w2 = {testPoints[k][0], testPoints[k][1], testPoints[k][2]};
                 corners[2] = UnitVector<3>(w2);
 
-                testPermutationInvariance(corners);
+                //testPermutationInvariance(corners);
                 testDerivative(corners);
+                testDerivativeOfGradientWRTCoefficients(corners);
                 
             }
         }
