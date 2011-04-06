@@ -159,8 +159,8 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
                 
                 std::vector<TargetSpace> cornersPlus  = corners;
                 std::vector<TargetSpace> cornersMinus = corners;
-                FieldVector<double,dim> aPlus  = corners[i].globalCoordinates();
-                FieldVector<double,dim> aMinus = corners[i].globalCoordinates();
+                typename TargetSpace::CoordinateType aPlus  = corners[i].globalCoordinates();
+                typename TargetSpace::CoordinateType aMinus = corners[i].globalCoordinates();
                 aPlus[j]  += eps;
                 aMinus[j] -= eps;
                 cornersPlus[i]  = TargetSpace(aPlus);
