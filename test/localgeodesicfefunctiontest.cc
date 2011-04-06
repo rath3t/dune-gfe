@@ -15,6 +15,8 @@
 // Domain dimension
 const int dim = 2;
 
+const double eps = 1e-6;
+
 using namespace Dune;
 
 void testDerivativeTangentiality(const RealTuple<1>& x,
@@ -36,8 +38,8 @@ void testDerivativeTangentiality(const UnitVector<vectorDim>& x,
         for (int j=0; j<vectorDim; j++)
             sp += x.globalCoordinates()[j] * derivative[j][i];
 
-
-        std::cout << "Column: " << i << ",  product: " << sp << std::endl;
+        if (std::fabs(sp) > 1e-8)
+            DUNE_THROW(Dune::Exception, "Derivative is not tangential: Column: " << i << ",  product: " << sp);
 
     }
 
@@ -84,8 +86,8 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
         TargetSpace v2 = f2.evaluate(l2);
         
         // Check that they are all equal
-        assert(TargetSpace::distance(v0,v1) < 1e-5);
-        assert(TargetSpace::distance(v0,v2) < 1e-5);
+        assert(TargetSpace::distance(v0,v1) < eps);
+        assert(TargetSpace::distance(v0,v2) < eps);
 
     }
 
@@ -113,8 +115,14 @@ void testDerivative(const std::vector<TargetSpace>& corners)
         // evaluate fd approximation of derivative
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, dim> fdDerivative = f.evaluateDerivativeFD(quadPos);
 
-        std::cout << "Analytical: " << std::endl << derivative << std::endl;
-        std::cout << "FD: "         << std::endl << fdDerivative << std::endl;
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, dim> diff = derivative;
+        diff -= fdDerivative;
+        
+        if ( diff.infinity_norm() > 100*eps ) {
+            std::cout << className(corners[0]) << ": Analytical gradient does not match fd approximation." << std::endl;
+            std::cout << "Analytical: " << derivative << std::endl;
+            std::cout << "FD        : " << fdDerivative << std::endl;
+        }
 
         testDerivativeTangentiality(f.evaluate(quadPos), derivative);
 
@@ -135,54 +143,81 @@ void testRealTuples()
     testDerivative(corners);
 }
 
-void testUnitVectors()
-{
-    std::cout << " --- Testing UnitVector<3> ---" << std::endl;
-
-    typedef UnitVector<3> TargetSpace;
-
-    std::vector<TargetSpace> corners(dim+1);
-
-    // test some simplex
-    FieldVector<double,3> input;
-    input[0] = 1;  input[1] = 0;  input[2] = 0;
-    corners[0] = input;
-    input[0] = 0;  input[1] = 1;  input[2] = 0;
-    corners[1] = input;
-    input[0] = 0;  input[1] = 0;  input[2] = 1;
-    corners[2] = input;
-
-    testPermutationInvariance(corners);
-    testDerivative(corners);
-
-    // test the constant function, i.e., everything is mapped onto a single point
-    input[0] = 1;  input[1] = 0;  input[2] = 0;
-    corners[0] = input;
-    corners[1] = input;
-    corners[2] = input;
-
-    testPermutationInvariance(corners);
-    testDerivative(corners);
-}
-
-void testUnitVectors2()
+void testUnitVector2d()
 {
     std::cout << " --- Testing UnitVector<2> ---" << std::endl;
 
     typedef UnitVector<2> TargetSpace;
 
+    int nTestPoints = 10;
+    double testPoints[10][2] = {{1,0}, {0.5,0.5}, {0,1}, {-0.5,0.5}, {-1,0}, {-0.5,-0.5}, {0,-1}, {0.5,-0.5}, {0.1,1}, {1,.1}};
+    assert(dim==2);
+    
+    // Set up elements of S^1
     std::vector<TargetSpace> corners(dim+1);
 
-    FieldVector<double,2> input;
-    input[0] = 1;  input[1] = 0;
-    corners[0] = input;
-    input[0] = 1;  input[1] = 0;
-    corners[1] = input;
-    input[0] = 0;  input[1] = 1;
-    corners[2] = input;
+    for (int i=0; i<nTestPoints; i++) {
+        
+        for (int j=0; j<nTestPoints; j++) {
 
-    testPermutationInvariance(corners);
-    testDerivative(corners);
+            for (int k=0; k<nTestPoints; k++) {
+                
+                Dune::array<double,2> w0 = {testPoints[i][0], testPoints[i][1]};
+                corners[0] = UnitVector<2>(w0);
+                Dune::array<double,2> w1 = {testPoints[j][0], testPoints[j][1]};
+                corners[1] = UnitVector<2>(w1);
+                Dune::array<double,2> w2 = {testPoints[k][0], testPoints[k][1]};
+                corners[2] = UnitVector<2>(w2);
+
+                if (UnitVector<2>::distance(corners[0],corners[1]) > M_PI*0.98
+                    or UnitVector<2>::distance(corners[1],corners[2]) > M_PI*0.98
+                    or UnitVector<2>::distance(corners[2],corners[0]) > M_PI*0.98)
+                    continue;
+
+                testPermutationInvariance(corners);
+                testDerivative(corners);
+                
+            }
+        }
+    }
+}
+
+void testUnitVector3d()
+{
+    std::cout << " --- Testing UnitVector<3> ---" << std::endl;
+
+    typedef UnitVector<3> TargetSpace;
+
+    int nTestPoints = 10;
+    double testPoints[10][3] = {{1,0,0}, {0,1,0}, {-0.838114,0.356751,-0.412667},
+                               {-0.490946,-0.306456,0.81551},{-0.944506,0.123687,-0.304319},
+                               {-0.6,0.1,-0.2},{0.45,0.12,0.517},
+                               {-0.1,0.3,-0.1},{-0.444506,0.123687,0.104319},{-0.7,-0.123687,-0.304319}};
+    assert(dim==2);
+    
+    // Set up elements of S^1
+    std::vector<TargetSpace> corners(dim+1);
+
+    for (int i=0; i<nTestPoints; i++) {
+        
+        for (int j=0; j<nTestPoints; j++) {
+
+            for (int k=0; k<nTestPoints; k++) {
+                
+                Dune::array<double,3> w0 = {testPoints[i][0], testPoints[i][1], testPoints[i][2]};
+                corners[0] = UnitVector<3>(w0);
+                Dune::array<double,3> w1 = {testPoints[j][0], testPoints[j][1], testPoints[j][2]};
+                corners[1] = UnitVector<3>(w1);
+                Dune::array<double,3> w2 = {testPoints[k][0], testPoints[k][1], testPoints[k][2]};
+                corners[2] = UnitVector<3>(w2);
+
+                testPermutationInvariance(corners);
+                testDerivative(corners);
+                
+            }
+        }
+    }
+
 }
 
 void testRotations()
@@ -215,7 +250,7 @@ int main()
     feenableexcept(FE_INVALID);
 
     //testRealTuples();
-    testUnitVectors();
-    testUnitVectors2();
+    testUnitVector2d();
+    testUnitVector3d();
     //testRotations();
 }
