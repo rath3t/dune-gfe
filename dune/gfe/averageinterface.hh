@@ -519,7 +519,7 @@ void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>:
     typedef typename GridView::ctype ctype;
     typedef double field_type;
 
-    Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1> finiteElementCache;
+    Dune::PQkLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
 
     typedef typename GridView::template Codim<dim>::Iterator VertexIterator;
 
@@ -564,8 +564,8 @@ void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>:
     for (; it!=endIt; ++it) {
 
         // Get shape functions
-        const typename Dune::PQkLocalFiniteElementCache<double,double, dim-1, 1>::FiniteElementType& 
-            localFiniteElement = finiteElementCache.get(it->type());
+        const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType& 
+            localFiniteElement = finiteElementCache.get(it->inside()->type());
 
             const Dune::GenericReferenceElement<double,dim>& refElement = Dune::GenericReferenceElements<double, dim>::general(it->inside()->type());
 
@@ -585,24 +585,25 @@ void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>:
                 for (size_t qp=0; qp<quad.size(); qp++) {
                     
                     // Local position of the quadrature point
-                    const Dune::FieldVector<double,dim-1>& quadPos = quad[qp].position();
+                    const Dune::FieldVector<double,dim>& quadPos = it->geometryInInside().global(quad[qp].position());
                     
-                    const double integrationElement = it->geometry().integrationElement(quadPos);
+                    const double integrationElement = it->geometry().integrationElement(quad[qp].position());
                     
                     std::vector<Dune::FieldVector<double,1> > shapeFunctionValues;
                     localFiniteElement.localBasis().evaluateFunction(quadPos, shapeFunctionValues);
 
                     // \mu_i = \int_t \varphi_i \ds
-                    mu[i] += quad[qp].weight() * integrationElement * shapeFunctionValues[i];
+                    int indexInFace = refElement.subEntity(it->indexInInside(), 1, i, dim);
+                    mu[i] += quad[qp].weight() * integrationElement * shapeFunctionValues[indexInFace];
                     
                     // \tilde{\mu}_i^j = \int_t \varphi_i \times (x - x_0) \ds
-                    Dune::FieldVector<double,dim> worldPos = it->geometry().global(quadPos);
+                    Dune::FieldVector<double,dim> worldPos = it->geometry().global(quad[qp].position());
 
                     for (int j=0; j<dim; j++) {
 
                         // Vector-valued basis function
                         Dune::FieldVector<double,dim> phi_i(0);
-                        phi_i[j] = shapeFunctionValues[i];
+                        phi_i[j] = shapeFunctionValues[indexInFace];
                         
                         mu_tilde[i][j].axpy(quad[qp].weight() * integrationElement,
                                             crossProduct(Dune::FieldVector<double,dim>(worldPos-centerOfTorque), phi_i));
@@ -614,7 +615,7 @@ void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>:
             }
 
             // Set up matrix
-            for (int i=0; i<localFiniteElement.localCoefficients().size(); i++) {
+            for (int i=0; i<refElement.size(it->indexInInside(),1,dim); i++) {
                 
                 int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
                 int subIndex = globalToLocal[indexSet.subIndex(*it->inside(), faceIdxi, dim)];
