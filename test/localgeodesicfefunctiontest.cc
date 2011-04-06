@@ -145,7 +145,7 @@ template <int domainDim, class TargetSpace>
 void testDerivative(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
-    LocalGeodesicFEFunction<2,double,TargetSpace> f(corners);
+    LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
 
     // A quadrature rule as a set of test points
     int quadOrder = 3;
@@ -181,7 +181,7 @@ template <int domainDim, class TargetSpace>
 void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
-    LocalGeodesicFEFunction<2,double,TargetSpace> f(corners);
+    LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
 
     // A quadrature rule as a set of test points
     int quadOrder = 3;
@@ -213,8 +213,8 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
                 aMinus[j] -= eps;
                 cornersPlus[i]  = TargetSpace(aPlus);
                 cornersMinus[i] = TargetSpace(aMinus);
-                LocalGeodesicFEFunction<2,double,TargetSpace> fPlus(cornersPlus);
-                LocalGeodesicFEFunction<2,double,TargetSpace> fMinus(cornersMinus);
+                LocalGeodesicFEFunction<domainDim,double,TargetSpace> fPlus(cornersPlus);
+                LocalGeodesicFEFunction<domainDim,double,TargetSpace> fMinus(cornersMinus);
                 
                 FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,domainDim> hPlus  = fPlus.evaluateDerivative(quadPos);
                 FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,domainDim> hMinus = fMinus.evaluateDerivative(quadPos);
