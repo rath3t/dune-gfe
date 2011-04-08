@@ -246,7 +246,7 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
 template <int domainDim>
 void testRealTuples()
 {
-    std::cout << " --- Testing RealTuple<1> ---" << std::endl;
+    std::cout << " --- Testing RealTuple<1>, domain dimension: " << domainDim << " ---" << std::endl;
 
     typedef RealTuple<1> TargetSpace;
 
@@ -261,7 +261,7 @@ void testRealTuples()
 template <int domainDim>
 void testUnitVector2d()
 {
-    std::cout << " --- Testing UnitVector<2> ---" << std::endl;
+    std::cout << " --- Testing UnitVector<2>, domain dimension: " << domainDim << " ---" << std::endl;
 
     typedef UnitVector<2> TargetSpace;
 
@@ -301,7 +301,7 @@ void testUnitVector2d()
 template <int domainDim>
 void testUnitVector3d()
 {
-    std::cout << " --- Testing UnitVector<3> ---" << std::endl;
+    std::cout << " --- Testing UnitVector<3>, domain dimension: " << domainDim << " ---" << std::endl;
 
     typedef UnitVector<3> TargetSpace;
 
@@ -335,7 +335,7 @@ void testUnitVector3d()
 template <int domainDim>
 void testRotations()
 {
-    std::cout << " --- Testing Rotation<3> ---" << std::endl;
+    std::cout << " --- Testing Rotation<3>, domain dimension: " << domainDim << " ---" << std::endl;
 
     typedef Rotation<3,double> TargetSpace;
 
