@@ -5,6 +5,8 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
 
+#include "multiindex.hh"
+
 const int dim = 2;
 
 typedef UnitVector<3> TargetSpace;
@@ -75,16 +77,27 @@ int main(int argc, char** argv)
     //  Test whether the energy is invariant under isometries
     // //////////////////////////////////////////////////////////
 
-    FieldVector<double,3> uv;
+    int nTestPoints = 10;
+    double testPoints[10][3] = {{1,0,0}, {0,1,0}, {-0.838114,0.356751,-0.412667},
+                               {-0.490946,-0.306456,0.81551},{-0.944506,0.123687,-0.304319},
+                               {-0.6,0.1,-0.2},{0.45,0.12,0.517},
+                               {-0.1,0.3,-0.1},{-0.444506,0.123687,0.104319},{-0.7,-0.123687,-0.304319}};
+    
+    // Set up elements of S^2
     std::vector<TargetSpace> coefficients(dim+1);
 
-    uv[0] = 1;  uv[1] = 0;  uv[2] = 0;
-    coefficients[0] = uv;
-    uv[0] = 0;  uv[1] = 1;  uv[2] = 0;
-    coefficients[1] = uv;
-    uv[0] = 0;  uv[1] = 0;  uv[2] = 1;
-    coefficients[2] = uv;
-    
-    testEnergy<GridType>(grid, coefficients);
+    MultiIndex<dim+1> index(nTestPoints);
+    int numIndices = index.cycle();
+
+    for (int i=0; i<numIndices; i++, ++index) {
+        
+        for (int j=0; j<dim+1; j++) {
+            Dune::array<double,3> w = {testPoints[index[j]][0], testPoints[index[j]][1], testPoints[index[j]][2]};
+            coefficients[j] = UnitVector<3>(w);
+        }
+
+        testEnergy<GridType>(grid, coefficients);
+                
+    }
 
 }
