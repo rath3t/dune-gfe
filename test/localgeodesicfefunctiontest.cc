@@ -227,6 +227,10 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
             
             if ( (derivative - fdDerivative).infinity_norm() > eps ) {
                 std::cout << className(corners[0]) << ": Analytical derivative of gradient does not match fd approximation." << std::endl;
+                std::cout << "gfe: ";
+                for (int j=0; j<domainDim+1; j++)
+                    std::cout << ",   " << corners[j];
+                std::cout << std::endl;
                 std::cout << "Analytical:\n " << derivative << std::endl;
                 std::cout << "FD        :\n " << fdDerivative << std::endl;
             }
