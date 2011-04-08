@@ -47,27 +47,32 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 
     }
 
-};
+}
 
-int main(int argc, char** argv)
+
+template <int domainDim>
+void testUnitVector3d()
 {
     // ////////////////////////////////////////////////////////
     //   Make a test grid consisting of a single simplex
     // ////////////////////////////////////////////////////////
 
-    typedef UGGrid<dim> GridType;
+    typedef UGGrid<domainDim> GridType;
 
     GridFactory<GridType> factory;
 
     FieldVector<double,dim> pos(0);
     factory.insertVertex(pos);
-    pos[0] = 1;  pos[1] = 0;
-    factory.insertVertex(pos);
-    pos[0] = 0;  pos[1] = 1;
-    factory.insertVertex(pos);
 
-    std::vector<unsigned int> v(dim+1);
-    v[0] = 0;  v[1] = 1;  v[2] = 2;
+    for (int i=0; i<domainDim+1; i++) {
+        pos = 0;
+        pos[i] = 1;
+        factory.insertVertex(pos);
+    }
+
+    std::vector<unsigned int> v(domainDim+1);
+    for (int i=0; i<domainDim+1; i++)
+        v[i] = i;
     factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
 
     const GridType* grid = factory.createGrid();
@@ -100,4 +105,10 @@ int main(int argc, char** argv)
                 
     }
 
+}
+
+
+int main(int argc, char** argv)
+{
+    testUnitVector3d<2>();
 }
