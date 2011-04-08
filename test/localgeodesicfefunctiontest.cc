@@ -362,7 +362,9 @@ int main()
     // choke on NaN
     feenableexcept(FE_INVALID);
 
-    //testRealTuples();
+    //testRealTuples<1>();
+    testUnitVector2d<1>();
+    testUnitVector3d<1>();
     testUnitVector2d<2>();
     testUnitVector3d<2>();
     //testRotations();
