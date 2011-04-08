@@ -32,8 +32,8 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
         std::cout << "energy: " << assembler.energy(*grid->template leafbegin<0>(), 
                                                     rotatedCoefficients) << std::endl;
 
-        std::vector<Dune::FieldVector<double,3> > rotatedGradient;
-        assembler.assembleGradient(*grid->template leafbegin<0>(),
+        std::vector<typename TargetSpace::EmbeddedTangentVector> rotatedGradient;
+        assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
                                    rotatedCoefficients,
                                    rotatedGradient);
 
