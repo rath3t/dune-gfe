@@ -70,7 +70,23 @@ class Tensor3
                     
             return result;
         }
-    
+
+        template <int N4>
+        friend Tensor3<T,N1,N2,N4> operator*(const Tensor3<T,N1,N2,N3>& a, const Dune::FieldMatrix<T,N3,N4>& b)
+        {
+            Tensor3<T,N1,N2,N4> result;
+            
+            for (int i=0; i<N1; i++)
+                for (int j=0; j<N2; j++)
+                    for (int k=0; k<N4; k++) {
+                        result[i][j][k] = 0;
+                        for (int l=0; l<N3; l++)
+                            result[i][j][k] += a[i][j][l]*b[l][k];
+                    }
+                    
+            return result;
+        }
+
     friend Tensor3<T,N1,N2,N3> operator+(const Tensor3<T,N1,N2,N3>& a, const Tensor3<T,N1,N2,N3>& b)
     {
             Tensor3<T,N1,N2,N3> result;
