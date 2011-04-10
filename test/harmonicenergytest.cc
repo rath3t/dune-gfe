@@ -49,6 +49,42 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 
 }
 
+template <class GridType>
+void testGradientOfEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficients)
+{
+    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,TargetSpace> assembler;
+
+    std::vector<typename TargetSpace::EmbeddedTangentVector> gradient;
+    assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
+                                       coefficients,
+                                       gradient);
+
+    ////////////////////////////////////////////////////////////////////////////////////////
+    //  Assemble finite difference approximation of the gradient
+    ////////////////////////////////////////////////////////////////////////////////////////
+
+    std::vector<typename TargetSpace::EmbeddedTangentVector> fdGradient;
+    assembler.assembleEmbeddedFDGradient(*grid->template leafbegin<0>(),
+                                       coefficients,
+                                       fdGradient);
+
+    double diff = 0;
+    for (size_t i=0; i<fdGradient.size(); i++)
+        diff = std::max(diff, (gradient[i] - fdGradient[i]).infinity_norm());
+    
+    if (diff > 1e-6) {
+        
+        std::cout << "gradient: " << std::endl;
+        for (size_t i=0; i<gradient.size(); i++)
+            std::cout << gradient[i] << std::endl;
+    
+        std::cout << "fd gradient: " << std::endl;
+        for (size_t i=0; i<fdGradient.size(); i++)
+            std::cout << fdGradient[i] << std::endl;
+
+    }
+    
+}
 
 template <int domainDim>
 void testUnitVector3d()
@@ -102,7 +138,8 @@ void testUnitVector3d()
         }
 
         testEnergy<GridType>(grid, coefficients);
-                
+        testGradientOfEnergy(grid, coefficients);
+        
     }
 
 }
