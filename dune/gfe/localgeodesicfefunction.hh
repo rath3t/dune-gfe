@@ -304,10 +304,10 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     
    
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> mixedDerivative = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
-    Tensor3<double,embeddedDim,embeddedDim,dim+1> dpDwF(0);
+    Tensor3<double,embeddedDim,embeddedDim,dim+1> dvDwF(0);
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
-            dpDwF[i][j][coefficient] = mixedDerivative[i][j];
+            dvDwF[i][j][coefficient] = mixedDerivative[i][j];
     
     
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
@@ -323,7 +323,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
        
     // Put it all together
     for (size_t i=0; i<result.size(); i++)
-        result[i] = dFdqPseudoInv * ( dvDqF[i] * dFdqPseudoInv * dFdw - dpDwF[i]) * B;   
+        result[i] = dFdqPseudoInv * ( dvDqF[i] * dFdqPseudoInv * dFdw - dvDwF[i]) * B;   
     
 }
 #endif
