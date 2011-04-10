@@ -92,6 +92,11 @@ public:
                                                     int coefficient,
                                                     Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const;
 
+    /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
+    void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                                    int coefficient,
+                                                    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const;
+
 private:
 
     /** \brief The linear part of the map that turns coordinates on the reference simplex into coordinates on the standard simplex 
@@ -322,8 +327,85 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     dvDqF = w[coefficient] * dvDqF;
        
     // Put it all together
+#if 0
     for (size_t i=0; i<result.size(); i++)
         result[i] = dFdqPseudoInv * ( dvDqF[i] * dFdqPseudoInv * dFdw - dvDwF[i]) * B;   
+#else
+    Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> derivative = evaluateDerivative(local);
+    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim> foo;
+    foo = -1 * dvDwF * B - dvDqF*derivative;
+    result = 0;
+    for (int i=0; i<embeddedDim; i++)
+        for (int j=0; j<embeddedDim; j++)
+            for (int k=0; k<dim; k++)
+                for (int l=0; l<embeddedDim; l++)
+                    result[i][j][k] += dFdqPseudoInv[j][l] * foo[i][l][k];
+#endif
+}
+
+
+template <int dim, class ctype, class TargetSpace>
+void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
+evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                           int coefficient,
+                                           Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const
+{
+    double eps = 1e-6;
+    for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
+                
+        std::vector<TargetSpace> cornersPlus  = coefficients_;
+        std::vector<TargetSpace> cornersMinus = coefficients_;
+        typename TargetSpace::CoordinateType aPlus  = coefficients_[coefficient].globalCoordinates();
+        typename TargetSpace::CoordinateType aMinus = coefficients_[coefficient].globalCoordinates();
+        aPlus[j]  += eps;
+        aMinus[j] -= eps;
+        cornersPlus[coefficient]  = TargetSpace(aPlus);
+        cornersMinus[coefficient] = TargetSpace(aMinus);
+        LocalGeodesicFEFunction<dim,double,TargetSpace> fPlus(cornersPlus);
+        LocalGeodesicFEFunction<dim,double,TargetSpace> fMinus(cornersMinus);
+                
+        Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> h      = evaluateDerivative(local);
+        Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hPlus  = fPlus.evaluateDerivative(local);
+        Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hMinus = fMinus.evaluateDerivative(local);
+                
+#if 0
+        double l      = sqrt(h[0][0]*h[0][0] + h[1][0]*h[1][0]);
+        double lPlus  = sqrt(hPlus[0][0]*hPlus[0][0] + hPlus[1][0]*hPlus[1][0]);
+        double lMinus = sqrt(hMinus[0][0]*hMinus[0][0] + hMinus[1][0]*hMinus[1][0]);
+        std::cout << "h:\n" << h  << "length: " << l << std::endl<< std::endl;
+        std::cout << "hPlus:\n" << hPlus  << "length: " << lPlus << std::endl<< std::endl;
+        std::cout << "hMinus:\n" << hMinus << "length: " << lMinus << std::endl << std::endl;
+#endif
+/*                h /= l;
+                hPlus /= lPlus;
+                hMinus /= lMinus;*/
+                
+/*                hPlus -= h;
+                h -= hMinus;*/
+                
+/*                std::cout << "forward:\n" << hPlus << std::endl;
+                std::cout << "backward:\n" << h << std::endl;*/
+                
+        result[j]  = hPlus;
+        result[j] -= hMinus;
+        result[j] /= 2*eps;
+                
+        TargetSpace q = evaluate(local);
+        Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::size> foo;
+        for (int l=0; l<dim; l++) {
+                    
+            for (int k=0; k<TargetSpace::EmbeddedTangentVector::size; k++)
+                foo[k] = result[j][k][l];
+
+            foo = q.projectOntoTangentSpace(foo);
+
+            for (int k=0; k<TargetSpace::EmbeddedTangentVector::size; k++)
+                result[j][k][l] = foo[k];
+                    
+        }
+        
+    }
     
 }
+
 #endif
