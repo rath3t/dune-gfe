@@ -74,7 +74,9 @@ public:
     /** \brief Constructor */
     LocalGeodesicFEFunction(const std::vector<TargetSpace>& coefficients)
         : coefficients_(coefficients)
-    {}
+    {
+        assert(coefficients_.size() == dim+1);
+    }
 
     /** \brief Evaluate the function */
     TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
