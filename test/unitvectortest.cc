@@ -172,8 +172,46 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
 
 }
 
+
 template <class TargetSpace, int dim>
 void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+{
+    
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    //  Test mixed third derivative with respect to first (once) and second (twice) argument
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    
+    Tensor3<double,dim,dim,dim> d2d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
+    
+    Tensor3<double,dim,dim,dim> d2d2d2_fd;
+    
+    for (size_t i=0; i<dim; i++) {
+        
+        FieldVector<double,dim> bPlus  = b.globalCoordinates();
+        FieldVector<double,dim> bMinus = b.globalCoordinates();
+        bPlus[i]  += eps;
+        bMinus[i] -= eps;
+
+        FieldMatrix<double,dim,dim> hPlus  = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(a,TargetSpace(bPlus));
+        FieldMatrix<double,dim,dim> hMinus = getSecondDerivativeOfSecondArgumentFD<TargetSpace,dim>(a,TargetSpace(bMinus));
+        
+        d2d2d2_fd[i] = hPlus;
+        d2d2d2_fd[i] -= hMinus;
+        d2d2d2_fd[i] /= 2*eps;
+        
+    }
+    
+    if ( (d2d2d2 - d2d2d2_fd).infinity_norm() > 100*eps) {
+        std::cout << className(a) << ": Analytical third derivative does not match fd approximation." << std::endl;
+        std::cout << "d2d2d2 Analytical:" << std::endl << d2d2d2 << std::endl;
+        std::cout << "d2d2d2 FD        :" << std::endl << d2d2d2_fd << std::endl;
+    }
+
+}
+
+
+template <class TargetSpace, int dim>
+void testMixedDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
 {
     
     /////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,10 +270,16 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
     testMixedDerivativesOfSquaredDistance<TargetSpace,dim>(a,b);
     
     /////////////////////////////////////////////////////////////////////////////////////////////
-    //  Test mixed third derivative with respect to first (once) and second (twice) argument
+    //  Test third derivative with respect to second argument
     /////////////////////////////////////////////////////////////////////////////////////////////
     
     testDerivativeOfHessianOfSquaredDistance<TargetSpace,dim>(a,b);
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    //  Test mixed third derivative with respect to first (once) and second (twice) argument
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    
+    testMixedDerivativeOfHessianOfSquaredDistance<TargetSpace,dim>(a,b);
 
 }
 
@@ -296,11 +340,11 @@ int main()
     testUnitVector3d();
    
     // Set up elements of R^1
-    Dune::FieldVector<double,2> rtw0;  rtw0[0] = 0;  rtw0[1] = 1;
+/*    Dune::FieldVector<double,2> rtw0;  rtw0[0] = 0;  rtw0[1] = 1;
     RealTuple<2> rt0(rtw0);
     Dune::FieldVector<double,2> rtw1;  rtw1[0] = 1;  rtw1[1] = 0;
     RealTuple<2> rt1(rtw1);
-    testDerivativesOfSquaredDistance<RealTuple<2>, 2>(rt0, rt1);
+    testDerivativesOfSquaredDistance<RealTuple<2>, 2>(rt0, rt1);*/
 //     Dune::array<double,3> w3_0 = {{0,1,0}};
 //     UnitVector<3> v3_0(w3_0);
 //     Dune::array<double,3> w3_1 = {{1,1,0}};
