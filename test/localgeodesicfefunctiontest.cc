@@ -131,6 +131,54 @@ void testDerivative(const std::vector<TargetSpace>& corners)
     }
 }
 
+
+template <int domainDim, class TargetSpace>
+void testDerivativeOfValueWRTCoefficients(const std::vector<TargetSpace>& corners)
+{
+    // Make local fe function to be tested
+    LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
+
+    // A quadrature rule as a set of test points
+    int quadOrder = 1;
+    
+    const Dune::QuadratureRule<double, domainDim>& quad 
+        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
+    
+    for (size_t pt=0; pt<quad.size(); pt++) {
+        
+        Dune::FieldVector<double,domainDim> quadPos = quad[pt].position();
+        
+        // loop over the coefficients
+        for (size_t i=0; i<corners.size(); i++) {
+
+            // evaluate actual derivative
+            FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size> derivative;
+            f.evaluateDerivativeOfValueWRTCoefficient(quadPos, i, derivative);
+
+            // evaluate fd approximation of derivative
+            FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size> fdDerivative;
+            f.evaluateFDDerivativeOfValueWRTCoefficient(quadPos, i, fdDerivative);
+
+            if ( (derivative - fdDerivative).infinity_norm() > eps ) {
+                std::cout << className(corners[0]) << ": Analytical derivative of value does not match fd approximation." << std::endl;
+                std::cout << "coefficient: " << i << std::endl;
+                std::cout << "quad pos: " << quadPos << std::endl;
+                std::cout << "gfe: ";
+                for (int j=0; j<domainDim+1; j++)
+                    std::cout << ",   " << corners[j];
+                std::cout << std::endl;
+                std::cout << "Analytical:\n " << derivative << std::endl;
+                std::cout << "FD        :\n " << fdDerivative << std::endl;
+                assert(false);
+            }
+
+            //testDerivativeTangentiality(f.evaluate(quadPos), derivative);
+
+        }
+        
+    }
+}
+
 template <int domainDim, class TargetSpace>
 void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& corners)
 {
@@ -160,12 +208,15 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
 
             if ( (derivative - fdDerivative).infinity_norm() > eps ) {
                 std::cout << className(corners[0]) << ": Analytical derivative of gradient does not match fd approximation." << std::endl;
+                std::cout << "coefficient: " << i << std::endl;
+                std::cout << "quad pos: " << quadPos << std::endl;
                 std::cout << "gfe: ";
                 for (int j=0; j<domainDim+1; j++)
                     std::cout << ",   " << corners[j];
                 std::cout << std::endl;
                 std::cout << "Analytical:\n " << derivative << std::endl;
                 std::cout << "FD        :\n " << fdDerivative << std::endl;
+                assert(false);
             }
 
             //testDerivativeTangentiality(f.evaluate(quadPos), derivative);
@@ -206,7 +257,7 @@ void testUnitVector2d()
     
     MultiIndex<domainDim+1> index(nTestPoints);
     int numIndices = index.cycle();
-
+    
     for (int i=0; i<numIndices; i++, ++index) {
         
         for (int j=0; j<domainDim+1; j++) {
@@ -225,8 +276,9 @@ void testUnitVector2d()
         
         //testPermutationInvariance(corners);
         testDerivative<domainDim>(corners);
+        testDerivativeOfValueWRTCoefficients<domainDim>(corners);
         testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
-                
+
     }
 
 }
@@ -259,6 +311,7 @@ void testUnitVector3d()
 
         //testPermutationInvariance(corners);
         testDerivative<domainDim>(corners);
+        testDerivativeOfValueWRTCoefficients<domainDim>(corners);
         testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
                 
     }
