@@ -35,6 +35,13 @@ class Tensor3
             return norm;
         }
         
+        Tensor3<T,N1,N2,N3>& axpy(const T& alpha, const Tensor3<T,N1,N2,N3>& other)
+        {
+            for (int i=0; i<N1; i++)
+                (*this)[i].axpy(alpha,other[i]);
+            return *this;
+        }
+        
         static Tensor3<T,N1,N2,N3> product(const Dune::FieldVector<T,N1>& a, const Dune::FieldVector<T,N2>& b, const Dune::FieldVector<T,N3>& c)
         {
             Tensor3<T,N1,N2,N3> result;
@@ -82,6 +89,22 @@ class Tensor3
                         result[i][j][k] = 0;
                         for (int l=0; l<N3; l++)
                             result[i][j][k] += a[i][j][l]*b[l][k];
+                    }
+                    
+            return result;
+        }
+
+        template <int N4>
+        friend Tensor3<T,N1,N3,N4> operator*(const Dune::FieldMatrix<T,N1,N2>& a, const Tensor3<T,N2,N3,N4>& b)
+        {
+            Tensor3<T,N1,N3,N4> result;
+            
+            for (int i=0; i<N1; i++)
+                for (int j=0; j<N3; j++)
+                    for (int k=0; k<N4; k++) {
+                        result[i][j][k] = 0;
+                        for (int l=0; l<N2; l++)
+                            result[i][j][k] += a[i][l]*b[l][j][k];
                     }
                     
             return result;
