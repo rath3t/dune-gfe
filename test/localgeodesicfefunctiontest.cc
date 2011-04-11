@@ -348,6 +348,8 @@ int main()
     // choke on NaN
     feenableexcept(FE_INVALID);
 
+    std::cout << std::setw(15) << std::setprecision(12);
+    
     //testRealTuples<1>();
     testUnitVector2d<1>();
     testUnitVector3d<1>();
