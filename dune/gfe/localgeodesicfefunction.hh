@@ -364,27 +364,8 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
         LocalGeodesicFEFunction<dim,double,TargetSpace> fPlus(cornersPlus);
         LocalGeodesicFEFunction<dim,double,TargetSpace> fMinus(cornersMinus);
                 
-        Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> h      = evaluateDerivative(local);
         Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hPlus  = fPlus.evaluateDerivative(local);
         Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hMinus = fMinus.evaluateDerivative(local);
-                
-#if 0
-        double l      = sqrt(h[0][0]*h[0][0] + h[1][0]*h[1][0]);
-        double lPlus  = sqrt(hPlus[0][0]*hPlus[0][0] + hPlus[1][0]*hPlus[1][0]);
-        double lMinus = sqrt(hMinus[0][0]*hMinus[0][0] + hMinus[1][0]*hMinus[1][0]);
-        std::cout << "h:\n" << h  << "length: " << l << std::endl<< std::endl;
-        std::cout << "hPlus:\n" << hPlus  << "length: " << lPlus << std::endl<< std::endl;
-        std::cout << "hMinus:\n" << hMinus << "length: " << lMinus << std::endl << std::endl;
-#endif
-/*                h /= l;
-                hPlus /= lPlus;
-                hMinus /= lMinus;*/
-                
-/*                hPlus -= h;
-                h -= hMinus;*/
-                
-/*                std::cout << "forward:\n" << hPlus << std::endl;
-                std::cout << "backward:\n" << h << std::endl;*/
                 
         result[j]  = hPlus;
         result[j] -= hMinus;
