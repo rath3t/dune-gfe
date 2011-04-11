@@ -139,7 +139,7 @@ void testDerivativeOfValueWRTCoefficients(const std::vector<TargetSpace>& corner
     LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
 
     // A quadrature rule as a set of test points
-    int quadOrder = 1;
+    int quadOrder = 3;
     
     const Dune::QuadratureRule<double, domainDim>& quad 
         = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
