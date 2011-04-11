@@ -156,29 +156,8 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
 
             // evaluate fd approximation of derivative
             Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, domainDim> fdDerivative;
+            f.evaluateFDDerivativeOfGradientWRTCoefficient(quadPos, i, fdDerivative);
 
-            for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
-                
-                std::vector<TargetSpace> cornersPlus  = corners;
-                std::vector<TargetSpace> cornersMinus = corners;
-                typename TargetSpace::CoordinateType aPlus  = corners[i].globalCoordinates();
-                typename TargetSpace::CoordinateType aMinus = corners[i].globalCoordinates();
-                aPlus[j]  += eps;
-                aMinus[j] -= eps;
-                cornersPlus[i]  = TargetSpace(aPlus);
-                cornersMinus[i] = TargetSpace(aMinus);
-                LocalGeodesicFEFunction<domainDim,double,TargetSpace> fPlus(cornersPlus);
-                LocalGeodesicFEFunction<domainDim,double,TargetSpace> fMinus(cornersMinus);
-                
-                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,domainDim> hPlus  = fPlus.evaluateDerivative(quadPos);
-                FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,domainDim> hMinus = fMinus.evaluateDerivative(quadPos);
-        
-                fdDerivative[j]  = hPlus;
-                fdDerivative[j] -= hMinus;
-                fdDerivative[j] /= 2*eps;
-                
-            }
-            
             if ( (derivative - fdDerivative).infinity_norm() > eps ) {
                 std::cout << className(corners[0]) << ": Analytical derivative of gradient does not match fd approximation." << std::endl;
                 std::cout << "gfe: ";
