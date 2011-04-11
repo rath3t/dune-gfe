@@ -227,6 +227,41 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
+    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
+
+        Tensor3<double,N,N,N> result;
+
+        double sp = p.data_ * q.data_;
+        
+        // The projection matrix onto the tangent space at p and q
+        Dune::FieldMatrix<double,N,N> Pq;
+        for (int i=0; i<N; i++)
+            for (int j=0; j<N; j++)
+                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
+            
+        Dune::FieldVector<double,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+
+        for (int i=0; i<N; i++)
+            for (int j=0; j<N; j++)
+                for (int k=0; k<N; k++) {
+
+                    result[i][j][k] = thirdDerivativeOfArcCosSquared(sp) * pProjected[i] * pProjected[j] * pProjected[k]
+                                    - secondDerivativeOfArcCosSquared(sp) * ((i==j)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[j])*pProjected[k]
+                                    - secondDerivativeOfArcCosSquared(sp) * ((i==k)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[k])*pProjected[j]
+                                    - secondDerivativeOfArcCosSquared(sp) * pProjected[i] * Pq[j][k] * sp
+                                    + derivativeOfArcCosSquared(sp) * ((i==j)*q.globalCoordinates()[k] + (i==k)*q.globalCoordinates()[j]) * sp
+                                    - derivativeOfArcCosSquared(sp) * p.globalCoordinates()[i] * Pq[j][k];
+                }
+                
+        result = Pq * result;
+                
+        return result;
+    }    
+        
+    /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
     static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const UnitVector& p, const UnitVector& q) {
 
         Tensor3<double,N,N,N> result;
