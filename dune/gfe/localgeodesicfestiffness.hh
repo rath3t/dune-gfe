@@ -468,7 +468,7 @@ public:
             LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, forwardSolution, forwardGradient,this);
             LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, backwardSolution, backwardGradient,this);
 
-            for (int k=0; k<localSolution.size(); k++)
+            for (size_t k=0; k<localSolution.size(); k++)
                 for (int l=0; l<embeddedBlocksize; l++)
                     gradient[k][j][l] = (forwardGradient[k][l] - backwardGradient[k][l]) / (2*eps);
 
@@ -516,7 +516,7 @@ assembleHessian(const Entity& element,
          const std::vector<TargetSpace>& localSolution)
 {
     // 1 degree of freedom per element vertex
-    int nDofs = element.template count<gridDim>();
+    size_t nDofs = element.template count<gridDim>();
 
     // Clear assemble data
     A_.setSize(nDofs, nDofs);
@@ -539,7 +539,7 @@ assembleHessian(const Entity& element,
 
         embeddedGradientOfEmbeddedGradient(element,localSolution, i, embeddedGradient);
 
-        for (int j=0; j<localSolution.size(); j++)
+        for (size_t j=0; j<localSolution.size(); j++)
             embeddedHessian[i][j] = embeddedGradient[j];
 
     }
