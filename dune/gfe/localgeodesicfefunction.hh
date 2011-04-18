@@ -90,12 +90,12 @@ public:
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const;
+                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const;
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const;
+                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const;
 
 private:
 
@@ -287,7 +287,7 @@ template <int dim, class ctype, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                            int coefficient,
-                                           Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const
+                                           Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
 {
     const int embeddedDim = EmbeddedTangentVector::size;
     
@@ -348,7 +348,7 @@ template <int dim, class ctype, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                            int coefficient,
-                                           Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim>& result) const
+                                           Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
 {
     double eps = 1e-6;
     for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
