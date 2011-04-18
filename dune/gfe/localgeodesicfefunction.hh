@@ -87,6 +87,16 @@ public:
     /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
     Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
     
+    /** \brief Evaluate the derivative of the function value with respect to a coefficient */
+    void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                                 int coefficient,
+                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const;
+    
+    /** \brief Evaluate the derivative of the function value with respect to a coefficient */
+    void evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                                 int coefficient,
+                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const;
+    
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
@@ -156,6 +166,15 @@ private:
                 dFdw[j][i] = tmp[j];
         }
         return dFdw;
+    }
+    
+    Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<ctype>& w, const TargetSpace& q) const
+    {
+        Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> result;
+        result = 0;
+        for (int i=0; i<dim+1; i++)
+            result.axpy(w[i], TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i],q));
+        return result;
     }
     
     /** \brief The coefficient vector */
@@ -285,6 +304,66 @@ evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
 
 template <int dim, class ctype, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
+evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                        int coefficient,
+                                        Dune::FieldMatrix<double,embeddedDim,embeddedDim>& result) const
+{
+    // the function value at the point where we are evaluating the derivative
+    TargetSpace q = evaluate(local);
+
+    // dFdq
+    std::vector<ctype> w = barycentricCoordinates(local);
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
+    
+    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
+    assembler.assembleEmbeddedHessian(q,dFdq);
+
+    // dFDq is not invertible, if the target space is embedded into a higher-dimensional
+    // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
+    // best way, though.
+    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq);
+
+    //
+    result = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
+    result *= -w[coefficient];
+    
+    result = result * dFdqPseudoInv;
+}
+
+template <int dim, class ctype, class TargetSpace>
+void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
+evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                          int coefficient,
+                                          Dune::FieldMatrix<double,embeddedDim,embeddedDim>& result) const
+{
+    double eps = 1e-6;
+    for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
+                
+        std::vector<TargetSpace> cornersPlus  = coefficients_;
+        std::vector<TargetSpace> cornersMinus = coefficients_;
+        typename TargetSpace::CoordinateType aPlus  = coefficients_[coefficient].globalCoordinates();
+        typename TargetSpace::CoordinateType aMinus = coefficients_[coefficient].globalCoordinates();
+        aPlus[j]  += eps;
+        aMinus[j] -= eps;
+        cornersPlus[coefficient]  = TargetSpace(aPlus);
+        cornersMinus[coefficient] = TargetSpace(aMinus);
+        LocalGeodesicFEFunction<dim,double,TargetSpace> fPlus(cornersPlus);
+        LocalGeodesicFEFunction<dim,double,TargetSpace> fMinus(cornersMinus);
+                
+        TargetSpace hPlus  = fPlus.evaluate(local);
+        TargetSpace hMinus = fMinus.evaluate(local);
+                
+        result[j]  = hPlus.globalCoordinates();
+        result[j] -= hMinus.globalCoordinates();
+        result[j] /= 2*eps;
+                
+    }
+    
+}
+
+
+template <int dim, class ctype, class TargetSpace>
+void LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                            int coefficient,
                                            Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
@@ -325,20 +404,42 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     dvDqF = w[coefficient] * dvDqF;
        
     // Put it all together
-#if 0
-    for (size_t i=0; i<result.size(); i++)
-        result[i] = dFdqPseudoInv * ( dvDqF[i] * dFdqPseudoInv * dFdw - dvDwF[i]) * B;   
-#else
-    Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> derivative = evaluateDerivative(local);
-    Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,dim> foo;
-    foo = -1 * dvDwF * B - dvDqF*derivative;
+    Dune::FieldMatrix<double,embeddedDim,embeddedDim> dvq;
+    evaluateDerivativeOfValueWRTCoefficient(local,coefficient,dvq);
+    
+    Dune::FieldMatrix<ctype, embeddedDim, dim> derivative = evaluateDerivative(local);
+    
+    Tensor3<double, embeddedDim,embeddedDim,embeddedDim> dqdqF;
+    dqdqF = computeDqDqF(w,q);
+
+    Tensor3<double, embeddedDim,embeddedDim,dim+1> dqdwF;
+
+    for (int k=0; k<dim+1; k++) {
+        Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
+        for (int i=0; i<embeddedDim; i++)
+            for (int j=0; j<embeddedDim; j++)
+                dqdwF[i][j][k] = hesse[i][j];
+    }
+
+    Tensor3<double, embeddedDim,embeddedDim,dim+1> dqdwF_times_dvq;
+    for (int i=0; i<embeddedDim; i++)
+        for (int j=0; j<embeddedDim; j++)
+            for (int k=0; k<dim+1; k++) {
+                dqdwF_times_dvq[i][j][k] = 0;
+                for (int l=0; l<embeddedDim; l++)
+                    dqdwF_times_dvq[i][j][k] += dqdwF[l][j][k] * dvq[l][i];
+            }
+
+    Tensor3<double, embeddedDim,embeddedDim,dim> foo;
+    foo =  -1 * dvDqF*derivative - (dvq*dqdqF)*derivative - dvDwF * B - dqdwF_times_dvq*B;
+    
     result = 0;
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
             for (int k=0; k<dim; k++)
                 for (int l=0; l<embeddedDim; l++)
                     result[i][j][k] += dFdqPseudoInv[j][l] * foo[i][l][k];
-#endif
+
 }
 
 
