@@ -42,12 +42,6 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 
     innerSolver_->useRelativeError_ = false;
 
-    // //////////////////////////////////////////////////////////
-    //   Create obstacles
-    // //////////////////////////////////////////////////////////
-    
-    //innerSolverStep->hasObstacle_ = &dummyObstacle_;
-    
 }
 
 
@@ -79,9 +73,6 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         assembler_->assembleGradient(x_, rhs[0]);
         assembler_->assembleHessianApproximation(x_, hesseMatrix[0][0]);
 
-        //gradientFDCheck(x_, rhs, *rodAssembler_);
-        //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
-
         // The right hand side is the _negative_ gradient
         rhs *= -1;
 
@@ -99,9 +90,6 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         
         corr = innerSolver_->iterationStep_->getSol();
         
-        //std::cout << "Correction: " << std::endl << corr << std::endl;
-        
-
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
