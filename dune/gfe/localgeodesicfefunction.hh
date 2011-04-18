@@ -228,7 +228,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
-    assembler.assembleHessian(q,dFdq);
+    assembler.assembleEmbeddedHessian(q,dFdq);
 
     // ////////////////////////////////////
     //   solve the system
@@ -305,7 +305,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
-    assembler.assembleHessian(q,dFdq);
+    assembler.assembleEmbeddedHessian(q,dFdq);
     
    
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> mixedDerivative = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);

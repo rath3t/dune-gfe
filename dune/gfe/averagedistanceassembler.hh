@@ -65,7 +65,7 @@ public:
                 matrix[i][j] = (i==j);
     }
 
-    void assembleHessian(const TargetSpace& x,
+    void assembleEmbeddedHessian(const TargetSpace& x,
                          Dune::FieldMatrix<double,embeddedSize,embeddedSize>& matrix) const
     {
         matrix = 0;
