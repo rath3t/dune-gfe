@@ -289,8 +289,6 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
                                            int coefficient,
                                            Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
 {
-    const int embeddedDim = EmbeddedTangentVector::size;
-    
     // the function value at the point where we are evaluating the derivative
     TargetSpace q = evaluate(local);
 
