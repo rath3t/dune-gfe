@@ -220,6 +220,10 @@ public:
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<Dune::FieldVector<double,blocksize> >& gradient) const;
 
+    virtual void assembleEmbeddedFDGradient(const Entity& element,
+                                  const std::vector<TargetSpace>& solution,
+                                  std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
+
     // assembled data
     Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
     
@@ -234,6 +238,14 @@ assembleGradient(const Entity& element,
     LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleGradient(element, localSolution, localGradient, this);
 }
 
+template <class GridView, class TargetSpace>
+void LocalGeodesicFEStiffness<GridView, TargetSpace>::
+assembleEmbeddedFDGradient(const Entity& element,
+                 const std::vector<TargetSpace>& localSolution,
+                 std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
+{
+    LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
+}
 
 template <class GridView, class TargetSpace>
 void LocalGeodesicFEStiffness<GridView,TargetSpace>::
@@ -423,14 +435,13 @@ public:
     virtual RT energy (const Entity& e,
                        const std::vector<TargetSpace>& localSolution) const = 0;
 
-#if 0
-    /** \brief Assemble the element gradient of the energy functional 
+    /** \brief Assemble the element gradient of the energy functional using a finite-difference approximation
 
-    The default implementation in this class uses a finite difference approximation */
-    virtual void assembleEmbeddedGradient(const Entity& element,
-                                          const std::vector<TargetSpace>& solution,
-                                          std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
-#endif
+    This is mainly for debugging purposes.
+    */
+    virtual void assembleEmbeddedFDGradient(const Entity& element,
+                                            const std::vector<TargetSpace>& solution,
+                                            std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
                                           
     /** \brief Assemble the element gradient of the energy functional 
 
@@ -506,6 +517,16 @@ assembleGradient(const Entity& element,
 {
     LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleGradient(element, localSolution, localGradient,this);
 }
+
+template <class GridView, int dim>
+void LocalGeodesicFEStiffness<GridView, UnitVector<dim> >::
+assembleEmbeddedFDGradient(const Entity& element,
+                 const std::vector<TargetSpace>& localSolution,
+                 std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
+{
+    LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
+}
+
 
 // ///////////////////////////////////////////////////////////
 //   Compute gradient by finite-difference approximation
