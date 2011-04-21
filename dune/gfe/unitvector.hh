@@ -15,7 +15,7 @@ class UnitVector
 {
     /** \brief Computes sin(x/2) / x without getting unstable for small x */
     static double sinc(const double& x) {
-        return (x < 1e-4) ? 1 + (x*x/6) : std::sin(x)/x;
+        return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
     }
 
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
