@@ -20,9 +20,9 @@ class UnitVector
 
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
     static double derivativeOfArcCosSquared(const double& x) {
-        const double eps = 1e-12;
+        const double eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
+            return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1);
         } else if (x < -1+eps) {  // The function is not differentiable
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else
@@ -31,7 +31,7 @@ class UnitVector
 
     /** \brief Compute the second derivative of arccos^2 without getting unstable for x close to 1 */
     static double secondDerivativeOfArcCosSquared(const double& x) {
-        const double eps = 1e-12;
+        const double eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return 2.0/3 - 8*(x-1)/15;
         } else if (x < -1+eps) {  // The function is not differentiable
@@ -42,7 +42,7 @@ class UnitVector
 
     /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
     static double thirdDerivativeOfArcCosSquared(const double& x) {
-        const double eps = 1e-12;
+        const double eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return -8.0/15 + 24*(x-1)/35;
         } else if (x < -1+eps) {  // The function is not differentiable
