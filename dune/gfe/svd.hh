@@ -6,6 +6,7 @@
 
 #include <cmath>
 
+#include <dune/common/fmatrix.hh>
 
 template <class T>
 T SQR(const T& a) {return a*a;}
