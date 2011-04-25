@@ -223,7 +223,7 @@ public:
     }
     
     
-    /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
+    /** \brief Compute the third derivative \partial d^3 / \partial da db^2
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
