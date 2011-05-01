@@ -13,7 +13,7 @@
 template <int N>
 class UnitVector
 {
-    /** \brief Computes sin(x/2) / x without getting unstable for small x */
+    /** \brief Computes sin(x) / x without getting unstable for small x */
     static double sinc(const double& x) {
         return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
     }
