@@ -212,7 +212,7 @@ int main (int argc, char *argv[]) try
     std::ofstream logFile("harmonicmaps-eoc.results");
     logFile << "# vertices max-norm, L2-norm, h1-seminorm" << std::endl;
     
-    for (int i=1; i<=numLevels; i++) {
+    for (int i=1; i<numLevels; i++) {
 
         shared_ptr<GridType> grid;
         if (parameterSet.get<std::string>("gridType")=="structured") {
