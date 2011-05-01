@@ -5,6 +5,8 @@
 
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
+#include <dune/solvers/iterationsteps/trustregiongsstep.hh>
+#include <dune/solvers/norms/energynorm.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class TargetSpace>
@@ -73,6 +75,12 @@ protected:
     /** \brief The solver for the quadratic inner problems */
     std::auto_ptr< ::LoopSolver<CorrectionType> > innerSolver_;
 
+    /** \brief The iteration step for the quadratic inner problems */
+    std::auto_ptr<TrustRegionGSStep<MatrixType, CorrectionType> > innerSolverStep_;
+    
+    /** \brief Norm for the quadratic inner problems */
+    std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> > energyNorm_;
+    
 //     /** \brief Dummy field for the trustregiongsstep */
 //     Dune::BitSetVector<blocksize> dummyObstacle_;
 

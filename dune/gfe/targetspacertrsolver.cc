@@ -30,14 +30,14 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     // ////////////////////////////////
 
     // First create a Gauss-seidel base solver
-    TrustRegionGSStep<MatrixType, CorrectionType>* innerSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
+    innerSolverStep_ = std::auto_ptr<TrustRegionGSStep<MatrixType, CorrectionType> >(new TrustRegionGSStep<MatrixType, CorrectionType>);
 
-    EnergyNorm<MatrixType, CorrectionType>* energyNorm = new EnergyNorm<MatrixType, CorrectionType>(*innerSolverStep);
+    energyNorm_ = std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> >(new EnergyNorm<MatrixType, CorrectionType>(*innerSolverStep_.get()));
 
-    innerSolver_ = std::auto_ptr< ::LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(innerSolverStep,
+    innerSolver_ = std::auto_ptr< ::LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(innerSolverStep_.get(),
                                                                                                   innerIterations,
                                                                                                   innerTolerance,
-                                                                                                  energyNorm,
+                                                                                                  energyNorm_.get(),
                                                                                                   Solver::QUIET));
 
     innerSolver_->useRelativeError_ = false;
