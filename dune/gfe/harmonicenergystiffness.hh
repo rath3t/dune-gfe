@@ -137,7 +137,12 @@ assembleEmbeddedGradient(const Entity& element,
         for (size_t i=0; i<localSolution.size(); i++) {
          
             Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,gridDim> referenceDerivativeDerivative;
+#ifdef HARMONIC_ENERGY_FD_INNER_GRADIENT
+#warning Using finite differences to compute the inner gradients!
+            localGeodesicFEFunction.evaluateFDDerivativeOfGradientWRTCoefficient(quadPos, i, referenceDerivativeDerivative);
+#else
             localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, referenceDerivativeDerivative);
+#endif
             
             // multiply the transformation from the reference element to the actual element
             Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,gridDim> derivativeDerivative;
