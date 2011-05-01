@@ -33,6 +33,8 @@ public:
                const std::vector<TargetSpace>& localSolution) const;
 
 #ifndef HARMONIC_ENERGY_FD_GRADIENT
+    // The finite difference gradient method is in the base class.
+    // If the cpp macro is not set we overload it here.
     /** \brief Assemble the gradient of the energy functional on one element */
     virtual void assembleEmbeddedGradient(const Entity& element,
                                   const std::vector<TargetSpace>& solution,
