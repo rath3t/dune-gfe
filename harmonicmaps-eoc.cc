@@ -10,6 +10,7 @@
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
+#include <dune/grid/io/file/amirameshreader.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
@@ -26,7 +27,7 @@
 #include <dune/gfe/geodesicfefunctionadaptor.hh>
 
 // grid dimension
-const int dim = 2;
+const int dim = 3;
 
 typedef UnitVector<3> TargetSpace;
 typedef std::vector<TargetSpace> SolutionType;
@@ -156,15 +157,11 @@ int main (int argc, char *argv[]) try
     const int baseIterations      = parameterSet.get<int>("baseIt");
     const double baseTolerance    = parameterSet.get<double>("baseTolerance");
 
+    // only if a structured grid is used
     const int numBaseElements = parameterSet.get<int>("numBaseElements");
+    FieldVector<double,dim> lowerLeft  = parameterSet.get<FieldVector<double,dim> >("lowerLeft");
+    FieldVector<double,dim> upperRight = parameterSet.get<FieldVector<double,dim> >("upperRight");
     
-    // /////////////////////////////////////////
-    //   Read Dirichlet values
-    // /////////////////////////////////////////
-
-    
-
-
     // ///////////////////////////////////////////////////////////
     //   First compute the 'exact' solution on a very fine grid
     // ///////////////////////////////////////////////////////////
@@ -172,14 +169,18 @@ int main (int argc, char *argv[]) try
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
 
     //    Create the reference grid
-
-    array<unsigned int,dim> elements;
-    elements.fill(numBaseElements);
-    FieldVector<double,dim> lowerLeft  = parameterSet.get<FieldVector<double,dim> >("lowerLeft");
-    FieldVector<double,dim> upperRight = parameterSet.get<FieldVector<double,dim> >("upperRight");
-    shared_ptr<GridType> referenceGrid = StructuredGridFactory<GridType>::createSimplexGrid(lowerLeft,
-                                                                                            upperRight,
-                                                                                            elements);
+    shared_ptr<GridType> referenceGrid;
+    
+    if (parameterSet.get<std::string>("gridType")=="structured") {
+        array<unsigned int,dim> elements;
+        elements.fill(numBaseElements);
+        referenceGrid = StructuredGridFactory<GridType>::createSimplexGrid(lowerLeft,
+                                                                           upperRight,
+                                                                           elements);
+    } else {
+        referenceGrid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(parameterSet.get<std::string>("gridFile")));
+    }
+    
     referenceGrid->globalRefine(numLevels-1);
 
     //  Solve the rod Dirichlet problem
@@ -209,11 +210,16 @@ int main (int argc, char *argv[]) try
     
     for (int i=1; i<=numLevels; i++) {
 
-        array<unsigned int,dim> elements;
-        elements.fill(numBaseElements);
-        shared_ptr<GridType> grid = StructuredGridFactory<GridType>::createSimplexGrid(lowerLeft,
-                                                                                       upperRight,
-                                                                                       elements);
+        shared_ptr<GridType> grid;
+        if (parameterSet.get<std::string>("gridType")=="structured") {
+            array<unsigned int,dim> elements;
+            elements.fill(numBaseElements);
+            grid = StructuredGridFactory<GridType>::createSimplexGrid(lowerLeft,
+                                                                      upperRight,
+                                                                      elements);
+        } else {
+            grid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(parameterSet.get<std::string>("gridFile")));
+        }
 
         grid->globalRefine(i-1);
 
@@ -238,17 +244,6 @@ int main (int argc, char *argv[]) try
         for (int j=i; j<numLevels; j++)
             geodesicFEFunctionAdaptor(*grid, solution);
 
-        //assert(referenceSolution.size() == solution.size());
-#if 0
-        xEmbedded.resize(solution.size());
-        for (int j=0; j<solution.size(); j++)
-            xEmbedded[j] = solution[j].globalCoordinates();
-
-        LeafAmiraMeshWriter<GridType> amirameshRefined;
-        amirameshRefined.addGrid(grid->leafView());
-        amirameshRefined.addVertexData(xEmbedded, grid->leafView());
-        amirameshRefined.write("harmonic_result_" + numberAsAscii.str() + "_refined.am");
-#endif
         // Interpret TargetSpace as isometrically embedded into an R^m, because this is
         // how the corresponding Sobolev spaces are defined.
 
