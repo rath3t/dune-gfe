@@ -82,22 +82,6 @@ energy(const Entity& element,
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
 
-#if 0
-        // old debugging: the image of the derivative mapping must be tangent to the TargetSpace
-        TargetSpace value = localGeodesicFEFunction.evaluate(quadPos);
-
-        for (int i=0; i<gridDim; i++) {
-            double dotproduct = 0;
-            for (int j=0; j<4; j++)
-                dotproduct += value[j]*derivative[j][i];
-            assert(std::fabs(dotproduct) < 1e-6);
-        }
-#endif
-
-#if 0
-        std::cout << "Derivative norm squared: " << derivative.frobenius_norm2() << std::endl;
-#endif
-
         // Add the local energy density
         // The Frobenius norm is the correct norm here if the metric of TargetSpace is the identity.
         // (And if the metric of the domain space is the identity, which it always is here.)
