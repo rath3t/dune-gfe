@@ -251,22 +251,45 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 
     // ////////////////////////////////////
     //   solve the system
+    //
+    // We want to solve
+    //     dFdq * x = rhs  
+    // However as dFdq is defined in the embedding space it has a positive rank.
+    // Hence we use the orthonormal frame at q to get rid of its kernel.
+    // That means we instead solve
+    // O dFdq O^T O x = O rhs
     // ////////////////////////////////////
+    
+    const int shortDim = TargetSpace::TangentVector::size;
+    
+    // the orthonormal frame
+    Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
 
-    // dFDq is not invertible, if the target space is embedded into a higher-dimensional
-    // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
-    // best way, though.
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq);
-
+    // compute A = O dFDq O^T
+    Dune::FieldMatrix<ctype,shortDim,shortDim> A;
+    for (int i=0; i<shortDim; i++)
+        for (int j=0; j<shortDim; j++) {
+            A[i][j] = 0;
+            for (int k=0; k<embeddedDim; k++)
+                for (int l=0; l<embeddedDim; l++)
+                    A[i][j] += O[i][k]*dFdq[k][l]*O[j][l];
+        }
+        
     for (int i=0; i<dim; i++) {
-
-        Dune::FieldVector<ctype,embeddedDim> rhs, x;
+        
+        Dune::FieldVector<ctype,embeddedDim> rhs;
         for (int j=0; j<embeddedDim; j++)
             rhs[j] = RHS[j][i];
-
-        //dFdq.solve(x, rhs);
-        dFdqPseudoInv.mv(rhs,x);
-
+        
+        Dune::FieldVector<ctype,shortDim> shortRhs;
+        O.mv(rhs,shortRhs);
+    
+        Dune::FieldVector<ctype,shortDim> shortX;
+        A.solve(shortX,shortRhs);
+    
+        Dune::FieldVector<ctype,embeddedDim> x;
+        O.mtv(shortX,x);
+    
         for (int j=0; j<embeddedDim; j++)
             result[j][i] = x[j];
 
