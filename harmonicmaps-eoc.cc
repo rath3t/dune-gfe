@@ -1,6 +1,7 @@
 #include <config.h>
 
-#define HARMONIC_ENERGY_FD_GRADIENT
+//#define HARMONIC_ENERGY_FD_GRADIENT
+#define HARMONIC_ENERGY_FD_INNER_GRADIENT
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
@@ -208,6 +209,9 @@ int main (int argc, char *argv[]) try
     //   Compute on all coarser levels, and compare
     // ///////////////////////////////////////////////////////////
     
+    std::ofstream logFile("harmonicmaps-eoc.results");
+    logFile << "# vertices max-norm, L2-norm, h1-seminorm" << std::endl;
+    
     for (int i=1; i<=numLevels; i++) {
 
         shared_ptr<GridType> grid;
@@ -256,6 +260,7 @@ int main (int argc, char *argv[]) try
         H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > l2Norm(massMatrix);
 
         // Compute max-norm difference
+        std::cout << "Vertices: " << xEmbedded.size() << std::endl;
         std::cout << "Level: " << i-1 
                   << ",   max-norm error: " << difference.infinity_norm()
                   << std::endl;
@@ -267,6 +272,11 @@ int main (int argc, char *argv[]) try
         std::cout << "Level: " << i-1 
                   << ",   H1 error: " << h1Norm(difference)
                   << std::endl;
+                  
+        logFile << xEmbedded.size() << "  " << difference.infinity_norm() 
+                << "  " << l2Norm(difference)
+                << "  " << h1Norm(difference)
+                << std::endl;
 
     }    
         
