@@ -544,13 +544,6 @@ assembleHessian(const Entity& element,
 
     A_ = 0;
 
-#if 0
-#warning Dummy Hessian implementation
-    for (int i=0; i<nDofs; i++)
-        for (int j=0; j<blocksize; j++)
-            A_[i][i][j][j] = 1;
-#else
-
     // first compute the Hessian in the embedding space
     Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
 
