@@ -4,6 +4,8 @@
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/rotation.hh>
 
+#include "valuefactory.hh"
+
 using Dune::FieldVector;
 
 
@@ -296,26 +298,22 @@ void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b
 
 void testUnitVector2d()
 {
-    int nTestPoints = 10;
-    double testPoints[10][2] = {{1,0}, {0.5,0.5}, {0,1}, {-0.5,0.5}, {-1,0}, {-0.5,-0.5}, {0,-1}, {0.5,-0.5}, {0.1,1}, {1,.1}};
+    std::vector<UnitVector<2> > testPoints;
+    ValueFactory<UnitVector<2> >::get(testPoints);
+    
+    int nTestPoints = testPoints.size();
     
     // Set up elements of S^1
     for (int i=0; i<nTestPoints; i++) {
         
-        Dune::array<double,2> w0 = {{testPoints[i][0], testPoints[i][1]}};
-        UnitVector<2> v0(w0);
-
-        testOrthonormalFrame<UnitVector<2>, 2>(v0);
+        testOrthonormalFrame<UnitVector<2>, 2>(testPoints[i]);
         
         for (int j=0; j<nTestPoints; j++) {
             
-            Dune::array<double,2> w1 = {{testPoints[j][0], testPoints[j][1]}};
-            UnitVector<2> v1(w1);
-        
-            if (UnitVector<2>::distance(v0,v1) > M_PI*0.98)
+            if (UnitVector<2>::distance(testPoints[i],testPoints[j]) > M_PI*0.98)
                 continue;
 
-            testDerivativesOfSquaredDistance<UnitVector<2>, 2>(v0, v1);
+            testDerivativesOfSquaredDistance<UnitVector<2>, 2>(testPoints[i], testPoints[j]);
             
         }
         
@@ -324,26 +322,19 @@ void testUnitVector2d()
 
 void testUnitVector3d()
 {
-    int nTestPoints = 10;
-    double testPoints[10][3] = {{1,0,0}, {0,1,0}, {-0.838114,0.356751,-0.412667},
-                               {-0.490946,-0.306456,0.81551},{-0.944506,0.123687,-0.304319},
-                               {-0.6,0.1,-0.2},{0.45,0.12,0.517},
-                               {-0.1,0.3,-0.1},{-0.444506,0.123687,0.104319},{-0.7,-0.123687,-0.304319}};
+    std::vector<UnitVector<3> > testPoints;
+    ValueFactory<UnitVector<3> >::get(testPoints);
+    
+    int nTestPoints = testPoints.size();
                                   
-    // Set up elements of S^1
+    // Set up elements of S^2
     for (int i=0; i<nTestPoints; i++) {
         
-        Dune::array<double,3> w0 = {{testPoints[i][0], testPoints[i][1], testPoints[i][2]}};
-        UnitVector<3> uv0(w0);
-
-        testOrthonormalFrame<UnitVector<3>, 3>(uv0);
+        testOrthonormalFrame<UnitVector<3>, 3>(testPoints[i]);
         
         for (int j=0; j<nTestPoints; j++) {
             
-            Dune::array<double,3> w1 = {{testPoints[j][0], testPoints[j][1], testPoints[j][2]}};
-            UnitVector<3> uv1(w1);
-        
-            testDerivativesOfSquaredDistance<UnitVector<3>, 3>(uv0, uv1);
+            testDerivativesOfSquaredDistance<UnitVector<3>, 3>(testPoints[i], testPoints[j]);
             
         }
         
