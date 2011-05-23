@@ -11,6 +11,8 @@
 #include <dune/common/exceptions.hh>
 
 #include "quaternion.hh"
+#include <dune/gfe/tensor3.hh>
+#include <dune/gfe/unitvector.hh>
 
 
 template <int dim, class T>
@@ -145,8 +147,14 @@ public:
     typedef T ctype;
 
     /** \brief Global coordinates wrt an isometric embedding function are available */
-    static const bool globalIsometricCoordinates = false;
+    static const bool globalIsometricCoordinates = true;
 
+    /** \brief The type used for global coordinates */
+    typedef Dune::FieldVector<double,4> CoordinateType;
+    
+    /** \brief Dimension of the manifold formed by the 3d rotations */
+    static const int dim = 3;
+    
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,3> TangentVector;
 
@@ -157,7 +165,21 @@ public:
     Rotation()
         : Quaternion<T>(0,0,0,1)
     {}
+    
+    Rotation<3,T>(const Dune::array<T,4>& c)
+    {
+        for (int i=0; i<4; i++)
+            (*this)[i] = c[i];
 
+        *this /= this->two_norm();
+    }
+    
+    Rotation<3,T>(const Dune::FieldVector<T,4>& c)
+        : Quaternion<T>(c)
+    {
+        *this /= this->two_norm();
+    }
+    
     Rotation<3,T>(Dune::FieldVector<T,3> axis, T angle) 
         : Quaternion<T>(axis, angle)
     {}
@@ -243,6 +265,27 @@ public:
         \param v A tangent vector in quaternion coordinates
      */
     static Rotation<3,T> exp(const Rotation<3,T>& p, const EmbeddedTangentVector& v) {
+        
+        assert( std::fabs(p*v) < 1e-8 );
+        
+        // The vector v as a quaternion
+        Quaternion<T> vQuat(v);
+        
+        // left multiplication by the inverse base point yields a tangent vector at the identity
+        Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
+        assert( std::fabs(vAtIdentity[3]) < 1e-8 );
+
+        // vAtIdentity as a skew matrix
+        TangentVector vMatrix;
+        vMatrix[0] = 2*vAtIdentity[0];
+        vMatrix[1] = 2*vAtIdentity[1];
+        vMatrix[2] = 2*vAtIdentity[2];
+        
+        // The actual exponential map
+        return exp(p, vMatrix);
+    }
+
+    static Rotation<3,T> exp(const Rotation<3,T>& p, const Dune::FieldVector<T,4>& v) {
         
         assert( std::fabs(p*v) < 1e-8 );
         
@@ -450,6 +493,69 @@ public:
         
         return projectedResult;
     }
+
+    /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Dune::FieldMatrix<double,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+        // use the functionality from the unitvector class
+        Dune::FieldMatrix<double,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
+                                                                                                                 q.globalCoordinates());
+        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
+        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
+        // squared distance needs to be multiplied by 4.
+        result *= 4;
+        return result;
+    }
+    
+    /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Dune::FieldMatrix<double,4,4> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+        // use the functionality from the unitvector class
+        Dune::FieldMatrix<double,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.globalCoordinates(),
+                                                                                                                         q.globalCoordinates());
+        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
+        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
+        // squared distance needs to be multiplied by 4.
+        result *= 4;
+        return result;
+    }
+    
+    /** \brief Compute the third derivative \partial d^3 / \partial dq^3
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Tensor3<double,4,4,4> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+        // use the functionality from the unitvector class
+        Tensor3<double,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
+                                                                                                        q.globalCoordinates());
+        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
+        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
+        // squared distance needs to be multiplied by 4.
+        result *= 4;
+        return result;
+    }
+    
+    /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Tensor3<double,4,4,4> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+        // use the functionality from the unitvector class
+        Tensor3<double,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.globalCoordinates(),
+                                                                                                                  q.globalCoordinates());
+        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
+        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
+        // squared distance needs to be multiplied by 4.
+        result *= 4;
+        return result;
+    }
+
+
+
     
     /** \brief Interpolate between two rotations */
     static Rotation<3,T> interpolate(const Rotation<3,T>& a, const Rotation<3,T>& b, double omega) {
@@ -605,6 +711,30 @@ public:
         } 
 
         return r;
+    }
+    
+    /** \brief Project tangent vector of R^n onto the tangent space */
+    EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
+        EmbeddedTangentVector result = v;
+        EmbeddedTangentVector data = *this;
+        result.axpy(-1*(data*result), data);
+        return result;
+    }
+    
+    /** \brief The global coordinates, if you really want them */
+    const CoordinateType& globalCoordinates() const {
+        return *this;
+    }
+
+    /** \brief Compute an orthonormal basis of the tangent space of S^n.
+
+    This basis is of course not globally continuous.
+    */
+    Dune::FieldMatrix<double,3,4> orthonormalFrame() const {
+        Dune::FieldMatrix<double,3,4> result;
+        for (int i=0; i<3; i++)
+            result[i] = B(i);
+        return result;
     }
     
 };
