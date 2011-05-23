@@ -351,7 +351,7 @@ void testUnitVector3d()
     
 }
 
-int main()
+int main() try
 {
     testUnitVector2d();
     testUnitVector3d();
@@ -389,5 +389,9 @@ int main()
     std::cout << UnitVector<2>::secondDerivativeOfDistanceSquaredWRTSecondArgument(uv0, uv1) << std::endl;
     std::cout << Rotation<2,double>::secondDerivativeOfDistanceSquaredWRTSecondArgument(ro0, ro1) << std::endl;
 #endif
+} catch (Exception e) {
+
+    std::cout << e << std::endl;
+
 }
 
