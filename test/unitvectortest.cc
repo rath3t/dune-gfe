@@ -70,7 +70,7 @@ FieldMatrix<double,worldDim,worldDim> getSecondDerivativeOfSecondArgumentFD(cons
     //B.invert();
     FieldMatrix<double,worldDim,spaceDim> BT;
     for (int i=0; i<worldDim; i++)
-        for (int j=0; j<spaceDim; j++)
+        for (size_t j=0; j<spaceDim; j++)
             BT[i][j] = B[j][i];
     
     
@@ -88,8 +88,8 @@ void testOrthonormalFrame(const TargetSpace& a)
     const size_t spaceDim = TargetSpace::dim;
     FieldMatrix<double,spaceDim,worldDim> B = a.orthonormalFrame();
 
-    for (int i=0; i<spaceDim; i++)
-        for (int j=0; j<spaceDim; j++)
+    for (size_t i=0; i<spaceDim; i++)
+        for (size_t j=0; j<spaceDim; j++)
             assert( std::fabs(B[i]*B[j] - (i==j)) < 1e-10 );
 }
 
@@ -302,14 +302,14 @@ void testUnitVector2d()
     // Set up elements of S^1
     for (int i=0; i<nTestPoints; i++) {
         
-        Dune::array<double,2> w0 = {testPoints[i][0], testPoints[i][1]};
+        Dune::array<double,2> w0 = {{testPoints[i][0], testPoints[i][1]}};
         UnitVector<2> v0(w0);
 
         testOrthonormalFrame<UnitVector<2>, 2>(v0);
         
         for (int j=0; j<nTestPoints; j++) {
             
-            Dune::array<double,2> w1 = {testPoints[j][0], testPoints[j][1]};
+            Dune::array<double,2> w1 = {{testPoints[j][0], testPoints[j][1]}};
             UnitVector<2> v1(w1);
         
             if (UnitVector<2>::distance(v0,v1) > M_PI*0.98)
@@ -333,14 +333,14 @@ void testUnitVector3d()
     // Set up elements of S^1
     for (int i=0; i<nTestPoints; i++) {
         
-        Dune::array<double,3> w0 = {testPoints[i][0], testPoints[i][1], testPoints[i][2]};
+        Dune::array<double,3> w0 = {{testPoints[i][0], testPoints[i][1], testPoints[i][2]}};
         UnitVector<3> uv0(w0);
 
         testOrthonormalFrame<UnitVector<3>, 3>(uv0);
         
         for (int j=0; j<nTestPoints; j++) {
             
-            Dune::array<double,3> w1 = {testPoints[j][0], testPoints[j][1], testPoints[j][2]};
+            Dune::array<double,3> w1 = {{testPoints[j][0], testPoints[j][1], testPoints[j][2]}};
             UnitVector<3> uv1(w1);
         
             testDerivativesOfSquaredDistance<UnitVector<3>, 3>(uv0, uv1);
