@@ -326,26 +326,19 @@ void testUnitVector()
 
 void testRotation3d()
 {
-    int nTestPoints = 10;
-    double testPoints[10][4] = {{1,0,0,0}, {0,1,0,0}, {-0.838114,0.356751,-0.412667,0.5},
-                               {-0.490946,-0.306456,0.81551,0.23},{-0.944506,0.123687,-0.304319,-0.7},
-                               {-0.6,0.1,-0.2,0.8},{0.45,0.12,0.517,0},
-                               {-0.1,0.3,-0.1,0.73},{-0.444506,0.123687,0.104319,-0.23},{-0.7,-0.123687,-0.304319,0.72}};
+    std::vector<Rotation<3,double> > testPoints;
+    ValueFactory<Rotation<3,double> >::get(testPoints);
+    
+    int nTestPoints = testPoints.size();
                                   
     // Set up elements of SO(3)
     for (int i=0; i<nTestPoints; i++) {
         
-        Dune::array<double,4> w0 = {{testPoints[i][0], testPoints[i][1], testPoints[i][2], testPoints[i][3]}};
-        Rotation<3,double> uv0(w0);
-
-        testOrthonormalFrame<Rotation<3,double>, 4>(uv0);
+        testOrthonormalFrame<Rotation<3,double>, 4>(testPoints[i]);
 
         for (int j=0; j<nTestPoints; j++) {
             
-            Dune::array<double,4> w1 = {{testPoints[j][0], testPoints[j][1], testPoints[j][2], testPoints[i][3]}};
-            Rotation<3,double> uv1(w1);
-        
-            testDerivativesOfSquaredDistance<Rotation<3,double>, 4>(uv0, uv1);
+            testDerivativesOfSquaredDistance<Rotation<3,double>, 4>(testPoints[i], testPoints[j]);
             
         }
 
