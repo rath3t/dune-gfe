@@ -147,6 +147,16 @@ class Tensor3
         
     }
 
+    Tensor3<T,N1,N2,N3>& operator*=(const T& scalar)
+    {
+        for (int i=0; i<N1; i++)
+            for (int j=0; j<N2; j++)
+                for (int k=0; k<N3; k++)
+                    (*this)[i][j][k] *= scalar;
+                    
+        return *this;
+    }
+
 };
 
 //! Output operator for array
