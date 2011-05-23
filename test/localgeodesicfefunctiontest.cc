@@ -12,6 +12,7 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include "multiindex.hh"
+#include "valuefactory.hh"
 
 const double eps = 1e-6;
 
@@ -256,8 +257,10 @@ void testUnitVector2d()
 
     typedef UnitVector<2> TargetSpace;
 
-    int nTestPoints = 10;
-    double testPoints[10][2] = {{1,0}, {0.5,0.5}, {0,1}, {-0.5,0.5}, {-1,0}, {-0.5,-0.5}, {0,-1}, {0.5,-0.5}, {0.1,1}, {1,.1}};
+    std::vector<TargetSpace> testPoints;
+    ValueFactory<TargetSpace>::get(testPoints);
+    
+    int nTestPoints = testPoints.size();
     
     // Set up elements of S^1
     std::vector<TargetSpace> corners(domainDim+1);
@@ -267,10 +270,8 @@ void testUnitVector2d()
     
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<domainDim+1; j++) {
-            Dune::array<double,2> w = {{testPoints[index[j]][0], testPoints[index[j]][1]}};
-            corners[j] = UnitVector<2>(w);
-        }
+        for (int j=0; j<domainDim+1; j++)
+            corners[j] = testPoints[index[j]];
 
         bool spreadOut = false;
         for (int j=0; j<domainDim+1; j++)
@@ -297,13 +298,12 @@ void testUnitVector3d()
 
     typedef UnitVector<3> TargetSpace;
 
-    int nTestPoints = 10;
-    double testPoints[10][3] = {{1,0,0}, {0,1,0}, {-0.838114,0.356751,-0.412667},
-                               {-0.490946,-0.306456,0.81551},{-0.944506,0.123687,-0.304319},
-                               {-0.6,0.1,-0.2},{0.45,0.12,0.517},
-                               {-0.1,0.3,-0.1},{-0.444506,0.123687,0.104319},{-0.7,-0.123687,-0.304319}};
+    std::vector<Rotation<3,double> > testPoints;
+    ValueFactory<Rotation<3,double> >::get(testPoints);
     
-    // Set up elements of S^1
+    int nTestPoints = testPoints.size();
+    
+    // Set up elements of S^2
     std::vector<TargetSpace> corners(domainDim+1);
 
     MultiIndex<domainDim+1> index(nTestPoints);
@@ -332,11 +332,10 @@ void testRotation()
 
     typedef Rotation<3,double> TargetSpace;
 
-    int nTestPoints = 10;
-    double testPoints[10][4] = {{1,0,0,0}, {0,1,0,0}, {-0.838114,0.356751,-0.412667,0.5},
-                               {-0.490946,-0.306456,0.81551,0.23},{-0.944506,0.123687,-0.304319,-0.7},
-                               {-0.6,0.1,-0.2,0.8},{0.45,0.12,0.517,0},
-                               {-0.1,0.3,-0.1,0.73},{-0.444506,0.123687,0.104319,-0.23},{-0.7,-0.123687,-0.304319,0.72}};
+    std::vector<Rotation<3,double> > testPoints;
+    ValueFactory<Rotation<3,double> >::get(testPoints);
+    
+    int nTestPoints = testPoints.size();
 
     // Set up elements of SO(3)
     std::vector<TargetSpace> corners(domainDim+1);
@@ -346,10 +345,8 @@ void testRotation()
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<domainDim+1; j++) {
-            Dune::array<double,4> w = {{testPoints[index[j]][0], testPoints[index[j]][1], testPoints[index[j]][2], testPoints[index[j]][3]}};
-            corners[j] = Rotation<3,double>(w);
-        }
+        for (int j=0; j<domainDim+1; j++)
+            corners[j] = testPoints[index[j]];
 
         //testPermutationInvariance(corners);
         testDerivative<domainDim>(corners);
