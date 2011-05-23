@@ -351,44 +351,41 @@ void testUnitVector3d()
     
 }
 
+void testRotation3d()
+{
+    int nTestPoints = 10;
+    double testPoints[10][4] = {{1,0,0,0}, {0,1,0,0}, {-0.838114,0.356751,-0.412667,0.5},
+                               {-0.490946,-0.306456,0.81551,0.23},{-0.944506,0.123687,-0.304319,-0.7},
+                               {-0.6,0.1,-0.2,0.8},{0.45,0.12,0.517,0},
+                               {-0.1,0.3,-0.1,0.73},{-0.444506,0.123687,0.104319,-0.23},{-0.7,-0.123687,-0.304319,0.72}};
+                                  
+    // Set up elements of SO(3)
+    for (int i=0; i<nTestPoints; i++) {
+        
+        Dune::array<double,4> w0 = {{testPoints[i][0], testPoints[i][1], testPoints[i][2], testPoints[i][3]}};
+        Rotation<3,double> uv0(w0);
+
+        testOrthonormalFrame<Rotation<3,double>, 4>(uv0);
+
+        for (int j=0; j<nTestPoints; j++) {
+            
+            Dune::array<double,4> w1 = {{testPoints[j][0], testPoints[j][1], testPoints[j][2], testPoints[i][3]}};
+            Rotation<3,double> uv1(w1);
+        
+            testDerivativesOfSquaredDistance<Rotation<3,double>, 4>(uv0, uv1);
+            
+        }
+
+    }
+    
+}
+
 int main() try
 {
     testUnitVector2d();
     testUnitVector3d();
-   
-    // Set up elements of R^1
-/*    Dune::FieldVector<double,2> rtw0;  rtw0[0] = 0;  rtw0[1] = 1;
-    RealTuple<2> rt0(rtw0);
-    Dune::FieldVector<double,2> rtw1;  rtw1[0] = 1;  rtw1[1] = 0;
-    RealTuple<2> rt1(rtw1);
-    testDerivativesOfSquaredDistance<RealTuple<2>, 2>(rt0, rt1);*/
-//     Dune::array<double,3> w3_0 = {{0,1,0}};
-//     UnitVector<3> v3_0(w3_0);
-//     Dune::array<double,3> w3_1 = {{1,1,0}};
-//     UnitVector<3> v3_1(w3_1);
-//     testDerivativesOfSquaredDistance<3>(v3_0, v3_1);
 
-#if 0
-    // Set up elements of S^1
-    FieldVector<double,2> v;
-    v[0] = 1;  v[1] = 1;
-    UnitVector<2> uv1;  uv1 = v;
-    v[0] = 0;  v[1] = 1;
-    UnitVector<2> uv0;  uv0 = v;
-
-    // Set up elements of SO(2)
-    Rotation<2,double> ro1(M_PI/4);
-    Rotation<2,double> ro0(M_PI/2);
-
-    std::cout << UnitVector<2>::distance(uv0, uv1) << std::endl;
-    std::cout << Rotation<2,double>::distance(ro0, ro1) << std::endl;
-
-    std::cout << UnitVector<2>::derivativeOfDistanceSquaredWRTSecondArgument(uv0, uv1) << std::endl;
-    std::cout << Rotation<2,double>::derivativeOfDistanceSquaredWRTSecondArgument(ro0, ro1) << std::endl;
-
-    std::cout << UnitVector<2>::secondDerivativeOfDistanceSquaredWRTSecondArgument(uv0, uv1) << std::endl;
-    std::cout << Rotation<2,double>::secondDerivativeOfDistanceSquaredWRTSecondArgument(ro0, ro1) << std::endl;
-#endif
+    testRotation3d();
 } catch (Exception e) {
 
     std::cout << e << std::endl;
