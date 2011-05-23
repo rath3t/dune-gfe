@@ -261,7 +261,7 @@ void testUnitVector2d()
     for (int i=0; i<numIndices; i++, ++index) {
         
         for (int j=0; j<domainDim+1; j++) {
-            Dune::array<double,2> w = {testPoints[index[j]][0], testPoints[index[j]][1]};
+            Dune::array<double,2> w = {{testPoints[index[j]][0], testPoints[index[j]][1]}};
             corners[j] = UnitVector<2>(w);
         }
 
@@ -305,7 +305,7 @@ void testUnitVector3d()
     for (int i=0; i<numIndices; i++, ++index) {
         
         for (int j=0; j<domainDim+1; j++) {
-            Dune::array<double,3> w = {testPoints[index[j]][0], testPoints[index[j]][1], testPoints[index[j]][2]};
+            Dune::array<double,3> w = {{testPoints[index[j]][0], testPoints[index[j]][1], testPoints[index[j]][2]}};
             corners[j] = UnitVector<3>(w);
         }
 
