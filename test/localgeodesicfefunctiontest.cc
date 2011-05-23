@@ -44,6 +44,13 @@ void testDerivativeTangentiality(const UnitVector<vectorDim>& x,
 
 }
 
+// the columns of the derivative must be tangential to the manifold
+template <int domainDim, int vectorDim>
+void testDerivativeTangentiality(const Rotation<vectorDim-1,double>& x,
+                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
+{
+}
+
 /** \brief Test whether interpolation is invariant under permutation of the simplex vertices
  */
 template <int domainDim, class TargetSpace>
@@ -313,33 +320,44 @@ void testUnitVector3d()
         testDerivative<domainDim>(corners);
         testDerivativeOfValueWRTCoefficients<domainDim>(corners);
         testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
-                
+                  
     }
 
 }
 
 template <int domainDim>
-void testRotations()
+void testRotation()
 {
     std::cout << " --- Testing Rotation<3>, domain dimension: " << domainDim << " ---" << std::endl;
 
     typedef Rotation<3,double> TargetSpace;
 
-    FieldVector<double,3> xAxis(0);
-    xAxis[0] = 1;
-    FieldVector<double,3> yAxis(0);
-    yAxis[1] = 1;
-    FieldVector<double,3> zAxis(0);
-    zAxis[2] = 1;
+    int nTestPoints = 10;
+    double testPoints[10][4] = {{1,0,0,0}, {0,1,0,0}, {-0.838114,0.356751,-0.412667,0.5},
+                               {-0.490946,-0.306456,0.81551,0.23},{-0.944506,0.123687,-0.304319,-0.7},
+                               {-0.6,0.1,-0.2,0.8},{0.45,0.12,0.517,0},
+                               {-0.1,0.3,-0.1,0.73},{-0.444506,0.123687,0.104319,-0.23},{-0.7,-0.123687,-0.304319,0.72}};
 
-
+    // Set up elements of SO(3)
     std::vector<TargetSpace> corners(domainDim+1);
-    corners[0] = Rotation<3,double>(xAxis,0.1);
-    corners[1] = Rotation<3,double>(yAxis,0.1);
-    corners[2] = Rotation<3,double>(zAxis,0.1);
 
-    testPermutationInvariance<domainDim>(corners);
-    //testDerivative(corners);
+    MultiIndex<domainDim+1> index(nTestPoints);
+    int numIndices = index.cycle();
+
+    for (int i=0; i<numIndices; i++, ++index) {
+        
+        for (int j=0; j<domainDim+1; j++) {
+            Dune::array<double,4> w = {{testPoints[index[j]][0], testPoints[index[j]][1], testPoints[index[j]][2], testPoints[index[j]][3]}};
+            corners[j] = Rotation<3,double>(w);
+        }
+
+        //testPermutationInvariance(corners);
+        testDerivative<domainDim>(corners);
+        testDerivativeOfValueWRTCoefficients<domainDim>(corners);
+        testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
+                
+    }
+
 }
 
 
@@ -355,5 +373,7 @@ int main()
     testUnitVector3d<1>();
     testUnitVector2d<2>();
     testUnitVector3d<2>();
-    //testRotations();
+    
+    testRotation<1>();
+    testRotation<2>();
 }
