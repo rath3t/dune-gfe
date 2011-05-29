@@ -581,7 +581,6 @@ assembleHessian(const Entity& element,
 
         }
     
-#endif
 }
 
 #endif
