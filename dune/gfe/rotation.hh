@@ -726,7 +726,7 @@ public:
         return *this;
     }
 
-    /** \brief Compute an orthonormal basis of the tangent space of S^n.
+    /** \brief Compute an orthonormal basis of the tangent space of SO(3).
 
     This basis is of course not globally continuous.
     */
