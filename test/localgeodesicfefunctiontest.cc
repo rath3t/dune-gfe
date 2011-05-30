@@ -298,8 +298,8 @@ void testUnitVector3d()
 
     typedef UnitVector<3> TargetSpace;
 
-    std::vector<Rotation<3,double> > testPoints;
-    ValueFactory<Rotation<3,double> >::get(testPoints);
+    std::vector<TargetSpace> testPoints;
+    ValueFactory<TargetSpace>::get(testPoints);
     
     int nTestPoints = testPoints.size();
     
@@ -311,10 +311,8 @@ void testUnitVector3d()
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<domainDim+1; j++) {
-            Dune::array<double,3> w = {{testPoints[index[j]][0], testPoints[index[j]][1], testPoints[index[j]][2]}};
-            corners[j] = UnitVector<3>(w);
-        }
+        for (int j=0; j<domainDim+1; j++)
+            corners[j] = testPoints[index[j]];
 
         //testPermutationInvariance(corners);
         testDerivative<domainDim>(corners);
