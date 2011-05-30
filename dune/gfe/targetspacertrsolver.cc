@@ -71,7 +71,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         MatrixType hesseMatrix(1,1);
 
         assembler_->assembleGradient(x_, rhs[0]);
-        assembler_->assembleHessianApproximation(x_, hesseMatrix[0][0]);
+        assembler_->assembleHessian(x_, hesseMatrix[0][0]);
 
         // The right hand side is the _negative_ gradient
         rhs *= -1;
