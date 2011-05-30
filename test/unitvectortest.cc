@@ -350,6 +350,7 @@ int main() try
 {
     testUnitVector<2>();
     testUnitVector<3>();
+    testUnitVector<4>();
 
     testRotation3d();
 } catch (Exception e) {
