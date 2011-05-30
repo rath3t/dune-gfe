@@ -44,16 +44,6 @@ Dune::FieldMatrix<K,m,n> operator- ( const Dune::FieldMatrix<K, m, n> &A, const 
     return ret;
 }
 
-#if 0
-template< class K, int m, int n>
-void transpose(Dune::FieldMatrix<K, m, n> &A)
-{
-   for( size_type i = 0; i < m; ++i )
-        for( size_type j = 0; j < i; ++j )
-			std::swap(A[i][j], A[j][i]);
-}
-#endif
-
 
 /** \brief A function defined by simplicial geodesic interpolation 
            from the reference element to a Riemannian manifold.
