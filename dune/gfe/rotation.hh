@@ -103,6 +103,14 @@ public:
         return q;
     }
 
+    /** \brief Compute an orthonormal basis of the tangent space of SO(3).
+
+    This basis is of course not globally continuous.
+    */
+    Dune::FieldMatrix<T,1,1> orthonormalFrame() const {
+        return Dune::FieldMatrix<T,1,1>(1);
+    }
+    
     //private:
 
     // We store the rotation as an angle
