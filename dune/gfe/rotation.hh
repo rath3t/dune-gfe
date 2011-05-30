@@ -91,7 +91,7 @@ public:
         return -2 * (a.angle_ - b.angle_);
     }
 
-    static Dune::FieldMatrix<double,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
+    static Dune::FieldMatrix<T,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
                                                                                             const Rotation<2,T>& b) {
         return 2;
     }
@@ -114,7 +114,7 @@ public:
     //private:
 
     // We store the rotation as an angle
-    double angle_;
+    T angle_;
 };
 
 //! Send configuration to output stream
@@ -139,8 +139,8 @@ class Rotation<3,T> : public Quaternion<T>
     }
 
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
-    static double derivativeOfArcCosSquared(const double& x) {
-        const double eps = 1e-12;
+    static T derivativeOfArcCosSquared(const T& x) {
+        const T eps = 1e-12;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
         } else if (x < -1+eps) {  // The function is not differentiable
@@ -158,7 +158,7 @@ public:
     static const bool globalIsometricCoordinates = true;
 
     /** \brief The type used for global coordinates */
-    typedef Dune::FieldVector<double,4> CoordinateType;
+    typedef Dune::FieldVector<T,4> CoordinateType;
     
     /** \brief Dimension of the manifold formed by the 3d rotations */
     static const int dim = 3;
@@ -483,9 +483,9 @@ public:
         pInv.invert();
         
         // the forth component of pInv times q
-        double pInvq_4 = - pInv[0]*q[0] - pInv[1]*q[1] - pInv[2]*q[2] + pInv[3]*q[3];
+        T pInvq_4 = - pInv[0]*q[0] - pInv[1]*q[1] - pInv[2]*q[2] + pInv[3]*q[3];
         
-        double arccosSquaredDer_pInvq_4 = derivativeOfArcCosSquared(pInvq_4);
+        T arccosSquaredDer_pInvq_4 = derivativeOfArcCosSquared(pInvq_4);
         
         EmbeddedTangentVector result;
         result[0] = -4 * arccosSquaredDer_pInvq_4 * pInv[0];
@@ -506,9 +506,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<double,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
         // use the functionality from the unitvector class
-        Dune::FieldMatrix<double,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
+        Dune::FieldMatrix<T,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
                                                                                                                  q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -521,9 +521,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<double,4,4> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
         // use the functionality from the unitvector class
-        Dune::FieldMatrix<double,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.globalCoordinates(),
+        Dune::FieldMatrix<T,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.globalCoordinates(),
                                                                                                                          q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -536,9 +536,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<double,4,4,4> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
         // use the functionality from the unitvector class
-        Tensor3<double,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
+        Tensor3<T,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
                                                                                                         q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -551,9 +551,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<double,4,4,4> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
         // use the functionality from the unitvector class
-        Tensor3<double,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.globalCoordinates(),
+        Tensor3<T,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.globalCoordinates(),
                                                                                                                   q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -566,7 +566,7 @@ public:
 
     
     /** \brief Interpolate between two rotations */
-    static Rotation<3,T> interpolate(const Rotation<3,T>& a, const Rotation<3,T>& b, double omega) {
+    static Rotation<3,T> interpolate(const Rotation<3,T>& a, const Rotation<3,T>& b, T omega) {
 
         // Compute difference on T_a SO(3)
         Dune::FieldVector<T,3> v = difference(a,b);
@@ -580,13 +580,13 @@ public:
         \param omega must be between 0 and 1
     */
     static Quaternion<T> interpolateDerivative(const Rotation<3,T>& a, const Rotation<3,T>& b, 
-                                               double omega) {
+                                               T omega) {
         Quaternion<T> result(0);
 
         // Compute difference on T_a SO(3)
-        Dune::FieldVector<double,3> xi = difference(a,b);
+        Dune::FieldVector<T,3> xi = difference(a,b);
 
-        Dune::FieldVector<double,3> v = xi;
+        Dune::FieldVector<T,3> v = xi;
         v *= omega;
         
         // //////////////////////////////////////////////////////////////
@@ -594,7 +594,7 @@ public:
         //   the requested site is v pushed forward by Dexp.
         // /////////////////////////////////////////////////////////////
 
-        Dune::FieldMatrix<double,4,3> diffExp = Dexp(v);
+        Dune::FieldMatrix<T,4,3> diffExp = Dexp(v);
 
         diffExp.umv(xi,result);
 
@@ -738,8 +738,8 @@ public:
 
     This basis is of course not globally continuous.
     */
-    Dune::FieldMatrix<double,3,4> orthonormalFrame() const {
-        Dune::FieldMatrix<double,3,4> result;
+    Dune::FieldMatrix<T,3,4> orthonormalFrame() const {
+        Dune::FieldMatrix<T,3,4> result;
         for (int i=0; i<3; i++)
             result[i] = B(i);
         return result;
