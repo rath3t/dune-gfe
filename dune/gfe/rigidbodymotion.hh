@@ -101,6 +101,65 @@ struct RigidBodyMotion
         
         return concat(linearDerivative, rotationDerivative);
     }
+    
+    /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
+    static Dune::FieldMatrix<double,7,7> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
+    
+    /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Dune::FieldMatrix<double,7,7> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
+    
+    /** \brief Compute the third derivative \partial d^3 / \partial dq^3
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Tensor3<double,7,7,7> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
+    
+    /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
+
+    Unlike the distance itself the squared distance is differentiable at zero
+     */
+    static Tensor3<double,7,7,7> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
+
+    
+    
+    /** \brief Project tangent vector of R^n onto the tangent space */
+    EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
+        DUNE_THROW(Dune::NotImplemented, "!");
+    }
+
+    
+    /** \brief Compute an orthonormal basis of the tangent space of SE(3).
+
+    This basis is of course not globally continuous.
+    */
+    Dune::FieldMatrix<double,6,7> orthonormalFrame() const {
+        Dune::FieldMatrix<double,6,7> result(0);
+
+        // Get the R^d part
+        for (int i=0; i<dim; i++)
+            result[i][i] = 1;
+        
+        Dune::FieldMatrix<double,3,4> SO3Part = q.orthonormalFrame();
+
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<4; j++)
+                result[3+i][3+j] = SO3Part[i][j];
+
+        return result;
+    }
+    
+
 
     // Translational part
     Dune::FieldVector<ctype, dim> r;
