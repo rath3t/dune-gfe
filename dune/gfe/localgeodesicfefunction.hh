@@ -9,7 +9,6 @@
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
 
-#include <dune/gfe/svd.hh>
 #include <dune/gfe/tensor3.hh>
 
 //! calculates ret = A * B
@@ -121,31 +120,38 @@ private:
         return result;
     }
 
-    static Dune::FieldMatrix<double,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<double,embeddedDim,embeddedDim>& A)
+    static Dune::FieldMatrix<double,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<double,embeddedDim,embeddedDim>& dFdq,
+                                                                           const TargetSpace& q)
     {
-        Dune::FieldMatrix<double,embeddedDim,embeddedDim> U = A;
-        Dune::FieldVector<double,embeddedDim> W;
-        Dune::FieldMatrix<double,embeddedDim,embeddedDim> V;
-
-        svdcmp(U,W,V);
-
-        // pseudoInv = V W^{-1} U^T
-        Dune::FieldMatrix<double,embeddedDim,embeddedDim> UT;
-
-        for (int i=0; i<embeddedDim; i++)
-            for (int j=0; j<embeddedDim; j++)
-                UT[i][j] = U[j][i];
-
-        for (int i=0; i<embeddedDim; i++) {
-            if (std::abs(W[i]) > 1e-12)  // Diagonal may be zero, that's why we're using the pseudo inverse
-                UT[i] /= W[i];
-            else
-                UT[i] = 0;
-        }
-
-        return V*UT;
-    }
+        const int shortDim = TargetSpace::TangentVector::size;
     
+        // the orthonormal frame
+        Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
+
+        // compute A = O dFDq O^T
+        Dune::FieldMatrix<ctype,shortDim,shortDim> A;
+        for (int i=0; i<shortDim; i++)
+            for (int j=0; j<shortDim; j++) {
+                A[i][j] = 0;
+                for (int k=0; k<embeddedDim; k++)
+                    for (int l=0; l<embeddedDim; l++)
+                        A[i][j] += O[i][k]*dFdq[k][l]*O[j][l];
+            }
+
+        A.invert();
+    
+        Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> result;
+        for (int i=0; i<embeddedDim; i++)
+            for (int j=0; j<embeddedDim; j++) {
+                result[i][j] = 0;
+                for (int k=0; k<shortDim; k++)
+                    for (int l=0; l<shortDim; l++)
+                        result[i][j] += O[k][i]*A[k][l]*O[l][j];
+            }
+        
+        return result;
+    }
+
     /** \brief Compute derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w */
     Dune::FieldMatrix<ctype,embeddedDim,dim+1> computeDFdw(const TargetSpace& q) const
     {
@@ -429,7 +435,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
     // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
     // best way, though.
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq);
+    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq,q);
     
     //
     Tensor3<double,embeddedDim,embeddedDim,embeddedDim> dvDqF
