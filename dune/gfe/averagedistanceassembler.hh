@@ -22,7 +22,7 @@ public:
         double result = 0;
         for (size_t i=0; i<coefficients_.size(); i++) {
             double dist = TargetSpace::distance(coefficients_[i], x);
-            result += 0.5*weights_[i]*dist*dist;
+            result += weights_[i]*dist*dist;
         }
 
         return result;
@@ -33,7 +33,7 @@ public:
     {
         gradient = 0;
         for (size_t i=0; i<coefficients_.size(); i++)
-            gradient.axpy(0.5*weights_[i], 
+            gradient.axpy(weights_[i], 
                           TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
     }
 
