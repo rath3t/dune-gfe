@@ -331,16 +331,37 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
 
-    // dFDq is not invertible, if the target space is embedded into a higher-dimensional
-    // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
-    // best way, though.
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq);
+    const int shortDim = TargetSpace::TangentVector::size;
+    
+    // the orthonormal frame
+    Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
+
+    // compute A = O dFDq O^T
+    Dune::FieldMatrix<ctype,shortDim,shortDim> A;
+    for (int i=0; i<shortDim; i++)
+        for (int j=0; j<shortDim; j++) {
+            A[i][j] = 0;
+            for (int k=0; k<embeddedDim; k++)
+                for (int l=0; l<embeddedDim; l++)
+                    A[i][j] += O[i][k]*dFdq[k][l]*O[j][l];
+        }
 
     //
-    result = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
-    result *= -w[coefficient];
+    Dune::FieldMatrix<double,embeddedDim,embeddedDim> rhs = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
+    rhs *= -w[coefficient];
     
-    result = result * dFdqPseudoInv;
+    for (int i=0; i<embeddedDim; i++) {
+        
+        Dune::FieldVector<ctype,shortDim> shortRhs;
+        O.mv(rhs[i],shortRhs);
+    
+        Dune::FieldVector<ctype,shortDim> shortX;
+        A.solve(shortX,shortRhs);
+
+        O.mtv(shortX,result[i]);
+    
+    }
+        
 }
 
 template <int dim, class ctype, class TargetSpace>
