@@ -47,22 +47,6 @@ public:
         orthonormalFrame.mv(embeddedGradient,gradient);
     }
 
-    void assembleEmbeddedHessianApproximation(const TargetSpace& x,
-                                      Dune::FieldMatrix<double,embeddedSize,embeddedSize>& matrix) const
-    {
-        for (int i=0; i<embeddedSize; i++)
-            for (int j=0; j<embeddedSize; j++)
-                matrix[i][j] = (i==j);
-    }
-
-    void assembleHessianApproximation(const TargetSpace& x,
-                                      Dune::FieldMatrix<double,size,size>& matrix) const
-    {
-        for (int i=0; i<size; i++)
-            for (int j=0; j<size; j++)
-                matrix[i][j] = (i==j);
-    }
-
     void assembleEmbeddedHessian(const TargetSpace& x,
                          Dune::FieldMatrix<double,embeddedSize,embeddedSize>& matrix) const
     {
