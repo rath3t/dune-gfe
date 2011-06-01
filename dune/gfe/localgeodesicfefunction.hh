@@ -191,11 +191,11 @@ evaluate(const Dune::FieldVector<ctype, dim>& local) const
 
     solver.setup(&assembler,
                  coefficients_[0],   // initial iterate
-                 1e-8,    // tolerance
-                 20,      // maxTrustRegionSteps
+                 1e-14,    // tolerance
+                 100,      // maxTrustRegionSteps
                  2,       // initial trust region radius
-                 20,      // inner iterations
-                 1e-8     // inner tolerance
+                 100,      // inner iterations
+                 1e-14     // inner tolerance
                  );
 
     solver.solve();
