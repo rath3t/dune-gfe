@@ -1,4 +1,5 @@
 #include <dune/common/bitsetvector.hh>
+#include <dune/common/timer.hh>
 
 #include <dune/istl/io.hh>
 
@@ -104,7 +105,7 @@ setup(const GridType& grid,
                                                                                                    innerIterations_,
                                                                                                    innerTolerance_,
                                                                                                    h1SemiNorm_,
-                                                                                                 Solver::QUIET));
+                                                                                                 Solver::FULL));
 
     // Write all intermediate solutions, if requested
     if (instrumented_
@@ -178,7 +179,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
     for (int i=0; i<maxTrustRegionSteps_; i++) {
-        
+
+        Dune::Timer totalTimer;
         if (this->verbosity_ == Solver::FULL) {
             std::cout << "----------------------------------------------------" << std::endl;
             std::cout << "      Trust-Region Step Number: " << i 
@@ -191,11 +193,15 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         CorrectionType corr(x_.size());
         corr = 0;
 
+        Dune::Timer gradientTimer;
         assembler_->assembleGradient(x_, rhs);
+        std::cout << "gradient assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+        gradientTimer.reset();
         assembler_->assembleMatrix(x_, 
                                    *hessianMatrix_, 
                                    i==0    // assemble occupation pattern only for the first call
                                    );
+        std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
 
         //gradientFDCheck(x_, rhs, *rodAssembler_);
         //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
@@ -419,7 +425,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             fclose(fpRod);
 
         }
-
+        std::cout << "iteration took " << totalTimer.elapsed() << " sec." << std::endl;
     }
 
     // //////////////////////////////////////////////
