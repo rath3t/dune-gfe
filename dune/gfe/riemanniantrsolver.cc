@@ -283,7 +283,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             for (int j=0; j<innerIterations_; j++) {
         
                 // read iteration from file
-                CorrectionType intermediateSol(grid_->size(1));
+                CorrectionType intermediateSol(grid_->size(gridDim));
                 intermediateSol = 0;
                 char iSolFilename[100];
                 sprintf(iSolFilename, "tmp/mgHistory/intermediatesolution_%04d", j);
