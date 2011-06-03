@@ -412,17 +412,17 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         if (instrumented_) {
 
-            char iRodFilename[100];
-            sprintf(iRodFilename, "tmp/intermediateSolution_%04d", i);
+            char iFilename[100];
+            sprintf(iFilename, "tmp/intermediateSolution_%04d", i);
 
-            FILE* fpRod = fopen(iRodFilename, "wb");
-            if (!fpRod)
-                DUNE_THROW(SolverError, "Couldn't open file " << iRodFilename << " for writing");
+            FILE* fpIterate = fopen(iFilename, "wb");
+            if (!fpIterate)
+                DUNE_THROW(SolverError, "Couldn't open file " << iFilename << " for writing");
             
             for (int j=0; j<x_.size(); j++)
-                fwrite(&x_[j], sizeof(TargetSpace), 1, fpRod);
+                fwrite(&x_[j], sizeof(TargetSpace), 1, fpIterate);
 
-            fclose(fpRod);
+            fclose(fpIterate);
 
         }
         std::cout << "iteration took " << totalTimer.elapsed() << " sec." << std::endl;
