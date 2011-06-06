@@ -4,9 +4,14 @@
 LDADD = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS)
 AM_CPPFLAGS += $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) -Wall
 
-check_PROGRAMS = frameinvariancetest rotationtest fdcheck localgeodesicfefunctiontest \
-                 harmonicenergytest averagedistanceassemblertest targetspacetest \
-                 svdtest
+check_PROGRAMS = averagedistanceassemblertest \
+                 fdcheck \
+                 frameinvariancetest \
+                 harmonicenergytest \
+                 localgeodesicfefunctiontest \
+                 rotationtest \
+                 svdtest \
+                 targetspacetest
 
 frameinvariancetest_SOURCES = frameinvariancetest.cc
 
