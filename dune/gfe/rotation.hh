@@ -31,9 +31,6 @@ public:
     /** \brief The type used for coordinates */
     typedef T ctype;
 
-    /** \brief Global coordinates wrt an isometric embedding function are available */
-    static const bool globalIsometricCoordinates = false;
-
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,1> TangentVector;
 
@@ -153,9 +150,6 @@ public:
 
     /** \brief The type used for coordinates */
     typedef T ctype;
-
-    /** \brief Global coordinates wrt an isometric embedding function are available */
-    static const bool globalIsometricCoordinates = true;
 
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<T,4> CoordinateType;

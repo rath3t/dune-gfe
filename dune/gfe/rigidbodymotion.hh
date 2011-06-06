@@ -8,9 +8,6 @@
 template <int dim, class T=double>
 struct RigidBodyMotion
 {
-    /** \brief Global coordinates wrt an isometric embedding function are available */
-    static const bool globalIsometricCoordinates = Rotation<dim,T>::globalIsometricCoordinates;
-
     /** \brief Type of an infinitesimal rigid body motion */
     typedef Dune::FieldVector<T, dim + Rotation<dim,T>::TangentVector::size> TangentVector;
 

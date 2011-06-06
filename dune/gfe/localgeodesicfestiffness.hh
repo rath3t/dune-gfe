@@ -157,8 +157,6 @@ public:
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
     enum { blocksize = TargetSpace::TangentVector::size };
 
-    static const bool globalIsometricCoordinates = TargetSpace::globalIsometricCoordinates;
-
     /** \brief Assemble the local stiffness matrix at the current position
 
     This default implementation used finite-difference approximations to compute the second derivatives
@@ -378,8 +376,6 @@ public:
 
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::size };
-
-    static const bool globalIsometricCoordinates = TargetSpace::globalIsometricCoordinates;
 
     /** \brief Assemble the local stiffness matrix at the current position
 

@@ -18,9 +18,6 @@ public:
 
     typedef double ctype;
 
-    /** \brief Global coordinates wrt an isometric embedding function are available */
-    static const bool globalIsometricCoordinates = true;
-
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<double,N> CoordinateType;
     
