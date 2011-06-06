@@ -14,7 +14,7 @@
 template<class GridView, class TargetSpace>
 class LocalGeodesicFEStiffness;
 
-template<class GridView, class TargetSpace, bool globalIsometricCoordinates>
+template<class GridView, class TargetSpace>
 class LocalGeodesicFEStiffnessImp
 {
 
@@ -40,78 +40,6 @@ class LocalGeodesicFEStiffnessImp
         c = result;
     }
 
-    static void assembleEmbeddedGradient(const Entity& element,
-                                  const std::vector<TargetSpace>& localSolution,
-                                  std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient,
-                                  const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
-    {
-
-        const int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::size;
-
-        // ///////////////////////////////////////////////////////////
-        //   Compute gradient by finite-difference approximation
-        // ///////////////////////////////////////////////////////////
-
-        double eps = 1e-6;
-
-        localGradient.resize(localSolution.size());
-
-        std::vector<TargetSpace> forwardSolution = localSolution;
-        std::vector<TargetSpace> backwardSolution = localSolution;
-
-        for (size_t i=0; i<localSolution.size(); i++) {
-        
-            for (int j=0; j<embeddedBlocksize; j++) {
-            
-                // The return value does not have unit norm.  But assigning it to a UnitVector object
-                // will normalize it.  This amounts to an extension of the energy functional 
-                // to a neighborhood around S^n
-                forwardSolution[i]  = localSolution[i];
-                backwardSolution[i] = localSolution[i];
-                LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardSolution[i],  eps, j);
-                LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardSolution[i], -eps, j);
-
-                localGradient[i][j] = (energyObject->energy(element,forwardSolution) - energyObject->energy(element,backwardSolution)) / (2*eps);
-
-                forwardSolution[i]  = localSolution[i];
-                backwardSolution[i] = localSolution[i];
-            }
-
-            // Project gradient in embedding space onto the tangent space
-            localGradient[i] = localSolution[i].projectOntoTangentSpace(localGradient[i]);
-        
-        }
-
-    }
-
-    public:
-    static void assembleGradient(const Entity& element,
-                          const std::vector<TargetSpace>& localSolution,
-                          std::vector<typename TargetSpace::TangentVector>& localGradient,
-                                 const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
-    {
-        std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
-
-        // first compute the gradient in embedded coordinates
-        assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient, energyObject);
-
-        // transform to coordinates on the tangent space
-        localGradient.resize(embeddedLocalGradient.size());
-
-        for (size_t i=0; i<localGradient.size(); i++)
-            localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
-
-    }
-};
-
-
-template<class GridView, class TargetSpace>
-class LocalGeodesicFEStiffnessImp<GridView,TargetSpace,false>
-{
-    typedef typename GridView::template Codim<0>::Entity Entity;
-
-public:
-    
     /** \brief For the fd approximations 
      */
     static void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
@@ -146,12 +74,15 @@ public:
         Dune::FieldVector<double,1> v(eps);
         c = Rotation<2,double>::exp(c,v);
     }
-    
-    static void assembleGradient(const Entity& element,
-                          const std::vector<TargetSpace>& localSolution,
-                          std::vector<typename TargetSpace::TangentVector>& localGradient,
-                                 const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
+
+    static void assembleEmbeddedGradient(const Entity& element,
+                                  const std::vector<TargetSpace>& localSolution,
+                                  std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient,
+                                  const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
     {
+
+        const int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::size;
+
         // ///////////////////////////////////////////////////////////
         //   Compute gradient by finite-difference approximation
         // ///////////////////////////////////////////////////////////
@@ -165,22 +96,47 @@ public:
 
         for (size_t i=0; i<localSolution.size(); i++) {
         
-            for (int j=0; j<TargetSpace::TangentVector::size; j++) {
+            for (int j=0; j<embeddedBlocksize; j++) {
             
-                infinitesimalVariation(forwardSolution[i],   eps, j);
-                infinitesimalVariation(backwardSolution[i], -eps, j);
-            
-                localGradient[i][j] = (energyObject->energy(element,forwardSolution) - energyObject->energy(element,backwardSolution))
-                    / (2*eps);
-            
+                // The return value does not have unit norm.  But assigning it to a UnitVector object
+                // will normalize it.  This amounts to an extension of the energy functional 
+                // to a neighborhood around S^n
+                forwardSolution[i]  = localSolution[i];
+                backwardSolution[i] = localSolution[i];
+                LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardSolution[i],  eps, j);
+                LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardSolution[i], -eps, j);
+
+                localGradient[i][j] = (energyObject->energy(element,forwardSolution) - energyObject->energy(element,backwardSolution)) / (2*eps);
+
                 forwardSolution[i]  = localSolution[i];
                 backwardSolution[i] = localSolution[i];
             }
+
+            // Project gradient in embedding space onto the tangent space
+            localGradient[i] = localSolution[i].projectOntoTangentSpace(localGradient[i]);
         
         }
 
     }
 
+    public:
+    static void assembleGradient(const Entity& element,
+                          const std::vector<TargetSpace>& localSolution,
+                          std::vector<typename TargetSpace::TangentVector>& localGradient,
+                                 const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
+    {
+        std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
+
+        // first compute the gradient in embedded coordinates
+        assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient, energyObject);
+
+        // transform to coordinates on the tangent space
+        localGradient.resize(embeddedLocalGradient.size());
+
+        for (size_t i=0; i<localGradient.size(); i++)
+            localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
+
+    }
 };
 
 
@@ -235,7 +191,7 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<Dune::FieldVector<double,blocksize> >& localGradient) const
 {
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleGradient(element, localSolution, localGradient, this);
+    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleGradient(element, localSolution, localGradient, this);
 }
 
 template <class GridView, class TargetSpace>
@@ -244,7 +200,7 @@ assembleEmbeddedFDGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
 {
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
+    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
 }
 
 template <class GridView, class TargetSpace>
@@ -260,7 +216,7 @@ assembleHessian(const Entity& element,
 
     A_ = 0;
 
-    double eps = 1e-4;
+    double eps = 1e-8;
 
     typedef typename Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> >::row_type::iterator ColumnIterator;
 
@@ -304,8 +260,8 @@ assembleHessian(const Entity& element,
                     // Diagonal entries
                     if (i==cIt.index() && j==k) {
 
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardSolution[i], eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardSolution[i], -eps, j);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardSolution[i], eps, j);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardSolution[i], -eps, j);
 
                         double forwardEnergy  = energy(element, forwardSolution);
                         
@@ -322,14 +278,14 @@ assembleHessian(const Entity& element,
                     } else {
 
                         // Off-diagonal entries
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardForwardSolution[i],             eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardForwardSolution[cIt.index()],   eps, k);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardBackwardSolution[i],            eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardBackwardSolution[cIt.index()], -eps, k);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardForwardSolution[i],           -eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardForwardSolution[cIt.index()],  eps, k);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardBackwardSolution[i],          -eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardBackwardSolution[cIt.index()],-eps, k);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardForwardSolution[i],             eps, j);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardForwardSolution[cIt.index()],   eps, k);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardBackwardSolution[i],            eps, j);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardBackwardSolution[cIt.index()], -eps, k);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardForwardSolution[i],           -eps, j);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardForwardSolution[cIt.index()],  eps, k);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardBackwardSolution[i],          -eps, j);
+                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardBackwardSolution[cIt.index()],-eps, k);
 
                         double forwardForwardEnergy = energy(element, forwardForwardSolution);
                         
@@ -455,7 +411,7 @@ public:
                                             int component,
                                             std::vector<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& gradient) const {
         
-        double eps = 1e-6;
+        double eps = 1e-8;
         
         gradient.resize(localSolution.size());
         std::fill(gradient.begin(), gradient.end(), Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize>(0));
@@ -471,13 +427,13 @@ public:
             // to a neighborhood around S^n
             forwardSolution[component]  = localSolution[component];
             backwardSolution[component] = localSolution[component];
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(forwardSolution[component],  eps, j);
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::infinitesimalVariation(backwardSolution[component], -eps, j);
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardSolution[component],  eps, j);
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardSolution[component], -eps, j);
             
             std::vector<Dune::FieldVector<double,embeddedBlocksize> > forwardGradient;
             std::vector<Dune::FieldVector<double,embeddedBlocksize> > backwardGradient;
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, forwardSolution, forwardGradient,this);
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, backwardSolution, backwardGradient,this);
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, forwardSolution, forwardGradient,this);
+            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, backwardSolution, backwardGradient,this);
 
             for (size_t k=0; k<localSolution.size(); k++)
                 for (int l=0; l<embeddedBlocksize; l++)
@@ -515,7 +471,7 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleGradient(element, localSolution, localGradient,this);
+    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleGradient(element, localSolution, localGradient,this);
 }
 
 template <class GridView, int dim>
@@ -524,7 +480,7 @@ assembleEmbeddedFDGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
 {
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace,globalIsometricCoordinates>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
+    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
 }
 
 
