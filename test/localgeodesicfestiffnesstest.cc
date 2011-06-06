@@ -130,7 +130,7 @@ void testUnitVector3d()
         for (size_t j=0; j<nDofs; j++)
             for (size_t k=0; k<nDofs; k++)
                 embeddedHessian[j][k] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[j],
-                                                                                                        coefficients[j]);
+                                                                                                        coefficients[k]);
         Matrix<FieldMatrix<double,2,2> > hessian(nDofs,nDofs);
         
         // transform to local tangent space bases
