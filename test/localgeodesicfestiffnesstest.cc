@@ -21,7 +21,7 @@ using namespace Dune;
 
 
 
-
+/** \brief A special energy functional of which I happen to be able to compute the Hessian */
 template<class GridView, class TargetSpace>
 class TestEnergyLocalStiffness 
     : public LocalGeodesicFEStiffness<GridView,TargetSpace>
@@ -43,15 +43,6 @@ public:
     RT energy (const Entity& e,
                const std::vector<TargetSpace>& localSolution) const;
                
-    TestEnergyLocalStiffness(TargetSpace anchor, int idx)
-    : anchor_(anchor),
-      idx_(idx)
-      {}
-
-    TargetSpace anchor_;
-
-    int idx_;
-    
 };
 
 template <class GridView, class TargetSpace>
@@ -59,7 +50,8 @@ typename TestEnergyLocalStiffness<GridView, TargetSpace>::RT TestEnergyLocalStif
 energy(const Entity& element,
        const std::vector<TargetSpace>& localSolution) const
 {
-    return TargetSpace::distance(anchor_, localSolution[idx_]) * TargetSpace::distance(anchor_, localSolution[idx_]);
+    return TargetSpace::distance(localSolution[0], localSolution[1]) 
+           * TargetSpace::distance(localSolution[0], localSolution[1]);
 }
 
 
@@ -111,10 +103,7 @@ void testUnitVector3d()
     
     int nTestPoints = testPoints.size();
     
-    TargetSpace anchor = testPoints[0];
-    int idx = 0;
-    
-    TestEnergyLocalStiffness<typename GridType::LeafGridView, TargetSpace> assembler(anchor, idx);
+    TestEnergyLocalStiffness<typename GridType::LeafGridView, TargetSpace> assembler;
 
     // Set up elements of S^2
     std::vector<TargetSpace> coefficients(domainDim+1);
@@ -136,8 +125,13 @@ void testUnitVector3d()
         std::cout << "fdHessian:\n";
         printmatrix(std::cout, fdHessian, "fdHessian", "--");
         
-        FieldMatrix<double,3,3> embeddedHessian = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(anchor, coefficients[idx]);
-        FieldMatrix<double,2,2> hessian;
+        Matrix<FieldMatrix<double,3,3> > embeddedHessian(nDofs,nDofs);
+        
+        for (size_t j=0; j<nDofs; j++)
+            for (size_t k=0; k<nDofs; k++)
+                embeddedHessian[j][k] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[j],
+                                                                                                        coefficients[j]);
+        Matrix<FieldMatrix<double,2,2> > hessian(nDofs,nDofs);
         
         // transform to local tangent space bases
         const int blocksize = 2;
@@ -154,7 +148,6 @@ void testUnitVector3d()
 
         }
 
-#if 0
         for (size_t j=0; j<nDofs; j++)
             for (size_t k=0; k<nDofs; k++) {
 
@@ -163,14 +156,9 @@ void testUnitVector3d()
                 hessian[j][k] = tmp.rightmultiplyany(orthonormalFramesTransposed[k]);
 
         }
-#else
-        Dune::FieldMatrix<double,blocksize,embeddedBlocksize> tmp;
-        Dune::FMatrixHelp::multMatrix(orthonormalFrames[idx],embeddedHessian,tmp);
-        hessian = tmp.rightmultiplyany(orthonormalFramesTransposed[idx]);
 
-#endif
-
-        std::cout << "hessian:\n" << hessian << std::endl;
+        std::cout << "hessian:" << std::endl;
+        printmatrix(std::cout, hessian, "hessian", "--");
         
     }
 
