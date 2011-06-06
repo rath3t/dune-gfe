@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <dune/gfe/unitvector.hh>
+#include <dune/gfe/rotation.hh>
 
 /** \brief A class that creates sets of values of various types, to be used in unit tests
  * 
