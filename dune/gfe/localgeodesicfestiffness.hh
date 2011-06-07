@@ -119,24 +119,6 @@ class LocalGeodesicFEStiffnessImp
 
     }
 
-    public:
-    static void assembleGradient(const Entity& element,
-                          const std::vector<TargetSpace>& localSolution,
-                          std::vector<typename TargetSpace::TangentVector>& localGradient,
-                                 const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
-    {
-        std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
-
-        // first compute the gradient in embedded coordinates
-        assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient, energyObject);
-
-        // transform to coordinates on the tangent space
-        localGradient.resize(embeddedLocalGradient.size());
-
-        for (size_t i=0; i<localGradient.size(); i++)
-            localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
-
-    }
 };
 
 
@@ -200,7 +182,16 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleGradient(element, localSolution, localGradient,this);
+    std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
+
+    // first compute the gradient in embedded coordinates
+    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient, this);
+
+    // transform to coordinates on the tangent space
+    localGradient.resize(embeddedLocalGradient.size());
+
+    for (size_t i=0; i<localGradient.size(); i++)
+        localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
 }
 
 template <class GridView, class TargetSpace>
