@@ -11,9 +11,13 @@
 #include "multiindex.hh"
 #include "valuefactory.hh"
 
-typedef UnitVector<3> TargetSpace;
 
 using namespace Dune;
+
+//typedef std::conditional<domainDim==1,OneDGrid,UGGrid<domainDim> >::type GridType;
+typedef OneDGrid GridType;
+
+
 
 
 
@@ -55,25 +59,12 @@ energy(const Entity& element,
 }
 
 
-
-
-
-
-
-
-
-
-
-
 template <int domainDim>
-void testUnitVector3d()
+GridType* makeTestGrid()
 {
     // ////////////////////////////////////////////////////////
     //   Make a test grid consisting of a single simplex
     // ////////////////////////////////////////////////////////
-
-    //typedef std::conditional<domainDim==1,OneDGrid,UGGrid<domainDim> >::type GridType;
-    typedef OneDGrid GridType;
 
     GridFactory<GridType> factory;
 
@@ -91,8 +82,21 @@ void testUnitVector3d()
         v[i] = i;
     factory.insertElement(GeometryType(GeometryType::simplex,domainDim), v);
 
-    const GridType* grid = factory.createGrid();
-    
+    return factory.createGrid();
+}
+
+
+
+
+
+
+
+
+
+template <class TargetSpace, int domainDim>
+void testHessian()
+{
+    const GridType* grid = makeTestGrid<domainDim>();
 
     // //////////////////////////////////////////////////////////
     //  Test whether the energy is invariant under isometries
@@ -180,5 +184,5 @@ void testUnitVector3d()
 
 int main(int argc, char** argv)
 {
-    testUnitVector3d<1>();
+    testHessian<UnitVector<3>, 1>();
 }
