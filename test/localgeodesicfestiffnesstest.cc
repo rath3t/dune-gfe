@@ -146,11 +146,11 @@ void testHessian()
         embeddedHessian[1][1] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[0],
                                                                                                 coefficients[1]);
 
-        embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[0],
-                                                                                                coefficients[1]);
+        embeddedHessian[0][1] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[0],
+                                                                                                        coefficients[1]);
 
-        embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[0],
-                                                                                                coefficients[1]);
+        embeddedHessian[1][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[1],
+                                                                                                        coefficients[0]);
 
         Matrix<FieldMatrix<double,spaceDim,spaceDim> > hessian(nDofs,nDofs);
         
