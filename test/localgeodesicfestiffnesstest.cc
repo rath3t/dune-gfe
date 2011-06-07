@@ -118,6 +118,10 @@ void testUnitVector3d()
         for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
+        std::cout << "coefficients:\n";
+        for (int j=0; j<domainDim+1; j++)
+            std::cout << coefficients[j] << std::endl;
+        
         assembler.assembleHessian(*grid->template leafbegin<0>(), coefficients);
         
         Matrix<FieldMatrix<double,2,2> > fdHessian = assembler.A_;
@@ -126,11 +130,20 @@ void testUnitVector3d()
         printmatrix(std::cout, fdHessian, "fdHessian", "--");
         
         Matrix<FieldMatrix<double,3,3> > embeddedHessian(nDofs,nDofs);
+        embeddedHessian = 0;
         
-        for (size_t j=0; j<nDofs; j++)
-            for (size_t k=0; k<nDofs; k++)
-                embeddedHessian[j][k] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[j],
-                                                                                                        coefficients[k]);
+        embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[1],
+                                                                                                coefficients[0]);
+
+        embeddedHessian[1][1] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[0],
+                                                                                                coefficients[1]);
+
+        embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[0],
+                                                                                                coefficients[1]);
+
+        embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[0],
+                                                                                                coefficients[1]);
+
         Matrix<FieldMatrix<double,2,2> > hessian(nDofs,nDofs);
         
         // transform to local tangent space bases
