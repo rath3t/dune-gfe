@@ -152,7 +152,7 @@ void testHessian()
         embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[0],
                                                                                                 coefficients[1]);
 
-        Matrix<FieldMatrix<double,2,2> > hessian(nDofs,nDofs);
+        Matrix<FieldMatrix<double,spaceDim,spaceDim> > hessian(nDofs,nDofs);
         
         // transform to local tangent space bases
         std::vector<Dune::FieldMatrix<double,spaceDim,embeddedSpaceDim> > orthonormalFrames(nDofs);
