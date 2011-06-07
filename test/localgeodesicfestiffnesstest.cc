@@ -179,6 +179,15 @@ void testHessian()
         std::cout << "hessian:" << std::endl;
         printmatrix(std::cout, hessian, "hessian", "--");
         
+        ///////////////////////////////////////////////////////////////////////////////////
+        //  Abort if there is a difference
+        ///////////////////////////////////////////////////////////////////////////////////
+        Matrix<FieldMatrix<double,spaceDim,spaceDim> > difference = hessian;
+        difference -= fdHessian;
+        
+        if (difference.infinity_norm() > 1e-4)
+            assert(false);
+        
     }
 
 }
