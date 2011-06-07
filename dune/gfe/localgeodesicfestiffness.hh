@@ -229,7 +229,33 @@ assembleHessian(const Entity& element,
     for (size_t i=0; i<B.size(); i++)
         B[i] = localSolution[i].orthonormalFrame();
 
+    // Precompute negative energy at the current configuration
+    // (negative because that is how we need it as part of the 2nd-order fd formula)
+    double centerValue   = -energy(element, localSolution);
         
+    // Precompute energy infinitesimal corrections in the directions of the local basis vectors
+    std::vector<Dune::array<double,blocksize> > forwardEnergy(nDofs);
+    std::vector<Dune::array<double,blocksize> > backwardEnergy(nDofs);
+    for (size_t i=0; i<localSolution.size(); i++) {
+        for (size_t i2=0; i2<blocksize; i2++) {
+            Dune::FieldVector<double,embeddedBlocksize> epsXi = B[i][i2];
+            epsXi *= eps;
+            Dune::FieldVector<double,embeddedBlocksize> minusEpsXi = epsXi;
+            minusEpsXi  *= -1;
+            
+            std::vector<TargetSpace> forwardSolution  = localSolution;
+            std::vector<TargetSpace> backwardSolution = localSolution;
+            
+            forwardSolution[i]  = TargetSpace::exp(localSolution[i],epsXi);
+            backwardSolution[i] = TargetSpace::exp(localSolution[i],minusEpsXi);
+    
+            forwardEnergy[i][i2]  = energy(element, forwardSolution);
+            backwardEnergy[i][i2] = energy(element, backwardSolution);
+    
+        }
+        
+    }
+    
     // finite-difference approximation
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
@@ -243,11 +269,7 @@ assembleHessian(const Entity& element,
                     Dune::FieldVector<double,embeddedBlocksize> minusEpsEta = epsEta;  minusEpsEta *= -1;
                         
                     std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
-                    std::vector<TargetSpace> forwardSolutionXi     = localSolution;
-                    std::vector<TargetSpace> forwardSolutionEta    = localSolution;
                     std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
-                    std::vector<TargetSpace> backwardSolutionXi     = localSolution;
-                    std::vector<TargetSpace> backwardSolutionEta    = localSolution;
             
                     if (i==j)
                         forwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],epsXi+epsEta);
@@ -255,8 +277,6 @@ assembleHessian(const Entity& element,
                         forwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],epsXi);
                         forwardSolutionXiEta[j] = TargetSpace::exp(localSolution[j],epsEta);
                     }
-                    forwardSolutionXi[i]    = TargetSpace::exp(localSolution[i],epsXi);
-                    forwardSolutionEta[j]   = TargetSpace::exp(localSolution[j],epsEta);
                         
                     if (i==j)
                         backwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],minusEpsXi+minusEpsEta);
@@ -264,13 +284,9 @@ assembleHessian(const Entity& element,
                         backwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],minusEpsXi);
                         backwardSolutionXiEta[j] = TargetSpace::exp(localSolution[j],minusEpsEta);
                     }
-                        
-                    backwardSolutionXi[i]    = TargetSpace::exp(localSolution[i],minusEpsXi);
-                    backwardSolutionEta[j]   = TargetSpace::exp(localSolution[j],minusEpsEta);
 
-                    double forwardValue  = energy(element, forwardSolutionXiEta) - energy(element, forwardSolutionXi) - energy(element, forwardSolutionEta);
-                    double centerValue   = -energy(element, localSolution);
-                    double backwardValue = energy(element, backwardSolutionXiEta) - energy(element, backwardSolutionXi) - energy(element, backwardSolutionEta);
+                    double forwardValue  = energy(element, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
+                    double backwardValue = energy(element, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
             
                     A_[i][j][i2][j2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
                         
