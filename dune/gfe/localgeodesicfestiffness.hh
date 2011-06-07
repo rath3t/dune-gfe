@@ -135,10 +135,10 @@ class LocalGeodesicFEStiffness
 
 public:
     
-    //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
+    //! Dimension of a tangent space
     enum { blocksize = TargetSpace::TangentVector::size };
 
-    //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
+    //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::size };
 
     /** \brief Assemble the local stiffness matrix at the current position
