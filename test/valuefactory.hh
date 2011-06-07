@@ -21,6 +21,30 @@ public:
 
 /** \brief A class that creates sets of values of various types, to be used in unit tests
  * 
+ * This is the specialization for RealTuple<1>
+ */
+template <>
+class ValueFactory<RealTuple<1> >
+{
+public:
+    static void get(std::vector<RealTuple<1> >& values) {
+     
+        int nTestPoints = 5;
+        double testPoints[5] = {-3, -1, 0, 2, 4};
+    
+        values.resize(nTestPoints);
+        
+        // Set up elements of S^1
+        for (int i=0; i<nTestPoints; i++)
+            values[i] = RealTuple<1>(testPoints[i]);
+        
+    }
+    
+};
+
+
+/** \brief A class that creates sets of values of various types, to be used in unit tests
+ * 
  * This is the specialization for UnitVector<2>
  */
 template <>
