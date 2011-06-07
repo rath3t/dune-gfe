@@ -6,6 +6,7 @@
 #include <dune/istl/io.hh>
 
 #include <dune/gfe/unitvector.hh>
+#include <dune/gfe/realtuple.hh>
 #include <dune/gfe/localgeodesicfestiffness.hh>
 
 #include "multiindex.hh"
@@ -98,6 +99,9 @@ void testHessian()
 {
     const GridType* grid = makeTestGrid<domainDim>();
 
+    const int spaceDim = TargetSpace::TangentVector::size;
+    const int embeddedSpaceDim = TargetSpace::EmbeddedTangentVector::size;
+    
     // //////////////////////////////////////////////////////////
     //  Test whether the energy is invariant under isometries
     // //////////////////////////////////////////////////////////
@@ -128,12 +132,12 @@ void testHessian()
         
         assembler.assembleHessian(*grid->template leafbegin<0>(), coefficients);
         
-        Matrix<FieldMatrix<double,2,2> > fdHessian = assembler.A_;
+        Matrix<FieldMatrix<double,spaceDim,spaceDim> > fdHessian = assembler.A_;
         
         std::cout << "fdHessian:\n";
         printmatrix(std::cout, fdHessian, "fdHessian", "--");
         
-        Matrix<FieldMatrix<double,3,3> > embeddedHessian(nDofs,nDofs);
+        Matrix<FieldMatrix<double,embeddedSpaceDim,embeddedSpaceDim> > embeddedHessian(nDofs,nDofs);
         embeddedHessian = 0;
         
         embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[1],
@@ -151,16 +155,14 @@ void testHessian()
         Matrix<FieldMatrix<double,2,2> > hessian(nDofs,nDofs);
         
         // transform to local tangent space bases
-        const int blocksize = 2;
-        const int embeddedBlocksize = 3;
-        std::vector<Dune::FieldMatrix<double,blocksize,embeddedBlocksize> > orthonormalFrames(nDofs);
-        std::vector<Dune::FieldMatrix<double,embeddedBlocksize,blocksize> > orthonormalFramesTransposed(nDofs);
+        std::vector<Dune::FieldMatrix<double,spaceDim,embeddedSpaceDim> > orthonormalFrames(nDofs);
+        std::vector<Dune::FieldMatrix<double,embeddedSpaceDim,spaceDim> > orthonormalFramesTransposed(nDofs);
 
         for (size_t j=0; j<nDofs; j++) {
             orthonormalFrames[j] = coefficients[j].orthonormalFrame();
 
-            for (int k=0; k<embeddedBlocksize; k++)
-                for (int l=0; l<blocksize; l++)
+            for (int k=0; k<embeddedSpaceDim; k++)
+                for (int l=0; l<spaceDim; l++)
                     orthonormalFramesTransposed[j][k][l] = orthonormalFrames[j][l][k];
 
         }
@@ -168,7 +170,7 @@ void testHessian()
         for (size_t j=0; j<nDofs; j++)
             for (size_t k=0; k<nDofs; k++) {
 
-                Dune::FieldMatrix<double,blocksize,embeddedBlocksize> tmp;
+                Dune::FieldMatrix<double,spaceDim,embeddedSpaceDim> tmp;
                 Dune::FMatrixHelp::multMatrix(orthonormalFrames[j],embeddedHessian[j][k],tmp);
                 hessian[j][k] = tmp.rightmultiplyany(orthonormalFramesTransposed[k]);
 
@@ -184,5 +186,6 @@ void testHessian()
 
 int main(int argc, char** argv)
 {
+    testHessian<RealTuple<1>, 1>();
     testHessian<UnitVector<3>, 1>();
 }
