@@ -406,59 +406,6 @@ public:
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::TangentVector>& gradient) const;
     
-    void embeddedGradientOfEmbeddedGradient(const Entity& element,
-                                            const std::vector<TargetSpace>& localSolution,
-                                            int component,
-                                            std::vector<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& gradient) const {
-        
-        double eps = 1e-8;
-        
-        gradient.resize(localSolution.size());
-        std::fill(gradient.begin(), gradient.end(), Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize>(0));
-        
-        std::vector<TargetSpace> forwardSolution = localSolution;
-        std::vector<TargetSpace> backwardSolution = localSolution;
-        
-        
-        for (int j=0; j<embeddedBlocksize; j++) {
-            
-            // The return value does not have unit norm.  But assigning it to a UnitVector object
-            // will normalize it.  This amounts to an extension of the energy functional 
-            // to a neighborhood around S^n
-            forwardSolution[component]  = localSolution[component];
-            backwardSolution[component] = localSolution[component];
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardSolution[component],  eps, j);
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardSolution[component], -eps, j);
-            
-            std::vector<Dune::FieldVector<double,embeddedBlocksize> > forwardGradient;
-            std::vector<Dune::FieldVector<double,embeddedBlocksize> > backwardGradient;
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, forwardSolution, forwardGradient,this);
-            LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, backwardSolution, backwardGradient,this);
-
-            for (size_t k=0; k<localSolution.size(); k++)
-                for (int l=0; l<embeddedBlocksize; l++)
-                    gradient[k][j][l] = (forwardGradient[k][l] - backwardGradient[k][l]) / (2*eps);
-
-            forwardSolution[component]  = localSolution[component];
-            backwardSolution[component] = localSolution[component];
-
-            // Project each column vector onto the tangent space
-
-        // Project gradient in embedding space onto the tangent space
-            for (size_t i=0; i<localSolution.size(); i++)
-                for (int j=0; j<embeddedBlocksize; j++) {
-                    Dune::FieldVector<double,embeddedBlocksize> tmp;
-                    for (int k=0; k<embeddedBlocksize; k++)
-                        tmp[k] = gradient[i][k][j];
-                    tmp = localSolution[i].projectOntoTangentSpace(tmp);
-                    for (int k=0; k<embeddedBlocksize; k++)
-                        gradient[i][k][j] = tmp[k];
-                }
-
-        }
-
-    }
-    
     // assembled data
     Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
     
