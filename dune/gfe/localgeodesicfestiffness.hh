@@ -143,224 +143,6 @@ class LocalGeodesicFEStiffnessImp
 template<class GridView, class TargetSpace>
 class LocalGeodesicFEStiffness 
 {
-
-    // grid types
-    typedef typename GridView::Grid::ctype DT;
-    typedef typename TargetSpace::ctype RT;
-    typedef typename GridView::template Codim<0>::Entity Entity;
-    
-    // some other sizes
-    enum {gridDim=GridView::dimension};
-
-public:
-    
-    //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
-    enum { blocksize = TargetSpace::TangentVector::size };
-
-    /** \brief Assemble the local stiffness matrix at the current position
-
-    This default implementation used finite-difference approximations to compute the second derivatives
-    */
-    virtual void assembleHessian(const Entity& e,
-                  const std::vector<TargetSpace>& localSolution);
-   
-    virtual RT energy (const Entity& e,
-                       const std::vector<TargetSpace>& localSolution) const = 0;
-
-    /** \brief Assemble the element gradient of the energy functional 
-
-    The default implementation in this class uses a finite difference approximation */
-    virtual void assembleGradient(const Entity& element,
-                                  const std::vector<TargetSpace>& solution,
-                                  std::vector<Dune::FieldVector<double,blocksize> >& gradient) const;
-
-    virtual void assembleEmbeddedFDGradient(const Entity& element,
-                                  const std::vector<TargetSpace>& solution,
-                                  std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
-
-    // assembled data
-    Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
-    
-};
-
-template <class GridView, class TargetSpace>
-void LocalGeodesicFEStiffness<GridView, TargetSpace>::
-assembleGradient(const Entity& element,
-                 const std::vector<TargetSpace>& localSolution,
-                 std::vector<Dune::FieldVector<double,blocksize> >& localGradient) const
-{
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleGradient(element, localSolution, localGradient, this);
-}
-
-template <class GridView, class TargetSpace>
-void LocalGeodesicFEStiffness<GridView, TargetSpace>::
-assembleEmbeddedFDGradient(const Entity& element,
-                 const std::vector<TargetSpace>& localSolution,
-                 std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
-{
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
-}
-
-template <class GridView, class TargetSpace>
-void LocalGeodesicFEStiffness<GridView,TargetSpace>::
-assembleHessian(const Entity& element,
-         const std::vector<TargetSpace>& localSolution)
-{
-    // 1 degree of freedom per element vertex
-    int nDofs = element.template count<gridDim>();
-
-    // Clear assemble data
-    A_.setSize(nDofs,nDofs);
-
-    A_ = 0;
-
-    double eps = 1e-8;
-
-    typedef typename Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> >::row_type::iterator ColumnIterator;
-
-    // ///////////////////////////////////////////////////////////
-    //   Compute gradient by finite-difference approximation
-    // ///////////////////////////////////////////////////////////
-    std::vector<TargetSpace> forwardSolution  = localSolution;
-    std::vector<TargetSpace> backwardSolution = localSolution;
-
-    std::vector<TargetSpace> forwardForwardSolution   = localSolution;
-    std::vector<TargetSpace> forwardBackwardSolution  = localSolution;
-    std::vector<TargetSpace> backwardForwardSolution  = localSolution;
-    std::vector<TargetSpace> backwardBackwardSolution = localSolution;
-
-    // ///////////////////////////////////////////////////////////////
-    //   Loop over all blocks of the element matrix
-    // ///////////////////////////////////////////////////////////////
-    for (size_t i=0; i<A_.N(); i++) {
-
-        ColumnIterator cIt    = A_[i].begin();
-        ColumnIterator cEndIt = A_[i].end();
-
-        for (; cIt!=cEndIt; ++cIt) {
-
-            // compute only the upper right triangular matrix
-            if (cIt.index() < i)
-                continue;
-
-            // ////////////////////////////////////////////////////////////////////////////
-            //   Compute a finite-difference approximation of this hessian matrix block
-            // ////////////////////////////////////////////////////////////////////////////
-
-            for (int j=0; j<blocksize; j++) {
-
-                for (int k=0; k<blocksize; k++) {
-
-                    // compute only the upper right triangular matrix
-                    if (i==cIt.index() && k<j)
-                        continue;
-
-                    // Diagonal entries
-                    if (i==cIt.index() && j==k) {
-
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardSolution[i], eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardSolution[i], -eps, j);
-
-                        double forwardEnergy  = energy(element, forwardSolution);
-                        
-                        double solutionEnergy = energy(element, localSolution);
-                        
-                        double backwardEnergy = energy(element, backwardSolution);
-
-                        // Second derivative
-                        (*cIt)[j][k] = (forwardEnergy - 2*solutionEnergy + backwardEnergy) / (eps*eps);
-                        
-                        forwardSolution[i]  = localSolution[i];
-                        backwardSolution[i] = localSolution[i];
-
-                    } else {
-
-                        // Off-diagonal entries
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardForwardSolution[i],             eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardForwardSolution[cIt.index()],   eps, k);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardBackwardSolution[i],            eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardBackwardSolution[cIt.index()], -eps, k);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardForwardSolution[i],           -eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardForwardSolution[cIt.index()],  eps, k);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardBackwardSolution[i],          -eps, j);
-                        LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardBackwardSolution[cIt.index()],-eps, k);
-
-                        double forwardForwardEnergy = energy(element, forwardForwardSolution);
-                        
-                        double forwardBackwardEnergy = energy(element, forwardBackwardSolution);
-                        
-                        double backwardForwardEnergy = energy(element, backwardForwardSolution);
-                        
-                        double backwardBackwardEnergy = energy(element, backwardBackwardSolution);
-                        
-                        (*cIt)[j][k] = (forwardForwardEnergy + backwardBackwardEnergy
-                                        - forwardBackwardEnergy - backwardForwardEnergy) / (4*eps*eps);
-                        
-                        forwardForwardSolution[i]             = localSolution[i];
-                        forwardForwardSolution[cIt.index()]   = localSolution[cIt.index()];
-                        forwardBackwardSolution[i]            = localSolution[i];
-                        forwardBackwardSolution[cIt.index()]  = localSolution[cIt.index()];
-                        backwardForwardSolution[i]            = localSolution[i];
-                        backwardForwardSolution[cIt.index()]  = localSolution[cIt.index()];
-                        backwardBackwardSolution[i]           = localSolution[i];
-                        backwardBackwardSolution[cIt.index()] = localSolution[cIt.index()];
-                        
-                    }
-                            
-                }
-
-            }
-
-        }
-
-    }
-
-    // ///////////////////////////////////////////////////////////////
-    //   Symmetrize the matrix
-    //   This is possible expensive, but I want to be absolute sure
-    //   that the matrix is symmetric.
-    // ///////////////////////////////////////////////////////////////
-    for (size_t i=0; i<A_.N(); i++) {
-
-        ColumnIterator cIt    = A_[i].begin();
-        ColumnIterator cEndIt = A_[i].end();
-
-        for (; cIt!=cEndIt; ++cIt) {
-
-            if (cIt.index()>i)
-                continue;
-
-
-            if (cIt.index()==i) {
-
-                for (int j=1; j<blocksize; j++)
-                    for (int k=0; k<j; k++)
-                        (*cIt)[j][k] = (*cIt)[k][j];
-
-            } else {
-
-                const Dune::FieldMatrix<double,blocksize,blocksize>& other = A_[cIt.index()][i];
-
-                for (int j=0; j<blocksize; j++)
-                    for (int k=0; k<blocksize; k++)
-                        (*cIt)[j][k] = other[k][j];
-
-
-            }
-
-
-        }
-
-    }
-
-}
-
-/** \brief Specialization for unit vectors */
-template<class GridView, int dim>
-class LocalGeodesicFEStiffness <GridView,UnitVector<dim> >
-{
-    typedef UnitVector<dim> TargetSpace;
-
     // grid types
     typedef typename GridView::Grid::ctype DT;
     typedef typename TargetSpace::ctype RT;
@@ -412,8 +194,8 @@ public:
 };
 
 
-template <class GridView, int dim>
-void LocalGeodesicFEStiffness<GridView, UnitVector<dim> >::
+template <class GridView, class TargetSpace>
+void LocalGeodesicFEStiffness<GridView, TargetSpace>::
 assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
@@ -421,8 +203,8 @@ assembleGradient(const Entity& element,
     LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleGradient(element, localSolution, localGradient,this);
 }
 
-template <class GridView, int dim>
-void LocalGeodesicFEStiffness<GridView, UnitVector<dim> >::
+template <class GridView, class TargetSpace>
+void LocalGeodesicFEStiffness<GridView, TargetSpace>::
 assembleEmbeddedFDGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
@@ -434,8 +216,8 @@ assembleEmbeddedFDGradient(const Entity& element,
 // ///////////////////////////////////////////////////////////
 //   Compute gradient by finite-difference approximation
 // ///////////////////////////////////////////////////////////
-template <class GridType, int dim>
-void LocalGeodesicFEStiffness<GridType,UnitVector<dim> >::
+template <class GridType, class TargetSpace>
+void LocalGeodesicFEStiffness<GridType, TargetSpace>::
 assembleHessian(const Entity& element,
          const std::vector<TargetSpace>& localSolution)
 {
