@@ -33,7 +33,7 @@
 #include <dune/gfe/riemanniantrsolver.hh>
 
 // grid dimension
-const int dim = 2;
+const int dim = 3;
 
 // Image space of the geodesic fe functions
 #ifdef ROTATION2
@@ -106,11 +106,18 @@ int main (int argc, char *argv[]) try
     //    Create the grid
     // ///////////////////////////////////////
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
-    array<unsigned int,dim> elements;
-    elements.fill(3);
-    shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
-                                                                                      FieldVector<double,dim>(1),
-                                                                                      elements);
+    
+    shared_ptr<GridType> gridPtr;
+    if (parameterSet.get<std::string>("gridType")=="structured") {
+        array<unsigned int,dim> elements;
+        elements.fill(3);
+        gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
+                                                                     FieldVector<double,dim>(1),
+                                                                     elements);
+    } else {
+        gridPtr = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + gridFile));
+    }
+
     GridType& grid = *gridPtr.get();
 
     grid.globalRefine(numLevels-1);
