@@ -2,11 +2,13 @@
 
 #include <fenv.h>
 
+//#define LAPLACE_DEBUG
 //#define HARMONIC_ENERGY_FD_GRADIENT
 
-#define UNITVECTOR2
-//#define UNITVECTOR3
+//#define UNITVECTOR2
+#define UNITVECTOR3
 //#define ROTATION2
+//#define ROTATION3
 //#define REALTUPLE1
 
 #include <dune/common/bitsetvector.hh>
@@ -37,6 +39,9 @@ const int dim = 2;
 #ifdef ROTATION2
 typedef Rotation<2,double> TargetSpace;
 #endif
+#ifdef ROTATION3
+typedef Rotation<3,double> TargetSpace;
+#endif
 #ifdef UNITVECTOR2
 typedef UnitVector<2> TargetSpace;
 #endif
@@ -51,6 +56,19 @@ typedef RealTuple<1> TargetSpace;
 const int blocksize = TargetSpace::TangentVector::size;
 
 using namespace Dune;
+
+BlockVector<FieldVector<double,3> >
+computeEmbeddedDifference(const std::vector<TargetSpace>& a, const std::vector<TargetSpace>& b)
+{
+    assert(a.size() == b.size());
+    
+    BlockVector<FieldVector<double,3> > difference(a.size());
+    
+    for (int i=0; i<a.size(); i++)
+        difference[i] = a[i].globalCoordinates() - b[i].globalCoordinates();
+
+    return difference;
+}
 
 int main (int argc, char *argv[]) try
 {
@@ -89,7 +107,7 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
     array<unsigned int,dim> elements;
-    elements.fill(4);
+    elements.fill(3);
     shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
                                                                                       FieldVector<double,dim>(1),
                                                                                       elements);
@@ -152,7 +170,7 @@ int main (int argc, char *argv[]) try
             v[1] = std::cos(pos[0]*M_PI);
 #endif
 #if defined ROTATION2 || defined REALTUPLE1
-            v[0] = pos[0]*M_PI;
+            v[0] = pos[0]/*M_PI*/;
 #endif
         } else {
 #ifdef UNITVECTOR2
@@ -221,6 +239,10 @@ int main (int argc, char *argv[]) try
 
     x = solver.getSol();
 
+    // //////////////////////////////
+    //   Output result
+    // //////////////////////////////
+
     BlockVector<FieldVector<double,3> > xEmbedded(x.size());
     for (int i=0; i<x.size(); i++) {
 #ifdef UNITVECTOR2
@@ -250,28 +272,28 @@ int main (int argc, char *argv[]) try
     amiramesh.addVertexData(xEmbedded, grid.leafView());
     amiramesh.write("resultGrid", 1);
     
-    // //////////////////////////////
-    //   Output result
-    // //////////////////////////////
-#if 0
-    writeRod(x, resultPath + "rod3d.result");
-#endif
-
-    exit(0);
-
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
     // //////////////////////////////////////////////////////////
     
     SolutionType exactSolution = x;
 
-    // //////////////////////////////////////////////////////////
-    //   Compute hessian of the rod functional at the exact solution
-    //   for use of the energy norm it creates.
-    // //////////////////////////////////////////////////////////
+    // //////////////////////////////////////////////////////////////////////
+    //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
+    // //////////////////////////////////////////////////////////////////////
 
-    BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > hessian;
-    assembler.assembleMatrix(exactSolution, hessian);
+    typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
+    FEBasis basis(grid.leafView());
+    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
+
+    LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;
+    MassAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> massMatrixLocalAssembler;
+
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
+    ScalarMatrixType laplaceMatrix, massMatrix;
+
+    operatorAssembler.assemble(laplaceLocalAssembler, laplaceMatrix);
+    operatorAssembler.assemble(massMatrixLocalAssembler, massMatrix);
 
 
     double error = std::numeric_limits<double>::max();
@@ -282,11 +304,14 @@ int main (int argc, char *argv[]) try
     std::ofstream statisticsFile((resultPath + "trStatistics").c_str());
 
     // Compute error of the initial iterate
-    typedef BlockVector<FieldVector<double,blocksize> > DifferenceType;
-#warning computeGeodesicDifference outcommented
-    DifferenceType geodesicDifference = DifferenceType(0);//computeGeodesicDifference(exactSolution, initialIterate);
-    double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
+    typedef BlockVector<FieldVector<double,3> > DifferenceType;
+    DifferenceType difference = computeEmbeddedDifference(exactSolution, initialIterate);
 
+    H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > h1Norm(laplaceMatrix);
+    H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > l2Norm(massMatrix);
+
+    //double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
+    double oldError = h1Norm(difference);
     int i;
     for (i=0; i<maxTrustRegionSteps; i++) {
         
@@ -300,7 +325,7 @@ int main (int argc, char *argv[]) try
         if (!fp)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
         for (int j=0; j<intermediateSolution.size(); j++) {
-            fread(&intermediateSolution[j], sizeof(double), 4, fp);
+            fread(&intermediateSolution[j], sizeof(TargetSpace), 1, fp);
         }
         
         fclose(fp);
@@ -309,11 +334,10 @@ int main (int argc, char *argv[]) try
         //   Compute error
         // /////////////////////////////////////////////////////
 
-#warning computeGeodesicDifference outcommented
-        geodesicDifference = DifferenceType(0);//computeGeodesicDifference(exactSolution, intermediateSolution);
+        difference = computeEmbeddedDifference(exactSolution, intermediateSolution);
         
-        error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
-        
+        //error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
+        error = h1Norm(difference);
 
         double convRate = error / oldError;
 
