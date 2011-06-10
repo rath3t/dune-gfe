@@ -104,6 +104,14 @@ public:
         return result;
     }
     
+    /** \brief Compute the mixed third derivative \partial d^3 / \partial db^3
+
+        The result is the constant zero-tensor.
+     */
+    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+        return Tensor3<double,N,N,N>(0);
+    }
+    
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
 
         The result is the constant zero-tensor.
