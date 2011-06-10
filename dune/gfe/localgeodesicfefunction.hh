@@ -57,6 +57,8 @@ class LocalGeodesicFEFunction
     
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::size;
+    
+    static const int spaceDim = TargetSpace::TangentVector::size;
 
 public:
 
@@ -377,28 +379,44 @@ evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& l
                                           Dune::FieldMatrix<double,embeddedDim,embeddedDim>& result) const
 {
     double eps = 1e-6;
-    for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
-                
-        std::vector<TargetSpace> cornersPlus  = coefficients_;
-        std::vector<TargetSpace> cornersMinus = coefficients_;
-        typename TargetSpace::CoordinateType aPlus  = coefficients_[coefficient].globalCoordinates();
-        typename TargetSpace::CoordinateType aMinus = coefficients_[coefficient].globalCoordinates();
-        aPlus[j]  += eps;
-        aMinus[j] -= eps;
-        cornersPlus[coefficient]  = TargetSpace(aPlus);
-        cornersMinus[coefficient] = TargetSpace(aMinus);
+
+    // the function value at the point where we are evaluating the derivative
+    const Dune::FieldMatrix<double,spaceDim,embeddedDim> B = coefficients_[coefficient].orthonormalFrame();
+
+    Dune::FieldMatrix<double,spaceDim,embeddedDim> interimResult;
+    
+    std::vector<TargetSpace> cornersPlus  = coefficients_;
+    std::vector<TargetSpace> cornersMinus = coefficients_;
+        
+    for (int j=0; j<spaceDim; j++) {
+        
+        typename TargetSpace::EmbeddedTangentVector forwardVariation = B[j];
+        forwardVariation *= eps;
+        typename TargetSpace::EmbeddedTangentVector backwardVariation = B[j];
+        backwardVariation *= -eps;
+
+        cornersPlus [coefficient] = TargetSpace::exp(coefficients_[coefficient], forwardVariation);
+        cornersMinus[coefficient] = TargetSpace::exp(coefficients_[coefficient], backwardVariation);
+        
         LocalGeodesicFEFunction<dim,double,TargetSpace> fPlus(cornersPlus);
         LocalGeodesicFEFunction<dim,double,TargetSpace> fMinus(cornersMinus);
                 
         TargetSpace hPlus  = fPlus.evaluate(local);
         TargetSpace hMinus = fMinus.evaluate(local);
                 
-        result[j]  = hPlus.globalCoordinates();
-        result[j] -= hMinus.globalCoordinates();
-        result[j] /= 2*eps;
+        interimResult[j]  = hPlus.globalCoordinates();
+        interimResult[j] -= hMinus.globalCoordinates();
+        interimResult[j] /= 2*eps;
                 
     }
     
+    for (int i=0; i<embeddedDim; i++)
+        for (int j=0; j<embeddedDim; j++) {
+            result[i][j] = 0;
+            for (int k=0; k<spaceDim; k++)
+                result[i][j] += B[k][i]*interimResult[k][j];
+        }
+        
 }
 
 
