@@ -181,7 +181,7 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
-#if 0
+
     HarmonicEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> harmonicEnergyLocalStiffness;
 
     GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView(),
@@ -217,7 +217,6 @@ int main (int argc, char *argv[]) try
     solver.solve();
 
     x = solver.getSol();
-#endif
 
     // //////////////////////////////
     //   Output result
@@ -229,11 +228,26 @@ int main (int argc, char *argv[]) try
     
     DeformedGridType deformedGrid(grid, deformationFunction);
 
+    LeafAmiraMeshWriter<DeformedGridType>::writeSurfaceGrid(deformedGrid.leafView(), "cosseratGrid");
 
-    LeafAmiraMeshWriter<DeformedGridType> amiramesh;
-    amiramesh.writeSurfaceGrid(deformedGrid.leafView(), "cosseratGrid");
-/*    amiramesh.addGrid(deformedGrid.leafView());
-    amiramesh.write("cosseratGrid", 1);*/
+    // Make three vector fields containing the directors
+    // I don't think there is a simpler way to get the data into vanilla Amira
+    
+    for (int i=0; i<3; i++) {
+     
+        std::vector<FieldVector<double,3> > director(x.size());
+        for (size_t j=0; j<x.size(); j++)
+            director[j] = x[j].q.director(i);
+        
+        LeafAmiraMeshWriter<DeformedGridType> amiramesh;
+        amiramesh.addVertexData(director, deformedGrid.leafView());
+        
+        std::stringstream iAsAscii;
+        iAsAscii << i;
+        amiramesh.write("cosseratOrientation"+iAsAscii.str(), true);
+        
+    }
+    
     
     // //////////////////////////////
  } catch (Exception e) {
