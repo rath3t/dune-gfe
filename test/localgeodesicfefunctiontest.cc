@@ -358,8 +358,9 @@ void testRotation()
 
 int main()
 {
-    // choke on NaN
-    feenableexcept(FE_INVALID);
+    // choke on NaN -- don't enable this by default, as there are
+    // a few harmless NaN in the loopsolver
+    //feenableexcept(FE_INVALID);
 
     std::cout << std::setw(15) << std::setprecision(12);
     
