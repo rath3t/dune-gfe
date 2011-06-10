@@ -100,32 +100,96 @@ struct RigidBodyMotion
     }
     
     /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
-    static Dune::FieldMatrix<double,7,7> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
-        DUNE_THROW(Dune::NotImplemented, "!");
+    static Dune::FieldMatrix<double,7,7> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q)
+    {
+        Dune::FieldMatrix<double,7,7> result(0);
+        
+        // The linear part
+        Dune::FieldMatrix<double,3,3> linearPart = RealTuple<3>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                result[i][j] = linearPart[i][j];
+
+        // The rotation part
+        Dune::FieldMatrix<double,4,4> rotationPart = Rotation<dim,ctype>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                result[3+i][3+j] = rotationPart[i][j];
+
+        return result;
     }
     
     /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<double,7,7> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
-        DUNE_THROW(Dune::NotImplemented, "!");
+    static Dune::FieldMatrix<double,7,7> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q)
+    {
+        Dune::FieldMatrix<double,7,7> result(0);
+        
+        // The linear part
+        Dune::FieldMatrix<double,3,3> linearPart = RealTuple<3>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.r,q.r);
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                result[i][j] = linearPart[i][j];
+
+        // The rotation part
+        Dune::FieldMatrix<double,4,4> rotationPart = Rotation<dim,ctype>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.q,q.q);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                result[3+i][3+j] = rotationPart[i][j];
+
+        return result;
     }
     
     /** \brief Compute the third derivative \partial d^3 / \partial dq^3
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<double,7,7,7> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
-        DUNE_THROW(Dune::NotImplemented, "!");
+    static Tensor3<double,7,7,7> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q)
+    {
+        Tensor3<double,7,7,7> result(0);
+        
+        // The linear part
+        Tensor3<double,3,3,3> linearPart = RealTuple<3>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<3; k++)
+                    result[i][j][k] = linearPart[i][j][k];
+
+        // The rotation part
+        Tensor3<double,4,4,4> rotationPart = Rotation<dim,ctype>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                for (int k=0; k<4; k++)
+                    result[3+i][3+j][3+j] = rotationPart[i][j][k];
+
+        return result;
     }
     
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<double,7,7,7> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q) {
-        DUNE_THROW(Dune::NotImplemented, "!");
+    static Tensor3<double,7,7,7> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RigidBodyMotion<dim,ctype> & p, const RigidBodyMotion<dim,ctype> & q)
+    {
+        Tensor3<double,7,7,7> result(0);
+        
+        // The linear part
+        Tensor3<double,3,3,3> linearPart = RealTuple<3>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.r,q.r);
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<3; k++)
+                    result[i][j][k] = linearPart[i][j][k];
+
+        // The rotation part
+        Tensor3<double,4,4,4> rotationPart = Rotation<dim,ctype>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.q,q.q);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                for (int k=0; k<4; k++)
+                    result[3+i][3+j][3+j] = rotationPart[i][j][k];
+
+        return result;
     }
 
     
