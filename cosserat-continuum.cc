@@ -2,7 +2,6 @@
 
 #include <fenv.h>
 
-//#define LAPLACE_DEBUG
 //#define HARMONIC_ENERGY_FD_GRADIENT
 
 #define RIGIDBODYMOTION3
@@ -25,7 +24,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
-#include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
@@ -182,7 +181,7 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
 
-    HarmonicEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> harmonicEnergyLocalStiffness;
+    CosseratEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> harmonicEnergyLocalStiffness;
 
     GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView(),
                                                                       &harmonicEnergyLocalStiffness);
