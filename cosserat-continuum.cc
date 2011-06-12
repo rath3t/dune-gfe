@@ -181,7 +181,7 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
 
-    CosseratEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> harmonicEnergyLocalStiffness;
+    CosseratEnergyLocalStiffness<GridType::LeafGridView,3> harmonicEnergyLocalStiffness;
 
     GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView(),
                                                                       &harmonicEnergyLocalStiffness);

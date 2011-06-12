@@ -6,14 +6,16 @@
 
 #include "localgeodesicfestiffness.hh"
 #include "localgeodesicfefunction.hh"
+#include <dune/gfe/rigidbodymotion.hh>
 
 
-template<class GridView, class TargetSpace>
+template<class GridView, int dim>
 class CosseratEnergyLocalStiffness 
-    : public LocalGeodesicFEStiffness<GridView,TargetSpace>
+    : public LocalGeodesicFEStiffness<GridView,RigidBodyMotion<dim> >
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
+    typedef RigidBodyMotion<dim> TargetSpace;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
     
@@ -31,10 +33,10 @@ public:
 
 };
 
-template <class GridView, class TargetSpace>
-typename CosseratEnergyLocalStiffness<GridView, TargetSpace>::RT CosseratEnergyLocalStiffness<GridView, TargetSpace>::
+template <class GridView, int dim>
+typename CosseratEnergyLocalStiffness<GridView, dim>::RT CosseratEnergyLocalStiffness<GridView, dim>::
 energy(const Entity& element,
-       const std::vector<TargetSpace>& localSolution) const
+       const std::vector<RigidBodyMotion<dim> >& localSolution) const
 {
     RT energy = 0;
 
