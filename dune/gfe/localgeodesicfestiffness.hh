@@ -103,6 +103,8 @@ class LocalGeodesicFEStiffnessImp
                 // to a neighborhood around S^n
                 forwardSolution[i]  = localSolution[i];
                 backwardSolution[i] = localSolution[i];
+                
+                
                 LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardSolution[i],  eps, j);
                 LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardSolution[i], -eps, j);
 
@@ -184,16 +186,43 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
-    std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
 
-    // first compute the gradient in embedded coordinates
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient, this);
+    // ///////////////////////////////////////////////////////////
+    //   Compute gradient by finite-difference approximation
+    // ///////////////////////////////////////////////////////////
 
-    // transform to coordinates on the tangent space
-    localGradient.resize(embeddedLocalGradient.size());
+    double eps = 1e-6;
 
-    for (size_t i=0; i<localGradient.size(); i++)
-        localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
+    localGradient.resize(localSolution.size());
+
+    std::vector<TargetSpace> forwardSolution = localSolution;
+    std::vector<TargetSpace> backwardSolution = localSolution;
+
+    for (size_t i=0; i<localSolution.size(); i++) {
+        
+        // basis vectors of the tangent space of the i-th entry of localSolution
+        const Dune::FieldMatrix<double,blocksize,embeddedBlocksize> B = localSolution[i].orthonormalFrame();
+
+        for (int j=0; j<blocksize; j++) {
+            
+            typename TargetSpace::EmbeddedTangentVector forwardCorrection = B[j];
+            forwardCorrection *= eps;
+            
+            typename TargetSpace::EmbeddedTangentVector backwardCorrection = B[j];
+            backwardCorrection *= -eps;
+            
+            forwardSolution[i]  = TargetSpace::exp(localSolution[i], forwardCorrection);
+            backwardSolution[i] = TargetSpace::exp(localSolution[i], backwardCorrection);
+
+            localGradient[i][j] = (energy(element,forwardSolution) - energy(element,backwardSolution)) / (2*eps);
+
+        }
+
+        forwardSolution[i]  = localSolution[i];
+        backwardSolution[i] = localSolution[i];
+        
+    }
+
 }
 
 template <class GridView, class TargetSpace>
