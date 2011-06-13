@@ -2,9 +2,11 @@
 #define RIGID_BODY_MOTION_HH
 
 #include <dune/common/fvector.hh>
+
+#include <dune/gfe/realtuple.hh>
 #include "rotation.hh"
 
-/** \brief A rigid-body motion in, R^d, i.e., a member of SE(d) */
+/** \brief A rigid-body motion in R^d, i.e., a member of SE(d) */
 template <int dim, class T=double>
 struct RigidBodyMotion
 {
