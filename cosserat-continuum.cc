@@ -2,8 +2,6 @@
 
 #include <fenv.h>
 
-//#define HARMONIC_ENERGY_FD_GRADIENT
-
 #define RIGIDBODYMOTION3
 
 #include <dune/common/bitsetvector.hh>
@@ -178,13 +176,14 @@ int main (int argc, char *argv[]) try
     SolutionType initialIterate = x;
 
     // ////////////////////////////////////////////////////////////
-    //   Create an assembler for the Harmonic Energy Functional
+    //   Create an assembler for the energy functional
     // ////////////////////////////////////////////////////////////
 
-    CosseratEnergyLocalStiffness<GridType::LeafGridView,3> harmonicEnergyLocalStiffness;
+    const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
+    CosseratEnergyLocalStiffness<GridType::LeafGridView,3> cosseratEnergyLocalStiffness(materialParameters);
 
     GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView(),
-                                                                      &harmonicEnergyLocalStiffness);
+                                                                      &cosseratEnergyLocalStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
