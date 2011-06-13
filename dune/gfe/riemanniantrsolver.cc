@@ -226,10 +226,11 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
                 
                 for (; cIt!=cEndIt; ++cIt) {
                     for (int k=0; k<blocksize; k++) {
-                        if (ignoreNodes_->operator[](j)[k])
+                        if (ignoreNodes_->operator[](j)[k]) {
                             (*cIt)[k] = 0;
-                        if (j==cIt.index())
-                            (*cIt)[k][k] = 1;
+                            if (j==cIt.index())
+                                (*cIt)[k][k] = 1;
+                        }
                     }
                 }
 
