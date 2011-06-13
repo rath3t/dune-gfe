@@ -112,9 +112,6 @@ class LocalGeodesicFEStiffnessImp
                 backwardSolution[i] = localSolution[i];
             }
 
-            // Project gradient in embedding space onto the tangent space
-            localGradient[i] = localSolution[i].projectOntoTangentSpace(localGradient[i]);
-        
         }
 
     }
