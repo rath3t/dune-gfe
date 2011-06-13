@@ -21,16 +21,142 @@ class CosseratEnergyLocalStiffness
     
     // some other sizes
     enum {gridDim=GridView::dimension};
+    
+    
+    /** \brief Compute the symmetric part of a matrix A, i.e. \f$ \frac 12 (A + A^T) \f$ */
+    static Dune::FieldMatrix<double,dim,dim> sym(const Dune::FieldMatrix<double,dim,dim>& A)
+    {
+        Dune::FieldMatrix<double,dim,dim> result;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++)
+                result[i][j] = 0.5 * (A[i][j] + A[j][i]);
+        return result;
+    }
+
+    /** \brief Compute the antisymmetric part of a matrix A, i.e. \f$ \frac 12 (A - A^T) \f$ */
+    static Dune::FieldMatrix<double,dim,dim> skew(const Dune::FieldMatrix<double,dim,dim>& A)
+    {
+        Dune::FieldMatrix<double,dim,dim> result;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++)
+                result[i][j] = 0.5 * (A[i][j] - A[j][i]);
+        return result;
+    }
+    
+    /** \brief Return the square of the trace of a matrix */
+    static double traceSquared(const Dune::FieldMatrix<double,dim,dim>& A)
+    {
+        double trace = 0;
+        for (int i=0; i<dim; i++)
+            trace += A[i][i];
+        return trace*trace;
+    }
+
+    /** \brief Compute the (row-wise) curl of a matrix R \f$ 
+        \param DR The partial derivatives of the matrix R
+     */
+    static Dune::FieldMatrix<double,dim,dim> curl(const Tensor3<double,dim,dim,dim>& DR)
+    {
+        Dune::FieldMatrix<double,dim,dim> result;
+        
+        for (int i=0; i<dim; i++) {
+            result[i][0] = DR[i][2][1] - DR[i][1][2];
+            result[i][1] = DR[i][0][2] - DR[i][2][0];
+            result[i][2] = DR[i][1][0] - DR[i][0][1];
+        }
+            
+        return result;
+    }
+    
 
 public:
     
-    //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::size };
+    /** \brief Constructor with a set of material parameters
+     * \param parameters The material parameters
+     */
+    CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters)
+    {
+        // The shell thickness
+        thickness_ = parameters.template get<double>("thickness");
+    
+        // Lame constants
+        mu_ = parameters.template get<double>("mu");
+        lambda_ = parameters.template get<double>("lambda");
+
+        // Cosserat couple modulus, preferably 0
+        mu_c_ = parameters.template get<double>("mu_c");
+    
+        // Length scale parameter
+        L_c_ = parameters.template get<double>("L_c");
+    
+        // Curvature exponent
+        q_ = parameters.template get<double>("q");
+    }
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
                const std::vector<TargetSpace>& localSolution) const;
+               
+    RT quadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
+    {
+        Dune::FieldMatrix<double,3,3> UMinus1 = U;
+        for (int i=0; i<dim; i++)
+            UMinus1[i][i] -= 1;
+        
+        return mu_ * sym(UMinus1).frobenius_norm2()
+                + mu_c_ * skew(UMinus1).frobenius_norm2()
+                + (mu_*lambda_)/(2*mu_ + lambda_) * traceSquared(sym(UMinus1));
+    }
 
+    RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
+    {
+        /** \todo The factor 12 appears here and later, we everything is summed up.  Is that correct? */
+        return mu_ * thickness_/12.0 * std::pow(L_c_ * curl(DR).frobenius_norm(),q_);
+    }
+
+    RT bendingEnergy(const Dune::FieldMatrix<double,dim,dim>& R, const Tensor3<double,3,3,3>& DR) const
+    {
+        // The derivative of the third director
+        /** \brief There is no real need to have DR3 as a separate object */
+        Dune::FieldMatrix<double,3,3> DR3;
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                DR3[i][j] = DR[i][2][j];
+            
+        // left-multiply with R^T
+        Dune::FieldMatrix<double,3,3> RT_DR3;
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++) {
+                RT_DR3[i][j] = 0;
+                for (int k=0; k<3; k++)
+                    RT_DR3[i][j] += R[k][i] * DR3[k][j];
+            }
+                
+            
+            
+        /** \todo The factor 12 appears here and later, we everything is summed up.  Is that correct? */
+        return std::pow(thickness_,3)/12.0 * (mu_ * sym(RT_DR3).frobenius_norm2()
+                                            + mu_c_ * skew(RT_DR3).frobenius_norm2()
+                                            /** \brief Is this really traceSquared? */
+                                            + mu_*lambda_/(2*mu_+lambda_) * traceSquared(RT_DR3));
+    }
+
+    /** \brief The shell thickness */
+    double thickness_;
+    
+    /** \brief Lame constants */
+    double mu_, lambda_;
+
+    /** \brief Cosserat couple modulus, preferably 0 */
+    double mu_c_;
+    
+    /** \brief Length scale parameter */
+    double L_c_;
+    
+    /** \brief Curvature exponent */
+    double q_;
+    
+    
 };
 
 template <class GridView, int dim>
@@ -59,6 +185,9 @@ energy(const Entity& element,
         const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
         
         double weight = quad[pt].weight() * integrationElement;
+        
+        // The value of the local function
+        RigidBodyMotion<dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
         // The derivative of the local function defined on the reference element
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
@@ -68,15 +197,75 @@ energy(const Entity& element,
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
-
+        
+        /////////////////////////////////////////////////////////
+        // compute U, the Cosserat strain
+        /////////////////////////////////////////////////////////
+        dune_static_assert(dim==(gridDim+1), "Grid must have codim 1");
+        
+        //
+        Dune::FieldMatrix<double,dim,dim> R;
+        value.q.matrix(R);
+        
+        /// \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
+        Dune::FieldMatrix<double,dim,dim> F;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<gridDim; j++)
+                F[i][j] = derivative[i][j];
+            
+        for (int i=0; i<dim; i++)
+            F[i][dim-1] = R[i][dim-1];
+        
+        // U = R^T F
+        Dune::FieldMatrix<double,dim,dim> U;
+        for (int i=0; i<dim; i++)
+            for (int j=0; j<dim; j++) {
+                U[i][j] = 0;
+                for (int k=0; k<dim; k++)
+                    U[i][j] += R[k][i] * F[k][j];
+            }
+            
+        //////////////////////////////////////////////////////////
+        //  Compute the derivative of the rotation
+        //  Note: we need it in matrix coordinates
+        //////////////////////////////////////////////////////////
+                
+        // derivative of the rotation part in quaternion coordinates
+        Dune::FieldMatrix<double,4,gridDim> DR_quat;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<gridDim; j++)
+                DR_quat[i][j] = derivative[i+3][j];
+        
+        // transform to matrix coordinates:
+        // first get the derivative of the embedding of H_1 into R^{3\times3}
+        Dune::array<Dune::FieldMatrix<double,3 , 4>, 3> dd_dq;
+        value.q.getFirstDerivativesOfDirectors(dd_dq);
+        
+        //
+        Tensor3<double,3,3,3> DR;
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<gridDim; k++) {
+                    DR[i][j][k] = 0;
+                    for (int l=0; l<4; l++)
+                        DR[i][j][k] += dd_dq[i][j][l] * DR_quat[l][k];
+                }
+        
+        // If the grid is only 2d we fill up the partial derivatives wrt z by zeros
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                DR[i][j][2] = 0;
+        
+            
+            
         // Add the local energy density
-        // The Frobenius norm is the correct norm here if the metric of TargetSpace is the identity.
-        // (And if the metric of the domain space is the identity, which it always is here.)
-        energy += weight * derivative.frobenius_norm2();
+        energy += weight * thickness_ * quadraticMembraneEnergy(U);
+        energy += weight * thickness_ * curvatureEnergy(DR);
+        energy += weight * thickness_ * thickness_ * thickness_ / 12.0 * bendingEnergy(R,DR);
 
     }
 
-    return 0.5 * energy;
+    return energy;
 }
 
 #endif
