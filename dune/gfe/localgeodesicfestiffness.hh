@@ -6,120 +6,6 @@
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
 
-#include "rigidbodymotion.hh"
-#include "unitvector.hh"
-#include "realtuple.hh"
-
-// Forward declaration
-template<class GridView, class TargetSpace>
-class LocalGeodesicFEStiffness;
-
-template<class GridView, class TargetSpace>
-class LocalGeodesicFEStiffnessImp
-{
-
-    typedef typename GridView::template Codim<0>::Entity Entity;
-    
-    public:
-
-    template <int N>
-    static void infinitesimalVariation(RealTuple<N>& c, double eps, int i)
-    {
-        Dune::FieldVector<double,N> v(0);
-        v[i] = eps;
-        c = RealTuple<N>::exp(c,v).globalCoordinates();
-    }
-
-    /** \brief For the fd approximations 
-    */
-    template <int N>
-    static void infinitesimalVariation(UnitVector<N>& c, double eps, int i)
-    {
-        Dune::FieldVector<double,N> result = c.globalCoordinates();
-        result[i] += eps;
-        c = result;
-    }
-
-    /** \brief For the fd approximations 
-     */
-    static void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
-    {
-        if (i<3)
-            c.r[i] += eps;
-        else
-            c.q = c.q.mult(Rotation<3,double>::exp((i==3)*eps, 
-                                                   (i==4)*eps, 
-                                                   (i==5)*eps));
-    }
-
-    /** \brief For the fd approximations 
-    */
-    static void infinitesimalVariation(RigidBodyMotion<2>& c, double eps, int i)
-    {
-        if (i<2)
-            c.r[i] += eps;
-        else
-            c.q = c.q.mult(Rotation<2,double>::exp(Dune::FieldVector<double,1>(eps)));
-    }
-
-    static void infinitesimalVariation(Rotation<3,double>& c, double eps, int i)
-    {
-        c = c.mult(Rotation<3,double>::exp((i==0)*eps, 
-                                           (i==1)*eps, 
-                                           (i==2)*eps));
-    }
-
-    static void infinitesimalVariation(Rotation<2,double>& c, double eps, int i)
-    {
-        Dune::FieldVector<double,1> v(eps);
-        c = Rotation<2,double>::exp(c,v);
-    }
-
-    static void assembleEmbeddedGradient(const Entity& element,
-                                  const std::vector<TargetSpace>& localSolution,
-                                  std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient,
-                                  const LocalGeodesicFEStiffness<GridView,TargetSpace>* energyObject)
-    {
-
-        const int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::size;
-
-        // ///////////////////////////////////////////////////////////
-        //   Compute gradient by finite-difference approximation
-        // ///////////////////////////////////////////////////////////
-
-        double eps = 1e-6;
-
-        localGradient.resize(localSolution.size());
-
-        std::vector<TargetSpace> forwardSolution = localSolution;
-        std::vector<TargetSpace> backwardSolution = localSolution;
-
-        for (size_t i=0; i<localSolution.size(); i++) {
-        
-            for (int j=0; j<embeddedBlocksize; j++) {
-            
-                // The return value does not have unit norm.  But assigning it to a UnitVector object
-                // will normalize it.  This amounts to an extension of the energy functional 
-                // to a neighborhood around S^n
-                forwardSolution[i]  = localSolution[i];
-                backwardSolution[i] = localSolution[i];
-                
-                
-                LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(forwardSolution[i],  eps, j);
-                LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::infinitesimalVariation(backwardSolution[i], -eps, j);
-
-                localGradient[i][j] = (energyObject->energy(element,forwardSolution) - energyObject->energy(element,backwardSolution)) / (2*eps);
-
-                forwardSolution[i]  = localSolution[i];
-                backwardSolution[i] = localSolution[i];
-            }
-
-        }
-
-    }
-
-};
-
 
 template<class GridView, class TargetSpace>
 class LocalGeodesicFEStiffness 
@@ -155,18 +41,11 @@ public:
     */
     virtual void assembleHessian(const Entity& e,
                   const std::vector<TargetSpace>& localSolution);
-    
+
+    /** \brief Compute the energy at the current configuration */
     virtual RT energy (const Entity& e,
                        const std::vector<TargetSpace>& localSolution) const = 0;
 
-    /** \brief Assemble the element gradient of the energy functional using a finite-difference approximation
-
-    This is mainly for debugging purposes.
-    */
-    virtual void assembleEmbeddedFDGradient(const Entity& element,
-                                            const std::vector<TargetSpace>& solution,
-                                            std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
-                                          
     /** \brief Assemble the element gradient of the energy functional 
 
     The default implementation in this class uses a finite difference approximation */
@@ -223,15 +102,6 @@ assembleGradient(const Entity& element,
         
     }
 
-}
-
-template <class GridView, class TargetSpace>
-void LocalGeodesicFEStiffness<GridView, TargetSpace>::
-assembleEmbeddedFDGradient(const Entity& element,
-                 const std::vector<TargetSpace>& localSolution,
-                 std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
-{
-    LocalGeodesicFEStiffnessImp<GridView,TargetSpace>::assembleEmbeddedGradient(element, localSolution, localGradient, this);
 }
 
 
