@@ -140,9 +140,13 @@ int main (int argc, char *argv[]) try
     allNodes.setAll();
     LeafBoundaryPatch<GridType> dirichletBoundary(grid, allNodes);
 
-    BitSetVector<blocksize> dirichletNodes(grid.size(dim));
-    for (int i=0; i<dirichletNodes.size(); i++)
-        dirichletNodes[i] = dirichletBoundary.containsVertex(i);
+    BitSetVector<blocksize> dirichletNodes(grid.size(dim), false);
+    for (int i=0; i<dirichletNodes.size(); i++) {
+        // Only translation dofs are Dirichlet
+        if (dirichletBoundary.containsVertex(i))
+            for (int j=0; j<3; j++)
+                dirichletNodes[i][j] = true;
+    }
     
     // //////////////////////////
     //   Initial solution
