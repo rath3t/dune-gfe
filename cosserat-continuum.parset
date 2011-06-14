@@ -5,7 +5,7 @@ numLevels = 1
 tolerance = 1e-12
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 5
+maxTrustRegionSteps = 20
 
 # Initial trust-region radius
 initialTrustRegionRadius = 1
@@ -37,6 +37,26 @@ instrumented = 0
 ############################
 #   Problem specifications
 ############################
+
+[materialParameters]
+
+# shell thickness
+thickness = 0.05
+
+# Lame parameters
+mu = 1
+lambda = 1
+
+# Cosserat couple modulus
+mu_c = 0
+
+# Length scale parameter
+L_c = 1
+
+# Curvature exponent
+q = 2.5
+
+[]
 
 # 2d problem
 #path = /home/haile/sander/data/richards/twosquares/
