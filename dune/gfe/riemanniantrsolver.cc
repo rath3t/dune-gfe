@@ -178,6 +178,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     // /////////////////////////////////////////////////////
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
+    
+    double oldEnergy = assembler_->computeEnergy(x_);
+    
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
         Dune::Timer totalTimer;
@@ -348,8 +351,6 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         for (int j=0; j<newIterate.size(); j++) 
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
         
-        /** \todo Don't always recompute oldEnergy */
-        double oldEnergy = assembler_->computeEnergy(x_);
         double energy    = assembler_->computeEnergy(newIterate); 
         
         // compute the model decrease
@@ -394,12 +395,18 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             
             x_ = newIterate;
             trustRegion.scale(2);
+        
+            // current energy becomes 'oldEnergy' for the next iteration
+            oldEnergy = energy;
             
         } else if ( (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
             x_ = newIterate;
             
+            // current energy becomes 'oldEnergy' for the next iteration
+            oldEnergy = energy;
+        
         } else {
             // unsuccessful iteration
             trustRegion.scale(0.5);
