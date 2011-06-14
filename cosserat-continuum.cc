@@ -122,9 +122,12 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
     array<unsigned int,dim> elements;
-    elements.fill(3);
+    elements.fill(1);
+    elements[0] = 3;
+    FieldVector<double,dim> upper(1);
+    upper[0] = 3;
     shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
-                                                                                      FieldVector<double,dim>(1),
+                                                                                      upper,
                                                                                       elements);
     GridType& grid = *gridPtr.get();
 
@@ -136,6 +139,7 @@ int main (int argc, char *argv[]) try
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
+#if 0
     BitSetVector<1> allNodes(grid.size(dim));
     allNodes.setAll();
     LeafBoundaryPatch<GridType> dirichletBoundary(grid, allNodes);
@@ -147,6 +151,20 @@ int main (int argc, char *argv[]) try
             for (int j=0; j<3; j++)
                 dirichletNodes[i][j] = true;
     }
+#else
+    BitSetVector<blocksize> dirichletNodes(grid.size(dim), false);
+
+    GridType::Codim<dim>::LeafIterator vIt    = grid.leafbegin<dim>();
+    GridType::Codim<dim>::LeafIterator vEndIt = grid.leafend<dim>();
+    
+    for (; vIt!=vEndIt; ++vIt) {
+        if (vIt->geometry().corner(0)[0] < 1e-3 or vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
+            // Only translation dofs are Dirichlet
+            for (int j=0; j<3; j++)
+                dirichletNodes[grid.leafIndexSet().index(*vIt)][j] = true;
+        }
+    }
+#endif
     
     // //////////////////////////
     //   Initial solution
@@ -155,8 +173,9 @@ int main (int argc, char *argv[]) try
     FieldVector<double,3> yAxis(0);
     yAxis[1] = 1;
 
-    GridType::LeafGridView::Codim<dim>::Iterator vIt    = grid.leafbegin<dim>();
-    GridType::LeafGridView::Codim<dim>::Iterator vEndIt = grid.leafend<dim>();
+/*    GridType::LeafGridView::Codim<dim>::Iterator vIt    = grid.leafbegin<dim>();
+    GridType::LeafGridView::Codim<dim>::Iterator vEndIt = grid.leafend<dim>();*/
+    vIt    = grid.leafbegin<dim>();
 
     for (; vIt!=vEndIt; ++vIt) {
         int idx = grid.leafIndexSet().index(*vIt);
@@ -167,10 +186,10 @@ int main (int argc, char *argv[]) try
 
         // x[idx].q is the identity, set by the default constructor
 
-        if (dirichletNodes[idx][0]) {
+        if (dirichletNodes[idx][0] and vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
             
             // Only the positions have Dirichlet values
-            x[idx].r[2] = vIt->geometry().corner(0)[0];
+            x[idx].r[0] = 1.5;
 
         }
 
