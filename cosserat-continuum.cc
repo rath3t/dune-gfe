@@ -249,8 +249,13 @@ int main (int argc, char *argv[]) try
     
     DeformedGridType deformedGrid(grid, deformationFunction);
 
-    LeafAmiraMeshWriter<DeformedGridType>::writeSurfaceGrid(deformedGrid.leafView(), "cosseratGrid");
-
+    if (dim==2)
+        LeafAmiraMeshWriter<DeformedGridType>::writeSurfaceGrid(deformedGrid.leafView(), "cosseratGrid");
+    else {
+        LeafAmiraMeshWriter<DeformedGridType> amiramesh(deformedGrid);
+        amiramesh.write("cosseratGrid");
+    }
+    
     // Make three vector fields containing the directors
     // I don't think there is a simpler way to get the data into vanilla Amira
     
