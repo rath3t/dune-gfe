@@ -22,7 +22,7 @@
 #include <dune/fufem/readbitfield.hh>
 #include <dune/solvers/norms/energynorm.hh>
 #include <dune/fufem/boundarypatch.hh>
-#include <dune/fufem/prolongboundarypatch.hh>
+#include <dune/fufem/boundarypatchprolongator.hh>
 #include <dune/fufem/sampleonbitfield.hh>
 #include <dune/fufem/computestress.hh>
 
@@ -128,6 +128,9 @@ int main (int argc, char *argv[]) try
     typedef OneDGrid RodGridType;
     typedef UGGrid<dim> GridType;
 
+    typedef BoundaryPatch<GridType::LevelGridView> LevelBoundaryPatch;
+    typedef BoundaryPatch<GridType::LeafGridView> LeafBoundaryPatch;
+
     RodContinuumComplex<RodGridType,GridType> complex;
     
     complex.rods_["rod"].grid_ = shared_ptr<RodGridType>
@@ -207,14 +210,14 @@ int main (int argc, char *argv[]) try
     //   Determine the continuum Dirichlet nodes
     // /////////////////////////////////////////////////////
     VectorType coarseDirichletValues(complex.continua_["continuum"].grid_->size(0, dim));
-    AmiraMeshReader<int>::readFunction(coarseDirichletValues, path + dirichletValuesFile);
+    AmiraMeshReader<GridType>::readFunction(coarseDirichletValues, path + dirichletValuesFile);
 
-    LevelBoundaryPatch<GridType> coarseDirichletBoundary;
-    coarseDirichletBoundary.setup(*complex.continua_["continuum"].grid_, 0);
-    readBoundaryPatch(coarseDirichletBoundary, path + dirichletNodesFile);
+    LevelBoundaryPatch coarseDirichletBoundary;
+    coarseDirichletBoundary.setup(complex.continua_["continuum"].grid_->levelView(0));
+    readBoundaryPatch<GridType>(coarseDirichletBoundary, path + dirichletNodesFile);
     
-    LeafBoundaryPatch<GridType> dirichletBoundary(*complex.continua_["continuum"].grid_);
-    PatchProlongator<GridType>::prolong(coarseDirichletBoundary, dirichletBoundary);
+    LeafBoundaryPatch dirichletBoundary(complex.continua_["continuum"].grid_->leafView());
+    BoundaryPatchProlongator<GridType>::prolong(coarseDirichletBoundary, dirichletBoundary);
     complex.continua_["continuum"].dirichletBoundary_ = dirichletBoundary;
 
     BitSetVector<dim> dirichletNodes( complex.continua_["continuum"].grid_->size(dim) );
@@ -244,10 +247,10 @@ int main (int argc, char *argv[]) try
     complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(*complex.rods_["rod"].grid_, rodCouplingBitfield);
 
     // then for the continuum
-    LevelBoundaryPatch<GridType> coarseInterfaceBoundary(*complex.continua_["continuum"].grid_, 0);
-    readBoundaryPatch(coarseInterfaceBoundary, path + interfaceNodesFile);
+    LevelBoundaryPatch coarseInterfaceBoundary(complex.continua_["continuum"].grid_->levelView(0));
+    readBoundaryPatch<GridType>(coarseInterfaceBoundary, path + interfaceNodesFile);
     
-    PatchProlongator<GridType>::prolong(coarseInterfaceBoundary, complex.couplings_[interfaceName].continuumInterfaceBoundary_);
+    BoundaryPatchProlongator<GridType>::prolong(coarseInterfaceBoundary, complex.couplings_[interfaceName].continuumInterfaceBoundary_);
 
     // ////////////////////////////////////////// 
     //   Assemble 3d linear elasticity problem
@@ -559,7 +562,7 @@ int main (int argc, char *argv[]) try
         iAsAscii << i;
         std::string iSolFilename = tmpPath + "intermediate3dSolution_" + iAsAscii.str();
       
-        AmiraMeshReader<int>::readFunction(intermediateSol3d, iSolFilename);
+        AmiraMeshReader<GridType>::readFunction(intermediateSol3d, iSolFilename);
 
         // Read rod solution from file
         iSolFilename = tmpPath + "intermediateRodSolution_" + iAsAscii.str();

@@ -130,7 +130,7 @@ int main (int argc, char *argv[]) try
 
     BitSetVector<1> allNodes(grid.size(dim));
     allNodes.setAll();
-    LeafBoundaryPatch<GridType> dirichletBoundary(grid, allNodes);
+    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid.leafView(), allNodes);
 
     BitSetVector<blocksize> dirichletNodes(grid.size(dim));
     for (int i=0; i<dirichletNodes.size(); i++)
