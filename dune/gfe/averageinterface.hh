@@ -35,7 +35,7 @@ class PressureAverager : public Ipopt::TNLP
 
 public:
     /** \brief Constructor */
-    PressureAverager(const BoundaryPatchBase<GridView>* patch,
+    PressureAverager(const BoundaryPatch<GridView>* patch,
                      Dune::BlockVector<Dune::FieldVector<double,dim> >* result,
                      const Dune::FieldVector<double,dim>& resultantForce,
                      const Dune::FieldVector<double,dim>& resultantTorque,
@@ -117,7 +117,7 @@ public:
     */
     const double jacobianCutoff_;
 
-    const BoundaryPatchBase<GridView>* patch_;
+    const BoundaryPatch<GridView>* patch_;
 
     double patchArea_;
 
@@ -408,7 +408,7 @@ finalize_solution(Ipopt::SolverReturn status,
 }
 
 template <class GridView>
-void weakToStrongBoundaryStress(const BoundaryPatchBase<GridView>& boundary,
+void weakToStrongBoundaryStress(const BoundaryPatch<GridView>& boundary,
                                const Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& weakBoundaryStress,
                                Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& strongBoundaryStress)
 {
@@ -449,7 +449,7 @@ void weakToStrongBoundaryStress(const BoundaryPatchBase<GridView>& boundary,
 /** \param center Compute total torque around this point
  */
 template <class GridView>
-void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
+void computeTotalForceAndTorque(const BoundaryPatch<GridView>& interface,
                                 const Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& boundaryStress,
                                 const Dune::FieldVector<double,3>& center,
                                 Dune::FieldVector<double,3>& totalForce, Dune::FieldVector<double,3>& totalTorque)
@@ -473,12 +473,12 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
     //   Loop and integrate over the interface
     // ///////////////////////////////////////////
 
-    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
-    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
+    typename BoundaryPatch<GridView>::iterator it    = interface.begin();
+    typename BoundaryPatch<GridView>::iterator endIt = interface.end();
 
     for (; it!=endIt; ++it) {
 
-        const typename BoundaryPatchBase<GridView>::iterator::Intersection::Geometry& segmentGeometry = it->geometry();
+        const typename BoundaryPatch<GridView>::iterator::Intersection::Geometry& segmentGeometry = it->geometry();
 
         // Get quadrature rule
         const Dune::QuadratureRule<double, dim-1>& quad = Dune::QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
@@ -509,7 +509,7 @@ void computeTotalForceAndTorque(const BoundaryPatchBase<GridView>& interface,
 // Neumann data for a 3d elasticity problem.
 template <class GridView>
 void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>::TangentVector& resultantForceTorque,
-                            const BoundaryPatchBase<GridView>& interface,
+                            const BoundaryPatch<GridView>& interface,
                             const Dune::FieldVector<double,GridView::dimension>& centerOfTorque,
                             Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& pressure)
 {
@@ -558,8 +558,8 @@ void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>:
     Dune::BlockVector<Dune::FieldVector<double,1> > nodalWeights(interface.numVertices());
     nodalWeights = 0;
 
-    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
-    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
+    typename BoundaryPatch<GridView>::iterator it    = interface.begin();
+    typename BoundaryPatch<GridView>::iterator endIt = interface.end();
 
     for (; it!=endIt; ++it) {
 
@@ -710,7 +710,7 @@ void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>:
 }
 
 template <class GridView>
-void computeAverageInterface(const BoundaryPatchBase<GridView>& interface,
+void computeAverageInterface(const BoundaryPatch<GridView>& interface,
                              const Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> > deformation,
                              RigidBodyMotion<3>& average)
 {
@@ -738,8 +738,8 @@ void computeAverageInterface(const BoundaryPatchBase<GridView>& interface,
     //   Loop and integrate over the interface
     // ///////////////////////////////////////////
 
-    typename BoundaryPatchBase<GridView>::iterator it    = interface.begin();
-    typename BoundaryPatchBase<GridView>::iterator endIt = interface.end();
+    typename BoundaryPatch<GridView>::iterator it    = interface.begin();
+    typename BoundaryPatch<GridView>::iterator endIt = interface.end();
 
     for (; it!=endIt; ++it) {
 
@@ -834,7 +834,7 @@ void computeAverageInterface(const BoundaryPatchBase<GridView>& interface,
     // divided by its area
     deformationGradient /= interfaceArea;
     //std::cout << "deformationGradient: " << std::endl << deformationGradient << std::endl;
-
+    
     // Get the rotational part of the deformation gradient by performing a 
     // polar composition.
     FieldVector<double,dim> W;
@@ -861,7 +861,7 @@ void computeAverageInterface(const BoundaryPatchBase<GridView>& interface,
 /** \brief Set a Dirichlet value that corresponds to a given rigid body motion
  */
 template <class GridView>
-void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
+void setRotation(const BoundaryPatch<GridView>& dirichletBoundary,
                  Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> >& deformation,
                  const RigidBodyMotion<3>& referenceInterface,
                  const RigidBodyMotion<3>& lambda)
@@ -883,8 +883,8 @@ void setRotation(const BoundaryPatchBase<GridView>& dirichletBoundary,
     //   Loop over all vertices
     // ///////////////////////////////////////////
 
-    typename BoundaryPatchBase<GridView>::iterator it    = dirichletBoundary.begin();
-    typename BoundaryPatchBase<GridView>::iterator endIt = dirichletBoundary.end();
+    typename BoundaryPatch<GridView>::iterator it    = dirichletBoundary.begin();
+    typename BoundaryPatch<GridView>::iterator endIt = dirichletBoundary.end();
 
     for (; it!=endIt; ++it) {
         
