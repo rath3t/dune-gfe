@@ -177,7 +177,7 @@ mergeRodDirichletAndCouplingBoundaries()
         dirichletAndCouplingNodes.resize(complex_.rodGrid(name)->size(1));
         
         // first copy the true Dirichlet boundary
-        const LeafBoundaryPatch<RodGridType>& dirichletBoundary = complex_.rods_.find(name)->second.dirichletBoundary_;
+        const BoundaryPatch<typename RodGridType::LeafGridView>& dirichletBoundary = complex_.rods_.find(name)->second.dirichletBoundary_;
 
         for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
             dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
@@ -189,7 +189,7 @@ mergeRodDirichletAndCouplingBoundaries()
              cIt != continuumNames.end();
              ++cIt) {
 
-            const LeafBoundaryPatch<RodGridType>& rodInterfaceBoundary 
+            const BoundaryPatch<typename RodGridType::LeafGridView>& rodInterfaceBoundary 
                     = complex_.coupling(std::make_pair(name,*cIt)).rodInterfaceBoundary_;
 
             /** \todo Use the BoundaryPatch iterator here, for increased efficiency */
@@ -228,7 +228,7 @@ mergeContinuumDirichletAndCouplingBoundaries()
         dirichletAndCouplingNodes.resize(complex_.continuumGrid(name)->size(dim));
         
         // first copy the true Dirichlet boundary
-        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = complex_.continua_.find(name)->second.dirichletBoundary_;
+        const BoundaryPatch<typename ContinuumGridType::LeafGridView>& dirichletBoundary = complex_.continua_.find(name)->second.dirichletBoundary_;
 
         for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
             dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
@@ -240,7 +240,7 @@ mergeContinuumDirichletAndCouplingBoundaries()
              rIt != rodNames.end();
              ++rIt) {
 
-            const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
+            const BoundaryPatch<typename ContinuumGridType::LeafGridView>& continuumInterfaceBoundary 
                     = complex_.coupling(std::make_pair(*rIt,name)).continuumInterfaceBoundary_;
 
             /** \todo Use the BoundaryPatch iterator here, for increased efficiency */

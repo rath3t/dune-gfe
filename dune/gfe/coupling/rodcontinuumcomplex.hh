@@ -27,9 +27,9 @@ class RodContinuumComplex
     /** \brief Holds all data for a rod/continuum coupling */
     struct Coupling
     {
-        LeafBoundaryPatch<RodGrid> rodInterfaceBoundary_;
+        BoundaryPatch<typename RodGrid::LeafGridView> rodInterfaceBoundary_;
 
-        LeafBoundaryPatch<ContinuumGrid> continuumInterfaceBoundary_;
+        BoundaryPatch<typename ContinuumGrid::LeafGridView> continuumInterfaceBoundary_;
         
         /** \brief The orientation of the interface in the reference configuration */
         RigidBodyMotion<dim> referenceInterface_;
@@ -40,7 +40,7 @@ class RodContinuumComplex
     {
         Dune::shared_ptr<RodGrid> grid_;
         
-        LeafBoundaryPatch<RodGrid> dirichletBoundary_;
+        BoundaryPatch<typename RodGrid::LeafGridView> dirichletBoundary_;
         
         RodConfiguration dirichletValues_;
     };
@@ -50,7 +50,7 @@ class RodContinuumComplex
     {
         Dune::shared_ptr<ContinuumGrid> grid_;
         
-        LeafBoundaryPatch<ContinuumGrid> dirichletBoundary_;
+        BoundaryPatch<typename ContinuumGrid::LeafGridView> dirichletBoundary_;
         
         ContinuumConfiguration dirichletValues_;
     };

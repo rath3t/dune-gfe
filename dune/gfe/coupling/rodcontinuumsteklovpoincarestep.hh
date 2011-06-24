@@ -40,7 +40,10 @@ class RodContinuumSteklovPoincareStep
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,3,3> > MatrixType;
                 
     typedef typename P1NodalBasis<typename ContinuumGridType::LeafGridView,double>::LocalFiniteElement ContinuumLocalFiniteElement;
-    
+
+    typedef BoundaryPatch<typename RodGridType::LeafGridView> RodLeafBoundaryPatch;
+    typedef BoundaryPatch<typename ContinuumGridType::LeafGridView> ContinuumLeafBoundaryPatch;
+   
 public:
     
     /** \brief Constructor for a complex with one rod and one continuum */
@@ -53,7 +56,7 @@ public:
                                     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver,
                                     const MatrixType* stiffnessMatrix3d,
                                     const Dune::shared_ptr< ::LoopSolver<VectorType> > solver,
-                                    LinearLocalAssembler<ContinuumGridType, 
+                                    LocalOperatorAssembler<ContinuumGridType, 
                                                          ContinuumLocalFiniteElement, 
                                                          ContinuumLocalFiniteElement,
                                                          Dune::FieldMatrix<double,dim,dim> >* localAssembler)
@@ -85,7 +88,7 @@ public:
                                     const std::map<std::string,RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >*>& rodSolver,
                                     const std::map<std::string,const MatrixType*>& stiffnessMatrix3d,
                                     const std::map<std::string, const Dune::shared_ptr< ::LoopSolver<VectorType> > >& solver,
-                                    const std::map<std::string,LinearLocalAssembler<ContinuumGridType, 
+                                    const std::map<std::string,LocalOperatorAssembler<ContinuumGridType, 
                                                                                     ContinuumLocalFiniteElement, 
                                                                                     ContinuumLocalFiniteElement,
                                                                                     Dune::FieldMatrix<double,dim,dim> >*>& localAssembler)
@@ -282,7 +285,7 @@ mergeRodDirichletAndCouplingBoundaries()
         dirichletAndCouplingNodes.resize(this->complex_.rodGrid(name)->size(1));
         
         // first copy the true Dirichlet boundary
-        const LeafBoundaryPatch<RodGridType>& dirichletBoundary = this->complex_.rods_.find(name)->second.dirichletBoundary_;
+        const RodLeafBoundaryPatch& dirichletBoundary = this->complex_.rods_.find(name)->second.dirichletBoundary_;
 
         for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
             dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
@@ -294,7 +297,7 @@ mergeRodDirichletAndCouplingBoundaries()
              cIt != continuumNames.end();
              ++cIt) {
 
-            const LeafBoundaryPatch<RodGridType>& rodInterfaceBoundary 
+            const RodLeafBoundaryPatch& rodInterfaceBoundary 
                     = this->complex_.coupling(std::make_pair(name,*cIt)).rodInterfaceBoundary_;
 
             /** \todo Use the BoundaryPatch iterator here, for increased efficiency */
@@ -333,7 +336,7 @@ mergeContinuumDirichletAndCouplingBoundaries()
         dirichletAndCouplingNodes.resize(this->complex_.continuumGrid(name)->size(dim));
         
         // first copy the true Dirichlet boundary
-        const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = this->complex_.continua_.find(name)->second.dirichletBoundary_;
+        const ContinuumLeafBoundaryPatch& dirichletBoundary = this->complex_.continua_.find(name)->second.dirichletBoundary_;
 
         for (int i=0; i<dirichletAndCouplingNodes.size(); i++)
             dirichletAndCouplingNodes[i] = dirichletBoundary.containsVertex(i);
@@ -345,7 +348,7 @@ mergeContinuumDirichletAndCouplingBoundaries()
              rIt != rodNames.end();
              ++rIt) {
 
-            const LeafBoundaryPatch<ContinuumGridType>& continuumInterfaceBoundary 
+            const ContinuumLeafBoundaryPatch& continuumInterfaceBoundary 
                     = this->complex_.coupling(std::make_pair(*rIt,name)).continuumInterfaceBoundary_;
 
             /** \todo Use the BoundaryPatch iterator here, for increased efficiency */
@@ -374,7 +377,7 @@ rodDirichletToNeumannMap(const std::string& rodName,
     ///////////////////////////////////////////////////////////
     //  Set the complete set of Dirichlet values
     ///////////////////////////////////////////////////////////
-    const LeafBoundaryPatch<RodGridType>& dirichletBoundary = this->complex_.rod(rodName).dirichletBoundary_;
+    const RodLeafBoundaryPatch& dirichletBoundary = this->complex_.rod(rodName).dirichletBoundary_;
     const RodConfigurationType& dirichletValues = this->complex_.rod(rodName).dirichletValues_;
     
     for (size_t i=0; i<rodX.size(); i++)
@@ -390,7 +393,7 @@ rodDirichletToNeumannMap(const std::string& rodName,
             continue;
     
         // Use \lambda as a Dirichlet value for the rod
-        const LeafBoundaryPatch<RodGridType>& interfaceBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
+        const RodLeafBoundaryPatch& interfaceBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
 
         /** \todo Use the BoundaryPatch iterator, which will be a lot faster
          * once we use EntitySeed for its implementation
@@ -428,7 +431,7 @@ rodDirichletToNeumannMap(const std::string& rodName,
         if (couplingName.first != rodName)
             continue;
         
-        const LeafBoundaryPatch<RodGridType>& couplingBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
+        const RodLeafBoundaryPatch& couplingBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
 
         result[couplingName] = rod(rodName).assembler_->getResultantForce(couplingBoundary, rodX);
     }
@@ -448,7 +451,7 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
     x3d = 0;
 
     // Copy the true Dirichlet values into it
-    const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = this->complex_.continuum(continuumName).dirichletBoundary_;
+    const ContinuumLeafBoundaryPatch& dirichletBoundary = this->complex_.continuum(continuumName).dirichletBoundary_;
     const VectorType& dirichletValues = this->complex_.continuum(continuumName).dirichletValues_;
     
     for (size_t i=0; i<x3d.size(); i++)
@@ -464,7 +467,7 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
             continue;
     
         // Turn \lambda \in TSE(3) into a Dirichlet value for the continuum
-        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        const ContinuumLeafBoundaryPatch& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
         const RigidBodyMotion<dim>& referenceInterface = this->complex_.coupling(couplingName).referenceInterface_;
         
         setRotation(interfaceBoundary, x3d, referenceInterface, it->second);
@@ -509,7 +512,7 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
         if (couplingName.second != continuumName)
             continue;
         
-        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        const ContinuumLeafBoundaryPatch& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
 
         VectorType neumannForces(residual.size());
         neumannForces = 0;
@@ -553,7 +556,7 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
     //  Assemble the linearized rod problem
     ////////////////////////////////////////////////////
 
-    const LeafBoundaryPatch<RodGridType>& dirichletBoundary = this->complex_.rod(rodName).dirichletBoundary_;
+    const RodLeafBoundaryPatch& dirichletBoundary = this->complex_.rod(rodName).dirichletBoundary_;
 
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> > MatrixType;
     GeodesicFEAssembler<typename RodGridType::LeafGridView, RigidBodyMotion<3> > assembler(dirichletBoundary.gridView(),
@@ -613,11 +616,11 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
         }
         
         // Use 'forceTorque' as a Neumann value for the rod
-        const LeafBoundaryPatch<RodGridType>& interfaceBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
+        const RodLeafBoundaryPatch& interfaceBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
 
         const typename RodGridType::LeafGridView::IndexSet& indexSet = interfaceBoundary.gridView().indexSet();
         
-        for (typename LeafBoundaryPatch<RodGridType>::iterator bIt = interfaceBoundary.begin();
+        for (typename RodLeafBoundaryPatch::iterator bIt = interfaceBoundary.begin();
              bIt != interfaceBoundary.end();
              ++bIt) {
             
@@ -684,11 +687,11 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
         if (couplingName.first != rodName)
             continue;
         
-        const LeafBoundaryPatch<RodGridType>& interfaceBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
+        const RodLeafBoundaryPatch& interfaceBoundary = this->complex_.coupling(couplingName).rodInterfaceBoundary_;
         
         const typename RodGridType::LeafGridView::IndexSet& indexSet = interfaceBoundary.gridView().indexSet();
         
-        for (typename LeafBoundaryPatch<RodGridType>::iterator bIt = interfaceBoundary.begin();
+        for (typename RodLeafBoundaryPatch::iterator bIt = interfaceBoundary.begin();
              bIt != interfaceBoundary.end();
              ++bIt) {
             
@@ -721,7 +724,7 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
     * i.e. the linearization at zero
     */
     typedef P1NodalBasis<typename ContinuumGridType::LeafGridView,double> P1Basis;
-    const LeafBoundaryPatch<ContinuumGridType>& dirichletBoundary = this->complex_.continuum(continuumName).dirichletBoundary_;
+    const ContinuumLeafBoundaryPatch& dirichletBoundary = this->complex_.continuum(continuumName).dirichletBoundary_;
     P1Basis basis(dirichletBoundary.gridView());
     OperatorAssembler<P1Basis,P1Basis> assembler(basis, basis);
 
@@ -748,7 +751,7 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
             continue;
         
         // Use 'forceTorque' as a Neumann value for the rod
-        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        const ContinuumLeafBoundaryPatch& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
         
         // 
         VectorType localNeumannValues;
@@ -798,7 +801,7 @@ linearizedContinuumNeumannToDirichletMap(const std::string& continuumName,
             continue;
         
         // Use 'forceTorque' as a Neumann value for the rod
-        const LeafBoundaryPatch<ContinuumGridType>& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
+        const ContinuumLeafBoundaryPatch& interfaceBoundary = this->complex_.coupling(couplingName).continuumInterfaceBoundary_;
         
         RigidBodyMotion<3> averageInterface;
         computeAverageInterface(interfaceBoundary, x, averageInterface);
