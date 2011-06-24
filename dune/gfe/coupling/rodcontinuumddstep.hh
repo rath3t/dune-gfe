@@ -129,7 +129,7 @@ protected:
     
         Dune::BitSetVector<dim> dirichletAndCouplingNodes_;
     
-        LinearLocalAssembler<ContinuumGridType, 
+        LocalOperatorAssembler<ContinuumGridType, 
                              ContinuumLocalFiniteElement, 
                              ContinuumLocalFiniteElement,
                              Dune::FieldMatrix<double,dim,dim> >* localAssembler_;

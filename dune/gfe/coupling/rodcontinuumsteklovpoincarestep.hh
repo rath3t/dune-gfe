@@ -129,7 +129,7 @@ public:
              ++it)
             continua_[it->first].solver_ = it->second;
         
-        for (typename std::map<std::string,LinearLocalAssembler<ContinuumGridType, 
+        for (typename std::map<std::string,LocalOperatorAssembler<ContinuumGridType, 
                                                                 ContinuumLocalFiniteElement, 
                                                                 ContinuumLocalFiniteElement,
                                                                 Dune::FieldMatrix<double,dim,dim> >*>::const_iterator it = localAssembler.begin();
@@ -241,7 +241,7 @@ protected:
     
         Dune::BitSetVector<dim> dirichletAndCouplingNodes_;
     
-        LinearLocalAssembler<ContinuumGridType, 
+        LocalOperatorAssembler<ContinuumGridType, 
                              ContinuumLocalFiniteElement, 
                              ContinuumLocalFiniteElement,
                              Dune::FieldMatrix<double,dim,dim> >* localAssembler_;
