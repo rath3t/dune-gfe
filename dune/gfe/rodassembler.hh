@@ -66,6 +66,10 @@ public:
             dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
         }
 
+        std::vector<RigidBodyMotion<3> > getRefConfig()
+        {   return  dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_;
+        }
+
         void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
@@ -79,7 +83,7 @@ public:
 
         \note Linear run-time in the size of the grid */
         template <class PatchGridView>
-        Dune::FieldVector<double,6> getResultantForce(const BoundaryPatchBase<PatchGridView>& boundary,
+        Dune::FieldVector<double,6> getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
                                                       const std::vector<RigidBodyMotion<3> >& sol) const;
 
     }; // end class
