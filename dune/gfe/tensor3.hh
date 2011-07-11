@@ -159,7 +159,7 @@ class Tensor3
 
 };
 
-//! Output operator for array
+//! Output operator for Tensor3
 template <class T, int N1, int N2, int N3>
 inline std::ostream& operator<< (std::ostream& s, const Tensor3<T,N1,N2,N3>& tensor)
 {
