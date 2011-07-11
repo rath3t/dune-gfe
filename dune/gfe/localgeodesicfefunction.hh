@@ -8,6 +8,7 @@
 
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
+#include <dune/gfe/rigidbodymotion.hh>
 
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/linearalgebra.hh>
@@ -511,5 +512,161 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
     }
     
 }
+
+
+/** \brief A function defined by simplicial geodesic interpolation 
+           from the reference element to a RigidBodyMotion.
+
+   This is a specialization for speeding up the code.
+   We use that a RigidBodyMotion is a product manifold.
+   
+\tparam dim Dimension of the reference element
+\tparam ctype Type used for coordinates on the reference element
+*/
+template <int dim, class ctype>
+class LocalGeodesicFEFunction<dim,ctype,RigidBodyMotion<3> >
+{
+    typedef RigidBodyMotion<3> TargetSpace;
+    
+    typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
+    static const int embeddedDim = EmbeddedTangentVector::size;
+    
+    static const int spaceDim = TargetSpace::TangentVector::size;
+
+public:
+
+    /** \brief Constructor */
+    LocalGeodesicFEFunction(const Dune::array<TargetSpace,dim+1>& coefficients)
+    {
+        for (int i=0; i<dim+1; i++)
+            translationCoefficients_[i] = coefficients[i].r;
+        
+        Dune::array<Rotation<3,ctype>,dim+1> orientationCoefficients;
+        for (int i=0; i<dim+1; i++)
+            orientationCoefficients[i] = coefficients[i].q;
+        
+        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,Rotation<3,double> > > (new LocalGeodesicFEFunction<dim,ctype,Rotation<3,double> >(orientationCoefficients));
+        
+    }
+
+    /** \brief Evaluate the function */
+    TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
+    {
+        TargetSpace result;
+        
+        Dune::array<ctype,dim+1> w = barycentricCoordinates(local);
+        result.r = 0;
+        for (int i=0; i<dim+1; i++)
+            result.r.axpy(w[i], translationCoefficients_[i]);
+        
+        result.q = orientationFEFunction_->evaluate(local);
+        return result;
+    }
+
+    /** \brief Evaluate the derivative of the function */
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    {
+        Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> result(0);
+        
+        // get translation part
+        for (int i=0; i<dim+1; i++) {
+         
+            // get derivative of shape function
+            Dune::FieldVector<ctype,dim> sfDer;
+            if (i==0)
+                sfDer = -1;
+            else
+                for (int j=0; j<dim; j++)
+                    sfDer[j] = (i-1)==j;
+            
+            for (int j=0; j<3; j++)
+                result[j].axpy(translationCoefficients_[i][j], sfDer);
+            
+        }
+        
+        
+        // get orientation part
+        Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<dim; j++)
+                result[3+i][j] = qResult[i][j];
+        
+        return result;
+    }
+
+#if 0
+    /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
+    {
+        TargetSpace result;
+        result.r = translationFEFunction_.evaluateDerivativeFD(local);
+        result.q = orientationFEFunction_.evaluateDerivativeFD(local);
+        return result;
+    }
+    
+    /** \brief Evaluate the derivative of the function value with respect to a coefficient */
+    void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                                 int coefficient,
+                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const
+    {
+        TargetSpace result;
+        result.r = translationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local);
+        result.q = orientationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local);
+        return result;
+    }
+    
+    /** \brief Evaluate the derivative of the function value with respect to a coefficient */
+    void evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                                 int coefficient,
+                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const;
+    {
+        TargetSpace result;
+        result.r = translationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local);
+        result.q = orientationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local);
+        return result;
+    }
+    
+    /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
+    void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                                    int coefficient,
+                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
+    {
+        TargetSpace result;
+        result.r = translationFEFunction_.evaluateDerivativeOfGradientWRTCoefficient(local);
+        result.q = orientationFEFunction_.evaluateDerivativeOfGradientWRTCoefficient(local);
+        return result;
+    }
+
+    /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
+    void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+                                                    int coefficient,
+                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
+    {
+        TargetSpace result;
+        result.r = translationFEFunction_.evaluateFDDerivativeOfGradientWRTCoefficient(local);
+        result.q = orientationFEFunction_.evaluateFDDerivativeOfGradientWRTCoefficient(local);
+        return result;
+    }
+#endif
+private:
+
+    static Dune::array<ctype,dim+1> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
+        Dune::array<ctype,dim+1> result;
+        result[0] = 1;
+        for (int i=0; i<dim; i++) {
+            result[0]  -= local[i];
+            result[i+1] = local[i];
+        }
+        return result;
+    }
+
+    // The two factors of a RigidBodyMotion
+    //LocalGeodesicFEFunction<dim,ctype,RealTuple<3> > translationFEFunction_;
+    
+    Dune::array<Dune::FieldVector<double,3>, dim+1> translationCoefficients_;
+    
+    std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,Rotation<3,double> > > orientationFEFunction_;
+};
+
 
 #endif
