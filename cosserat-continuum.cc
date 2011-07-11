@@ -40,6 +40,16 @@ const int blocksize = TargetSpace::TangentVector::size;
 using namespace Dune;
 
 
+void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out)
+{
+    out = 0;
+    for (int i=0; i<dim; i++)
+        out[i] = in[i];
+    
+    out[0] = 2.2;
+}
+
+
 template <class HostGridView>
 class DeformationFunction
     : public Dune :: DiscreteCoordFunction< double, 3, DeformationFunction<HostGridView> >
@@ -189,7 +199,7 @@ int main (int argc, char *argv[]) try
         if (dirichletNodes[idx][0] and vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
             
             // Only the positions have Dirichlet values
-            x[idx].r[0] = 1.5;
+            dirichletValues(vIt->geometry().corner(0), x[idx].r);
 
         }
 
