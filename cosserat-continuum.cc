@@ -39,7 +39,7 @@ const int blocksize = TargetSpace::TangentVector::size;
 
 using namespace Dune;
 
-
+#if 0
 void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out)
 {
     out = 0;
@@ -48,7 +48,29 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     
     out[0] = 2.2;
 }
+#endif
+void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out)
+{
+    double angle = M_PI/4;
+    FieldVector<double,3> center(0);
+    center[1] = 0.5;
+    
+    FieldMatrix<double,3,3> rotation(0);
+    rotation[0][0] = 1;
+    rotation[1][1] =  std::cos(angle);
+    rotation[1][2] = -std::sin(angle);
+    rotation[2][1] =  std::sin(angle);
+    rotation[2][2] =  std::cos(angle);
 
+    FieldVector<double,3> inEmbedded(0);
+    for (int i=0; i<dim; i++)
+        inEmbedded[i] = in[i];
+    inEmbedded -= center;
+    
+    rotation.mv(inEmbedded, out);
+    
+    out += center;
+}
 
 template <class HostGridView>
 class DeformationFunction
