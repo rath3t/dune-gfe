@@ -33,7 +33,7 @@ public:
     {}
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
-    void setup(const AverageDistanceAssembler<TargetSpace>* rodAssembler,
+    void setup(const AverageDistanceAssembler<TargetSpace>* assembler,
                const TargetSpace& x,
                double tolerance,
                int maxTrustRegionSteps,
