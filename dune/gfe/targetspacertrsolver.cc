@@ -6,9 +6,9 @@
 
 #include "maxnormtrustregion.hh"
 
-template <class TargetSpace>
-void TargetSpaceRiemannianTRSolver<TargetSpace>::
-setup(const AverageDistanceAssembler<TargetSpace>* assembler,
+template <class TargetSpace, int N>
+void TargetSpaceRiemannianTRSolver<TargetSpace,N>::
+setup(const AverageDistanceAssembler<TargetSpace,N>* assembler,
       const TargetSpace& x,
       double tolerance,
       int maxTrustRegionSteps,
@@ -45,8 +45,8 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 }
 
 
-template <class TargetSpace>
-void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
+template <class TargetSpace, int N>
+void TargetSpaceRiemannianTRSolver<TargetSpace,N>::solve()
 {
     MaxNormTrustRegion<blocksize> trustRegion(1,   // we have only one block
                                               initialTrustRegionRadius_);

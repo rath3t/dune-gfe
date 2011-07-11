@@ -120,7 +120,7 @@ assembleMatrix(const std::vector<TargetSpace>& sol,
         const int numOfBaseFct = it->template count<gridDim>();  
         
         // Extract local solution
-        std::vector<TargetSpace> localSolution(numOfBaseFct);
+        Dune::array<TargetSpace,gridDim+1> localSolution;
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -168,7 +168,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
         const int nDofs = it->template count<gridDim>();
 
         // Extract local solution
-        std::vector<TargetSpace> localSolution(nDofs);
+        Dune::array<TargetSpace,gridDim+1> localSolution;
         
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -198,15 +198,13 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
-    std::vector<TargetSpace> localSolution;
+    Dune::array<TargetSpace,gridDim+1> localSolution;
 
     ElementIterator it    = gridView_.template begin<0>();
     ElementIterator endIt = gridView_.template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
-
-        localSolution.resize(it->template count<gridDim>());
 
         for (int i=0; i<it->template count<gridDim>(); i++)
             localSolution[i]               = sol[indexSet.subIndex(*it,i,gridDim)];

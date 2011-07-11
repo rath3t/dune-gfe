@@ -3,7 +3,8 @@
 
 #include <vector>
 
-template <class TargetSpace>
+/** \tparam N Number of coefficients (i.e., simplex corners) */
+template <class TargetSpace, int N>
 class AverageDistanceAssembler
 {
     static const int size         = TargetSpace::TangentVector::size;
@@ -11,8 +12,8 @@ class AverageDistanceAssembler
 
 public:
 
-    AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
-                             const std::vector<double>& weights)
+    AverageDistanceAssembler(const Dune::array<TargetSpace,N>& coefficients,
+                             const Dune::array<double,N>& weights)
         : coefficients_(coefficients),
           weights_(weights)
     {}
@@ -74,9 +75,9 @@ public:
         
     }
 
-    const std::vector<TargetSpace> coefficients_;
+    const Dune::array<TargetSpace,N> coefficients_;
 
-    const std::vector<double> weights_;
+    const Dune::array<double,N> weights_;
 
 };
 

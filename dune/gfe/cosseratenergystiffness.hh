@@ -95,7 +95,7 @@ public:
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
-               const std::vector<TargetSpace>& localSolution) const;
+               const Dune::array<TargetSpace, gridDim+1>& localSolution) const;
                
     RT quadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
     {
@@ -162,7 +162,7 @@ public:
 template <class GridView, int dim>
 typename CosseratEnergyLocalStiffness<GridView, dim>::RT CosseratEnergyLocalStiffness<GridView, dim>::
 energy(const Entity& element,
-       const std::vector<RigidBodyMotion<dim> >& localSolution) const
+       const Dune::array<RigidBodyMotion<dim>, gridDim+1>& localSolution) const
 {
     RT energy = 0;
 

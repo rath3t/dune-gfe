@@ -8,8 +8,11 @@
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-/** \brief Riemannian trust-region solver for geodesic finite-element problems */
-template <class TargetSpace>
+/** \brief Riemannian trust-region solver for geodesic finite-element problems 
+ \tparam TargetSpace The manifold that our functions take values in
+ \tparam N Number of simplex vertices
+ */
+template <class TargetSpace, int N>
 class TargetSpaceRiemannianTRSolver 
     : public NumProc
 //     : public IterativeSolver<std::vector<TargetSpace>,
@@ -33,7 +36,7 @@ public:
     {}
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
-    void setup(const AverageDistanceAssembler<TargetSpace>* assembler,
+    void setup(const AverageDistanceAssembler<TargetSpace,N>* assembler,
                const TargetSpace& x,
                double tolerance,
                int maxTrustRegionSteps,
@@ -70,7 +73,7 @@ protected:
     double innerTolerance_;
 
     /** \brief The assembler for the average-distance functional */
-    const AverageDistanceAssembler<TargetSpace>* assembler_;
+    const AverageDistanceAssembler<TargetSpace,N>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
     std::auto_ptr< ::LoopSolver<CorrectionType> > innerSolver_;

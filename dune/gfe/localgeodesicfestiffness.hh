@@ -40,17 +40,17 @@ public:
 
     */
     virtual void assembleHessian(const Entity& e,
-                  const std::vector<TargetSpace>& localSolution);
+                  const Dune::array<TargetSpace,gridDim+1>& localSolution);
 
     /** \brief Compute the energy at the current configuration */
     virtual RT energy (const Entity& e,
-                       const std::vector<TargetSpace>& localSolution) const = 0;
+                       const Dune::array<TargetSpace,gridDim+1>& localSolution) const = 0;
 
     /** \brief Assemble the element gradient of the energy functional 
 
     The default implementation in this class uses a finite difference approximation */
     virtual void assembleGradient(const Entity& element,
-                                  const std::vector<TargetSpace>& solution,
+                                  const Dune::array<TargetSpace,gridDim+1>& solution,
                                   std::vector<typename TargetSpace::TangentVector>& gradient) const;
     
     // assembled data
@@ -62,7 +62,7 @@ public:
 template <class GridView, class TargetSpace>
 void LocalGeodesicFEStiffness<GridView, TargetSpace>::
 assembleGradient(const Entity& element,
-                 const std::vector<TargetSpace>& localSolution,
+                 const Dune::array<TargetSpace,gridDim+1>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
 
@@ -74,8 +74,8 @@ assembleGradient(const Entity& element,
 
     localGradient.resize(localSolution.size());
 
-    std::vector<TargetSpace> forwardSolution = localSolution;
-    std::vector<TargetSpace> backwardSolution = localSolution;
+    Dune::array<TargetSpace,gridDim+1> forwardSolution = localSolution;
+    Dune::array<TargetSpace,gridDim+1> backwardSolution = localSolution;
 
     for (size_t i=0; i<localSolution.size(); i++) {
         
@@ -111,7 +111,7 @@ assembleGradient(const Entity& element,
 template <class GridType, class TargetSpace>
 void LocalGeodesicFEStiffness<GridType, TargetSpace>::
 assembleHessian(const Entity& element,
-         const std::vector<TargetSpace>& localSolution)
+         const Dune::array<TargetSpace,gridDim+1>& localSolution)
 {
     // 1 degree of freedom per element vertex
     size_t nDofs = element.template count<gridDim>();
@@ -144,8 +144,8 @@ assembleHessian(const Entity& element,
             Dune::FieldVector<double,embeddedBlocksize> minusEpsXi = epsXi;
             minusEpsXi  *= -1;
             
-            std::vector<TargetSpace> forwardSolution  = localSolution;
-            std::vector<TargetSpace> backwardSolution = localSolution;
+            Dune::array<TargetSpace,gridDim+1> forwardSolution  = localSolution;
+            Dune::array<TargetSpace,gridDim+1> backwardSolution = localSolution;
             
             forwardSolution[i]  = TargetSpace::exp(localSolution[i],epsXi);
             backwardSolution[i] = TargetSpace::exp(localSolution[i],minusEpsXi);
@@ -169,8 +169,8 @@ assembleHessian(const Entity& element,
                     Dune::FieldVector<double,embeddedBlocksize> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
                     Dune::FieldVector<double,embeddedBlocksize> minusEpsEta = epsEta;  minusEpsEta *= -1;
                         
-                    std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
-                    std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
+                    Dune::array<TargetSpace,gridDim+1> forwardSolutionXiEta  = localSolution;
+                    Dune::array<TargetSpace,gridDim+1> backwardSolutionXiEta  = localSolution;
             
                     if (i==j)
                         forwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],epsXi+epsEta);

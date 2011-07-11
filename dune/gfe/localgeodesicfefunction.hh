@@ -31,11 +31,9 @@ class LocalGeodesicFEFunction
 public:
 
     /** \brief Constructor */
-    LocalGeodesicFEFunction(const std::vector<TargetSpace>& coefficients)
+    LocalGeodesicFEFunction(const Dune::array<TargetSpace,dim+1>& coefficients)
         : coefficients_(coefficients)
-    {
-        assert(coefficients_.size() == dim+1);
-    }
+    {}
 
     /** \brief Evaluate the function */
     TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
@@ -80,8 +78,8 @@ private:
         return B;
     }
         
-    static std::vector<ctype> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
-        std::vector<ctype> result(dim+1);
+    static Dune::array<ctype,dim+1> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
+        Dune::array<ctype,dim+1> result;
         result[0] = 1;
         for (int i=0; i<dim; i++) {
             result[0]  -= local[i];
@@ -144,7 +142,7 @@ private:
     }
     
     /** \brief The coefficient vector */
-    std::vector<TargetSpace> coefficients_;
+    Dune::array<TargetSpace,dim+1> coefficients_;
 
 };
 
@@ -153,11 +151,11 @@ TargetSpace LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluate(const Dune::FieldVector<ctype, dim>& local) const
 {
     // First compute the coordinates on the standard simplex (in R^{n+1})
-    std::vector<ctype> w = barycentricCoordinates(local);
+    Dune::array<ctype,dim+1> w = barycentricCoordinates(local);
 
-    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
+    AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
 
-    TargetSpaceRiemannianTRSolver<TargetSpace> solver;
+    TargetSpaceRiemannianTRSolver<TargetSpace,dim+1> solver;
 
     solver.setup(&assembler,
                  coefficients_[0],   // initial iterate
@@ -209,8 +207,8 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     Dune::FieldMatrix<ctype,embeddedDim,dim> RHS = dFdw * B;
 
     // the actual system matrix
-    std::vector<ctype> w = barycentricCoordinates(local);
-    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
+    Dune::array<ctype,dim+1> w = barycentricCoordinates(local);
+    AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
@@ -302,7 +300,7 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
 
     // dFdq
     std::vector<ctype> w = barycentricCoordinates(local);
-    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
+    AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
@@ -405,7 +403,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     
     // the actual system matrix
     std::vector<ctype> w = barycentricCoordinates(local);
-    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
+    AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
