@@ -201,7 +201,7 @@ energy(const Entity& element,
         /////////////////////////////////////////////////////////
         // compute U, the Cosserat strain
         /////////////////////////////////////////////////////////
-        dune_static_assert(dim==(gridDim+1), "Grid must have codim 1");
+        dune_static_assert(dim>=gridDim, "Codim of the grid must be nonnegative");
         
         //
         Dune::FieldMatrix<double,dim,dim> R;
@@ -261,7 +261,9 @@ energy(const Entity& element,
         // Add the local energy density
         energy += weight * thickness_ * quadraticMembraneEnergy(U);
         energy += weight * thickness_ * curvatureEnergy(DR);
-        energy += weight * thickness_ * thickness_ * thickness_ / 12.0 * bendingEnergy(R,DR);
+        
+        if (gridDim!=dim) // extra term for shell elements
+            energy += weight * thickness_ * thickness_ * thickness_ / 12.0 * bendingEnergy(R,DR);
 
     }
 
