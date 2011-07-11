@@ -11,6 +11,7 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      geodesicfeassembler.hh \
                      geodesicfefunctionadaptor.hh \
                      harmonicenergystiffness.hh \
+                     linearalgebra.hh \
                      localgeodesicfefunction.hh \
                      localgeodesicfestiffness.hh \
                      maxnormtrustregion.hh \
