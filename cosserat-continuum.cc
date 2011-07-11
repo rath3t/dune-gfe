@@ -49,9 +49,14 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     out[0] = 2.2;
 }
 #endif
-void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out)
+void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
+                     double homotopy
+)
 {
     double angle = M_PI/4;
+    angle *= homotopy;
+    
+    // center of rotation
     FieldVector<double,3> center(0);
     center[1] = 0.5;
     
@@ -132,6 +137,7 @@ int main (int argc, char *argv[]) try
 
     // read solver settings
     const int numLevels                   = parameterSet.get<int>("numLevels");
+    int numHomotopySteps                  = parameterSet.get<int>("numHomotopySteps");
     const double tolerance                = parameterSet.get<double>("tolerance");
     const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
@@ -205,8 +211,6 @@ int main (int argc, char *argv[]) try
     FieldVector<double,3> yAxis(0);
     yAxis[1] = 1;
 
-/*    GridType::LeafGridView::Codim<dim>::Iterator vIt    = grid.leafbegin<dim>();
-    GridType::LeafGridView::Codim<dim>::Iterator vEndIt = grid.leafend<dim>();*/
     vIt    = grid.leafbegin<dim>();
 
     for (; vIt!=vEndIt; ++vIt) {
@@ -218,18 +222,8 @@ int main (int argc, char *argv[]) try
 
         // x[idx].q is the identity, set by the default constructor
 
-        if (dirichletNodes[idx][0] and vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
-            
-            // Only the positions have Dirichlet values
-            dirichletValues(vIt->geometry().corner(0), x[idx].r);
-
-        }
-
     }
         
-    // backup for error measurement later
-    SolutionType initialIterate = x;
-
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the energy functional
     // ////////////////////////////////////////////////////////////
@@ -259,18 +253,46 @@ int main (int argc, char *argv[]) try
                  baseTolerance,
                  instrumented);
     
-    // /////////////////////////////////////////////////////
-    //   Solve!
-    // /////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////
+    //   Main homotopy loop
+    ////////////////////////////////////////////////////////
+
+    for (int i=0; i<numHomotopySteps; i++) {
+        
+        double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
+        std::cout << "Homotopy step: " << i << ",    parameter: " << homotopyParameter << std::endl;
+
+        ////////////////////////////////////////////////////////
+        //   Set Dirichlet values
+        ////////////////////////////////////////////////////////
+        
+        for (vIt=grid.leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
+
+            int idx = grid.leafIndexSet().index(*vIt);
+            if (dirichletNodes[idx][0] and vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
+            
+                // Only the positions have Dirichlet values
+                dirichletValues(vIt->geometry().corner(0), x[idx].r,
+                                homotopyParameter);
+
+            }
+
+        }
+
+        // /////////////////////////////////////////////////////
+        //   Solve!
+        // /////////////////////////////////////////////////////
     
-    std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
-    //exit(0);
+        std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
+        //exit(0);
 
-    solver.setInitialSolution(x);
-    solver.solve();
+        solver.setInitialSolution(x);
+        solver.solve();
 
-    x = solver.getSol();
+        x = solver.getSol();
 
+    }
+    
     // //////////////////////////////
     //   Output result
     // //////////////////////////////

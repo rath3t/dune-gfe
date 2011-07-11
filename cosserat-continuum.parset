@@ -1,6 +1,9 @@
 # Number of grid levels
 numLevels = 1
 
+# Number of homotopy steps for the Dirichlet boundary conditions
+numHomotopySteps = 2
+
 # Tolerance of the trust region solver
 tolerance = 1e-12
 
@@ -44,6 +47,9 @@ instrumented = 0
 thickness = 0.05
 
 # Lame parameters
+# corresponds to E = 1e6, nu=0.3
+#mu = 3.8462e+05
+#lambda = 2.7149e+05
 mu = 1
 lambda = 1
 
