@@ -249,11 +249,15 @@ energy(const Entity& element,
                 }
         
         // Add the local energy density
-        energy += weight * thickness_ * quadraticMembraneEnergy(U);
-        energy += weight * thickness_ * curvatureEnergy(DR);
-        
-        if (gridDim!=dim) // extra term for shell elements
+        if (gridDim==2) {
+            energy += weight * thickness_ * quadraticMembraneEnergy(U);
+            energy += weight * thickness_ * curvatureEnergy(DR);
             energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
+        } else if (gridDim==3) {
+            energy += weight * quadraticMembraneEnergy(U);
+            energy += weight * curvatureEnergy(DR);
+        } else
+            DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
 
     }
 
