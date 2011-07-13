@@ -135,7 +135,8 @@ public:
             
         return mu_ * sym(RT_DR3).frobenius_norm2()
                + mu_c_ * skew(RT_DR3).frobenius_norm2()
-               + mu_*lambda_/(2*mu_+lambda_) * traceSquared(RT_DR3);
+               /** \todo Is this sym correct?  It is in the paper, but not in the notes */
+               + mu_*lambda_/(2*mu_+lambda_) * traceSquared(sym(RT_DR3));
     }
 
     /** \brief The shell thickness */
