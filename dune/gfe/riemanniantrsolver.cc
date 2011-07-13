@@ -20,9 +20,6 @@
 #include <dune/solvers/norms/h1seminorm.hh>
 
 
-// for debugging
-#include <test/fdcheck.hh>
-
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::
 setup(const GridType& grid,
@@ -205,9 +202,6 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
                                    i==0    // assemble occupation pattern only for the first call
                                    );
         std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
-
-        //gradientFDCheck(x_, rhs, *rodAssembler_);
-        //hessianFDCheck(x_, *hessianMatrix_, *rodAssembler_);
 
         // The right hand side is the _negative_ gradient
         rhs *= -1;
