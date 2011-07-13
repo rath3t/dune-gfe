@@ -52,7 +52,7 @@ void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
     for (; eIt!=eEndIt; ++eIt) {
 
         // Set up a local gfe function on the father element
-        std::vector<TargetSpace> coefficients(eIt->father()->template count<dim>());
+        Dune::array<TargetSpace,dim+1> coefficients;
 
         for (int i=0; i<eIt->father()->template count<dim>(); i++)
             coefficients[i] = dofMap.find(idSet.subId(*eIt->father(),i,dim))->second;

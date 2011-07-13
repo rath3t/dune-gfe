@@ -133,7 +133,7 @@ private:
         return dFdw;
     }
     
-    Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<ctype>& w, const TargetSpace& q) const
+    Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const Dune::array<ctype,dim+1>& w, const TargetSpace& q) const
     {
         Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> result;
         result = 0;
@@ -300,7 +300,7 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
     TargetSpace q = evaluate(local);
 
     // dFdq
-    std::vector<ctype> w = barycentricCoordinates(local);
+    Dune::array<ctype,dim+1> w = barycentricCoordinates(local);
     AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
@@ -403,7 +403,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     Dune::FieldMatrix<ctype,embeddedDim,dim+1> dFdw = computeDFdw(q);
     
     // the actual system matrix
-    std::vector<ctype> w = barycentricCoordinates(local);
+    Dune::array<ctype,dim+1> w = barycentricCoordinates(local);
     AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);

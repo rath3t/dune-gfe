@@ -30,18 +30,18 @@ public:
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
-               const std::vector<TargetSpace>& localSolution) const;
+               const Dune::array<TargetSpace,gridDim+1>& localSolution) const;
 
 #ifndef HARMONIC_ENERGY_FD_GRADIENT
     // The finite difference gradient method is in the base class.
     // If the cpp macro is not set we overload it here.
     /** \brief Assemble the gradient of the energy functional on one element */
     virtual void assembleEmbeddedGradient(const Entity& element,
-                                  const std::vector<TargetSpace>& solution,
+                                  const Dune::array<TargetSpace,gridDim+1>& solution,
                                   std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
                                     
     virtual void assembleGradient(const Entity& element,
-                                  const std::vector<TargetSpace>& localSolution,
+                                  const Dune::array<TargetSpace,gridDim+1>& localSolution,
                                   std::vector<typename TargetSpace::TangentVector>& localGradient) const;
 #endif
 };
@@ -49,7 +49,7 @@ public:
 template <class GridView, class TargetSpace>
 typename HarmonicEnergyLocalStiffness<GridView, TargetSpace>::RT HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
 energy(const Entity& element,
-       const std::vector<TargetSpace>& localSolution) const
+       const Dune::array<TargetSpace,gridDim+1>& localSolution) const
 {
     RT energy = 0;
 
@@ -96,7 +96,7 @@ energy(const Entity& element,
 template <class GridView, class TargetSpace>
 void HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
 assembleEmbeddedGradient(const Entity& element,
-                 const std::vector<TargetSpace>& localSolution,
+                 const Dune::array<TargetSpace,gridDim+1>& localSolution,
                  std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
 {
     // initialize gradient
@@ -174,7 +174,7 @@ assembleEmbeddedGradient(const Entity& element,
 template <class GridView, class TargetSpace>
 void HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
 assembleGradient(const Entity& element,
-                 const std::vector<TargetSpace>& localSolution,
+                 const Dune::array<TargetSpace,gridDim+1>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
     std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
