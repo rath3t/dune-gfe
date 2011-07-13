@@ -205,14 +205,20 @@ energy(const Entity& element,
         Dune::FieldMatrix<double,dim,dim> R;
         value.q.matrix(R);
         
-        /// \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
+        /* Compute F, the deformation gradient.
+           In the continuum case this is
+           \f$ \hat{F} = \nabla m  \f$
+           In the case of a shell it is
+          \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
+        */
         Dune::FieldMatrix<double,dim,dim> F;
         for (int i=0; i<dim; i++)
             for (int j=0; j<gridDim; j++)
                 F[i][j] = derivative[i][j];
             
         for (int i=0; i<dim; i++)
-            F[i][dim-1] = R[i][dim-1];
+            for (int j=gridDim; j<dim; j++)
+                F[i][j] = R[i][j];
         
         // U = R^T F
         Dune::FieldMatrix<double,dim,dim> U;
