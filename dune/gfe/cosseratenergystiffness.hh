@@ -240,22 +240,14 @@ energy(const Entity& element,
         value.q.getFirstDerivativesOfDirectors(dd_dq);
         
         //
-        Tensor3<double,3,3,3> DR;
+        Tensor3<double,3,3,3> DR(0);
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
                 for (int k=0; k<gridDim; k++) {
-                    DR[i][j][k] = 0;
                     for (int l=0; l<4; l++)
                         DR[i][j][k] += dd_dq[i][j][l] * DR_quat[l][k];
                 }
         
-        // If the grid is only 2d we fill up the partial derivatives wrt z by zeros
-        for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++)
-                DR[i][j][2] = 0;
-        
-            
-            
         // Add the local energy density
         energy += weight * thickness_ * quadraticMembraneEnergy(U);
         energy += weight * thickness_ * curvatureEnergy(DR);
