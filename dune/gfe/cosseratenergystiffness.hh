@@ -110,8 +110,7 @@ public:
 
     RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
     {
-        /** \todo The factor 12 appears here and later, we everything is summed up.  Is that correct? */
-        return mu_ * thickness_/12.0 * std::pow(L_c_ * curl(DR).frobenius_norm(),q_);
+        return mu_ * std::pow(L_c_ * curl(DR).frobenius_norm(),q_);
     }
 
     RT bendingEnergy(const Dune::FieldMatrix<double,dim,dim>& R, const Tensor3<double,3,3,3>& DR) const
@@ -134,11 +133,9 @@ public:
                 
             
             
-        /** \todo The factor 12 appears here and later, we everything is summed up.  Is that correct? */
-        return std::pow(thickness_,3)/12.0 * (mu_ * sym(RT_DR3).frobenius_norm2()
-                                            + mu_c_ * skew(RT_DR3).frobenius_norm2()
-                                            /** \brief Is this really traceSquared? */
-                                            + mu_*lambda_/(2*mu_+lambda_) * traceSquared(RT_DR3));
+        return mu_ * sym(RT_DR3).frobenius_norm2()
+               + mu_c_ * skew(RT_DR3).frobenius_norm2()
+               + mu_*lambda_/(2*mu_+lambda_) * traceSquared(RT_DR3);
     }
 
     /** \brief The shell thickness */
@@ -263,7 +260,7 @@ energy(const Entity& element,
         energy += weight * thickness_ * curvatureEnergy(DR);
         
         if (gridDim!=dim) // extra term for shell elements
-            energy += weight * thickness_ * thickness_ * thickness_ / 12.0 * bendingEnergy(R,DR);
+            energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
 
     }
 
