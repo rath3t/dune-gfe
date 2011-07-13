@@ -238,7 +238,7 @@ energy(const Entity& element,
         
         // transform to matrix coordinates:
         // first get the derivative of the embedding of H_1 into R^{3\times3}
-        Dune::array<Dune::FieldMatrix<double,3 , 4>, 3> dd_dq;
+        Tensor3<double,3 , 3, 4> dd_dq;
         value.q.getFirstDerivativesOfDirectors(dd_dq);
         
         //

@@ -6,6 +6,8 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/common/exceptions.hh>
 
+#include <dune/gfe/tensor3.hh>
+
 template <class T>
 class Quaternion : public Dune::FieldVector<T,4>
 {
@@ -94,7 +96,7 @@ public:
         return d;
     }
             
-    void getFirstDerivativesOfDirectors(Dune::array<Dune::FieldMatrix<double,3 , 4>, 3>& dd_dq) const
+    void getFirstDerivativesOfDirectors(Tensor3<double,3, 3, 4>& dd_dq) const
     {
         const Quaternion<T>& q = (*this);
 

@@ -563,7 +563,7 @@ assembleGradient(const Entity& element,
         
         
         // dd_dvij[m][i][j] = \parder {(d_k)_i} {q}
-        array<FieldMatrix<double,3 , 4>, 3> dd_dq;
+        Tensor3<double,3 ,3, 4> dd_dq;
         q.getFirstDerivativesOfDirectors(dd_dq);
         
         // First derivatives of the position
