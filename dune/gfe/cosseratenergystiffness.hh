@@ -75,25 +75,22 @@ public:  // for testing
                           const Dune::FieldMatrix<double,7,gridDim>& derivative,
                           Tensor3<double,3,3,3>& DR)
     {
-        // derivative of the rotation part in quaternion coordinates
-        Dune::FieldMatrix<double,4,gridDim> DR_quat;
-        for (int i=0; i<4; i++)
-            for (int j=0; j<gridDim; j++)
-                DR_quat[i][j] = derivative[i+3][j];
-        
-        // first get the derivative of the embedding of H_1 into R^{3\times3}
-        // Since the directors of a given unit quaternion are the _columns_ of the
+        // The LocalGFEFunction class gives us the derivatives of the orientation variable,
+        // but as a map into quaternion space.  To obtain matrix coordinates we use the
+        // chain rule, which means that we have to multiply the given derivative with
+        // the derivative of the embedding of the unit quaternion into the space of 3x3 matrices.
+        // This second derivative is almost given by the method getFirstDerivativesOfDirectors.
+        // However, since the directors of a given unit quaternion are the _columns_ of the
         // corresponding orthogonal matrix, we need to invert the i and j indices
         Tensor3<double,3 , 3, 4> dd_dq;
         value.q.getFirstDerivativesOfDirectors(dd_dq);
         
-        //
         DR = 0;
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
                 for (int k=0; k<gridDim; k++)
                     for (int l=0; l<4; l++)
-                        DR[i][j][k] += dd_dq[j][i][l] * DR_quat[l][k];
+                        DR[i][j][k] += dd_dq[j][i][l] * derivative[l+3][k];
 
     }
 
