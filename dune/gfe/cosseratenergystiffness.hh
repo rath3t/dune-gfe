@@ -68,7 +68,34 @@ class CosseratEnergyLocalStiffness
             
         return result;
     }
-    
+
+public:  // for testing
+    /** \brief Compute the derivative of the rotation, but wrt matrix coordinates */
+    static void computeDR(const RigidBodyMotion<3>& value, 
+                          const Dune::FieldMatrix<double,7,gridDim>& derivative,
+                          Tensor3<double,3,3,3>& DR)
+    {
+        // derivative of the rotation part in quaternion coordinates
+        Dune::FieldMatrix<double,4,gridDim> DR_quat;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<gridDim; j++)
+                DR_quat[i][j] = derivative[i+3][j];
+        
+        // first get the derivative of the embedding of H_1 into R^{3\times3}
+        // Since the directors of a given unit quaternion are the _columns_ of the
+        // corresponding orthogonal matrix, we need to invert the i and j indices
+        Tensor3<double,3 , 3, 4> dd_dq;
+        value.q.getFirstDerivativesOfDirectors(dd_dq);
+        
+        //
+        DR = 0;
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<gridDim; k++)
+                    for (int l=0; l<4; l++)
+                        DR[i][j][k] += dd_dq[j][i][l] * DR_quat[l][k];
+
+    }
 
 public:
     
@@ -235,25 +262,8 @@ energy(const Entity& element,
         //  Note: we need it in matrix coordinates
         //////////////////////////////////////////////////////////
                 
-        // derivative of the rotation part in quaternion coordinates
-        Dune::FieldMatrix<double,4,gridDim> DR_quat;
-        for (int i=0; i<4; i++)
-            for (int j=0; j<gridDim; j++)
-                DR_quat[i][j] = derivative[i+3][j];
-        
-        // transform to matrix coordinates:
-        // first get the derivative of the embedding of H_1 into R^{3\times3}
-        Tensor3<double,3 , 3, 4> dd_dq;
-        value.q.getFirstDerivativesOfDirectors(dd_dq);
-        
-        //
-        Tensor3<double,3,3,3> DR(0);
-        for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++)
-                for (int k=0; k<gridDim; k++) {
-                    for (int l=0; l<4; l++)
-                        DR[i][j][k] += dd_dq[i][j][l] * DR_quat[l][k];
-                }
+        Tensor3<double,3,3,3> DR;
+        computeDR(derivative, DR);
         
         // Add the local energy density
         if (gridDim==2) {
