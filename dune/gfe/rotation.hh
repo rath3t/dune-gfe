@@ -15,7 +15,7 @@
 #include <dune/gfe/unitvector.hh>
 
 
-template <int dim, class T>
+template <int dim, class T=double>
 class Rotation
 {
 
@@ -468,6 +468,24 @@ public:
         }
 
         return v;
+    }
+    
+    void getFirstDerivativesOfDirectors(Tensor3<double,3, 3, 4>& dd_dq) const
+    {
+        const Quaternion<T>& q = (*this);
+
+        dd_dq[0][0][0] =  2*q[0];  dd_dq[0][0][1] = -2*q[1];  dd_dq[0][0][2] = -2*q[2];  dd_dq[0][0][3] =  2*q[3];
+        dd_dq[0][1][0] =  2*q[1];  dd_dq[0][1][1] =  2*q[0];  dd_dq[0][1][2] =  2*q[3];  dd_dq[0][1][3] =  2*q[2];
+        dd_dq[0][2][0] =  2*q[2];  dd_dq[0][2][1] = -2*q[3];  dd_dq[0][2][2] =  2*q[0];  dd_dq[0][2][3] = -2*q[1];
+
+        dd_dq[1][0][0] =  2*q[1];  dd_dq[1][0][1] =  2*q[0];  dd_dq[1][0][2] = -2*q[3];  dd_dq[1][0][3] = -2*q[2];
+        dd_dq[1][1][0] = -2*q[0];  dd_dq[1][1][1] =  2*q[1];  dd_dq[1][1][2] = -2*q[2];  dd_dq[1][1][3] =  2*q[3];
+        dd_dq[1][2][0] =  2*q[3];  dd_dq[1][2][1] =  2*q[2];  dd_dq[1][2][2] =  2*q[1];  dd_dq[1][2][3] =  2*q[0];
+
+        dd_dq[2][0][0] =  2*q[2];  dd_dq[2][0][1] =  2*q[3];  dd_dq[2][0][2] =  2*q[0];  dd_dq[2][0][3] =  2*q[1];
+        dd_dq[2][1][0] = -2*q[3];  dd_dq[2][1][1] =  2*q[2];  dd_dq[2][1][2] =  2*q[1];  dd_dq[2][1][3] = -2*q[0];
+        dd_dq[2][2][0] = -2*q[0];  dd_dq[2][2][1] = -2*q[1];  dd_dq[2][2][2] =  2*q[2];  dd_dq[2][2][3] =  2*q[3];
+
     }
 
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, 
