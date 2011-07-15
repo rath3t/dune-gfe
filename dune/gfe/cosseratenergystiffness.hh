@@ -260,7 +260,7 @@ energy(const Entity& element,
         //////////////////////////////////////////////////////////
                 
         Tensor3<double,3,3,3> DR;
-        computeDR(derivative, DR);
+        computeDR(value, derivative, DR);
         
         // Add the local energy density
         if (gridDim==2) {
