@@ -470,6 +470,12 @@ public:
         return v;
     }
     
+    /** \brief Compute the derivatives of the director vectors with respect to the quaternion coordinates
+     * 
+     * Let \f$ d_k(q) = (d_{k,1}, d_{k,2}, d_{k,3})\f$ be the k-th director vector at \f$ q \f$.
+     * Then the return value of this method is
+     * \f[ A_{ijk} = \frac{\partial d_{i,j}}{\partial q_k} \f]
+     */
     void getFirstDerivativesOfDirectors(Tensor3<double,3, 3, 4>& dd_dq) const
     {
         const Quaternion<T>& q = (*this);
