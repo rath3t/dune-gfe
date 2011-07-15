@@ -2,6 +2,7 @@
 #define COSSERAT_ENERGY_LOCAL_STIFFNESS_HH
 
 #include <dune/common/fmatrix.hh>
+#include <dune/common/parametertree.hh>
 #include <dune/grid/common/quadraturerules.hh>
 
 #include "localgeodesicfestiffness.hh"
