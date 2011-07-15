@@ -36,4 +36,18 @@ Dune::FieldMatrix<K,m,n> operator- ( const Dune::FieldMatrix<K, m, n> &A, const 
 }
 
 
+//! calculates ret = A - B
+template< class K, int m, int n>
+Dune::FieldMatrix<K,m,n> operator/ ( const Dune::FieldMatrix<K, m, n> &A, const K& s)
+{
+    typedef typename Dune::FieldMatrix<K,m,n> :: size_type size_type;
+    Dune::FieldMatrix<K,m,n> ret;
+        
+    for( size_type i = 0; i < m; ++i )
+        for( size_type j = 0; j < n; ++j )
+            ret[i][j] = A[i][j] / s;
+
+    return ret;
+}
+
 #endif
