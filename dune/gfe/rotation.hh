@@ -752,10 +752,7 @@ public:
         return *this;
     }
 
-    /** \brief Compute an orthonormal basis of the tangent space of SO(3).
-
-    This basis is of course not globally continuous.
-    */
+    /** \brief Compute an orthonormal basis of the tangent space of SO(3). */
     Dune::FieldMatrix<T,3,4> orthonormalFrame() const {
         Dune::FieldMatrix<T,3,4> result;
         for (int i=0; i<3; i++)
