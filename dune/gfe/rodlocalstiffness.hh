@@ -96,7 +96,7 @@ public:
     }
     
     virtual RT energy (const Entity& e,
-                       const std::vector<RigidBodyMotion<3> >& localSolution) const;
+                       const Dune::array<RigidBodyMotion<3>, dim+1>& localSolution) const;
 
     /** \brief Assemble the element gradient of the energy functional */
     void assembleGradient(const Entity& element,
@@ -142,7 +142,7 @@ protected:
 template <class GridType, class RT>
 RT RodLocalStiffness<GridType, RT>::
 energy(const Entity& element,
-       const std::vector<RigidBodyMotion<3> >& localSolution
+       const Dune::array<RigidBodyMotion<3>, dim+1>& localSolution
        ) const
 {
     RT energy = 0;
@@ -159,6 +159,9 @@ energy(const Entity& element,
     const Dune::QuadratureRule<double, 1>& shearingQuad 
         = Dune::QuadratureRules<double, 1>::rule(element.type(), shearQuadOrder);
     
+    // hack: convert from std::array to std::vector
+    std::vector<RigidBodyMotion<3> > localSolutionVector(localSolution.begin(), localSolution.end());
+
     for (size_t pt=0; pt<shearingQuad.size(); pt++) {
         
         // Local position of the quadrature point
@@ -168,7 +171,7 @@ energy(const Entity& element,
         
         double weight = shearingQuad[pt].weight() * integrationElement;
         
-        Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
+        Dune::FieldVector<double,6> strain = getStrain(localSolutionVector, element, quadPos);
         
         // The reference strain
         Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
@@ -189,7 +192,7 @@ energy(const Entity& element,
         
         double weight = bendingQuad[pt].weight() * element.geometry().integrationElement(quadPos);
         
-        Dune::FieldVector<double,6> strain = getStrain(localSolution, element, quadPos);
+        Dune::FieldVector<double,6> strain = getStrain(localSolutionVector, element, quadPos);
         
         // The reference strain
         Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);

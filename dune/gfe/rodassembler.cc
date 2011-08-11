@@ -33,10 +33,10 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
     for (; it!=endIt; ++it) {
 
         // A 1d grid has two vertices
-        const int nDofs = 2;
+        static const int nDofs = 2;
 
         // Extract local solution
-        std::vector<RigidBodyMotion<3> > localSolution(nDofs);
+        Dune::array<RigidBodyMotion<3>, nDofs> localSolution;
         
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
