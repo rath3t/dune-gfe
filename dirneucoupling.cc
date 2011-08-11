@@ -201,7 +201,7 @@ int main (int argc, char *argv[]) try
 
     } 
 
-    complex.rods_["rod"].dirichletBoundary_.setup(*complex.rods_["rod"].grid_,rodDNodes);
+    complex.rods_["rod"].dirichletBoundary_.setup(complex.rods_["rod"].grid_->leafView(),rodDNodes);
 
     // Backup initial rod iterate for later reference
     RodSolutionType initialIterateRod = rodX;
@@ -244,7 +244,7 @@ int main (int argc, char *argv[]) try
     } else
         rodCouplingBitfield.back() = true;
 
-    complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(*complex.rods_["rod"].grid_, rodCouplingBitfield);
+    complex.couplings_[interfaceName].rodInterfaceBoundary_.setup(complex.rods_["rod"].grid_->leafView(), rodCouplingBitfield);
 
     // then for the continuum
     LevelBoundaryPatch coarseInterfaceBoundary(complex.continua_["continuum"].grid_->levelView(0));
