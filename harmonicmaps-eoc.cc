@@ -14,6 +14,7 @@
 #include <dune/grid/io/file/amirameshreader.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
@@ -57,7 +58,7 @@ void solve (const shared_ptr<GridType>& grid,
 
     BitSetVector<1> allNodes(grid->size(dim));
     allNodes.setAll();
-    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid->leafView(), allNodes);
+    BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafView(), allNodes);
 
     BitSetVector<blocksize> dirichletNodes(grid->size(dim));
     for (int i=0; i<dirichletNodes.size(); i++)
