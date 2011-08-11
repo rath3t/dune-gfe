@@ -189,6 +189,15 @@ int main (int argc, char *argv[]) try
     SolutionType referenceSolution;
     solve(referenceGrid, referenceSolution, numLevels, parameterSet);
 
+    BlockVector<FieldVector<double,3> > xEmbedded(referenceSolution.size());
+    for (int j=0; j<referenceSolution.size(); j++)
+        xEmbedded[j] = referenceSolution[j].globalCoordinates();
+        
+    LeafAmiraMeshWriter<GridType> amiramesh;
+    amiramesh.addGrid(referenceGrid->leafView());
+    amiramesh.addVertexData(xEmbedded, referenceGrid->leafView());
+    amiramesh.write("reference_result.am");
+
     // //////////////////////////////////////////////////////////////////////
     //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
     // //////////////////////////////////////////////////////////////////////
