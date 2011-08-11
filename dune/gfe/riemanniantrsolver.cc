@@ -342,8 +342,17 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         // ////////////////////////////////////////////////////
         
         SolutionType newIterate = x_;
+#if 0   // out-commented until the Rotation class can distinguish skew-symmetric matrices from three-vectors
         for (int j=0; j<newIterate.size(); j++) 
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
+#else
+        for (int j=0; j<newIterate.size(); j++) {
+            Dune::FieldMatrix<double,TargetSpace::TangentVector::size,TargetSpace::EmbeddedTangentVector::size> B = x_[j].orthonormalFrame();
+            Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::size> embeddedCorr(0);
+            B.mtv(corr[j], embeddedCorr);
+            newIterate[j] = TargetSpace::exp(newIterate[j], embeddedCorr);
+        }
+#endif
         
         double energy    = assembler_->computeEnergy(newIterate); 
         

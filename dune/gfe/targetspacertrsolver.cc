@@ -107,7 +107,15 @@ void TargetSpaceRiemannianTRSolver<TargetSpace,N>::solve()
         // ////////////////////////////////////////////////////
         
         TargetSpace newIterate = x_;
+#if 0   // out-commented until the Rotation class can distinguish skew-symmetric matrices from three-vectors
         newIterate = TargetSpace::exp(newIterate, corr[0]);
+#else
+        Dune::FieldMatrix<double,TargetSpace::TangentVector::size,TargetSpace::EmbeddedTangentVector::size> B = x_.orthonormalFrame();
+        Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::size> embeddedCorr(0);
+        B.mtv(corr[0], embeddedCorr);
+   
+        newIterate = TargetSpace::exp(newIterate, embeddedCorr);
+#endif
         
         /** \todo Don't always recompute oldEnergy */
         double oldEnergy = assembler_->value(x_);
