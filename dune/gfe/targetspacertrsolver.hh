@@ -15,8 +15,6 @@
 template <class TargetSpace, int N>
 class TargetSpaceRiemannianTRSolver 
     : public NumProc
-//     : public IterativeSolver<std::vector<TargetSpace>,
-//                             Dune::BitSetVector<TargetSpace::TangentVector::size> >
 { 
     const static int blocksize = TargetSpace::TangentVector::size;
 
@@ -84,9 +82,6 @@ protected:
     /** \brief Norm for the quadratic inner problems */
     std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> > energyNorm_;
     
-//     /** \brief Dummy field for the trustregiongsstep */
-//     Dune::BitSetVector<blocksize> dummyObstacle_;
-
 };
 
 #include "targetspacertrsolver.cc"
