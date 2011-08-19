@@ -34,7 +34,7 @@ const int dim = 3;
 typedef UnitVector<3> TargetSpace;
 typedef std::vector<TargetSpace> SolutionType;
 
-const int blocksize = TargetSpace::TangentVector::size;
+const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 using std::string;
