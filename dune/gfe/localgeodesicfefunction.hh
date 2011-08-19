@@ -92,7 +92,7 @@ private:
     static Dune::FieldMatrix<double,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<double,embeddedDim,embeddedDim>& dFdq,
                                                                            const TargetSpace& q)
     {
-        const int shortDim = TargetSpace::TangentVector::size;
+        const int shortDim = TargetSpace::TangentVector::dimension;
     
         // the orthonormal frame
         Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
@@ -306,7 +306,7 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
 
-    const int shortDim = TargetSpace::TangentVector::size;
+    const int shortDim = TargetSpace::TangentVector::dimension;
     
     // the orthonormal frame
     Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();

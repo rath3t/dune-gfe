@@ -125,10 +125,10 @@ assembleEmbeddedGradient(const Entity& element,
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
 
         // The derivative of the function defined on the actual element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> derivative;
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative;
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.mv(referenceDerivative[comp], derivative[comp]);
@@ -136,7 +136,7 @@ assembleEmbeddedGradient(const Entity& element,
         // loop over all the element's degrees of freedom and compute the gradient wrt it
         for (size_t i=0; i<localSolution.size(); i++) {
          
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,gridDim> referenceDerivativeDerivative;
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> referenceDerivativeDerivative;
 #ifdef HARMONIC_ENERGY_FD_INNER_GRADIENT
 #warning Using finite differences to compute the inner gradients!
             localGeodesicFEFunction.evaluateFDDerivativeOfGradientWRTCoefficient(quadPos, i, referenceDerivativeDerivative);
@@ -145,9 +145,9 @@ assembleEmbeddedGradient(const Entity& element,
 #endif
             
             // multiply the transformation from the reference element to the actual element
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::size,TargetSpace::EmbeddedTangentVector::size,gridDim> derivativeDerivative;
-            for (int ii=0; ii<TargetSpace::EmbeddedTangentVector::size; ii++)
-                for (int jj=0; jj<TargetSpace::EmbeddedTangentVector::size; jj++)
+            Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> derivativeDerivative;
+            for (int ii=0; ii<TargetSpace::EmbeddedTangentVector::dimension; ii++)
+                for (int jj=0; jj<TargetSpace::EmbeddedTangentVector::dimension; jj++)
                     for (int kk=0; kk<gridDim; kk++) {
                         derivativeDerivative[ii][jj][kk] = 0;
                         for (int ll=0; ll<gridDim; ll++)
@@ -158,7 +158,7 @@ assembleEmbeddedGradient(const Entity& element,
                 
                 for (int k=0; k<derivative.cols; k++) {
                     
-                    for (int l=0; l<TargetSpace::EmbeddedTangentVector::size; l++)
+                    for (int l=0; l<TargetSpace::EmbeddedTangentVector::dimension; l++)
                         localGradient[i][l] += weight*derivative[j][k] * derivativeDerivative[l][j][k];
                     
                 }
