@@ -5,6 +5,7 @@ LDADD = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS)
 AM_CPPFLAGS += $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) -Wall
 
 check_PROGRAMS = averagedistanceassemblertest \
+                 cosseratenergytest \
                  fdcheck \
                  frameinvariancetest \
                  harmonicenergytest \
@@ -25,6 +26,8 @@ localgeodesicfefunctiontest_SOURCES = localgeodesicfefunctiontest.cc
 localgeodesicfestiffnesstest_SOURCES = localgeodesicfestiffnesstest.cc
 
 harmonicenergytest_SOURCES = harmonicenergytest.cc
+
+cosseratenergytest_SOURCES = cosseratenergytest.cc
 
 averagedistanceassemblertest_SOURCES = averagedistanceassemblertest.cc
 
