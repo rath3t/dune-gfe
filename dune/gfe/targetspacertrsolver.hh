@@ -16,7 +16,7 @@ template <class TargetSpace, int N>
 class TargetSpaceRiemannianTRSolver 
     : public NumProc
 { 
-    const static int blocksize = TargetSpace::TangentVector::size;
+    const static int blocksize = TargetSpace::TangentVector::dimension;
 
     // Centralize the field type here
     typedef double field_type;

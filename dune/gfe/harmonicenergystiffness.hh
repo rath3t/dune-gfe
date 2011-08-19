@@ -26,7 +26,7 @@ class HarmonicEnergyLocalStiffness
 public:
     
     //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::size };
+    enum { blocksize = TargetSpace::TangentVector::dimension };
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
@@ -74,10 +74,10 @@ energy(const Entity& element,
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
 
         // The derivative of the function defined on the actual element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, gridDim> derivative(0);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative(0);
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);

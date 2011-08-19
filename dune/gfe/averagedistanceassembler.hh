@@ -7,8 +7,8 @@
 template <class TargetSpace, int N>
 class AverageDistanceAssembler
 {
-    static const int size         = TargetSpace::TangentVector::size;
-    static const int embeddedSize = TargetSpace::EmbeddedTangentVector::size;
+    static const int size         = TargetSpace::TangentVector::dimension;
+    static const int embeddedSize = TargetSpace::EmbeddedTangentVector::dimension;
 
 public:
 

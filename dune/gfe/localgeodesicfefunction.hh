@@ -25,9 +25,9 @@ class LocalGeodesicFEFunction
 {
     
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
-    static const int embeddedDim = EmbeddedTangentVector::size;
+    static const int embeddedDim = EmbeddedTangentVector::dimension;
     
-    static const int spaceDim = TargetSpace::TangentVector::size;
+    static const int spaceDim = TargetSpace::TangentVector::dimension;
 
 public:
 
@@ -40,10 +40,10 @@ public:
     TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
 
     /** \brief Evaluate the derivative of the function */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
 
     /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
     
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
@@ -173,7 +173,7 @@ evaluate(const Dune::FieldVector<ctype, dim>& local) const
 }
 
 template <int dim, class ctype, class TargetSpace>
-Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
+Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 {
     Dune::FieldMatrix<ctype, embeddedDim, dim> result;
@@ -225,7 +225,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     // O dFdq O^T O x = O rhs
     // ////////////////////////////////////
     
-    const int shortDim = TargetSpace::TangentVector::size;
+    const int shortDim = TargetSpace::TangentVector::dimension;
     
     // the orthonormal frame
     Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
@@ -264,7 +264,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 }
 
 template <int dim, class ctype, class TargetSpace>
-Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::size, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
+Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGeodesicFEFunction<dim,ctype,TargetSpace>::
 evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
 {
     double eps = 1e-6;
@@ -529,9 +529,9 @@ class LocalGeodesicFEFunction<dim,ctype,RigidBodyMotion<3> >
     typedef RigidBodyMotion<3> TargetSpace;
     
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
-    static const int embeddedDim = EmbeddedTangentVector::size;
+    static const int embeddedDim = EmbeddedTangentVector::dimension;
     
-    static const int spaceDim = TargetSpace::TangentVector::size;
+    static const int spaceDim = TargetSpace::TangentVector::dimension;
 
 public:
 
@@ -564,9 +564,9 @@ public:
     }
 
     /** \brief Evaluate the derivative of the function */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
-        Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> result(0);
+        Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> result(0);
         
         // get translation part
         for (int i=0; i<dim+1; i++) {

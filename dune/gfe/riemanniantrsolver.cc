@@ -347,8 +347,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 #else
         for (int j=0; j<newIterate.size(); j++) {
-            Dune::FieldMatrix<double,TargetSpace::TangentVector::size,TargetSpace::EmbeddedTangentVector::size> B = x_[j].orthonormalFrame();
-            Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::size> embeddedCorr(0);
+            Dune::FieldMatrix<double,TargetSpace::TangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension> B = x_[j].orthonormalFrame();
+            Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::dimension> embeddedCorr(0);
             B.mtv(corr[j], embeddedCorr);
             newIterate[j] = TargetSpace::exp(newIterate[j], embeddedCorr);
         }

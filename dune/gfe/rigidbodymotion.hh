@@ -13,10 +13,10 @@ struct RigidBodyMotion
 private:
     
     /** \brief Dimension of manifold */
-    static const int dimension = dim + Rotation<dim,T>::TangentVector::size;
+    static const int dimension = dim + Rotation<dim,T>::TangentVector::dimension;
     
     /** \brief Dimension of the embedding space */
-    static const int embeddedDimension = dim + Rotation<dim,T>::EmbeddedTangentVector::size;
+    static const int embeddedDimension = dim + Rotation<dim,T>::EmbeddedTangentVector::dimension;
     
 public:
     
@@ -59,7 +59,7 @@ public:
                                           typename Rotation<dim,ctype>::TangentVector,
                                           typename Rotation<dim,ctype>::EmbeddedTangentVector>::Type RotationTangentVector;
         RotationTangentVector qCorr;
-        for (int i=0; i<RotationTangentVector::size; i++)
+        for (int i=0; i<RotationTangentVector::dimension; i++)
             qCorr[i] = v[dim+i];
 
         result.q = Rotation<dim,ctype>::exp(p.q, qCorr);
@@ -90,7 +90,7 @@ public:
         typename Rotation<dim,ctype>::TangentVector v = Rotation<dim,ctype>::difference(a.q, b.q);
 
         // Compute difference on T_a SO(3)
-        for (int i=0; i<Rotation<dim,ctype>::TangentVector::size; i++)
+        for (int i=0; i<Rotation<dim,ctype>::TangentVector::dimension; i++)
             result[i+dim] = v[i];
 
         return result;
@@ -223,10 +223,10 @@ public:
         for (int i=0; i<dim; i++)
             result[i][i] = 1;
         
-        Dune::FieldMatrix<double,Rotation<dim>::TangentVector::size,Rotation<dim>::EmbeddedTangentVector::size> SO3Part = q.orthonormalFrame();
+        Dune::FieldMatrix<double,Rotation<dim>::TangentVector::dimension,Rotation<dim>::EmbeddedTangentVector::dimension> SO3Part = q.orthonormalFrame();
 
-        for (int i=0; i<Rotation<dim>::TangentVector::size; i++)
-            for (int j=0; j<Rotation<dim>::EmbeddedTangentVector::size; j++)
+        for (int i=0; i<Rotation<dim>::TangentVector::dimension; i++)
+            for (int j=0; j<Rotation<dim>::EmbeddedTangentVector::dimension; j++)
                 result[dim+i][dim+j] = SO3Part[i][j];
 
         return result;
