@@ -18,6 +18,7 @@
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
+#include <dune/fufem/functiontools/basisinterpolator.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
@@ -38,6 +39,23 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 using std::string;
+
+struct DirichletFunction
+    : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
+{
+    void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
+
+        FieldVector<double,3> axis;
+        axis[0] = x[0];  axis[1] = x[1]; axis[2] = 1;
+        Rotation<3,double> rotation(axis, x.two_norm()*M_PI*3);
+
+        FieldMatrix<double,3,3> rMat;
+        rotation.matrix(rMat);
+        out = rMat[2];
+        
+    }
+};
+
 
 template <class GridType>
 void solve (const shared_ptr<GridType>& grid,
@@ -68,44 +86,23 @@ void solve (const shared_ptr<GridType>& grid,
     //   Initial solution
     // //////////////////////////
 
-    x.resize(grid->size(dim));
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
+    P1Basis p1Basis(grid->leafView());
+    
+    x.resize(p1Basis.size());
 
-        FieldVector<double,3> yAxis(0);
-    yAxis[1] = 1;
+    BlockVector<FieldVector<double,3> > dirichletFunctionValues;
+    DirichletFunction dirichletFunction;
+    Functions::interpolate(p1Basis, dirichletFunctionValues, dirichletFunction);
 
-    typename GridType::LeafGridView::template Codim<dim>::Iterator vIt    = grid->template leafbegin<dim>();
-    typename GridType::LeafGridView::template Codim<dim>::Iterator vEndIt = grid->template leafend<dim>();
-
-    for (; vIt!=vEndIt; ++vIt) {
-        int idx = grid->leafIndexSet().index(*vIt);
-
-        FieldVector<double,3> v;
-        FieldVector<double,dim> pos = vIt->geometry().corner(0);
-        FieldVector<double,3> axis;
-        axis[0] = pos[0];  axis[1] = pos[1]; axis[2] = 1;
-        Rotation<3,double> rotation(axis, pos.two_norm()*M_PI*3);
-
-        if (dirichletNodes[idx][0]) {
-#if 1
-            FieldMatrix<double,3,3> rMat;
-            rotation.matrix(rMat);
-            v = rMat[2];
-#else
-            v[0] = std::sin(pos[0]*M_PI);
-            v[1] = 0;
-            v[2] = std::cos(pos[0]*M_PI);
-#endif
-        } else {
-            v[0] = 1;
-            v[1] = 0;
-            v[2] = 0;
-        }            
-
-        x[idx] = v;
-
-    }
-
-
+    FieldVector<double,3> innerValue;
+    innerValue[0] = 1;
+    innerValue[1] = 0;
+    innerValue[2] = 0;
+    
+    for (size_t i=0; i<x.size(); i++)
+        x[i] = (dirichletNodes[i][0]) ? dirichletFunctionValues[i] : innerValue;
+    
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
