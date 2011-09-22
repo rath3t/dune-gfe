@@ -228,10 +228,15 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the energy functional
     // ////////////////////////////////////////////////////////////
 
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
+    P1Basis p1Basis(grid.leafView());
+    
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    CosseratEnergyLocalStiffness<GridType::LeafGridView,3> cosseratEnergyLocalStiffness(materialParameters);
+    CosseratEnergyLocalStiffness<GridType::LeafGridView,
+                                 typename P1Basis::LocalFiniteElement,
+                                 3> cosseratEnergyLocalStiffness(materialParameters);
 
-    GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView(),
+    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid.leafView(),
                                                                       &cosseratEnergyLocalStiffness);
 
     // /////////////////////////////////////////////////

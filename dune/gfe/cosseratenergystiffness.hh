@@ -10,9 +10,9 @@
 #include <dune/gfe/rigidbodymotion.hh>
 
 
-template<class GridView, int dim>
+template<class GridView, class LocalFiniteElement, int dim>
 class CosseratEnergyLocalStiffness 
-    : public LocalGeodesicFEStiffness<GridView,RigidBodyMotion<dim> >
+    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<dim> >
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
@@ -120,7 +120,8 @@ public:
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
-               const Dune::array<TargetSpace, gridDim+1>& localSolution) const;
+               const LocalFiniteElement& localFiniteElement,
+               const std::vector<TargetSpace>& localSolution) const;
                
     RT quadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
     {
@@ -182,16 +183,17 @@ public:
     
 };
 
-template <class GridView, int dim>
-typename CosseratEnergyLocalStiffness<GridView, dim>::RT CosseratEnergyLocalStiffness<GridView, dim>::
+template <class GridView, class LocalFiniteElement, int dim>
+typename CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim>::RT
+CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim>::
 energy(const Entity& element,
-       const Dune::array<RigidBodyMotion<dim>, gridDim+1>& localSolution) const
+       const LocalFiniteElement& localFiniteElement,
+       const std::vector<RigidBodyMotion<dim> >& localSolution) const
 {
     RT energy = 0;
 
-    assert(element.type().isSimplex());
-    
-    LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(localSolution);
+    LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
+                                                                                                      localSolution);
 
     int quadOrder = 1;//gridDim;
 

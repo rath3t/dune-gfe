@@ -31,16 +31,6 @@ class LocalGeodesicFEFunction
 
 public:
 
-    /** \brief Constructor */
-    LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
-                            const Dune::array<TargetSpace,dim+1>& coefficients) DUNE_DEPRECATED
-        : localFiniteElement_(localFiniteElement),
-        coefficients_(coefficients.size())
-    {
-        for (size_t i=0; i<coefficients.size(); i++)
-            coefficients_[i] = coefficients[i];
-    }
-
     /** \brief Constructor 
      \param type Type of the reference element
      */
@@ -567,16 +557,19 @@ class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<3> >
 public:
 
     /** \brief Constructor */
-    LocalGeodesicFEFunction(const Dune::array<TargetSpace,dim+1>& coefficients)
+    LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
+                            const std::vector<TargetSpace>& coefficients)
     {
-        for (int i=0; i<dim+1; i++)
+        assert(localFiniteElement.localBasis().size() == coefficients.size());
+        
+        for (int i=0; i<coefficients.size(); i++)
             translationCoefficients_[i] = coefficients[i].r;
         
-        Dune::array<Rotation<3,ctype>,dim+1> orientationCoefficients;
-        for (int i=0; i<dim+1; i++)
+        std::vector<Rotation<3,ctype> > orientationCoefficients(coefficients.size());
+        for (int i=0; i<coefficients.size(); i++)
             orientationCoefficients[i] = coefficients[i].q;
         
-        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> >(orientationCoefficients));
+        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> >(localFiniteElement,orientationCoefficients));
         
     }
 

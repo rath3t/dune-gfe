@@ -13,6 +13,8 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+
 #include "geodesicfeassembler.hh"
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
