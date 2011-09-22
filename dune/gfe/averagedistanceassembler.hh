@@ -13,7 +13,13 @@ class AverageDistanceAssembler
 public:
 
     AverageDistanceAssembler(const Dune::array<TargetSpace,N>& coefficients,
-                             const Dune::array<double,N>& weights)
+                             const Dune::array<double,N>& weights) DUNE_DEPRECATED
+        : coefficients_(coefficients.begin(), coefficients.end()),
+          weights_(weights.begin(), weights.end())
+    {}
+
+    AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
+                             const std::vector<double>& weights)
         : coefficients_(coefficients),
           weights_(weights)
     {}
@@ -75,9 +81,9 @@ public:
         
     }
 
-    const Dune::array<TargetSpace,N> coefficients_;
+    const std::vector<TargetSpace> coefficients_;
 
-    const Dune::array<double,N> weights_;
+    const std::vector<double> weights_;
 
 };
 
