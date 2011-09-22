@@ -12,7 +12,9 @@
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
+#ifdef HIGHER_ORDER
 #include <dune/solvers/transferoperators/p2top1mgtransfer.hh>
+#endif
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include "maxnormtrustregion.hh"
