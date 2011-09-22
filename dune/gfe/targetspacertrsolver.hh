@@ -10,9 +10,8 @@
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems 
  \tparam TargetSpace The manifold that our functions take values in
- \tparam N Number of simplex vertices
  */
-template <class TargetSpace, int N>
+template <class TargetSpace>
 class TargetSpaceRiemannianTRSolver 
     : public NumProc
 { 
@@ -34,7 +33,7 @@ public:
     {}
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
-    void setup(const AverageDistanceAssembler<TargetSpace,N>* assembler,
+    void setup(const AverageDistanceAssembler<TargetSpace>* assembler,
                const TargetSpace& x,
                double tolerance,
                int maxTrustRegionSteps,
@@ -71,7 +70,7 @@ protected:
     double innerTolerance_;
 
     /** \brief The assembler for the average-distance functional */
-    const AverageDistanceAssembler<TargetSpace,N>* assembler_;
+    const AverageDistanceAssembler<TargetSpace>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
     std::auto_ptr< ::LoopSolver<CorrectionType> > innerSolver_;

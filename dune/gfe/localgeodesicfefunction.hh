@@ -156,10 +156,10 @@ evaluate(const Dune::FieldVector<ctype, dim>& local) const
     for (size_t i=0; i<w.size(); i++)
         w[i] = wNested[i][0];
 
-    /** \todo The 'dim+1' parameter is a dummy here */
-    AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
+    // The energy functional whose mimimizer is the value of the geodesic interpolation
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-    TargetSpaceRiemannianTRSolver<TargetSpace,dim+1> solver;
+    TargetSpaceRiemannianTRSolver<TargetSpace> solver;
 
     solver.setup(&assembler,
                  coefficients_[0],   // initial iterate
@@ -223,7 +223,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     for (size_t i=0; i<w.size(); i++)
         w[i] = wNested[i][0];
     
-    AverageDistanceAssembler<TargetSpace,1> assembler(coefficients_, w);
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
@@ -314,8 +314,14 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
     TargetSpace q = evaluate(local);
 
     // dFdq
-    Dune::array<ctype,dim+1> w = barycentricCoordinates(local);
-    AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
+    std::vector<Dune::FieldVector<ctype,1> > wNested;
+    localFiniteElement_.localBasis().evaluateFunction(local,wNested);
+
+    std::vector<ctype> w(wNested.size());
+    for (size_t i=0; i<w.size(); i++)
+        w[i] = wNested[i][0];
+
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
@@ -429,7 +435,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     for (size_t i=0; i<w.size(); i++)
         w[i] = wNested[i][0];
 
-    AverageDistanceAssembler<TargetSpace,dim+1> assembler(coefficients_, w);
+    AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);

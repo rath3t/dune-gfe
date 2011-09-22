@@ -3,8 +3,8 @@
 
 #include <vector>
 
-/** \tparam N Number of coefficients (i.e., simplex corners) */
-template <class TargetSpace, int N>
+/** \tparam TargetSpace The manifold that we are mapping to */
+template <class TargetSpace>
 class AverageDistanceAssembler
 {
     static const int size         = TargetSpace::TangentVector::dimension;
@@ -12,12 +12,8 @@ class AverageDistanceAssembler
 
 public:
 
-    AverageDistanceAssembler(const Dune::array<TargetSpace,N>& coefficients,
-                             const Dune::array<double,N>& weights) DUNE_DEPRECATED
-        : coefficients_(coefficients.begin(), coefficients.end()),
-          weights_(weights.begin(), weights.end())
-    {}
-
+    /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
+     */
     AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
                              const std::vector<double>& weights)
         : coefficients_(coefficients),
