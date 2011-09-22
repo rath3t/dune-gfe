@@ -35,7 +35,7 @@ typedef RigidBodyMotion<3> TargetSpace;
 #endif
 
 // Tangent vector of the image space
-const int blocksize = TargetSpace::TangentVector::size;
+const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
