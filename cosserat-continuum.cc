@@ -161,9 +161,9 @@ int main (int argc, char *argv[]) try
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
     array<unsigned int,dim> elements;
     elements.fill(1);
-    elements[0] = 3;
+    elements[0] = 10;
     FieldVector<double,dim> upper(1);
-    upper[0] = 3;
+    upper[0] = 10;
     shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
                                                                                       upper,
                                                                                       elements);
