@@ -11,9 +11,9 @@
 #warning Finite-difference approximation of the energy gradient
 #endif
 
-template<class GridView, class TargetSpace>
+template<class GridView, class LocalFiniteElement, class TargetSpace>
 class HarmonicEnergyLocalStiffness 
-    : public LocalGeodesicFEStiffness<GridView,TargetSpace>
+    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,TargetSpace>
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
@@ -30,7 +30,8 @@ public:
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
-               const Dune::array<TargetSpace,gridDim+1>& localSolution) const;
+               const LocalFiniteElement& localFiniteElement,
+               const std::vector<TargetSpace>& localSolution) const;
 
 #ifndef HARMONIC_ENERGY_FD_GRADIENT
     // The finite difference gradient method is in the base class.
@@ -46,16 +47,18 @@ public:
 #endif
 };
 
-template <class GridView, class TargetSpace>
-typename HarmonicEnergyLocalStiffness<GridView, TargetSpace>::RT HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
+template <class GridView, class LocalFiniteElement, class TargetSpace>
+typename HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::RT 
+HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::
 energy(const Entity& element,
-       const Dune::array<TargetSpace,gridDim+1>& localSolution) const
+       const LocalFiniteElement& localFiniteElement,
+       const std::vector<TargetSpace>& localSolution) const
 {
-    RT energy = 0;
-
-    assert(element.type().isSimplex());
+    assert(element.type() == localFiniteElement.type());
     
-    LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(localSolution);
+    RT energy = 0;
+    LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
+                                                                                                      localSolution);
 
     int quadOrder = 1;//gridDim;
 

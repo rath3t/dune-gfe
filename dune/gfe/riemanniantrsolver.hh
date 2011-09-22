@@ -42,7 +42,11 @@ public:
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid, 
-               const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* assembler,
+#ifdef HIGHER_ORDER
+               const GeodesicFEAssembler<P2NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
+#else
+               const GeodesicFEAssembler<P1NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
+#endif
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
@@ -97,7 +101,11 @@ protected:
     std::auto_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const GeodesicFEAssembler<typename GridType::LeafGridView, TargetSpace>* assembler_;
+#ifdef HIGHER_ORDER
+    const GeodesicFEAssembler<P2NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler_;
+#else
+    const GeodesicFEAssembler<P1NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler_;
+#endif
 
     /** \brief The solver for the quadratic inner problems */
     std::shared_ptr<Solver> innerSolver_;

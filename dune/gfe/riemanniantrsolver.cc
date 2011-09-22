@@ -12,6 +12,7 @@
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
+#include <dune/solvers/transferoperators/p2top1mgtransfer.hh>
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include "maxnormtrustregion.hh"
@@ -23,7 +24,11 @@
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::
 setup(const GridType& grid,
-         const GeodesicFEAssembler<typename GridType::LeafGridView,TargetSpace>* assembler,
+#ifdef HIGHER_ORDER
+      const GeodesicFEAssembler<P2NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
+#else
+      const GeodesicFEAssembler<P1NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
+#endif
          const SolutionType& x,
          const Dune::BitSetVector<blocksize>& dirichletNodes,
          double tolerance,
@@ -123,9 +128,19 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////
     
     hasObstacle_.resize(numLevels);
+#ifdef HIGHER_ORDER
+    P2NodalBasis<typename GridType::LeafGridView,double> p2Basis(grid_->leafView());
+    P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafView());
+    
+    hasObstacle_.back().resize(p2Basis.size(), true);
+
+    for (int i=0; i<hasObstacle_.size()-1; i++)
+        hasObstacle_[i].resize(grid_->size(i+1, gridDim),true);
+#else
     for (int i=0; i<hasObstacle_.size(); i++)
         hasObstacle_[i].resize(grid_->size(i, gridDim),true);
-    
+#endif
+
     // ////////////////////////////////////
     //   Create the transfer operators
     // ////////////////////////////////////
@@ -134,12 +149,27 @@ setup(const GridType& grid,
     
     mmgStep->mgTransfer_.resize(numLevels-1);
     
+#ifdef HIGHER_ORDER
+    if (numLevels>1) {
+        P2toP1MGTransfer<CorrectionType>* topTransferOp = new P2toP1MGTransfer<CorrectionType>;
+        topTransferOp->setup(p2Basis,p1Basis);
+        mmgStep->mgTransfer_.back() = topTransferOp;
+    
+        for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++){
+            TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
+            newTransferOp->setup(*grid_,i+1,i+2);
+            mmgStep->mgTransfer_[i] = newTransferOp;
+        }
+
+    }
+
+#else
     for (int i=0; i<mmgStep->mgTransfer_.size(); i++){
         TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
         newTransferOp->setup(*grid_,i,i+1);
         mmgStep->mgTransfer_[i] = newTransferOp;
     }
-    
+#endif
 }
 
 
@@ -180,6 +210,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
+/*        std::cout << "current iterate:\n";
+        for (int j=0; j<x_.size(); j++)
+            std::cout << x_[j] << std::endl;*/
+    
         Dune::Timer totalTimer;
         if (this->verbosity_ == Solver::FULL) {
             std::cout << "----------------------------------------------------" << std::endl;
@@ -206,7 +240,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         // The right hand side is the _negative_ gradient
         rhs *= -1;
 
-
+/*        std::cout << "rhs:\n" << rhs << std::endl;
+        std::cout << "matrix[0][0]:\n" << (*hessianMatrix_)[0][0] << std::endl;*/
+        
         // //////////////////////////////////////////////////////////////////////
         //   Modify matrix and right-hand side to account for Dirichlet values
         // //////////////////////////////////////////////////////////////////////
@@ -346,11 +382,14 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         for (int j=0; j<newIterate.size(); j++) 
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 #else
+        //std::cout << "embedded correction:\n";
         for (int j=0; j<newIterate.size(); j++) {
             Dune::FieldMatrix<double,TargetSpace::TangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension> B = x_[j].orthonormalFrame();
             Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::dimension> embeddedCorr(0);
+            //std::cout << "B[" << j << "]:\n" << B << std::endl;
             B.mtv(corr[j], embeddedCorr);
             newIterate[j] = TargetSpace::exp(newIterate[j], embeddedCorr);
+            //std::cout << embeddedCorr << "    " << newIterate[j] << std::endl;
         }
 #endif
         
