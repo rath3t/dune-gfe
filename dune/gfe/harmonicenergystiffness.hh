@@ -38,11 +38,13 @@ public:
     // If the cpp macro is not set we overload it here.
     /** \brief Assemble the gradient of the energy functional on one element */
     virtual void assembleEmbeddedGradient(const Entity& element,
-                                  const Dune::array<TargetSpace,gridDim+1>& solution,
+                                          const LocalFiniteElement& localFiniteElement,
+                                          const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
                                     
     virtual void assembleGradient(const Entity& element,
-                                  const Dune::array<TargetSpace,gridDim+1>& localSolution,
+                                  const LocalFiniteElement& localFiniteElement,
+                                  const std::vector<TargetSpace>& localSolution,
                                   std::vector<typename TargetSpace::TangentVector>& localGradient) const;
 #endif
 };
@@ -96,18 +98,20 @@ energy(const Entity& element,
 }
 
 #ifndef HARMONIC_ENERGY_FD_GRADIENT
-template <class GridView, class TargetSpace>
-void HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
+template <class GridView, class LocalFiniteElement, class TargetSpace>
+void HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::
 assembleEmbeddedGradient(const Entity& element,
-                 const Dune::array<TargetSpace,gridDim+1>& localSolution,
-                 std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
+                         const LocalFiniteElement& localFiniteElement,
+                         const std::vector<TargetSpace>& localSolution,
+                         std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
 {
     // initialize gradient
     localGradient.resize(localSolution.size());
     std::fill(localGradient.begin(), localGradient.end(), typename TargetSpace::EmbeddedTangentVector(0));
 
     // Set up local gfe function from the  local coefficients
-    LocalGeodesicFEFunction<gridDim, double, TargetSpace> localGeodesicFEFunction(localSolution);
+    LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
+                                                                                                      localSolution);
 
     // I am not sure about the correct quadrature order
     int quadOrder = 1;//gridDim;
@@ -170,20 +174,21 @@ assembleEmbeddedGradient(const Entity& element,
             
         }
 
-	}
+    }
 
 }
 
-template <class GridView, class TargetSpace>
-void HarmonicEnergyLocalStiffness<GridView, TargetSpace>::
+template <class GridView, class LocalFiniteElement, class TargetSpace>
+void HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::
 assembleGradient(const Entity& element,
-                 const Dune::array<TargetSpace,gridDim+1>& localSolution,
+                 const LocalFiniteElement& localFiniteElement,
+                 const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
     std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient;
 
     // first compute the gradient in embedded coordinates
-    assembleEmbeddedGradient(element, localSolution, embeddedLocalGradient);
+    assembleEmbeddedGradient(element, localFiniteElement, localSolution, embeddedLocalGradient);
 
     // transform to coordinates on the tangent space
     localGradient.resize(embeddedLocalGradient.size());
