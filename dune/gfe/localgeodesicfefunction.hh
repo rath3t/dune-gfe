@@ -598,21 +598,12 @@ public:
         Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
         
         // get translation part
-        for (int i=0; i<translationCoefficients_.size(); i++) {
-         
-            // get derivative of shape function
-            Dune::FieldVector<ctype,dim> sfDer;
-            if (i==0)
-                sfDer = -1;
-            else
-                for (int j=0; j<dim; j++)
-                    sfDer[j] = (i-1)==j;
-            
-            for (int j=0; j<3; j++)
-                result[j].axpy(translationCoefficients_[i][j], sfDer);
-            
-        }
+        std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
+        localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
         
+        for (int i=0; i<translationCoefficients_.size(); i++)
+            for (int j=0; j<3; j++)
+                result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
         
         // get orientation part
         Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local);
