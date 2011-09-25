@@ -559,6 +559,8 @@ public:
     /** \brief Constructor */
     LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
                             const std::vector<TargetSpace>& coefficients)
+    : localFiniteElement_(localFiniteElement),
+      translationCoefficients_(coefficients.size())
     {
         assert(localFiniteElement.localBasis().size() == coefficients.size());
         
@@ -577,23 +579,26 @@ public:
     TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
     {
         TargetSpace result;
-        
-        Dune::array<ctype,dim+1> w = barycentricCoordinates(local);
+
+        // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
+        std::vector<Dune::FieldVector<ctype,1> > w;
+        localFiniteElement_.localBasis().evaluateFunction(local,w);
+
         result.r = 0;
-        for (int i=0; i<dim+1; i++)
-            result.r.axpy(w[i], translationCoefficients_[i]);
+        for (int i=0; i<w.size(); i++)
+            result.r.axpy(w[i][0], translationCoefficients_[i]);
         
         result.q = orientationFEFunction_->evaluate(local);
         return result;
     }
 
     /** \brief Evaluate the derivative of the function */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    Dune::FieldMatrix<ctype, embeddedDim, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
-        Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> result(0);
+        Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
         
         // get translation part
-        for (int i=0; i<dim+1; i++) {
+        for (int i=0; i<translationCoefficients_.size(); i++) {
          
             // get derivative of shape function
             Dune::FieldVector<ctype,dim> sfDer;
@@ -674,20 +679,15 @@ public:
 #endif
 private:
 
-    static Dune::array<ctype,dim+1> barycentricCoordinates(const Dune::FieldVector<ctype,dim>& local) {
-        Dune::array<ctype,dim+1> result;
-        result[0] = 1;
-        for (int i=0; i<dim; i++) {
-            result[0]  -= local[i];
-            result[i+1] = local[i];
-        }
-        return result;
-    }
+    /** \brief The scalar local finite element, which provides the weighting factors 
+        \todo We really only need the local basis
+     */
+    const LocalFiniteElement& localFiniteElement_;
 
     // The two factors of a RigidBodyMotion
     //LocalGeodesicFEFunction<dim,ctype,RealTuple<3> > translationFEFunction_;
     
-    Dune::array<Dune::FieldVector<double,3>, dim+1> translationCoefficients_;
+    std::vector<Dune::FieldVector<double,3> > translationCoefficients_;
     
     std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> > > orientationFEFunction_;
 };
