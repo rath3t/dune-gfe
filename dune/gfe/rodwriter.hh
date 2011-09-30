@@ -6,6 +6,7 @@
 #include <ctime>
 
 #include <dune/common/exceptions.hh>
+#include <dune/common/fvector.hh>
 #include <dune/istl/bvector.hh>
 #include <dune/solvers/common/numproc.hh>
 
@@ -124,7 +125,8 @@ void writeRod(const std::vector<RigidBodyMotion<2> >& rod,
 /** \brief Write a spatial rod
  */
 void writeRod(const std::vector<RigidBodyMotion<3> >& rod, 
-              const std::string& filename)
+              const std::string& filename,
+              double radius = 1.0)
 {
     int nPoints = rod.size();
 
@@ -169,19 +171,23 @@ void writeRod(const std::vector<RigidBodyMotion<3> >& rod,
     // ///////////////////////////////////////
     outfile << std::endl << "@2" << std::endl;
 
-    for (size_t i=0; i<rod.size(); i++) 
-        outfile << rod[i].q.director(0) << std::endl;
+    for (size_t i=0; i<rod.size(); i++) {
+        Dune::FieldVector<double,3> dir = rod[i].q.director(0);
+        dir *= radius; 
+        outfile << dir << std::endl;
+    }
 
     outfile << std::endl << "@3" << std::endl;
 
-    for (size_t i=0; i<rod.size(); i++) 
-        outfile << rod[i].q.director(1) << std::endl;
-
+    for (size_t i=0; i<rod.size(); i++) {
+        Dune::FieldVector<double,3> dir = rod[i].q.director(1);
+        dir *= radius; 
+        outfile << dir << std::endl;
+    }
 
     std::cout << "Result written successfully to: " << filename << std::endl;
 
 }
-
 
 /** \brief Write a spatial rod along with a strain or stress field
  */
