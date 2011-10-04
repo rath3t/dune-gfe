@@ -6,6 +6,8 @@
 #include <dune/grid/common/quadraturerules.hh>
 #include <dune/localfunctions/lagrange/p1.hh>
 
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+
 #include "localgeodesicfestiffness.hh"
 #include "rigidbodymotion.hh"
 
