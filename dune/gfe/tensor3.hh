@@ -35,6 +35,17 @@ class Tensor3
             return norm;
         }
         
+        T frobenius_norm() const
+        {
+            T norm = 0;
+            for (int i=0; i<N1; i++)
+                for (int j=0; j<N2; j++)
+                    for (int k=0; k<N3; k++)
+                        norm += (*this)[i][j][k] * (*this)[i][j][k];
+                    
+            return std::sqrt(norm);
+        }
+        
         Tensor3<T,N1,N2,N3>& axpy(const T& alpha, const Tensor3<T,N1,N2,N3>& other)
         {
             for (int i=0; i<N1; i++)
