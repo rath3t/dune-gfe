@@ -18,9 +18,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
 {
     using namespace Dune;
 
-    const typename GridView::Traits::IndexSet& indexSet = this->basis_.getGridView().indexSet();
-
-    if (sol.size()!=indexSet.size(gridDim))
+    if (sol.size()!=this->basis_.size())
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
     grad.resize(sol.size());
@@ -39,7 +37,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
         std::vector<RigidBodyMotion<3> > localSolution(nDofs);
         
         for (int i=0; i<nDofs; i++)
-            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
+            localSolution[i] = sol[this->basis_.index(*it,i)];
 
         // Assemble local gradient
         std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
@@ -51,7 +49,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
 
         // Add to global gradient
         for (int i=0; i<nDofs; i++)
-            grad[indexSet.subIndex(*it,i,gridDim)] += localGradient[i];
+            grad[this->basis_.index(*it,i)] += localGradient[i];
 
     }
 
@@ -65,17 +63,17 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
 {
     using namespace Dune;
 
-    const typename GridView::Traits::IndexSet& indexSet = this->gridView_.indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->basis_.getGridView().indexSet();
 
-    if (sol.size()!=indexSet.size(gridDim))
+    if (sol.size()!=this->basis_.size())
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
     // Strain defined on each element
     strain.resize(indexSet.size(0));
     strain = 0;
 
-    ElementIterator it    = this->gridView_.template begin<0>();
-    ElementIterator endIt = this->gridView_.template end<0>();
+    ElementIterator it    = this->basis_.getGridView().template begin<0>();
+    ElementIterator endIt = this->basis_.getGridView().template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -227,15 +225,13 @@ void RodAssembler<GridView,2>::
 assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix)
 {
-    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
-
     Dune::MatrixIndexSet neighborsPerVertex;
     this->getNeighborsPerVertex(neighborsPerVertex);
     
     matrix = 0;
     
-    ElementIterator it    = this->gridView_.template begin<0>();
-    ElementIterator endit = this->gridView_.template end<0>  ();
+    ElementIterator it    = this->basis_.getGridView().template begin<0>();
+    ElementIterator endit = this->basis_.getGridView().template end<0>  ();
 
     Dune::Matrix<MatrixBlock> mat;
     
@@ -247,7 +243,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
         std::vector<RigidBodyMotion<2> > localSolution(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
+            localSolution[i] = sol[this->basis_.index(*it,i)];
 
         // setup matrix 
         getLocalMatrix( *it, localSolution, mat);
@@ -255,11 +251,11 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) { 
             
-            int row = indexSet.subIndex(*it,i,gridDim);
+            int row = this->basis_.index(*it,i);
 
             for (int j=0; j<numOfBaseFct; j++ ) {
                 
-                int col = indexSet.subIndex(*it,j,gridDim);
+                int col = this->basis_.index(*it,j);
                 matrix[row][col] += mat[i][j];
                 
             }
@@ -280,8 +276,6 @@ getLocalMatrix( EntityType &entity,
                 const std::vector<RigidBodyMotion<2> >& localSolution,
                 Dune::Matrix<MatrixBlock>& localMat) const
 {
-    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
-
     /* ndof is the number of vectors of the element */
     int ndof = localSolution.size();
 
@@ -429,16 +423,14 @@ void RodAssembler<GridView,2>::
 assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
-    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
-
-    if (sol.size()!=this->gridView_.size(gridDim))
+    if (sol.size()!=this->basis_.size())
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = this->gridView_.template begin<0>();
-    ElementIterator endIt = this->gridView_.template end<0>();
+    ElementIterator it    = this->basis_.getGridView().template begin<0>();
+    ElementIterator endIt = this->basis_.getGridView().template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -450,7 +442,7 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
         RigidBodyMotion<2> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
+            localSolution[i] = sol[this->basis_.index(*it,i)];
 
         // Get quadrature rule
         const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), 2);
@@ -500,7 +492,7 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
 
             for (int dof=0; dof<numOfBaseFct; dof++) {
 
-                int globalDof = indexSet.subIndex(*it,dof,gridDim);
+                int globalDof = this->basis_.index(*it,dof);
 
                 //printf("globalDof: %d   partA1: %g   partA3: %g\n", globalDof, partA1, partA3);
 
@@ -531,13 +523,11 @@ computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
 {
     double energy = 0;
 
-    const typename GridView::IndexSet& indexSet = this->gridView_.indexSet();
-
-    if (sol.size()!=this->gridView_.size(gridDim))
+    if (sol.size()!=this->basis_.size())
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
-    ElementIterator it    = this->gridView_.template begin<0>();
-    ElementIterator endIt = this->gridView_.template end<0>();
+    ElementIterator it    = this->basis_.getGridView().template begin<0>();
+    ElementIterator endIt = this->basis_.getGridView().template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -550,7 +540,7 @@ computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
         RigidBodyMotion<2> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
+            localSolution[i] = sol[this->basis_.index(*it,i)];
 
         // Get quadrature rule
         const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), 2);
