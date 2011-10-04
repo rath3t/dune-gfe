@@ -24,7 +24,7 @@ class RodAssembler
 /** \brief The FEM operator for an extensible, shearable rod in 3d
  */
 template <class GridView>
-class RodAssembler<GridView,3> : public GeodesicFEAssembler<GridView, RigidBodyMotion<3> >
+class RodAssembler<GridView,3> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<3> >
 {
         
     //typedef typename GridType::template Codim<0>::Entity EntityType;
@@ -46,7 +46,7 @@ public:
         //! ???
     RodAssembler(const GridView &gridView,
                  RodLocalStiffness<GridView,double>* localStiffness) 
-        : GeodesicFEAssembler<GridView, RigidBodyMotion<3> >(gridView,localStiffness)
+        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<3> >(gridView,localStiffness)
         { 
             std::vector<RigidBodyMotion<3> > referenceConfiguration(gridView.size(gridDim));
 

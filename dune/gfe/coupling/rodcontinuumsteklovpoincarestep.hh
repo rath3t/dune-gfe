@@ -559,7 +559,7 @@ linearizedRodNeumannToDirichletMap(const std::string& rodName,
     const RodLeafBoundaryPatch& dirichletBoundary = this->complex_.rod(rodName).dirichletBoundary_;
 
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> > MatrixType;
-    GeodesicFEAssembler<typename RodGridType::LeafGridView, RigidBodyMotion<3> > assembler(dirichletBoundary.gridView(),
+    GeodesicFEAssembler<P1NodalBasis<typename RodGridType::LeafGridView>, RigidBodyMotion<3> > assembler(dirichletBoundary.gridView(),
                                                                     rod(rodName).localStiffness_);
     MatrixType stiffnessMatrix;
     assembler.assembleMatrix(currentIterate, 

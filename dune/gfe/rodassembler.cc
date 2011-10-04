@@ -18,7 +18,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
 {
     using namespace Dune;
 
-    const typename GridView::Traits::IndexSet& indexSet = this->gridView_.indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->basis_.getGridView().indexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
@@ -26,8 +26,8 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = this->gridView_.template begin<0>();
-    ElementIterator endIt = this->gridView_.template end<0>();
+    ElementIterator it    = this->basis_.getGridView().template begin<0>();
+    ElementIterator endIt = this->basis_.getGridView().template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -36,7 +36,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
         static const int nDofs = 2;
 
         // Extract local solution
-        Dune::array<RigidBodyMotion<3>, nDofs> localSolution;
+        std::vector<RigidBodyMotion<3> > localSolution(nDofs);
         
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -44,7 +44,10 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
         // Assemble local gradient
         std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
 
-        this->localStiffness_->assembleGradient(*it, localSolution, localGradient);
+        this->localStiffness_->assembleGradient(*it, 
+                                                this->basis_.getLocalFiniteElement(*it),
+                                                localSolution, 
+                                                localGradient);
 
         // Add to global gradient
         for (int i=0; i<nDofs; i++)
@@ -150,7 +153,7 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
     //    if (gridView_ != &boundary.gridView())
     //        DUNE_THROW(Dune::Exception, "The boundary patch has to match the grid view of the assembler!");
 
-    const typename GridView::Traits::IndexSet& indexSet = this->gridView_.indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->basis_.getGridView().indexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");

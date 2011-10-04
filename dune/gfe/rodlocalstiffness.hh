@@ -11,7 +11,7 @@
 
 template<class GridView, class RT>
 class RodLocalStiffness 
-    : public LocalGeodesicFEStiffness<GridView,RigidBodyMotion<3> >
+    : public LocalGeodesicFEStiffness<GridView, typename P1NodalBasis<GridView>::LocalFiniteElement, RigidBodyMotion<3> >
 {
     typedef RigidBodyMotion<3> TargetSpace;
 
@@ -95,8 +95,18 @@ public:
         referenceConfiguration_ = referenceConfiguration;
     }
     
+    /** \brief Local element energy for a P1 element */
     virtual RT energy (const Entity& e,
                        const Dune::array<RigidBodyMotion<3>, dim+1>& localSolution) const;
+
+    virtual RT energy (const Entity& e,
+                       const typename P1NodalBasis<GridView>::LocalFiniteElement& localFiniteElement,
+                       const std::vector<RigidBodyMotion<3> >& localSolution) const
+    {
+        assert(localSolution.size()==2);
+        Dune::array<RigidBodyMotion<3>, 2> localSolutionArray = {localSolution[0], localSolution[1]};
+        return energy(e,localSolutionArray);
+    }
 
     /** \brief Assemble the element gradient of the energy functional */
     void assembleGradient(const Entity& element,
