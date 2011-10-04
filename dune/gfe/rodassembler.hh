@@ -92,7 +92,7 @@ public:
 /** \brief The FEM operator for a 2D extensible, shearable rod
  */
 template <class GridView>
-class RodAssembler<GridView,2> : public GeodesicFEAssembler<GridView, RigidBodyMotion<2> >
+class RodAssembler<GridView,2> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<2> >
 {
     
     typedef typename GridView::template Codim<0>::Entity EntityType;
@@ -118,7 +118,7 @@ public:
     
     //! ???
     RodAssembler(const GridView &gridView) 
-        : GeodesicFEAssembler<GridView, RigidBodyMotion<2> >(gridView,NULL)
+        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<2> >(gridView,NULL)
     { 
         B = 1;
         A1 = 1;
