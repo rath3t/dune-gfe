@@ -82,8 +82,6 @@ public:  // for testing
         // This second derivative is almost given by the method getFirstDerivativesOfDirectors.
         // However, since the directors of a given unit quaternion are the _columns_ of the
         // corresponding orthogonal matrix, we need to invert the i and j indices
-        //
-        // So, if I am not mistaken, DR[i][j][k] contains \partial M_ij / \partial k
         Tensor3<double,3 , 3, 4> dd_dq;
         value.q.getFirstDerivativesOfDirectors(dd_dq);
         
@@ -138,8 +136,7 @@ public:
 
     RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
     {
-        //return mu_ * std::pow(L_c_ * curl(DR).frobenius_norm(),q_);
-        return mu_ * std::pow(L_c_ * DR.frobenius_norm(),q_);
+        return mu_ * std::pow(L_c_ * curl(DR).frobenius_norm(),q_);
     }
 
     RT bendingEnergy(const Dune::FieldMatrix<double,dim,dim>& R, const Tensor3<double,3,3,3>& DR) const
@@ -183,7 +180,7 @@ public:
     /** \brief Curvature exponent */
     double q_;
     
-    const BoundaryPatch<GridView>* neumannBoundary_;
+    
 };
 
 template <class GridView, class LocalFiniteElement, int dim>
@@ -198,7 +195,7 @@ energy(const Entity& element,
     LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
                                                                                                       localSolution);
 
-    int quadOrder = 2*gridDim;
+    int quadOrder = 1;//gridDim;
 
     const Dune::QuadratureRule<double, gridDim>& quad 
         = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
@@ -279,37 +276,7 @@ energy(const Entity& element,
             DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
 
     }
-    
-    
-    //////////////////////////////////////////////////////////////////////////////
-    //   Assemble boundary contributions
-    //////////////////////////////////////////////////////////////////////////////
 
-    for (typename Entity::LeafIntersectionIterator it = element.ileafbegin(); it != element.ileafend(); ++it) {
-        
-        if (not neumannBoundary_ or not neumannBoundary_->contains(*it))
-            continue;
-        
-        const Dune::QuadratureRule<double, gridDim-1>& quad 
-            = Dune::QuadratureRules<double, gridDim-1>::rule(it->type(), quadOrder);
-    
-        for (size_t pt=0; pt<quad.size(); pt++) {
-        
-            // Local position of the quadrature point
-            const Dune::FieldVector<double,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
-        
-            const double integrationElement = it->geometry().integrationElement(quad[pt].position());
-
-            // The value of the local function
-            RigidBodyMotion<dim> value = localGeodesicFEFunction.evaluate(quadPos);
-
-            // Constant Neumann force in z-direction
-            energy += thickness_ * 40 * value.r[2] * quad[pt].weight() * integrationElement;
-            
-        }
-        
-    }
-    
     return energy;
 }
 

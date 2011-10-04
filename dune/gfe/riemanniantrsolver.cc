@@ -62,9 +62,7 @@ setup(const GridType& grid,
     //   Create a multigrid solver
     // ////////////////////////////////
 
-#if 0
     // First create a Gauss-seidel base solver
-    
     TrustRegionGSStep<MatrixType, CorrectionType>* baseSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
     EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
@@ -74,11 +72,6 @@ setup(const GridType& grid,
                                                                             baseTolerance,
                                                                             baseEnergyNorm,
                                                                             Solver::QUIET);
-#else
-    QuadraticIPOptSolver<MatrixType,CorrectionType>* baseSolver = new QuadraticIPOptSolver<MatrixType,CorrectionType>();
-    baseSolver->tolerance_ = baseTolerance;
-    baseSolver->verbosity_ = Solver::QUIET;
-#endif
 
     // Make pre and postsmoothers
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -112,21 +105,12 @@ setup(const GridType& grid,
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
 
-#if 0
     innerSolver_ = std::shared_ptr<LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(mmgStep,
                                                                                                    innerIterations_,
                                                                                                    innerTolerance_,
                                                                                                    h1SemiNorm_,
                                                                                                  Solver::FULL));
 
-#else
-    QuadraticIPOptSolver<MatrixType,CorrectionType>* solver = new QuadraticIPOptSolver<MatrixType,CorrectionType>();
-    solver->tolerance_ = innerTolerance_;
-    solver->verbosity_ = Solver::REDUCED;
-    innerSolver_ = std::shared_ptr<QuadraticIPOptSolver<MatrixType,CorrectionType> >(solver);
-#endif
-
-    
     // Write all intermediate solutions, if requested
     if (instrumented_
         && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get()))
@@ -206,7 +190,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
     std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep) 
                                                                                          ? mgStep->numLevels_
-                                                                                         : 1);
+                                                                                         : 0);
 
    // /////////////////////////////////////////////////////
     //   Set up the log file, if requested
@@ -258,6 +242,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         // The right hand side is the _negative_ gradient
         rhs *= -1;
 
+/*        std::cout << "rhs:\n" << rhs << std::endl;
+        std::cout << "matrix[0][0]:\n" << (*hessianMatrix_)[0][0] << std::endl;*/
         
         // //////////////////////////////////////////////////////////////////////
         //   Modify matrix and right-hand side to account for Dirichlet values
@@ -291,17 +277,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         }
 
-        //std::cout << "rhs:\n" << rhs << std::endl;
-        //std::cout << "matrix[0][0]:\n" << (*hessianMatrix_)[0][0] << std::endl;
-        //printmatrix(std::cout, (*hessianMatrix_), "hessian", "--");
-        //writeMatrixToMatlab(*hessianMatrix_, "cosserat_hessian");
-        
-        //mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
-        std::dynamic_pointer_cast<QuadraticIPOptSolver<MatrixType,CorrectionType> >(innerSolver_)->setProblem(*hessianMatrix_, corr, rhs);
+        mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
         
         trustRegionObstacles.back() = trustRegion.obstacles();
-        //mgStep->obstacles_ = &trustRegionObstacles;
-        std::dynamic_pointer_cast<QuadraticIPOptSolver<MatrixType,CorrectionType> >(innerSolver_)->obstacles_ = &trustRegionObstacles.back();
+        mgStep->obstacles_ = &trustRegionObstacles;
 
         innerSolver_->preprocess();
         
@@ -441,7 +420,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         }
 
         if (energy >= oldEnergy &&
-            (std::abs((oldEnergy-energy)/energy) < 1e-9 || std::abs(modelDecrease/energy) < 1e-9)) {
+            (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9)) {
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
