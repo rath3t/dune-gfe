@@ -5,6 +5,8 @@
 #include <dune/common/parametertree.hh>
 #include <dune/grid/common/quadraturerules.hh>
 
+#include <dune/fufem/functions/virtualgridfunction.hh>
+
 #include "localgeodesicfestiffness.hh"
 #include "localgeodesicfefunction.hh"
 #include <dune/gfe/rigidbodymotion.hh>
@@ -101,7 +103,11 @@ public:
     /** \brief Constructor with a set of material parameters
      * \param parameters The material parameters
      */
-    CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters)
+    CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters,
+                                 const BoundaryPatch<GridView>* neumannBoundary,
+                                 const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction)
+    : neumannBoundary_(neumannBoundary),
+      neumannFunction_(neumannFunction)
     {
         // The shell thickness
         thickness_ = parameters.template get<double>("thickness");
@@ -182,7 +188,11 @@ public:
     /** \brief Curvature exponent */
     double q_;
     
+    /** \brief The Neumann boundary */
+    const BoundaryPatch<GridView>* neumannBoundary_;
     
+    /** \brief The function implementing the Neumann data */
+    const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction_;
 };
 
 template <class GridView, class LocalFiniteElement, int dim>
@@ -278,7 +288,47 @@ energy(const Entity& element,
             DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
 
     }
+    
+    
+    //////////////////////////////////////////////////////////////////////////////
+    //   Assemble boundary contributions
+    //////////////////////////////////////////////////////////////////////////////
+    
+    assert(neumannFunction_);
 
+    for (typename Entity::LeafIntersectionIterator it = element.ileafbegin(); it != element.ileafend(); ++it) {
+        
+        if (not neumannBoundary_ or not neumannBoundary_->contains(*it))
+            continue;
+        
+        const Dune::QuadratureRule<double, gridDim-1>& quad 
+            = Dune::QuadratureRules<double, gridDim-1>::rule(it->type(), quadOrder);
+    
+        for (size_t pt=0; pt<quad.size(); pt++) {
+        
+            // Local position of the quadrature point
+            const Dune::FieldVector<double,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
+        
+            const double integrationElement = it->geometry().integrationElement(quad[pt].position());
+
+            // The value of the local function
+            RigidBodyMotion<dim> value = localGeodesicFEFunction.evaluate(quadPos);
+
+            // Value of the Neumann data at the current position
+            Dune::FieldVector<double,3> neumannValue;
+            
+            if (dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_))
+                dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
+            else
+                neumannFunction_->evaluate(it->geometry().global(quad[pt].position()), neumannValue);
+
+            // Constant Neumann force in z-direction
+            energy += thickness_ * (neumannValue * value.r) * quad[pt].weight() * integrationElement;
+            
+        }
+        
+    }
+    
     return energy;
 }
 
