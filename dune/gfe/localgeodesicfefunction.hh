@@ -115,12 +115,12 @@ private:
         return dFdw;
     }
     
-    Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<ctype>& w, const TargetSpace& q) const
+    Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<Dune::FieldVector<ctype,1> >& w, const TargetSpace& q) const
     {
         Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> result;
         result = 0;
         for (int i=0; i<w.size(); i++)
-            result.axpy(w[i], TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i],q));
+            result.axpy(w[i][0], TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i],q));
         return result;
     }
     
