@@ -215,18 +215,6 @@ public:
         return q;
     }
 
-    /** \brief Right multiplication with a quaternion
-        \todo do we really need this?*/
-    Rotation<3,T> mult(const Quaternion<T>& other) const {
-        Rotation<3,T> q;
-        q[0] =   (*this)[3]*other[0] - (*this)[2]*other[1] + (*this)[1]*other[2] + (*this)[0]*other[3];
-        q[1] =   (*this)[2]*other[0] + (*this)[3]*other[1] - (*this)[0]*other[2] + (*this)[1]*other[3];
-        q[2] = - (*this)[1]*other[0] + (*this)[0]*other[1] + (*this)[3]*other[2] + (*this)[2]*other[3];
-        q[3] = - (*this)[0]*other[0] - (*this)[1]*other[1] - (*this)[2]*other[2] + (*this)[3]*other[3];
-
-        return q;
-    }
-
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
     static Rotation<3,T> exp(const Dune::FieldVector<T,3>& v) {
