@@ -2,6 +2,7 @@
 
 //#define HARMONIC_ENERGY_FD_GRADIENT
 //#define HARMONIC_ENERGY_FD_INNER_GRADIENT
+//#define HIGHER_ORDER
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
@@ -14,10 +15,12 @@
 #include <dune/grid/io/file/amirameshreader.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
+#include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -45,6 +48,7 @@ struct DirichletFunction
 {
     void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
 
+#if 0
         FieldVector<double,3> axis;
         axis[0] = x[0];  axis[1] = x[1]; axis[2] = 1;
         Rotation<3,double> rotation(axis, x.two_norm()*M_PI*3);
@@ -52,6 +56,12 @@ struct DirichletFunction
         FieldMatrix<double,3,3> rMat;
         rotation.matrix(rMat);
         out = rMat[2];
+#endif   
+        double angle = 0.5 * M_PI * x[0];
+        angle *= -4*x[1]*(x[1]-1);
+        out = 0;
+        out[0] = std::cos(angle);
+        out[1] = std::sin(angle);
         
     }
 };
@@ -78,27 +88,29 @@ void solve (const shared_ptr<GridType>& grid,
     allNodes.setAll();
     BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafView(), allNodes);
 
-    BitSetVector<blocksize> dirichletNodes(grid->size(dim));
-    for (int i=0; i<dirichletNodes.size(); i++)
-        dirichletNodes[i] = dirichletBoundary.containsVertex(i);
-
+#ifdef HIGHER_ORDER
+    typedef P2NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+#else
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+#endif
+    FEBasis feBasis(grid->leafView());
+    
+    BitSetVector<blocksize> dirichletNodes;
+    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+    
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
 
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid->leafView());
+    x.resize(feBasis.size());
     
-    x.resize(p1Basis.size());
-
     BlockVector<FieldVector<double,3> > dirichletFunctionValues;
     DirichletFunction dirichletFunction;
-    Functions::interpolate(p1Basis, dirichletFunctionValues, dirichletFunction);
+    Functions::interpolate(feBasis, dirichletFunctionValues, dirichletFunction);
 
-    FieldVector<double,3> innerValue;
+    FieldVector<double,3> innerValue(0);
     innerValue[0] = 1;
     innerValue[1] = 0;
-    innerValue[2] = 0;
     
     for (size_t i=0; i<x.size(); i++)
         x[i] = (dirichletNodes[i][0]) ? dirichletFunctionValues[i] : innerValue;
@@ -107,11 +119,11 @@ void solve (const shared_ptr<GridType>& grid,
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
 
-    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,TargetSpace> harmonicEnergyLocalStiffness;
+    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,typename FEBasis::LocalFiniteElement, TargetSpace> harmonicEnergyLocalStiffness;
 
-    GeodesicFEAssembler<typename GridType::LeafGridView,TargetSpace> assembler(grid->leafView(),
-                                                                      &harmonicEnergyLocalStiffness);
-    
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafView(),
+                                                       &harmonicEnergyLocalStiffness);
+
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
@@ -190,16 +202,22 @@ int main (int argc, char *argv[]) try
     for (int j=0; j<referenceSolution.size(); j++)
         xEmbedded[j] = referenceSolution[j].globalCoordinates();
         
+#ifndef HIGHER_ORDER
     LeafAmiraMeshWriter<GridType> amiramesh;
     amiramesh.addGrid(referenceGrid->leafView());
     amiramesh.addVertexData(xEmbedded, referenceGrid->leafView());
     amiramesh.write("reference_result.am");
-
+#endif
+    
     // //////////////////////////////////////////////////////////////////////
     //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
     // //////////////////////////////////////////////////////////////////////
 
+#ifdef HIGHER_ORDER
+    typedef P2NodalBasis<GridType::LeafGridView,double> FEBasis;
+#else
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
+#endif
     FEBasis basis(referenceGrid->leafView());
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
 
@@ -245,16 +263,21 @@ int main (int argc, char *argv[]) try
         BlockVector<FieldVector<double,3> > xEmbedded(solution.size());
         for (int j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
-        
+
+#ifndef HIGHER_ORDER
         LeafAmiraMeshWriter<GridType> amiramesh;
         amiramesh.addGrid(grid->leafView());
         amiramesh.addVertexData(xEmbedded, grid->leafView());
         amiramesh.write("harmonic_result_" + numberAsAscii.str() + ".am");
-
+#endif
+        
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++)
+#ifndef HIGHER_ORDER
             geodesicFEFunctionAdaptor(*grid, solution);
-
+#else
+            higherOrderGFEFunctionAdaptor(*grid, solution);
+#endif
         // Interpret TargetSpace as isometrically embedded into an R^m, because this is
         // how the corresponding Sobolev spaces are defined.
 
