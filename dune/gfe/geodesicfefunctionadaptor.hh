@@ -4,6 +4,8 @@
 #include <vector>
 #include <map>
 
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+
 #include "localgeodesicfefunction.hh"
 
 /** \brief Refine a grid globally and prolong a given geodesic finite element function
