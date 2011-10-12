@@ -29,7 +29,7 @@ typedef Dune::OneDGrid GridType;
 typedef RigidBodyMotion<3> TargetSpace;
 typedef std::vector<RigidBodyMotion<3> > SolutionType;
 
-const int blocksize = TargetSpace::TangentVector::size;
+const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 using std::string;
