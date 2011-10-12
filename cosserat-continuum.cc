@@ -16,6 +16,8 @@
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
 
+#include <dune/fufem/boundarypatch.hh>
+
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
@@ -122,6 +124,17 @@ private:
 };
 
 
+struct NeumannFunction
+    : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
+{
+    void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
+        out = 0;
+        out[2] = 4;
+    }
+
+};
+
+
 int main (int argc, char *argv[]) try
 {
     //feenableexcept(FE_INVALID);
@@ -164,7 +177,7 @@ int main (int argc, char *argv[]) try
     elements[0] = 10;
     FieldVector<double,dim> upper(1);
     upper[0] = 10;
-    shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
+    shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createCubeGrid(FieldVector<double,dim>(0),
                                                                                       upper,
                                                                                       elements);
     GridType& grid = *gridPtr.get();
@@ -191,19 +204,35 @@ int main (int argc, char *argv[]) try
     }
 #else
     BitSetVector<blocksize> dirichletNodes(grid.size(dim), false);
+    BitSetVector<1> neumannNodes(grid.size(dim), false);
 
     GridType::Codim<dim>::LeafIterator vIt    = grid.leafbegin<dim>();
     GridType::Codim<dim>::LeafIterator vEndIt = grid.leafend<dim>();
     
     for (; vIt!=vEndIt; ++vIt) {
-        if (vIt->geometry().corner(0)[0] < 1e-3 or vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
+        if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ ) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
                 dirichletNodes[grid.leafIndexSet().index(*vIt)][j] = true;
         }
+        if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 ) {
+            neumannNodes[grid.leafIndexSet().index(*vIt)][0] = true;
+        }
+
     }
 #endif
+
+    //////////////////////////////////////////////////////////////////////////////
+    //   Assemble Neumann term
+    //////////////////////////////////////////////////////////////////////////////
+
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
+    P1Basis p1Basis(grid.leafView());
     
+    BoundaryPatch<typename GridType::LeafGridView> neumannBoundary(grid.leafView(), neumannNodes);
+    
+    std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
+
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
@@ -228,13 +257,14 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the energy functional
     // ////////////////////////////////////////////////////////////
 
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid.leafView());
-    
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
+    NeumannFunction neumannFunction;
+    
     CosseratEnergyLocalStiffness<GridType::LeafGridView,
                                  typename P1Basis::LocalFiniteElement,
-                                 3> cosseratEnergyLocalStiffness(materialParameters);
+                                 3> cosseratEnergyLocalStiffness(materialParameters,
+                                                                 &neumannBoundary,
+                                                                 &neumannFunction);
 
     GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid.leafView(),
                                                                       &cosseratEnergyLocalStiffness);
@@ -333,6 +363,16 @@ int main (int argc, char *argv[]) try
         
     }
     
+    
+    // finally: compute the average deformation of the Neumann boundary
+    // That is what we need for the locking tests
+    FieldVector<double,3> averageDef(0);
+    for (size_t i=0; i<x.size(); i++)
+        if (neumannNodes[i][0])
+            averageDef += x[i].r;
+    averageDef /= neumannNodes.count();
+    
+    std::cout << "average deflection: " << averageDef << std::endl;
     
     // //////////////////////////////
  } catch (Exception e) {
