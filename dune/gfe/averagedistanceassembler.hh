@@ -20,6 +20,22 @@ public:
           weights_(weights)
     {}
 
+    /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
+     * 
+     * The weights are given as a vector of length-1 FieldVectors instead of as a
+     * vector of doubles.  The reason is that these weights are actually the values
+     * of Lagrange shape functions, and the dune-localfunction interface returns
+     * shape function values this way.
+     */
+    AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
+                             const std::vector<Dune::FieldVector<double,1> >& weights)
+        : coefficients_(coefficients),
+          weights_(weights.size())
+    {
+        for (size_t i=0; i<weights.size(); i++)
+            weights_[i] = weights[i][0];
+    }
+
     double value(const TargetSpace& x) const {
 
         double result = 0;
@@ -79,7 +95,7 @@ public:
 
     const std::vector<TargetSpace> coefficients_;
 
-    const std::vector<double> weights_;
+    std::vector<double> weights_;
 
 };
 

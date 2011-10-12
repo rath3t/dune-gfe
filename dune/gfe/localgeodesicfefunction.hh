@@ -139,12 +139,8 @@ TargetSpace LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluate(const Dune::FieldVector<ctype, dim>& local) const
 {
     // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-    std::vector<Dune::FieldVector<ctype,1> > wNested;
-    localFiniteElement_.localBasis().evaluateFunction(local,wNested);
-
-    std::vector<ctype> w(wNested.size());
-    for (size_t i=0; i<w.size(); i++)
-        w[i] = wNested[i][0];
+    std::vector<Dune::FieldVector<ctype,1> > w;
+    localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     // The energy functional whose mimimizer is the value of the geodesic interpolation
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
@@ -206,12 +202,8 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > RHS = dFdw * B;
 
     // the actual system matrix
-    std::vector<Dune::FieldVector<ctype,1> > wNested;
-    localFiniteElement_.localBasis().evaluateFunction(local, wNested);
-    
-    std::vector<ctype> w(wNested.size());
-    for (size_t i=0; i<w.size(); i++)
-        w[i] = wNested[i][0];
+    std::vector<Dune::FieldVector<ctype,1> > w;
+    localFiniteElement_.localBasis().evaluateFunction(local, w);
     
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
@@ -304,12 +296,8 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
     TargetSpace q = evaluate(local);
 
     // dFdq
-    std::vector<Dune::FieldVector<ctype,1> > wNested;
-    localFiniteElement_.localBasis().evaluateFunction(local,wNested);
-
-    std::vector<ctype> w(wNested.size());
-    for (size_t i=0; i<w.size(); i++)
-        w[i] = wNested[i][0];
+    std::vector<Dune::FieldVector<ctype,1> > w;
+    localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
@@ -418,12 +406,8 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > dFdw = computeDFdw(q);
     
     // the actual system matrix
-    std::vector<Dune::FieldVector<ctype,1> > wNested;
-    localFiniteElement_.localBasis().evaluateFunction(local,wNested);
-
-    std::vector<ctype> w(wNested.size());
-    for (size_t i=0; i<w.size(); i++)
-        w[i] = wNested[i][0];
+    std::vector<Dune::FieldVector<ctype,1> > w;
+    localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
     
