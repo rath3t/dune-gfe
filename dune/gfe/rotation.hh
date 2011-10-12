@@ -218,15 +218,9 @@ public:
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
     static Rotation<3,T> exp(const Dune::FieldVector<T,3>& v) {
-        return exp(v[0], v[1], v[2]);
-    }
-
-    /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
-     */
-    static Rotation<3,T> exp(const T& v0, const T& v1, const T& v2) {
         Rotation<3,T> q;
 
-        T normV = std::sqrt(v0*v0 + v1*v1 + v2*v2);
+        T normV = v.two_norm();
 
         // Stabilization for small |v| due to Grassia
         T sin = sincHalf(normV);
@@ -234,14 +228,15 @@ public:
         // if normV == 0 then q = (0,0,0,1)
         assert(!isnan(sin));
             
-        q[0] = sin * v0;
-        q[1] = sin * v1;
-        q[2] = sin * v2;
+        q[0] = sin * v[0];
+        q[1] = sin * v[1];
+        q[2] = sin * v[2];
         q[3] = std::cos(normV/2);
 
         return q;
     }
 
+    
     /** \brief The exponential map from a given point $p \in SO(3)$. */
     static Rotation<3,T> exp(const Rotation<3,T>& p, const TangentVector& v) {
         Rotation<3,T> corr = exp(v);
@@ -579,7 +574,7 @@ public:
 
         v *= omega;
 
-        return a.mult(exp(v[0], v[1], v[2]));
+        return a.mult(exp(v));
     }
 
     /** \brief Interpolate between two rotations 
