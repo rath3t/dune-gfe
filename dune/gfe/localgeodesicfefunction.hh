@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <dune/common/fvector.hh>
-#include <dune/common/geometrytype.hh>
 
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
@@ -18,6 +17,7 @@
     
 \tparam dim Dimension of the reference element
 \tparam ctype Type used for coordinates on the reference element
+\tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
 \tparam TargetSpace The manifold that the function takes its values in
 */
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
@@ -31,8 +31,9 @@ class LocalGeodesicFEFunction
 
 public:
 
-    /** \brief Constructor 
-     \param type Type of the reference element
+    /** \brief Constructor
+     * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
+     * \param coefficients Values of the function at the Lagrange points
      */
     LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
                                 const std::vector<TargetSpace>& coefficients)
