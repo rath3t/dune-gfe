@@ -87,7 +87,7 @@ public:
             result[i] = a.r[i] - b.r[i];
 
         // Subtract orientations on the tangent space of 'a'
-        typename Rotation<dim,ctype>::TangentVector v = Rotation<dim,ctype>::difference(a.q, b.q);
+        typename Rotation<dim,ctype>::TangentVector v = Rotation<dim,ctype>::difference(a.q, b.q).axial();
 
         // Compute difference on T_a SO(3)
         for (int i=0; i<Rotation<dim,ctype>::TangentVector::dimension; i++)

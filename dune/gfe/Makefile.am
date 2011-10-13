@@ -24,6 +24,7 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      rodlocalstiffness.hh \
                      rodwriter.hh \
                      rotation.hh \
+                     skewmatrix.hh \
                      svd.hh \
                      targetspacertrsolver.hh \
                      tensor3.hh \

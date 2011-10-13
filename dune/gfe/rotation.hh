@@ -13,7 +13,7 @@
 #include "quaternion.hh"
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/unitvector.hh>
-
+#include <dune/gfe/skewmatrix.hh>
 
 template <int dim, class T=double>
 class Rotation
@@ -217,10 +217,11 @@ public:
 
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
-    static Rotation<3,T> exp(const Dune::FieldVector<T,3>& v) {
+    static Rotation<3,T> exp(const SkewMatrix<T,3>& v) {
         Rotation<3,T> q;
 
-        T normV = v.two_norm();
+        Dune::FieldVector<T,3> vAxial = v.axial();
+        T normV = vAxial.two_norm();
 
         // Stabilization for small |v| due to Grassia
         T sin = sincHalf(normV);
@@ -228,9 +229,9 @@ public:
         // if normV == 0 then q = (0,0,0,1)
         assert(!isnan(sin));
             
-        q[0] = sin * v[0];
-        q[1] = sin * v[1];
-        q[2] = sin * v[2];
+        q[0] = sin * vAxial[0];
+        q[1] = sin * vAxial[1];
+        q[2] = sin * vAxial[2];
         q[3] = std::cos(normV/2);
 
         return q;
@@ -238,7 +239,7 @@ public:
 
     
     /** \brief The exponential map from a given point $p \in SO(3)$. */
-    static Rotation<3,T> exp(const Rotation<3,T>& p, const TangentVector& v) {
+    static Rotation<3,T> exp(const Rotation<3,T>& p, const SkewMatrix<T,3>& v) {
         Rotation<3,T> corr = exp(v);
         return p.mult(corr);
     }
@@ -261,10 +262,10 @@ public:
         assert( std::fabs(vAtIdentity[3]) < 1e-8 );
 
         // vAtIdentity as a skew matrix
-        TangentVector vMatrix;
-        vMatrix[0] = 2*vAtIdentity[0];
-        vMatrix[1] = 2*vAtIdentity[1];
-        vMatrix[2] = 2*vAtIdentity[2];
+        SkewMatrix<T,3> vMatrix;
+        vMatrix.axial()[0] = 2*vAtIdentity[0];
+        vMatrix.axial()[1] = 2*vAtIdentity[1];
+        vMatrix.axial()[2] = 2*vAtIdentity[2];
         
         // The actual exponential map
         return exp(p, vMatrix);
@@ -282,19 +283,20 @@ public:
         assert( std::fabs(vAtIdentity[3]) < 1e-8 );
 
         // vAtIdentity as a skew matrix
-        TangentVector vMatrix;
-        vMatrix[0] = 2*vAtIdentity[0];
-        vMatrix[1] = 2*vAtIdentity[1];
-        vMatrix[2] = 2*vAtIdentity[2];
+        SkewMatrix<T,3> vMatrix;
+        vMatrix.axial()[0] = 2*vAtIdentity[0];
+        vMatrix.axial()[1] = 2*vAtIdentity[1];
+        vMatrix.axial()[2] = 2*vAtIdentity[2];
         
         // The actual exponential map
         return exp(p, vMatrix);
     }
 
-    static Dune::FieldMatrix<T,4,3> Dexp(const Dune::FieldVector<T,3>& v) {
+    static Dune::FieldMatrix<T,4,3> Dexp(const SkewMatrix<T,3>& v) {
 
         Dune::FieldMatrix<T,4,3> result(0);
-        T norm = v.two_norm();
+        Dune::FieldVector<T,3> vAxial = v.axial();
+        T norm = vAxial.two_norm();
         
         for (int i=0; i<3; i++) {
 
@@ -303,11 +305,11 @@ public:
                 result[m][i] = (norm<1e-10) 
                     /** \todo Isn't there a better way to implement this stably? */
                     ? 0.5 * (i==m) 
-                    : 0.5 * std::cos(norm/2) * v[i] * v[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - v[i]*v[m]/(norm*norm));
+                    : 0.5 * std::cos(norm/2) * vAxial[i] * vAxial[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - vAxial[i]*vAxial[m]/(norm*norm));
 
             }
 
-            result[3][i] = - 0.5 * sincHalf(norm) * v[i];
+            result[3][i] = - 0.5 * sincHalf(norm) * vAxial[i];
 
         }
         return result;
@@ -423,7 +425,7 @@ public:
     /** \brief Compute the vector in T_aSO(3) that is mapped by the exponential map
         to the geodesic from a to b
     */
-    static Dune::FieldVector<T,3> difference(const Rotation<3,T>& a, const Rotation<3,T>& b) {
+    static SkewMatrix<T,3> difference(const Rotation<3,T>& a, const Rotation<3,T>& b) {
 
         Quaternion<T> diff = a;
         diff.invert();
@@ -450,7 +452,7 @@ public:
 
         }
 
-        return v;
+        return SkewMatrix<T,3>(v);
     }
     
     /** \brief Compute the derivatives of the director vectors with respect to the quaternion coordinates
@@ -570,7 +572,7 @@ public:
     static Rotation<3,T> interpolate(const Rotation<3,T>& a, const Rotation<3,T>& b, T omega) {
 
         // Compute difference on T_a SO(3)
-        Dune::FieldVector<T,3> v = difference(a,b);
+        SkewMatrix<T,3> v = difference(a,b);
 
         v *= omega;
 
@@ -585,9 +587,9 @@ public:
         Quaternion<T> result(0);
 
         // Compute difference on T_a SO(3)
-        Dune::FieldVector<T,3> xi = difference(a,b);
+        SkewMatrix<T,3> xi = difference(a,b);
 
-        Dune::FieldVector<T,3> v = xi;
+        SkewMatrix<T,3> v = xi;
         v *= omega;
         
         // //////////////////////////////////////////////////////////////
@@ -597,7 +599,7 @@ public:
 
         Dune::FieldMatrix<T,4,3> diffExp = Dexp(v);
 
-        diffExp.umv(xi,result);
+        diffExp.umv(xi.axial(),result);
 
         return a.Quaternion<T>::mult(result);
     }
