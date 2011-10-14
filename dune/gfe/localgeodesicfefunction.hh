@@ -10,6 +10,7 @@
 #include <dune/gfe/rigidbodymotion.hh>
 
 #include <dune/gfe/tensor3.hh>
+#include <dune/gfe/tensorssd.hh>
 #include <dune/gfe/linearalgebra.hh>
 
 // forward declaration
@@ -428,10 +429,11 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     
    
     Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> mixedDerivative = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
-    Tensor3<double,embeddedDim,embeddedDim,dim+1> dvDwF(0);
+    TensorSSD<double,embeddedDim,embeddedDim> dvDwF(coefficients_.size());
+    dvDwF = 0;
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
-            dvDwF[i][j][coefficient] = mixedDerivative[i][j];
+            dvDwF.data_[i][j][coefficient] = mixedDerivative[i][j];
     
     
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
@@ -454,26 +456,33 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     Tensor3<double, embeddedDim,embeddedDim,embeddedDim> dqdqF;
     dqdqF = computeDqDqF(w,q);
 
-    Tensor3<double, embeddedDim,embeddedDim,dim+1> dqdwF;
+    TensorSSD<double, embeddedDim,embeddedDim> dqdwF(coefficients_.size());
 
-    for (int k=0; k<dim+1; k++) {
+    for (size_t k=0; k<coefficients_.size(); k++) {
         Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
         for (int i=0; i<embeddedDim; i++)
             for (int j=0; j<embeddedDim; j++)
-                dqdwF[i][j][k] = hesse[i][j];
+                dqdwF.data_[i][j][k] = hesse[i][j];
     }
 
-    Tensor3<double, embeddedDim,embeddedDim,dim+1> dqdwF_times_dvq;
+    TensorSSD<double, embeddedDim,embeddedDim> dqdwF_times_dvq(coefficients_.size());
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
-            for (int k=0; k<dim+1; k++) {
-                dqdwF_times_dvq[i][j][k] = 0;
+            for (size_t k=0; k<coefficients_.size(); k++) {
+                dqdwF_times_dvq.data_[i][j][k] = 0;
                 for (int l=0; l<embeddedDim; l++)
-                    dqdwF_times_dvq[i][j][k] += dqdwF[l][j][k] * dvq[l][i];
+                    dqdwF_times_dvq.data_[i][j][k] += dqdwF.data_[l][j][k] * dvq[l][i];
             }
 
     Tensor3<double, embeddedDim,embeddedDim,dim> foo;
-    foo =  -1 * dvDqF*derivative - (dvq*dqdqF)*derivative - dvDwF * B - dqdwF_times_dvq*B;
+    foo =  -1 * dvDqF*derivative - (dvq*dqdqF)*derivative;
+    TensorSSD<double,embeddedDim,embeddedDim> bar(dim);
+    bar = dvDwF * B + dqdwF_times_dvq*B;
+
+    for (int i=0; i<embeddedDim; i++)
+        for (int j=0; j<embeddedDim; j++)
+            for (int k=0; k<dim; k++)
+                foo[i][j][k] -= bar.data_[i][j][k];
     
     result = 0;
     for (int i=0; i<embeddedDim; i++)
