@@ -8,6 +8,7 @@ check_PROGRAMS = averagedistanceassemblertest \
                  cosseratenergytest \
                  fdcheck \
                  frameinvariancetest \
+                 globalgfetestfunctionbasistest \
                  harmonicenergytest \
                  localgeodesicfefunctiontest \
                  localgeodesicfestiffnesstest \
@@ -27,6 +28,8 @@ localgeodesicfefunctiontest_SOURCES = localgeodesicfefunctiontest.cc
 localgeodesicfestiffnesstest_SOURCES = localgeodesicfestiffnesstest.cc
 
 localgfetestfunctiontest_SOURCES = localgfetestfunctiontest.cc
+
+globalgfetestfunctionbasistest_SOURCES = globalgfetestfunctionbasistest.cc
 
 harmonicenergytest_SOURCES = harmonicenergytest.cc
 
