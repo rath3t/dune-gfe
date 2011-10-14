@@ -47,8 +47,11 @@ void test()
         for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
-        LocalGFETestFunction<3,double,LocalFiniteElement,TargetSpace>(feCache.get(simplex),coefficients);
+        LocalGFETestFunction<domainDim,double,LocalFiniteElement,TargetSpace> testFunctionSet(feCache.get(simplex),coefficients);
         
+        FieldVector<double,domainDim> stupidTestPoint(0);
+        std::vector<typename TargetSpace::EmbeddedTangentVector> values;
+        testFunctionSet.evaluateFunction(stupidTestPoint, values);
     }
 
 }
