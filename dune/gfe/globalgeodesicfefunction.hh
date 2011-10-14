@@ -31,6 +31,8 @@ GlobalGeodesicFEFunction {
     //! Dimension of the embedded tanget space
     enum { embeddedDim = EmbeddedTangentVector::dimension };
 
+public:
+
     //! Create global function by a global basis and the corresponding coefficient vector
     GlobalGeodesicFEFunction(const Basis& basis, const std::vector<TargetSpace>& coefficients) :
         basis_(basis),
@@ -38,7 +40,7 @@ GlobalGeodesicFEFunction {
     {}
 
     /** \brief Evaluate the function at local coordinates. */
-    void evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, TargetSpace& out) 
+    void evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, TargetSpace& out) const 
     {
         int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
 
@@ -55,7 +57,7 @@ GlobalGeodesicFEFunction {
 
     /** \brief Evaluate the derivative of the function at local coordinates. */
     void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, 
-                                 Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out)
+                                 Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
     {
         int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
 
