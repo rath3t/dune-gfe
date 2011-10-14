@@ -42,8 +42,8 @@ GlobalGeodesicFEFunction {
     {
         int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
 
-        // Extract local solution
-        std::vector<TargetSpace> localSolution(numOfBaseFct);
+        // Extract local coefficients
+        std::vector<TargetSpace> localCoeff(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
             localCoeff[i] = coefficients_[basis_.index(element,i)];
@@ -59,8 +59,8 @@ GlobalGeodesicFEFunction {
     {
         int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
 
-        // Extract local solution
-        std::vector<TargetSpace> localSolution(numOfBaseFct);
+        // Extract local coefficients
+        std::vector<TargetSpace> localCoeff(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
             localCoeff[i] = coefficients_[basis_.index(element,i)];
