@@ -10,6 +10,9 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      geodesicdifference.hh \
                      geodesicfeassembler.hh \
                      geodesicfefunctionadaptor.hh \
+                     globalgeodesicfefunction.hh \
+                     globalgfetestfunctionbasis.hh \
+                     globalgfetestfunction.hh \
                      harmonicenergystiffness.hh \
                      linearalgebra.hh \
                      localgeodesicfefunction.hh \
