@@ -57,7 +57,7 @@ void test()
 }
 
 
-int main()
+int main() try
 {
     // choke on NaN -- don't enable this by default, as there are
     // a few harmless NaN in the loopsolver
@@ -74,4 +74,8 @@ int main()
         
     test<Rotation<3,double>, 1>();
     test<Rotation<3,double>, 2>();
+
+} catch (Exception e) {
+    std::cout << e << std::endl;
 }
+
