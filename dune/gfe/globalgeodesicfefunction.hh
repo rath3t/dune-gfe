@@ -38,7 +38,7 @@ GlobalGeodesicFEFunction {
     {}
 
     /** \brief Evaluate the function at local coordinates. */
-    void evaluateLocal(const Element& element, const Dune::FieldVector<gridDim,ctype>& local, TargetSpace& out) 
+    void evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, TargetSpace& out) 
     {
         int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
 
@@ -54,7 +54,7 @@ GlobalGeodesicFEFunction {
     }
 
     /** \brief Evaluate the derivative of the function at local coordinates. */
-    void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<gridDim,ctype>& local, 
+    void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, 
                                  Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out)
     {
         int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
