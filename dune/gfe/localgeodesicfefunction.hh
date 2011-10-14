@@ -12,6 +12,10 @@
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/linearalgebra.hh>
 
+// forward declaration
+template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
+class LocalGFETestFunction;
+
 /** \brief A function defined by simplicial geodesic interpolation 
            from the reference element to a Riemannian manifold.
     
@@ -29,6 +33,7 @@ class LocalGeodesicFEFunction
     
     static const int spaceDim = TargetSpace::TangentVector::dimension;
 
+    friend class LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>;
 public:
 
     /** \brief Constructor
