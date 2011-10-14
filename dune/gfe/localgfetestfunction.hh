@@ -38,7 +38,7 @@ public:
     /** \brief The number of Lagrange points, NOT the number of basis functions */
     unsigned int size() const
     {
-        return localGFEFunction_.size();
+        return localGFEFunction_.localFiniteElement_.size();
     }
 
     /** \brief Evaluate all shape functions at the given point */
