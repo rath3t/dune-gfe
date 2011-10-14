@@ -31,17 +31,23 @@ public:
     /** \brief Constructor 
      */
     LocalGFETestFunction(const LocalFiniteElement& localFiniteElement,
-                         const std::vector<TargetSpace>& baseCoefficients,
-                         const std::vector<typename TargetSpace::TangentVector>& tangentCoefficients)
-        : localGFEFunction_(localFiniteElement, baseCoefficients),
-        tangentCoefficients_(tangentCoefficients)
+                         const std::vector<TargetSpace>& baseCoefficients)
+        : localGFEFunction_(localFiniteElement, baseCoefficients)
     {}
+    
+    /** \brief The number of Lagrange points, NOT the number of basis functions */
+    unsigned int size() const
+    {
+        return localGFEFunction_.size();
+    }
 
-    /** \brief Evaluate the function */
-    typename TargetSpace::EmbeddedTangentVector evaluate(const Dune::FieldVector<ctype, dim>& local) const;
+    /** \brief Evaluate all shape functions at the given point */
+    void evaluateFunction(const Dune::FieldVector<ctype, dim>& local,
+                          std::vector<typename TargetSpace::EmbeddedTangentVector>& out) const;
 
-    /** \brief Evaluate the derivative of the function */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+    /** \brief Evaluate the derivatives of all shape functions function */
+    void evaluateJacobian(const Dune::FieldVector<ctype, dim>& local,
+                          std::vector<Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> >& out) const;
 
 private:
 
@@ -49,55 +55,60 @@ private:
      */
     const LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> localGFEFunction_;
 
-    std::vector<typename TargetSpace::TangentVector> tangentCoefficients_;
-
 };
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-typename TargetSpace::EmbeddedTangentVector LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-evaluate(const Dune::FieldVector<ctype, dim>& local) const
+void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateFunction(const Dune::FieldVector<ctype, dim>& local,
+                      std::vector<typename TargetSpace::EmbeddedTangentVector>& out) const
 {
-    typename TargetSpace::EmbeddedTangentVector result(0);
-
-    for (size_t i=0; i<tangentCoefficients_.size(); i++) {
+    out.resize(size() * spaceDim);
+    
+    for (size_t i=0; i<size(); i++) {
         
         Dune::FieldMatrix< double, embeddedDim, embeddedDim > derivative;
         
         localGFEFunction_.evaluateDerivativeOfValueWRTCoefficient (local,
                                                                    i,
                                                                    derivative);
+
+        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i];
         
-        derivative.umv(tangentCoefficients_, result);
+        for (int j=0; j<spaceDim; j++)
+            derivative.mv(basisVectors[j], out[i*spaceDim + j]);
         
     }
     
-    return result;
 }
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateJacobian(const Dune::FieldVector<ctype, dim>& local,
+                      std::vector<Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> >& out) const
 {
-    typename Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> result(0);
-
-    for (size_t i=0; i<tangentCoefficients_.size(); i++) {
+    out.resize(size() * spaceDim);
+    
+    for (size_t i=0; i<size(); i++) {
         
         Tensor3< double, embeddedDim, embeddedDim, dim > derivative;
         localGFEFunction_.evaluateDerivativeOfGradientWRTCoefficient (local,
                                                                    i,
                                                                    derivative);
         
-        // Contract the second index of the derivative with the tangent vector at the i-th Lagrange point.
-        // Add that to the result.
-        for (size_t j=0; j<embeddedDim; j++)
-            for (size_t k=0; k<embeddedDim; k++)
-                for (size_t l=0; l<dim; l++)
-                    result[j][l] += derivative[j][k][l] * tangentCoefficients_[i][k];
+        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i];
         
+        for (int j=0; j<spaceDim; j++) {
+            
+            out[i*spaceDim + j] = 0;
+        
+            // Contract the second index of the derivative with the tangent vector at the i-th Lagrange point.
+            // Add that to the result.
+            for (size_t k=0; k<embeddedDim; k++)
+                for (size_t l=0; l<embeddedDim; l++)
+                    for (size_t m=0; m<dim; m++)
+                        out[i*spaceDim+j][k][m] += derivative[k][l][m] * basisVectors[j][l];
+        
+        }
     }
     
-    return result;
-
 }
 
 
