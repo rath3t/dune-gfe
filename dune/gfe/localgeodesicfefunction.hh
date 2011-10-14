@@ -119,7 +119,7 @@ private:
     Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > computeDFdw(const TargetSpace& q) const
     {
         Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > dFdw(embeddedDim,localFiniteElement_.localBasis().size());
-        for (int i=0; i<localFiniteElement_.localBasis().size(); i++) {
+        for (size_t i=0; i<localFiniteElement_.localBasis().size(); i++) {
             Dune::FieldVector<ctype,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
             for (int j=0; j<embeddedDim; j++)
                 dFdw[j][i] = tmp[j];
@@ -131,7 +131,7 @@ private:
     {
         Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> result;
         result = 0;
-        for (int i=0; i<w.size(); i++)
+        for (size_t i=0; i<w.size(); i++)
             result.axpy(w[i][0], TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i],q));
         return result;
     }

@@ -107,8 +107,8 @@ void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateJac
         
             // Contract the second index of the derivative with the tangent vector at the i-th Lagrange point.
             // Add that to the result.
-            for (size_t k=0; k<embeddedDim; k++)
-                for (size_t l=0; l<embeddedDim; l++)
+            for (int k=0; k<embeddedDim; k++)
+                for (int l=0; l<embeddedDim; l++)
                     for (size_t m=0; m<dim; m++)
                         out[i*spaceDim+j][k][m] += derivative[k][l][m] * basisVectors[j][l];
         
