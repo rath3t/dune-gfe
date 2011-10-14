@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <dune/common/fvector.hh>
+#include <dune/common/array.hh>
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
 #include <dune/gfe/rotation.hh>
@@ -50,7 +51,7 @@ void test()
         LocalGFETestFunction<domainDim,double,LocalFiniteElement,TargetSpace> testFunctionSet(feCache.get(simplex),coefficients);
         
         FieldVector<double,domainDim> stupidTestPoint(0);
-        std::vector<typename TargetSpace::EmbeddedTangentVector> values;
+        std::vector<Dune::array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
         testFunctionSet.evaluateFunction(stupidTestPoint, values);
     }
 

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <dune/common/fvector.hh>
+#include <dune/common/array.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/tensor3.hh>
@@ -43,11 +44,11 @@ public:
 
     /** \brief Evaluate all shape functions at the given point */
     void evaluateFunction(const Dune::FieldVector<ctype, dim>& local,
-                          std::vector<typename TargetSpace::EmbeddedTangentVector>& out) const;
+                          std::vector<Dune::array<typename TargetSpace::EmbeddedTangentVector,spaceDim> >& out) const;
 
     /** \brief Evaluate the derivatives of all shape functions function */
     void evaluateJacobian(const Dune::FieldVector<ctype, dim>& local,
-                          std::vector<Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> >& out) const;
+                          std::vector<Dune::array<Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim>,spaceDim> >& out) const;
                           
     /** \brief Polynomial order */
     unsigned int order() const
@@ -65,9 +66,9 @@ private:
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateFunction(const Dune::FieldVector<ctype, dim>& local,
-                      std::vector<typename TargetSpace::EmbeddedTangentVector>& out) const
+                      std::vector<Dune::array<typename TargetSpace::EmbeddedTangentVector, spaceDim> >& out) const
 {
-    out.resize(size() * spaceDim);
+    out.resize(size());
     
     for (size_t i=0; i<size(); i++) {
         
@@ -80,7 +81,7 @@ void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateFun
         Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i].orthonormalFrame();
         
         for (int j=0; j<spaceDim; j++)
-            derivative.mv(basisVectors[j], out[i*spaceDim + j]);
+            derivative.mv(basisVectors[j], out[i][j]);
         
     }
     
@@ -88,9 +89,9 @@ void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateFun
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateJacobian(const Dune::FieldVector<ctype, dim>& local,
-                      std::vector<Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> >& out) const
+                      std::vector<Dune::array<Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim>,spaceDim> >& out) const
 {
-    out.resize(size() * spaceDim);
+    out.resize(size());
     
     for (size_t i=0; i<size(); i++) {
         
@@ -103,14 +104,14 @@ void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateJac
         
         for (int j=0; j<spaceDim; j++) {
             
-            out[i*spaceDim + j] = 0;
+            out[i][j] = 0;
         
             // Contract the second index of the derivative with the tangent vector at the i-th Lagrange point.
             // Add that to the result.
             for (int k=0; k<embeddedDim; k++)
                 for (int l=0; l<embeddedDim; l++)
                     for (size_t m=0; m<dim; m++)
-                        out[i*spaceDim+j][k][m] += derivative[k][l][m] * basisVectors[j][l];
+                        out[i][j][k][m] += derivative[k][l][m] * basisVectors[j][l];
         
         }
     }
