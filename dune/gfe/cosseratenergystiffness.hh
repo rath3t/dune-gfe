@@ -207,7 +207,8 @@ energy(const Entity& element,
     LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
                                                                                                       localSolution);
 
-    int quadOrder = 1;//gridDim;
+    int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
+                                                 : localFiniteElement.localBasis().order() * gridDim;
 
     const Dune::QuadratureRule<double, gridDim>& quad 
         = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
