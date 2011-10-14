@@ -77,7 +77,7 @@ void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateFun
                                                                    i,
                                                                    derivative);
 
-        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i];
+        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i].orthonormalFrame();
         
         for (int j=0; j<spaceDim; j++)
             derivative.mv(basisVectors[j], out[i*spaceDim + j]);
