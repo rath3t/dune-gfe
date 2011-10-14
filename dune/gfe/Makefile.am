@@ -31,6 +31,7 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      skewmatrix.hh \
                      svd.hh \
                      targetspacertrsolver.hh \
+                     tensorssd.hh \
                      tensor3.hh \
                      unitvector.hh
 
