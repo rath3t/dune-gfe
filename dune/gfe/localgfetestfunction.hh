@@ -48,6 +48,12 @@ public:
     /** \brief Evaluate the derivatives of all shape functions function */
     void evaluateJacobian(const Dune::FieldVector<ctype, dim>& local,
                           std::vector<Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> >& out) const;
+                          
+    /** \brief Polynomial order */
+    unsigned int order() const
+    {
+        return localGFEFunction_.localFiniteElement_.order();
+    }
 
 private:
 
