@@ -74,6 +74,8 @@ void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateFun
         
         Dune::FieldMatrix< double, embeddedDim, embeddedDim > derivative;
         
+        /** \todo This call internally keeps computing the value of the gfe function at 'local'.
+         * This is expensive.  Eventually we should precompute it once and reused the result. */
         localGFEFunction_.evaluateDerivativeOfValueWRTCoefficient (local,
                                                                    i,
                                                                    derivative);
@@ -95,6 +97,8 @@ void LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateJac
     
     for (size_t i=0; i<size(); i++) {
         
+        /** \todo This call internally keeps computing the value of the gfe function at 'local'.
+         * This is expensive.  Eventually we should precompute it once and reused the result. */
         Tensor3< double, embeddedDim, embeddedDim, dim > derivative;
         localGFEFunction_.evaluateDerivativeOfGradientWRTCoefficient (local,
                                                                    i,
