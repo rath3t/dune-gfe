@@ -46,6 +46,12 @@ public:
         coefficients_(coefficients)
     {}
 
+    /** \brief The number of Lagrange points */
+    unsigned int size() const
+    {
+        return localFiniteElement_.localBasis().size();
+    }
+
     /** \brief Evaluate the function */
     TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
 
@@ -563,6 +569,12 @@ public:
         
         orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> >(localFiniteElement,orientationCoefficients));
         
+    }
+
+    /** \brief The number of Lagrange points */
+    unsigned int size() const
+    {
+        return localFiniteElement_.localBasis().size();
     }
 
     /** \brief Evaluate the function */
