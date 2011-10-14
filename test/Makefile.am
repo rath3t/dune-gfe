@@ -11,6 +11,7 @@ check_PROGRAMS = averagedistanceassemblertest \
                  harmonicenergytest \
                  localgeodesicfefunctiontest \
                  localgeodesicfestiffnesstest \
+                 localgfetestfunctiontest \
                  rotationtest \
                  svdtest \
                  targetspacetest
@@ -24,6 +25,8 @@ fdcheck_SOURCES = fdcheck.cc
 localgeodesicfefunctiontest_SOURCES = localgeodesicfefunctiontest.cc
 
 localgeodesicfestiffnesstest_SOURCES = localgeodesicfestiffnesstest.cc
+
+localgfetestfunctiontest_SOURCES = localgfetestfunctiontest.cc
 
 harmonicenergytest_SOURCES = harmonicenergytest.cc
 
