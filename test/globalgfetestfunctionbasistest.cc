@@ -16,7 +16,6 @@
 
 #include <dune/gfe/globalgfetestfunctionbasis.hh>
 
-#include "multiindex.hh"
 #include "valuefactory.hh"
 
 const double eps = 1e-6;
@@ -42,19 +41,20 @@ void test()
     typedef GlobalGFETestFunctionBasis<P1Basis,TargetSpace> GlobalBasis;
     GlobalBasis basis(p1Basis,testPoints);
 
-    typedef typename OneDGrid::Codim<0>::Iterator ElementIterator; 
+    typedef typename OneDGrid::Codim<0>::LeafIterator ElementIterator; 
     ElementIterator eIt = grid.leafbegin<0>();
-    ElementIterator eEndIt = grid.leafEnd<0>();
+    ElementIterator eEndIt = grid.leafend<0>();
     
     for (; eIt != eEndIt; ++eIt) {
         
         const typename GlobalBasis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);     
     
-        FieldVector<double,1> stupidTestPoint(0.5);
+        FieldVector<double,1> stupidTestPoint(0);
         std::vector<Dune::array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
         lfe.localBasis().evaluateFunction(stupidTestPoint, values);
-
-        int i = basis.index(*eIt,1);
+        for(size_t i=0;i<values.size();i++)
+            std::cout<<values[i]<<std::endl;
+        //int i = basis.index(*eIt,1);
     }
 
 }
