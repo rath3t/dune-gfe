@@ -6,11 +6,14 @@
 #include <dune/gfe/localgfetestfunction.hh>
 
 // forward declaration
-template <class GridView, class Basis, class TargetSpace>
-class GlobalGFETestFunctionBasis;
+//template <class Basis, class TargetSpace
+//class GlobalGFETestFunctionBasis;
 // not sure if this works
-template <class GridView, class Basis, class TargetSpace>
-class GlobalGFETestFunctionBasis<GridView, Basis, TargetSpace>::LocalFiniteElement;
+//template <class Basis, class TargetSpace>
+//class GlobalGFETestFunctionBasis<Basis, TargetSpace>::LocalFiniteElement{};
+
+template <class LocalFE, class TargetSpace>
+class LocalTestFunctionWrapper;
 
 /** \brief A global basis for the gfe test functions. 
  *
@@ -18,45 +21,27 @@ class GlobalGFETestFunctionBasis<GridView, Basis, TargetSpace>::LocalFiniteEleme
  *  The other LocalFiniteElement methods are not wrapped/implemented by now but it shouldn't be too difficult to do so when they are
  *  needed.
  */
-template <class GridView, class Basis, class TargetSpace>
-class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::GridView, typename TargetSpace::EmbeddedTangentVector, typename GlobalGFETestFunctionBasis<GridView,Basis,TargetSpace>::LocalFiniteElement> {
+template <class Basis, class TargetSpace>
+class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::GridView, typename TargetSpace::EmbeddedTangentVector, LocalTestFunctionWrapper<typename Basis::LocalFiniteElement, TargetSpace> > {
 
 public:
     typedef typename Basis::GridView GridView;
+    typedef LocalTestFunctionWrapper<typename Basis::LocalFiniteElement, TargetSpace> LocalFiniteElement; 
 private:
-    typedef typename Basis::LocalFiniteElement Lfe;
     typedef typename GridView::template Codim<0>::Entity Element;
     typedef typename GridView::Grid::ctype  ctype;
 
-    typedef GlobalGFETestFunctionBasis<GridView,Basis,TargetSpace> This;
-    typedef FunctionSpaceBasis<GridView, typename TargetSpace::EmbeddedTangentVector, This> Base;     
+    typedef GlobalGFETestFunctionBasis<Basis,TargetSpace> This;
+    typedef FunctionSpaceBasis<GridView, typename TargetSpace::EmbeddedTangentVector, typename This::LocalFiniteElement> Base;     
 
-    typedef LocalGFETestFunction<GridView::dimension,ctype,LocalFiniteElement,TargetSpace> LocalGFETestFunction;
-    
     const static int tangentDim = TargetSpace::TangentVector::dimension;
-
-    /** \brief Struct to wrap the LocalGeodesicTestFunction into a localBasis of a LocalFiniteElement. */
-    class LocalFiniteElement {
-
-        public:
-            typedef LocalGFETestFunction LocalBasisType;    
-    
-            LocalFiniteElement(const Lfe& localFiniteElement, 
-                               const std::vector<TargetSpace>& localCoefficients) :
-                localGfeTestFunction_(localFiniteElement,localCoefficients)
-            {}
-            
-            const LocalBasisType& localBasis() const {return localGfeTestFunction_;}           
- 
-        private:
-            const LocalGFETestFunction& localGfeTestFunction_;     
-    };
 
 public:
     GlobalGFETestFunctionBasis(const Basis& basis, std::vector<TargetSpace>& baseCoefficients) :
         Base(basis.getGridView()),
         basis_(basis),
-        baseCoefficients_(baseCoefficients)
+        baseCoefficients_(baseCoefficients),
+        lfe_(NULL)
     {}
 
     /** \brief Get the local gfe test function wrapped as a LocalFiniteElement. */
@@ -68,9 +53,9 @@ public:
         int numOfBasisFct = basis_.getLocalFiniteElement(element).localBasis().size(); 
 
         // Extract local base and test coefficients 
-        std::vector<TargetSpace> localBaseCoeff(numOfBaseFct);
+        std::vector<TargetSpace> localBaseCoeff(numOfBasisFct);
 
-        for (int i=0; i<numOfBaseFct; i++)
+        for (int i=0; i<numOfBasisFct; i++)
             localBaseCoeff[i] = baseCoefficients_[basis_.index(element,i)];
 
         // create local gfe test function
@@ -108,5 +93,29 @@ private:
     //! Save the last local finite element - do I need to do this?
     mutable LocalFiniteElement* lfe_;
 };
+
+/** \brief Struct to wrap the LocalGeodesicTestFunction into a localBasis of a LocalFiniteElement. */
+template <class LocalFE, class TargetSpace>
+class LocalTestFunctionWrapper {
+
+    public:
+        typedef typename LocalFE::Traits::LocalBasisType::Traits BasisTraits;
+        typedef LocalGFETestFunction<BasisTraits::dimDomain,typename BasisTraits::DomainFieldType,LocalFE,TargetSpace> LocalBasisType;
+
+        LocalTestFunctionWrapper(const LocalFE& localFiniteElement, 
+                const std::vector<TargetSpace>& localCoefficients) :
+            localGfeTestFunction_(localFiniteElement,localCoefficients)
+    {}
+        
+        /** \brief Get the local Basis. */
+        const LocalBasisType& localBasis() const {return localGfeTestFunction_;}           
+
+    private:
+        LocalBasisType localGfeTestFunction_;     
+};
+
+
+
+
 
 #endif
