@@ -2,6 +2,7 @@
 #define GLOBAL_GEODESIC_FINITE_ELEMENT_TEST_FUNCTION_HH
 
 #include <vector>
+#include <dune/istl/bvector.hh>
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
@@ -14,8 +15,9 @@
  *
  *  \tparam Basis  - The global basis type.
  *  \tparam TargetSpace - The manifold that this functions takes its values in.
+ *  \tparam CoefficientType - The coefficient vector type.
  */
-template<class Basis, class TargetSpace>
+template<class Basis, class TargetSpace, class CoefficientType>
 GlobalGFETestFunction {
 
     typedef typename Basis::LocalFiniteElement LocalFiniteElement;
@@ -23,7 +25,6 @@ GlobalGFETestFunction {
     typedef typename GridView::template Codim<0>::Entity Element;
     typedef typename GridView::Grid::ctype  ctype;
 
-    typedef LocalGFETestFunction<GridView::dimension, ctype, LocalFiniteElement, TargetSpace> LocalGFETestFunction;
     typedef typename TargetSpace::TangentVector TangentVector;
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
 
@@ -37,12 +38,10 @@ GlobalGFETestFunction {
 
 public:
 
-    //! Create global function by a global basis and the corresponding coefficient vectors
-    GlobalGFETestFunction(const Basis& basis, const std::vector<TargetSpace>& baseCoefficients,
-                             const std::vector<TangentVector>& testCoefficients) :
+    //! Create global function by a global gfe test basis and the corresponding coefficient vectors
+    GlobalGFETestFunction(const Basis& basis, const CoefficientType& coefficients) :
         basis_(basis),
-        baseCoefficients_(baseCoefficients),
-        testCoefficients_(testCoefficients)
+        coefficients_(coefficients)
     {}
 
     /** \brief Evaluate the function at local coordinates. */
@@ -56,44 +55,33 @@ private:
 
     //! The global basis
     const Basis& basis_;
-    //! The coefficient vector of the configuration whose tangent spaces contain the test function
-    const std::vector<TargetSpace>& baseCoefficients_;
     //! The coefficient vector for the global test function
-    const std::vector<TangentVector>& testCoefficients_;
+    const CoefficientType& coefficients_;
 };
 
-template<class Basis, class TargetSpace>
+template<class Basis, class TargetSpace, class CoefficientType>
 void GlobalGFETestFunction<Basis,TargetSpace>::evaluateLocal(const Element& element, const Dune::FieldVector<gridDim,ctype>& local, 
                                                              EmbeddedTangentVector& out) const
 {
     int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
 
-    // Extract local base and test coefficients 
-    std::vector<TargetSpace> localBaseCoeff(numOfBaseFct);
-    std::vector<TangentVector> localTestCoeff(numOfBaseFct);
-
-    for (int i=0; i<numOfBaseFct; i++) {
-        localBaseCoeff[i] = baseCoefficients_[basis_.index(element,i)];
-        localTestCoeff[i] = testCoefficients_[basis_.index(element,i)];
-    }
-
     // values of the test basis functions 
     std::vector<Dune::array<EmbeddedTangentVector, tangentDim> > values;
 
     // create local gfe test function
-    LocalGFETestFunction localGFE(basis_.getLocalFiniteElement(element),localBaseCoeff);
-    localGFE.evaluateFunction(local, values);
+    basis_.getLocalFiniteElement(element).localBasis().evaluateFunction(local, values);
 
-    // multiply values with the corresponding test coefficients
+    // multiply values with the corresponding test coefficients and sum them up
     out = 0;
 
-    for (int i=0; i<values.size(); i++)
+    for (int i=0; i<values.size(); i++) {
+        int index = basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
-            values[i][j] *= localTestCoeff[i][j];
+            values[i][j] *= coefficients[index][j];
             out += values[i][j];
         }
 } 
-template<class Basis, class TargetSpace>
+template<class Basis, class TargetSpace , class CoefficientType>
 void GlobalGFETestFunction<Basis,TargetSpace>::evaluateDerivativeLocal(const Element& element, 
                                             const Dune::FieldVector<gridDim,ctype>& local, 
                                             Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
