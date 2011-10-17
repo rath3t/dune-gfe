@@ -77,40 +77,31 @@ void GlobalGFETestFunction<Basis,TargetSpace>::evaluateLocal(const Element& elem
     for (int i=0; i<values.size(); i++) {
         int index = basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
-            values[i][j] *= coefficients[index][j];
+            values[i][j] *= coefficients_[index][j];
             out += values[i][j];
         }
+    }
 } 
 template<class Basis, class TargetSpace , class CoefficientType>
 void GlobalGFETestFunction<Basis,TargetSpace>::evaluateDerivativeLocal(const Element& element, 
                                             const Dune::FieldVector<gridDim,ctype>& local, 
                                             Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
 {
-    int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
-
-    // Extract local base and test coefficients 
-    std::vector<TargetSpace> localBaseCoeff(numOfBaseFct);
-    std::vector<TangentVector> localTestCoeff(numOfBaseFct);
-
-    for (int i=0; i<numOfBaseFct; i++) {
-        localBaseCoeff[i] = baseCoefficients_[basis_.index(element,i)];
-        localTestCoeff[i] = testCoefficients_[basis_.index(element,i)];
-    }
-
     // jacobians of the test basis function  - a lot of dims here...
     std::vector<Dune::array<Dune::FieldMatrix<ctype, embeddedDim, gridDim>, tangentDim> > jacobians; 
 
-    // create local gfe test function
-    LocalGFETestFunction localGFE(basis_.getLocalFiniteElement(element),localBaseCoeff);
-    localGFE.evaluateJacobian(local, jacobians);
+    // evaluate local gfe test function basis
+    basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, jacobians);
 
-    // multiply values with the corresponding test coefficients
+    // multiply values with the corresponding test coefficients and sum them up
     out = 0;
 
-    for (int i=0; i<jacobians.size(); i++)
+    for (int i=0; i<jacobians.size(); i++) {
+        int index = basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
-            jacobians[i][j] *= localTestCoeff[i][j];
-            out += values[i][j];
+            jacobians[i][j] *= coefficients_[index][j];
+            out += jacobians[i][j];
         }
+    }
 }
 #endif
