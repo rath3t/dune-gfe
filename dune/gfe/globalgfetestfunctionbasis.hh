@@ -21,7 +21,7 @@ class LocalTestFunctionWrapper;
  *  The other LocalFiniteElement methods are not wrapped/implemented by now but it shouldn't be too difficult to do so when they are
  *  needed.
  */
-template <class Basis, class TargetSpace>
+template <class Basis, class TargetSpace, class CoefficientType>
 class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::GridView, typename TargetSpace::EmbeddedTangentVector, LocalTestFunctionWrapper<typename Basis::LocalFiniteElement, TargetSpace> > {
 
 public:
@@ -37,7 +37,7 @@ private:
     const static int tangentDim = TargetSpace::TangentVector::dimension;
 
 public:
-    GlobalGFETestFunctionBasis(const Basis& basis, std::vector<TargetSpace>& baseCoefficients) :
+    GlobalGFETestFunctionBasis(const Basis& basis, const CoefficientType& baseCoefficients) :
         Base(basis.getGridView()),
         basis_(basis),
         baseCoefficients_(baseCoefficients),
@@ -89,7 +89,7 @@ private:
     //! The global basis determining the weights
     const Basis& basis_;
     //! The coefficients of the configuration the tangent spaces are from. */
-    const std::vector<TargetSpace>& baseCoefficients_; 
+    const CoefficientType& baseCoefficients_; 
     //! Save the last local finite element - do I need to do this?
     mutable LocalFiniteElement* lfe_;
 };

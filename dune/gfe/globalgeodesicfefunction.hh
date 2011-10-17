@@ -13,9 +13,11 @@
  *
  *  \tparam Basis  - The global basis type.
  *  \tparam TargetSpace - The manifold that this functions takes its values in.
+ *  \tparam CoefficientType - The coefficient vector type.
  */
-template<class Basis, class TargetSpace>
+template<class Basis, class TargetSpace, class CoefficientType>
 GlobalGeodesicFEFunction {
+
 
     typedef typename Basis::LocalFiniteElement LocalFiniteElement;
     typedef typename Basis::GridView GridView;
@@ -34,7 +36,7 @@ GlobalGeodesicFEFunction {
 public:
 
     //! Create global function by a global basis and the corresponding coefficient vector
-    GlobalGeodesicFEFunction(const Basis& basis, const std::vector<TargetSpace>& coefficients) :
+    GlobalGeodesicFEFunction(const Basis& basis, const CoefficientType& coefficients) :
         basis_(basis),
         coefficients_(coefficients)
     {}
@@ -78,6 +80,6 @@ private:
     //! The global basis
     const Basis& basis_;
     //! The coefficient vector
-    const std::vector<TargetSpace>& coefficients_;
+    const CoefficientType& coefficients_;
 };
 #endif
