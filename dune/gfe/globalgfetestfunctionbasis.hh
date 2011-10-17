@@ -69,19 +69,18 @@ public:
             delete(lfe_);
     }
 
-    /** \brief Get the total number of global basis functions.
-     *
-     *  For each Lagrange point there are (dim TangentSpace) basis functions
+    /** \brief Get the total number of global (block) basis functions.
+     *  Only return the number of Lagrange points. For each Lagrange point there are (tangentDim) local shape functions
      */
     int size() const
     { 
-        return basis_.size()*tangentDim;
+        return basis_.size();
     }
 
-    /** \brief Get the global index of the basis function. */
+    /** \brief Get the global index of the (block) basis function. */
     int index(const Element& e, const int i) const
     {
-        return basis_.index(e,i/tangentDim)*tangentDim + (i%tangentDim);   
+        return basis_.index(e,i);   
     }
 
 
