@@ -270,6 +270,48 @@ public:
         // The actual exponential map
         return exp(p, vMatrix);
     }
+       
+    /** \brief Compute tangent vector from given basepoint and axial vector. */ 
+    static TangentVector axialToTangentVector(const Rotation<3,T>& p, const Dune::FieldVector<T,3> axialVector) {
+
+        // embedded tangent vector at identity
+        Quaternion<T> vAtIdentity(0);
+        vAtIdentity[0] = 0.5*axialVector[0];
+        vAtIdentity[1] = 0.5*axialVector[1];
+        vAtIdentity[2] = 0.5*axialVector[2];
+
+        // multiply with base point to get real embedded tangent vector
+        Quaternion<T> vQuat = p.mult(vAtIdentity);
+
+        //get basis of the tangent space
+        Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
+
+        // transform coordinates
+        TangentVector tang;
+        basis.mv(vQuat,tang);
+
+        return tang;
+    }
+
+    /** \brief Compute axial vector from given basepoint and tangent vector. */ 
+    static Dune::FieldVector<T,3> tangentToAxialVector(const Rotation<3,T>& p, const TangentVector& tangent) {
+        
+        // embedded tangent vector
+        Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
+        Quaternion<T> embeddedTangent;
+        basis.mtv(tangent, embeddedTangent);
+
+        // left multiplication by the inverse base point yields a tangent vector at the identity
+        Quaternion<T> vAtIdentity = p.inverse().mult(embeddedTangent);
+        assert( std::fabs(vAtIdentity[3]) < 1e-8 );
+
+        Dune::FieldVector<T,3> axial;
+        axial[0] = 2*vAtIdentity[0];
+        axial[1] = 2*vAtIdentity[1];
+        axial[2] = 2*vAtIdentity[2];
+
+        return axial;
+    }
 
     static Rotation<3,T> exp(const Rotation<3,T>& p, const Dune::FieldVector<T,4>& v) {
         
