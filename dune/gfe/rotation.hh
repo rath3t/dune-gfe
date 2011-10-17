@@ -272,7 +272,7 @@ public:
     }
        
     /** \brief Compute tangent vector from given basepoint and skew symmetric matrix. */ 
-    static TangentVector axialToTangentVector(const Rotation<3,T>& p, const SkewMatrix<T,3>& v ) {
+    static TangentVector skewToTangentVector(const Rotation<3,T>& p, const SkewMatrix<T,3>& v ) {
 
         // embedded tangent vector at identity
         Quaternion<T> vAtIdentity(0);
@@ -294,7 +294,7 @@ public:
     }
 
     /** \brief Compute skew matrix from given basepoint and tangent vector. */ 
-    static SkewMatrix<T,3> tangentToAxialVector(const Rotation<3,T>& p, const TangentVector& tangent) {
+    static SkewMatrix<T,3> tangentToSkew(const Rotation<3,T>& p, const TangentVector& tangent) {
         
         // embedded tangent vector
         Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
