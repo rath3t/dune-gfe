@@ -433,7 +433,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     dvDwF = 0;
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
-            dvDwF.data_[i][j][coefficient] = mixedDerivative[i][j];
+            dvDwF(i, j, coefficient) = mixedDerivative[i][j];
     
     
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
@@ -462,16 +462,16 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
         Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
         for (int i=0; i<embeddedDim; i++)
             for (int j=0; j<embeddedDim; j++)
-                dqdwF.data_[i][j][k] = hesse[i][j];
+                dqdwF(i, j, k) = hesse[i][j];
     }
 
     TensorSSD<double, embeddedDim,embeddedDim> dqdwF_times_dvq(coefficients_.size());
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
             for (size_t k=0; k<coefficients_.size(); k++) {
-                dqdwF_times_dvq.data_[i][j][k] = 0;
+                dqdwF_times_dvq(i, j, k) = 0;
                 for (int l=0; l<embeddedDim; l++)
-                    dqdwF_times_dvq.data_[i][j][k] += dqdwF.data_[l][j][k] * dvq[l][i];
+                    dqdwF_times_dvq(i, j, k) += dqdwF(l, j, k) * dvq[l][i];
             }
 
     Tensor3<double, embeddedDim,embeddedDim,dim> foo;
@@ -482,7 +482,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
             for (int k=0; k<dim; k++)
-                foo[i][j][k] -= bar.data_[i][j][k];
+                foo[i][j][k] -= bar(i, j, k);
     
     result = 0;
     for (int i=0; i<embeddedDim; i++)

@@ -41,6 +41,18 @@ public:
                 assert(false);
         }
     }
+
+    /** \brief Direct access to individual entries */
+    T& operator()(size_t i, size_t j, size_t k)
+    {
+        return data_[i][j][k];
+    }
+        
+    /** \brief Direct const access to individual entries */
+    const T& operator()(size_t i, size_t j, size_t k) const
+    {
+        return data_[i][j][k];
+    }
         
     /** \brief Assignment from scalar */
     TensorSSD<T,N1,N2>& operator=(const T& scalar)
@@ -84,6 +96,8 @@ public:
                     
         return result;
     }
+    
+private:
 
     // having the dynamic data type on the inside is kind of a stupid data layout
     Dune::array<Dune::array<std::vector<T>, N2>, N1> data_;
