@@ -38,6 +38,22 @@ public:
     {
         return data_;
     }
+   
+    /** \brief Embedd the skey-symmetric matrix in R^3x3 */ 
+    Dune::FieldMatrix<T,3,3> toMatrix()
+    {
+        Dune::FieldMatrix<T,3,3> mat;
+        mat = 0;
+        
+        mat[0][1] = -data_[2];
+        mat[1][0] =  data_[2];
+        mat[0][2] =  data_[1];
+        mat[2][0] = -data_[1];
+        mat[1][2] = -data_[0];
+        mat[2][1] =  data_[0];
+    
+        return mat; 
+    }
     
 private:
     // we store the axial vector
