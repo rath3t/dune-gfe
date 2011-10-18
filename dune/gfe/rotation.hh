@@ -450,6 +450,66 @@ public:
         return APseudoInv;
     }
 
+    /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$. */
+    static Rotation<3,T> cayley(const SkewMatrix<3,T>& s) {
+        Rotation<3,T> q;
+
+        Dune::FieldVector<T,3> vAxial = v.axial();
+        T norm = 0.25*vAxial.two_norm2() + 1;
+        
+        Dune::FieldMatrix<T,3,3> mat = s.toMatrix();
+        mat *= 0.5;
+        Dune::FieldMatrix<T,3,3> skewSquare = mat.rightmultiply(mat);
+        mat += skewSquare;
+        mat *= 2/norm;
+
+        for (int i=0;i<3;i++)
+            mat[i][i] += 1;
+
+        q.set(mat);
+        return q;
+    }
+    
+    /** \brief The inverse of the cayley mapping. */
+    static SkewMatrix<3,T>  cayleyInv(const Rotation<3,T> q) {
+       
+        Dune::FieldMatrix<T,3,3> mat;
+
+        // compute the trace of the rotation matrix
+        double trace = -(*this)[0]*(*this)[0] -(*this)[1]*(*this)[1] -(*this)[2]*(*this)[2]+3*(*this)[3]*(*this)[3];  
+        
+        if ( (trace+1)>1e-6 && (trace+1)<-1e-6) { // if this term doesn't vanish we can use a direct formula
+             
+            (*this).matrix(mat);
+            Dune::FieldMatrix<T,3,3> matT;
+            (*this).inverse().matrix(matT);
+            mat -= matT;
+            mat *= 1/(1+trace);
+        }
+        else { // use the formula that involves the computation of an inverse
+            Dune::FieldMatrix<T,3,3> inv;
+            (*this).matrix(inv);
+            Dune::FieldMatrix<T,3,3> notInv = inv;
+            
+            for (int i=0;i<3;i++) {
+                inv[i][i] +=1;
+                notInv[i][i] -=1;
+            }
+            inv.invert();
+            mat = notInv.leftmultiply(inv);
+            mat *= 2;
+        }
+
+        // result is a skew symmetric matrix
+        SkewMatrix<3,T> res;
+        res.axial()[0] = mat[2][1]; 
+        res.axial()[1] = mat[0][2]; 
+        res.axial()[2] = mat[1][0];
+    
+        return res; 
+
+    }
+
     static T distance(const Rotation<3,T>& a, const Rotation<3,T>& b) {
         Quaternion<T> diff = a;
 
