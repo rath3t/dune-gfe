@@ -3,17 +3,7 @@
 
 #include <dune/fufem/functionspacebases/functionspacebasis.hh>
 
-#include <dune/gfe/localgfetestfunction.hh>
-
-// forward declaration
-//template <class Basis, class TargetSpace
-//class GlobalGFETestFunctionBasis;
-// not sure if this works
-//template <class Basis, class TargetSpace>
-//class GlobalGFETestFunctionBasis<Basis, TargetSpace>::LocalFiniteElement{};
-
-template <class LocalFE, class TargetSpace>
-class LocalTestFunctionWrapper;
+#include <dune/gfe/localgfetestfunctionbasis.hh>
 
 /** \brief A global basis for the gfe test functions. 
  *
@@ -26,13 +16,12 @@ class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::Gri
 
 public:
     typedef typename Basis::GridView GridView;
-    typedef LocalTestFunctionWrapper<typename Basis::LocalFiniteElement, TargetSpace> LocalFiniteElement; 
+    typedef LocalGFETestFunctionBasis<typename Basis::LocalFiniteElement, TargetSpace> LocalFiniteElement; 
 private:
     typedef typename GridView::template Codim<0>::Entity Element;
     typedef typename GridView::Grid::ctype  ctype;
 
-    typedef GlobalGFETestFunctionBasis<Basis,TargetSpace> This;
-    typedef FunctionSpaceBasis<GridView, typename TargetSpace::EmbeddedTangentVector, typename This::LocalFiniteElement> Base;     
+    typedef FunctionSpaceBasis<GridView, typename TargetSpace::EmbeddedTangentVector, LocalFiniteElement> Base;     
 
 public:
     GlobalGFETestFunctionBasis(const Basis& basis, const CoefficientType& baseCoefficients) :
@@ -90,29 +79,5 @@ private:
     //! Save the last local finite element - do I need to do this?
     mutable LocalFiniteElement* lfe_;
 };
-
-/** \brief Struct to wrap the LocalGeodesicTestFunction into a localBasis of a LocalFiniteElement. */
-template <class LocalFE, class TargetSpace>
-class LocalTestFunctionWrapper {
-
-    public:
-        typedef typename LocalFE::Traits::LocalBasisType::Traits BasisTraits;
-        typedef LocalGFETestFunction<BasisTraits::dimDomain,typename BasisTraits::DomainFieldType,LocalFE,TargetSpace> LocalBasisType;
-
-        LocalTestFunctionWrapper(const LocalFE& localFiniteElement, 
-                const std::vector<TargetSpace>& localCoefficients) :
-            localGfeTestFunction_(localFiniteElement,localCoefficients)
-    {}
-        
-        /** \brief Get the local Basis. */
-        const LocalBasisType& localBasis() const {return localGfeTestFunction_;}           
-
-    private:
-        LocalBasisType localGfeTestFunction_;     
-};
-
-
-
-
 
 #endif
