@@ -25,6 +25,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
+#include <dune/gfe/cosseratamirameshwriter.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
@@ -78,50 +79,6 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     
     out += center;
 }
-
-template <class HostGridView>
-class DeformationFunction
-    : public Dune :: DiscreteCoordFunction< double, 3, DeformationFunction<HostGridView> >
-{
-    typedef DeformationFunction<HostGridView> This;
-    typedef Dune :: DiscreteCoordFunction< double, 3, This > Base;
-
-  public:
-
-    DeformationFunction(const HostGridView& gridView,
-                        const std::vector<RigidBodyMotion<3> >& deformedPosition)
-        : gridView_(gridView),
-          deformedPosition_(deformedPosition)
-    {}
-
-    void evaluate ( const typename HostGridView::template Codim<dim>::Entity& hostEntity, unsigned int corner,
-                    FieldVector<double,3> &y ) const
-    {
-
-        const typename HostGridView::IndexSet& indexSet = gridView_.indexSet();
-
-        int idx = indexSet.index(hostEntity);
-        y = deformedPosition_[idx].r;
-    }
-
-    void evaluate ( const typename HostGridView::template Codim<0>::Entity& hostEntity, unsigned int corner,
-                    FieldVector<double,3> &y ) const
-    {
-
-        const typename HostGridView::IndexSet& indexSet = gridView_.indexSet();
-
-        int idx = indexSet.subIndex(hostEntity, corner,dim);
-
-        y = deformedPosition_[idx].r;
-    }
-
-private:
-
-    HostGridView gridView_;
-
-    const std::vector<RigidBodyMotion<3> > deformedPosition_;
-
-};
 
 
 struct NeumannFunction
@@ -331,39 +288,9 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
+    
+    CosseratAmiraMeshWriter<GridType>::write(grid,x,"cosserat");
 
-    typedef GeometryGrid<GridType,DeformationFunction<GridType::LeafGridView> > DeformedGridType;
-    
-    DeformationFunction<GridType::LeafGridView> deformationFunction(grid.leafView(),x);
-    
-    DeformedGridType deformedGrid(grid, deformationFunction);
-
-    if (dim==2)
-        LeafAmiraMeshWriter<DeformedGridType>::writeSurfaceGrid(deformedGrid.leafView(), "cosseratGrid");
-    else {
-        LeafAmiraMeshWriter<DeformedGridType> amiramesh(deformedGrid);
-        amiramesh.write("cosseratGrid");
-    }
-    
-    // Make three vector fields containing the directors
-    // I don't think there is a simpler way to get the data into vanilla Amira
-    
-    for (int i=0; i<3; i++) {
-     
-        std::vector<FieldVector<double,3> > director(x.size());
-        for (size_t j=0; j<x.size(); j++)
-            director[j] = x[j].q.director(i);
-        
-        LeafAmiraMeshWriter<DeformedGridType> amiramesh;
-        amiramesh.addVertexData(director, deformedGrid.leafView());
-        
-        std::stringstream iAsAscii;
-        iAsAscii << i;
-        amiramesh.write("cosseratOrientation"+iAsAscii.str(), true);
-        
-    }
-    
-    
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
