@@ -12,13 +12,15 @@
 
 /** \brief Global geodesic finite element function. 
  *
- *  \tparam Basis  - The global basis type.
+ *  \tparam B  - The global basis type.
  *  \tparam TargetSpace - The manifold that this functions takes its values in.
  *  \tparam CoefficientType - The coefficient vector type.
  */
-template<class Basis, class TargetSpace, class CoefficientType>
+template<class B, class TargetSpace, class CoefficientType>
 GlobalGeodesicFEFunction : public VirtualGridFunction<typename Basis::GridView::Grid, TargetSpace> {
 
+public:
+    typedef B Basis;
 
     typedef typename Basis::LocalFiniteElement LocalFiniteElement;
     typedef typename Basis::GridView GridView;
@@ -34,7 +36,6 @@ GlobalGeodesicFEFunction : public VirtualGridFunction<typename Basis::GridView::
     //! Dimension of the embedded tanget space
     enum { embeddedDim = EmbeddedTangentVector::dimension };
 
-public:
 
     //! Create global function by a global basis and the corresponding coefficient vector
     GlobalGeodesicFEFunction(const Basis& basis, const CoefficientType& coefficients) :
@@ -75,6 +76,12 @@ public:
     
         // use it to evaluate the derivative
         out = localGFE.evaluateDerivative(local);
+    }
+
+    /** \brief Export basis */
+    const Basis& basis() const
+    {
+        return basis_;
     }
 
 private:
