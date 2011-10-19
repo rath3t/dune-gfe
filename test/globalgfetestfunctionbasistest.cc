@@ -38,7 +38,7 @@ void test()
     // make global basis
     typedef P1NodalBasis<typename OneDGrid::LeafGridView> P1Basis;
     P1Basis p1Basis(grid.leafView());
-    typedef GlobalGFETestFunctionBasis<P1Basis,TargetSpace> GlobalBasis;
+    typedef GlobalGFETestFunctionBasis<P1Basis,TargetSpace, std::vector<TargetSpace> > GlobalBasis;
     GlobalBasis basis(p1Basis,testPoints);
 
     typedef typename OneDGrid::Codim<0>::LeafIterator ElementIterator; 
@@ -52,8 +52,10 @@ void test()
         FieldVector<double,1> stupidTestPoint(0);
         std::vector<Dune::array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
         lfe.localBasis().evaluateFunction(stupidTestPoint, values);
-        for(size_t i=0;i<values.size();i++)
+        for(size_t i=0;i<values.size();i++) {
             std::cout<<values[i]<<std::endl;
+            std::cout<<lfe.localCoefficients().localKey(i)<<std::endl;
+        }
         //int i = basis.index(*eIt,1);
     }
 
