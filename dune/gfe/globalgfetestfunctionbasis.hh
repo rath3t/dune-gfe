@@ -12,11 +12,11 @@
  *  needed.
  */
 template <class Basis, class TargetSpace, class CoefficientType>
-class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::GridView, typename TargetSpace::EmbeddedTangentVector, LocalTestFunctionWrapper<typename Basis::LocalFiniteElement, TargetSpace> > {
+class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::GridView, typename TargetSpace::EmbeddedTangentVector, LocalGfeTestFunctionFiniteElement<typename Basis::LocalFiniteElement, TargetSpace> > {
 
 public:
     typedef typename Basis::GridView GridView;
-    typedef LocalGFETestFunctionBasis<typename Basis::LocalFiniteElement, TargetSpace> LocalFiniteElement; 
+    typedef LocalGfeTestFunctionFiniteElement<typename Basis::LocalFiniteElement, TargetSpace> LocalFiniteElement; 
 private:
     typedef typename GridView::template Codim<0>::Entity Element;
     typedef typename GridView::Grid::ctype  ctype;
