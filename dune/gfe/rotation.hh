@@ -451,10 +451,10 @@ public:
     }
 
     /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$. */
-    static Rotation<3,T> cayley(const SkewMatrix<3,T>& s) {
+    static Rotation<3,T> cayley(const SkewMatrix<T,3>& s) {
         Rotation<3,T> q;
 
-        Dune::FieldVector<T,3> vAxial = v.axial();
+        Dune::FieldVector<T,3> vAxial = s.axial();
         T norm = 0.25*vAxial.two_norm2() + 1;
         
         Dune::FieldMatrix<T,3,3> mat = s.toMatrix();
@@ -470,8 +470,8 @@ public:
         return q;
     }
     
-    /** \brief The inverse of the cayley mapping. */
-    static SkewMatrix<3,T>  cayleyInv(const Rotation<3,T> q) {
+    /** \brief The inverse of the Cayley mapping. */
+    static SkewMatrix<T,3>  cayleyInv(const Rotation<3,T> q) {
        
         Dune::FieldMatrix<T,3,3> mat;
 
