@@ -476,19 +476,19 @@ public:
         Dune::FieldMatrix<T,3,3> mat;
 
         // compute the trace of the rotation matrix
-        double trace = -(*this)[0]*(*this)[0] -(*this)[1]*(*this)[1] -(*this)[2]*(*this)[2]+3*(*this)[3]*(*this)[3];  
+        double trace = -q[0]*q[0] -q[1]*q[1] -q[2]*q[2]+3*q[3]*q[3];  
         
         if ( (trace+1)>1e-6 && (trace+1)<-1e-6) { // if this term doesn't vanish we can use a direct formula
              
-            (*this).matrix(mat);
+            q.matrix(mat);
             Dune::FieldMatrix<T,3,3> matT;
-            (*this).inverse().matrix(matT);
+            q.inverse().matrix(matT);
             mat -= matT;
             mat *= 1/(1+trace);
         }
         else { // use the formula that involves the computation of an inverse
             Dune::FieldMatrix<T,3,3> inv;
-            (*this).matrix(inv);
+            q.matrix(inv);
             Dune::FieldMatrix<T,3,3> notInv = inv;
             
             for (int i=0;i<3;i++) {
@@ -501,7 +501,7 @@ public:
         }
 
         // result is a skew symmetric matrix
-        SkewMatrix<3,T> res;
+        SkewMatrix<T,3> res;
         res.axial()[0] = mat[2][1]; 
         res.axial()[1] = mat[0][2]; 
         res.axial()[2] = mat[1][0];
