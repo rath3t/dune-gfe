@@ -34,8 +34,6 @@ private:
     typedef GlobalGFETestFunctionBasis<Basis,TargetSpace> This;
     typedef FunctionSpaceBasis<GridView, typename TargetSpace::EmbeddedTangentVector, typename This::LocalFiniteElement> Base;     
 
-    const static int tangentDim = TargetSpace::TangentVector::dimension;
-
 public:
     GlobalGFETestFunctionBasis(const Basis& basis, const CoefficientType& baseCoefficients) :
         Base(basis.getGridView()),
