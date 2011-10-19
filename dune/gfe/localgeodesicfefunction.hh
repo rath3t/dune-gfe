@@ -34,7 +34,7 @@ class LocalGeodesicFEFunction
     
     static const int spaceDim = TargetSpace::TangentVector::dimension;
 
-    friend class LocalGFETestFunction<dim,ctype,LocalFiniteElement,TargetSpace>;
+    friend class LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>;
 public:
 
     /** \brief Constructor
