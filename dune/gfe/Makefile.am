@@ -17,7 +17,7 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      linearalgebra.hh \
                      localgeodesicfefunction.hh \
                      localgeodesicfestiffness.hh \
-                     localgfetestfunction.hh \
+                     localgfetestfunctionbasis.hh \
                      maxnormtrustregion.hh \
                      quaternion.hh \
                      realtuple.hh \
