@@ -15,11 +15,11 @@
 #include <dune/localfunctions/common/localbasis.hh>
 
 // forward declaration
-template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-class LocalGFETestFunctionBasis;
+template <class LocalFiniteElement, class TargetSpace>
+class LocalGfeTestFunctionBasis;
 
 template <class LocalFiniteELement, class TargetSpace>
-class LocalGFETestFunctionInterpolation;
+class LocalGfeTestFunctionInterpolation;
 
 /** \brief The local gfe test function finite element on simplices
  *
@@ -29,22 +29,22 @@ class LocalGFETestFunctionInterpolation;
 template <class LagrangeLfe, class TargetSpace>
 class LocalGfeTestFunctionFiniteElement
 {
-    typedef LagrangeLfe::Traits::LocalBasisType::Traits LagrangeBasisTraits;
-    typedef LocalGfeTestFunctionBasis<LagrangeBasisTraits::dimDomain, typename LagrangeBasisTraits::DomainFieldType, LagrangeLfe, TargetSpace> LocalBasis;
+    typedef typename LagrangeLfe::Traits::LocalBasisType::Traits LagrangeBasisTraits;
+    typedef LocalGfeTestFunctionBasis<LagrangeLfe, TargetSpace> LocalBasis;
     typedef LocalGfeTestFunctionInterpolation<LagrangeLfe, TargetSpace> LocalInterpolation;
 
 public:
     //! Traits 
-    typedef LocalFiniteElementTraits<LocalBasis,typename LagrangeLfe::Traits::LocalCoefficientsType, LocalInterpolation> Traits;
+    typedef Dune::LocalFiniteElementTraits<LocalBasis,typename LagrangeLfe::Traits::LocalCoefficientsType, LocalInterpolation> Traits;
 
     /** Construct local finite element from the base coefficients and Lagrange local finite element.
      * 
      *  \param lfe - The Lagrange local finite element.
      *  \param baseCoeff - The coefficients of the base points the tangent spaces live at.
      */
-    LocalGfeTestFunctionFiniteElement(const LagrangeLfe lfe&, const std::vector<TargetSpace> baseCoeff) :
-        basis_(lfe,baseCoeff),
-        coefficients(lfe.localCoefficients()),
+    LocalGfeTestFunctionFiniteElement(const LagrangeLfe& lfe, const std::vector<TargetSpace> baseCoeff) :
+        basis_(lfe, baseCoeff),
+        coefficients_(lfe.clone()->localCoefficients())
     {
         gt_.makeSimplex(LagrangeBasisTraits::dimDomain);
     }
@@ -68,34 +68,34 @@ public:
     }
 
     /** \brief Get the element type this finite element lives on. */
-    GeometryType type () const
+    Dune::GeometryType type () const
     {
-        return gt;
+        return gt_;
     }
 
 private:
     LocalBasis basis_;
-    typename LagrangeLfe::Traits::LocalCoefficientsType coefficients_;
+    const typename LagrangeLfe::Traits::LocalCoefficientsType& coefficients_;
     LocalInterpolation  interpolation_;
-    GeometryType gt_;
+    Dune::GeometryType gt_;
 };
 
 
 
 /** \brief A local basis of the first variations of a given geodesic finite element function. 
  *
- *  \tparam dim Dimension of the reference element
- *  \tparam ctype Type used for coordinates on the reference element
  *  \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
  *  \tparam TargetSpace The manifold that the function takes its values in
  *
  *  Note that the shapefunctions of this local basis are given blockwise. Each dof corresponds to a local basis of
  *  the tangent space at that dof. Thus the methods return a vector of arrays.
  */
-template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-class LocalGFETestFunctionBasis
+template <class LocalFiniteElement, class TargetSpace>
+class LocalGfeTestFunctionBasis
 {
-
+    typedef typename LocalFiniteElement::Traits::LocalBasisType::Traits LagrangeBasisTraits;
+    static const int dim = LagrangeBasisTraits::dimDomain;
+    typedef typename LagrangeBasisTraits::DomainFieldType ctype;
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::dimension;
     
@@ -103,13 +103,13 @@ class LocalGFETestFunctionBasis
 
 public :
     //! The local basis traits
-    typedef LocalBasisTraits<ctype, dim, Dune::FieldVector<ctype,dim>, 
-        typename EmbeddedTangentVector::ctype, embeddedDim, Dune::array<EmbeddedTangentVector,spaceDim>, 
+    typedef Dune::LocalBasisTraits<ctype, dim, Dune::FieldVector<ctype,dim>, 
+        typename EmbeddedTangentVector::value_type, embeddedDim, Dune::array<EmbeddedTangentVector,spaceDim>, 
         Dune::array<Dune::FieldMatrix<ctype, embeddedDim, dim>,spaceDim>,1> Traits;
        
     /** \brief Constructor 
      */
-    LocalGFETestFunctionBasis(const LocalFiniteElement& localFiniteElement,
+    LocalGfeTestFunctionBasis(const LocalFiniteElement& localFiniteElement,
             const std::vector<TargetSpace>& baseCoefficients)
         : localGFEFunction_(localFiniteElement, baseCoefficients)
     {}
@@ -121,11 +121,11 @@ public :
     }
 
     /** \brief Evaluate all shape functions at the given point */
-    void evaluateFunction(typename Traits::DomainType& local,
+    void evaluateFunction(const typename Traits::DomainType& local,
                                   std::vector<typename Traits::RangeType>& out) const;
 
     /** \brief Evaluate the derivatives of all shape functions function */
-    void evaluateJacobian(const typename Traits::DomainType& in,
+    void evaluateJacobian(const typename Traits::DomainType& local,
                       std::vector<typename Traits::JacobianType>& out) const;  
 
     /** \brief Polynomial order */
@@ -142,8 +142,8 @@ private:
 
 };
 
-template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-void LocalGFETestFunctionBasis<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateFunction(const typename Traits::DomainType& local,
+template <class LocalFiniteElement, class TargetSpace>
+void LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>::evaluateFunction(const typename Traits::DomainType& local,
                                   std::vector<typename Traits::RangeType>& out) const
 {
     out.resize(size());
@@ -165,8 +165,8 @@ void LocalGFETestFunctionBasis<dim,ctype,LocalFiniteElement,TargetSpace>::evalua
     
 }
 
-template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-void LocalGFETestFunctionBasis<dim,ctype,LocalFiniteElement,TargetSpace>::evaluateJacobian(const typename Traits::DomainType& in,
+template <class LocalFiniteElement, class TargetSpace>
+void LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>::evaluateJacobian(const typename Traits::DomainType& local,
                       std::vector<typename Traits::JacobianType>& out) const
 {
     out.resize(size());
@@ -196,7 +196,7 @@ void LocalGFETestFunctionBasis<dim,ctype,LocalFiniteElement,TargetSpace>::evalua
 }
 
 template <class LocalFiniteElement, class TargetSpace>
-LocalGFETestFunctionInterpolation 
+class LocalGfeTestFunctionInterpolation 
 {};
 
 #endif
