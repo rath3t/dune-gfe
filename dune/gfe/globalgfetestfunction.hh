@@ -10,6 +10,7 @@
 
 #include <dune/gfe/localgfetestfunction.hh>
 
+#include <dune/fufem/functions/virtualgridfunction.hh>
 
 /** \brief Global geodesic finite element test function. 
  *
@@ -18,7 +19,7 @@
  *  \tparam CoefficientType - The coefficient vector type.
  */
 template<class Basis, class TargetSpace, class CoefficientType>
-GlobalGFETestFunction {
+GlobalGFETestFunction : public VirtualGridFunction<typename Basis::GridView::Grid, typename TargetSpace::EmbeddedTangentVector>  {
 
     typedef typename Basis::LocalFiniteElement LocalFiniteElement;
     typedef typename Basis::GridView GridView;

@@ -8,6 +8,7 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 
+#include <dune/fufem/functions/virtualgridfunction.hh>
 
 /** \brief Global geodesic finite element function. 
  *
@@ -16,7 +17,7 @@
  *  \tparam CoefficientType - The coefficient vector type.
  */
 template<class Basis, class TargetSpace, class CoefficientType>
-GlobalGeodesicFEFunction {
+GlobalGeodesicFEFunction : public VirtualGridFunction<typename Basis::GridView::Grid, TargetSpace> {
 
 
     typedef typename Basis::LocalFiniteElement LocalFiniteElement;
