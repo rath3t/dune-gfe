@@ -43,7 +43,8 @@ public:
      *  \param baseCoeff - The coefficients of the base points the tangent spaces live at.
      */
     LocalGfeTestFunctionFiniteElement(const LagrangeLfe& lfe, const std::vector<TargetSpace> baseCoeff) :
-        basis_(lfe, baseCoeff),
+        baseCoeff_(baseCoeff),
+        basis_(lfe, baseCoeff_),
         coefficients_(lfe.clone()->localCoefficients())
     {
         gt_.makeSimplex(LagrangeBasisTraits::dimDomain);
@@ -73,7 +74,11 @@ public:
         return gt_;
     }
 
+    /** \brief Get base coefficients. */
+    const std::vector<TargetSpace>& getBaseCoefficients() {return baseCoeff_;}
+
 private:
+    const std::vector<TargetSpace> baseCoeff_;
     LocalBasis basis_;
     const typename LagrangeLfe::Traits::LocalCoefficientsType& coefficients_;
     LocalInterpolation  interpolation_;
