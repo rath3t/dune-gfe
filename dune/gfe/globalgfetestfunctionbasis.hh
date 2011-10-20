@@ -11,10 +11,11 @@
  *  The other LocalFiniteElement methods are not wrapped/implemented by now but it shouldn't be too difficult to do so when they are
  *  needed.
  */
-template <class Basis, class TargetSpace, class CoefficientType>
+template <class Basis, class TargetSpace, class C>
 class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::GridView, typename TargetSpace::EmbeddedTangentVector, LocalGfeTestFunctionFiniteElement<typename Basis::LocalFiniteElement, TargetSpace> > {
 
 public:
+    typedef C CoefficientType;
     typedef typename Basis::GridView GridView;
     typedef LocalGfeTestFunctionFiniteElement<typename Basis::LocalFiniteElement, TargetSpace> LocalFiniteElement; 
 private:
@@ -70,6 +71,11 @@ public:
         return basis_.index(e,i);   
     }
 
+    /** \brief Get the base coefficients. */
+    const CoefficientType& getBaseCoefficients() const
+    {
+        return baseCoefficients_;
+    }
 
 private:
     //! The global basis determining the weights
