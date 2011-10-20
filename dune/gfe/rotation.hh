@@ -300,9 +300,15 @@ public:
         Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
         Quaternion<T> embeddedTangent;
         basis.mtv(tangent, embeddedTangent);
+    
+        tangentToSkew(p,embeddedTangent);
+    }
 
+    /** \brief Compute skew matrix from given basepoint and an embedded tangent vector. */ 
+    static SkewMatrix<T,3> tangentToSkew(const Rotation<3,T>& p, const EmbeddedTangentVector& q) {
+        
         // left multiplication by the inverse base point yields a tangent vector at the identity
-        Quaternion<T> vAtIdentity = p.inverse().mult(embeddedTangent);
+        Quaternion<T> vAtIdentity = p.inverse().mult(q);
         assert( std::fabs(vAtIdentity[3]) < 1e-8 );
 
         SkewMatrix<T,3> skew;
