@@ -10,21 +10,17 @@
 
 #include <dune/gfe/localgfetestfunction.hh>
 
-#include <dune/fufem/functions/basisgridfunction.hh>
+#include <dune/fufem/functions/virtualgridfunction.hh>
 
 /** \brief Global geodesic finite element test function. 
  *
- *  \tparam B  - The global basis type.
+ *  \tparam Basis  - The global basis type.
  *  \tparam TargetSpace - The manifold that this functions takes its values in.
  *  \tparam CoefficientType - The coefficient vector type.
  */
-template<class B, class TargetSpace, class CoefficientType>
-GlobalGFETestFunction : public BasisGridFunction<Basis,CoefficientType>
-{
-public:
-    typedef B Basis;
+template<class Basis, class TargetSpace, class CoefficientType>
+GlobalGFETestFunction : public VirtualGridFunction<typename Basis::GridView::Grid, typename TargetSpace::EmbeddedTangentVector>  {
 
-private:
     typedef typename Basis::LocalFiniteElement LocalFiniteElement;
     typedef typename Basis::GridView GridView;
     typedef typename GridView::template Codim<0>::Entity Element;
@@ -42,9 +38,12 @@ private:
     enum { tangentDim = TargetSpace::TangentVector::dimension };
 
 public:
+
     //! Create global function by a global gfe test basis and the corresponding coefficient vectors
     GlobalGFETestFunction(const Basis& basis, const CoefficientType& coefficients) :
-        BasisGridFunction<Basis,CoefficientType>(basis,coefficients)
+        VirtualGridFunction<typename GridView::Grid, EmbeddedTangentVector>(basis.getGridView().grid()),
+        basis_(basis),
+        coefficients_(coefficients)
     {}
 
     /** \brief Evaluate the function at local coordinates. */
@@ -54,27 +53,33 @@ public:
     void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<gridDim,ctype>& local, 
                                  Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const;
 
+private:
+
+    //! The global basis
+    const Basis& basis_;
+    //! The coefficient vector for the global test function
+    const CoefficientType& coefficients_;
 };
 
 template<class Basis, class TargetSpace, class CoefficientType>
 void GlobalGFETestFunction<Basis,TargetSpace>::evaluateLocal(const Element& element, const Dune::FieldVector<gridDim,ctype>& local, 
                                                              EmbeddedTangentVector& out) const
 {
-    int numOfBasisFct = this->basis_.getLocalFiniteElement(element).size(); 
+    int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
 
     // values of the test basis functions 
     std::vector<Dune::array<EmbeddedTangentVector, tangentDim> > values;
 
     // create local gfe test function
-    this->basis_.getLocalFiniteElement(element).localBasis().evaluateFunction(local, values);
+    basis_.getLocalFiniteElement(element).localBasis().evaluateFunction(local, values);
 
     // multiply values with the corresponding test coefficients and sum them up
     out = 0;
 
     for (int i=0; i<values.size(); i++) {
-        int index = this->basis_.index(element,i);
+        int index = basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
-            values[i][j] *= this->coefficients_[index][j];
+            values[i][j] *= coefficients_[index][j];
             out += values[i][j];
         }
     }
@@ -88,15 +93,15 @@ void GlobalGFETestFunction<Basis,TargetSpace>::evaluateDerivativeLocal(const Ele
     std::vector<Dune::array<Dune::FieldMatrix<ctype, embeddedDim, gridDim>, tangentDim> > jacobians; 
 
     // evaluate local gfe test function basis
-    this->basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, jacobians);
+    basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, jacobians);
 
     // multiply values with the corresponding test coefficients and sum them up
     out = 0;
 
     for (int i=0; i<jacobians.size(); i++) {
-        int index = this->basis_.index(element,i);
+        int index = basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
-            jacobians[i][j] *= this->coefficients_[index][j];
+            jacobians[i][j] *= coefficients_[index][j];
             out += jacobians[i][j];
         }
     }
