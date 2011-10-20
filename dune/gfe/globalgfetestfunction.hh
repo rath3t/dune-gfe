@@ -10,7 +10,7 @@
 
 #include <dune/gfe/localgfetestfunction.hh>
 
-#include <dune/fufem/functions/virtualgridfunction.hh>
+#include <dune/fufem/functions/basisgridfunction.hh>
 
 /** \brief Global geodesic finite element test function. 
  *
@@ -19,7 +19,7 @@
  *  \tparam CoefficientType - The coefficient vector type.
  */
 template<class Basis, class TargetSpace, class CoefficientType>
-GlobalGFETestFunction : public VirtualGridFunction<typename Basis::GridView::Grid, typename TargetSpace::EmbeddedTangentVector>  {
+GlobalGFETestFunction : public BasisGridFunction<Basis, CoefficientType>  {
 
     typedef typename Basis::LocalFiniteElement LocalFiniteElement;
     typedef typename Basis::GridView GridView;
@@ -41,9 +41,7 @@ public:
 
     //! Create global function by a global gfe test basis and the corresponding coefficient vectors
     GlobalGFETestFunction(const Basis& basis, const CoefficientType& coefficients) :
-        VirtualGridFunction<typename GridView::Grid, EmbeddedTangentVector>(basis.getGridView().grid()),
-        basis_(basis),
-        coefficients_(coefficients)
+        BasisGridFunction<Basis,CoefficientType>(basis,coefficients),
     {}
 
     /** \brief Evaluate the function at local coordinates. */
@@ -53,33 +51,27 @@ public:
     void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<gridDim,ctype>& local, 
                                  Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const;
 
-private:
-
-    //! The global basis
-    const Basis& basis_;
-    //! The coefficient vector for the global test function
-    const CoefficientType& coefficients_;
 };
 
 template<class Basis, class TargetSpace, class CoefficientType>
 void GlobalGFETestFunction<Basis,TargetSpace>::evaluateLocal(const Element& element, const Dune::FieldVector<gridDim,ctype>& local, 
                                                              EmbeddedTangentVector& out) const
 {
-    int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
+    int numOfBasisFct = this->basis_.getLocalFiniteElement(element).size(); 
 
     // values of the test basis functions 
     std::vector<Dune::array<EmbeddedTangentVector, tangentDim> > values;
 
     // create local gfe test function
-    basis_.getLocalFiniteElement(element).localBasis().evaluateFunction(local, values);
+    this->basis_.getLocalFiniteElement(element).localBasis().evaluateFunction(local, values);
 
     // multiply values with the corresponding test coefficients and sum them up
     out = 0;
 
     for (int i=0; i<values.size(); i++) {
-        int index = basis_.index(element,i);
+        int index = this->basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
-            values[i][j] *= coefficients_[index][j];
+            values[i][j] *= this->coefficients_[index][j];
             out += values[i][j];
         }
     }
@@ -93,15 +85,15 @@ void GlobalGFETestFunction<Basis,TargetSpace>::evaluateDerivativeLocal(const Ele
     std::vector<Dune::array<Dune::FieldMatrix<ctype, embeddedDim, gridDim>, tangentDim> > jacobians; 
 
     // evaluate local gfe test function basis
-    basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, jacobians);
+    this->basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, jacobians);
 
     // multiply values with the corresponding test coefficients and sum them up
     out = 0;
 
     for (int i=0; i<jacobians.size(); i++) {
-        int index = basis_.index(element,i);
+        int index = this->basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
-            jacobians[i][j] *= coefficients_[index][j];
+            jacobians[i][j] *= this->coefficients_[index][j];
             out += jacobians[i][j];
         }
     }
