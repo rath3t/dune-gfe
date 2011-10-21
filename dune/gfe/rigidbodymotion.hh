@@ -123,9 +123,9 @@ public:
                 result[i][j] = linearPart[i][j];
 
         // The rotation part
-        Dune::FieldMatrix<double,Rotation<dim,T>::EmbeddedTangentVector::size,Rotation<dim,T>::EmbeddedTangentVector::size> rotationPart = Rotation<dim,ctype>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
-        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::size; i++)
-            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::size; j++)
+        Dune::FieldMatrix<double,Rotation<dim,T>::EmbeddedTangentVector::dimension,Rotation<dim,T>::EmbeddedTangentVector::dimension> rotationPart = Rotation<dim,ctype>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
+        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::dimension; i++)
+            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::dimension; j++)
                 result[dim+i][dim+j] = rotationPart[i][j];
 
         return result;
@@ -146,9 +146,9 @@ public:
                 result[i][j] = linearPart[i][j];
 
         // The rotation part
-        Dune::FieldMatrix<double,Rotation<dim,T>::EmbeddedTangentVector::size,Rotation<dim,T>::EmbeddedTangentVector::size> rotationPart = Rotation<dim,ctype>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.q,q.q);
-        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::size; i++)
-            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::size; j++)
+        Dune::FieldMatrix<double,Rotation<dim,T>::EmbeddedTangentVector::dimension,Rotation<dim,T>::EmbeddedTangentVector::dimension> rotationPart = Rotation<dim,ctype>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.q,q.q);
+        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::dimension; i++)
+            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::dimension; j++)
                 result[dim+i][dim+j] = rotationPart[i][j];
 
         return result;
@@ -170,10 +170,10 @@ public:
                     result[i][j][k] = linearPart[i][j][k];
 
         // The rotation part
-        Tensor3<double,Rotation<dim,T>::EmbeddedTangentVector::size,Rotation<dim,T>::EmbeddedTangentVector::size,Rotation<dim,T>::EmbeddedTangentVector::size> rotationPart = Rotation<dim,ctype>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
-        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::size; i++)
-            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::size; j++)
-                for (int k=0; k<Rotation<dim,T>::EmbeddedTangentVector::size; k++)
+        Tensor3<double,Rotation<dim,T>::EmbeddedTangentVector::dimension,Rotation<dim,T>::EmbeddedTangentVector::dimension,Rotation<dim,T>::EmbeddedTangentVector::dimension> rotationPart = Rotation<dim,ctype>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
+        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::dimension; i++)
+            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::dimension; j++)
+                for (int k=0; k<Rotation<dim,T>::EmbeddedTangentVector::dimension; k++)
                     result[dim+i][dim+j][dim+j] = rotationPart[i][j][k];
 
         return result;
@@ -195,10 +195,10 @@ public:
                     result[i][j][k] = linearPart[i][j][k];
 
         // The rotation part
-        Tensor3<double,Rotation<dim,T>::EmbeddedTangentVector::size,Rotation<dim,T>::EmbeddedTangentVector::size,Rotation<dim,T>::EmbeddedTangentVector::size> rotationPart = Rotation<dim,ctype>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.q,q.q);
-        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::size; i++)
-            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::size; j++)
-                for (int k=0; k<Rotation<dim,T>::EmbeddedTangentVector::size; k++)
+        Tensor3<double,Rotation<dim,T>::EmbeddedTangentVector::dimension,Rotation<dim,T>::EmbeddedTangentVector::dimension,Rotation<dim,T>::EmbeddedTangentVector::dimension> rotationPart = Rotation<dim,ctype>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.q,q.q);
+        for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::dimension; i++)
+            for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::dimension; j++)
+                for (int k=0; k<Rotation<dim,T>::EmbeddedTangentVector::dimension; k++)
                     result[dim+i][dim+j][dim+j] = rotationPart[i][j][k];
 
         return result;
