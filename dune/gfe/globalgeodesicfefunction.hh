@@ -8,16 +8,14 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 
-#include <dune/fufem/functions/virtualgridfunction.hh>
-
 /** \brief Global geodesic finite element function. 
  *
  *  \tparam B  - The global basis type.
  *  \tparam TargetSpace - The manifold that this functions takes its values in.
- *  \tparam CoefficientType - The coefficient vector type.
  */
-template<class B, class TargetSpace, class CoefficientType>
-GlobalGeodesicFEFunction : public VirtualGridFunction<typename Basis::GridView::Grid, TargetSpace> {
+template<class B, class TargetSpace>
+class GlobalGeodesicFEFunction
+{
 
 public:
     typedef B Basis;
@@ -38,15 +36,16 @@ public:
 
 
     //! Create global function by a global basis and the corresponding coefficient vector
-    GlobalGeodesicFEFunction(const Basis& basis, const CoefficientType& coefficients) :
+    GlobalGeodesicFEFunction(const Basis& basis, const std::vector<TargetSpace>& coefficients) :
         basis_(basis),
         coefficients_(coefficients)
     {}
 
+
     /** \brief Evaluate the function at local coordinates. */
     void evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, TargetSpace& out) const 
     {
-        int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
+        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size(); 
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
@@ -63,7 +62,7 @@ public:
     void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, 
                                  Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
     {
-        int numOfBasisFct = basis_.getLocalFiniteElement(element).size(); 
+        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size(); 
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
@@ -88,6 +87,6 @@ private:
     //! The global basis
     const Basis& basis_;
     //! The coefficient vector
-    const CoefficientType& coefficients_;
+    const std::vector<TargetSpace>& coefficients_;
 };
 #endif
