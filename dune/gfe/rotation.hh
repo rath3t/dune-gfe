@@ -488,7 +488,7 @@ public:
              
             q.matrix(mat);
             Dune::FieldMatrix<T,3,3> matT;
-            q.inverse().matrix(matT);
+            Rotation<3,T>(q.inverse()).matrix(matT);
             mat -= matT;
             mat *= 1/(1+trace);
         }
