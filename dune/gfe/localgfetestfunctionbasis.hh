@@ -75,12 +75,12 @@ public:
     }
 
     /** \brief Get base coefficients. */
-    const std::vector<TargetSpace>& getBaseCoefficients() {return baseCoeff_;}
+    const std::vector<TargetSpace>& getBaseCoefficients() const {return baseCoeff_;}
 
 private:
     const std::vector<TargetSpace> baseCoeff_;
     LocalBasis basis_;
-    const typename LagrangeLfe::Traits::LocalCoefficientsType& coefficients_;
+    const typename Traits::LocalCoefficientsType& coefficients_;
     LocalInterpolation  interpolation_;
     Dune::GeometryType gt_;
 };
@@ -160,7 +160,6 @@ void LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>::evaluateFunction
         /** \todo This call internally keeps computing the value of the gfe function at 'local'.
          * This is expensive.  Eventually we should precompute it once and reused the result. */
         localGFEFunction_.evaluateDerivativeOfValueWRTCoefficient (local, i, derivative);
-
         Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i].orthonormalFrame();
         
         for (int j=0; j<spaceDim; j++)
