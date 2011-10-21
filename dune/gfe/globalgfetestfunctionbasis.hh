@@ -11,20 +11,22 @@
  *  The other LocalFiniteElement methods are not wrapped/implemented by now but it shouldn't be too difficult to do so when they are
  *  needed.
  */
-template <class Basis, class TargetSpace, class CoefficientType>
+template <class Basis, class TargetSpace>
 class GlobalGFETestFunctionBasis : public FunctionSpaceBasis<typename Basis::GridView, typename TargetSpace::EmbeddedTangentVector, LocalGfeTestFunctionFiniteElement<typename Basis::LocalFiniteElement, TargetSpace> > {
 
 public:
     typedef typename Basis::GridView GridView;
     typedef LocalGfeTestFunctionFiniteElement<typename Basis::LocalFiniteElement, TargetSpace> LocalFiniteElement; 
+    typedef Basis LagrangeBasis;
+    typedef FunctionSpaceBasis<GridView, typename TargetSpace::EmbeddedTangentVector, LocalFiniteElement> Base;     
+    typedef typename Base::LinearCombination LinearCombination;
 private:
     typedef typename GridView::template Codim<0>::Entity Element;
     typedef typename GridView::Grid::ctype  ctype;
 
-    typedef FunctionSpaceBasis<GridView, typename TargetSpace::EmbeddedTangentVector, LocalFiniteElement> Base;     
 
 public:
-    GlobalGFETestFunctionBasis(const Basis& basis, const CoefficientType& baseCoefficients) :
+    GlobalGFETestFunctionBasis(const Basis& basis, const std::vector<TargetSpace>& baseCoefficients) :
         Base(basis.getGridView()),
         basis_(basis),
         baseCoefficients_(baseCoefficients),
@@ -74,7 +76,7 @@ private:
     //! The global basis determining the weights
     const Basis& basis_;
     //! The coefficients of the configuration the tangent spaces are from. */
-    const CoefficientType& baseCoefficients_; 
+    const std::vector<TargetSpace>& baseCoefficients_; 
     //! Save the last local finite element - do I need to do this?
     mutable LocalFiniteElement* lfe_;
 };
