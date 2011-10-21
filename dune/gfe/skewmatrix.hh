@@ -40,7 +40,7 @@ public:
     }
    
     /** \brief Embedd the skey-symmetric matrix in R^3x3 */ 
-    Dune::FieldMatrix<T,3,3> toMatrix()
+    Dune::FieldMatrix<T,3,3> toMatrix() const
     {
         Dune::FieldMatrix<T,3,3> mat;
         mat = 0;
