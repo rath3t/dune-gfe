@@ -63,7 +63,7 @@ class CosseratAmiraMeshWriter
 
     
 public:
-    static void write(GridType& grid,
+    static void write(const GridType& grid,
                       const std::vector<RigidBodyMotion<3> >& configuration,
                       const std::string& filePrefix)
     {
@@ -72,10 +72,11 @@ public:
     
         DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafView(), configuration);
     
-        DeformedGridType deformedGrid(grid, deformationFunction);
+        // stupid, can't instantiate deformedGrid with a const grid
+        DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
 
         if (dim==2)
-            Dune::LeafAmiraMeshWriter<DeformedGridType>::writeSurfaceGrid(deformedGrid.leafView(), "cosseratGrid");
+            Dune::LeafAmiraMeshWriter<DeformedGridType>::writeSurfaceGrid(deformedGrid.leafView(), filePrefix + "Grid");
         else {
             Dune::LeafAmiraMeshWriter<DeformedGridType> amiramesh(deformedGrid);
             amiramesh.write(filePrefix + "Grid");
