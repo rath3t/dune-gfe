@@ -2,8 +2,9 @@
 
 #include <dune/grid/uggrid.hh>
 
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/localfunctions/lagrange/pqkfactory.hh>
 
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
 
 #include "multiindex.hh"
@@ -56,9 +57,9 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 #endif
 
 
-template <int domainDim>
-Tensor3<double,3,3,3> evaluateDerivativeFD(const LocalGeodesicFEFunction<domainDim,double,TargetSpace>& f,
-                          const Dune::FieldVector<double,domainDim>& local)
+template <int domainDim,class LocalFiniteElement>
+Tensor3<double,3,3,3> evaluateDerivativeFD(const LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace>& f,
+                                           const Dune::FieldVector<double,domainDim>& local)
 {
     Tensor3<double,3,3,3> result(0);
 
@@ -90,10 +91,16 @@ Tensor3<double,3,3,3> evaluateDerivativeFD(const LocalGeodesicFEFunction<domainD
 }
 
 template <int domainDim>
-void testDerivativeOfRotationMatrix(const array<TargetSpace,dim+1>& corners)
+void testDerivativeOfRotationMatrix(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
-    LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
+    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+
+    GeometryType simplex;
+    simplex.makeSimplex(domainDim);
+    
+    LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement, TargetSpace> f(feCache.get(simplex), corners);
 
     // A quadrature rule as a set of test points
     int quadOrder = 3;
@@ -106,10 +113,10 @@ void testDerivativeOfRotationMatrix(const array<TargetSpace,dim+1>& corners)
         const Dune::FieldVector<double,domainDim>& quadPos = quad[pt].position();
 
         // evaluate actual derivative
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, domainDim> derivative = f.evaluateDerivative(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, domainDim> derivative = f.evaluateDerivative(quadPos);
 
         Tensor3<double,3,3,3> DR;
-        CosseratEnergyLocalStiffness<typename UGGrid<domainDim>::LeafGridView,3>::computeDR(f.evaluate(quadPos),derivative, DR);
+        CosseratEnergyLocalStiffness<typename UGGrid<domainDim>::LeafGridView,LocalFiniteElement,3>::computeDR(f.evaluate(quadPos),derivative, DR);
 
         //std::cout << "DR:\n" << DR << std::endl;
 
@@ -137,30 +144,17 @@ void testDerivativeOfRotationMatrix(const array<TargetSpace,dim+1>& corners)
 
 int main(int argc, char** argv)
 {
-    array<double,4> coords = {0,0,1,0};
-    UnitVector<4> uv(coords);
-    Rotation<3,double> ro(coords);
-
-    FieldVector<double,4> v(0);
-    v[1] = 1;
-    
-    UnitVector<4> uv_c = UnitVector<4>::exp(uv,v);
-    Rotation<3,double> ro_c = Rotation<3,double>::exp(ro,v);
-    
-    std::cout << "uv_c: " << uv_c << std::endl;
-    std::cout << "ro_c: " << ro_c << std::endl;
-    exit(0);
-    
     const int domainDim = 2;
     std::cout << " --- Testing Rotation<3>, domain dimension: " << domainDim << " ---" << std::endl;
 
     std::vector<Rotation<3,double> > testPoints;
+    
     ValueFactory<Rotation<3,double> >::get(testPoints);
     
     int nTestPoints = testPoints.size();
 
     // Set up elements of SO(3)
-    array<TargetSpace, domainDim+1> corners;
+    std::vector<TargetSpace> corners(domainDim+1);
 
     MultiIndex<domainDim+1> index(nTestPoints);
     int numIndices = index.cycle();
