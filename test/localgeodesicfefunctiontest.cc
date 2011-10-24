@@ -356,15 +356,13 @@ void testUnitVector3d()
 
 }
 
-template <int domainDim>
-void testRotation()
+template <class TargetSpace, int domainDim>
+void test()
 {
-    std::cout << " --- Testing Rotation<3>, domain dimension: " << domainDim << " ---" << std::endl;
+    std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << domainDim << " ---" << std::endl;
 
-    typedef Rotation<3,double> TargetSpace;
-
-    std::vector<Rotation<3,double> > testPoints;
-    ValueFactory<Rotation<3,double> >::get(testPoints);
+    std::vector<TargetSpace> testPoints;
+    ValueFactory<TargetSpace>::get(testPoints);
     
     int nTestPoints = testPoints.size();
 
@@ -403,6 +401,6 @@ int main()
     testUnitVector2d<2>();
     testUnitVector3d<2>();
     
-    testRotation<1>();
-    testRotation<2>();
+    test<Rotation<3,double>,1>();
+    test<Rotation<3,double>,2>();
 }
