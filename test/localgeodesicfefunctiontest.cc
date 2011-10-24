@@ -324,37 +324,6 @@ void testUnitVector2d()
 
 }
 
-template <int domainDim>
-void testUnitVector3d()
-{
-    std::cout << " --- Testing UnitVector<3>, domain dimension: " << domainDim << " ---" << std::endl;
-
-    typedef UnitVector<3> TargetSpace;
-
-    std::vector<TargetSpace> testPoints;
-    ValueFactory<TargetSpace>::get(testPoints);
-    
-    int nTestPoints = testPoints.size();
-    
-    // Set up elements of S^2
-    std::vector<TargetSpace> corners(domainDim+1);
-
-    MultiIndex<domainDim+1> index(nTestPoints);
-    int numIndices = index.cycle();
-
-    for (int i=0; i<numIndices; i++, ++index) {
-        
-        for (int j=0; j<domainDim+1; j++)
-            corners[j] = testPoints[index[j]];
-
-        //testPermutationInvariance(corners);
-        testDerivative<domainDim>(corners);
-        testDerivativeOfValueWRTCoefficients<domainDim>(corners);
-        testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
-                  
-    }
-
-}
 
 template <class TargetSpace, int domainDim>
 void test()
@@ -397,9 +366,9 @@ int main()
     
     //testRealTuples<1>();
     testUnitVector2d<1>();
-    testUnitVector3d<1>();
+    test<UnitVector<3>,1>();
     testUnitVector2d<2>();
-    testUnitVector3d<2>();
+    test<UnitVector<3>,2>();
     
     test<Rotation<3,double>,1>();
     test<Rotation<3,double>,2>();
