@@ -6,6 +6,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/grid/common/quadraturerules.hh>
 
+#include <dune/localfunctions/lagrange/pqkfactory.hh>
+
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/unitvector.hh>
@@ -59,7 +61,14 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 {
     // works only for 2d domains
     assert(domainDim==2);
+
+    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
     
+    GeometryType simplex;
+    simplex.makeSimplex(domainDim);
+
+    //
     std::vector<TargetSpace> cornersRotated1(domainDim+1);
     std::vector<TargetSpace> cornersRotated2(domainDim+1);
 
@@ -67,15 +76,15 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
     cornersRotated1[1] = cornersRotated2[0] = corners[2];
     cornersRotated1[2] = cornersRotated2[1] = corners[0];
     
-    LocalGeodesicFEFunction<2,double,TargetSpace> f0(corners);
-    LocalGeodesicFEFunction<2,double,TargetSpace> f1(cornersRotated1);
-    LocalGeodesicFEFunction<2,double,TargetSpace> f2(cornersRotated2);
+    LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f0(feCache.get(simplex), corners);
+    LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f1(feCache.get(simplex), cornersRotated1);
+    LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f2(feCache.get(simplex), cornersRotated2);
 
     // A quadrature rule as a set of test points
     int quadOrder = 3;
 
     const Dune::QuadratureRule<double, domainDim>& quad 
-        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
+        = Dune::QuadratureRules<double, domainDim>::rule(simplex, quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
@@ -107,8 +116,16 @@ template <int domainDim, class TargetSpace>
 void testDerivative(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
-    LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
+    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    
+    GeometryType simplex;
+    simplex.makeSimplex(domainDim);
 
+    LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(simplex), corners);
+
+    static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
+    
     // A quadrature rule as a set of test points
     int quadOrder = 3;
     
@@ -120,12 +137,12 @@ void testDerivative(const std::vector<TargetSpace>& corners)
         const Dune::FieldVector<double,domainDim>& quadPos = quad[pt].position();
 
         // evaluate actual derivative
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, domainDim> derivative = f.evaluateDerivative(quadPos);
+        Dune::FieldMatrix<double, embeddedDim, domainDim> derivative = f.evaluateDerivative(quadPos);
 
         // evaluate fd approximation of derivative
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, domainDim> fdDerivative = f.evaluateDerivativeFD(quadPos);
+        Dune::FieldMatrix<double, embeddedDim, domainDim> fdDerivative = f.evaluateDerivativeFD(quadPos);
 
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, domainDim> diff = derivative;
+        Dune::FieldMatrix<double, embeddedDim, domainDim> diff = derivative;
         diff -= fdDerivative;
         
         if ( diff.infinity_norm() > 100*eps ) {
@@ -144,13 +161,21 @@ template <int domainDim, class TargetSpace>
 void testDerivativeOfValueWRTCoefficients(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
-    LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
+    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    
+    GeometryType simplex;
+    simplex.makeSimplex(domainDim);
 
+    LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(simplex), corners);
+
+    static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
+    
     // A quadrature rule as a set of test points
     int quadOrder = 3;
     
     const Dune::QuadratureRule<double, domainDim>& quad 
-        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
+        = Dune::QuadratureRules<double, domainDim>::rule(simplex, quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
@@ -160,15 +185,15 @@ void testDerivativeOfValueWRTCoefficients(const std::vector<TargetSpace>& corner
         for (size_t i=0; i<corners.size(); i++) {
 
             // evaluate actual derivative
-            FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size> derivative;
+            FieldMatrix<double, embeddedDim, embeddedDim> derivative;
             f.evaluateDerivativeOfValueWRTCoefficient(quadPos, i, derivative);
 
             // evaluate fd approximation of derivative
-            FieldMatrix<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size> fdDerivative;
+            FieldMatrix<double, embeddedDim, embeddedDim> fdDerivative;
             f.evaluateFDDerivativeOfValueWRTCoefficient(quadPos, i, fdDerivative);
 
             if ( (derivative - fdDerivative).infinity_norm() > eps ) {
-                std::cout << className(corners[0]) << ": Analytical derivative of value does not match fd approximation." << std::endl;
+                std::cout << className<TargetSpace>() << ": Analytical derivative of value does not match fd approximation." << std::endl;
                 std::cout << "coefficient: " << i << std::endl;
                 std::cout << "quad pos: " << quadPos << std::endl;
                 std::cout << "gfe: ";
@@ -191,13 +216,21 @@ template <int domainDim, class TargetSpace>
 void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
-    LocalGeodesicFEFunction<domainDim,double,TargetSpace> f(corners);
+    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    
+    GeometryType simplex;
+    simplex.makeSimplex(domainDim);
 
+    LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(simplex),corners);
+
+    static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
+    
     // A quadrature rule as a set of test points
     int quadOrder = 3;
     
     const Dune::QuadratureRule<double, domainDim>& quad 
-        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
+        = Dune::QuadratureRules<double, domainDim>::rule(simplex, quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
@@ -207,11 +240,11 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
         for (size_t i=0; i<corners.size(); i++) {
 
             // evaluate actual derivative
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, domainDim> derivative;
+            Tensor3<double, embeddedDim, embeddedDim, domainDim> derivative;
             f.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivative);
 
             // evaluate fd approximation of derivative
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::size, TargetSpace::EmbeddedTangentVector::size, domainDim> fdDerivative;
+            Tensor3<double, embeddedDim, embeddedDim, domainDim> fdDerivative;
             f.evaluateFDDerivativeOfGradientWRTCoefficient(quadPos, i, fdDerivative);
 
             if ( (derivative - fdDerivative).infinity_norm() > eps ) {
