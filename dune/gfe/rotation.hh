@@ -454,7 +454,8 @@ public:
         
         Dune::FieldMatrix<T,3,3> mat = s.toMatrix();
         mat *= 0.5;
-        Dune::FieldMatrix<T,3,3> skewSquare = mat.rightmultiply(mat);
+        Dune::FieldMatrix<T,3,3> skewSquare = mat;
+        skewSquare.rightmultiply(mat);
         mat += skewSquare;
         mat *= 2/norm;
 
