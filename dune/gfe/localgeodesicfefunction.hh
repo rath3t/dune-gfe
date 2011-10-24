@@ -625,13 +625,25 @@ public:
         return result;
     }
 
-#if 0
     /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
+    Dune::FieldMatrix<ctype, embeddedDim, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
     {
-        TargetSpace result;
-        result.r = translationFEFunction_.evaluateDerivativeFD(local);
-        result.q = orientationFEFunction_.evaluateDerivativeFD(local);
+        Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
+        
+        // get translation part
+        std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
+        localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
+        
+        for (int i=0; i<translationCoefficients_.size(); i++)
+            for (int j=0; j<3; j++)
+                result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
+        
+        // get orientation part
+        Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivativeFD(local);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<dim; j++)
+                result[3+i][j] = qResult[i][j];
+        
         return result;
     }
     
@@ -640,45 +652,87 @@ public:
                                                  int coefficient,
                                                  Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const
     {
-        TargetSpace result;
-        result.r = translationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local);
-        result.q = orientationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local);
-        return result;
+        derivative = 0;
+
+        // Translation part
+        std::vector<Dune::FieldVector<ctype,1> > w;
+        localFiniteElement_.localBasis().evaluateFunction(local,w);
+        for (int i=0; i<3; i++)
+            derivative[i][i] = w[coefficient];
+        
+        // Rotation part
+        Dune::FieldMatrix<ctype,4,4> qDerivative;
+        orientationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                derivative[3+i][3+j] = qDerivative[i][j];
     }
     
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                  int coefficient,
-                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const;
+                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const
     {
-        TargetSpace result;
-        result.r = translationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local);
-        result.q = orientationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local);
-        return result;
+        derivative = 0;
+
+        // Translation part
+        std::vector<Dune::FieldVector<ctype,1> > w;
+        localFiniteElement_.localBasis().evaluateFunction(local,w);
+        for (int i=0; i<3; i++)
+            derivative[i][i] = w[coefficient];
+        
+        // Rotation part
+        Dune::FieldMatrix<ctype,4,4> qDerivative;
+        orientationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                derivative[3+i][3+j] = qDerivative[i][j];
     }
     
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
+                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& derivative) const
     {
-        TargetSpace result;
-        result.r = translationFEFunction_.evaluateDerivativeOfGradientWRTCoefficient(local);
-        result.q = orientationFEFunction_.evaluateDerivativeOfGradientWRTCoefficient(local);
-        return result;
+        derivative = 0;
+
+        // Translation part
+        std::vector<Dune::FieldMatrix<ctype,1,dim> > w;
+        localFiniteElement_.localBasis().evaluateJacobian(local,w);
+        for (int i=0; i<3; i++)
+            derivative[i][i] = w[coefficient];
+        
+        // Rotation part
+        Tensor3<ctype,4,4,dim> qDerivative;
+        orientationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                for (int k=0; k<dim; k++)
+                    derivative[3+i][3+j][k] = qDerivative[i][j][k];
     }
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
+                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& derivative) const
     {
-        TargetSpace result;
-        result.r = translationFEFunction_.evaluateFDDerivativeOfGradientWRTCoefficient(local);
-        result.q = orientationFEFunction_.evaluateFDDerivativeOfGradientWRTCoefficient(local);
-        return result;
+        derivative = 0;
+
+        // Translation part
+        std::vector<Dune::FieldMatrix<ctype,1,dim> > w;
+        localFiniteElement_.localBasis().evaluateJacobian(local,w);
+        for (int i=0; i<3; i++)
+            derivative[i][i] = w[coefficient];
+        
+        // Rotation part
+        Tensor3<ctype,4,4,dim> qDerivative;
+        orientationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                for (int k=0; k<dim; k++)
+                    derivative[3+i][3+j][k] = qDerivative[i][j][k];
     }
-#endif
+
 private:
 
     /** \brief The scalar local finite element, which provides the weighting factors 
