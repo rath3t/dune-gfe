@@ -288,7 +288,6 @@ public:
 
         // transform coordinates
         TangentVector tang;
-        tang = 0;
         basis.mv(vQuat,tang);
 
         return tang;
