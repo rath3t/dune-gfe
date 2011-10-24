@@ -571,11 +571,11 @@ public:
     {
         assert(localFiniteElement.localBasis().size() == coefficients.size());
         
-        for (int i=0; i<coefficients.size(); i++)
+        for (size_t i=0; i<coefficients.size(); i++)
             translationCoefficients_[i] = coefficients[i].r;
         
         std::vector<Rotation<3,ctype> > orientationCoefficients(coefficients.size());
-        for (int i=0; i<coefficients.size(); i++)
+        for (size_t i=0; i<coefficients.size(); i++)
             orientationCoefficients[i] = coefficients[i].q;
         
         orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> >(localFiniteElement,orientationCoefficients));
@@ -598,7 +598,7 @@ public:
         localFiniteElement_.localBasis().evaluateFunction(local,w);
 
         result.r = 0;
-        for (int i=0; i<w.size(); i++)
+        for (size_t i=0; i<w.size(); i++)
             result.r.axpy(w[i][0], translationCoefficients_[i]);
         
         result.q = orientationFEFunction_->evaluate(local);
@@ -614,7 +614,7 @@ public:
         std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
         localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
         
-        for (int i=0; i<translationCoefficients_.size(); i++)
+        for (size_t i=0; i<translationCoefficients_.size(); i++)
             for (int j=0; j<3; j++)
                 result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
         
@@ -636,7 +636,7 @@ public:
         std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
         localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
         
-        for (int i=0; i<translationCoefficients_.size(); i++)
+        for (size_t i=0; i<translationCoefficients_.size(); i++)
             for (int j=0; j<3; j++)
                 result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
         
@@ -664,7 +664,7 @@ public:
         
         // Rotation part
         Dune::FieldMatrix<ctype,4,4> qDerivative;
-        orientationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        orientationFEFunction_->evaluateDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
                 derivative[3+i][3+j] = qDerivative[i][j];
@@ -685,7 +685,7 @@ public:
         
         // Rotation part
         Dune::FieldMatrix<ctype,4,4> qDerivative;
-        orientationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        orientationFEFunction_->evaluateFDDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
                 derivative[3+i][3+j] = qDerivative[i][j];
@@ -702,11 +702,11 @@ public:
         std::vector<Dune::FieldMatrix<ctype,1,dim> > w;
         localFiniteElement_.localBasis().evaluateJacobian(local,w);
         for (int i=0; i<3; i++)
-            derivative[i][i] = w[coefficient];
+            derivative[i][i] = w[coefficient][0];
         
         // Rotation part
         Tensor3<ctype,4,4,dim> qDerivative;
-        orientationFEFunction_.evaluateDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        orientationFEFunction_->evaluateDerivativeOfGradientWRTCoefficient(local,coefficient,qDerivative);
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
                 for (int k=0; k<dim; k++)
@@ -724,11 +724,11 @@ public:
         std::vector<Dune::FieldMatrix<ctype,1,dim> > w;
         localFiniteElement_.localBasis().evaluateJacobian(local,w);
         for (int i=0; i<3; i++)
-            derivative[i][i] = w[coefficient];
+            derivative[i][i] = w[coefficient][0];
         
         // Rotation part
         Tensor3<ctype,4,4,dim> qDerivative;
-        orientationFEFunction_.evaluateFDDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
+        orientationFEFunction_->evaluateFDDerivativeOfGradientWRTCoefficient(local,coefficient,qDerivative);
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
                 for (int k=0; k<dim; k++)
