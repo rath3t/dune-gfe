@@ -474,13 +474,13 @@ public:
         // compute the trace of the rotation matrix
         double trace = -q[0]*q[0] -q[1]*q[1] -q[2]*q[2]+3*q[3]*q[3];  
         
-        if ( (trace+1)>1e-6 && (trace+1)<-1e-6) { // if this term doesn't vanish we can use a direct formula
+        if ( (trace+1)>1e-6 || (trace+1)<-1e-6) { // if this term doesn't vanish we can use a direct formula
              
             q.matrix(mat);
             Dune::FieldMatrix<T,3,3> matT;
             Rotation<3,T>(q.inverse()).matrix(matT);
             mat -= matT;
-            mat *= 1/(1+trace);
+            mat *= 2/(1+trace);
         }
         else { // use the formula that involves the computation of an inverse
             Dune::FieldMatrix<T,3,3> inv;
