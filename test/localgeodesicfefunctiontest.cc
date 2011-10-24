@@ -54,6 +54,13 @@ void testDerivativeTangentiality(const Rotation<vectorDim-1,double>& x,
 {
 }
 
+// the columns of the derivative must be tangential to the manifold
+template <int domainDim, int vectorDim>
+void testDerivativeTangentiality(const RigidBodyMotion<3,double>& x,
+                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
+{
+}
+
 /** \brief Test whether interpolation is invariant under permutation of the simplex vertices
  */
 template <int domainDim, class TargetSpace>
@@ -364,7 +371,7 @@ int main()
 
     std::cout << std::setw(15) << std::setprecision(12);
     
-    //testRealTuples<1>();
+    testRealTuples<1>();
     testUnitVector2d<1>();
     test<UnitVector<3>,1>();
     testUnitVector2d<2>();
@@ -372,4 +379,7 @@ int main()
     
     test<Rotation<3,double>,1>();
     test<Rotation<3,double>,2>();
+    
+    test<RigidBodyMotion<3,double>,1>();
+    test<RigidBodyMotion<3,double>,2>();
 }
