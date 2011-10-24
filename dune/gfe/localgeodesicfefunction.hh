@@ -278,7 +278,7 @@ evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
 {
     double eps = 1e-6;
 
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::size, dim> result;
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> result;
 
     for (int i=0; i<dim; i++) {
         
@@ -291,7 +291,7 @@ evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
         EmbeddedTangentVector fdDer = evaluate(forward).globalCoordinates() - evaluate(backward).globalCoordinates();
         fdDer /= 2*eps;
         
-        for (int j=0; j<EmbeddedTangentVector::size; j++)
+        for (int j=0; j<EmbeddedTangentVector::dimension; j++)
             result[j][i] = fdDer[j];
         
     }
@@ -376,8 +376,8 @@ evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& l
         cornersPlus [coefficient] = TargetSpace::exp(coefficients_[coefficient], forwardVariation);
         cornersMinus[coefficient] = TargetSpace::exp(coefficients_[coefficient], backwardVariation);
         
-        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fPlus(cornersPlus);
-        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fMinus(cornersMinus);
+        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
+        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
                 
         TargetSpace hPlus  = fPlus.evaluate(local);
         TargetSpace hMinus = fMinus.evaluate(local);
@@ -501,7 +501,9 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
                                            Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
 {
     double eps = 1e-6;
-    for (int j=0; j<TargetSpace::EmbeddedTangentVector::size; j++) {
+    static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
+    
+    for (int j=0; j<embeddedDim; j++) {
                 
         std::vector<TargetSpace> cornersPlus  = coefficients_;
         std::vector<TargetSpace> cornersMinus = coefficients_;
@@ -511,26 +513,26 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
         aMinus[j] -= eps;
         cornersPlus[coefficient]  = TargetSpace(aPlus);
         cornersMinus[coefficient] = TargetSpace(aMinus);
-        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fPlus(cornersPlus);
-        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fMinus(cornersMinus);
+        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
+        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
                 
-        Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hPlus  = fPlus.evaluateDerivative(local);
-        Dune::FieldMatrix<double,TargetSpace::EmbeddedTangentVector::size,dim> hMinus = fMinus.evaluateDerivative(local);
+        Dune::FieldMatrix<double,embeddedDim,dim> hPlus  = fPlus.evaluateDerivative(local);
+        Dune::FieldMatrix<double,embeddedDim,dim> hMinus = fMinus.evaluateDerivative(local);
                 
         result[j]  = hPlus;
         result[j] -= hMinus;
         result[j] /= 2*eps;
                 
         TargetSpace q = evaluate(local);
-        Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::size> foo;
+        Dune::FieldVector<double,embeddedDim> foo;
         for (int l=0; l<dim; l++) {
                     
-            for (int k=0; k<TargetSpace::EmbeddedTangentVector::size; k++)
+            for (int k=0; k<embeddedDim; k++)
                 foo[k] = result[j][k][l];
 
             foo = q.projectOntoTangentSpace(foo);
 
-            for (int k=0; k<TargetSpace::EmbeddedTangentVector::size; k++)
+            for (int k=0; k<embeddedDim; k++)
                 result[j][k][l] = foo[k];
                     
         }
