@@ -281,13 +281,14 @@ public:
         vAtIdentity[2] = 0.5*v.axial()[2];
 
         // multiply with base point to get real embedded tangent vector
-        Quaternion<T> vQuat = p.mult(vAtIdentity);
+        Quaternion<T> vQuat = ((Quaternion<T>) p).mult(vAtIdentity);
 
         //get basis of the tangent space
         Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
 
         // transform coordinates
         TangentVector tang;
+        tang = 0;
         basis.mv(vQuat,tang);
 
         return tang;
