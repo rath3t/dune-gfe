@@ -186,17 +186,6 @@ public:
         : Quaternion<T>(axis, angle)
     {}
 
-    /** \brief Assignment from a quaternion
-        \deprecated Using this is bad design.
-    */
-    Rotation& operator=(const Quaternion<T>& other) {
-        (*this)[0] = other[0];
-        (*this)[1] = other[1];
-        (*this)[2] = other[2];
-        (*this)[3] = other[3];
-        return *this;
-    }
-
     /** \brief Return the identity element */
     static Rotation<3,T> identity() {
         // Default constructor creates an identity
