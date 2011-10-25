@@ -15,6 +15,17 @@ using Dune::FieldVector;
 
 using namespace Dune;
 
+/** \brief Computes the diameter of a set */
+template <class TargetSpace>
+double diameter(const std::vector<TargetSpace>& v)
+{
+    double d = 0;
+    for (size_t i=0; i<v.size(); i++)
+        for (size_t j=0; j<v.size(); j++)
+            d = std::max(d, TargetSpace::distance(v[i],v[j]));
+    return d;
+}
+
 const double eps = 1e-4;
 
 template <class TargetSpace>
@@ -321,6 +332,12 @@ void test()
         testOrthonormalFrame<TargetSpace>(testPoints[i]);
         
         for (int j=0; j<nTestPoints; j++) {
+            
+            std::vector<TargetSpace> testPointPair(2);
+            testPointPair[0] = testPoints[i];
+            testPointPair[1] = testPoints[j];
+            if (diameter(testPointPair) > 0.5*M_PI)
+                continue;
             
             testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);
             
