@@ -192,7 +192,7 @@ void LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>::evaluateJacobian
             // Add that to the result.
             for (int k=0; k<embeddedDim; k++)
                 for (int l=0; l<embeddedDim; l++)
-                    for (size_t m=0; m<dim; m++)
+                    for (int m=0; m<dim; m++)
                         out[i][j][k][m] += derivative[k][l][m] * basisVectors[j][l];
         }
     }

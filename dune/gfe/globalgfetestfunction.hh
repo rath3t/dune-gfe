@@ -68,8 +68,6 @@ template<class Basis, class TargetSpace, class CoefficientType>
 void GlobalGFETestFunction<Basis,TargetSpace,CoefficientType>::evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, 
                                                              EmbeddedTangentVector& out) const
 {
-    int numOfBasisFct = basis_.getLocalFiniteElement(element).localBasis().size(); 
-
     // values of the test basis functions 
     std::vector<Dune::array<EmbeddedTangentVector, tangentDim> > values;
 
@@ -79,7 +77,7 @@ void GlobalGFETestFunction<Basis,TargetSpace,CoefficientType>::evaluateLocal(con
     // multiply values with the corresponding test coefficients and sum them up
     out = 0;
 
-    for (int i=0; i<values.size(); i++) {
+    for (size_t i=0; i<values.size(); i++) {
         int index = basis_.index(element,i);
         for (int j=0; j<tangentDim; j++) {
             values[i][j] *= coefficients_[index][j];
