@@ -6,7 +6,7 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/gfe/configuration.hh>
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/quaternion.hh>
 #include <dune/gfe/rodassembler.hh>
 
