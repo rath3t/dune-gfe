@@ -10,10 +10,12 @@ void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
 {
     if (i<3)
         c.r[i] += eps;
-    else
-        c.q = c.q.mult(Rotation<3,double>::exp((i==3)*eps, 
-                                               (i==4)*eps, 
-                                               (i==5)*eps));
+    else {
+        Dune::FieldVector<double,3> axial(0);
+        axial[i-3] = eps;
+        SkewMatrix<double,3> variation(axial);
+        c.q = c.q.mult(Rotation<3,double>::exp(variation));
+    }
 }
 
 template <class GridType>
