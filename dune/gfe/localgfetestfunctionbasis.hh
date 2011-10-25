@@ -160,7 +160,7 @@ void LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>::evaluateFunction
         /** \todo This call internally keeps computing the value of the gfe function at 'local'.
          * This is expensive.  Eventually we should precompute it once and reused the result. */
         localGFEFunction_.evaluateDerivativeOfValueWRTCoefficient (local, i, derivative);
-        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i].orthonormalFrame();
+        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficient(i).orthonormalFrame();
         
         for (int j=0; j<spaceDim; j++)
             derivative.mv(basisVectors[j], out[i][j]);
@@ -182,7 +182,7 @@ void LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>::evaluateJacobian
         Tensor3< double, embeddedDim, embeddedDim, dim > derivative;
         localGFEFunction_.evaluateDerivativeOfGradientWRTCoefficient (local, i, derivative);
 
-        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficients_[i].orthonormalFrame();
+        Dune::FieldMatrix<ctype,spaceDim,embeddedDim> basisVectors = localGFEFunction_.coefficient(i).orthonormalFrame();
         
         for (int j=0; j<spaceDim; j++) {
             
