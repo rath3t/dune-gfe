@@ -6,6 +6,7 @@
 #include <dune/grid/common/quadraturerules.hh>
 
 #include <dune/fufem/functions/virtualgridfunction.hh>
+#include <dune/fufem/boundarypatch.hh>
 
 #include "localgeodesicfestiffness.hh"
 #include "localgeodesicfefunction.hh"
