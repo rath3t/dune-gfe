@@ -339,6 +339,8 @@ int main() try
 
     test<Rotation<3> >();
     
+    test<RigidBodyMotion<3> >();
+    
 } catch (Exception e) {
 
     std::cout << e << std::endl;
