@@ -157,6 +157,9 @@ public:
     /** \brief Dimension of the manifold formed by the 3d rotations */
     static const int dim = 3;
     
+    /** \brief Coordinates are embedded into a four-dimension Euclidean space */
+    static const int embeddedDim = 4;
+    
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,3> TangentVector;
 
