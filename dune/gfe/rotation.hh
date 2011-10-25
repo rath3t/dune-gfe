@@ -290,7 +290,7 @@ public:
         Quaternion<T> embeddedTangent;
         basis.mtv(tangent, embeddedTangent);
     
-        tangentToSkew(p,embeddedTangent);
+        return tangentToSkew(p,embeddedTangent);
     }
 
     /** \brief Compute skew matrix from given basepoint and an embedded tangent vector. */ 
