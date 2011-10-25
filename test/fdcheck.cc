@@ -1,7 +1,5 @@
 #include <config.h>
 
-#include <dune/common/configparser.hh>
-
 #include <dune/grid/onedgrid.hh>
 
 #include <dune/istl/io.hh>
