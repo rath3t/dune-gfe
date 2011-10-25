@@ -174,7 +174,7 @@ public:
         for (int i=0; i<Rotation<dim,T>::EmbeddedTangentVector::dimension; i++)
             for (int j=0; j<Rotation<dim,T>::EmbeddedTangentVector::dimension; j++)
                 for (int k=0; k<Rotation<dim,T>::EmbeddedTangentVector::dimension; k++)
-                    result[dim+i][dim+j][dim+j] = rotationPart[i][j][k];
+                    result[dim+i][dim+j][dim+k] = rotationPart[i][j][k];
 
         return result;
     }
