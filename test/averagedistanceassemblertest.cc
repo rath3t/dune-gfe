@@ -36,8 +36,8 @@ void testPoint(const std::vector<TargetSpace>& corners,
     assembler.assembleGradient(argument, gradient);
 
     // test the hessian
-    FieldMatrix<double, TargetSpace::TangentVector::size, TargetSpace::TangentVector::size> hessian;
-    FieldMatrix<double, TargetSpace::TangentVector::size, TargetSpace::TangentVector::size> hessianApproximation;
+    FieldMatrix<double, TargetSpace::TangentVector::dimension, TargetSpace::TangentVector::dimension> hessian;
+    FieldMatrix<double, TargetSpace::TangentVector::dimension, TargetSpace::TangentVector::dimension> hessianApproximation;
 
     assembler.assembleHessian(argument, hessian);
     assembler.assembleHessianApproximation(argument, hessianApproximation);
@@ -48,7 +48,7 @@ void testPoint(const std::vector<TargetSpace>& corners,
             assert(!std::isnan(hessianApproximation[i][j]));
         }
 
-    FieldMatrix<double, TargetSpace::TangentVector::size, TargetSpace::TangentVector::size> diff = hessian;
+    FieldMatrix<double, TargetSpace::TangentVector::dimension, TargetSpace::TangentVector::dimension> diff = hessian;
     diff -= hessianApproximation;
     std::cout << "Matrix inf diff: " << diff.infinity_norm() << std::endl;
 }
