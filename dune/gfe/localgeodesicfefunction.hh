@@ -81,7 +81,12 @@ public:
     void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
                                                     Tensor3<double,embeddedDim,embeddedDim,dim>& result) const;
-
+   
+    /** \brief Get the i'th base coefficient. */
+    TargetSpace coefficient(int i) const 
+    {
+        return coefficients_[i];
+    } 
 private:
 
     static Dune::FieldMatrix<double,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<double,embeddedDim,embeddedDim>& dFdq,
@@ -735,6 +740,10 @@ public:
                     derivative[3+i][3+j][k] = qDerivative[i][j][k];
     }
 
+    TargetSpace coefficient(int i) const {
+        return TargetSpace(translationCoefficients_[i],orientationFEFunction_->coefficient(i));
+
+    }
 private:
 
     /** \brief The scalar local finite element, which provides the weighting factors 
