@@ -86,7 +86,7 @@ public:  // for testing
         // However, since the directors of a given unit quaternion are the _columns_ of the
         // corresponding orthogonal matrix, we need to invert the i and j indices
         //
-        // So, if I am not mistaken, DR[i][j][k] contains \partial M_ij / \partial k
+        // So, if I am not mistaken, DR[i][j][k] contains \partial R_ij / \partial k
         Tensor3<double,3 , 3, 4> dd_dq;
         value.q.getFirstDerivativesOfDirectors(dd_dq);
         
