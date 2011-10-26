@@ -52,6 +52,12 @@ public:
     {
         return localFiniteElement_.localBasis().size();
     }
+    
+    /** \brief The type of the reference element */
+    Dune::GeometryType type() const
+    {
+        return localFiniteElement_.type();
+    }
 
     /** \brief Evaluate the function */
     TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
@@ -591,6 +597,12 @@ public:
     unsigned int size() const
     {
         return localFiniteElement_.localBasis().size();
+    }
+
+    /** \brief The type of the reference element */
+    Dune::GeometryType type() const
+    {
+        return localFiniteElement_.type();
     }
 
     /** \brief Evaluate the function */
