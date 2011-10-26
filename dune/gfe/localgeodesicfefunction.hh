@@ -426,9 +426,6 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
         for (size_t j=0; j<dim; j++)
             B[i][j] = BNested[i][0][j];
     
-    // compute derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > dFdw = computeDFdw(q);
-    
     // the actual system matrix
     std::vector<Dune::FieldVector<ctype,1> > w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
