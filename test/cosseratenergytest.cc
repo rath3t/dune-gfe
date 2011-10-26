@@ -129,6 +129,13 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
     CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3> assembler(materialParameters,
                                                                                                  NULL,
                                                                                                  &zeroFunction);
+    
+    // compute reference energy
+    double referenceEnergy = assembler.energy(*grid->template leafbegin<0>(), 
+                                              feCache.get(grid->template leafbegin<0>()->type()),
+                                              coefficients);
+    
+    // rotate the entire configuration
     std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
     
     std::vector<Rotation<3> > testRotations;
@@ -151,9 +158,13 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
             rotatedCoefficients[j].q = testRotations[i].mult(coefficients[j].q);
         }
         
-        std::cout << "energy: " << assembler.energy(*grid->template leafbegin<0>(), 
-                                                    feCache.get(grid->template leafbegin<0>()->type()),
-                                                    rotatedCoefficients) << std::endl;
+        double energy = assembler.energy(*grid->template leafbegin<0>(), 
+                                         feCache.get(grid->template leafbegin<0>()->type()),
+                                         rotatedCoefficients);
+        
+        assert(std::fabs(energy-referenceEnergy) < 1e-4);
+        
+        //std::cout << "energy: " << energy << std::endl;
 
     }
 
@@ -163,6 +174,8 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 template <int domainDim>
 void testFrameInvariance()
 {
+    std::cout << " --- Testing frame invariance of the Cosserat energy, domain dimension: " << domainDim << " ---" << std::endl;
+
     // ////////////////////////////////////////////////////////
     //   Make a test grid consisting of a single simplex
     // ////////////////////////////////////////////////////////
@@ -215,7 +228,7 @@ void testFrameInvariance()
 int main(int argc, char** argv) try
 {
     const int domainDim = 2;
-    std::cout << " --- Testing Rotation<3>, domain dimension: " << domainDim << " ---" << std::endl;
+    std::cout << " --- Testing derivative of rotation matrix, domain dimension: " << domainDim << " ---" << std::endl;
 
     std::vector<Rotation<3,double> > testPoints;
     
