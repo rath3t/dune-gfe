@@ -289,63 +289,6 @@ void testDerivativeOfGradientWRTCoefficients(const std::vector<TargetSpace>& cor
 }
 
 
-template <int domainDim>
-void testRealTuples()
-{
-    std::cout << " --- Testing RealTuple<1>, domain dimension: " << domainDim << " ---" << std::endl;
-
-    typedef RealTuple<1> TargetSpace;
-
-    std::vector<TargetSpace> corners = {TargetSpace(1),
-                                        TargetSpace(2),
-                                        TargetSpace(3)};
-
-    testPermutationInvariance<domainDim>(corners);
-    testDerivative<domainDim>(corners);
-}
-
-template <int domainDim>
-void testUnitVector2d()
-{
-    std::cout << " --- Testing UnitVector<2>, domain dimension: " << domainDim << " ---" << std::endl;
-
-    typedef UnitVector<2> TargetSpace;
-
-    std::vector<TargetSpace> testPoints;
-    ValueFactory<TargetSpace>::get(testPoints);
-    
-    int nTestPoints = testPoints.size();
-    
-    // Set up elements of S^1
-    std::vector<TargetSpace> corners(domainDim+1);
-    
-    MultiIndex<domainDim+1> index(nTestPoints);
-    int numIndices = index.cycle();
-    
-    for (int i=0; i<numIndices; i++, ++index) {
-        
-        for (int j=0; j<domainDim+1; j++)
-            corners[j] = testPoints[index[j]];
-
-        bool spreadOut = false;
-        for (int j=0; j<domainDim+1; j++)
-            for (int k=0; k<domainDim+1; k++)
-                if (UnitVector<2>::distance(corners[j],corners[k]) > M_PI*0.98)
-                    spreadOut = true;
-                    
-        if (spreadOut)
-            continue;
-        
-        //testPermutationInvariance(corners);
-        testDerivative<domainDim>(corners);
-        testDerivativeOfValueWRTCoefficients<domainDim>(corners);
-        testDerivativeOfGradientWRTCoefficients<domainDim>(corners);
-
-    }
-
-}
-
-
 template <class TargetSpace, int domainDim>
 void test()
 {
@@ -388,10 +331,10 @@ int main()
 
     std::cout << std::setw(15) << std::setprecision(12);
     
-    testRealTuples<1>();
-    testUnitVector2d<1>();
+    test<RealTuple<1>,1>();
+    test<UnitVector<2>,1>();
     test<UnitVector<3>,1>();
-    testUnitVector2d<2>();
+    test<UnitVector<2>,2>();
     test<UnitVector<3>,2>();
     
     test<Rotation<3,double>,1>();
