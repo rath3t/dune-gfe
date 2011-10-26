@@ -62,12 +62,14 @@ void testDerivativeTangentiality(const RigidBodyMotion<3,double>& x,
 }
 
 /** \brief Test whether interpolation is invariant under permutation of the simplex vertices
+ * \todo Implement this for all dimensions
  */
 template <int domainDim, class TargetSpace>
 void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 {
     // works only for 2d domains
-    assert(domainDim==2);
+    if (domainDim!=2)
+        return;
 
     PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
     typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
