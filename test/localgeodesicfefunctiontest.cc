@@ -20,6 +20,18 @@ const double eps = 1e-6;
 
 using namespace Dune;
 
+/** \brief Computes the diameter of a set */
+template <class TargetSpace>
+double diameter(const std::vector<TargetSpace>& v)
+{
+    double d = 0;
+    for (size_t i=0; i<v.size(); i++)
+        for (size_t j=0; j<v.size(); j++)
+            d = std::max(d, TargetSpace::distance(v[i],v[j]));
+    return d;
+}
+
+
 template <int domainDim>
 void testDerivativeTangentiality(const RealTuple<1>& x,
                                  const FieldMatrix<double,1,domainDim>& derivative)
@@ -354,6 +366,9 @@ void test()
         
         for (int j=0; j<domainDim+1; j++)
             corners[j] = testPoints[index[j]];
+        
+        if (diameter(corners) > 0.5*M_PI)
+            continue;
 
         //testPermutationInvariance(corners);
         testDerivative<domainDim>(corners);
