@@ -12,7 +12,7 @@
 #include <dune/gfe/unitvector.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localgfetestfunction.hh>
+#include <dune/gfe/localgfetestfunctionbasis.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"
@@ -48,17 +48,17 @@ void test()
         for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
-        LocalGFETestFunction<domainDim,double,LocalFiniteElement,TargetSpace> testFunctionSet(feCache.get(simplex),coefficients);
+        LocalGfeTestFunctionFiniteElement<LocalFiniteElement,TargetSpace> testFunctionSet(feCache.get(simplex),coefficients);
         
         FieldVector<double,domainDim> stupidTestPoint(0);
         
         // test whether evaluation of the shape functions works
         std::vector<array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
-        testFunctionSet.evaluateFunction(stupidTestPoint, values);
+        testFunctionSet.localBasis().evaluateFunction(stupidTestPoint, values);
 
         // test whether evaluation of the shape function derivatives works
         std::vector<array<FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, domainDim>, TargetSpace::TangentVector::dimension> > derivatives;
-        testFunctionSet.evaluateJacobian(stupidTestPoint, derivatives);
+        testFunctionSet.localBasis().evaluateJacobian(stupidTestPoint, derivatives);
 
     }
 
