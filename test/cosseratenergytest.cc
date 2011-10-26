@@ -148,7 +148,7 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
             matrix.mv(coefficients[j].r, tmp);
             rotatedCoefficients[j].r = tmp;
             
-            rotatedCoefficients[j].q = testRotations[i].mult(rotatedCoefficients[j].q);
+            rotatedCoefficients[j].q = testRotations[i].mult(coefficients[j].q);
         }
         
         std::cout << "energy: " << assembler.energy(*grid->template leafbegin<0>(), 
