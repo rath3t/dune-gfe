@@ -2,6 +2,8 @@
 
 #include <dune/grid/uggrid.hh>
 
+#include <dune/localfunctions/lagrange/pqkfactory.hh>
+
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
 
@@ -16,7 +18,13 @@ using namespace Dune;
 template <class GridType>
 void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficients) {
 
-    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,TargetSpace> assembler;
+    PQkLocalFiniteElementCache<double,double,GridType::dimension,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,GridType::dimension,1>::FiniteElementType LocalFiniteElement;
+    
+    //LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
+
+    
+    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,TargetSpace> assembler;
     std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
 
     for (int i=0; i<10; i++) {
@@ -32,6 +40,7 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
         }
 
         std::cout << "energy: " << assembler.energy(*grid->template leafbegin<0>(), 
+                                                    feCache.get(grid->template leafbegin<0>()->type()),
                                                     rotatedCoefficients) << std::endl;
 
         std::vector<typename TargetSpace::EmbeddedTangentVector> rotatedGradient;
@@ -52,7 +61,11 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 template <class GridType>
 void testGradientOfEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficients)
 {
-    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,TargetSpace> assembler;
+    PQkLocalFiniteElementCache<double,double,GridType::dimension,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,GridType::dimension,1>::FiniteElementType LocalFiniteElement;
+    
+    //LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
+    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,TargetSpace> assembler;
 
     std::vector<typename TargetSpace::EmbeddedTangentVector> gradient;
     assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
