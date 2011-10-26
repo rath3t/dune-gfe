@@ -21,7 +21,7 @@ class LocalGfeTestFunctionBasis;
 template <class LocalFiniteELement, class TargetSpace>
 class LocalGfeTestFunctionInterpolation;
 
-/** \brief The local gfe test function finite element on simplices
+/** \brief The local gfe test function finite element
  *
  *  \tparam LagrangeLfe - A Lagrangian finite element whose shape functions define the interpolation weights
  *  \tparam TargetSpace - The manifold the tangent spaces this basis for from belong to.
@@ -45,10 +45,9 @@ public:
     LocalGfeTestFunctionFiniteElement(const LagrangeLfe& lfe, const std::vector<TargetSpace> baseCoeff) :
         baseCoeff_(baseCoeff),
         basis_(lfe, baseCoeff_),
-        coefficients_(lfe.clone()->localCoefficients())
-    {
-        gt_.makeSimplex(LagrangeBasisTraits::dimDomain);
-    }
+        coefficients_(lfe.clone()->localCoefficients()),
+        gt_(lfe.type())
+    {}
 
     /** \brief Get reference to the local basis.*/
     const typename Traits::LocalBasisType& localBasis () const
