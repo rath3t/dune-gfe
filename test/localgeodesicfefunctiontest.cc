@@ -263,24 +263,25 @@ void testDerivativeOfGradientWRTCoefficients(const LocalGeodesicFEFunction<domai
 
 
 template <class TargetSpace, int domainDim>
-void test()
+void test(const GeometryType& element)
 {
-    std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << domainDim << " ---" << std::endl;
+    std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << element.dim() << " ---" << std::endl;
 
     std::vector<TargetSpace> testPoints;
     ValueFactory<TargetSpace>::get(testPoints);
     
     int nTestPoints = testPoints.size();
+    size_t nVertices = Dune::GenericReferenceElements<double,domainDim>::general(element).size(domainDim);
 
     // Set up elements of the target space
-    std::vector<TargetSpace> corners(domainDim+1);
+    std::vector<TargetSpace> corners(nVertices);
 
-    MultiIndex index(domainDim+1, nTestPoints);
+    MultiIndex index(nVertices, nTestPoints);
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<domainDim+1; j++)
+        for (size_t j=0; j<nVertices; j++)
             corners[j] = testPoints[index[j]];
         
         if (diameter(corners) > 0.5*M_PI)
@@ -290,10 +291,7 @@ void test()
         PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
         typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
     
-        GeometryType simplex;
-        simplex.makeSimplex(domainDim);
-
-        LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(simplex),corners);
+        LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
 
         //testPermutationInvariance(corners);
         testDerivative<domainDim>(f);
@@ -313,15 +311,39 @@ int main()
 
     std::cout << std::setw(15) << std::setprecision(12);
     
-    test<RealTuple<1>,1>();
-    test<UnitVector<2>,1>();
-    test<UnitVector<3>,1>();
-    test<UnitVector<2>,2>();
-    test<UnitVector<3>,2>();
+    GeometryType element;
+
+    ////////////////////////////////////////////////////////////////
+    //  Test functions on 1d elements
+    ////////////////////////////////////////////////////////////////
+    element.makeSimplex(1);
     
-    test<Rotation<3,double>,1>();
-    test<Rotation<3,double>,2>();
+    test<RealTuple<1>,1>(element);
+    test<UnitVector<2>,1>(element);
+    test<UnitVector<3>,1>(element);
+    test<Rotation<3,double>,1>(element);
+    test<RigidBodyMotion<3,double>,1>(element);
     
-    test<RigidBodyMotion<3,double>,1>();
-    test<RigidBodyMotion<3,double>,2>();
+    ////////////////////////////////////////////////////////////////
+    //  Test functions on 2d simplex elements
+    ////////////////////////////////////////////////////////////////
+    element.makeSimplex(2);
+
+    test<RealTuple<1>,2>(element);
+    test<UnitVector<2>,2>(element);
+    test<UnitVector<3>,2>(element);
+    test<Rotation<3,double>,2>(element);
+    test<RigidBodyMotion<3,double>,2>(element);
+
+    ////////////////////////////////////////////////////////////////
+    //  Test functions on 2d quadrilateral elements
+    ////////////////////////////////////////////////////////////////
+    element.makeCube(2);
+
+    test<RealTuple<1>,2>(element);
+    test<UnitVector<2>,2>(element);
+    test<UnitVector<3>,2>(element);
+    test<Rotation<3,double>,2>(element);
+    test<RigidBodyMotion<3,double>,2>(element);
+
 }
