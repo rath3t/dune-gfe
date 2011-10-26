@@ -18,43 +18,6 @@ typedef RigidBodyMotion<3> TargetSpace;
 
 using namespace Dune;
 
-#if 0
-template <class GridType>
-void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficients) {
-
-    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,TargetSpace> assembler;
-    std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
-
-    for (int i=0; i<10; i++) {
-
-        Rotation<3,double> rotation(FieldVector<double,3>(1), double(i));
-
-        FieldMatrix<double,3,3> matrix;
-        rotation.matrix(matrix);
-        for (size_t j=0; j<coefficients.size(); j++) {
-            FieldVector<double,3> tmp;
-            matrix.mv(coefficients[j].globalCoordinates(), tmp);
-            rotatedCoefficients[j] = tmp;
-        }
-
-        std::cout << "energy: " << assembler.energy(*grid->template leafbegin<0>(), 
-                                                    rotatedCoefficients) << std::endl;
-
-        std::vector<typename TargetSpace::EmbeddedTangentVector> rotatedGradient;
-        assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
-                                   rotatedCoefficients,
-                                   rotatedGradient);
-
-        for (size_t j=0; j<coefficients.size(); j++) {
-            FieldVector<double,3> tmp;
-            matrix.mtv(rotatedGradient[j], tmp);
-            std::cout << "gradient: " << tmp << std::endl;
-        }
-
-    }
-
-}
-#endif
 
 
 template <int domainDim,class LocalFiniteElement>
