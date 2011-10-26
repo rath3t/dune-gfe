@@ -156,7 +156,7 @@ int main(int argc, char** argv)
     // Set up elements of SO(3)
     std::vector<TargetSpace> corners(domainDim+1);
 
-    MultiIndex<domainDim+1> index(nTestPoints);
+    MultiIndex index(domainDim+1, nTestPoints);
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {

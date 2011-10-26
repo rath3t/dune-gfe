@@ -1,22 +1,24 @@
 #ifndef MULTI_INDEX_HH
 #define MULTI_INDEX_HH
 
-#include <dune/common/array.hh>
+#include <vector>
 
-/** \brief N-dimensional multi-index
+/** \brief A multi-index
 */
-template <int N>
 class MultiIndex
-    : public Dune::array<unsigned int,N>
+    : public std::vector<unsigned int>
 {
 
     // The range of each component
     unsigned int limit_;
 
 public:
-    /** \brief Constructor with a given range for each digit */
-    MultiIndex(unsigned int limit)
-        : limit_(limit)
+    /** \brief Constructor with a given range for each digit
+     * \param n Number of digits
+     */
+    MultiIndex(unsigned int n, unsigned int limit)
+        : std::vector<unsigned int>(n),
+          limit_(limit)
     {
         std::fill(this->begin(), this->end(), 0);
     }
@@ -24,7 +26,7 @@ public:
     /** \brief Increment the MultiIndex */
     MultiIndex& operator++() {
 
-        for (int i=0; i<N; i++) {
+        for (size_t i=0; i<size(); i++) {
 
             // Augment digit
             (*this)[i]++;
@@ -42,7 +44,7 @@ public:
     /** \brief Compute how many times you can call operator++ before getting to (0,...,0) again */
     size_t cycle() const {
         size_t result = 1;
-        for (int i=0; i<N; i++)
+        for (size_t i=0; i<size(); i++)
             result *= limit_;
         return result;
     }

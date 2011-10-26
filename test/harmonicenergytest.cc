@@ -127,7 +127,7 @@ void testUnitVector3d()
     // Set up elements of S^2
     std::vector<TargetSpace> coefficients(dim+1);
 
-    MultiIndex<dim+1> index(nTestPoints);
+    MultiIndex index(dim+1, nTestPoints);
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {

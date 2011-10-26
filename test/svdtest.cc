@@ -16,7 +16,7 @@ int main()
     int nTestValues = 5;
     double maxDiff = 0;
     
-    MultiIndex<N*M> index(nTestValues);
+    MultiIndex index(N*M, nTestValues);
     int numIndices = index.cycle();
     
     for (int i=0; i<numIndices; i++, ++index) {

@@ -116,7 +116,7 @@ void testHessian()
     // Set up elements of S^2
     std::vector<TargetSpace> coefficients(domainDim+1);
 
-    MultiIndex<domainDim+1> index(nTestPoints);
+    MultiIndex index(domainDim+1, nTestPoints);
     int numIndices = index.cycle();
     
     size_t nDofs = domainDim+1;

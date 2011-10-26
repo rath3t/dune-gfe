@@ -34,7 +34,7 @@ void test()
     // Set up elements of SO(3)
     std::vector<TargetSpace> coefficients(domainDim+1);
 
-    MultiIndex<domainDim+1> index(nTestPoints);
+    MultiIndex index(domainDim+1, nTestPoints);
     int numIndices = index.cycle();
     
     PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
