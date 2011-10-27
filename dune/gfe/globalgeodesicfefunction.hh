@@ -82,6 +82,12 @@ public:
     {
         return basis_;
     }
+    
+    /** \brief Export coefficients. */
+    const std::vector<TargetSpace>& coefficients() const
+    {
+        return coefficients_;
+    }    
 
 private:
     //! The global basis
