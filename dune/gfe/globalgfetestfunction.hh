@@ -75,7 +75,7 @@ void GlobalGFETestFunction<Basis,TargetSpace,CoefficientType>::evaluateLocal(con
     basis_.getLocalFiniteElement(element).localBasis().evaluateFunction(local, values);
 
     // multiply values with the corresponding test coefficients and sum them up
-    out = 0;
+    out = 0.0;
 
     for (size_t i=0; i<values.size(); i++) {
         int index = basis_.index(element,i);
@@ -91,13 +91,24 @@ void GlobalGFETestFunction<Basis,TargetSpace,CoefficientType>::evaluateDerivativ
                                             Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
 {
     // jacobians of the test basis function  - a lot of dims here...
-    std::vector<Dune::array<Dune::FieldMatrix<ctype, embeddedDim, gridDim>, tangentDim> > jacobians; 
+    std::vector<Dune::array<Dune::FieldMatrix<ctype, embeddedDim, gridDim>, tangentDim> > refJacobians,jacobians; 
 
     // evaluate local gfe test function basis
-    basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, jacobians);
+    basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, refJacobians);
+
+    const Dune::FieldMatrix<double,gridDim,gridDim>& jacInvTrans = element.geometry().jacobianInverseTransposed(local); 
+
+    //transform the gradients
+    jacobians.resize(refJacobians.size());
+    for (size_t i = 0; i<jacobians.size(); i++)
+        for (int j=0; j<tangentDim; j++) {// the local basis has a block structure
+            jacobians[i][j] = 0;
+            for (size_t comp=0; comp<jacobians[i][j].N(); comp++)
+                jacInvTrans.umv(refJacobians[i][j][comp], jacobians[i][j][comp]); 
+        } 
 
     // multiply values with the corresponding test coefficients and sum them up
-    out = 0;
+    out = 0.0;
 
     for (int i=0; i<jacobians.size(); i++) {
         int index = basis_.index(element,i);

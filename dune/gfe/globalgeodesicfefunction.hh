@@ -72,9 +72,16 @@ public:
 
         // create local gfe function
         LocalGFEFunction localGFE(basis_.getLocalFiniteElement(element),localCoeff);
-    
+
         // use it to evaluate the derivative
-        out = localGFE.evaluateDerivative(local);
+        Dune::FieldMatrix<ctype, embeddedDim, gridDim> refJac = localGFE.evaluateDerivative(local);
+
+        out =0.0;
+        //transform the gradient
+        const Dune::FieldMatrix<double,gridDim,gridDim>& jacInvTrans = element.geometry().jacobianInverseTransposed(local);
+        for (size_t k=0; k< refJac.N(); k++)
+            jacInvTrans.umv(refJac[k],out[k]);
+
     }
 
     /** \brief Export basis */
