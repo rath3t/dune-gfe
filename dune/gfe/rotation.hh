@@ -31,6 +31,12 @@ public:
     /** \brief The type used for coordinates */
     typedef T ctype;
 
+    /** \brief Dimension of the manifold formed by the 2d rotations */
+    static const int dim = 1;
+
+    /** \brief Coordinates are embedded in the euclidean space */
+    static const int embeddedDim = 1;
+
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,1> TangentVector;
 
