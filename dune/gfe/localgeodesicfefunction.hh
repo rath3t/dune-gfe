@@ -479,7 +479,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
             for (size_t k=0; k<coefficients_.size(); k++) {
                 dqdwF_times_dvq(i, j, k) = 0;
                 for (int l=0; l<embeddedDim; l++)
-                    dqdwF_times_dvq(i, j, k) += dqdwF(l, j, k) * dvq[l][i];
+                    dqdwF_times_dvq(i, j, k) += dqdwF(l, j, k) * dvq[i][l];
             }
 
     Tensor3<double, embeddedDim,embeddedDim,dim> foo;
