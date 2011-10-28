@@ -84,11 +84,16 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
 struct NeumannFunction
     : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
 {
+    NeumannFunction(double homotopyParameter)
+    : homotopyParameter_(homotopyParameter)
+    {}
+    
     void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
         out = 0;
-        out[2] = 4;
+        out[0] = -40*homotopyParameter_;
     }
 
+    double homotopyParameter_;
 };
 
 
@@ -209,13 +214,23 @@ int main (int argc, char *argv[]) try
         // x[idx].q is the identity, set by the default constructor
 
     }
+
+    ////////////////////////////////////////////////////////
+    //   Main homotopy loop
+    ////////////////////////////////////////////////////////
+
+    for (int i=0; i<numHomotopySteps; i++) {
         
+        double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
+        std::cout << "Homotopy step: " << i << ",    parameter: " << homotopyParameter << std::endl;
+
+
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the energy functional
     // ////////////////////////////////////////////////////////////
 
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    NeumannFunction neumannFunction;
+    NeumannFunction neumannFunction(homotopyParameter);
     
     CosseratEnergyLocalStiffness<GridType::LeafGridView,
                                  typename P1Basis::LocalFiniteElement,
@@ -245,15 +260,6 @@ int main (int argc, char *argv[]) try
                  baseTolerance,
                  instrumented);
     
-    ////////////////////////////////////////////////////////
-    //   Main homotopy loop
-    ////////////////////////////////////////////////////////
-
-    for (int i=0; i<numHomotopySteps; i++) {
-        
-        double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
-        std::cout << "Homotopy step: " << i << ",    parameter: " << homotopyParameter << std::endl;
-
         ////////////////////////////////////////////////////////
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
