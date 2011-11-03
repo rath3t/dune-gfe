@@ -142,7 +142,7 @@ void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
     int quadOrder = 3;
     
     const Dune::QuadratureRule<double, domainDim>& quad 
-        = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
+        = Dune::QuadratureRules<double, domainDim>::rule(f.type(), quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
