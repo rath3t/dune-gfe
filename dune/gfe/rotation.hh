@@ -532,9 +532,7 @@ public:
         // Compute the geodesical distance between a and b on SO(3)
         // Due to numerical dirt, diff[3] may be larger than 1. 
         // In that case, use 1 instead of diff[3].
-        return (diff[3] > 1.0)
-            ? 0
-            : 2*std::acos( std::min(diff[3],1.0) );
+        return 2*std::acos( std::min(diff[3],1.0) );
     }
 
     /** \brief Compute the vector in T_aSO(3) that is mapped by the exponential map
@@ -556,7 +554,7 @@ public:
 
         } else {
             
-            T dist = 2*std::acos( std::min(diff[3],1.0) );
+            T dist = 2*std::acos( diff[3] );
             
             T invSinc = 1/sincHalf(dist);
             
