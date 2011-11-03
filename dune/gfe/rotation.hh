@@ -528,7 +528,12 @@ public:
 
         diff.invert();
         diff = diff.mult(b);
-        
+
+        // Make sure we do the right thing if a and b are not in the same sheet
+        // of the double covering of the unit quaternions over SO(3)
+        if (dist>=M_PI)
+            diff *= -1;
+ 
         // Compute the geodesical distance between a and b on SO(3)
         // Due to numerical dirt, diff[3] may be larger than 1. 
         // In that case, use 1 instead of diff[3].
@@ -555,7 +560,14 @@ public:
         } else {
             
             T dist = 2*std::acos( diff[3] );
-            
+
+            // Make sure we do the right thing if a and b are not in the same sheet
+            // of the double covering of the unit quaternions over SO(3)
+            if (dist>=M_PI) {
+                dist -= M_PI;
+                diff *= -1;
+            }
+
             T invSinc = 1/sincHalf(dist);
             
             // Compute difference on T_a SO(3)
