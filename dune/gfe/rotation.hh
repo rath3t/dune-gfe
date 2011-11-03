@@ -454,7 +454,12 @@ public:
         return APseudoInv;
     }
 
-    /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$. */
+    /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$. 
+     *
+     *  The formula is taken from 'J.C.Simo, N.Tarnom, M.Doblare - Non-linear dynamics of
+     *  three-dimensional rods:Exact energy and momentum conserving algorithms'
+     *  (but the corrected version with 0.25 instead of 0.5 in the denominator)
+     */
     static Rotation<3,T> cayley(const SkewMatrix<T,3>& s) {
         Rotation<3,T> q;
 
@@ -475,7 +480,10 @@ public:
         return q;
     }
     
-    /** \brief The inverse of the Cayley mapping. */
+    /** \brief The inverse of the Cayley mapping. 
+     *
+     *  The formula is taken from J.M.Selig - Cayley Maps for SE(3).
+     */
     static SkewMatrix<T,3>  cayleyInv(const Rotation<3,T> q) {
        
         Dune::FieldMatrix<T,3,3> mat;
