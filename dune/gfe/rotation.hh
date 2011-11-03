@@ -454,7 +454,7 @@ public:
         return APseudoInv;
     }
 
-    /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$.
+    /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$. 
      *
      *  The formula is taken from 'J.C.Simo, N.Tarnom, M.Doblare - Non-linear dynamics of
      *  three-dimensional rods:Exact energy and momentum conserving algorithms'
@@ -480,7 +480,7 @@ public:
         return q;
     }
     
-    /** \brief The inverse of the Cayley mapping.
+    /** \brief The inverse of the Cayley mapping. 
      *
      *  The formula is taken from J.M.Selig - Cayley Maps for SE(3).
      */
@@ -529,13 +529,6 @@ public:
         diff.invert();
         diff = diff.mult(b);
         
-        T dist = 2*std::acos( std::min(diff[3],1.0) );
-            
-        // Make sure we do the right thing if a and b are not in the same sheet
-        // of the double covering of the unit quaternions over SO(3)
-        if (dist>=M_PI)
-            diff *= -1;
-
         // Compute the geodesical distance between a and b on SO(3)
         // Due to numerical dirt, diff[3] may be larger than 1. 
         // In that case, use 1 instead of diff[3].
@@ -564,13 +557,6 @@ public:
         } else {
             
             T dist = 2*std::acos( std::min(diff[3],1.0) );
-            
-            // Make sure we do the right thing if a and b are not in the same sheet
-            // of the double covering of the unit quaternions over SO(3)
-            if (dist>=M_PI) {
-                dist -= M_PI;
-                diff *= -1;
-            }
             
             T invSinc = 1/sincHalf(dist);
             
