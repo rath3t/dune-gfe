@@ -531,6 +531,8 @@ public:
 
         // Make sure we do the right thing if a and b are not in the same sheet
         // of the double covering of the unit quaternions over SO(3)
+        T dist = 2*std::acos( std::min(diff[3],1.0) );
+
         if (dist>=M_PI)
             diff *= -1;
  
