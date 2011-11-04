@@ -268,6 +268,20 @@ public:
         // The actual exponential map
         return exp(p, vMatrix);
     }
+     /** \brief The exponential map from a given point $p \in SO(3)$.
+     
+        \param v A tangent vector.
+     */
+    static Rotation<3,T> exp(const Rotation<3,T>& p, const TangentVector& v) {
+        
+        // embedded tangent vector
+        Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
+        Quaternion<T> embeddedTangent;
+        basis.mtv(v, embeddedTangent);
+        
+        return exp(p,embeddedTangent);
+
+    }
        
     /** \brief Compute tangent vector from given basepoint and skew symmetric matrix. */ 
     static TangentVector skewToTangentVector(const Rotation<3,T>& p, const SkewMatrix<T,3>& v ) {
