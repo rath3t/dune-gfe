@@ -350,13 +350,13 @@ void test()
 
 int main() try
 {
-    test<UnitVector<2> >();
-    test<UnitVector<3> >();
-    test<UnitVector<4> >();
+    test<UnitVector<double,2> >();
+    test<UnitVector<double,3> >();
+    test<UnitVector<double,4> >();
 
-    test<Rotation<3> >();
+    test<Rotation<double,3> >();
     
-    test<RigidBodyMotion<3> >();
+    test<RigidBodyMotion<double,3> >();
     
 } catch (Exception e) {
 

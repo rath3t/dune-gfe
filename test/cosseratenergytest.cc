@@ -16,7 +16,7 @@ const int dim = 2;
 
 const double eps = 1e-4;
 
-typedef RigidBodyMotion<3> TargetSpace;
+typedef RigidBodyMotion<double,3> TargetSpace;
 
 using namespace Dune;
 
@@ -138,8 +138,8 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
     // rotate the entire configuration
     std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
     
-    std::vector<Rotation<3> > testRotations;
-    ValueFactory<Rotation<3> >::get(testRotations);
+    std::vector<Rotation<double,3> > testRotations;
+    ValueFactory<Rotation<double,3> >::get(testRotations);
 
     for (size_t i=0; i<testRotations.size(); i++) {
 
@@ -230,9 +230,9 @@ int main(int argc, char** argv) try
     const int domainDim = 2;
     std::cout << " --- Testing derivative of rotation matrix, domain dimension: " << domainDim << " ---" << std::endl;
 
-    std::vector<Rotation<3,double> > testPoints;
+    std::vector<Rotation<double,3> > testPoints;
     
-    ValueFactory<Rotation<3,double> >::get(testPoints);
+    ValueFactory<Rotation<double,3> >::get(testPoints);
     
     int nTestPoints = testPoints.size();
 

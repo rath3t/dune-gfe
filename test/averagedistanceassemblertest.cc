@@ -88,7 +88,7 @@ void testWeightSet(const std::vector<TargetSpace>& corners,
 
 void testRealTuples()
 {
-    typedef RealTuple<1> TargetSpace;
+    typedef RealTuple<double,1> TargetSpace;
 
     std::vector<TargetSpace> corners = {TargetSpace(1),
                                         TargetSpace(2),
@@ -104,7 +104,7 @@ void testRealTuples()
 
 void testUnitVectors()
 {
-    typedef UnitVector<3> TargetSpace;
+    typedef UnitVector<double,3> TargetSpace;
 
     std::vector<TargetSpace> corners(dim+1);
 
@@ -126,7 +126,7 @@ void testUnitVectors()
 
 void testRotations()
 {
-    typedef Rotation<3,double> TargetSpace;
+    typedef Rotation<double,3> TargetSpace;
 
     FieldVector<double,3> xAxis(0);
     xAxis[0] = 1;
@@ -137,9 +137,9 @@ void testRotations()
 
 
     std::vector<TargetSpace> corners(dim+1);
-    corners[0] = Rotation<3,double>(xAxis,0.1);
-    corners[1] = Rotation<3,double>(yAxis,0.1);
-    corners[2] = Rotation<3,double>(zAxis,0.1);
+    corners[0] = Rotation<double,3>(xAxis,0.1);
+    corners[1] = Rotation<double,3>(yAxis,0.1);
+    corners[2] = Rotation<double,3>(zAxis,0.1);
 
     TargetSpace argument = corners[0];
     testWeightSet(corners, argument);

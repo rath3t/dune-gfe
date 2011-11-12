@@ -6,7 +6,7 @@
 
 #define ABORT_ON_ERROR
 
-void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
+void infinitesimalVariation(RigidBodyMotion<double,3>& c, double eps, int i)
 {
     if (i<3)
         c.r[i] += eps;
@@ -14,12 +14,12 @@ void infinitesimalVariation(RigidBodyMotion<3>& c, double eps, int i)
         Dune::FieldVector<double,3> axial(0);
         axial[i-3] = eps;
         SkewMatrix<double,3> variation(axial);
-        c.q = c.q.mult(Rotation<3,double>::exp(variation));
+        c.q = c.q.mult(Rotation<double,3>::exp(variation));
     }
 }
 
 template <class GridType>
-void strainFD(const std::vector<RigidBodyMotion<3> >& x, 
+void strainFD(const std::vector<RigidBodyMotion<double,3> >& x, 
               double pos,
               Dune::array<Dune::FieldMatrix<double,2,6>, 6>& fdStrainDerivatives,
               const RodAssembler<GridType,3>& assembler) 
@@ -32,8 +32,8 @@ void strainFD(const std::vector<RigidBodyMotion<3> >& x,
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
-    std::vector<RigidBodyMotion<3> > forwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardSolution = x;
     
     for (size_t i=0; i<x.size(); i++) {
         
@@ -64,7 +64,7 @@ void strainFD(const std::vector<RigidBodyMotion<3> >& x,
 
 
 template <class GridType>
-void strain2ndOrderFD(const std::vector<RigidBodyMotion<3> >& x, 
+void strain2ndOrderFD(const std::vector<RigidBodyMotion<double,3> >& x, 
                       double pos,
                       Dune::array<Dune::Matrix<Dune::FieldMatrix<double,6,6> >, 3>& translationDer,
                       Dune::array<Dune::Matrix<Dune::FieldMatrix<double,3,3> >, 3>& rotationDer,
@@ -88,13 +88,13 @@ void strain2ndOrderFD(const std::vector<RigidBodyMotion<3> >& x,
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
-    std::vector<RigidBodyMotion<3> > forwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardSolution = x;
     
-    std::vector<RigidBodyMotion<3> > forwardForwardSolution = x;
-    std::vector<RigidBodyMotion<3> > forwardBackwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardForwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardBackwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardForwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardBackwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardForwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardBackwardSolution = x;
 
     for (int i=0; i<2; i++) {
         
@@ -173,7 +173,7 @@ void strain2ndOrderFD(const std::vector<RigidBodyMotion<3> >& x,
 
 
 template <class GridType>
-void strain2ndOrderFD2(const std::vector<RigidBodyMotion<3> >& x, 
+void strain2ndOrderFD2(const std::vector<RigidBodyMotion<double,3> >& x, 
                        double pos,
                        Dune::FieldVector<double,1> shapeGrad[2],
                        Dune::FieldVector<double,1> shapeFunction[2],
@@ -197,8 +197,8 @@ void strain2ndOrderFD2(const std::vector<RigidBodyMotion<3> >& x,
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
-    std::vector<RigidBodyMotion<3> > forwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardSolution = x;
     
     for (int k=0; k<2; k++) {
         
@@ -268,9 +268,9 @@ void expHessianFD()
                 //                                            - 2*assembler.computeEnergy(x) 
                 //                                            + assembler.computeEnergy(backward)) / (eps*eps);
                 
-                hessian  = Rotation<3,double>::exp(forward);
-                hessian += Rotation<3,double>::exp(backward);
-                hessian.axpy(-2, Rotation<3,double>::exp(0,0,0));
+                hessian  = Rotation<double,3>::exp(forward);
+                hessian += Rotation<double,3>::exp(backward);
+                hessian.axpy(-2, Rotation<double,3>::exp(0,0,0));
                 hessian /= eps*eps;
                 
             } else {
@@ -288,10 +288,10 @@ void expHessianFD()
                 backwardBackward[j] -= eps;
                 
                 
-                hessian  = Rotation<3,double>::exp(forwardForward);
-                hessian += Rotation<3,double>::exp(backwardBackward);
-                hessian -= Rotation<3,double>::exp(forwardBackward);
-                hessian -= Rotation<3,double>::exp(backwardForward);
+                hessian  = Rotation<double,3>::exp(forwardForward);
+                hessian += Rotation<double,3>::exp(backwardBackward);
+                hessian -= Rotation<double,3>::exp(forwardBackward);
+                hessian -= Rotation<double,3>::exp(backwardForward);
                 hessian /= 4*eps*eps;
                 
             }
@@ -306,7 +306,7 @@ void expHessianFD()
 
 
 template <class GridType>
-void gradientFDCheck(const std::vector<RigidBodyMotion<3> >& x, 
+void gradientFDCheck(const std::vector<RigidBodyMotion<double,3> >& x, 
                      const Dune::BlockVector<Dune::FieldVector<double,6> >& gradient, 
                      const RodAssembler<GridType,3>& assembler)
 {
@@ -320,8 +320,8 @@ void gradientFDCheck(const std::vector<RigidBodyMotion<3> >& x,
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
 
-    std::vector<RigidBodyMotion<3> > forwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardSolution = x;
 
     for (size_t i=0; i<x.size(); i++) {
         
@@ -364,7 +364,7 @@ void gradientFDCheck(const std::vector<RigidBodyMotion<3> >& x,
 
 
 template <class GridType>
-void hessianFDCheck(const std::vector<RigidBodyMotion<3> >& x, 
+void hessianFDCheck(const std::vector<RigidBodyMotion<double,3> >& x, 
                     const Dune::BCRSMatrix<Dune::FieldMatrix<double,6,6> >& hessian, 
                     const RodAssembler<GridType,3>& assembler)
 {
@@ -378,13 +378,13 @@ void hessianFDCheck(const std::vector<RigidBodyMotion<3> >& x,
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
-    std::vector<RigidBodyMotion<3> > forwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardSolution = x;
 
-    std::vector<RigidBodyMotion<3> > forwardForwardSolution = x;
-    std::vector<RigidBodyMotion<3> > forwardBackwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardForwardSolution = x;
-    std::vector<RigidBodyMotion<3> > backwardBackwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardForwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > forwardBackwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardForwardSolution = x;
+    std::vector<RigidBodyMotion<double,3> > backwardBackwardSolution = x;
     
 
     // ///////////////////////////////////////////////////////////////

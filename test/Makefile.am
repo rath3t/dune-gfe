@@ -10,9 +10,11 @@ check_PROGRAMS = averagedistanceassemblertest \
                  frameinvariancetest \
                  globalgfetestfunctionbasistest \
                  harmonicenergytest \
+                 interpolationtest \
                  localgeodesicfefunctiontest \
                  localgeodesicfestiffnesstest \
                  localgfetestfunctiontest \
+                 nestednesstest \
                  rotationtest \
                  svdtest \
                  targetspacetest
@@ -29,9 +31,13 @@ localgeodesicfestiffnesstest_SOURCES = localgeodesicfestiffnesstest.cc
 
 localgfetestfunctiontest_SOURCES = localgfetestfunctiontest.cc
 
+nestednesstest_SOURCES = nestednesstest.cc
+
 globalgfetestfunctionbasistest_SOURCES = globalgfetestfunctionbasistest.cc
 
 harmonicenergytest_SOURCES = harmonicenergytest.cc
+
+interpolationtest_SOURCES = interpolationtest.cc
 
 cosseratenergytest_SOURCES = cosseratenergytest.cc
 

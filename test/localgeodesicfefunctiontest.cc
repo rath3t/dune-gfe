@@ -33,7 +33,7 @@ double diameter(const std::vector<TargetSpace>& v)
 
 
 template <int domainDim>
-void testDerivativeTangentiality(const RealTuple<1>& x,
+void testDerivativeTangentiality(const RealTuple<double,1>& x,
                                  const FieldMatrix<double,1,domainDim>& derivative)
 {
     // By construction, derivatives of RealTuples are always tangent
@@ -41,7 +41,7 @@ void testDerivativeTangentiality(const RealTuple<1>& x,
 
 // the columns of the derivative must be tangential to the manifold
 template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const UnitVector<vectorDim>& x,
+void testDerivativeTangentiality(const UnitVector<double,vectorDim>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {
     for (int i=0; i<domainDim; i++) {
@@ -61,14 +61,14 @@ void testDerivativeTangentiality(const UnitVector<vectorDim>& x,
 
 // the columns of the derivative must be tangential to the manifold
 template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const Rotation<vectorDim-1,double>& x,
+void testDerivativeTangentiality(const Rotation<double,vectorDim-1>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {
 }
 
 // the columns of the derivative must be tangential to the manifold
 template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const RigidBodyMotion<3,double>& x,
+void testDerivativeTangentiality(const RigidBodyMotion<double,3>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {
 }
@@ -318,32 +318,32 @@ int main()
     ////////////////////////////////////////////////////////////////
     element.makeSimplex(1);
     
-    test<RealTuple<1>,1>(element);
-    test<UnitVector<2>,1>(element);
-    test<UnitVector<3>,1>(element);
-    test<Rotation<3,double>,1>(element);
-    test<RigidBodyMotion<3,double>,1>(element);
+    test<RealTuple<double,1>,1>(element);
+    test<UnitVector<double,2>,1>(element);
+    test<UnitVector<double,3>,1>(element);
+    test<Rotation<double,3>,1>(element);
+    test<RigidBodyMotion<double,3>,1>(element);
     
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d simplex elements
     ////////////////////////////////////////////////////////////////
     element.makeSimplex(2);
 
-    test<RealTuple<1>,2>(element);
-    test<UnitVector<2>,2>(element);
-    test<UnitVector<3>,2>(element);
-    test<Rotation<3,double>,2>(element);
-    test<RigidBodyMotion<3,double>,2>(element);
+    test<RealTuple<double,1>,2>(element);
+    test<UnitVector<double,2>,2>(element);
+    test<UnitVector<double,3>,2>(element);
+    test<Rotation<double,3>,2>(element);
+    test<RigidBodyMotion<double,3>,2>(element);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d quadrilateral elements
     ////////////////////////////////////////////////////////////////
     element.makeCube(2);
 
-    test<RealTuple<1>,2>(element);
-    test<UnitVector<2>,2>(element);
-    test<UnitVector<3>,2>(element);
-    test<Rotation<3,double>,2>(element);
-    test<RigidBodyMotion<3,double>,2>(element);
+    test<RealTuple<double,1>,2>(element);
+    test<UnitVector<double,2>,2>(element);
+    test<UnitVector<double,3>,2>(element);
+    test<Rotation<double,3>,2>(element);
+    test<RigidBodyMotion<double,3>,2>(element);
 
 }

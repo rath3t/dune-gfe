@@ -73,15 +73,15 @@ int main() try
 
     std::cout << std::setw(15) << std::setprecision(12);
     
-    test<RealTuple<1>, 1>();
+    test<RealTuple<double,1>, 1>();
     
-    test<UnitVector<2>, 1>();
-    test<UnitVector<3>, 1>();
-    test<UnitVector<2>, 2>();
-    test<UnitVector<3>, 2>();
+    test<UnitVector<double,2>, 1>();
+    test<UnitVector<double,3>, 1>();
+    test<UnitVector<double,2>, 2>();
+    test<UnitVector<double,3>, 2>();
         
-    test<Rotation<3,double>, 1>();
-    test<Rotation<3,double>, 2>();
+    test<Rotation<double,3>, 1>();
+    test<Rotation<double,3>, 2>();
 
 } catch (Exception e) {
     std::cout << e << std::endl;
