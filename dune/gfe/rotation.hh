@@ -503,7 +503,7 @@ public:
         Dune::FieldMatrix<T,3,3> mat;
 
         // compute the trace of the rotation matrix
-        double trace = -q[0]*q[0] -q[1]*q[1] -q[2]*q[2]+3*q[3]*q[3];  
+        T trace = -q[0]*q[0] -q[1]*q[1] -q[2]*q[2]+3*q[3]*q[3];  
         
         if ( (trace+1)>1e-6 || (trace+1)<-1e-6) { // if this term doesn't vanish we can use a direct formula
              
@@ -602,7 +602,7 @@ public:
      * Then the return value of this method is
      * \f[ A_{ijk} = \frac{\partial d_{i,j}}{\partial q_k} \f]
      */
-    void getFirstDerivativesOfDirectors(Tensor3<double,3, 3, 4>& dd_dq) const
+    void getFirstDerivativesOfDirectors(Tensor3<T,3, 3, 4>& dd_dq) const
     {
         const Quaternion<T>& q = (*this);
 
