@@ -11,29 +11,29 @@
 Currently this class only exists for testing purposes.
 */
 
-template <int N>
+template <int N, class T=double>
 class RealTuple
 {
 public:
 
-    typedef double ctype;
+    typedef T ctype;
 
     /** \brief The type used for global coordinates */
-    typedef Dune::FieldVector<double,N> CoordinateType;
+    typedef Dune::FieldVector<T,N> CoordinateType;
     
     /** \brief Dimension of the manifold formed by unit vectors */
     static const int dim = N;
 
-    typedef Dune::FieldVector<double,N> EmbeddedTangentVector;
+    typedef Dune::FieldVector<T,N> EmbeddedTangentVector;
 
-    typedef Dune::FieldVector<double,N> TangentVector;
+    typedef Dune::FieldVector<T,N> TangentVector;
 
     /** \brief Default constructor */
     RealTuple()
     {}
 
     /** \brief Construction from a scalar */
-    RealTuple(double v)
+    RealTuple(T v)
     {
         data_ = v;
     }
@@ -44,11 +44,11 @@ public:
     {}
 
     /** \brief Constructor from FieldVector*/
-    RealTuple(const Dune::FieldVector<double,N>& other)
+    RealTuple(const Dune::FieldVector<T,N>& other)
         : data_(other)
     {}
 
-    RealTuple& operator=(const Dune::FieldVector<double,N>& other) {
+    RealTuple& operator=(const Dune::FieldVector<T,N>& other) {
         data_ = other;
         return *this;
     }
@@ -61,7 +61,7 @@ public:
     /** \brief Geodesic distance between two points 
 
     Simply the Euclidean distance */
-    static double distance(const RealTuple& a, const RealTuple& b) {
+    static T distance(const RealTuple& a, const RealTuple& b) {
         return (a.data_ - b.data_).two_norm();
     }
 
@@ -80,9 +80,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
         */
-    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
 
-        Dune::FieldMatrix<double,N,N> result;
+        Dune::FieldMatrix<T,N,N> result;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 result[i][j] = 2*(i==j);
@@ -94,9 +94,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RealTuple& a, const RealTuple& b) {
+    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RealTuple& a, const RealTuple& b) {
         
-        Dune::FieldMatrix<double,N,N> result;
+        Dune::FieldMatrix<T,N,N> result;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 result[i][j] = -2*(i==j);
@@ -108,16 +108,16 @@ public:
 
         The result is the constant zero-tensor.
      */
-    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
-        return Tensor3<double,N,N,N>(0);
+    static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+        return Tensor3<T,N,N,N>(0);
     }
     
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
 
         The result is the constant zero-tensor.
      */
-    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RealTuple& a, const RealTuple& b) {
-        return Tensor3<double,N,N,N>(0);
+    static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RealTuple& a, const RealTuple& b) {
+        return Tensor3<T,N,N,N>(0);
     }
     
     /** \brief Project tangent vector of R^n onto the tangent space */
@@ -126,7 +126,7 @@ public:
     }
 
     /** \brief The global coordinates, if you really want them */
-    const Dune::FieldVector<double,N>& globalCoordinates() const {
+    const Dune::FieldVector<T,N>& globalCoordinates() const {
         return data_;
     }
 
@@ -134,9 +134,9 @@ public:
 
     In general this frame field, may of course not be continuous, but for RealTuples it is.
     */
-    Dune::FieldMatrix<double,N,N> orthonormalFrame() const {
+    Dune::FieldMatrix<T,N,N> orthonormalFrame() const {
 
-        Dune::FieldMatrix<double,N,N> result;
+        Dune::FieldMatrix<T,N,N> result;
         
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
@@ -152,7 +152,7 @@ public:
 
 private:
     
-    Dune::FieldVector<double,N> data_;
+    Dune::FieldVector<T,N> data_;
 
 };
 

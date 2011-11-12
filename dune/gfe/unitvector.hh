@@ -9,18 +9,19 @@
 /** \brief A unit vector in R^N
 
     \tparam N Dimension of the embedding space
+    \tparam T The type used for individual coordinates
 */
-template <int N>
+template <int N, class T=double>
 class UnitVector
 {
     /** \brief Computes sin(x) / x without getting unstable for small x */
-    static double sinc(const double& x) {
+    static T sinc(const T& x) {
         return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
     }
 
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
-    static double derivativeOfArcCosSquared(const double& x) {
-        const double eps = 1e-4;
+    static T derivativeOfArcCosSquared(const T& x) {
+        const T eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1);
         } else if (x < -1+eps) {  // The function is not differentiable
@@ -30,8 +31,8 @@ class UnitVector
     }
 
     /** \brief Compute the second derivative of arccos^2 without getting unstable for x close to 1 */
-    static double secondDerivativeOfArcCosSquared(const double& x) {
-        const double eps = 1e-4;
+    static T secondDerivativeOfArcCosSquared(const T& x) {
+        const T eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return 2.0/3 - 8*(x-1)/15;
         } else if (x < -1+eps) {  // The function is not differentiable
@@ -41,14 +42,14 @@ class UnitVector
     }
 
     /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
-    static double thirdDerivativeOfArcCosSquared(const double& x) {
-        const double eps = 1e-4;
+    static T thirdDerivativeOfArcCosSquared(const T& x) {
+        const T eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return -8.0/15 + 24*(x-1)/35;
         } else if (x < -1+eps) {  // The function is not differentiable
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else {
-            double d = 1-x*x;
+            T d = 1-x*x;
             return 6*x/(d*d) - 6*x*x*std::acos(x)/(d*d*std::sqrt(d)) - 2*std::acos(x)/(d*std::sqrt(d));
         }
     }
@@ -56,10 +57,10 @@ class UnitVector
 public:
 
     /** \brief The type used for coordinates */
-    typedef double ctype;
+    typedef T ctype;
 
     /** \brief The type used for global coordinates */
-    typedef Dune::FieldVector<double,N> CoordinateType;
+    typedef Dune::FieldVector<T,N> CoordinateType;
     
     /** \brief Dimension of the manifold formed by unit vectors */
     static const int dim = N-1;
@@ -67,30 +68,30 @@ public:
     /** \brief Dimension of the Euclidean space the manifold is embedded in */
     static const int embeddedDim = N;
 
-    typedef Dune::FieldVector<double,N-1> TangentVector;
+    typedef Dune::FieldVector<T,N-1> TangentVector;
 
-    typedef Dune::FieldVector<double,N> EmbeddedTangentVector;
+    typedef Dune::FieldVector<T,N> EmbeddedTangentVector;
     
     /** \brief Default constructor */
     UnitVector()
     {}
     
     /** \brief Constructor from a vector.  The vector gets normalized */
-    UnitVector(const Dune::FieldVector<double,N>& vector)
+    UnitVector(const Dune::FieldVector<T,N>& vector)
         : data_(vector)
     {
         data_ /= data_.two_norm();
     }
     
     /** \brief Constructor from an array.  The array gets normalized */
-    UnitVector(const Dune::array<double,N>& vector)
+    UnitVector(const Dune::array<T,N>& vector)
     {
         for (int i=0; i<N; i++)
             data_[i] = vector[i];
         data_ /= data_.two_norm();
     }
 
-    UnitVector<N>& operator=(const Dune::FieldVector<double,N>& vector)
+    UnitVector<N>& operator=(const Dune::FieldVector<T,N>& vector)
     {
         data_ = vector;
         data_ /= data_.two_norm();
@@ -100,7 +101,7 @@ public:
      /** \brief The exponential map */
     static UnitVector exp(const UnitVector& p, const TangentVector& v) {
 
-        Dune::FieldMatrix<double,N-1,N> frame = p.orthonormalFrame();
+        Dune::FieldMatrix<T,N-1,N> frame = p.orthonormalFrame();
 
         EmbeddedTangentVector ev;
         frame.mtv(v,ev);
@@ -113,7 +114,7 @@ public:
 
         assert( std::abs(p.data_*v) < 1e-5 );
 
-        const double norm = v.two_norm();
+        const T norm = v.two_norm();
         UnitVector result = p;
         result.data_ *= std::cos(norm);
         result.data_.axpy(sinc(norm), v);
@@ -121,12 +122,12 @@ public:
     }
 
     /** \brief Length of the great arc connecting the two points */
-     static double distance(const UnitVector& a, const UnitVector& b) {
+     static T distance(const UnitVector& a, const UnitVector& b) {
 
          // Not nice: we are in a class for unit vectors, but the class is actually
          // supposed to handle perturbations of unit vectors as well.  Therefore
          // we normalize here.
-         double x = a.data_ * b.data_/a.data_.two_norm()/b.data_.two_norm();
+         T x = a.data_ * b.data_/a.data_.two_norm()/b.data_.two_norm();
          
          // paranoia:  if the argument is just eps larger than 1 acos returns NaN
          x = std::min(x,1.0);
@@ -139,7 +140,7 @@ public:
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& a, const UnitVector& b) {
-        double x = a.data_ * b.data_;
+        T x = a.data_ * b.data_;
 
         EmbeddedTangentVector result = a.data_;
 
@@ -158,13 +159,13 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
+    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
 
-        double sp = p.data_ * q.data_;
+        T sp = p.data_ * q.data_;
         
-        Dune::FieldVector<double,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+        Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
-        Dune::FieldMatrix<double,N,N> A;
+        Dune::FieldMatrix<T,N,N> A;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 A[i][j] = pProjected[i]*pProjected[j];
@@ -172,7 +173,7 @@ public:
         A *= secondDerivativeOfArcCosSquared(sp);
 
         // Compute matrix B (see notes)
-        Dune::FieldMatrix<double,N,N> Pq;
+        Dune::FieldMatrix<T,N,N> Pq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 Pq[i][j] = (i==j) - q.data_[i]*q.data_[j];
@@ -187,33 +188,33 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<double,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const UnitVector& a, const UnitVector& b) {
+    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const UnitVector& a, const UnitVector& b) {
 
-        double sp = a.data_ * b.data_;
+        T sp = a.data_ * b.data_;
 
         // Compute vector A (see notes)
-        Dune::FieldMatrix<double,1,N> row;
+        Dune::FieldMatrix<T,1,N> row;
         row[0] = b.projectOntoTangentSpace(a.globalCoordinates());
 
-        Dune::FieldVector<double,N> tmp = a.projectOntoTangentSpace(b.globalCoordinates());
-        Dune::FieldMatrix<double,N,1> column;
+        Dune::FieldVector<T,N> tmp = a.projectOntoTangentSpace(b.globalCoordinates());
+        Dune::FieldMatrix<T,N,1> column;
         for (int i=0; i<N; i++)  // turn row vector into column vector
             column[i] = tmp[i];
 
-        Dune::FieldMatrix<double,N,N> A;
+        Dune::FieldMatrix<T,N,N> A;
         // A = row * column
         Dune::FMatrixHelp::multMatrix(column,row,A);
         A *= secondDerivativeOfArcCosSquared(sp);
 
         // Compute matrix B (see notes)
-        Dune::FieldMatrix<double,N,N> Pp, Pq;
+        Dune::FieldMatrix<T,N,N> Pp, Pq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++) {
                 Pp[i][j] = (i==j) - a.data_[i]*a.data_[j];
                 Pq[i][j] = (i==j) - b.data_[i]*b.data_[j];
             }
             
-        Dune::FieldMatrix<double,N,N> B;
+        Dune::FieldMatrix<T,N,N> B;
         Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
 
         // Bring it all together
@@ -227,19 +228,19 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
+    static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
 
-        Tensor3<double,N,N,N> result;
+        Tensor3<T,N,N,N> result;
 
-        double sp = p.data_ * q.data_;
+        T sp = p.data_ * q.data_;
         
         // The projection matrix onto the tangent space at p and q
-        Dune::FieldMatrix<double,N,N> Pq;
+        Dune::FieldMatrix<T,N,N> Pq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
             
-        Dune::FieldVector<double,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+        Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
@@ -262,24 +263,24 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<double,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const UnitVector& p, const UnitVector& q) {
+    static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const UnitVector& p, const UnitVector& q) {
 
-        Tensor3<double,N,N,N> result;
+        Tensor3<T,N,N,N> result;
 
-        double sp = p.data_ * q.data_;
+        T sp = p.data_ * q.data_;
         
         // The projection matrix onto the tangent space at p and q
-        Dune::FieldMatrix<double,N,N> Pp, Pq;
+        Dune::FieldMatrix<T,N,N> Pp, Pq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++) {
                 Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
             }
             
-        Dune::FieldVector<double,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
-        Dune::FieldVector<double,N> qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
+        Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+        Dune::FieldVector<T,N> qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
         
-        Tensor3<double,N,N,N> derivativeOfPqOTimesPq;
+        Tensor3<T,N,N,N> derivativeOfPqOTimesPq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 for (int k=0; k<N; k++) {
@@ -288,10 +289,10 @@ public:
                         derivativeOfPqOTimesPq[i][j][k] += Pp[i][l] * (Pq[j][l]*pProjected[k] + pProjected[j]*Pq[k][l]);
                 }
                 
-        result = thirdDerivativeOfArcCosSquared(sp)         * Tensor3<double,N,N,N>::product(qProjected,pProjected,pProjected)
+        result = thirdDerivativeOfArcCosSquared(sp)         * Tensor3<T,N,N,N>::product(qProjected,pProjected,pProjected)
                  + secondDerivativeOfArcCosSquared(sp)      * derivativeOfPqOTimesPq
-                 - secondDerivativeOfArcCosSquared(sp) * sp * Tensor3<double,N,N,N>::product(qProjected,Pq)
-                 - derivativeOfArcCosSquared(sp)            * Tensor3<double,N,N,N>::product(qProjected,Pq);
+                 - secondDerivativeOfArcCosSquared(sp) * sp * Tensor3<T,N,N,N>::product(qProjected,Pq)
+                 - derivativeOfArcCosSquared(sp)            * Tensor3<T,N,N,N>::product(qProjected,Pq);
                
         return result;
     }
@@ -313,12 +314,12 @@ public:
 
     This basis is of course not globally continuous.
     */
-    Dune::FieldMatrix<double,N-1,N> orthonormalFrame() const {
+    Dune::FieldMatrix<T,N-1,N> orthonormalFrame() const {
 
-        Dune::FieldMatrix<double,N-1,N> result;
+        Dune::FieldMatrix<T,N-1,N> result;
 
         // Coordinates of the stereographic projection
-        Dune::FieldVector<double,N-1> X;
+        Dune::FieldVector<T,N-1> X;
         
         if (data_[N-1] <= 0) {
             
@@ -334,7 +335,7 @@ public:
             
         }
             
-        double RSquared = X.two_norm2();
+        T RSquared = X.two_norm2();
             
         for (size_t i=0; i<N-1; i++)
             for (size_t j=0; j<N-1; j++)
@@ -365,7 +366,7 @@ public:
 
 private:
 
-    Dune::FieldVector<double,N> data_;
+    Dune::FieldVector<T,N> data_;
 };
 
 #endif
