@@ -18,7 +18,7 @@ using namespace Dune;
 
 void testDDExp()
 {
-    std::tr1::array<FieldVector<double,3>, 125> v;
+    array<FieldVector<double,3>, 125> v;
     int ct = 0;
     double eps = 1e-4;
 
@@ -94,7 +94,7 @@ void testDDExp()
 
 void testDerivativeOfInterpolatedPosition()
 {
-    std::tr1::array<Quaternion<double>, 6> q;
+    array<Quaternion<double>, 6> q;
 
     FieldVector<double,3>  xAxis(0);    xAxis[0] = 1;
     FieldVector<double,3>  yAxis(0);    yAxis[1] = 1;
@@ -117,7 +117,7 @@ void testDerivativeOfInterpolatedPosition()
 
                 double s = k/6.0;
 
-                std::tr1::array<Quaternion<double>,6> fdGrad;
+                array<Quaternion<double>,6> fdGrad;
 
                 // ///////////////////////////////////////////////////////////
                 //   First: test the interpolated position
@@ -147,7 +147,7 @@ void testDerivativeOfInterpolatedPosition()
                 fdGrad[5] /= 2*eps;
 
                 // Compute analytical gradient
-                std::tr1::array<Quaternion<double>,6> grad;
+                array<Quaternion<double>,6> grad;
                 RodLocalStiffness<OneDGrid,double>::interpolationDerivative(q[i], q[j], s, grad);
 
                 for (int l=0; l<6; l++) {
