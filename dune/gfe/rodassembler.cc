@@ -13,7 +13,7 @@
 
 template <class GridView>
 void RodAssembler<GridView,3>::
-assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
+assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
     using namespace Dune;
@@ -34,7 +34,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
         static const int nDofs = 2;
 
         // Extract local solution
-        std::vector<RigidBodyMotion<3> > localSolution(nDofs);
+        std::vector<RigidBodyMotion<double,3> > localSolution(nDofs);
         
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
@@ -58,7 +58,7 @@ assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
 
 template <class GridView>
 void RodAssembler<GridView,3>::
-getStrain(const std::vector<RigidBodyMotion<3> >& sol,
+getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const
 {
     using namespace Dune;
@@ -84,7 +84,7 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
         Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
         int numOfBaseFct = localFiniteElement.localCoefficients().size();
 
-        std::vector<RigidBodyMotion<3> > localSolution(2);
+        std::vector<RigidBodyMotion<double,3> > localSolution(2);
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
@@ -121,7 +121,7 @@ getStrain(const std::vector<RigidBodyMotion<3> >& sol,
 
 template <class GridView>
 void RodAssembler<GridView,3>::
-getStress(const std::vector<RigidBodyMotion<3> >& sol,
+getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const
 {
     // Get the strain
@@ -144,7 +144,7 @@ template <class GridView>
 template <class PatchGridView>
 Dune::FieldVector<double,6> RodAssembler<GridView,3>::
 getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
-                  const std::vector<RigidBodyMotion<3> >& sol) const
+                  const std::vector<RigidBodyMotion<double,3> >& sol) const
 {
     using namespace Dune;
 
@@ -171,11 +171,11 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
 
             double pos = it->geometryInInside().corner(0);
 
-            std::vector<RigidBodyMotion<3> > localSolution(2);
+            std::vector<RigidBodyMotion<double,3> > localSolution(2);
             localSolution[0] = sol[indexSet.subIndex(*it->inside(),0,1)];
             localSolution[1] = sol[indexSet.subIndex(*it->inside(),1,1)];
 
-            std::vector<RigidBodyMotion<3> > localRefConf(2);
+            std::vector<RigidBodyMotion<double,3> > localRefConf(2);
             localRefConf[0] = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.subIndex(*it->inside(),0,1)];
             localRefConf[1] = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.subIndex(*it->inside(),1,1)];
 
@@ -222,7 +222,7 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
 
 template <class GridView>
 void RodAssembler<GridView,2>::
-assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
+assembleMatrix(const std::vector<RigidBodyMotion<double,2> >& sol,
                Dune::BCRSMatrix<MatrixBlock>& matrix)
 {
     Dune::MatrixIndexSet neighborsPerVertex;
@@ -240,7 +240,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
         const int numOfBaseFct = 2;  
         
         // Extract local solution
-        std::vector<RigidBodyMotion<2> > localSolution(numOfBaseFct);
+        std::vector<RigidBodyMotion<double,2> > localSolution(numOfBaseFct);
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
@@ -273,7 +273,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
 template <class GridView>
 void RodAssembler<GridView,2>::
 getLocalMatrix( EntityType &entity, 
-                const std::vector<RigidBodyMotion<2> >& localSolution,
+                const std::vector<RigidBodyMotion<double,2> >& localSolution,
                 Dune::Matrix<MatrixBlock>& localMat) const
 {
     /* ndof is the number of vectors of the element */
@@ -420,7 +420,7 @@ getLocalMatrix( EntityType &entity,
 
 template <class GridView>
 void RodAssembler<GridView,2>::
-assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
+assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
     if (sol.size()!=this->basis_.size())
@@ -439,7 +439,7 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
         Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
         const int numOfBaseFct = localFiniteElement.localBasis().size();  
         
-        RigidBodyMotion<2> localSolution[numOfBaseFct];
+        RigidBodyMotion<double,2> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
@@ -519,7 +519,7 @@ assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
 
 template <class GridView>
 double RodAssembler<GridView,2>::
-computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
+computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const
 {
     double energy = 0;
 
@@ -537,7 +537,7 @@ computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const
 
         int numOfBaseFct = localFiniteElement.localBasis().size();
 
-        RigidBodyMotion<2> localSolution[numOfBaseFct];
+        RigidBodyMotion<double,2> localSolution[numOfBaseFct];
         
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];

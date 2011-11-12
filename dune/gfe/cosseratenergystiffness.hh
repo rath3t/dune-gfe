@@ -15,11 +15,11 @@
 
 template<class GridView, class LocalFiniteElement, int dim>
 class CosseratEnergyLocalStiffness 
-    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<dim> >
+    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<double,dim> >
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
-    typedef RigidBodyMotion<dim> TargetSpace;
+    typedef RigidBodyMotion<double,dim> TargetSpace;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
     
@@ -74,7 +74,7 @@ class CosseratEnergyLocalStiffness
 
 public:  // for testing
     /** \brief Compute the derivative of the rotation, but wrt matrix coordinates */
-    static void computeDR(const RigidBodyMotion<3>& value, 
+    static void computeDR(const RigidBodyMotion<double,3>& value, 
                           const Dune::FieldMatrix<double,7,gridDim>& derivative,
                           Tensor3<double,3,3,3>& DR)
     {
@@ -201,7 +201,7 @@ typename CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim>::RT
 CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
-       const std::vector<RigidBodyMotion<dim> >& localSolution) const
+       const std::vector<RigidBodyMotion<double,dim> >& localSolution) const
 {
     RT energy = 0;
 
@@ -226,7 +226,7 @@ energy(const Entity& element,
         double weight = quad[pt].weight() * integrationElement;
         
         // The value of the local function
-        RigidBodyMotion<dim> value = localGeodesicFEFunction.evaluate(quadPos);
+        RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
         // The derivative of the local function defined on the reference element
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
@@ -314,7 +314,7 @@ energy(const Entity& element,
             const double integrationElement = it->geometry().integrationElement(quad[pt].position());
 
             // The value of the local function
-            RigidBodyMotion<dim> value = localGeodesicFEFunction.evaluate(quadPos);
+            RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
             // Value of the Neumann data at the current position
             Dune::FieldVector<double,3> neumannValue;

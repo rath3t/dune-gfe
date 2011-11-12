@@ -24,7 +24,7 @@ class RodAssembler
 /** \brief The FEM operator for an extensible, shearable rod in 3d
  */
 template <class GridView>
-class RodAssembler<GridView,3> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<3> >
+class RodAssembler<GridView,3> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,3> >
 {
         
     //typedef typename GridType::template Codim<0>::Entity EntityType;
@@ -46,9 +46,9 @@ public:
         //! ???
     RodAssembler(const GridView &gridView,
                  RodLocalStiffness<GridView,double>* localStiffness) 
-        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<3> >(gridView,localStiffness)
+        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,3> >(gridView,localStiffness)
         { 
-            std::vector<RigidBodyMotion<3> > referenceConfiguration(gridView.size(gridDim));
+            std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(gridDim));
 
             typename GridView::template Codim<gridDim>::Iterator it    = gridView.template begin<gridDim>();
             typename GridView::template Codim<gridDim>::Iterator endIt = gridView.template end<gridDim>();
@@ -60,23 +60,23 @@ public:
                 referenceConfiguration[idx].r[0] = 0;
                 referenceConfiguration[idx].r[1] = 0;
                 referenceConfiguration[idx].r[2] = it->geometry().corner(0)[0];
-                referenceConfiguration[idx].q = Rotation<3,double>::identity();
+                referenceConfiguration[idx].q = Rotation<double,3>::identity();
             }
 
             dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
         }
 
-        std::vector<RigidBodyMotion<3> > getRefConfig()
+        std::vector<RigidBodyMotion<double,3> > getRefConfig()
         {   return  dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_;
         }
 
-        void assembleGradient(const std::vector<RigidBodyMotion<3> >& sol,
+        void assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
                               Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
-        void getStrain(const std::vector<RigidBodyMotion<3> >& sol, 
+        void getStrain(const std::vector<RigidBodyMotion<double,3> >& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
 
-        void getStress(const std::vector<RigidBodyMotion<3> >& sol, 
+        void getStress(const std::vector<RigidBodyMotion<double,3> >& sol, 
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const;
 
         /** \brief Return resultant force across boundary in canonical coordinates 
@@ -84,7 +84,7 @@ public:
         \note Linear run-time in the size of the grid */
         template <class PatchGridView>
         Dune::FieldVector<double,6> getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
-                                                      const std::vector<RigidBodyMotion<3> >& sol) const;
+                                                      const std::vector<RigidBodyMotion<double,3> >& sol) const;
 
     }; // end class
 
@@ -92,7 +92,7 @@ public:
 /** \brief The FEM operator for a 2D extensible, shearable rod
  */
 template <class GridView>
-class RodAssembler<GridView,2> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<2> >
+class RodAssembler<GridView,2> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,2> >
 {
     
     typedef typename GridView::template Codim<0>::Entity EntityType;
@@ -118,7 +118,7 @@ public:
     
     //! ???
     RodAssembler(const GridView &gridView) 
-        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<2> >(gridView,NULL)
+        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,2> >(gridView,NULL)
     { 
         B = 1;
         A1 = 1;
@@ -135,20 +135,20 @@ public:
     
     /** \brief Assemble the tangent stiffness matrix and the right hand side
      */
-    void assembleMatrix(const std::vector<RigidBodyMotion<2> >& sol,
+    void assembleMatrix(const std::vector<RigidBodyMotion<double,2> >& sol,
                         Dune::BCRSMatrix<MatrixBlock>& matrix);
     
-    void assembleGradient(const std::vector<RigidBodyMotion<2> >& sol,
+    void assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
                           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
     
     /** \brief Compute the energy of a deformation state */
-    double computeEnergy(const std::vector<RigidBodyMotion<2> >& sol) const;
+    double computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const;
     
 protected:
     
     /** \brief Compute the element tangent stiffness matrix  */
     void getLocalMatrix( EntityType &entity, 
-                         const std::vector<RigidBodyMotion<2> >& localSolution, 
+                         const std::vector<RigidBodyMotion<double,2> >& localSolution, 
                          Dune::Matrix<MatrixBlock>& mat) const;
     
 }; // end class

@@ -560,9 +560,9 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
 \tparam ctype Type used for coordinates on the reference element
 */
 template <int dim, class ctype, class LocalFiniteElement>
-class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<3> >
+class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<double,3> >
 {
-    typedef RigidBodyMotion<3> TargetSpace;
+    typedef RigidBodyMotion<double,3> TargetSpace;
     
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::dimension;
@@ -582,11 +582,11 @@ public:
         for (size_t i=0; i<coefficients.size(); i++)
             translationCoefficients_[i] = coefficients[i].r;
         
-        std::vector<Rotation<3,ctype> > orientationCoefficients(coefficients.size());
+        std::vector<Rotation<ctype,3> > orientationCoefficients(coefficients.size());
         for (size_t i=0; i<coefficients.size(); i++)
             orientationCoefficients[i] = coefficients[i].q;
         
-        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> >(localFiniteElement,orientationCoefficients));
+        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<double,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<double,3> >(localFiniteElement,orientationCoefficients));
         
     }
 
@@ -765,7 +765,7 @@ private:
     
     std::vector<Dune::FieldVector<double,3> > translationCoefficients_;
     
-    std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<3,double> > > orientationFEFunction_;
+    std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<double,3> > > orientationFEFunction_;
 };
 
 

@@ -27,7 +27,7 @@ class CosseratAmiraMeshWriter
     public:
 
         DeformationFunction(const HostGridView& gridView,
-                            const std::vector<RigidBodyMotion<3> >& deformedPosition)
+                            const std::vector<RigidBodyMotion<double,3> >& deformedPosition)
             : gridView_(gridView),
               deformedPosition_(deformedPosition)
         {}
@@ -57,14 +57,14 @@ class CosseratAmiraMeshWriter
 
         HostGridView gridView_;
 
-        const std::vector<RigidBodyMotion<3> > deformedPosition_;
+        const std::vector<RigidBodyMotion<double,3> > deformedPosition_;
 
     };
 
     
 public:
     static void write(const GridType& grid,
-                      const std::vector<RigidBodyMotion<3> >& configuration,
+                      const std::vector<RigidBodyMotion<double,3> >& configuration,
                       const std::string& filePrefix)
     {
 
