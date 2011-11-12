@@ -243,13 +243,13 @@ void expHessianFD()
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
     // ///////////////////////////////////////////////////////////
-    FieldVector<double,3> forward;
-    FieldVector<double,3> backward;
+    SkewMatrix<double,3> forward;
+    SkewMatrix<double,3> backward;
     
-    FieldVector<double,3> forwardForward;
-    FieldVector<double,3> forwardBackward;
-    FieldVector<double,3> backwardForward;
-    FieldVector<double,3> backwardBackward;
+    SkewMatrix<double,3> forwardForward;
+    SkewMatrix<double,3> forwardBackward;
+    SkewMatrix<double,3> backwardForward;
+    SkewMatrix<double,3> backwardBackward;
 
     for (int i=0; i<3; i++) {
         
@@ -260,8 +260,8 @@ void expHessianFD()
             if (i==j) {
 
                 forward = backward = 0;
-                forward[i]  += eps;
-                backward[i] -= eps;
+                forward.axial()[i]  += eps;
+                backward.axial()[i] -= eps;
                 
                 // Second derivative
                 //                         fdHessian[j][k] = (assembler.computeEnergy(forward) 
@@ -278,14 +278,14 @@ void expHessianFD()
                 forwardForward = forwardBackward = 0;
                 backwardForward = backwardBackward = 0;
 
-                forwardForward[i]   += eps;
-                forwardForward[j]   += eps;
-                forwardBackward[i]  += eps;
-                forwardBackward[j]  -= eps;
-                backwardForward[i]  -= eps;
-                backwardForward[j]  += eps;
-                backwardBackward[i] -= eps;
-                backwardBackward[j] -= eps;
+                forwardForward.axial()[i]   += eps;
+                forwardForward.axial()[j]   += eps;
+                forwardBackward.axial()[i]  += eps;
+                forwardBackward.axial()[j]  -= eps;
+                backwardForward.axial()[i]  -= eps;
+                backwardForward.axial()[j]  += eps;
+                backwardBackward.axial()[i] -= eps;
+                backwardBackward.axial()[j] -= eps;
                 
                 
                 hessian  = Rotation<double,3>::exp(forwardForward);
