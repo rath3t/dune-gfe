@@ -11,7 +11,7 @@
 Currently this class only exists for testing purposes.
 */
 
-template <int N, class T=double>
+template <class T, int N>
 class RealTuple
 {
 public:
@@ -39,7 +39,7 @@ public:
     }
 
     /** \brief Copy constructor */
-    RealTuple(const RealTuple<N>& other)
+    RealTuple(const RealTuple<T,N>& other)
         : data_(other.data_)
     {}
 

@@ -15,7 +15,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/skewmatrix.hh>
 
-template <int dim, class T=double>
+template <class T, int dim>
 class Rotation
 {
 
@@ -25,7 +25,7 @@ class Rotation
     \tparam T The type used for coordinates
 */
 template <class T>
-class Rotation<2,T>
+class Rotation<T,2>
 {
 public:
     /** \brief The type used for coordinates */
@@ -55,13 +55,13 @@ public:
     {}
 
     /** \brief Return the identity element */
-    static Rotation<2,T> identity() {
+    static Rotation<T,2> identity() {
         // Default constructor creates an identity
-        Rotation<2,T> id;
+        Rotation<T,2> id;
         return id;
     }
 
-    static T distance(const Rotation<2,T>& a, const Rotation<2,T>& b) {
+    static T distance(const Rotation<T,2>& a, const Rotation<T,2>& b) {
         T dist = a.angle_ - b.angle_;
         while (dist < 0)
             dist += 2*M_PI;
@@ -72,36 +72,36 @@ public:
     }
 
     /** \brief The exponential map from a given point $p \in SO(3)$. */
-    static Rotation<2,T> exp(const Rotation<2,T>& p, const TangentVector& v) {
-        Rotation<2,T> result = p;
+    static Rotation<T,2> exp(const Rotation<T,2>& p, const TangentVector& v) {
+        Rotation<T,2> result = p;
         result.angle_ += v;
         return result;
     }
 
     /** \brief The exponential map from \f$ \mathfrak{so}(2) \f$ to \f$ SO(2) \f$
      */
-    static Rotation<2,T> exp(const Dune::FieldVector<T,1>& v) {
-        Rotation<2,T> result;
+    static Rotation<T,2> exp(const Dune::FieldVector<T,1>& v) {
+        Rotation<T,2> result;
         result.angle_ = v[0];
         return result;
     }
 
-    static TangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
-                                                                      const Rotation<2,T>& b) {
+    static TangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,2>& a, 
+                                                                      const Rotation<T,2>& b) {
         // This assertion is here to remind me of the following laziness:
         // The difference has to be computed modulo 2\pi
         assert( std::fabs(a.angle_ - b.angle_) <= M_PI );
         return -2 * (a.angle_ - b.angle_);
     }
 
-    static Dune::FieldMatrix<T,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<2,T>& a, 
-                                                                                            const Rotation<2,T>& b) {
+    static Dune::FieldMatrix<T,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,2>& a, 
+                                                                                            const Rotation<T,2>& b) {
         return 2;
     }
 
     /** \brief Right multiplication */
-    Rotation<2,T> mult(const Rotation<2,T>& other) const {
-        Rotation<2,T> q = *this;
+    Rotation<T,2> mult(const Rotation<T,2>& other) const {
+        Rotation<T,2> q = *this;
         q.angle_ += other.angle_;
         return q;
     }
@@ -122,7 +122,7 @@ public:
 
 //! Send configuration to output stream
 template <class T>
-std::ostream& operator<< (std::ostream& s, const Rotation<2,T>& c)
+std::ostream& operator<< (std::ostream& s, const Rotation<T,2>& c)
   {
       return s << "[" << c.angle_ << "  (" << std::sin(c.angle_) << " " << std::cos(c.angle_) << ") ]";
   }
@@ -133,7 +133,7 @@ std::ostream& operator<< (std::ostream& s, const Rotation<2,T>& c)
 Uses unit quaternion coordinates.
 */
 template <class T>
-class Rotation<3,T> : public Quaternion<T>
+class Rotation<T,3> : public Quaternion<T>
 {
 
     /** \brief Computes sin(x/2) / x without getting unstable for small x */
@@ -177,7 +177,7 @@ public:
         : Quaternion<T>(0,0,0,1)
     {}
     
-    Rotation<3,T>(const Dune::array<T,4>& c)
+    Rotation<T,3>(const Dune::array<T,4>& c)
     {
         for (int i=0; i<4; i++)
             (*this)[i] = c[i];
@@ -185,26 +185,26 @@ public:
         *this /= this->two_norm();
     }
     
-    Rotation<3,T>(const Dune::FieldVector<T,4>& c)
+    Rotation<T,3>(const Dune::FieldVector<T,4>& c)
         : Quaternion<T>(c)
     {
         *this /= this->two_norm();
     }
     
-    Rotation<3,T>(Dune::FieldVector<T,3> axis, T angle) 
+    Rotation<T,3>(Dune::FieldVector<T,3> axis, T angle) 
         : Quaternion<T>(axis, angle)
     {}
 
     /** \brief Return the identity element */
-    static Rotation<3,T> identity() {
+    static Rotation<T,3> identity() {
         // Default constructor creates an identity
-        Rotation<3,T> id;
+        Rotation<T,3> id;
         return id;
     }
 
     /** \brief Right multiplication */
-    Rotation<3,T> mult(const Rotation<3,T>& other) const {
-        Rotation<3,T> q;
+    Rotation<T,3> mult(const Rotation<T,3>& other) const {
+        Rotation<T,3> q;
         q[0] =   (*this)[3]*other[0] - (*this)[2]*other[1] + (*this)[1]*other[2] + (*this)[0]*other[3];
         q[1] =   (*this)[2]*other[0] + (*this)[3]*other[1] - (*this)[0]*other[2] + (*this)[1]*other[3];
         q[2] = - (*this)[1]*other[0] + (*this)[0]*other[1] + (*this)[3]*other[2] + (*this)[2]*other[3];
@@ -215,8 +215,8 @@ public:
 
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
-    static Rotation<3,T> exp(const SkewMatrix<T,3>& v) {
-        Rotation<3,T> q;
+    static Rotation<T,3> exp(const SkewMatrix<T,3>& v) {
+        Rotation<T,3> q;
 
         Dune::FieldVector<T,3> vAxial = v.axial();
         T normV = vAxial.two_norm();
@@ -237,8 +237,8 @@ public:
 
     
     /** \brief The exponential map from a given point $p \in SO(3)$. */
-    static Rotation<3,T> exp(const Rotation<3,T>& p, const SkewMatrix<T,3>& v) {
-        Rotation<3,T> corr = exp(v);
+    static Rotation<T,3> exp(const Rotation<T,3>& p, const SkewMatrix<T,3>& v) {
+        Rotation<T,3> corr = exp(v);
         return p.mult(corr);
     }
 
@@ -248,7 +248,7 @@ public:
         
         \param v A tangent vector in quaternion coordinates
      */
-    static Rotation<3,T> exp(const Rotation<3,T>& p, const EmbeddedTangentVector& v) {
+    static Rotation<T,3> exp(const Rotation<T,3>& p, const EmbeddedTangentVector& v) {
         
         assert( std::fabs(p*v) < 1e-8 );
         
@@ -272,7 +272,7 @@ public:
      
         \param v A tangent vector.
      */
-    static Rotation<3,T> exp(const Rotation<3,T>& p, const TangentVector& v) {
+    static Rotation<T,3> exp(const Rotation<T,3>& p, const TangentVector& v) {
         
         // embedded tangent vector
         Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
@@ -284,7 +284,7 @@ public:
     }
        
     /** \brief Compute tangent vector from given basepoint and skew symmetric matrix. */ 
-    static TangentVector skewToTangentVector(const Rotation<3,T>& p, const SkewMatrix<T,3>& v ) {
+    static TangentVector skewToTangentVector(const Rotation<T,3>& p, const SkewMatrix<T,3>& v ) {
 
         // embedded tangent vector at identity
         Quaternion<T> vAtIdentity(0);
@@ -306,7 +306,7 @@ public:
     }
 
     /** \brief Compute skew matrix from given basepoint and tangent vector. */ 
-    static SkewMatrix<T,3> tangentToSkew(const Rotation<3,T>& p, const TangentVector& tangent) {
+    static SkewMatrix<T,3> tangentToSkew(const Rotation<T,3>& p, const TangentVector& tangent) {
         
         // embedded tangent vector
         Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
@@ -317,7 +317,7 @@ public:
     }
 
     /** \brief Compute skew matrix from given basepoint and an embedded tangent vector. */ 
-    static SkewMatrix<T,3> tangentToSkew(const Rotation<3,T>& p, const EmbeddedTangentVector& q) {
+    static SkewMatrix<T,3> tangentToSkew(const Rotation<T,3>& p, const EmbeddedTangentVector& q) {
         
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(q);
@@ -331,7 +331,7 @@ public:
         return skew;
     }
 
-    static Rotation<3,T> exp(const Rotation<3,T>& p, const Dune::FieldVector<T,4>& v) {
+    static Rotation<T,3> exp(const Rotation<T,3>& p, const Dune::FieldVector<T,4>& v) {
         
         assert( std::fabs(p*v) < 1e-8 );
         
@@ -415,7 +415,7 @@ public:
     }
 
     /** \brief The inverse of the exponential map */
-    static Dune::FieldVector<T,3> expInv(const Rotation<3,T>& q) {
+    static Dune::FieldVector<T,3> expInv(const Rotation<T,3>& q) {
         // Compute v = exp^{-1} q
         // Due to numerical dirt, q[3] may be larger than 1. 
         // In that case, use 1 instead of q[3].
@@ -437,7 +437,7 @@ public:
     }
 
     /** \brief The derivative of the inverse of the exponential map, evaluated at q */
-    static Dune::FieldMatrix<T,3,4> DexpInv(const Rotation<3,T>& q) {
+    static Dune::FieldMatrix<T,3,4> DexpInv(const Rotation<T,3>& q) {
         
         // Compute v = exp^{-1} q
         Dune::FieldVector<T,3> v = expInv(q);
@@ -474,8 +474,8 @@ public:
      *  three-dimensional rods:Exact energy and momentum conserving algorithms'
      *  (but the corrected version with 0.25 instead of 0.5 in the denominator)
      */
-    static Rotation<3,T> cayley(const SkewMatrix<T,3>& s) {
-        Rotation<3,T> q;
+    static Rotation<T,3> cayley(const SkewMatrix<T,3>& s) {
+        Rotation<T,3> q;
 
         Dune::FieldVector<T,3> vAxial = s.axial();
         T norm = 0.25*vAxial.two_norm2() + 1;
@@ -498,7 +498,7 @@ public:
      *
      *  The formula is taken from J.M.Selig - Cayley Maps for SE(3).
      */
-    static SkewMatrix<T,3>  cayleyInv(const Rotation<3,T> q) {
+    static SkewMatrix<T,3>  cayleyInv(const Rotation<T,3> q) {
        
         Dune::FieldMatrix<T,3,3> mat;
 
@@ -509,7 +509,7 @@ public:
              
             q.matrix(mat);
             Dune::FieldMatrix<T,3,3> matT;
-            Rotation<3,T>(q.inverse()).matrix(matT);
+            Rotation<T,3>(q.inverse()).matrix(matT);
             mat -= matT;
             mat *= 2/(1+trace);
         }
@@ -537,7 +537,7 @@ public:
 
     }
 
-    static T distance(const Rotation<3,T>& a, const Rotation<3,T>& b) {
+    static T distance(const Rotation<T,3>& a, const Rotation<T,3>& b) {
         Quaternion<T> diff = a;
 
         diff.invert();
@@ -559,7 +559,7 @@ public:
     /** \brief Compute the vector in T_aSO(3) that is mapped by the exponential map
         to the geodesic from a to b
     */
-    static SkewMatrix<T,3> difference(const Rotation<3,T>& a, const Rotation<3,T>& b) {
+    static SkewMatrix<T,3> difference(const Rotation<T,3>& a, const Rotation<T,3>& b) {
 
         Quaternion<T> diff = a;
         diff.invert();
@@ -620,10 +620,10 @@ public:
 
     }
 
-    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, 
-                                                                      const Rotation<3,T>& q) {
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, 
+                                                                      const Rotation<T,3>& q) {
         
-        Rotation<3,T> pInv = p;
+        Rotation<T,3> pInv = p;
         pInv.invert();
         
         // the forth component of pInv times q
@@ -650,9 +650,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
         // use the functionality from the unitvector class
-        Dune::FieldMatrix<T,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
+        Dune::FieldMatrix<T,4,4> result = UnitVector<T,4>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
                                                                                                                  q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -665,9 +665,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
         // use the functionality from the unitvector class
-        Dune::FieldMatrix<T,4,4> result = UnitVector<4>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.globalCoordinates(),
+        Dune::FieldMatrix<T,4,4> result = UnitVector<T,4>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.globalCoordinates(),
                                                                                                                          q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -680,9 +680,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
         // use the functionality from the unitvector class
-        Tensor3<T,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
+        Tensor3<T,4,4,4> result = UnitVector<T,4>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
                                                                                                         q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -695,9 +695,9 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const Rotation<3,T>& p, const Rotation<3,T>& q) {
+    static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
         // use the functionality from the unitvector class
-        Tensor3<T,4,4,4> result = UnitVector<4>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.globalCoordinates(),
+        Tensor3<T,4,4,4> result = UnitVector<T,4>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.globalCoordinates(),
                                                                                                                   q.globalCoordinates());
         // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
         // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
@@ -710,7 +710,7 @@ public:
 
     
     /** \brief Interpolate between two rotations */
-    static Rotation<3,T> interpolate(const Rotation<3,T>& a, const Rotation<3,T>& b, T omega) {
+    static Rotation<T,3> interpolate(const Rotation<T,3>& a, const Rotation<T,3>& b, T omega) {
 
         // Compute difference on T_a SO(3)
         SkewMatrix<T,3> v = difference(a,b);
@@ -723,7 +723,7 @@ public:
     /** \brief Interpolate between two rotations 
         \param omega must be between 0 and 1
     */
-    static Quaternion<T> interpolateDerivative(const Rotation<3,T>& a, const Rotation<3,T>& b, 
+    static Quaternion<T> interpolateDerivative(const Rotation<T,3>& a, const Rotation<T,3>& b, 
                                                T omega) {
         Quaternion<T> result(0);
 

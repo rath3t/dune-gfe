@@ -7,16 +7,16 @@
 #include "rotation.hh"
 
 /** \brief A rigid-body motion in R^N, i.e., a member of SE(N) */
-template <int N, class T=double>
+template <class T, int N>
 struct RigidBodyMotion
 {
 public:
     
     /** \brief Dimension of manifold */
-    static const int dim = N + Rotation<N,T>::dim;
+    static const int dim = N + Rotation<T,N>::dim;
     
     /** \brief Dimension of the embedding space */
-    static const int embeddedDim = N + Rotation<N,T>::embeddedDim;
+    static const int embeddedDim = N + Rotation<T,N>::embeddedDim;
     
     /** \brief Type of an infinitesimal rigid body motion */
     typedef Dune::FieldVector<T, dim> TangentVector;
@@ -36,7 +36,7 @@ public:
     
     /** \brief Constructor from a translation and a rotation */
     RigidBodyMotion(const Dune::FieldVector<ctype, N>& translation,
-                    const Rotation<N,ctype>& rotation)
+                    const Rotation<ctype,N>& rotation)
     : r(translation), q(rotation)
     {}
 
@@ -59,9 +59,9 @@ public:
      and then the compiler complains about having two methods with the same signature.
      */
     template <class TVector>
-    static RigidBodyMotion<N,ctype> exp(const RigidBodyMotion<N,ctype>& p, const TVector& v) {
+    static RigidBodyMotion<ctype,N> exp(const RigidBodyMotion<ctype,N>& p, const TVector& v) {
 
-        RigidBodyMotion<N,ctype> result;
+        RigidBodyMotion<ctype,N> result;
 
         // Add translational correction
         for (int i=0; i<N; i++)
@@ -69,29 +69,29 @@ public:
 
         // Add rotational correction
         typedef typename Dune::SelectType<Dune::is_same<TVector,TangentVector>::value,
-                                          typename Rotation<N,ctype>::TangentVector,
-                                          typename Rotation<N,ctype>::EmbeddedTangentVector>::Type RotationTangentVector;
+                                          typename Rotation<ctype,N>::TangentVector,
+                                          typename Rotation<ctype,N>::EmbeddedTangentVector>::Type RotationTangentVector;
         RotationTangentVector qCorr;
         for (int i=0; i<RotationTangentVector::dimension; i++)
             qCorr[i] = v[N+i];
 
-        result.q = Rotation<N,ctype>::exp(p.q, qCorr);
+        result.q = Rotation<ctype,N>::exp(p.q, qCorr);
         return result;
     }
 
     /** \brief Compute geodesic distance from a to b */
-    static T distance(const RigidBodyMotion<N,ctype>& a, const RigidBodyMotion<N,ctype>& b) {
+    static T distance(const RigidBodyMotion<ctype,N>& a, const RigidBodyMotion<ctype,N>& b) {
         
         T euclideanDistanceSquared = (a.r - b.r).two_norm2();
         
-        T rotationDistance = Rotation<N,ctype>::distance(a.q, b.q);
+        T rotationDistance = Rotation<ctype,N>::distance(a.q, b.q);
         
         return std::sqrt(euclideanDistanceSquared + rotationDistance*rotationDistance);
     }
     
     /** \brief Compute difference vector from a to b on the tangent space of a */
-    static TangentVector difference(const RigidBodyMotion<N,ctype>& a,
-                                    const RigidBodyMotion<N,ctype>& b) {
+    static TangentVector difference(const RigidBodyMotion<ctype,N>& a,
+                                    const RigidBodyMotion<ctype,N>& b) {
 
         TangentVector result;
 
@@ -100,17 +100,17 @@ public:
             result[i] = a.r[i] - b.r[i];
 
         // Subtract orientations on the tangent space of 'a'
-        typename Rotation<N,ctype>::TangentVector v = Rotation<N,ctype>::difference(a.q, b.q).axial();
+        typename Rotation<ctype,N>::TangentVector v = Rotation<ctype,N>::difference(a.q, b.q).axial();
 
         // Compute difference on T_a SO(3)
-        for (int i=0; i<Rotation<N,ctype>::TangentVector::dimension; i++)
+        for (int i=0; i<Rotation<ctype,N>::TangentVector::dimension; i++)
             result[i+N] = v[i];
 
         return result;
     }
     
-    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<N,ctype>& a,
-                                                                              const RigidBodyMotion<N,ctype>& b) {
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<ctype,N>& a,
+                                                                              const RigidBodyMotion<ctype,N>& b) {
 
         // linear part
         Dune::FieldVector<ctype,N> linearDerivative = a.r;
@@ -118,28 +118,28 @@ public:
         linearDerivative *= -2;
 
         // rotation part
-        typename Rotation<N,ctype>::EmbeddedTangentVector rotationDerivative 
-                = Rotation<N,ctype>::derivativeOfDistanceSquaredWRTSecondArgument(a.q, b.q);
+        typename Rotation<ctype,N>::EmbeddedTangentVector rotationDerivative 
+                = Rotation<ctype,N>::derivativeOfDistanceSquaredWRTSecondArgument(a.q, b.q);
         
         return concat(linearDerivative, rotationDerivative);
     }
     
     /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
-    static Dune::FieldMatrix<T,embeddedDim,embeddedDim> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<N,ctype> & p, const RigidBodyMotion<N,ctype> & q)
+    static Dune::FieldMatrix<T,embeddedDim,embeddedDim> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
     {
         Dune::FieldMatrix<T,embeddedDim,embeddedDim> result(0);
         
         // The linear part
-        Dune::FieldMatrix<T,N,N> linearPart = RealTuple<N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
+        Dune::FieldMatrix<T,N,N> linearPart = RealTuple<T,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 result[i][j] = linearPart[i][j];
 
         // The rotation part
-        Dune::FieldMatrix<T,Rotation<N,T>::embeddedDim,Rotation<N,T>::embeddedDim> rotationPart 
-                = Rotation<N,ctype>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
-        for (int i=0; i<Rotation<N,T>::embeddedDim; i++)
-            for (int j=0; j<Rotation<N,T>::embeddedDim; j++)
+        Dune::FieldMatrix<T,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim> rotationPart 
+                = Rotation<ctype,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+            for (int j=0; j<Rotation<T,N>::embeddedDim; j++)
                 result[N+i][N+j] = rotationPart[i][j];
 
         return result;
@@ -149,21 +149,21 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<T,embeddedDim,embeddedDim> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RigidBodyMotion<N,ctype> & p, const RigidBodyMotion<N,ctype> & q)
+    static Dune::FieldMatrix<T,embeddedDim,embeddedDim> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
     {
         Dune::FieldMatrix<T,embeddedDim,embeddedDim> result(0);
         
         // The linear part
-        Dune::FieldMatrix<T,N,N> linearPart = RealTuple<N>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.r,q.r);
+        Dune::FieldMatrix<T,N,N> linearPart = RealTuple<T,N>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.r,q.r);
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 result[i][j] = linearPart[i][j];
 
         // The rotation part
-        Dune::FieldMatrix<T,Rotation<N,T>::embeddedDim,Rotation<N,T>::embeddedDim> rotationPart 
-                = Rotation<N,ctype>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.q,q.q);
-        for (int i=0; i<Rotation<N,T>::embeddedDim; i++)
-            for (int j=0; j<Rotation<N,T>::embeddedDim; j++)
+        Dune::FieldMatrix<T,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim> rotationPart 
+                = Rotation<ctype,N>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.q,q.q);
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+            for (int j=0; j<Rotation<T,N>::embeddedDim; j++)
                 result[N+i][N+j] = rotationPart[i][j];
 
         return result;
@@ -173,24 +173,24 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<T,embeddedDim,embeddedDim,embeddedDim> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<N,ctype> & p, const RigidBodyMotion<N,ctype> & q)
+    static Tensor3<T,embeddedDim,embeddedDim,embeddedDim> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
     {
         Tensor3<T,embeddedDim,embeddedDim,embeddedDim> result(0);
         
         // The linear part
-        Tensor3<T,N,N,N> linearPart = RealTuple<N>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
+        Tensor3<T,N,N,N> linearPart = RealTuple<T,N>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 for (int k=0; k<N; k++)
                     result[i][j][k] = linearPart[i][j][k];
 
         // The rotation part
-        Tensor3<T,Rotation<N,T>::embeddedDim,Rotation<N,T>::embeddedDim,Rotation<N,T>::embeddedDim> rotationPart 
-                = Rotation<N,ctype>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
+        Tensor3<T,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim> rotationPart 
+                = Rotation<ctype,N>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
                 
-        for (int i=0; i<Rotation<N,T>::embeddedDim; i++)
-            for (int j=0; j<Rotation<N,T>::embeddedDim; j++)
-                for (int k=0; k<Rotation<N,T>::embeddedDim; k++)
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+            for (int j=0; j<Rotation<T,N>::embeddedDim; j++)
+                for (int k=0; k<Rotation<T,N>::embeddedDim; k++)
                     result[N+i][N+j][N+k] = rotationPart[i][j][k];
 
         return result;
@@ -200,22 +200,22 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<T,embeddedDim,embeddedDim,embeddedDim> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RigidBodyMotion<N,ctype> & p, const RigidBodyMotion<N,ctype> & q)
+    static Tensor3<T,embeddedDim,embeddedDim,embeddedDim> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
     {
         Tensor3<T,embeddedDim,embeddedDim,embeddedDim> result(0);
         
         // The linear part
-        Tensor3<T,N,N,N> linearPart = RealTuple<N>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.r,q.r);
+        Tensor3<T,N,N,N> linearPart = RealTuple<T,N>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.r,q.r);
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 for (int k=0; k<N; k++)
                     result[i][j][k] = linearPart[i][j][k];
 
         // The rotation part
-        Tensor3<T,Rotation<N,T>::embeddedDim,Rotation<N,T>::embeddedDim,Rotation<N,T>::embeddedDim> rotationPart = Rotation<N,ctype>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.q,q.q);
-        for (int i=0; i<Rotation<N,T>::embeddedDim; i++)
-            for (int j=0; j<Rotation<N,T>::embeddedDim; j++)
-                for (int k=0; k<Rotation<N,T>::embeddedDim; k++)
+        Tensor3<T,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim> rotationPart = Rotation<ctype,N>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.q,q.q);
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+            for (int j=0; j<Rotation<T,N>::embeddedDim; j++)
+                for (int k=0; k<Rotation<T,N>::embeddedDim; k++)
                     result[N+i][N+j][N+k] = rotationPart[i][j][k];
 
         return result;
@@ -240,10 +240,10 @@ public:
         for (int i=0; i<N; i++)
             result[i][i] = 1;
         
-        Dune::FieldMatrix<T,Rotation<N>::dim,Rotation<N>::embeddedDim> SO3Part = q.orthonormalFrame();
+        Dune::FieldMatrix<T,Rotation<T,N>::dim,Rotation<T,N>::embeddedDim> SO3Part = q.orthonormalFrame();
 
-        for (int i=0; i<Rotation<N>::dim; i++)
-            for (int j=0; j<Rotation<N>::embeddedDim; j++)
+        for (int i=0; i<Rotation<T,N>::dim; i++)
+            for (int j=0; j<Rotation<T,N>::embeddedDim; j++)
                 result[N+i][N+j] = SO3Part[i][j];
 
         return result;
@@ -260,7 +260,7 @@ public:
     Dune::FieldVector<ctype, N> r;
 
     // Rotational part
-    Rotation<N,ctype> q;
+    Rotation<ctype,N> q;
     
 private:
     
@@ -281,7 +281,7 @@ private:
 
 //! Send configuration to output stream
 template <int N, class ctype>
-std::ostream& operator<< (std::ostream& s, const RigidBodyMotion<N,ctype>& c)
+std::ostream& operator<< (std::ostream& s, const RigidBodyMotion<ctype,N>& c)
   {
       s << "(" << c.r << ")  (" << c.q << ")";
       return s;

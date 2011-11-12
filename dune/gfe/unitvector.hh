@@ -11,7 +11,7 @@
     \tparam N Dimension of the embedding space
     \tparam T The type used for individual coordinates
 */
-template <int N, class T=double>
+template <class T, int N>
 class UnitVector
 {
     /** \brief Computes sin(x) / x without getting unstable for small x */
@@ -91,7 +91,7 @@ public:
         data_ /= data_.two_norm();
     }
 
-    UnitVector<N>& operator=(const Dune::FieldVector<T,N>& vector)
+    UnitVector<T,N>& operator=(const Dune::FieldVector<T,N>& vector)
     {
         data_ = vector;
         data_ /= data_.two_norm();
