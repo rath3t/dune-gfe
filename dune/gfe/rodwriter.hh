@@ -16,7 +16,7 @@ class RodWriter
 {
 public:
     
-    static void writeBinary(const std::vector<RigidBodyMotion<3> >& rod, 
+    static void writeBinary(const std::vector<RigidBodyMotion<double,3> >& rod, 
                             const std::string& filename)
     {
         FILE* fpRod = fopen(filename.c_str(), "wb");
@@ -41,7 +41,7 @@ public:
 
 /** \brief Write a planar rod
  */
-void writeRod(const std::vector<RigidBodyMotion<2> >& rod, 
+void writeRod(const std::vector<RigidBodyMotion<double,2> >& rod, 
               const std::string& filename)
 {
     int nLines = rod.size() + 1 + 3*rod.size();
@@ -124,7 +124,7 @@ void writeRod(const std::vector<RigidBodyMotion<2> >& rod,
 
 /** \brief Write a spatial rod
  */
-void writeRod(const std::vector<RigidBodyMotion<3> >& rod, 
+void writeRod(const std::vector<RigidBodyMotion<double,3> >& rod, 
               const std::string& filename,
               double radius = 1.0)
 {

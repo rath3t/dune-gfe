@@ -28,11 +28,11 @@ public:
 \param[in] n The number of vertices
 */
 template <int dim>
-    void create(std::vector<RigidBodyMotion<dim> >& rod,
+    void create(std::vector<RigidBodyMotion<double,dim> >& rod,
                      const Dune::FieldVector<double,3>& beginning, const Dune::FieldVector<double,3>& end)
 {
     // Compute the correct orientation
-    Rotation<3,double> orientation = Rotation<3,double>::identity();
+    Rotation<double,dim> orientation = Rotation<double,dim>::identity();
 
     Dune::FieldVector<double,3> zAxis(0);
     zAxis[2] = 1;
@@ -46,10 +46,10 @@ template <int dim>
     double angle = std::acos(zAxis * d3);
 
     if (angle != 0)
-        orientation = Rotation<3,double>(axis, angle);
+        orientation = Rotation<double,3>(axis, angle);
 
         // Set the values
-        create(rod, RigidBodyMotion<dim>(beginning,orientation), RigidBodyMotion<dim>(end,orientation));
+        create(rod, RigidBodyMotion<double,dim>(beginning,orientation), RigidBodyMotion<double,dim>(end,orientation));
 }
 
 
@@ -58,9 +58,9 @@ template <int dim>
 \param[out] rod The new rod
 */
     template <int spaceDim>
-    void create(std::vector<RigidBodyMotion<spaceDim> >& rod,
-                     const RigidBodyMotion<3,double>& beginning,
-                     const RigidBodyMotion<3,double>& end)
+    void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
+                     const RigidBodyMotion<double,spaceDim>& beginning,
+                     const RigidBodyMotion<double,spaceDim>& end)
 {
     
     static const int dim = GridView::dimension;  // de facto: 1
@@ -92,7 +92,7 @@ template <int dim>
 
         for (int i=0; i<3; i++)
             rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
-        rod[idx].q = Rotation<3,double>::interpolate(beginning.q, end.q, local);
+        rod[idx].q = Rotation<double,3>::interpolate(beginning.q, end.q, local);
     }
 }
 
@@ -101,8 +101,8 @@ template <int dim>
     \param[out] rod The new rod
     */
     template <int spaceDim>
-    void create(std::vector<RigidBodyMotion<spaceDim> >& rod,
-                const RigidBodyMotion<spaceDim,double>& value)
+    void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
+                const RigidBodyMotion<double,spaceDim>& value)
     {
         rod.resize(gridView_.size(1));
         std::fill(rod.begin(), rod.end(), value);
@@ -114,7 +114,7 @@ template <int dim>
         \param[in,out] rod The new rod
     */
     template <int spaceDim>
-    void create(std::vector<RigidBodyMotion<spaceDim> >& rod)
+    void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod)
     {
         static const int dim = GridView::dimension;  // de facto: 1
         assert(gridView_.size(dim)==rod.size());
@@ -128,7 +128,7 @@ template <int dim>
     
         double min =  std::numeric_limits<double>::max();
         double max = -std::numeric_limits<double>::max();
-        RigidBodyMotion<spaceDim> beginning, end;
+        RigidBodyMotion<double,spaceDim> beginning, end;
     
         for (; vIt != vEndIt; ++vIt) {
             if (vIt->geometry().corner(0)[0] < min) {
@@ -153,7 +153,7 @@ template <int dim>
 
             for (int i=0; i<3; i++)
                 rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
-            rod[idx].q = Rotation<3,double>::interpolate(beginning.q, end.q, local);
+            rod[idx].q = Rotation<double,3>::interpolate(beginning.q, end.q, local);
         }
     }
 
