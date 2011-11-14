@@ -24,7 +24,7 @@ class RodContinuumDDStep
     static const int dim = ContinuumGridType::dimension;
     
     // The type used for rod configurations
-    typedef std::vector<RigidBodyMotion<dim> > RodConfigurationType;
+    typedef std::vector<RigidBodyMotion<double,dim> > RodConfigurationType;
 
     // The type used for continuum configurations
     typedef Dune::BlockVector<Dune::FieldVector<double,dim> > VectorType;
@@ -41,7 +41,7 @@ public:
     /** \brief Constructor for a complex with one rod and one continuum */
     RodContinuumDDStep(const RodContinuumComplex<RodGridType,ContinuumGridType>& complex/*,
                                     RodAssembler<typename RodGridType::LeafGridView,3>* rodAssembler,
-                                    RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* rodSolver,
+                                    RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<double,3> >* rodSolver,
                                     const MatrixType* stiffnessMatrix3d,
                                     const Dune::shared_ptr< ::LoopSolver<VectorType> > solver*/)
       : complex_(complex)
@@ -61,7 +61,7 @@ public:
     /** \brief Do one domain decomposition step
      * \param[in,out] lambda The old and new iterate
      */
-    virtual void iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> >& lambda) = 0;
+    virtual void iterate(std::map<std::pair<std::string,std::string>, RigidBodyMotion<double,3> >& lambda) = 0;
 
 protected:
 
@@ -98,7 +98,7 @@ protected:
     
         RodLocalStiffness<typename RodGridType::LeafGridView,double>* localStiffness_;
     
-        RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> >* solver_;
+        RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<double,3> >* solver_;
     };
     
     /** \brief Simple const access to rods */

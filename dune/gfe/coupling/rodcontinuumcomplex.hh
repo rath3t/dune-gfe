@@ -20,7 +20,7 @@ class RodContinuumComplex
     
     static const int dim = ContinuumGrid::dimension;
 
-    typedef std::vector<RigidBodyMotion<3> > RodConfiguration;
+    typedef std::vector<RigidBodyMotion<double,3> > RodConfiguration;
     
     typedef Dune::BlockVector<Dune::FieldVector<double,3> > ContinuumConfiguration;
     
@@ -32,7 +32,7 @@ class RodContinuumComplex
         BoundaryPatch<typename ContinuumGrid::LeafGridView> continuumInterfaceBoundary_;
         
         /** \brief The orientation of the interface in the reference configuration */
-        RigidBodyMotion<dim> referenceInterface_;
+        RigidBodyMotion<double,dim> referenceInterface_;
     };
     
     /** \brief Holds all data for a rod subproblem */
