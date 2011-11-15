@@ -3,7 +3,8 @@
 #include <iostream>
 
 #include <dune/common/fvector.hh>
-#include <dune/grid/common/quadraturerules.hh>
+#include <dune/geometry/quadraturerules.hh>
+#include <dune/geometry/type.hh>
 
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/realtuple.hh>

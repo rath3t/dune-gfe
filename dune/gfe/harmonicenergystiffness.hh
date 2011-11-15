@@ -2,7 +2,7 @@
 #define HARMONIC_ENERGY_LOCAL_STIFFNESS_HH
 
 #include <dune/common/fmatrix.hh>
-#include <dune/grid/common/quadraturerules.hh>
+#include <dune/geometry/quadraturerules.hh>
 
 #include "localgeodesicfestiffness.hh"
 #include "localgeodesicfefunction.hh"

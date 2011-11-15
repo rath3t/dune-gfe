@@ -5,6 +5,8 @@
 
 #include <dune/common/fvector.hh>
 
+#include <dune/geometry/type.hh>
+
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
 #include <dune/gfe/rigidbodymotion.hh>

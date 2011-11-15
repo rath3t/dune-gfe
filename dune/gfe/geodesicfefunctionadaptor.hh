@@ -4,6 +4,8 @@
 #include <vector>
 #include <map>
 
+#include<dune/geometry/referenceelements.hh>
+
 #include <dune/fufem/functionspacebases/p2nodalbasis.hh>
 
 #include "localgeodesicfefunction.hh"

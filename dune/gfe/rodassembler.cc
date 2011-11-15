@@ -3,7 +3,7 @@
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
 
-#include <dune/grid/common/quadraturerules.hh>
+#include <dune/geometry/quadraturerules.hh>
 
 #include <dune/localfunctions/lagrange/p1.hh>
 

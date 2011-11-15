@@ -3,7 +3,7 @@
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/parametertree.hh>
-#include <dune/grid/common/quadraturerules.hh>
+#include <dune/geometry/quadraturerules.hh>
 
 #include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>

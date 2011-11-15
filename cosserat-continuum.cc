@@ -34,7 +34,7 @@ const int dim = 2;
 
 // Image space of the geodesic fe functions
 #ifdef RIGIDBODYMOTION3
-typedef RigidBodyMotion<3> TargetSpace;
+typedef RigidBodyMotion<double,3> TargetSpace;
 #endif
 
 // Tangent vector of the image space

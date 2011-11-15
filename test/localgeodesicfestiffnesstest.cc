@@ -5,6 +5,8 @@
 
 #include <dune/istl/io.hh>
 
+#include <dune/geometry/type.hh>
+
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/localgeodesicfestiffness.hh>

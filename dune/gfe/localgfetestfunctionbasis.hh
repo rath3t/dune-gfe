@@ -5,7 +5,7 @@
 
 #include <dune/common/fvector.hh>
 #include <dune/common/array.hh>
-#include <dune/common/geometrytype.hh>
+#include <dune/geometry/type.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/tensor3.hh>

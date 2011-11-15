@@ -1,6 +1,9 @@
 #ifndef AVERAGE_INTERFACE_HH
 #define AVERAGE_INTERFACE_HH
 
+#include <dune/geometry/referenceelements.hh>
+#include <dune/geometry/quadraturerules.hh>
+
 #include <dune/common/fmatrix.hh>
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 #include <dune/istl/solvers.hh>

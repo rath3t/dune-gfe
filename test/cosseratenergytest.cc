@@ -2,6 +2,9 @@
 
 #include <dune/grid/uggrid.hh>
 
+#include <dune/geometry/type.hh>
+#include <dune/geometry/quadraturerules.hh>
+
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
 #include <dune/fufem/functions/constantfunction.hh>
