@@ -508,7 +508,7 @@ void computeTotalForceAndTorque(const BoundaryPatch<GridView>& interface,
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
 // Neumann data for a 3d elasticity problem.
 template <class GridView>
-void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>::TangentVector& resultantForceTorque,
+void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dimension>::TangentVector& resultantForceTorque,
                             const BoundaryPatch<GridView>& interface,
                             const Dune::FieldVector<double,GridView::dimension>& centerOfTorque,
                             Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> >& pressure)
@@ -712,7 +712,7 @@ void computeAveragePressure(const typename RigidBodyMotion<GridView::dimension>:
 template <class GridView>
 void computeAverageInterface(const BoundaryPatch<GridView>& interface,
                              const Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> > deformation,
-                             RigidBodyMotion<3>& average)
+                             RigidBodyMotion<double,3>& average)
 {
     using namespace Dune;
 
@@ -863,15 +863,15 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
 template <class GridView>
 void setRotation(const BoundaryPatch<GridView>& dirichletBoundary,
                  Dune::BlockVector<Dune::FieldVector<double,GridView::dimension> >& deformation,
-                 const RigidBodyMotion<3>& referenceInterface,
-                 const RigidBodyMotion<3>& lambda)
+                 const RigidBodyMotion<double,3>& referenceInterface,
+                 const RigidBodyMotion<double,3>& lambda)
 {
     const typename GridView::IndexSet& indexSet = dirichletBoundary.gridView().indexSet();
     const int dim        = GridView::dimension;
     const int dimworld   = GridView::dimensionworld;
 
     // Get the relative rotation, first as a quaternion...
-    Rotation<3,double> relativeRotation;
+    Rotation<double,3> relativeRotation;
     relativeRotation = referenceInterface.q.inverse();
     relativeRotation = lambda.q.mult(relativeRotation);
 
