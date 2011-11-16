@@ -53,10 +53,6 @@ public:
         int rows = fineBasis.size();
         int cols = p1Basis.size();
 
-        // Make identity matrix
-        TransferMatrixBlock identity(0);
-        for (int i=0; i<identity.N(); i++)
-            identity[i][i] = 1;
 #if 0
         // A factory for the shape functions
         typedef typename Dune::PQkLocalFiniteElementCache<ctype, field_type, dim, 1> P1FECache;
@@ -144,9 +140,7 @@ public:
                         size_t globalFine   = fineBasis.index(*it, j);
                         size_t globalCoarse = p1Basis.index(*it, i);
 
-                        TransferMatrixBlock matValue = identity;
-                        matValue *= values[i];
-                        (*this->matrix_)[globalFine][globalCoarse] = matValue;
+                        (*this->matrix_)[globalFine][globalCoarse] = Dune::ScaledIdentityMatrix<double,dim>(values[i]);
                     }
                     
                 }
