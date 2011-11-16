@@ -6,7 +6,8 @@
 //#define HARMONIC_ENERGY_FD_GRADIENT
 
 //#define UNITVECTOR2
-#define UNITVECTOR3
+//#define UNITVECTOR3
+#define UNITVECTOR4
 //#define ROTATION2
 //#define ROTATION3
 //#define REALTUPLE1
@@ -49,6 +50,9 @@ typedef UnitVector<double,2> TargetSpace;
 #endif
 #ifdef UNITVECTOR3
 typedef UnitVector<double,3> TargetSpace;
+#endif
+#ifdef UNITVECTOR4
+typedef UnitVector<double,4> TargetSpace;
 #endif
 #ifdef REALTUPLE1
 typedef RealTuple<double,1> TargetSpace;
@@ -155,6 +159,8 @@ int main (int argc, char *argv[]) try
         FieldVector<double,1> v;
 #elif defined UNITVECTOR3
         FieldVector<double,3> v;
+#elif defined UNITVECTOR4 || defined ROTATION3
+        FieldVector<double,4> v;
 #else
         FieldVector<double,2> v;
 #endif
@@ -174,6 +180,19 @@ int main (int argc, char *argv[]) try
             v[1] = 0;
             v[2] = std::cos(pos[0]*M_PI);
 #endif
+#ifdef UNITVECTOR3
+            v[0] = 1;
+            v[1] = 0;
+            v[2] = 0;
+#endif
+#if defined UNITVECTOR4 || defined ROTATION3
+            FieldMatrix<double,3,3> rMat;
+            rotation.matrix(rMat);
+            v[0] = rMat[2][0];
+            v[1] = rMat[2][1];
+            v[2] = rMat[2][2];
+            v[3] = 0;
+#endif
 #ifdef UNITVECTOR2
             v[0] = std::sin(pos[0]*M_PI);
             v[1] = std::cos(pos[0]*M_PI);
@@ -182,22 +201,17 @@ int main (int argc, char *argv[]) try
             v[0] = pos[0]/*M_PI*/;
 #endif
         } else {
-#ifdef UNITVECTOR2
+#if defined UNITVECTOR2 || defined UNITVECTOR3 || defined UNITVECTOR4 || defined ROTATION3
+            v = 0;
             v[0] = 1;
-            v[1] = 0;
-#endif
-#ifdef UNITVECTOR3
-            v[0] = 1;
-            v[1] = 0;
-            v[2] = 0;
 #endif
 #if defined ROTATION2 || defined REALTUPLE1
             v[0] = 0.5*M_PI;
 #endif
         }            
 
-#if defined UNITVECTOR2 || defined UNITVECTOR3 || defined REALTUPLE1
-        x[idx] = v;
+#if defined UNITVECTOR2 || defined UNITVECTOR3 || defined UNITVECTOR4 || defined ROTATION3 || defined REALTUPLE1
+        x[idx] = TargetSpace(v);
 #endif
 #if defined ROTATION2 
         x[idx] = v[0];
