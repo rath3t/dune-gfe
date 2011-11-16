@@ -40,7 +40,7 @@ const int dim = 3;
 typedef Rotation<double,2> TargetSpace;
 #endif
 #ifdef ROTATION3
-typedef Rotation<double,2> TargetSpace;
+typedef Rotation<double,3> TargetSpace;
 #endif
 #ifdef UNITVECTOR2
 typedef UnitVector<double,2> TargetSpace;
