@@ -74,8 +74,8 @@ public:
         
         const GridView& gridView = p1Basis.getGridView();
 
-        ElementIterator cIt    = gridView.template begin<0>();
-        ElementIterator cEndIt = gridView.template end<0>();
+        ElementIterator it    = gridView.template begin<0>();
+        ElementIterator endIt = gridView.template end<0>();
 
 
         // ///////////////////////////////////////////
@@ -83,26 +83,23 @@ public:
         // /////////////////////////////////////////////////
         Dune::MatrixIndexSet indices(rows, cols);
 
-        for (; cIt != cEndIt; ++cIt) {
+        for (; it != endIt; ++it) {
 
             typedef typename GridView::template Codim<0>::Entity EntityType;
 
             // Get local finite element
-            //const P1FEType& coarseBaseSet = p1FECache.get(cIt->type());
-            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*cIt);
+            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*it);
 
             const int numCoarseBaseFct = coarseBaseSet.localBasis().size();
 
             // preallocate vector for function evaluations
             std::vector<Dune::FieldVector<field_type,1> > values(numCoarseBaseFct);
 
-            ElementIterator fIt = cIt;
-
             const Dune::GenericReferenceElement<ctype,dim>& fineRefElement
-                = Dune::GenericReferenceElements<ctype, dim>::general(fIt->type());
+                = Dune::GenericReferenceElements<ctype, dim>::general(it->type());
 
             // Get local finite element
-            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*fIt);
+            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*it);
 
             const int numFineBaseFct = fineBaseSet.localBasis().size();
 
@@ -111,7 +108,7 @@ public:
             {
                 const Dune::LocalKey& jLocalKey = fineBaseSet.localCoefficients().localKey(j);
 
-                int globalFine = fineBasis.index(*fIt, j);
+                int globalFine = fineBasis.index(*it, j);
 
                 Dune::FieldVector<ctype, dim> fineBasePosition = fineRefElement.position(jLocalKey.subEntity(), jLocalKey.codim());
                 Dune::FieldVector<ctype, dim> local = fineBasePosition;
@@ -125,7 +122,7 @@ public:
                     if (values[i] > 0.001) 
                     {
                         const Dune::LocalKey& iLocalKey = coarseBaseSet.localCoefficients().localKey(i);
-                        int globalCoarse = p1Basis.index(*cIt, i);
+                        int globalCoarse = p1Basis.index(*it, i);
                         indices.add(globalFine, globalCoarse);
                     }
                 }
@@ -138,11 +135,11 @@ public:
         // /////////////////////////////////////////////
         // Compute the matrix
         // /////////////////////////////////////////////
-        cIt = gridView.template begin<0>();
-        for (; cIt != cEndIt; ++cIt) {
+        it = gridView.template begin<0>();
+        for (; it != endIt; ++it) {
 
             // Get local finite element
-            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*cIt);
+            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*it);
 
             const int numCoarseBaseFct = coarseBaseSet.localBasis().size();
 
@@ -151,13 +148,11 @@ public:
             // preallocate vector for function evaluations
             std::vector<Dune::FieldVector<field_type,1> > values(numCoarseBaseFct);
 
-            ElementIterator fIt = cIt;
-
             const Dune::GenericReferenceElement<ctype,dim>& fineRefElement
-                = Dune::GenericReferenceElements<ctype, dim>::general(fIt->type());
+                = Dune::GenericReferenceElements<ctype, dim>::general(it->type());
 
             // Get local finite element
-            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*fIt);
+            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*it);
 
             const int numFineBaseFct = fineBaseSet.localBasis().size();
 
@@ -165,7 +160,7 @@ public:
             {
                 const Dune::LocalKey& jLocalKey = fineBaseSet.localCoefficients().localKey(j);
 
-                int globalFine = fineBasis.index(*fIt, j);
+                int globalFine = fineBasis.index(*it, j);
 
                 Dune::FieldVector<ctype, dim> fineBasePosition = fineRefElement.position(jLocalKey.subEntity(), jLocalKey.codim());
                 Dune::FieldVector<ctype, dim> local = fineBasePosition;
@@ -179,7 +174,7 @@ public:
                     if (values[i] > 0.001) 
                     {
                         const Dune::LocalKey& iLocalKey = coarseBaseSet.localCoefficients().localKey(i);
-                        int globalCoarse = p1Basis.index(*cIt, i);
+                        int globalCoarse = p1Basis.index(*it, i);
 
                         TransferMatrixBlock matValue = identity;
                         matValue *= values[i];
