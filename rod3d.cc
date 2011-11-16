@@ -19,7 +19,7 @@
 #include <dune/gfe/rodassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
-typedef RigidBodyMotion<3> TargetSpace;
+typedef RigidBodyMotion<double,3> TargetSpace;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
 
@@ -28,7 +28,7 @@ using std::string;
 
 int main (int argc, char *argv[]) try
 {
-    typedef std::vector<RigidBodyMotion<3> > SolutionType;
+    typedef std::vector<RigidBodyMotion<double,3> > SolutionType;
 
     // parse data file
     ParameterTree parameterSet;
@@ -78,7 +78,7 @@ int main (int argc, char *argv[]) try
         x[i].r[0] = 0;
         x[i].r[1] = 0;
         x[i].r[2] = double(i)/(x.size()-1);
-        x[i].q    = Rotation<3,double>::identity();
+        x[i].q    = Rotation<double,3>::identity();
     }
 
     // /////////////////////////////////////////
@@ -94,7 +94,7 @@ int main (int argc, char *argv[]) try
     axis[2] = parameterSet.get<double>("dirichletAxisZ");
     double angle = parameterSet.get<double>("dirichletAngle");
 
-    x.back().q = Rotation<3,double>(axis, M_PI*angle/180);
+    x.back().q = Rotation<double,3>(axis, M_PI*angle/180);
 
     // backup for error measurement later
     SolutionType initialIterate = x;
@@ -124,7 +124,7 @@ int main (int argc, char *argv[]) try
 
     RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafView(), &localStiffness);
 
-    RiemannianTrustRegionSolver<GridType,RigidBodyMotion<3> > rodSolver;
+    RiemannianTrustRegionSolver<GridType,RigidBodyMotion<double,3> > rodSolver;
 #if 1
     rodSolver.setup(grid, 
                     &rodAssembler,

@@ -71,7 +71,7 @@ int main (int argc, char *argv[]) try
     // Some types that I need
     typedef BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > MatrixType;
     typedef BlockVector<FieldVector<double, blocksize> >           CorrectionType;
-    typedef std::vector<RigidBodyMotion<2> >                       SolutionType;
+    typedef std::vector<RigidBodyMotion<double,2> >                SolutionType;
 
     // parse data file
     ParameterTree parameterSet;
@@ -155,7 +155,7 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<x.size(); i++) {
         x[i].r[0] = 0;
         x[i].r[1] = i;//double(i)/(x.size()-1);
-        x[i].q    = Rotation<2,double>::identity();
+        x[i].q    = Rotation<double,2>::identity();
     }
 
     x.back().r[1] += 1;
@@ -293,7 +293,7 @@ int main (int argc, char *argv[]) try
 
              SolutionType newIterate = x;
              for (int j=0; j<newIterate.size(); j++) 
-                 newIterate[j] = RigidBodyMotion<2>::exp(newIterate[j], corr[j]);
+                 newIterate[j] = RigidBodyMotion<double,2>::exp(newIterate[j], corr[j]);
 
              /** \todo Don't always recompute oldEnergy */
              double oldEnergy = rodAssembler.computeEnergy(x); 
@@ -304,7 +304,7 @@ int main (int argc, char *argv[]) try
                  
              //  Add correction to the current solution
              for (int j=0; j<x.size(); j++) 
-                 x[j] = RigidBodyMotion<2>::exp(x[j], corr[j]);
+                 x[j] = RigidBodyMotion<double,2>::exp(x[j], corr[j]);
 
              // Subtract correction from the current obstacle
              for (int k=0; k<corr.size(); k++)
