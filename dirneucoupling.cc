@@ -52,7 +52,7 @@ using std::vector;
 // Some types that I need
 //typedef BCRSMatrix<FieldMatrix<double, dim, dim> > OperatorType;
 //typedef BlockVector<FieldVector<double, dim> >     VectorType;
-typedef vector<RigidBodyMotion<dim> >              RodSolutionType;
+typedef vector<RigidBodyMotion<double,dim> >       RodSolutionType;
 typedef BlockVector<FieldVector<double, 6> >       RodDifferenceType;
 
 
@@ -163,7 +163,7 @@ int main (int argc, char *argv[]) try
     //   Determine rod Dirichlet values
     // /////////////////////////////////////////
     rodFactory.create(complex.rods_["rod"].dirichletValues_,
-                      RigidBodyMotion<3>(FieldVector<double,3>(0), Rotation<3,double>::identity()));
+                      RigidBodyMotion<double,3>(FieldVector<double,3>(0), Rotation<double,3>::identity()));
     BitSetVector<1> rodDNodes(complex.rods_["rod"].dirichletValues_.size(), false);
     
     // we need at least one Dirichlet side
@@ -171,11 +171,11 @@ int main (int argc, char *argv[]) try
 
     if (parameterSet.hasKey("dirichletValue0")){
         
-        RigidBodyMotion<3> dirichletValue;
+        RigidBodyMotion<double,3> dirichletValue;
         dirichletValue.r = parameterSet.get("dirichletValue0", rodRestEndPoint[0]);
         FieldVector<double,3> axis = parameterSet.get("dirichletAxis0", FieldVector<double,3>(0));
         double angle = parameterSet.get("dirichletAngle0", double(0));
-        dirichletValue.q = Rotation<3,double>(axis, M_PI*angle/180);
+        dirichletValue.q = Rotation<double,3>(axis, M_PI*angle/180);
         
         rodX[0] = dirichletValue;
 
@@ -187,11 +187,11 @@ int main (int argc, char *argv[]) try
 
     if (parameterSet.hasKey("dirichletValue1")) {
         
-        RigidBodyMotion<3> dirichletValue;
+        RigidBodyMotion<double,3> dirichletValue;
         dirichletValue.r = parameterSet.get("dirichletValue1", rodRestEndPoint[1]);
         FieldVector<double,3> axis = parameterSet.get("dirichletAxis1", FieldVector<double,3>(0));
         double angle = parameterSet.get("dirichletAngle1", double(0));
-        dirichletValue.q = Rotation<3,double>(axis, M_PI*angle/180);
+        dirichletValue.q = Rotation<double,3>(axis, M_PI*angle/180);
         
         rodX.back() = dirichletValue;
     
@@ -302,7 +302,7 @@ int main (int argc, char *argv[]) try
 
     RodAssembler<RodGridType::LeafGridView,3> rodAssembler(complex.rods_["rod"].grid_->leafView(), &rodLocalStiffness);
 
-    RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<3> > rodSolver;
+    RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<double,3> > rodSolver;
     rodSolver.setup(*complex.rods_["rod"].grid_, 
                     &rodAssembler,
                     rodX,
@@ -379,14 +379,14 @@ int main (int argc, char *argv[]) try
     //   Dirichlet-Neumann Solver
     // /////////////////////////////////////////////////////
 
-    RigidBodyMotion<3> referenceInterface = (parameterSet.hasKey("dirichletValue1"))
+    RigidBodyMotion<double,3> referenceInterface = (parameterSet.hasKey("dirichletValue1"))
                                           ? rodX[0]
                                           : rodX.back();
                                           
     complex.couplings_[interfaceName].referenceInterface_ = referenceInterface;
 
     // Init interface value
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > lambda;
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<double,3> > lambda;
     lambda[interfaceName] = referenceInterface;
     
     ///////////////////////////////////////////////////////////////////////////7
@@ -412,7 +412,7 @@ int main (int argc, char *argv[]) try
         std::cout << "----------------------------------------------------" << std::endl;
         
         // Backup of the current iterate for the error computation later on
-        std::map<std::pair<std::string,std::string>, RigidBodyMotion<3> > oldLambda  = lambda;
+        std::map<std::pair<std::string,std::string>, RigidBodyMotion<double,3> > oldLambda  = lambda;
         
         if (ddType=="FixedPointIteration") {
 
@@ -481,7 +481,7 @@ int main (int argc, char *argv[]) try
         //   Compute error in the energy norm
         // ////////////////////////////////////////////
 
-        double lengthOfCorrection = RigidBodyMotion<3>::distance(oldLambda[interfaceName], lambda[interfaceName]);
+        double lengthOfCorrection = RigidBodyMotion<double,3>::distance(oldLambda[interfaceName], lambda[interfaceName]);
 
         double convRate = lengthOfCorrection / normOfOldCorrection;
 

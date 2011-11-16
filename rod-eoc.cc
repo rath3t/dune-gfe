@@ -26,8 +26,8 @@
 
 typedef Dune::OneDGrid GridType;
 
-typedef RigidBodyMotion<3> TargetSpace;
-typedef std::vector<RigidBodyMotion<3> > SolutionType;
+typedef RigidBodyMotion<double,3> TargetSpace;
+typedef std::vector<RigidBodyMotion<double,3> > SolutionType;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
 
@@ -71,7 +71,7 @@ void solve (const GridType& grid,
         x[i].r[0] = 0;
         x[i].r[1] = 0;
         x[i].r[2] = double(i)/(x.size()-1);
-        x[i].q    = Rotation<3,double>::identity();
+        x[i].q    = Rotation<double,3>::identity();
     }
 
     //  set Dirichlet value
@@ -89,7 +89,7 @@ void solve (const GridType& grid,
 
     RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafView(), &localStiffness);
 
-    RiemannianTrustRegionSolver<GridType,RigidBodyMotion<3> > rodSolver;
+    RiemannianTrustRegionSolver<GridType,RigidBodyMotion<double,3> > rodSolver;
 #if 1
     rodSolver.setup(grid, 
                     &rodAssembler,
@@ -150,7 +150,7 @@ int main (int argc, char *argv[]) try
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    RigidBodyMotion<3> dirichletValue;
+    RigidBodyMotion<double,3> dirichletValue;
     dirichletValue.r[0] = parameterSet.get<double>("dirichletValueX");
     dirichletValue.r[1] = parameterSet.get<double>("dirichletValueY");
     dirichletValue.r[2] = parameterSet.get<double>("dirichletValueZ");
@@ -161,7 +161,7 @@ int main (int argc, char *argv[]) try
     axis[2] = parameterSet.get<double>("dirichletAxisZ");
     double angle = parameterSet.get<double>("dirichletAngle");
 
-    dirichletValue.q = Rotation<3,double>(axis, M_PI*angle/180);
+    dirichletValue.q = Rotation<double,3>(axis, M_PI*angle/180);
 
     // ///////////////////////////////////////////////////////////
     //   First compute the 'exact' solution on a very fine grid

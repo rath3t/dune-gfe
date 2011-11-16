@@ -503,7 +503,7 @@ continuumDirichletToNeumannMap(const std::string& continuumName,
     //  Extract the residual stresses
     //////////////////////////////////////////////////////////////////////////////
             
-    std::map<std::pair<std::string,std::string>, RigidBodyMotion<3>::TangentVector > result;
+    std::map<std::pair<std::string,std::string>, RigidBodyMotion<double,3>::TangentVector > result;
 
     for (it = lambda.begin(); it!=lambda.end(); ++it) {
         

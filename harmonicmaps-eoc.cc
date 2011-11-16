@@ -35,7 +35,7 @@
 // grid dimension
 const int dim = 3;
 
-typedef UnitVector<3> TargetSpace;
+typedef UnitVector<double,3> TargetSpace;
 typedef std::vector<TargetSpace> SolutionType;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
