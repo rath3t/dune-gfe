@@ -6,7 +6,6 @@ AM_CPPFLAGS += $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) -Wall
 
 check_PROGRAMS = averagedistanceassemblertest \
                  cosseratenergytest \
-                 fdcheck \
                  frameinvariancetest \
                  globalgfetestfunctionbasistest \
                  harmonicenergytest \
@@ -15,6 +14,7 @@ check_PROGRAMS = averagedistanceassemblertest \
                  localgeodesicfestiffnesstest \
                  localgfetestfunctiontest \
                  nestednesstest \
+                 rodassemblertest \
                  rotationtest \
                  svdtest \
                  targetspacetest
@@ -22,8 +22,6 @@ check_PROGRAMS = averagedistanceassemblertest \
 frameinvariancetest_SOURCES = frameinvariancetest.cc
 
 rotationtest_SOURCES = rotationtest.cc
-
-fdcheck_SOURCES = fdcheck.cc
 
 localgeodesicfefunctiontest_SOURCES = localgeodesicfefunctiontest.cc
 
@@ -42,6 +40,8 @@ interpolationtest_SOURCES = interpolationtest.cc
 cosseratenergytest_SOURCES = cosseratenergytest.cc
 
 averagedistanceassemblertest_SOURCES = averagedistanceassemblertest.cc
+
+rodassemblertest_SOURCES = rodassemblertest.cc
 
 targetspacetest_SOURCES = targetspacetest.cc
 
