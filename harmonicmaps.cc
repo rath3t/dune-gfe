@@ -161,7 +161,7 @@ int main (int argc, char *argv[]) try
         FieldVector<double,dim> pos = vIt->geometry().corner(0);
         FieldVector<double,3> axis;
         axis[0] = pos[0];  axis[1] = pos[1]; axis[2] = 1;
-        Rotation<3,double> rotation(axis, pos.two_norm()*M_PI*1.5);
+        Rotation<double,3> rotation(axis, pos.two_norm()*M_PI*1.5);
 
         //dirichletNodes[idx] = pos[0]<0.01 || pos[0] > 0.99;
 
