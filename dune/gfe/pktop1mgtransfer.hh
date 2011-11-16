@@ -1,0 +1,229 @@
+#ifndef PK_TO_P1_MG_TRANSFER_HH
+#define PK_TO_P1_MG_TRANSFER_HH
+
+#include <dune/istl/bcrsmatrix.hh>
+#include <dune/common/fmatrix.hh>
+#include <dune/common/bitsetvector.hh>
+
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+
+#include <dune/solvers/transferoperators/truncatedmgtransfer.hh>
+#include <dune/solvers/transferoperators/compressedmultigridtransfer.hh>
+
+/** \brief Restriction and prolongation operator for truncated multigrid
+ *     from a Pk nodal basis to a p1 one.
+ *
+ * \note This class is a temporary hack.  Certainly there are better ways to do
+ *   this, and of course they should be in dune-solvers.  But I need this quick
+ *   for some rapid prototyping.
+ */
+
+template<
+    class VectorType,
+    class BitVectorType = Dune::BitSetVector<VectorType::block_type::dimension>,
+    class MatrixType = Dune::BCRSMatrix< typename Dune::FieldMatrix<
+        typename VectorType::field_type, VectorType::block_type::dimension, VectorType::block_type::dimension> > >
+class PKtoP1MGTransfer :
+    public TruncatedCompressedMGTransfer<VectorType, BitVectorType, MatrixType>
+{
+
+    enum {blocksize = VectorType::block_type::dimension};
+
+    typedef typename VectorType::field_type field_type;
+
+public:
+
+    typedef typename CompressedMultigridTransfer<VectorType, BitVectorType, MatrixType>::TransferOperatorType TransferOperatorType;
+    
+
+    /** \brief Default constructor */
+    PKtoP1MGTransfer()
+    {}
+
+    template <class Basis, class GridView>
+    void setup(const Basis& fineBasis,
+               const P1NodalBasis<GridView>& p1Basis)
+        {
+        typedef typename TransferOperatorType::block_type TransferMatrixBlock;
+        typedef typename GridView::ctype ctype;
+
+        const int dim = GridView::dimension;
+
+        int rows = fineBasis.size();
+        int cols = p1Basis.size();
+
+        // Make identity matrix
+        TransferMatrixBlock identity(0);
+        for (int i=0; i<identity.N(); i++)
+            identity[i][i] = 1;
+#if 0
+        // A factory for the shape functions
+        typedef typename Dune::PQkLocalFiniteElementCache<ctype, field_type, dim, 1> P1FECache;
+        typedef typename P1FECache::FiniteElementType P1FEType;
+        P1FECache p1FECache;
+
+        typedef typename Dune::PQkLocalFiniteElementCache<ctype, field_type, dim, 2> P2FECache;
+        typedef typename P2FECache::FiniteElementType P2FEType;
+        P2FECache p2FECache;
+#endif
+        this->matrix_->setSize(rows,cols);
+        this->matrix_->setBuildMode(TransferOperatorType::random);
+
+        typedef typename GridView::template Codim<0>::Iterator ElementIterator;
+        
+        const GridView& gridView = p1Basis.getGridView();
+
+        ElementIterator cIt    = gridView.template begin<0>();
+        ElementIterator cEndIt = gridView.template end<0>();
+
+
+        // ///////////////////////////////////////////
+        // Determine the indices present in the matrix
+        // /////////////////////////////////////////////////
+        Dune::MatrixIndexSet indices(rows, cols);
+
+        for (; cIt != cEndIt; ++cIt) {
+
+            typedef typename GridView::template Codim<0>::Entity EntityType;
+
+            // Get local finite element
+            //const P1FEType& coarseBaseSet = p1FECache.get(cIt->type());
+            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*cIt);
+
+            const int numCoarseBaseFct = coarseBaseSet.localBasis().size();
+
+            // preallocate vector for function evaluations
+            std::vector<Dune::FieldVector<field_type,1> > values(numCoarseBaseFct);
+
+            ElementIterator fIt = cIt;
+
+            const Dune::GenericReferenceElement<ctype,dim>& fineRefElement
+                = Dune::GenericReferenceElements<ctype, dim>::general(fIt->type());
+
+            // Get local finite element
+            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*fIt);
+
+            const int numFineBaseFct = fineBaseSet.localBasis().size();
+
+
+            for (int j=0; j<numFineBaseFct; j++)
+            {
+                const Dune::LocalKey& jLocalKey = fineBaseSet.localCoefficients().localKey(j);
+
+                int globalFine = fineBasis.index(*fIt, j);
+
+                Dune::FieldVector<ctype, dim> fineBasePosition = fineRefElement.position(jLocalKey.subEntity(), jLocalKey.codim());
+                Dune::FieldVector<ctype, dim> local = fineBasePosition;
+#warning Position computation is wrong!
+                
+                // Evaluate coarse grid base functions
+                coarseBaseSet.localBasis().evaluateFunction(local, values);
+
+                for (int i=0; i<numCoarseBaseFct; i++)
+                {
+                    if (values[i] > 0.001) 
+                    {
+                        const Dune::LocalKey& iLocalKey = coarseBaseSet.localCoefficients().localKey(i);
+                        int globalCoarse = p1Basis.index(*cIt, i);
+                        indices.add(globalFine, globalCoarse);
+                    }
+                }
+            }
+
+        }
+
+        indices.exportIdx(*this->matrix_);
+
+        // /////////////////////////////////////////////
+        // Compute the matrix
+        // /////////////////////////////////////////////
+        cIt = gridView.template begin<0>();
+        for (; cIt != cEndIt; ++cIt) {
+
+            // Get local finite element
+            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*cIt);
+
+            const int numCoarseBaseFct = coarseBaseSet.localBasis().size();
+
+            typedef typename GridView::template Codim<0>::Entity EntityType;
+
+            // preallocate vector for function evaluations
+            std::vector<Dune::FieldVector<field_type,1> > values(numCoarseBaseFct);
+
+            ElementIterator fIt = cIt;
+
+            const Dune::GenericReferenceElement<ctype,dim>& fineRefElement
+                = Dune::GenericReferenceElements<ctype, dim>::general(fIt->type());
+
+            // Get local finite element
+            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*fIt);
+
+            const int numFineBaseFct = fineBaseSet.localBasis().size();
+
+            for (int j=0; j<numFineBaseFct; j++)
+            {
+                const Dune::LocalKey& jLocalKey = fineBaseSet.localCoefficients().localKey(j);
+
+                int globalFine = fineBasis.index(*fIt, j);
+
+                Dune::FieldVector<ctype, dim> fineBasePosition = fineRefElement.position(jLocalKey.subEntity(), jLocalKey.codim());
+                Dune::FieldVector<ctype, dim> local = fineBasePosition;
+#warning Position computation is wrong!
+
+                // Evaluate coarse grid base functions
+                coarseBaseSet.localBasis().evaluateFunction(local, values);
+
+                for (int i=0; i<numCoarseBaseFct; i++)
+                {
+                    if (values[i] > 0.001) 
+                    {
+                        const Dune::LocalKey& iLocalKey = coarseBaseSet.localCoefficients().localKey(i);
+                        int globalCoarse = p1Basis.index(*cIt, i);
+
+                        TransferMatrixBlock matValue = identity;
+                        matValue *= values[i];
+                        (*this->matrix_)[globalFine][globalCoarse] = matValue;
+                    }
+                }
+            }
+
+        }
+
+    }
+
+
+#if 0
+    /** \brief Restrict level fL of f and store the result in level cL of t
+     *
+     * \param critical Has to contain an entry for each degree of freedom.
+     *        Those dofs with a set bit are treated as critical.
+     */
+    void restrict(const VectorType& f, VectorType &t, const BitVectorType& critical) const;
+
+    /** \brief Restriction of  MultiGridTransfer*/
+    using CompressedMultigridTransfer< VectorType, BitVectorType, MatrixType >::restrict;
+
+    /** \brief Prolong level cL of f and store the result in level fL of t
+     * 
+     * \param critical Has to contain an entry for each degree of freedom.
+     *        Those dofs with a set bit are treated as critical.
+     */
+    void prolong(const VectorType& f, VectorType &t, const BitVectorType& critical) const;
+
+    /** \brief Prolongation of  MultiGridTransfer*/
+    using CompressedMultigridTransfer< VectorType, BitVectorType, MatrixType >::prolong;
+
+    /** \brief Galerkin assemble a coarse stiffness matrix
+     *
+     * \param critical Has to contain an entry for each degree of freedom.
+     *        Those dofs with a set bit are treated as critical.
+     */
+    void galerkinRestrict(const MatrixType& fineMat, MatrixType& coarseMat, const BitVectorType& critical) const;
+
+    /** \brief Galerkin restriction of  MultiGridTransfer*/
+    using CompressedMultigridTransfer< VectorType, BitVectorType, MatrixType >::galerkinRestrict;
+#endif
+};
+
+#endif

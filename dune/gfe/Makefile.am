@@ -20,6 +20,7 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      localgeodesicfestiffness.hh \
                      localgfetestfunctionbasis.hh \
                      maxnormtrustregion.hh \
+                     pktop1mgtransfer.hh \
                      quaternion.hh \
                      realtuple.hh \
                      riemanniantrsolver.hh \
