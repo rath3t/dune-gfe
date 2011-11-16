@@ -4,12 +4,12 @@
 
 #include <dune/common/fmatrix.hh>
 
-#include <dune/gfe/quaternion.hh>
+#include <dune/gfe/rotation.hh>
 #include <dune/gfe/svd.hh>
 
 using namespace Dune;
 
-void testUnitQuaternion(Quaternion<double> q)
+void testUnitQuaternion(Rotation<double,3> q)
 {
     // Make sure it really is a unit quaternion
     q.normalize();
@@ -31,7 +31,7 @@ void testUnitQuaternion(Quaternion<double> q)
     // Turn the matrix back into a quaternion, and check whether it is the same one
     // Since the quaternions form a double covering of SO(3), we may either get q back
     // or -q.  We have to check both.
-    Quaternion<double> newQ;
+    Rotation<double,3> newQ;
     newQ.set(matrix);
 
     Quaternion<double> diff = newQ;
@@ -61,7 +61,7 @@ void testUnitQuaternion(Quaternion<double> q)
                 for (int l=-2; l<2; l++)
                     if (i!=0 || j!=0 || k!=0 || l!=0) {
 
-                        Quaternion<double> q2(i,j,k,l);
+                        Rotation<double,3> q2(Quaternion<double>(i,j,k,l));
                         q2.normalize();
 
                         // set up corresponding rotation matrix
