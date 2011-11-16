@@ -398,7 +398,7 @@ void hessianFDCheck(const std::vector<RigidBodyMotion<double,3> >& x,
     // ///////////////////////////////////////////////////////////////
     //   Loop over all blocks of the outer matrix
     // ///////////////////////////////////////////////////////////////
-    for (int i=0; i<hessian.N(); i++) {
+    for (size_t i=0; i<hessian.N(); i++) {
 
         ColumnIterator cIt    = hessian[i].begin();
         ColumnIterator cEndIt = hessian[i].end();
@@ -539,10 +539,11 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
-    RodAssembler<GridType,3> rodAssembler(grid);
-    //rodAssembler.setShapeAndMaterial(0.01, 0.0001, 0.0001, 2.5e5, 0.3);
-    //rodAssembler.setParameters(0,0,0,0,1,0);
-    rodAssembler.setParameters(0,0,100,0,0,0);
+    RodLocalStiffness<GridType::LeafGridView,double> localStiffness(grid.leafView(),
+                                                                    0.01, 0.0001, 0.0001, 2.5e5, 0.3);
+
+
+    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafView(), &localStiffness);
 
     std::cout << "Energy: " << rodAssembler.computeEnergy(x) << std::endl;
 
