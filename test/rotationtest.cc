@@ -35,14 +35,17 @@ void testDDExp()
             for (int k=0; k<3; k++) {
 
                 if (j==k) {
-
-                    Quaternion<double> forwardQ  = Quaternion<double>::exp(v[i][0] + (j==0)*eps,
-                                                                           v[i][1] + (j==1)*eps,
-                                                                           v[i][2] + (j==2)*eps);
-                    Quaternion<double> centerQ   = Quaternion<double>::exp(v[i][0],v[i][1],v[i][2]);
-                    Quaternion<double> backwardQ = Quaternion<double>::exp(v[i][0] - (j==0)*eps,
-                                                                           v[i][1] - (j==1)*eps,
-                                                                           v[i][2] - (j==2)*eps);
+                    
+                    SkewMatrix<double,3> forward(v[i]);
+                    forward.axial()[j] += eps;
+                    Rotation<double,3> forwardQ  = Rotation<double,3>::exp(forward);
+                    
+                    SkewMatrix<double,3> center(v[i]);
+                    Rotation<double,3> centerQ   = Rotation<double,3>::exp(center);
+                    
+                    SkewMatrix<double,3> backward(v[i]);
+                    backward.axial()[j] -= eps;
+                    Rotation<double,3> backwardQ = Rotation<double,3>::exp(backward);
 
                     for (int l=0; l<4; l++)
                         fdDDExp[l][j][j] = (forwardQ[l] - 2*centerQ[l] + backwardQ[l]) / (eps*eps);
@@ -55,10 +58,10 @@ void testDDExp()
                     SkewMatrix<double,3> bfV(v[i]);      bfV.axial()[j] -= eps;     bfV.axial()[k] += eps;
                     SkewMatrix<double,3> bbV(v[i]);      bbV.axial()[j] -= eps;     bbV.axial()[k] -= eps;
 
-                    Quaternion<double> forwardForwardQ = Quaternion<double>::exp(ffV);
-                    Quaternion<double> forwardBackwardQ = Quaternion<double>::exp(fbV);
-                    Quaternion<double> backwardForwardQ = Quaternion<double>::exp(bfV);
-                    Quaternion<double> backwardBackwardQ = Quaternion<double>::exp(bbV);
+                    Rotation<double,3> forwardForwardQ = Rotation<double,3>::exp(ffV);
+                    Rotation<double,3> forwardBackwardQ = Rotation<double,3>::exp(fbV);
+                    Rotation<double,3> backwardForwardQ = Rotation<double,3>::exp(bfV);
+                    Rotation<double,3> backwardBackwardQ = Rotation<double,3>::exp(bbV);
 
                     for (int l=0; l<4; l++)
                         fdDDExp[l][j][k] = (forwardForwardQ[l] + backwardBackwardQ[l]
@@ -88,18 +91,18 @@ void testDDExp()
 
 void testDerivativeOfInterpolatedPosition()
 {
-    array<Quaternion<double>, 6> q;
+    array<Rotation<double,3>, 6> q;
 
     FieldVector<double,3>  xAxis(0);    xAxis[0] = 1;
     FieldVector<double,3>  yAxis(0);    yAxis[1] = 1;
     FieldVector<double,3>  zAxis(0);    zAxis[2] = 1;
 
-    q[0] = Quaternion<double>(xAxis, 0);
-    q[1] = Quaternion<double>(xAxis, M_PI/2);
-    q[2] = Quaternion<double>(yAxis, 0);
-    q[3] = Quaternion<double>(yAxis, M_PI/2);
-    q[4] = Quaternion<double>(zAxis, 0);
-    q[5] = Quaternion<double>(zAxis, M_PI/2);
+    q[0] = Rotation<double,3>(xAxis, 0);
+    q[1] = Rotation<double,3>(xAxis, M_PI/2);
+    q[2] = Rotation<double,3>(yAxis, 0);
+    q[3] = Rotation<double,3>(yAxis, M_PI/2);
+    q[4] = Rotation<double,3>(zAxis, 0);
+    q[5] = Rotation<double,3>(zAxis, M_PI/2);
 
     double eps = 1e-7;
 
@@ -111,41 +114,31 @@ void testDerivativeOfInterpolatedPosition()
 
                 double s = k/6.0;
 
-                array<Quaternion<double>,6> fdGrad;
+                array<Rotation<double,3>,6> fdGrad;
 
                 // ///////////////////////////////////////////////////////////
                 //   First: test the interpolated position
                 // ///////////////////////////////////////////////////////////
-                fdGrad[0] =  Rotation<double,3>::interpolate(q[i].mult(Quaternion<double>::exp(eps,0,0)), q[j], s);
-                fdGrad[0] -= Rotation<double,3>::interpolate(q[i].mult(Quaternion<double>::exp(-eps,0,0)), q[j], s);
-                fdGrad[0] /= 2*eps;
+                for (int l=0; l<3; l++) {
+                    SkewMatrix<double,3> forward(FieldVector<double,3>(0));
+                    SkewMatrix<double,3> backward(FieldVector<double,3>(0));
+                    forward.axial()[l] += eps;
+                    backward.axial()[l] -= eps;
+                    fdGrad[l] =  Rotation<double,3>::interpolate(q[i].mult(Rotation<double,3>::exp(forward)), q[j], s);
+                    fdGrad[l] -= Rotation<double,3>::interpolate(q[i].mult(Rotation<double,3>::exp(backward)), q[j], s);
+                    fdGrad[l] /= 2*eps;
 
-                fdGrad[1] =  Rotation<double,3>::interpolate(q[i].mult(Quaternion<double>::exp(0,eps,0)), q[j], s);
-                fdGrad[1] -= Rotation<double,3>::interpolate(q[i].mult(Quaternion<double>::exp(0,-eps,0)), q[j], s);
-                fdGrad[1] /= 2*eps;
-
-                fdGrad[2] =  Rotation<double,3>::interpolate(q[i].mult(Quaternion<double>::exp(0,0,eps)), q[j], s);
-                fdGrad[2] -= Rotation<double,3>::interpolate(q[i].mult(Quaternion<double>::exp(0,0,-eps)), q[j], s);
-                fdGrad[2] /= 2*eps;
-
-                fdGrad[3] =  Rotation<double,3>::interpolate(q[i], q[j].mult(Quaternion<double>::exp(eps,0,0)), s);
-                fdGrad[3] -= Rotation<double,3>::interpolate(q[i], q[j].mult(Quaternion<double>::exp(-eps,0,0)), s);
-                fdGrad[3] /= 2*eps;
-
-                fdGrad[4] =  Rotation<double,3>::interpolate(q[i], q[j].mult(Quaternion<double>::exp(0,eps,0)), s);
-                fdGrad[4] -= Rotation<double,3>::interpolate(q[i], q[j].mult(Quaternion<double>::exp(0,-eps,0)), s);
-                fdGrad[4] /= 2*eps;
-
-                fdGrad[5] =  Rotation<double,3>::interpolate(q[i], q[j].mult(Quaternion<double>::exp(0,0,eps)), s);
-                fdGrad[5] -= Rotation<double,3>::interpolate(q[i], q[j].mult(Quaternion<double>::exp(0,0,-eps)), s);
-                fdGrad[5] /= 2*eps;
+                    fdGrad[3+l] =  Rotation<double,3>::interpolate(q[i], q[j].mult(Rotation<double,3>::exp(forward)), s);
+                    fdGrad[3+l] -= Rotation<double,3>::interpolate(q[i], q[j].mult(Rotation<double,3>::exp(backward)), s);
+                    fdGrad[3+l] /= 2*eps;
+                }
 
                 // Compute analytical gradient
-                array<Quaternion<double>,6> grad;
+                array<Rotation<double,3>,6> grad;
                 RodLocalStiffness<OneDGrid,double>::interpolationDerivative(q[i], q[j], s, grad);
 
                 for (int l=0; l<6; l++) {
-                    Quaternion<double> diff = fdGrad[l];
+                    Rotation<double,3> diff = fdGrad[l];
                     diff -= grad[l];
                     if (diff.two_norm() > 1e-6) {
                         std::cout << "Error in position " << l << ":  fd: " << fdGrad[l] 
@@ -162,41 +155,41 @@ void testDerivativeOfInterpolatedPosition()
 
                     double intervalLength = l/(double(3));
                     
-                    fdGrad[0] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Quaternion<double>::exp(eps,0,0)), 
+                    fdGrad[0] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(eps,0,0)), 
                                                                            q[j], s, intervalLength);
-                    fdGrad[0] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Quaternion<double>::exp(-eps,0,0)), 
+                    fdGrad[0] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(-eps,0,0)), 
                                                                            q[j], s, intervalLength);
                     fdGrad[0] /= 2*eps;
                     
-                    fdGrad[1] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Quaternion<double>::exp(0,eps,0)), 
+                    fdGrad[1] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(0,eps,0)), 
                                                                            q[j], s, intervalLength);
-                    fdGrad[1] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Quaternion<double>::exp(0,-eps,0)), 
+                    fdGrad[1] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(0,-eps,0)), 
                                                                            q[j], s, intervalLength);
                     fdGrad[1] /= 2*eps;
                     
-                    fdGrad[2] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Quaternion<double>::exp(0,0,eps)), 
+                    fdGrad[2] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(0,0,eps)), 
                                                                            q[j], s, intervalLength);
-                    fdGrad[2] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Quaternion<double>::exp(0,0,-eps)), 
+                    fdGrad[2] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(0,0,-eps)), 
                                                                            q[j], s, intervalLength);
                     fdGrad[2] /= 2*eps;
                     
-                    fdGrad[3] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Quaternion<double>::exp(eps,0,0)), s, intervalLength);
-                    fdGrad[3] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Quaternion<double>::exp(-eps,0,0)), s, intervalLength);
+                    fdGrad[3] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(eps,0,0)), s, intervalLength);
+                    fdGrad[3] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(-eps,0,0)), s, intervalLength);
                     fdGrad[3] /= 2*eps;
                     
-                    fdGrad[4] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Quaternion<double>::exp(0,eps,0)), s, intervalLength);
-                    fdGrad[4] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Quaternion<double>::exp(0,-eps,0)), s, intervalLength);
+                    fdGrad[4] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(0,eps,0)), s, intervalLength);
+                    fdGrad[4] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(0,-eps,0)), s, intervalLength);
                     fdGrad[4] /= 2*eps;
                     
-                    fdGrad[5] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Quaternion<double>::exp(0,0,eps)), s, intervalLength);
-                    fdGrad[5] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Quaternion<double>::exp(0,0,-eps)), s, intervalLength);
+                    fdGrad[5] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(0,0,eps)), s, intervalLength);
+                    fdGrad[5] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(0,0,-eps)), s, intervalLength);
                     fdGrad[5] /= 2*eps;
                     
                     // Compute analytical velocity vector gradient
                     RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s, intervalLength, grad);
                     
                     for (int m=0; m<6; m++) {
-                        Quaternion<double> diff = fdGrad[m];
+                        Rotation<double,3> diff = fdGrad[m];
                         diff -= grad[m];
                         if (diff.two_norm() > 1e-6) {
                             std::cout << "Error in velocity " << m 
@@ -243,10 +236,10 @@ void testRotation(Rotation<double,3> q)
     Rotation<double,3> newQ;
     newQ.set(matrix);
 
-    Quaternion<double> diff = newQ;
+    Rotation<double,3> diff = newQ;
     diff -= q;
 
-    Quaternion<double> sum  = newQ;
+    Rotation<double,3> sum  = newQ;
     sum += q;
 
     if (diff.infinity_norm() > 1e-12 && sum.infinity_norm() > 1e-12)
@@ -270,7 +263,7 @@ void testRotation(Rotation<double,3> q)
                 for (int l=-2; l<2; l++)
                     if (i!=0 || j!=0 || k!=0 || l!=0) {
 
-                        Rotation<double,3> q2(Quaternion<double>(i,j,k,l));
+                        Rotation<double,3> q2(Rotation<double,3>(i,j,k,l));
                         q2.normalize();
 
                         // set up corresponding rotation matrix
@@ -296,7 +289,7 @@ void testRotation(Rotation<double,3> q)
     //   Check the operators 'B' that create an orthonormal basis of H
     // ////////////////////////////////////////////////////////////////
 
-    Quaternion<double> Bq[4];
+    Rotation<double,3> Bq[4];
     Bq[0] = q;
     Bq[1] = q.B(0);
     Bq[2] = q.B(1);
