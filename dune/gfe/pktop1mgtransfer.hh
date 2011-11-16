@@ -85,47 +85,32 @@ public:
 
         for (; it != endIt; ++it) {
 
-            typedef typename GridView::template Codim<0>::Entity EntityType;
+            typedef typename P1NodalBasis<GridView,double>::LocalFiniteElement LP1FE;
+            const LP1FE& coarseBaseSet = p1Basis.getLocalFiniteElement(*it);
 
-            // Get local finite element
-            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*it);
+            typedef typename Dune::LocalFiniteElementFunctionBase<LP1FE>::type FunctionBaseClass;
 
-            const int numCoarseBaseFct = coarseBaseSet.localBasis().size();
+            typedef typename GridView::template Codim<0>::Entity Element;
+            AlienElementLocalBasisFunction<Element, LP1FE, FunctionBaseClass> f(*it, *it, coarseBaseSet.localBasis());
 
-            // preallocate vector for function evaluations
-            std::vector<Dune::FieldVector<field_type,1> > values(numCoarseBaseFct);
+            for (int i=0; i<coarseBaseSet.localBasis().size(); i++) {
 
-            const Dune::GenericReferenceElement<ctype,dim>& fineRefElement
-                = Dune::GenericReferenceElements<ctype, dim>::general(it->type());
-
-            // Get local finite element
-            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*it);
-
-            const int numFineBaseFct = fineBaseSet.localBasis().size();
-
-
-            for (int j=0; j<numFineBaseFct; j++)
-            {
-                const Dune::LocalKey& jLocalKey = fineBaseSet.localCoefficients().localKey(j);
-
-                int globalFine = fineBasis.index(*it, j);
-
-                Dune::FieldVector<ctype, dim> fineBasePosition = fineRefElement.position(jLocalKey.subEntity(), jLocalKey.codim());
-                Dune::FieldVector<ctype, dim> local = fineBasePosition;
-#warning Position computation is wrong!
+                f.setIndex(i);
+                std::vector<double> values;
+                fineBasis.getLocalFiniteElement(*it).localInterpolation().interpolate(f,values);
                 
-                // Evaluate coarse grid base functions
-                coarseBaseSet.localBasis().evaluateFunction(local, values);
-
-                for (int i=0; i<numCoarseBaseFct; i++)
-                {
+                for (size_t j=0; j<values.size(); j++) {
+                    
                     if (values[i] > 0.001) 
                     {
-                        const Dune::LocalKey& iLocalKey = coarseBaseSet.localCoefficients().localKey(i);
-                        int globalCoarse = p1Basis.index(*it, i);
+                        size_t globalFine   = fineBasis.index(*it, j);
+                        size_t globalCoarse = p1Basis.index(*it, i);
+
                         indices.add(globalFine, globalCoarse);
                     }
+                    
                 }
+                
             }
 
         }
@@ -135,52 +120,37 @@ public:
         // /////////////////////////////////////////////
         // Compute the matrix
         // /////////////////////////////////////////////
-        it = gridView.template begin<0>();
-        for (; it != endIt; ++it) {
 
-            // Get local finite element
-            const typename P1NodalBasis<GridView,double>::LocalFiniteElement& coarseBaseSet = p1Basis.getLocalFiniteElement(*it);
+        for (it = gridView.template begin<0>(); it != endIt; ++it) {
 
-            const int numCoarseBaseFct = coarseBaseSet.localBasis().size();
+            typedef typename P1NodalBasis<GridView,double>::LocalFiniteElement LP1FE;
+            const LP1FE& coarseBaseSet = p1Basis.getLocalFiniteElement(*it);
 
-            typedef typename GridView::template Codim<0>::Entity EntityType;
+            typedef typename Dune::LocalFiniteElementFunctionBase<LP1FE>::type FunctionBaseClass;
 
-            // preallocate vector for function evaluations
-            std::vector<Dune::FieldVector<field_type,1> > values(numCoarseBaseFct);
+            typedef typename GridView::template Codim<0>::Entity Element;
+            AlienElementLocalBasisFunction<Element, LP1FE, FunctionBaseClass> f(*it, *it, coarseBaseSet.localBasis());
 
-            const Dune::GenericReferenceElement<ctype,dim>& fineRefElement
-                = Dune::GenericReferenceElements<ctype, dim>::general(it->type());
+            for (int i=0; i<coarseBaseSet.localBasis().size(); i++) {
 
-            // Get local finite element
-            const typename Basis::LocalFiniteElement& fineBaseSet = fineBasis.getLocalFiniteElement(*it);
-
-            const int numFineBaseFct = fineBaseSet.localBasis().size();
-
-            for (int j=0; j<numFineBaseFct; j++)
-            {
-                const Dune::LocalKey& jLocalKey = fineBaseSet.localCoefficients().localKey(j);
-
-                int globalFine = fineBasis.index(*it, j);
-
-                Dune::FieldVector<ctype, dim> fineBasePosition = fineRefElement.position(jLocalKey.subEntity(), jLocalKey.codim());
-                Dune::FieldVector<ctype, dim> local = fineBasePosition;
-#warning Position computation is wrong!
-
-                // Evaluate coarse grid base functions
-                coarseBaseSet.localBasis().evaluateFunction(local, values);
-
-                for (int i=0; i<numCoarseBaseFct; i++)
-                {
+                f.setIndex(i);
+                std::vector<double> values;
+                fineBasis.getLocalFiniteElement(*it).localInterpolation().interpolate(f,values);
+                
+                for (size_t j=0; j<values.size(); j++) {
+                    
                     if (values[i] > 0.001) 
                     {
-                        const Dune::LocalKey& iLocalKey = coarseBaseSet.localCoefficients().localKey(i);
-                        int globalCoarse = p1Basis.index(*it, i);
+                        size_t globalFine   = fineBasis.index(*it, j);
+                        size_t globalCoarse = p1Basis.index(*it, i);
 
                         TransferMatrixBlock matValue = identity;
                         matValue *= values[i];
                         (*this->matrix_)[globalFine][globalCoarse] = matValue;
                     }
+                    
                 }
+                
             }
 
         }
