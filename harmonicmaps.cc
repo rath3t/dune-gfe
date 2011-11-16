@@ -211,10 +211,12 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+    FEBasis feBasis(grid.leafView());
 
-    HarmonicEnergyLocalStiffness<GridType::LeafGridView,TargetSpace> harmonicEnergyLocalStiffness;
+    HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalFiniteElement, TargetSpace> harmonicEnergyLocalStiffness;
 
-    GeodesicFEAssembler<GridType::LeafGridView,TargetSpace> assembler(grid.leafView(),
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid.leafView(),
                                                                       &harmonicEnergyLocalStiffness);
 
     // /////////////////////////////////////////////////
