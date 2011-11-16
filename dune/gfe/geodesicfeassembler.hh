@@ -78,9 +78,9 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 
         const typename Basis::LocalFiniteElement& lfe = basis_.getLocalFiniteElement(*it);
         
-        for (int i=0; i<lfe.localBasis().size(); i++) {
+        for (size_t i=0; i<lfe.localBasis().size(); i++) {
             
-            for (int j=0; j<lfe.localBasis().size(); j++) {
+            for (size_t j=0; j<lfe.localBasis().size(); j++) {
                 
                 int iIdx = basis_.index(*it,i);
                 int jIdx = basis_.index(*it,j);
@@ -204,7 +204,7 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
 
         std::vector<TargetSpace> localSolution(nDofs);
 
-        for (int i=0; i<nDofs; i++)
+        for (size_t i=0; i<nDofs; i++)
             localSolution[i] = sol[basis_.index(*it,i)];
 
         energy += localStiffness_->energy(*it, basis_.getLocalFiniteElement(*it), localSolution);
