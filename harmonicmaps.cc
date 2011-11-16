@@ -37,19 +37,19 @@ const int dim = 3;
 
 // Image space of the geodesic fe functions
 #ifdef ROTATION2
-typedef Rotation<2,double> TargetSpace;
+typedef Rotation<double,2> TargetSpace;
 #endif
 #ifdef ROTATION3
-typedef Rotation<3,double> TargetSpace;
+typedef Rotation<double,2> TargetSpace;
 #endif
 #ifdef UNITVECTOR2
-typedef UnitVector<2> TargetSpace;
+typedef UnitVector<double,2> TargetSpace;
 #endif
 #ifdef UNITVECTOR3
-typedef UnitVector<3> TargetSpace;
+typedef UnitVector<double,3> TargetSpace;
 #endif
 #ifdef REALTUPLE1
-typedef RealTuple<1> TargetSpace;
+typedef RealTuple<double,1> TargetSpace;
 #endif
 
 // Tangent vector of the image space
