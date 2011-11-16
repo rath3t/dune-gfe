@@ -32,16 +32,6 @@ public:
     /** \brief Copy constructor */
     Quaternion(const Dune::FieldVector<T,4>& other) : Dune::FieldVector<T,4>(other) {}
 
-    /** \brief Constructor with rotation axis and angle */
-    Quaternion(Dune::FieldVector<T,3> axis, T angle) {
-        axis /= axis.two_norm();
-        axis *= std::sin(angle/2);
-        (*this)[0] = axis[0];
-        (*this)[1] = axis[1];
-        (*this)[2] = axis[2];
-        (*this)[3] = std::cos(angle/2);
-    }
-
     /** \brief Assignment from a scalar */
     Quaternion<T>& operator=(const T& v) {
         for (int i=0; i<4; i++)

@@ -192,8 +192,14 @@ public:
     }
     
     Rotation<T,3>(Dune::FieldVector<T,3> axis, T angle) 
-        : Quaternion<T>(axis, angle)
-    {}
+    {
+        axis /= axis.two_norm();
+        axis *= std::sin(angle/2);
+        (*this)[0] = axis[0];
+        (*this)[1] = axis[1];
+        (*this)[2] = axis[2];
+        (*this)[3] = std::cos(angle/2);
+    }
 
     /** \brief Return the identity element */
     static Rotation<T,3> identity() {
