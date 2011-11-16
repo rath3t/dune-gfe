@@ -6,10 +6,11 @@
 
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/svd.hh>
+#include "valuefactory.hh"
 
 using namespace Dune;
 
-void testUnitQuaternion(Rotation<double,3> q)
+void testRotation(Rotation<double,3> q)
 {
     // Make sure it really is a unit quaternion
     q.normalize();
@@ -108,14 +109,14 @@ void testUnitQuaternion(Rotation<double,3> q)
 
 int main (int argc, char *argv[]) try
 {
-    // Make a few random unit quaternions and pipe them into the test
-    for (int i=-5; i<5; i++)
-        for (int j=-5; j<5; j++)
-            for (int k=-5; k<5; k++)
-                for (int l=-5; l<5; l++)
-                    if (i!=0 || j!=0 || k!=0 || l!=0)
-                        testUnitQuaternion(Quaternion<double>(i,j,k,l));
+    std::vector<Rotation<double,3> > testPoints;
+    ValueFactory<Rotation<double,3> >::get(testPoints);
     
+    int nTestPoints = testPoints.size();
+    
+    // Test each element in the list
+    for (int i=0; i<nTestPoints; i++)
+        testRotation(testPoints[i]);
 
  } catch (Exception e) {
 
