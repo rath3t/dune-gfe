@@ -223,8 +223,8 @@ int main (int argc, char *argv[]) try
 #else
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
 #endif
-    FEBasis basis(referenceGrid->leafView());
-    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
+    FEBasis referenceBasis(referenceGrid->leafView());
+    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(referenceBasis, referenceBasis);
 
     LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;
     MassAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> massMatrixLocalAssembler;
@@ -277,12 +277,17 @@ int main (int argc, char *argv[]) try
 #endif
         
         // Prolong solution to the very finest grid
-        for (int j=i; j<numLevels; j++)
-#if defined THIRD_ORDER || defined SECOND_ORDER
-            higherOrderGFEFunctionAdaptor(*grid, solution);
+        for (int j=i; j<numLevels; j++) {
+            FEBasis basis(grid->leafView());
+#if defined THIRD_ORDER
+            GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::higherOrderGFEFunctionAdaptor<3>(basis, *grid, solution);
+#elif defined SECOND_ORDER
+            GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::higherOrderGFEFunctionAdaptor<2>(basis, *grid, solution);
 #else
             geodesicFEFunctionAdaptor(*grid, solution);
 #endif
+        }
+
         // Interpret TargetSpace as isometrically embedded into an R^m, because this is
         // how the corresponding Sobolev spaces are defined.
 
