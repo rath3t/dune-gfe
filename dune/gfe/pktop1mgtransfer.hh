@@ -140,7 +140,7 @@ public:
                         size_t globalFine   = fineBasis.index(*it, j);
                         size_t globalCoarse = p1Basis.index(*it, i);
 
-                        (*this->matrix_)[globalFine][globalCoarse] = Dune::ScaledIdentityMatrix<double,dim>(values[i]);
+                        (*this->matrix_)[globalFine][globalCoarse] = Dune::ScaledIdentityMatrix<double,TransferMatrixBlock::rows>(values[i]);
                     }
                     
                 }
