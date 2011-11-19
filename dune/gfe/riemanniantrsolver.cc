@@ -12,8 +12,8 @@
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
-#ifdef HIGHER_ORDER
-#include <dune/solvers/transferoperators/p2top1mgtransfer.hh>
+#if defined THIRD_ORDER || defined SECOND_ORDER
+#include <dune/gfe/pktop1mgtransfer.hh>
 #endif
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -26,11 +26,7 @@
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::
 setup(const GridType& grid,
-#ifdef HIGHER_ORDER
-      const GeodesicFEAssembler<P2NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
-#else
-      const GeodesicFEAssembler<P1NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
-#endif
+      const GeodesicFEAssembler<BasisType, TargetSpace>* assembler,
          const SolutionType& x,
          const Dune::BitSetVector<blocksize>& dirichletNodes,
          double tolerance,
@@ -98,11 +94,11 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
-    FEBasis basis(grid.leafView());
-    OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
+    P1Basis p1Basis(grid.leafView());
+    OperatorAssembler<P1Basis,P1Basis> operatorAssembler(p1Basis, p1Basis);
 
-    LaplaceAssembler<GridType, typename FEBasis::LocalFiniteElement, typename FEBasis::LocalFiniteElement> laplaceStiffness;
+    LaplaceAssembler<GridType, typename P1Basis::LocalFiniteElement, typename P1Basis::LocalFiniteElement> laplaceStiffness;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
     ScalarMatrixType* A = new ScalarMatrixType;
 
@@ -138,11 +134,9 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////
     
     hasObstacle_.resize(numLevels);
-#ifdef HIGHER_ORDER
-    P2NodalBasis<typename GridType::LeafGridView,double> p2Basis(grid_->leafView());
-    P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafView());
-    
-    hasObstacle_.back().resize(p2Basis.size(), true);
+#if defined THIRD_ORDER || defined SECOND_ORDER
+    BasisType basis(grid_->leafView());
+    hasObstacle_.back().resize(basis.size(), true);
 
     for (int i=0; i<hasObstacle_.size()-1; i++)
         hasObstacle_[i].resize(grid_->size(i+1, gridDim),true);
@@ -159,10 +153,12 @@ setup(const GridType& grid,
     
     mmgStep->mgTransfer_.resize(numLevels-1);
     
-#ifdef HIGHER_ORDER
+#if defined THIRD_ORDER || defined SECOND_ORDER
     if (numLevels>1) {
-        P2toP1MGTransfer<CorrectionType>* topTransferOp = new P2toP1MGTransfer<CorrectionType>;
-        topTransferOp->setup(p2Basis,p1Basis);
+        P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafView());
+    
+        PKtoP1MGTransfer<CorrectionType>* topTransferOp = new PKtoP1MGTransfer<CorrectionType>;
+        topTransferOp->setup(basis,p1Basis);
         mmgStep->mgTransfer_.back() = topTransferOp;
     
         for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++){

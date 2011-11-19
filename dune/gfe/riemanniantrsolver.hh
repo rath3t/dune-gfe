@@ -14,6 +14,8 @@
 #include <dune/solvers/solvers/loopsolver.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p3nodalbasis.hh>
 
 #include "geodesicfeassembler.hh"
 
@@ -35,6 +37,14 @@ class RiemannianTrustRegionSolver
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef std::vector<TargetSpace>                                               SolutionType;
 
+#ifdef THIRD_ORDER
+    typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
+#elif defined SECOND_ORDER
+    typedef P2NodalBasis<typename GridType::LeafGridView,double> BasisType;
+#else
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
+#endif
+
 public:
 
     RiemannianTrustRegionSolver()
@@ -44,11 +54,7 @@ public:
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid, 
-#ifdef HIGHER_ORDER
-               const GeodesicFEAssembler<P2NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
-#else
-               const GeodesicFEAssembler<P1NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler,
-#endif
+               const GeodesicFEAssembler<BasisType, TargetSpace>* assembler,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
@@ -103,11 +109,7 @@ protected:
     std::auto_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
-#ifdef HIGHER_ORDER
-    const GeodesicFEAssembler<P2NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler_;
-#else
-    const GeodesicFEAssembler<P1NodalBasis<typename GridType::LeafGridView,double>, TargetSpace>* assembler_;
-#endif
+    const GeodesicFEAssembler<BasisType, TargetSpace>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
     std::shared_ptr<Solver> innerSolver_;
