@@ -4,8 +4,6 @@
 #include <vector>
 #include <map>
 
-#include<dune/geometry/referenceelements.hh>
-
 #include <dune/fufem/functionspacebases/p2nodalbasis.hh>
 
 #include "localgeodesicfefunction.hh"
@@ -93,6 +91,26 @@ void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
 
 }
 
+
+/** \brief Coordinate function in one variable, constant in the others 
+ 
+    This is used to extract the positions of the Lagrange nodes.
+ */
+template <int dim>
+struct CoordinateFunction
+    : public Dune::VirtualFunction<Dune::FieldVector<double,dim>, Dune::FieldVector<double,1> >
+{
+    CoordinateFunction(int d)
+    : d_(d)
+    {}
+    
+    void evaluate(const Dune::FieldVector<double, dim>& x, Dune::FieldVector<double,1>& out) const {
+        out[0] = x[d_];
+    }
+
+    //
+    int d_;
+};
 
 
 /** \brief Refine a grid globally and prolong a given geodesic finite element function
@@ -185,30 +203,24 @@ void higherOrderGFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
         // The embedding of this element into the father geometry
         const typename GridType::template Codim<0>::LocalGeometry& geometryInFather = eIt->geometryInFather();
 
-        for (int i=0; i<lfe.localCoefficients().size(); i++) {
+        // Generate position of the Lagrange nodes
+        std::vector<Dune::FieldVector<double,dim> > lagrangeNodes(lfe.localBasis().size());
+        
+        for (int i=0; i<dim; i++) {
+            CoordinateFunction<dim> lFunction(i);
+            std::vector<Dune::FieldVector<double,1> > coordinates;
+            lfe.localInterpolation().interpolate(lFunction, coordinates);
             
-            IdType id = std::make_pair(idSet.subId(*eIt,
-                                                   lfe.localCoefficients().localKey(i).subEntity(),
-                                                   lfe.localCoefficients().localKey(i).codim()),
-                                       lfe.localCoefficients().localKey(i).codim());
+            for (size_t j=0; j<coordinates.size(); j++)
+                lagrangeNodes[j][i] = coordinates[j];
+            
+        }
+
+        for (int i=0; i<lfe.localCoefficients().size(); i++) {
 
             unsigned int idx = p2Basis.index(*eIt, i);
-            
-            if (dofMap.find(id) != dofMap.end()) {
 
-                // If the vertex exists on the coarser level we take the value from there.
-                // That should be faster and more accurate than interpolating
-                x[idx] = dofMap[id];
-
-            } else {
-
-                // Interpolate
-                const Dune::GenericReferenceElement<double,dim>& refElement = Dune::GenericReferenceElements<double,dim>::general(eIt->type());
-                const Dune::FieldVector<double,dim>& pos = refElement.position(lfe.localCoefficients().localKey(i).subEntity(),
-                                                                         lfe.localCoefficients().localKey(i).codim());
-                x[idx] = fatherFunction.evaluate(geometryInFather.global(pos));
-
-            }
+            x[idx] = fatherFunction.evaluate(geometryInFather.global(lagrangeNodes[i]));
 
         }
 
