@@ -132,9 +132,8 @@ static void higherOrderGFEFunctionAdaptor(GridType& grid, std::vector<TargetSpac
 
     const typename GridType::Traits::LocalIdSet&   idSet    = grid.localIdSet();
 
-    // DUNE ids are not unique across all codimensions, hence the following hack.   Sigh...
-    typedef std::pair<typename GridType::Traits::LocalIdSet::IdType, unsigned int> IdType;
-    std::map<IdType, TargetSpace> dofMap;
+    typedef typename GridType::Traits::LocalIdSet::IdType IdType;
+    std::map<IdType, std::vector<TargetSpace> > dofMap;
 
     typedef P2NodalBasis<typename GridType::LeafGridView,double> P2Basis;
     P2Basis p2Basis(grid.leafView());
@@ -147,21 +146,17 @@ static void higherOrderGFEFunctionAdaptor(GridType& grid, std::vector<TargetSpac
     for (; eIt!=eEndIt; ++eIt) {
 
         const typename P2Basis::LocalFiniteElement& lfe = p2Basis.getLocalFiniteElement(*eIt);
-        //localCoefficients = p2Basis.getLocalFiniteElement(*eIt).localCoefficients();
+        std::vector<TargetSpace> coefficients(lfe.localCoefficients().size());
         
         for (size_t i=0; i<lfe.localCoefficients().size(); i++) {
             
-            IdType id = std::make_pair(idSet.subId(*eIt,
-                                                   lfe.localCoefficients().localKey(i).subEntity(),
-                                                   lfe.localCoefficients().localKey(i).codim()),
-                                       lfe.localCoefficients().localKey(i).codim());
-
             unsigned int idx = p2Basis.index(*eIt, i);
-            
-            //std::cout << "id: (" << id.first << ", " << id.second << ")" << std::endl;
-            dofMap.insert(std::make_pair(id, x[idx]));
+            coefficients[i] = x[idx];
 
         }
+
+        IdType id = idSet.id(*eIt);
+        dofMap.insert(std::make_pair(id, coefficients));
         
     }
 
@@ -189,19 +184,9 @@ static void higherOrderGFEFunctionAdaptor(GridType& grid, std::vector<TargetSpac
             = std::auto_ptr<typename Dune::PQkLocalFiniteElementFactory<double,double,dim,2>::FiniteElementType>(Dune::PQkLocalFiniteElementFactory<double,double,dim,2>::create(eIt->type()));
         
         // Set up a local gfe function on the father element
-        std::vector<TargetSpace> coefficients(fatherLFE->localCoefficients().size());
-
-        for (int i=0; i<fatherLFE->localCoefficients().size(); i++) {
-
-            IdType id = std::make_pair(idSet.subId(*eIt->father(),
-                                                   fatherLFE->localCoefficients().localKey(i).subEntity(),
-                                                   fatherLFE->localCoefficients().localKey(i).codim()),
-                                       fatherLFE->localCoefficients().localKey(i).codim());
-
-            coefficients[i] = dofMap.find(id)->second;
-            
-        }
-
+        //std::vector<TargetSpace> coefficients(fatherLFE->localCoefficients().size());
+        std::vector<TargetSpace> coefficients = dofMap[idSet.id(*eIt->father())];
+        
         LocalGeodesicFEFunction<dim,double,typename P2Basis::LocalFiniteElement,TargetSpace> fatherFunction(*fatherLFE, coefficients);
 
         // The embedding of this element into the father geometry
