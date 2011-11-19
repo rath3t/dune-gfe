@@ -44,9 +44,9 @@ using namespace Dune;
 using std::string;
 
 struct DirichletFunction
-    : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
+    : public Dune::VirtualFunction<FieldVector<double,dim>, TargetSpace::CoordinateType >
 {
-    void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
+    void evaluate(const FieldVector<double, dim>& x, TargetSpace::CoordinateType& out) const {
 
 #if 0
         FieldVector<double,3> axis;
@@ -104,11 +104,11 @@ void solve (const shared_ptr<GridType>& grid,
 
     x.resize(feBasis.size());
     
-    BlockVector<FieldVector<double,3> > dirichletFunctionValues;
+    BlockVector<TargetSpace::CoordinateType> dirichletFunctionValues;
     DirichletFunction dirichletFunction;
     Functions::interpolate(feBasis, dirichletFunctionValues, dirichletFunction);
 
-    FieldVector<double,3> innerValue(0);
+    TargetSpace::CoordinateType innerValue(0);
     innerValue[0] = 1;
     innerValue[1] = 0;
     
@@ -198,7 +198,7 @@ int main (int argc, char *argv[]) try
     SolutionType referenceSolution;
     solve(referenceGrid, referenceSolution, numLevels, parameterSet);
 
-    BlockVector<FieldVector<double,3> > xEmbedded(referenceSolution.size());
+    BlockVector<TargetSpace::CoordinateType> xEmbedded(referenceSolution.size());
     for (int j=0; j<referenceSolution.size(); j++)
         xEmbedded[j] = referenceSolution[j].globalCoordinates();
         
@@ -260,7 +260,7 @@ int main (int argc, char *argv[]) try
         std::stringstream numberAsAscii;
         numberAsAscii << i;
 
-        BlockVector<FieldVector<double,3> > xEmbedded(solution.size());
+        BlockVector<TargetSpace::CoordinateType> xEmbedded(solution.size());
         for (int j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
 
