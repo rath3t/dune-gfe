@@ -2,7 +2,8 @@
 
 //#define HARMONIC_ENERGY_FD_GRADIENT
 //#define HARMONIC_ENERGY_FD_INNER_GRADIENT
-//#define HIGHER_ORDER
+#define THIRD_ORDER
+//#define SECOND_ORDER
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
@@ -88,7 +89,9 @@ void solve (const shared_ptr<GridType>& grid,
     allNodes.setAll();
     BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafView(), allNodes);
 
-#ifdef HIGHER_ORDER
+#if defined THIRD_ORDER
+    typedef P3NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+#elif defined SECOND_ORDER
     typedef P2NodalBasis<typename GridType::LeafGridView,double> FEBasis;
 #else
     typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
@@ -202,7 +205,7 @@ int main (int argc, char *argv[]) try
     for (int j=0; j<referenceSolution.size(); j++)
         xEmbedded[j] = referenceSolution[j].globalCoordinates();
         
-#ifndef HIGHER_ORDER
+#if !defined THIRD_ORDER && ! defined SECOND_ORDER
     LeafAmiraMeshWriter<GridType> amiramesh;
     amiramesh.addGrid(referenceGrid->leafView());
     amiramesh.addVertexData(xEmbedded, referenceGrid->leafView());
@@ -213,7 +216,9 @@ int main (int argc, char *argv[]) try
     //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
     // //////////////////////////////////////////////////////////////////////
 
-#ifdef HIGHER_ORDER
+#ifdef THIRD_ORDER
+    typedef P3NodalBasis<GridType::LeafGridView,double> FEBasis;
+#elif defined SECOND_ORDER
     typedef P2NodalBasis<GridType::LeafGridView,double> FEBasis;
 #else
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
@@ -264,7 +269,7 @@ int main (int argc, char *argv[]) try
         for (int j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
 
-#ifndef HIGHER_ORDER
+#if ! defined THIRD_ORDER && ! defined SECOND_ORDER
         LeafAmiraMeshWriter<GridType> amiramesh;
         amiramesh.addGrid(grid->leafView());
         amiramesh.addVertexData(xEmbedded, grid->leafView());
@@ -273,10 +278,10 @@ int main (int argc, char *argv[]) try
         
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++)
-#ifndef HIGHER_ORDER
-            geodesicFEFunctionAdaptor(*grid, solution);
-#else
+#if defined THIRD_ORDER || defined SECOND_ORDER
             higherOrderGFEFunctionAdaptor(*grid, solution);
+#else
+            geodesicFEFunctionAdaptor(*grid, solution);
 #endif
         // Interpret TargetSpace as isometrically embedded into an R^m, because this is
         // how the corresponding Sobolev spaces are defined.
