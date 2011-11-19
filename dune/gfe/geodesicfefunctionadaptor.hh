@@ -8,10 +8,14 @@
 
 #include "localgeodesicfefunction.hh"
 
+template <class Basis, class TargetSpace>
+class GeodesicFEFunctionAdaptor
+{
+public:
 /** \brief Refine a grid globally and prolong a given geodesic finite element function
  */
-template <class GridType, class TargetSpace>
-void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
+template <class GridType>
+static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
 {
     const int dim = GridType::dimension;
 
@@ -115,8 +119,8 @@ struct CoordinateFunction
 
 /** \brief Refine a grid globally and prolong a given geodesic finite element function
  */
-template <class GridType, class TargetSpace>
-void higherOrderGFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
+template <class GridType>
+static void higherOrderGFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
 {
     const int dim = GridType::dimension;
 
@@ -227,5 +231,7 @@ void higherOrderGFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
     }
 
 }
+
+};
 
 #endif
