@@ -4,6 +4,7 @@
 //#define HARMONIC_ENERGY_FD_INNER_GRADIENT
 #define THIRD_ORDER
 //#define SECOND_ORDER
+const int order = 3;
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
@@ -226,8 +227,8 @@ int main (int argc, char *argv[]) try
     FEBasis referenceBasis(referenceGrid->leafView());
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(referenceBasis, referenceBasis);
 
-    LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;
-    MassAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> massMatrixLocalAssembler;
+    LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler(2*(order-1));
+    MassAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> massMatrixLocalAssembler(2*order);
 
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
     ScalarMatrixType laplace, massMatrix;
