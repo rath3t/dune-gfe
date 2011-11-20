@@ -62,7 +62,10 @@ energy(const Entity& element,
     LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
                                                                                                       localSolution);
 
-    int quadOrder = 1;//gridDim;
+    int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
+                                                 : (localFiniteElement.localBasis().order()-1) * 2 * gridDim;
+
+
 
     const Dune::QuadratureRule<double, gridDim>& quad 
         = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
@@ -114,7 +117,8 @@ assembleEmbeddedGradient(const Entity& element,
                                                                                                       localSolution);
 
     // I am not sure about the correct quadrature order
-    int quadOrder = 1;//gridDim;
+    int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
+                                                 : (localFiniteElement.localBasis().order()-1) * 2 * gridDim;
 
     // numerical quadrature loop
     const Dune::QuadratureRule<double, gridDim>& quad 
