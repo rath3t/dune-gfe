@@ -97,7 +97,7 @@ public:
                 
                 for (size_t j=0; j<values.size(); j++) {
                     
-                    if (values[i] > 0.001) 
+                    if (values[j] > 0.001) 
                     {
                         size_t globalFine   = fineBasis.index(*it, j);
                         size_t globalCoarse = p1Basis.index(*it, i);
@@ -135,12 +135,12 @@ public:
                 
                 for (size_t j=0; j<values.size(); j++) {
                     
-                    if (values[i] > 0.001) 
+                    if (values[j] > 0.001) 
                     {
                         size_t globalFine   = fineBasis.index(*it, j);
                         size_t globalCoarse = p1Basis.index(*it, i);
 
-                        (*this->matrix_)[globalFine][globalCoarse] = Dune::ScaledIdentityMatrix<double,TransferMatrixBlock::rows>(values[i]);
+                        (*this->matrix_)[globalFine][globalCoarse] = Dune::ScaledIdentityMatrix<double,TransferMatrixBlock::rows>(values[j]);
                     }
                     
                 }
