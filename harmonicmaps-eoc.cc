@@ -241,7 +241,7 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////////////////////
     
     std::ofstream logFile("harmonicmaps-eoc.results");
-    logFile << "# vertices max-norm, L2-norm, h1-seminorm" << std::endl;
+    logFile << "# mesh size, max-norm, L2-norm, h1-seminorm" << std::endl;
     
     for (int i=1; i<numLevels; i++) {
 
@@ -299,7 +299,7 @@ int main (int argc, char *argv[]) try
         H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > l2Norm(massMatrix);
 
         // Compute max-norm difference
-        std::cout << "Vertices: " << xEmbedded.size() << std::endl;
+        std::cout << "h: " << std::pow(0.5, i-1) << std::endl;
         std::cout << "Level: " << i-1 
                   << ",   max-norm error: " << difference.infinity_norm()
                   << std::endl;
@@ -312,7 +312,7 @@ int main (int argc, char *argv[]) try
                   << ",   H1 error: " << h1Norm(difference)
                   << std::endl;
                   
-        logFile << xEmbedded.size() << "  " << difference.infinity_norm() 
+        logFile << std::pow(0.5, i-1) << "  " << difference.infinity_norm() 
                 << "  " << l2Norm(difference)
                 << "  " << h1Norm(difference)
                 << std::endl;
