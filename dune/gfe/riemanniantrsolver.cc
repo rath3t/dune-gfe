@@ -213,6 +213,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     // /////////////////////////////////////////////////////
     
     double oldEnergy = assembler_->computeEnergy(x_);
+    bool quasiNewtonMethod = false;
+    bool recomputeHessian = true;
     
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
@@ -237,12 +239,16 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         assembler_->assembleGradient(x_, rhs);
         std::cout << "gradient assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
         gradientTimer.reset();
-        assembler_->assembleMatrix(x_, 
-                                   *hessianMatrix_, 
-                                   i==0    // assemble occupation pattern only for the first call
-                                   );
-        std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
-
+        
+        if (recomputeHessian) {
+            assembler_->assembleMatrix(x_, 
+                                       *hessianMatrix_, 
+                                       i==0    // assemble occupation pattern only for the first call
+                                       );
+            std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+        } else
+            std::cout << "Reuse previous Hessian" << std::endl;
+        
         // The right hand side is the _negative_ gradient
         rhs *= -1;
 
@@ -447,6 +453,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             // current energy becomes 'oldEnergy' for the next iteration
             oldEnergy = energy;
             
+            if (quasiNewtonMethod)
+                recomputeHessian = false;
+            
         } else if ( (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
@@ -455,9 +464,22 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             // current energy becomes 'oldEnergy' for the next iteration
             oldEnergy = energy;
         
+            if (quasiNewtonMethod)
+                recomputeHessian = false;
+            
         } else {
+            
             // unsuccessful iteration
-            trustRegion.scale(0.5);
+
+            // If quasi Newton method and we have used an old matrix:
+            // Try again with the actual Newton matrix
+            if (not recomputeHessian && quasiNewtonMethod) {
+                recomputeHessian = true;
+            } else {
+                // Decrease the trust-region radius
+                trustRegion.scale(0.5);
+            }
+            
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
