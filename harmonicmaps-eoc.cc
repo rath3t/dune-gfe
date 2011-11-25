@@ -280,10 +280,8 @@ int main (int argc, char *argv[]) try
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++) {
             FEBasis basis(grid->leafView());
-#if defined THIRD_ORDER
-            GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::higherOrderGFEFunctionAdaptor<3>(basis, *grid, solution);
-#elif defined SECOND_ORDER
-            GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::higherOrderGFEFunctionAdaptor<2>(basis, *grid, solution);
+#if defined THIRD_ORDER || defined SECOND_ORDER
+            GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::higherOrderGFEFunctionAdaptor<order>(basis, *grid, solution);
 #else
             geodesicFEFunctionAdaptor(*grid, solution);
 #endif
