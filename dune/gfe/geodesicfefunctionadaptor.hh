@@ -176,8 +176,10 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
 
         const typename Basis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);
 
-        std::auto_ptr<typename Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::FiniteElementType> fatherLFE 
-            = std::auto_ptr<typename Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::FiniteElementType>(Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::create(eIt->father()->type()));
+        typedef typename Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::FiniteElementType FatherFiniteElementType;
+        
+        std::auto_ptr<FatherFiniteElementType> fatherLFE 
+            = std::auto_ptr<FatherFiniteElementType>(Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::create(eIt->father()->type()));
         
         // Set up a local gfe function on the father element
         std::vector<TargetSpace> coefficients = dofMap[idSet.id(*eIt->father())];
