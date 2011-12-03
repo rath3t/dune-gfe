@@ -53,16 +53,6 @@ public:
         int rows = fineBasis.size();
         int cols = p1Basis.size();
 
-#if 0
-        // A factory for the shape functions
-        typedef typename Dune::PQkLocalFiniteElementCache<ctype, field_type, dim, 1> P1FECache;
-        typedef typename P1FECache::FiniteElementType P1FEType;
-        P1FECache p1FECache;
-
-        typedef typename Dune::PQkLocalFiniteElementCache<ctype, field_type, dim, 2> P2FECache;
-        typedef typename P2FECache::FiniteElementType P2FEType;
-        P2FECache p2FECache;
-#endif
         this->matrix_->setSize(rows,cols);
         this->matrix_->setBuildMode(TransferOperatorType::random);
 
