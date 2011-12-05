@@ -199,7 +199,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
    // /////////////////////////////////////////////////////
     //   Set up the log file, if requested
     // /////////////////////////////////////////////////////
-    FILE* fp;
+    FILE* fp = nullptr;
     if (instrumented_) {
 
         fp = fopen("statistics", "w");
