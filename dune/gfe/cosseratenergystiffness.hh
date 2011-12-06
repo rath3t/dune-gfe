@@ -48,10 +48,11 @@ class CosseratEnergyLocalStiffness
     }
     
     /** \brief Return the square of the trace of a matrix */
-    static double traceSquared(const Dune::FieldMatrix<double,dim,dim>& A)
+    template <int N>
+    static double traceSquared(const Dune::FieldMatrix<double,N,N>& A)
     {
         double trace = 0;
-        for (int i=0; i<dim; i++)
+        for (int i=0; i<N; i++)
             trace += A[i][i];
         return trace*trace;
     }
@@ -125,13 +126,19 @@ public:
     
         // Curvature exponent
         q_ = parameters.template get<double>("q");
+        
+        // Shear correction factor
+        kappa_ = parameters.template get<double>("kappa");
     }
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
                const LocalFiniteElement& localFiniteElement,
                const std::vector<TargetSpace>& localSolution) const;
-               
+
+    /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
+     * the first equation of (4.4) in Neff's paper
+     */
     RT quadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
     {
         Dune::FieldMatrix<double,3,3> UMinus1 = U;
@@ -141,6 +148,39 @@ public:
         return mu_ * sym(UMinus1).frobenius_norm2()
                 + mu_c_ * skew(UMinus1).frobenius_norm2()
                 + (mu_*lambda_)/(2*mu_ + lambda_) * traceSquared(sym(UMinus1));
+    }
+
+    /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
+     * the second equation of (4.4) in Neff's paper
+     */
+    RT longQuadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
+    {
+        RT result = 0;
+        
+        // shear-stretch energy
+        Dune::FieldMatrix<double,dim-1,dim-1> sym2x2;
+        for (int i=0; i<dim-1; i++)
+            for (int j=0; j<dim-1; j++)
+                sym2x2[i][j] = 0.5 * (U[i][j] + U[j][i]);
+
+        result += mu_ * sym2x2.frobenius_norm2();
+        
+        // first order drill energy
+        Dune::FieldMatrix<double,dim-1,dim-1> skew2x2;
+        for (int i=0; i<dim-1; i++)
+            for (int j=0; j<dim-1; j++)
+                skew2x2[i][j] = 0.5 * (U[i][j] - U[j][i]);
+
+        result += mu_c_ * skew2x2.frobenius_norm2();
+        
+        
+        // classical transverse shear energy
+        result += kappa_ * (mu_ + mu_c_)/2 * (U[2][0]*U[2][0] + U[2][1]*U[2][1]);
+        
+        // elongational stretch energy
+        result += mu_*lambda_ / (2*mu_ + lambda_) * traceSquared(sym2x2);
+        
+        return result;
     }
 
     RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
@@ -188,6 +228,9 @@ public:
     
     /** \brief Curvature exponent */
     double q_;
+
+    /** \brief Shear correction factor */
+    double kappa_;
     
     /** \brief The Neumann boundary */
     const BoundaryPatch<GridView>* neumannBoundary_;
@@ -281,6 +324,7 @@ energy(const Entity& element,
         // Add the local energy density
         if (gridDim==2) {
             energy += weight * thickness_ * quadraticMembraneEnergy(U);
+            //energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
             energy += weight * thickness_ * curvatureEnergy(DR);
             energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
         } else if (gridDim==3) {
