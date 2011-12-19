@@ -161,7 +161,7 @@ public:
         Dune::FieldMatrix<double,dim-1,dim-1> sym2x2;
         for (int i=0; i<dim-1; i++)
             for (int j=0; j<dim-1; j++)
-                sym2x2[i][j] = 0.5 * (U[i][j] + U[j][i]);
+                sym2x2[i][j] = 0.5 * (U[i][j] + U[j][i]) - (i==j);
 
         result += mu_ * sym2x2.frobenius_norm2();
         
