@@ -323,8 +323,8 @@ energy(const Entity& element,
         
         // Add the local energy density
         if (gridDim==2) {
-            energy += weight * thickness_ * quadraticMembraneEnergy(U);
-            //energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
+            //energy += weight * thickness_ * quadraticMembraneEnergy(U);
+            energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
             energy += weight * thickness_ * curvatureEnergy(DR);
             energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
         } else if (gridDim==3) {
