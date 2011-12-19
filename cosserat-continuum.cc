@@ -232,6 +232,9 @@ int main (int argc, char *argv[]) try
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
     NeumannFunction neumannFunction(homotopyParameter);
     
+    std::cout << "Material parameters:" << std::endl;
+    materialParameters.report();
+
     CosseratEnergyLocalStiffness<GridType::LeafGridView,
                                  typename P1Basis::LocalFiniteElement,
                                  3> cosseratEnergyLocalStiffness(materialParameters,
