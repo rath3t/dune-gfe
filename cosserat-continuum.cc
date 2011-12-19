@@ -90,7 +90,7 @@ struct NeumannFunction
     
     void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
         out = 0;
-        out[0] = -40*homotopyParameter_;
+        out[2] = -40*homotopyParameter_;
     }
 
     double homotopyParameter_;
