@@ -105,10 +105,9 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ParameterTree parameterSet;
-    if (argc==2)
-        ParameterTreeParser::readINITree(argv[1], parameterSet);
-    else
-        ParameterTreeParser::readINITree("cosserat-continuum.parset", parameterSet);
+    ParameterTreeParser::readINITree("cosserat-continuum.parset", parameterSet);
+
+    ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
     // read solver settings
     const int numLevels                   = parameterSet.get<int>("numLevels");
