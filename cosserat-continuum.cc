@@ -308,8 +308,10 @@ int main (int argc, char *argv[]) try
             averageDef += x[i].r;
     averageDef /= neumannNodes.count();
     
-    std::cout << "average deflection: " << averageDef << std::endl;
-    
+    std::cout << "mu_c = " << parameterSet.get<double>("materialParameters.mu_c") << "  "
+              << "kappa = " << parameterSet.get<double>("materialParameters.kappa") << "  " 
+              << numLevels << " levels,  average deflection: " << averageDef << std::endl;
+
     // //////////////////////////////
  } catch (Exception e) {
 
