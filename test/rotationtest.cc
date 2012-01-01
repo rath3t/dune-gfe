@@ -161,47 +161,26 @@ void testDerivativeOfInterpolatedPosition()
                     double intervalLength = l/(double(3));
                     Dune::FieldVector<double,3> variation;
                     
-                    variation = 0;   variation[0] = eps;
-                    fdGrad[0] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
-                                                                           q[j], s);
-                    variation = 0;   variation[0] = -eps;
-                    fdGrad[0] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
-                                                                           q[j], s);
-                    fdGrad[0] /= 2*eps;
-                    
-                    variation = 0;   variation[1] = eps;
-                    fdGrad[1] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
-                                                                           q[j], s);
-                    variation = 0;   variation[1] = -eps;
-                    fdGrad[1] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
-                                                                           q[j], s);
-                    fdGrad[1] /= 2*eps;
-                    
-                    variation = 0;   variation[2] = eps;
-                    fdGrad[2] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
-                                                                           q[j], s);
-                    variation = 0;   variation[2] = -eps;
-                    fdGrad[2] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
-                                                                           q[j], s);
-                    fdGrad[2] /= 2*eps;
-                    
-                    variation = 0;   variation[0] = eps;
-                    fdGrad[3] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
-                    variation = 0;   variation[0] = -eps;
-                    fdGrad[3] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
-                    fdGrad[3] /= 2*eps;
-                    
-                    variation = 0;   variation[1] = eps;
-                    fdGrad[4] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
-                    variation = 0;   variation[1] = -eps;
-                    fdGrad[4] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
-                    fdGrad[4] /= 2*eps;
-                    
-                    variation = 0;   variation[2] = -eps;
-                    fdGrad[5] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
-                    variation = 0;   variation[2] = -eps;
-                    fdGrad[5] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
-                    fdGrad[5] /= 2*eps;
+                    for (int m=0; m<3; m++) {
+                        variation = 0;
+                        variation[m] = eps;
+                        fdGrad[m] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
+                                                                               q[j], s);
+                        variation = 0;
+                        variation[m] = -eps;
+                        fdGrad[m] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
+                                                                               q[j], s);
+                        fdGrad[m] /= 2*eps;
+                        
+                        variation = 0;
+                        variation[m] = eps;
+                        fdGrad[3+m] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
+                        variation = 0;   
+                        variation[m] = -eps;
+                        fdGrad[3+m] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
+                        fdGrad[3+m] /= 2*eps;
+                        
+                    }
                     
                     // Compute analytical velocity vector gradient
                     RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s, intervalLength, grad);
