@@ -449,7 +449,7 @@ public:
         Dune::FieldVector<T,3> v = expInv(q);
 
         // The derivative of exp at v
-        Dune::FieldMatrix<T,4,3> A = Dexp(v);
+        Dune::FieldMatrix<T,4,3> A = Dexp(SkewMatrix<T,3>(v));
 
         // Compute the Moore-Penrose pseudo inverse  A^+ = (A^T A)^{-1} A^T
         Dune::FieldMatrix<T,3,3> ATA;
