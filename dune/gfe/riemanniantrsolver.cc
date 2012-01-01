@@ -414,11 +414,13 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         tmp = 0;
         hessianMatrix_->umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
-        
+
+        double relativeModelDecrease = modelDecrease / std::fabs(energy);
+
         if (this->verbosity_ == NumProc::FULL) {
             std::cout << "Absolute model decrease: " << modelDecrease 
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
-            std::cout << "Relative model decrease: " << modelDecrease / energy
+            std::cout << "Relative model decrease: " << relativeModelDecrease
                       << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
         }            
 
@@ -430,7 +432,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         }
 
         if (energy >= oldEnergy &&
-            (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9)) {
+            (std::abs(oldEnergy-energy)/energy < 1e-9 || relativeModelDecrease < 1e-9)) {
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
