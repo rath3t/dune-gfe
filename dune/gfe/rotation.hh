@@ -554,7 +554,7 @@ public:
         T dist = 2*std::acos( std::min(diff[3],1.0) );
 
         if (dist>=M_PI)
-            diff *= -1;
+            return 2*M_PI - dist;
  
         // Compute the geodesical distance between a and b on SO(3)
         // Due to numerical dirt, diff[3] may be larger than 1. 
