@@ -61,7 +61,7 @@ public:
     /** \brief Get the total number of global (block) basis functions.
      *  Only return the number of Lagrange points. For each Lagrange point there are (tangentDim) local shape functions
      */
-    int size() const
+    size_t size() const
     { 
         return basis_.size();
     }
