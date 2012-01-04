@@ -208,17 +208,6 @@ public:
         return id;
     }
 
-    /** \brief Right multiplication */
-    Rotation<T,3> mult(const Rotation<T,3>& other) const {
-        Rotation<T,3> q;
-        q[0] =   (*this)[3]*other[0] - (*this)[2]*other[1] + (*this)[1]*other[2] + (*this)[0]*other[3];
-        q[1] =   (*this)[2]*other[0] + (*this)[3]*other[1] - (*this)[0]*other[2] + (*this)[1]*other[3];
-        q[2] = - (*this)[1]*other[0] + (*this)[0]*other[1] + (*this)[3]*other[2] + (*this)[2]*other[3];
-        q[3] = - (*this)[0]*other[0] - (*this)[1]*other[1] - (*this)[2]*other[2] + (*this)[3]*other[3];
-
-        return q;
-    }
-
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
     static Rotation<T,3> exp(const SkewMatrix<T,3>& v) {
