@@ -131,12 +131,14 @@ protected:
             localReferenceConfiguration[i] = referenceConfiguration_[gridView_.indexSet().subIndex(element,i,dim)];
     }
 
+public:
     static void interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
                                         Dune::array<Quaternion<double>,6>& grad);
 
     static void interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
                                                 double intervalLength, Dune::array<Quaternion<double>,6>& grad);
 
+protected:
     template <class T>
     static Dune::FieldVector<T,3> darboux(const Rotation<T,3>& q, const Dune::FieldVector<T,4>& q_s) 
     {
