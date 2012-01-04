@@ -25,7 +25,7 @@ int main (int argc, char *argv[]) try
     // Some types that I need
     typedef BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > MatrixType;
     typedef BlockVector<FieldVector<double, blocksize> >           CorrectionType;
-    typedef std::vector<RigidBodyMotion<3> >                       SolutionType;
+    typedef std::vector<RigidBodyMotion<double,3> >                SolutionType;
 
     // Problem settings
     const int numRodBaseElements = 1;
@@ -46,12 +46,12 @@ int main (int argc, char *argv[]) try
         x[i].r[0] = 0;    // x
         x[i].r[1] = 0;
         x[i].r[2] = double(i)/(x.size()-1);                 // z
-        x[i].q = Quaternion<double>::identity();
+        x[i].q = Rotation<double,3>::identity();
         //x[i].q = Quaternion<double>(zAxis, (double(i)*M_PI)/(2*(x.size()-1)) );
     }
 
     FieldVector<double,3> zAxis(0);  zAxis[2]=1;
-    x.back().q = Quaternion<double>(zAxis, M_PI/4);
+    x.back().q = Rotation<double,3>(zAxis, M_PI/4);
 
     // /////////////////////////////////////////////////////////////////////
     //   Create a second, rotated copy of the configuration
@@ -63,7 +63,7 @@ int main (int argc, char *argv[]) try
     displacement[2] = 0;
 
     FieldVector<double,3> axis(0);  axis[0]=1;
-    Quaternion<double> rotation(axis,M_PI/2);
+    Rotation<double,3> rotation(axis,M_PI/2);
 //     std::cout << "Rotation:" << std::endl;
 //     std::cout << "director 0:  " << rotation.director(0) << std::endl;
 //     std::cout << "director 1:  " << rotation.director(1) << std::endl;
