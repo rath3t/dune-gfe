@@ -119,7 +119,7 @@ void testDerivativeOfInterpolatedPosition()
 
                 double s = k/6.0;
 
-                array<Rotation<double,3>,6> fdGrad;
+                array<Quaternion<double>,6> fdGrad;
 
                 // ///////////////////////////////////////////////////////////
                 //   First: test the interpolated position
@@ -143,7 +143,7 @@ void testDerivativeOfInterpolatedPosition()
                 RodLocalStiffness<OneDGrid,double>::interpolationDerivative(q[i], q[j], s, grad);
 
                 for (int l=0; l<6; l++) {
-                    Rotation<double,3> diff = fdGrad[l];
+                    Quaternion<double> diff = fdGrad[l];
                     diff -= grad[l];
                     if (diff.two_norm() > 1e-6) {
                         std::cout << "Error in position " << l << ":  fd: " << fdGrad[l] 
@@ -186,7 +186,7 @@ void testDerivativeOfInterpolatedPosition()
                     RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s, intervalLength, grad);
                     
                     for (int m=0; m<6; m++) {
-                        Rotation<double,3> diff = fdGrad[m];
+                        Quaternion<double> diff = fdGrad[m];
                         diff -= grad[m];
                         if (diff.two_norm() > 1e-6) {
                             std::cout << "Error in velocity " << m 
@@ -286,7 +286,7 @@ void testRotation(Rotation<double,3> q)
     //   Check the operators 'B' that create an orthonormal basis of H
     // ////////////////////////////////////////////////////////////////
 
-    Rotation<double,3> Bq[4];
+    Quaternion<double> Bq[4];
     Bq[0] = q;
     Bq[1] = q.B(0);
     Bq[2] = q.B(1);
