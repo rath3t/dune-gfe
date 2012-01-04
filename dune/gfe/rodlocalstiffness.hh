@@ -258,10 +258,10 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
         for (int j=0; j<4; j++)
             dw[j] = 0.5 * (i==j);  // dExp[j][i] at v=0
         
-        dw = q1InvQ0.mult(dw);
+        dw = q1InvQ0.Quaternion<double>::mult(dw);
         
         mat.umv(dw,grad[i]);
-        grad[i] = q1.mult(grad[i]);
+        grad[i] = q1.Quaternion<double>::mult(grad[i]);
 
     }
     }
@@ -295,10 +295,10 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
         for (int j=0; j<4; j++)
             dw[j] = 0.5 * ((i-3)==j);  // dExp[j][i-3] at v=0
 
-        dw = q0InvQ1.mult(dw);
+        dw = q0InvQ1.Quaternion<double>::mult(dw);
         
         mat.umv(dw,grad[i]);
-        grad[i] = q0.mult(grad[i]);
+        grad[i] = q0.Quaternion<double>::mult(grad[i]);
 
     }
     }
@@ -384,7 +384,7 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
         grad[i] += addend0;
         grad[i] += vHv;
 
-        grad[i] = q0.mult(grad[i]);
+        grad[i] = q0.Quaternion<double>::mult(grad[i]);
     }
 
 
@@ -403,7 +403,7 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
 
         //  \parder{\xi}{w^1_j} = ...
         Dune::FieldVector<RT,3> dxi(0);
-        dExpInv.umv(q0Inv.mult(q1.mult(dw)), dxi);
+        dExpInv.umv(q0Inv.Quaternion<double>::mult(q1.Quaternion<double>::mult(dw)), dxi);
 
         Quaternion<RT> vHv;
         for (int j=0; j<4; j++) {
@@ -421,12 +421,12 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
         // ///////////////////////////////////
             
         
-        dw = q0Inv.mult(q1.mult(dw));
+        dw = q0Inv.Quaternion<double>::mult(q1.Quaternion<double>::mult(dw));
         
         mat.umv(dw,grad[i]);
         grad[i] += vHv;
 
-        grad[i] = q0.mult(grad[i]);
+        grad[i] = q0.Quaternion<double>::mult(grad[i]);
 
     }
 
