@@ -177,7 +177,7 @@ public:
         : Quaternion<T>(0,0,0,1)
     {}
     
-    Rotation<T,3>(const Dune::array<T,4>& c)
+    explicit Rotation<T,3>(const Dune::array<T,4>& c)
     {
         for (int i=0; i<4; i++)
             (*this)[i] = c[i];
@@ -185,7 +185,7 @@ public:
         *this /= this->two_norm();
     }
     
-    Rotation<T,3>(const Dune::FieldVector<T,4>& c)
+    explicit Rotation<T,3>(const Dune::FieldVector<T,4>& c)
         : Quaternion<T>(c)
     {
         *this /= this->two_norm();
