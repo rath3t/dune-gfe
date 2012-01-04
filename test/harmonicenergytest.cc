@@ -12,7 +12,7 @@
 
 const int dim = 2;
 
-typedef UnitVector<3> TargetSpace;
+typedef UnitVector<double,3> TargetSpace;
 
 using namespace Dune;
 
@@ -30,7 +30,7 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 
     for (int i=0; i<10; i++) {
 
-        Rotation<3,double> rotation(FieldVector<double,3>(1), double(i));
+        Rotation<double,3> rotation(FieldVector<double,3>(1), double(i));
 
         FieldMatrix<double,3,3> matrix;
         rotation.matrix(matrix);
@@ -46,6 +46,7 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 
         std::vector<typename TargetSpace::EmbeddedTangentVector> rotatedGradient;
         assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
+                                           feCache.get(grid->template leafbegin<0>()->type()),
                                    rotatedCoefficients,
                                    rotatedGradient);
 
@@ -70,6 +71,7 @@ void testGradientOfEnergy(const GridType* grid, const std::vector<TargetSpace>& 
 
     std::vector<typename TargetSpace::EmbeddedTangentVector> gradient;
     assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
+                                       feCache.get(grid->template leafbegin<0>()->type()),
                                        coefficients,
                                        gradient);
 
@@ -79,6 +81,7 @@ void testGradientOfEnergy(const GridType* grid, const std::vector<TargetSpace>& 
 
     std::vector<typename TargetSpace::EmbeddedTangentVector> fdGradient;
     assembler.assembleEmbeddedFDGradient(*grid->template leafbegin<0>(),
+                                         feCache.get(grid->template leafbegin<0>()->type()),
                                        coefficients,
                                        fdGradient);
 
