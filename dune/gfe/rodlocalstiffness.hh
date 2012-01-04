@@ -242,7 +242,7 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
         Dune::FieldVector<RT,3> v = Rotation<RT,3>::expInv(q1InvQ0);
     v *= (1-s);
 
-    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<RT,3>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<RT,3>::Dexp(SkewMatrix<RT,3>(v));
 
     Dune::FieldMatrix<RT,3,4> dExpInv = Rotation<RT,3>::DexpInv(q1InvQ0);
 
@@ -279,7 +279,7 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
         Dune::FieldVector<RT,3> v = Rotation<RT,3>::expInv(q0InvQ1);
     v *= s;
 
-    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<RT,3>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<RT,3>::Dexp(SkewMatrix<RT,3>(v));
 
     Dune::FieldMatrix<RT,3,4> dExpInv = Rotation<RT,3>::DexpInv(q0InvQ1);
 
@@ -324,7 +324,7 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
     Dune::FieldVector<RT,3> v = Rotation<RT,3>::expInv(q0Inv.mult(q1));
     v *= s/intervalLength;
 
-    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<RT,3>::Dexp(v);
+    Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<RT,3>::Dexp(SkewMatrix<RT,3>(v));
 
     Dune::array<Dune::FieldMatrix<RT,3,3>, 4> ddExp;
     Rotation<RT,3>::DDexp(v, ddExp);
