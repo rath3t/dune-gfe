@@ -45,9 +45,9 @@ public:
                      const Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >* massMatrix,
                      const Dune::BlockVector<Dune::FieldVector<double,1> >* nodalWeights,
                      const Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> >* constraintJacobian)
-        : jacobianCutoff_(1e-12), patch_(patch), x_(result),
+        : jacobianCutoff_(1e-12), patch_(patch),
           massMatrix_(massMatrix), nodalWeights_(nodalWeights),
-          constraintJacobian_(constraintJacobian),
+          constraintJacobian_(constraintJacobian), x_(result),
           resultantForce_(resultantForce), resultantTorque_(resultantTorque)
     {
         patchArea_ = patch->area();
@@ -599,7 +599,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
                     int indexInFace = refElement.subEntity(it->indexInInside(), 1, i, dim);
                     mu[i] += quad[qp].weight() * integrationElement * shapeFunctionValues[indexInFace];
                     
-                    // \tilde{\mu}_i^j = \int_t \varphi_i \times (x - x_0) \ds
+                    // \tilde{\mu}_i^j = \int_t (x - x_0) \times \varphi_i \ds
                     Dune::FieldVector<double,dim> worldPos = it->geometry().global(quad[qp].position());
 
                     for (int j=0; j<dim; j++) {
