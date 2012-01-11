@@ -190,20 +190,13 @@ public:
 
     RT bendingEnergy(const Dune::FieldMatrix<double,dim,dim>& R, const Tensor3<double,3,3,3>& DR) const
     {
-        // The derivative of the third director
-        /** \brief There is no real need to have DR3 as a separate object */
-        Dune::FieldMatrix<double,3,3> DR3;
-        for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++)
-                DR3[i][j] = DR[i][2][j];
-            
-        // left-multiply with R^T
+        // left-multiply the derivative of the third director (in DR[][2][]) with R^T
         Dune::FieldMatrix<double,3,3> RT_DR3;
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++) {
                 RT_DR3[i][j] = 0;
                 for (int k=0; k<3; k++)
-                    RT_DR3[i][j] += R[k][i] * DR3[k][j];
+                    RT_DR3[i][j] += R[k][i] * DR[k][2][j];
             }
                 
             
