@@ -544,22 +544,17 @@ public:
     }
 
     static T distance(const Rotation<T,3>& a, const Rotation<T,3>& b) {
-        Quaternion<T> diff = a;
+        
+        // Distance in the unit quaternions: 2*arccos( ((a^{-1) b)_3 )
+        // But note that (a^{-1}b)_3 is actually <a,b> (in R^4)
+        T sp = a.globalCoordinates() * b.globalCoordinates();
 
-        diff.invert();
-        diff = diff.mult(b);
+        // Scalar product may be larger than 1.0, due to numerical dirt
+        T dist = 2*std::acos( std::min(sp,1.0) );
 
         // Make sure we do the right thing if a and b are not in the same sheet
         // of the double covering of the unit quaternions over SO(3)
-        T dist = 2*std::acos( std::min(diff[3],1.0) );
-
-        if (dist>=M_PI)
-            return 2*M_PI - dist;
- 
-        // Compute the geodesical distance between a and b on SO(3)
-        // Due to numerical dirt, diff[3] may be larger than 1. 
-        // In that case, use 1 instead of diff[3].
-        return 2*std::acos( std::min(diff[3],1.0) );
+        return (dist>=M_PI) ? (2*M_PI - dist) : dist;
     }
 
     /** \brief Compute the vector in T_aSO(3) that is mapped by the exponential map
