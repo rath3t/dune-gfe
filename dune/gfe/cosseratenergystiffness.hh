@@ -272,7 +272,7 @@ energy(const Entity& element,
         RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
 
         // The derivative of the function defined on the actual element
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative(0);
