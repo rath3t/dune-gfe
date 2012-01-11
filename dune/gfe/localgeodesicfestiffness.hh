@@ -160,6 +160,9 @@ assembleHessian(const Entity& element,
     }
     
     // finite-difference approximation
+    std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
+    std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
+            
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
             for (size_t j=0; j<localSolution.size(); j++) {
@@ -171,9 +174,6 @@ assembleHessian(const Entity& element,
                     Dune::FieldVector<double,embeddedBlocksize> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
                     Dune::FieldVector<double,embeddedBlocksize> minusEpsEta = epsEta;  minusEpsEta *= -1;
                         
-                    std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
-                    std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
-            
                     if (i==j)
                         forwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],epsXi+epsEta);
                     else {
@@ -192,7 +192,13 @@ assembleHessian(const Entity& element,
                     double backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
             
                     A_[i][j][i2][j2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
-                        
+                    
+                    // Restore the forwardSolutionXiEta and backwardSolutionXiEta variables.
+                    // They will both be identical to the 'solution' array again.
+                    forwardSolutionXiEta[i] = backwardSolutionXiEta[i] = localSolution[i];
+                    if (i!=j)
+                        forwardSolutionXiEta[j] = backwardSolutionXiEta[j] = localSolution[j];
+
                 }
             }
         }
