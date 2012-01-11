@@ -67,6 +67,13 @@ public:
     /** \brief Evaluate the derivative of the function */
     Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
 
+    /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
+        \param local Local coordinates in the reference element where to evaluate the derivative
+        \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
+     */
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+                                                                                       const TargetSpace& q) const;
+
     /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
     Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
     
@@ -191,6 +198,17 @@ template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 {
+    // the function value at the point where we are evaluating the derivative
+    TargetSpace q = evaluate(local);
+
+    // Actually compute the derivative
+    evaluateDerivative(local,q);    
+}
+
+template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
+Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
+{
     Dune::FieldMatrix<ctype, embeddedDim, dim> result;
 
 #if 0  // this is probably faster than the general implementation, but we leave it out for testing purposes
@@ -208,9 +226,6 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     //  The derivative is evaluated using the implicit function theorem.
     //  Hence we need to solve a small system of linear equations.
     // ////////////////////////////////////////////////////////////////////////
-
-    // the function value at the point where we are evaluating the derivative
-    TargetSpace q = evaluate(local);
 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
     std::vector<Dune::FieldMatrix<ctype,1,dim> > BNested(coefficients_.size());
@@ -636,6 +651,32 @@ public:
         
         // get orientation part
         Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local);
+        for (int i=0; i<4; i++)
+            for (int j=0; j<dim; j++)
+                result[3+i][j] = qResult[i][j];
+        
+        return result;
+    }
+
+    /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
+        \param local Local coordinates in the reference element where to evaluate the derivative
+        \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
+     */
+    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+                                                                                       const TargetSpace& q) const
+    {
+        Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
+        
+        // get translation part
+        std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
+        localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
+        
+        for (size_t i=0; i<translationCoefficients_.size(); i++)
+            for (int j=0; j<3; j++)
+                result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
+        
+        // get orientation part
+        Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local,q.q);
         for (int i=0; i<4; i++)
             for (int j=0; j<dim; j++)
                 result[3+i][j] = qResult[i][j];
