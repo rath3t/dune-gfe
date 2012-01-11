@@ -37,13 +37,15 @@ double energy(const TargetSpace& a, const TargetSpace& b)
 template <class TargetSpace, int dim>
 double energy(const TargetSpace& a, const FieldVector<double,dim>& b)
 {
-    return TargetSpace::distance(a,b) * TargetSpace::distance(a,b);
+#warning Cast where there should not be one
+    return TargetSpace::distance(a,TargetSpace(b)) * TargetSpace::distance(a,TargetSpace(b));
 }
 
 template <class TargetSpace, int dim>
 double energy(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b)
 {
-    return TargetSpace::distance(a,b) * TargetSpace::distance(a,b);
+#warning Cast where there should not be one
+    return TargetSpace::distance(TargetSpace(a),TargetSpace(b)) * TargetSpace::distance(TargetSpace(a),TargetSpace(b));
 }
 
 /** \brief Compute the Riemannian Hessian of the squared distance function in global coordinates
