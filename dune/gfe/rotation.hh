@@ -737,14 +737,42 @@ public:
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
-        // use the functionality from the unitvector class
-        Tensor3<T,4,4,4> result = UnitVector<T,4>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.globalCoordinates(),
-                                                                                                                  q.globalCoordinates());
-        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
-        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
-        // because we are considering the squared distance.
+
+        Tensor3<T,4,4,4> result;
+
+        T sp = p.globalCoordinates() * q.globalCoordinates();
+        
+        // The projection matrix onto the tangent space at p and q
+        Dune::FieldMatrix<T,4,4> Pp, Pq;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++) {
+                Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
+                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
+            }
+            
+        EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+        EmbeddedTangentVector qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
+        
+        Tensor3<T,4,4,4> derivativeOfPqOTimesPq;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                for (int k=0; k<4; k++) {
+                    derivativeOfPqOTimesPq[i][j][k] = 0;
+                    for (int l=0; l<4; l++)
+                        derivativeOfPqOTimesPq[i][j][k] += Pp[i][l] * (Pq[j][l]*pProjected[k] + pProjected[j]*Pq[k][l]);
+                }
+
+        double plusMinus = (sp < 0) ? -1 : 1;
+
+        result = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::fabs(sp))         * Tensor3<T,4,4,4>::product(qProjected,pProjected,pProjected)
+                 + UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp))      * derivativeOfPqOTimesPq
+                 - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * sp * Tensor3<T,4,4,4>::product(qProjected,Pq)
+                 - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp))            * Tensor3<T,4,4,4>::product(qProjected,Pq);
+               
         result *= 4;
+                 
         return result;
+
     }
 
 
