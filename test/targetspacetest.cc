@@ -121,16 +121,26 @@ void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
     typename TargetSpace::EmbeddedTangentVector d2 =  TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(a, b);    
 
     // finite-difference approximation
-    typename TargetSpace::EmbeddedTangentVector d2_fd;
-    for (size_t i=0; i<embeddedDim; i++) {
-        FieldVector<double,embeddedDim> bPlus  = b.globalCoordinates();
-        FieldVector<double,embeddedDim> bMinus = b.globalCoordinates();
-        bPlus[i]  += eps;
-        bMinus[i] -= eps;
+    Dune::FieldMatrix<double,TargetSpace::TangentVector::dimension,embeddedDim> B = b.orthonormalFrame();
+
+    typename TargetSpace::TangentVector d2_fd;
+    for (size_t i=0; i<TargetSpace::TangentVector::dimension; i++) {
+        
+        typename TargetSpace::EmbeddedTangentVector fwVariation = B[i];
+        typename TargetSpace::EmbeddedTangentVector bwVariation = B[i];
+        fwVariation *= eps;
+        bwVariation *= -eps;
+        TargetSpace bPlus  = TargetSpace::exp(b,fwVariation);
+        TargetSpace bMinus = TargetSpace::exp(b,bwVariation);
+
         d2_fd[i] = (energy(a,bPlus) - energy(a,bMinus)) / (2*eps);
     }
+
+    // transform into embedded coordinates
+    typename TargetSpace::EmbeddedTangentVector d2_fd_embedded;
+    B.mtv(d2_fd,d2_fd_embedded);
     
-    if ( (d2 - d2_fd).infinity_norm() > 100*eps ) {
+    if ( (d2 - d2_fd_embedded).infinity_norm() > 100*eps ) {
         std::cout << className(a) << ": Analytical gradient does not match fd approximation." << std::endl;
         std::cout << "d2 Analytical: " << d2 << std::endl;
         std::cout << "d2 FD        : " << d2_fd << std::endl;
