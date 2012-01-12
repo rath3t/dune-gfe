@@ -202,7 +202,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     TargetSpace q = evaluate(local);
 
     // Actually compute the derivative
-    evaluateDerivative(local,q);    
+    return evaluateDerivative(local,q);    
 }
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
