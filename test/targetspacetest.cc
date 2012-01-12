@@ -134,6 +134,7 @@ void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
         std::cout << className(a) << ": Analytical gradient does not match fd approximation." << std::endl;
         std::cout << "d2 Analytical: " << d2 << std::endl;
         std::cout << "d2 FD        : " << d2_fd << std::endl;
+        assert(false);
     }
     
 }
@@ -157,6 +158,7 @@ void testHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
         std::cout << className(a) << ": Analytical second derivative does not match fd approximation." << std::endl;
         std::cout << "d2d2 Analytical:" << std::endl << d2d2 << std::endl;
         std::cout << "d2d2 FD        :" << std::endl << d2d2_fd << std::endl;
+        assert(false);
     }
     
 }
@@ -200,6 +202,7 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
         std::cout << className(a) << ": Analytical mixed second derivative does not match fd approximation." << std::endl;
         std::cout << "d1d2 Analytical:" << std::endl << d1d2 << std::endl;
         std::cout << "d1d2 FD        :" << std::endl << d1d2_fd << std::endl;
+        assert(false);
     }
 
 }
@@ -238,6 +241,7 @@ void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const Target
         std::cout << className(a) << ": Analytical third derivative does not match fd approximation." << std::endl;
         std::cout << "d2d2d2 Analytical:" << std::endl << d2d2d2 << std::endl;
         std::cout << "d2d2d2 FD        :" << std::endl << d2d2d2_fd << std::endl;
+        assert(false);
     }
 
 }
@@ -276,6 +280,7 @@ void testMixedDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const T
         std::cout << className(a) << ": Analytical mixed third derivative does not match fd approximation." << std::endl;
         std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
         std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
+        assert(false);
     }
 
 }
