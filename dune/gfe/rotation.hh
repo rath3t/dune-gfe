@@ -658,19 +658,40 @@ public:
         return A;
     }
     
-    /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
-
-    Unlike the distance itself the squared distance is differentiable at zero
-     */
+    /** \brief Compute the mixed second derivate \partial d^2 / \partial dp dq */
     static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
-        // use the functionality from the unitvector class
-        Dune::FieldMatrix<T,4,4> result = UnitVector<T,4>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.globalCoordinates(),
-                                                                                                                         q.globalCoordinates());
-        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
-        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
-        // because we are considering the squared distance.
-        result *= 4;
-        return result;
+        
+        T sp = p.globalCoordinates() * q.globalCoordinates();
+
+        // Compute vector A (see notes)
+        Dune::FieldMatrix<T,1,4> row;
+        row[0] = q.projectOntoTangentSpace(p.globalCoordinates());
+
+        EmbeddedTangentVector tmp = p.projectOntoTangentSpace(q.globalCoordinates());
+        Dune::FieldMatrix<T,4,1> column;
+        for (int i=0; i<4; i++)  // turn row vector into column vector
+            column[i] = tmp[i];
+
+        Dune::FieldMatrix<T,4,4> A;
+        // A = row * column
+        Dune::FMatrixHelp::multMatrix(column,row,A);
+        A *= 4 * UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp));
+
+        // Compute matrix B (see notes)
+        Dune::FieldMatrix<T,4,4> Pp, Pq;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++) {
+                Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
+                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
+            }
+            
+        Dune::FieldMatrix<T,4,4> B;
+        Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
+        
+        // Bring it all together
+        A.axpy(4 * ( (sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)), B);
+
+        return A;
     }
     
     /** \brief Compute the third derivative \partial d^3 / \partial dq^3
