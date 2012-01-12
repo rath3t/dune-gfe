@@ -699,13 +699,36 @@ public:
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
-        // use the functionality from the unitvector class
-        Tensor3<T,4,4,4> result = UnitVector<T,4>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
-                                                                                                        q.globalCoordinates());
-        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
-        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
-        // because we are considering the squared distance.
-        result *= 4;
+        
+        Tensor3<T,4,4,4> result;
+
+        T sp = p.globalCoordinates() * q.globalCoordinates();
+        
+        // The projection matrix onto the tangent space at p and q
+        Dune::FieldMatrix<T,4,4> Pq;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
+            
+        EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+        
+        double plusMinus = (sp < 0) ? -1 : 1;
+
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                for (int k=0; k<4; k++) {
+
+                    result[i][j][k] = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::fabs(sp)) * pProjected[i] * pProjected[j] * pProjected[k]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * ((i==j)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[j])*pProjected[k]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * ((i==k)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[k])*pProjected[j]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * pProjected[i] * Pq[j][k] * sp
+                                    + plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)) * ((i==j)*q.globalCoordinates()[k] + (i==k)*q.globalCoordinates()[j]) * sp
+                                    - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)) * p.globalCoordinates()[i] * Pq[j][k];
+                }
+
+        Pq *= 4;
+        result = Pq * result;
+
         return result;
     }
     
