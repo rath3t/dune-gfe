@@ -25,7 +25,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
-#include <dune/gfe/cosseratamirameshwriter.hh>
+#include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
@@ -297,7 +297,7 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
     
-    CosseratAmiraMeshWriter<GridType>::write(grid,x,"cosserat");
+    CosseratVTKWriter<GridType>::write(grid,x,"cosserat");
 
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
