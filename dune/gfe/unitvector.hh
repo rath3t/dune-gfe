@@ -6,6 +6,9 @@
 
 #include <dune/gfe/tensor3.hh>
 
+template <class T, int N>
+class Rotation;
+
 /** \brief A unit vector in R^N
 
     \tparam N Dimension of the embedding space
@@ -14,6 +17,9 @@
 template <class T, int N>
 class UnitVector
 {
+    // Rotation<T,3> is friend, because it needs the various derivatives of the arccos 
+    friend class Rotation<T,3>;
+    
     /** \brief Computes sin(x) / x without getting unstable for small x */
     static T sinc(const T& x) {
         return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
