@@ -643,19 +643,30 @@ public:
         return result;
     }
 
-    /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed
-
-    Unlike the distance itself the squared distance is differentiable at zero
-     */
+    /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
     static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
-        // use the functionality from the unitvector class
-        Dune::FieldMatrix<T,4,4> result = UnitVector<T,4>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
-                                                                                                                 q.globalCoordinates());
-        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
-        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
-        // because we are considering the squared distance.
-        result *= 4;
-        return result;
+
+        T sp = p.globalCoordinates() * q.globalCoordinates();
+        
+        EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+
+        Dune::FieldMatrix<T,4,4> A;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                A[i][j] = pProjected[i]*pProjected[j];
+        
+        A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp));
+
+        // Compute matrix B (see notes)
+        Dune::FieldMatrix<T,4,4> Pq;
+        for (int i=0; i<4; i++)
+            for (int j=0; j<4; j++)
+                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
+
+        // Bring it all together
+        A.axpy(-4* ((sp<0) ? -1 : 1) * derivativeOfArcCosSquared(std::fabs(sp))*sp, Pq);
+        
+        return A;
     }
     
     /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
