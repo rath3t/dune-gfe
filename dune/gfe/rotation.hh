@@ -651,9 +651,9 @@ public:
         // use the functionality from the unitvector class
         Dune::FieldMatrix<T,4,4> result = UnitVector<T,4>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
                                                                                                                  q.globalCoordinates());
-        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
-        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
-        // squared distance needs to be multiplied by 4.
+        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
+        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
+        // because we are considering the squared distance.
         result *= 4;
         return result;
     }
@@ -666,9 +666,9 @@ public:
         // use the functionality from the unitvector class
         Dune::FieldMatrix<T,4,4> result = UnitVector<T,4>::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(p.globalCoordinates(),
                                                                                                                          q.globalCoordinates());
-        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
-        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
-        // squared distance needs to be multiplied by 4.
+        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
+        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
+        // because we are considering the squared distance.
         result *= 4;
         return result;
     }
@@ -681,9 +681,9 @@ public:
         // use the functionality from the unitvector class
         Tensor3<T,4,4,4> result = UnitVector<T,4>::thirdDerivativeOfDistanceSquaredWRTSecondArgument(p.globalCoordinates(),
                                                                                                         q.globalCoordinates());
-        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
-        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
-        // squared distance needs to be multiplied by 4.
+        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
+        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
+        // because we are considering the squared distance.
         result *= 4;
         return result;
     }
@@ -696,9 +696,9 @@ public:
         // use the functionality from the unitvector class
         Tensor3<T,4,4,4> result = UnitVector<T,4>::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(p.globalCoordinates(),
                                                                                                                   q.globalCoordinates());
-        // for some reason that I don't really understand, the distance we have defined for the rotations (== Unit quaternions)
-        // is twice the corresponding distance on the unit quaternions seen as a sphere.  Hence the derivative of the
-        // squared distance needs to be multiplied by 4.
+        // The unit quaternions form a double cover of SO(3).  That means going once around the unit sphere (2\pi)
+        // means going twice around SO(3) (4\pi).  Hence there is a factor 2, which in addition we need to square,
+        // because we are considering the squared distance.
         result *= 4;
         return result;
     }
