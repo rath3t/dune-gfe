@@ -141,17 +141,6 @@ class Rotation<T,3> : public Quaternion<T>
         return (x < 1e-4) ? 0.5 - (x*x/48) : std::sin(x/2)/x;
     }
 
-    /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
-    static T derivativeOfArcCosSquared(const T& x) {
-        const T eps = 1e-12;
-        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1) + 4/35*(x-1)*(x-1)*(x-1);
-        } else if (x < -1+eps) {  // The function is not differentiable
-            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
-        } else
-            return -2*std::acos(x) / std::sqrt(1-x*x);
-    }
-
 public:
 
     /** \brief The type used for coordinates */
@@ -638,7 +627,7 @@ public:
         result.axpy(-1*(q*p), q);
         
         // The ternary operator comes from the derivative of the absolute value function
-        result *= 4 * derivativeOfArcCosSquared(std::fabs(sp)) * ( (sp<0) ? -1 : 1 );
+        result *= 4 * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)) * ( (sp<0) ? -1 : 1 );
         
         return result;
     }
@@ -664,7 +653,7 @@ public:
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
 
         // Bring it all together
-        A.axpy(-4* ((sp<0) ? -1 : 1) * derivativeOfArcCosSquared(std::fabs(sp))*sp, Pq);
+        A.axpy(-4* ((sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp))*sp, Pq);
         
         return A;
     }
