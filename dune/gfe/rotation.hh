@@ -621,30 +621,26 @@ public:
 
     }
 
+    /** \brief Compute the derivative of the squared distance function with respect to the second argument
+     * 
+     * The squared distance function is
+     * \f[ 4 \arccos^2 (|<p,q>|) \f]
+     * Deriving this with respect to the second coordinate gives
+     * \f[ 4 (\arccos^2)'(x)|_{x = |<p,q>|} * P_qp \f]
+     * The whole thing has to be multiplied by -1 if \f$ <p,q> \f$ is negative
+     */
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, 
                                                                       const Rotation<T,3>& q) {
+        T sp = p.globalCoordinates() * q.globalCoordinates();
         
-        Rotation<T,3> pInv = p;
-        pInv.invert();
+        // Compute the projection of p onto the tangent space of q
+        EmbeddedTangentVector result = p;
+        result.axpy(-1*(q*p), q);
         
-        // the forth component of pInv times q
-        T pInvq_4 = - pInv[0]*q[0] - pInv[1]*q[1] - pInv[2]*q[2] + pInv[3]*q[3];
+        // The ternary operator comes from the derivative of the absolute value function
+        result *= 4 * derivativeOfArcCosSquared(std::fabs(sp)) * ( (sp<0) ? -1 : 1 );
         
-        T arccosSquaredDer_pInvq_4 = derivativeOfArcCosSquared(pInvq_4);
-        
-        EmbeddedTangentVector result;
-        result[0] = -4 * arccosSquaredDer_pInvq_4 * pInv[0];
-        result[1] = -4 * arccosSquaredDer_pInvq_4 * pInv[1];
-        result[2] = -4 * arccosSquaredDer_pInvq_4 * pInv[2];
-        result[3] =  4 * arccosSquaredDer_pInvq_4 * pInv[3];
-        
-        // project onto the tangent space at q
-        EmbeddedTangentVector projectedResult = result;
-        projectedResult.axpy(-1*(q*result), q);
-        
-        assert(std::fabs(projectedResult * q) < 1e-7);
-        
-        return projectedResult;
+        return result;
     }
 
     /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed
