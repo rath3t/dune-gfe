@@ -126,6 +126,7 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
     materialParameters["mu_c"] = "3.8462e+05";
     materialParameters["L_c"] = "0.1";
     materialParameters["q"] = "2.5";
+    materialParameters["kappa"] = "0.1";
 
     ConstantFunction<Dune::FieldVector<double,GridType::dimension>, Dune::FieldVector<double,3> > zeroFunction(Dune::FieldVector<double,3>(0));
     
