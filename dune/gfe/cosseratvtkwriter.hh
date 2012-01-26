@@ -67,7 +67,7 @@ class CosseratVTKWriter
 public:
     static void write(const GridType& grid,
                       const std::vector<RigidBodyMotion<double,3> >& configuration,
-                      const std::string& filePrefix)
+                      const std::string& filename)
     {
 
         typedef Dune::GeometryGrid<GridType,DeformationFunction<typename GridType::LeafGridView> > DeformedGridType;
@@ -102,7 +102,7 @@ public:
             vtkWriter.addVertexData(vtkDirector);
         }
         
-        vtkWriter.write(filePrefix + "VTKGrid");
+        vtkWriter.write(filename);
     
     }    
 
