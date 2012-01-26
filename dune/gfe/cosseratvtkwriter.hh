@@ -9,7 +9,7 @@
 #include <dune/gfe/rigidbodymotion.hh>
 
 
-/** \brief Write the configuration of a Cosserat material in AmiraMesh format */
+/** \brief Write the configuration of a Cosserat material in VTK format */
 template <class GridType>
 class CosseratVTKWriter
 {
