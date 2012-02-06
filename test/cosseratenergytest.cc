@@ -229,11 +229,126 @@ void testFrameInvariance()
 }
 
 
+template <int domainDim>
+void testEnergyGradient()
+{
+    std::cout << " --- Testing the gradient of the Cosserat energy functional, domain dimension: " << domainDim << " ---" << std::endl;
+
+    // ////////////////////////////////////////////////////////
+    //   Make a test grid consisting of a single simplex
+    // ////////////////////////////////////////////////////////
+
+    typedef UGGrid<domainDim> GridType;
+
+    GridFactory<GridType> factory;
+
+    FieldVector<double,dim> pos(0);
+    factory.insertVertex(pos);
+
+    for (int i=0; i<domainDim+1; i++) {
+        pos = 0;
+        pos[i] = 1;
+        factory.insertVertex(pos);
+    }
+
+    std::vector<unsigned int> v(domainDim+1);
+    for (int i=0; i<domainDim+1; i++)
+        v[i] = i;
+    factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
+
+    const std::auto_ptr<GridType> grid(factory.createGrid());
+
+    
+    ////////////////////////////////////////////////////////////////////////////
+    //  Create a local assembler object
+    ////////////////////////////////////////////////////////////////////////////
+    
+    PQkLocalFiniteElementCache<double,double,GridType::dimension,1> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,GridType::dimension,1>::FiniteElementType LocalFiniteElement;
+
+    //LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
+
+    ParameterTree materialParameters;
+    materialParameters["thickness"] = "0.1";
+    materialParameters["mu"] = "3.8462e+05";
+    materialParameters["lambda"] = "2.7149e+05";
+    materialParameters["mu_c"] = "3.8462e+05";
+    materialParameters["L_c"] = "0.1";
+    materialParameters["q"] = "2.5";
+    materialParameters["kappa"] = "0.1";
+
+    ConstantFunction<Dune::FieldVector<double,GridType::dimension>, Dune::FieldVector<double,3> > zeroFunction(Dune::FieldVector<double,3>(0));
+    
+    CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3> assembler(materialParameters,
+                                                                                                 NULL,
+                                                                                                 &zeroFunction);
+
+    // //////////////////////////////////////////////////////////////////////////////////////////
+    //   Compare the gradient of the energy function with a finite difference approximation
+    // //////////////////////////////////////////////////////////////////////////////////////////
+
+    std::vector<TargetSpace> testPoints;
+    ValueFactory<TargetSpace>::get(testPoints);
+
+    // Set up elements of SE(3)
+    std::vector<TargetSpace> coefficients(dim+1);
+
+    MultiIndex index(dim+1, testPoints.size());
+    int numIndices = index.cycle();
+    
+    std::vector<typename RigidBodyMotion<double,3>::TangentVector> gradient(coefficients.size());
+    std::vector<typename RigidBodyMotion<double,3>::TangentVector> fdGradient(coefficients.size());
+
+    for (int i=0; i<numIndices; i++, ++index) {
+        
+        for (int j=0; j<dim+1; j++)
+            coefficients[j] = testPoints[index[j]];
+
+        // Compute the analytical gradient
+        assembler.assembleGradient(*grid->template leafbegin<0>(),
+                                   feCache.get(grid->template leafbegin<0>()->type()),
+                                   coefficients,
+                                   gradient);
+        
+        // Compute the finite difference gradient
+        assembler.LocalGeodesicFEStiffness<typename UGGrid<domainDim>::LeafGridView,
+                                           LocalFiniteElement,
+                                           RigidBodyMotion<double,3> >::assembleGradient(*grid->template leafbegin<0>(),
+                                   feCache.get(grid->template leafbegin<0>()->type()),
+                                   coefficients,
+                                   fdGradient);
+        
+        // Check whether the two are the same
+        double diff = 0;
+        for (size_t j=0; j<gradient.size(); j++)
+            for (size_t k=0; k<gradient[j].size(); k++)
+                diff = std::max(diff, std::fabs(gradient[j][k] - fdGradient[j][k]));
+
+        if (diff > 1e-4) {
+         
+            std::cout << "Analytical and FD gradients differ!" << std::endl;
+            
+            std::cout << "gradient:" << std::endl;
+            for (size_t j=0; j<gradient.size(); j++)
+                std::cout << gradient[j] << std::endl;
+
+            std::cout << "fd gradient:" << std::endl;
+            for (size_t j=0; j<fdGradient.size(); j++)
+                std::cout << fdGradient[j] << std::endl;
+
+            abort();
+        }
+        
+    }
+    
+}
+
+
 int main(int argc, char** argv) try
 {
     const int domainDim = 2;
     std::cout << " --- Testing derivative of rotation matrix, domain dimension: " << domainDim << " ---" << std::endl;
-
+    
     std::vector<Rotation<double,3> > testPoints;
     
     ValueFactory<Rotation<double,3> >::get(testPoints);
@@ -260,6 +375,12 @@ int main(int argc, char** argv) try
     //////////////////////////////////////////////////////////////////////////////////////
     
     testFrameInvariance<domainDim>();
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    //   Test the gradient of the energy functional
+    //////////////////////////////////////////////////////////////////////////////////////
+    
+    testEnergyGradient<domainDim>();
     
 } catch (Exception e) {
 
