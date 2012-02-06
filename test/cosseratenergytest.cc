@@ -24,6 +24,33 @@ typedef RigidBodyMotion<double,3> TargetSpace;
 using namespace Dune;
 
 
+// ////////////////////////////////////////////////////////
+//   Make a test grid consisting of a single simplex
+// ////////////////////////////////////////////////////////
+
+template <class GridType>
+std::auto_ptr<GridType> makeSingleSimplexGrid()
+{
+    static const int domainDim = GridType::dimension;
+    GridFactory<GridType> factory;
+
+    FieldVector<double,dim> pos(0);
+    factory.insertVertex(pos);
+
+    for (int i=0; i<domainDim+1; i++) {
+        pos = 0;
+        pos[i] = 1;
+        factory.insertVertex(pos);
+    }
+
+    std::vector<unsigned int> v(domainDim+1);
+    for (int i=0; i<domainDim+1; i++)
+        v[i] = i;
+    factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
+
+    return std::auto_ptr<GridType>(factory.createGrid());
+}
+
 
 template <int domainDim,class LocalFiniteElement>
 Tensor3<double,3,3,3> evaluateDerivativeFD(const LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace>& f,
@@ -185,24 +212,7 @@ void testFrameInvariance()
     // ////////////////////////////////////////////////////////
 
     typedef UGGrid<domainDim> GridType;
-
-    GridFactory<GridType> factory;
-
-    FieldVector<double,dim> pos(0);
-    factory.insertVertex(pos);
-
-    for (int i=0; i<domainDim+1; i++) {
-        pos = 0;
-        pos[i] = 1;
-        factory.insertVertex(pos);
-    }
-
-    std::vector<unsigned int> v(domainDim+1);
-    for (int i=0; i<domainDim+1; i++)
-        v[i] = i;
-    factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
-
-    const std::auto_ptr<GridType> grid(factory.createGrid());
+    const std::auto_ptr<GridType> grid = makeSingleSimplexGrid<GridType>();
     
     // //////////////////////////////////////////////////////////
     //  Test whether the energy is invariant under isometries
@@ -239,26 +249,8 @@ void testEnergyGradient()
     // ////////////////////////////////////////////////////////
 
     typedef UGGrid<domainDim> GridType;
+    const std::auto_ptr<GridType> grid = makeSingleSimplexGrid<GridType>();
 
-    GridFactory<GridType> factory;
-
-    FieldVector<double,dim> pos(0);
-    factory.insertVertex(pos);
-
-    for (int i=0; i<domainDim+1; i++) {
-        pos = 0;
-        pos[i] = 1;
-        factory.insertVertex(pos);
-    }
-
-    std::vector<unsigned int> v(domainDim+1);
-    for (int i=0; i<domainDim+1; i++)
-        v[i] = i;
-    factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
-
-    const std::auto_ptr<GridType> grid(factory.createGrid());
-
-    
     ////////////////////////////////////////////////////////////////////////////
     //  Create a local assembler object
     ////////////////////////////////////////////////////////////////////////////
