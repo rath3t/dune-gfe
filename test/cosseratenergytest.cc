@@ -251,7 +251,7 @@ int main(int argc, char** argv) try
         for (int j=0; j<domainDim+1; j++)
             corners[j].q = testPoints[index[j]];
 
-        testDerivativeOfRotationMatrix<2>(corners);
+        testDerivativeOfRotationMatrix<domainDim>(corners);
                 
     }
     
@@ -259,7 +259,7 @@ int main(int argc, char** argv) try
     //   Test invariance of the energy functional under rotations
     //////////////////////////////////////////////////////////////////////////////////////
     
-    testFrameInvariance<2>();
+    testFrameInvariance<domainDim>();
     
 } catch (Exception e) {
 
