@@ -202,7 +202,7 @@ void testFrameInvariance()
         v[i] = i;
     factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
 
-    const GridType* grid = factory.createGrid();
+    const std::auto_ptr<GridType> grid(factory.createGrid());
     
     // //////////////////////////////////////////////////////////
     //  Test whether the energy is invariant under isometries
@@ -222,7 +222,7 @@ void testFrameInvariance()
         for (int j=0; j<dim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
-        testEnergy<GridType>(grid, coefficients);
+        testEnergy<GridType>(grid.get(), coefficients);
         
     }
     
