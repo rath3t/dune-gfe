@@ -316,7 +316,11 @@ void testEnergyGradient()
             for (size_t k=0; k<gradient[j].size(); k++)
                 diff = std::max(diff, std::fabs(gradient[j][k] - fdGradient[j][k]));
 
-        if (diff > 1e-4) {
+        double maxRelError = 0;
+        for (size_t j=0; j<gradient.size(); j++)
+            maxRelError = std::max(maxRelError, diff/gradient[j].infinity_norm());
+            
+        if (maxRelError > 1e-3) {
          
             std::cout << "Analytical and FD gradients differ!" << std::endl;
             
