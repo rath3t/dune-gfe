@@ -133,6 +133,53 @@ public:  // for testing
 
     }
 
+        /** \brief Compute the derivative of the gradient of the rotation with respect to the corner coefficients,
+         *   but in matrix coordinates
+         * 
+        \param value Value of the gfe function at a certain point
+        \param derivative First derivative of the gfe function wrt the coefficients at that point, in quaternion coordinates
+     */
+    static void compute_dDR_dv(const RigidBodyMotion<double,3>& value, 
+                               const Dune::FieldMatrix<double,7,gridDim>& derOfValueWRTx,
+                               const Dune::FieldMatrix<double,7,7>& derOfValueWRTCoefficient,
+                               const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
+                               Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv)
+    {
+        // The LocalGFEFunction class gives us the derivatives of the orientation variable,
+        // but as a map into quaternion space.  To obtain matrix coordinates we use the
+        // chain rule, which means that we have to multiply the given derivative with
+        // the derivative of the embedding of the unit quaternion into the space of 3x3 matrices.
+        // This second derivative is almost given by the method getFirstDerivativesOfDirectors.
+        // However, since the directors of a given unit quaternion are the _columns_ of the
+        // corresponding orthogonal matrix, we need to invert the i and j indices
+        //
+        // So, if I am not mistaken, DR[i][j][k] contains \partial R_ij / \partial k
+        Tensor3<double,3 , 3, 4> dd_dq;
+        value.q.getFirstDerivativesOfDirectors(dd_dq);
+        
+        /** \todo This is a constant -- don't recompute it every time */
+        Dune::array<Tensor3<double,3,4,4>, 3> dd_dq_dq;
+        Rotation<double,3>::getSecondDerivativesOfDirectors(dd_dq_dq);
+        
+        for (size_t i=0; i<4; i++)
+            dDR_dv[i] = 0;
+        
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<gridDim; k++)
+                    for (int v_i=0; v_i<4; v_i++)
+                        for (int l=0; l<4; l++)
+                            dDR_dv[i][j][k][v_i] += dd_dq_dq[j][i][l][k] * derOfValueWRTCoefficient[l+3][v_i] * derOfValueWRTx[l+3][k];
+
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<gridDim; k++)
+                    for (int v_i=0; v_i<4; v_i++)
+                        for (int l=0; l<4; l++)
+                            dDR_dv[i][j][k][v_i] += dd_dq[j][i][l] * derOfGradientWRTCoefficient[l+3][v_i][k];
+
+    }
+
 public:
     
     /** \brief Constructor with a set of material parameters
@@ -258,6 +305,18 @@ public:
                                     const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
                                     const Dune::FieldMatrix<double,3,3>& U) const;
 
+    void curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
+                                 const Dune::FieldMatrix<double,3,3>& R,
+                                 const Tensor3<double,3,3,3>& DR,
+                                 const Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv) const;
+    
+    void bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
+                               const Dune::FieldMatrix<double,3,3>& R,
+                               const Tensor3<double,3,3,4>& dR_dv,
+                               const Tensor3<double,3,3,3>& DR,
+                               const Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv) const;
+
+                                 
     /** \brief The shell thickness */
     double thickness_;
     
@@ -412,7 +471,7 @@ energy(const Entity& element,
             else
                 neumannFunction_->evaluate(it->geometry().global(quad[pt].position()), neumannValue);
 
-            // Constant Neumann force in z-direction
+            // Only translational dofs are affected by the Neumann force
             energy += thickness_ * (neumannValue * value.r) * quad[pt].weight() * integrationElement;
             
         }
@@ -519,6 +578,87 @@ longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector&
         for (size_t i=0; i<2; i++)
             embeddedLocalGradient[v_i] += 2 * mu_*lambda_ / (2*mu_+lambda_)* trace * dR1R2Tnablam_dv[i][i][v_i];
 
+}
+
+
+template <class GridView, class LocalFiniteElement, int dim>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
+                        const Dune::FieldMatrix<double,3,3>& R,
+                        const Tensor3<double,3,3,3>& DR,
+                        const Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv) const
+{
+    embeddedLocalGradient = 0;
+    
+    for (size_t v_i=0; v_i<4; v_i++) {
+        
+        for (size_t i=0; i<3; i++)
+            for (size_t j=0; j<3; j++)
+                for (size_t k=0; k<3; k++)
+                    embeddedLocalGradient[v_i+3] += DR[i][j][k] * dDR_dv[i][j][k][v_i];
+        
+    }
+
+    embeddedLocalGradient *= mu_ * q_ * std::pow(L_c_, q_) * std::pow(DR.frobenius_norm(), q_ - 2);
+}
+
+
+template <class GridView, class LocalFiniteElement, int dim>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
+                      const Dune::FieldMatrix<double,3,3>& R,
+                      const Tensor3<double,3,3,4>& dR_dv,
+                      const Tensor3<double,3,3,3>& DR,
+                      const Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv) const
+{
+    embeddedLocalGradient = 0;
+    
+    // left-multiply the derivative of the third director (in DR[][2][]) with R^T
+    Dune::FieldMatrix<double,3,3> RT_DR3;
+    for (int i=0; i<3; i++)
+        for (int j=0; j<3; j++) {
+            RT_DR3[i][j] = 0;
+            for (int k=0; k<3; k++)
+                RT_DR3[i][j] += R[k][i] * DR[k][2][j];
+        }
+
+    // -----------------------------------------------------------------------------
+    
+    Tensor3<double,3,3,4> d_RT_DR3(0);
+    for (size_t v_i=0; v_i<4; v_i++)
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<3; k++)
+                    d_RT_DR3[i][j][v_i] += dR_dv[k][i][v_i] * DR[k][2][j] + R[k][i] * dDR_dv[k][2][j][v_i];
+                    
+    ////////////////////////////////////////////////////////////////////////////////
+    //  "Shear--Stretch Energy"
+    ////////////////////////////////////////////////////////////////////////////////
+
+    for (size_t v_i=0; v_i<4; v_i++)
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                embeddedLocalGradient[v_i+3] += mu_ * 0.5 * (RT_DR3[i][j]+RT_DR3[j][i]) * (d_RT_DR3[i][j][v_i] + d_RT_DR3[j][i][v_i]);
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //  "First-order Drill Energy"
+    ////////////////////////////////////////////////////////////////////////////////
+
+    for (size_t v_i=0; v_i<4; v_i++)
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                embeddedLocalGradient[v_i+3] += mu_c_ * 0.5 * (RT_DR3[i][j]-RT_DR3[j][i]) * (d_RT_DR3[i][j][v_i] - d_RT_DR3[j][i][v_i]);
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //  "Elongational Stretch Energy"
+    ////////////////////////////////////////////////////////////////////////////////
+
+    double factor = 2 * mu_*lambda_ / (2*mu_ + lambda_) * (RT_DR3[0][0] + RT_DR3[1][1] + RT_DR3[2][2]);
+    for (size_t v_i=0; v_i<4; v_i++)
+        for (int i=0; i<3; i++)
+            embeddedLocalGradient[v_i+3] += factor * d_RT_DR3[i][i][v_i];
+        
 }
 
 #if 0  // out-commented, because not completely implemented yet
@@ -631,14 +771,23 @@ assembleGradient(const Entity& element,
                             derOfGradientWRTCoefficient[ii][jj][kk] += referenceDerivativeDerivative[ii][jj][ll] * jacobianInverseTransposed[kk][ll];
                     }
 
-        
+            // ---------------------------------------------------------------------
+            Dune::array<Tensor3<double,3,3,4>, 3> dDR_dv;
+            compute_dDR_dv(value, derivative, derOfValueWRTCoefficient, derOfGradientWRTCoefficient, dDR_dv);
+            
             // Add the local energy density
             if (gridDim==2) {
                 typename TargetSpace::EmbeddedTangentVector tmp(0);
                 longQuadraticMembraneEnergyGradient(tmp,R,dR_dv,derivative,derOfGradientWRTCoefficient,U);
+                //embeddedLocalGradient[i].axpy(weight * thickness_, tmp);
+                
+                tmp = 0;
+                curvatureEnergyGradient(tmp,R,DR,dDR_dv);
                 embeddedLocalGradient[i].axpy(weight * thickness_, tmp);
-                //energy += weight * thickness_ * curvatureEnergyGradient(DR);
-                //energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergyGradient(R,DR);
+                
+                tmp = 0;
+                bendingEnergyGradient(tmp,R,dR_dv,DR,dDR_dv);
+                //embeddedLocalGradient[i].axpy(weight * std::pow(thickness_,3) / 12.0, tmp);
             } else if (gridDim==3) {
                 assert(gridDim==2);  // 3d not implemented yet
 //             energy += weight * quadraticMembraneEnergyGradient(U);
@@ -646,13 +795,16 @@ assembleGradient(const Entity& element,
             } else
                 DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
 
+        }
+        
+    }
     
     //////////////////////////////////////////////////////////////////////////////
     //   Assemble boundary contributions
     //////////////////////////////////////////////////////////////////////////////
     
     assert(neumannFunction_);
-#if 0
+
     for (typename Entity::LeafIntersectionIterator it = element.ileafbegin(); it != element.ileafend(); ++it) {
         
         if (not neumannBoundary_ or not neumannBoundary_->contains(*it))
@@ -668,9 +820,6 @@ assembleGradient(const Entity& element,
         
             const double integrationElement = it->geometry().integrationElement(quad[pt].position());
 
-            // The value of the local function
-            RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
-
             // Value of the Neumann data at the current position
             Dune::FieldVector<double,3> neumannValue;
             
@@ -679,16 +828,24 @@ assembleGradient(const Entity& element,
             else
                 neumannFunction_->evaluate(it->geometry().global(quad[pt].position()), neumannValue);
 
-            // Constant Neumann force in z-direction
-            energy += thickness_ * (neumannValue * value.r) * quad[pt].weight() * integrationElement;
+            // loop over all the element's degrees of freedom and compute the gradient wrt it
+            for (size_t i=0; i<localSolution.size(); i++) {
+                
+                // --------------------------------------------------------------------
+                Dune::FieldMatrix<double,7,7> derOfValueWRTCoefficient;
+                localGeodesicFEFunction.evaluateDerivativeOfValueWRTCoefficient(quadPos, i, derOfValueWRTCoefficient);
+
+                // Only translational dofs are affected by the Neumann force
+                for (size_t v_i=0; v_i<3; v_i++)
+                    for (size_t j=0; j<3; j++)
+                        embeddedLocalGradient[i][v_i] += thickness_ * (neumannValue[j] * derOfValueWRTCoefficient[j][v_i]) * quad[pt].weight() * integrationElement;
             
+            }
         }
         
     }
-#endif
-        }
-        
-    }    
+
+
     // transform to coordinates on the tangent space
     localGradient.resize(embeddedLocalGradient.size());
 
