@@ -610,6 +610,31 @@ public:
 
     }
 
+    /** \brief Compute the second derivatives of the director vectors with respect to the quaternion coordinates
+     * 
+     * Let \f$ d_k(q) = (d_{k,1}, d_{k,2}, d_{k,3})\f$ be the k-th director vector at \f$ q \f$.
+     * Then the return value of this method is
+     * \f[ A_{ijkl} = \frac{\partial^2 d_{i,j}}{\partial q_k \partial q_l} \f]
+     */
+    static void getSecondDerivativesOfDirectors(Dune::array<Tensor3<T,3, 4, 4>, 3>& dd_dq_dq)
+    {
+        for (int i=0; i<3; i++)
+            dd_dq_dq[i] = 0;
+
+        dd_dq_dq[0][0][0][0] =  2;  dd_dq_dq[0][0][1][1] = -2;  dd_dq_dq[0][0][2][2] = -2;  dd_dq_dq[0][0][3][3] =  2;
+        dd_dq_dq[0][1][0][1] =  2;  dd_dq_dq[0][1][1][0] =  2;  dd_dq_dq[0][1][2][3] =  2;  dd_dq_dq[0][1][3][2] =  2;
+        dd_dq_dq[0][2][0][2] =  2;  dd_dq_dq[0][2][1][3] = -2;  dd_dq_dq[0][2][2][0] =  2;  dd_dq_dq[0][2][3][1] = -2;
+
+        dd_dq_dq[1][0][0][1] =  2;  dd_dq_dq[1][0][1][0] =  2;  dd_dq_dq[1][0][2][3] = -2;  dd_dq_dq[1][0][3][2] = -2;
+        dd_dq_dq[1][1][0][0] = -2;  dd_dq_dq[1][1][1][1] =  2;  dd_dq_dq[1][1][2][2] = -2;  dd_dq_dq[1][1][3][3] =  2;
+        dd_dq_dq[1][2][0][3] =  2;  dd_dq_dq[1][2][1][2] =  2;  dd_dq_dq[1][2][2][1] =  2;  dd_dq_dq[1][2][3][0] =  2;
+
+        dd_dq_dq[2][0][0][2] =  2;  dd_dq_dq[2][0][1][3] =  2;  dd_dq_dq[2][0][2][0] =  2;  dd_dq_dq[2][0][3][1] =  2;
+        dd_dq_dq[2][1][0][3] = -2;  dd_dq_dq[2][1][1][2] =  2;  dd_dq_dq[2][1][2][1] =  2;  dd_dq_dq[2][1][3][0] = -2;
+        dd_dq_dq[2][2][0][0] = -2;  dd_dq_dq[2][2][1][1] = -2;  dd_dq_dq[2][2][2][2] =  2;  dd_dq_dq[2][2][3][3] =  2;
+
+    }
+
     /** \brief Compute the derivative of the squared distance function with respect to the second argument
      * 
      * The squared distance function is
