@@ -169,14 +169,15 @@ public:  // for testing
                 for (int k=0; k<gridDim; k++)
                     for (int v_i=0; v_i<4; v_i++)
                         for (int l=0; l<4; l++)
-                            dDR_dv[i][j][k][v_i] += dd_dq_dq[j][i][l][k] * derOfValueWRTCoefficient[l+3][v_i] * derOfValueWRTx[l+3][k];
+                            for (int m=0; m<4; m++)
+                                dDR_dv[i][j][k][v_i] += dd_dq_dq[j][i][l][m]  * derOfValueWRTx[l+3][k] * derOfValueWRTCoefficient[m+3][v_i+3];
 
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
                 for (int k=0; k<gridDim; k++)
                     for (int v_i=0; v_i<4; v_i++)
                         for (int l=0; l<4; l++)
-                            dDR_dv[i][j][k][v_i] += dd_dq[j][i][l] * derOfGradientWRTCoefficient[l+3][v_i][k];
+                            dDR_dv[i][j][k][v_i] += dd_dq[j][i][l] * derOfGradientWRTCoefficient[l+3][v_i+3][k];
 
     }
 
@@ -599,6 +600,7 @@ curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLoc
         
     }
 
+    // multiply with constant pre-factor
     embeddedLocalGradient *= mu_ * q_ * std::pow(L_c_, q_) * std::pow(DR.frobenius_norm(), q_ - 2);
 }
 
