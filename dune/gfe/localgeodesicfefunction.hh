@@ -549,18 +549,22 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
         result[j]  = hPlus;
         result[j] -= hMinus;
         result[j] /= 2*eps;
-                
+
+    }
+    
+    for (int j=0; j<embeddedDim; j++) {
+
         TargetSpace q = evaluate(local);
         Dune::FieldVector<double,embeddedDim> foo;
         for (int l=0; l<dim; l++) {
                     
             for (int k=0; k<embeddedDim; k++)
-                foo[k] = result[j][k][l];
+                foo[k] = result[k][j][l];
 
             foo = q.projectOntoTangentSpace(foo);
 
             for (int k=0; k<embeddedDim; k++)
-                result[j][k][l] = foo[k];
+                result[k][j][l] = foo[k];
                     
         }
         
