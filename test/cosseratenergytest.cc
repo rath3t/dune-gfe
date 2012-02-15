@@ -15,8 +15,6 @@
 #include "multiindex.hh"
 #include "valuefactory.hh"
 
-const int dim = 2;
-
 const double eps = 1e-4;
 
 typedef RigidBodyMotion<double,3> TargetSpace;
@@ -34,7 +32,7 @@ std::auto_ptr<GridType> makeSingleSimplexGrid()
     static const int domainDim = GridType::dimension;
     GridFactory<GridType> factory;
 
-    FieldVector<double,dim> pos(0);
+    FieldVector<double,domainDim> pos(0);
     factory.insertVertex(pos);
 
     for (int i=0; i<domainDim+1; i++) {
@@ -46,7 +44,7 @@ std::auto_ptr<GridType> makeSingleSimplexGrid()
     std::vector<unsigned int> v(domainDim+1);
     for (int i=0; i<domainDim+1; i++)
         v[i] = i;
-    factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
+    factory.insertElement(GeometryType(GeometryType::simplex,domainDim), v);
 
     return std::auto_ptr<GridType>(factory.createGrid());
 }
@@ -222,14 +220,14 @@ void testFrameInvariance()
     ValueFactory<TargetSpace>::get(testPoints);
 
     // Set up elements of SE(3)
-    std::vector<TargetSpace> coefficients(dim+1);
+    std::vector<TargetSpace> coefficients(domainDim+1);
 
-    MultiIndex index(dim+1, testPoints.size());
+    MultiIndex index(domainDim+1, testPoints.size());
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<dim+1; j++)
+        for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
         testEnergy<GridType>(grid.get(), coefficients);
@@ -283,9 +281,9 @@ void testEnergyGradient()
     ValueFactory<TargetSpace>::get(testPoints);
 
     // Set up elements of SE(3)
-    std::vector<TargetSpace> coefficients(dim+1);
+    std::vector<TargetSpace> coefficients(domainDim+1);
 
-    MultiIndex index(dim+1, testPoints.size());
+    MultiIndex index(domainDim+1, testPoints.size());
     int numIndices = index.cycle();
     
     std::vector<typename RigidBodyMotion<double,3>::TangentVector> gradient(coefficients.size());
@@ -293,7 +291,7 @@ void testEnergyGradient()
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<dim+1; j++)
+        for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
         // Compute the analytical gradient
