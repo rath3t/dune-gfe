@@ -473,6 +473,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     dvDqF = w[coefficient] * dvDqF;
        
     // Put it all together
+    // dvq[i][j] = \partial q_j / \partial v_i
     Dune::FieldMatrix<double,embeddedDim,embeddedDim> dvq;
     evaluateDerivativeOfValueWRTCoefficient(local,coefficient,dvq);
     
@@ -528,6 +529,7 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
     double eps = 1e-6;
     static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
     
+    // loop over the different partial derivatives
     for (int j=0; j<embeddedDim; j++) {
                 
         std::vector<TargetSpace> cornersPlus  = coefficients_;
