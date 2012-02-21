@@ -109,6 +109,7 @@ public:
                 rot[j][2] = dir2[j];
             }
             rod[i].q.set(rot);
+            rod[i].q.normalize();
         }
 
         std::cout << "Rod successfully read from: " << filename << std::endl;
