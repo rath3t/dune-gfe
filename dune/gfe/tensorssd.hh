@@ -106,4 +106,20 @@ private:
     size_t N3_;
 };
 
+//! Output operator for TensorSSD
+template <class T, int N1, int N2>
+inline std::ostream& operator<< (std::ostream& s, const TensorSSD<T,N1,N2>& tensor)
+{
+    for (int i=0; i<N1; i++) {
+        for (int j=0; j<N2; j++) {
+            for (size_t k=0; k<tensor.dim(2); k++)
+                s << tensor(i,j,k) << "  ";
+            s << std::endl;
+        }
+        s << std::endl;
+    }
+    return s;
+}
+
+
 #endif
