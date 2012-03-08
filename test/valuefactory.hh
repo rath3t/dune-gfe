@@ -225,5 +225,28 @@ public:
     
 };
 
+/** \brief A class that creates sets of values of various types, to be used in unit tests
+ * 
+ * This is the specialization for square FieldMatrices
+ */
+template <class T, int N>
+class ValueFactory<Dune::FieldMatrix<T,N,N> >
+{
+public:
+    static void get(std::vector<Dune::FieldMatrix<T,N,N> >& values) {
+        
+        int nTestPoints = 10;
+        values.resize(nTestPoints);
+        
+        // Set up elements of T^{N \times N}
+        for (int i=0; i<nTestPoints; i++)
+            for (int j=0; j<N; j++)
+                for (int k=0; k<N; k++)
+                    values[i][j][k] = std::rand();
+
+    }
+    
+};
+
 
 #endif
