@@ -14,6 +14,7 @@ check_PROGRAMS = averagedistanceassemblertest \
                  localgeodesicfestiffnesstest \
                  localgfetestfunctiontest \
                  nestednesstest \
+                 orthogonalmatrixtest \
                  rodassemblertest \
                  rotationtest \
                  svdtest \
@@ -40,6 +41,8 @@ interpolationtest_SOURCES = interpolationtest.cc
 cosseratenergytest_SOURCES = cosseratenergytest.cc
 
 averagedistanceassemblertest_SOURCES = averagedistanceassemblertest.cc
+
+orthogonalmatrixtest_SOURCES = orthogonalmatrixtest.cc
 
 rodassemblertest_SOURCES = rodassemblertest.cc
 
