@@ -13,7 +13,24 @@ using namespace Dune;
 
 double eps = 1e-6;
 
-/** \brief Test orthogonal projection onto the tangent space at q
+/** \brief Test whether orthogonal matrix really is orthogonal
+ */
+template <class T, int N>
+void testOrthogonality(const OrthogonalMatrix<T,N>& p)
+{
+    Dune::FieldMatrix<T,N,N> prod(0);
+    for (int i=0; i<N; i++)
+        for (int j=0; j<N; j++)
+            for (int k=0; k<N; k++)
+                prod[i][j] += p.data()[k][i] * p.data()[k][j];
+            
+    for (int i=0; i<N; i++)
+        for (int j=0; j<N; j++)
+            if ( std::abs(prod[i][j] - (i==j) ) > eps)
+                DUNE_THROW(Exception, "Matrix is not orthogonal");
+}
+    
+/** \brief Test orthogonal projection onto the tangent space at p
  */
 template <class T, int N>
 void testProjectionOntoTangentSpace(const OrthogonalMatrix<T,N>& p)
@@ -36,7 +53,6 @@ void testProjectionOntoTangentSpace(const OrthogonalMatrix<T,N>& p)
                 for (int l=0; l<N; l++)
                     skewPart[j][k] += p.data()[l][j] * projected[l][k];
         
-        std::cout << "skew part\n" << skewPart << std::endl;
         // is it skew?
         for (int j=0; j<N; j++)
             for (int k=0; k<=j; k++)
@@ -56,19 +72,19 @@ void test()
 {
     std::cout << "Testing class " << className<OrthogonalMatrix<T,N> >() << std::endl;
     
-    // Use the ValueFactory for general matrices.
-    // I am too lazy to program a factory for orthogonal matrices
-    std::vector<FieldMatrix<T,N,N> > testPoints;
-    ValueFactory<FieldMatrix<T,N,N> >::get(testPoints);
+    // Get set of orthogonal test matrices
+    std::vector<OrthogonalMatrix<T,N> > testPoints;
+    ValueFactory<OrthogonalMatrix<T,N> >::get(testPoints);
     
     int nTestPoints = testPoints.size();
     
     // Test each element in the list
     for (int i=0; i<nTestPoints; i++) {
-        
-        // I cannot use matrices with determinant zero for testing
-        if (testPoints[i].determinant() > eps)
-            testProjectionOntoTangentSpace(OrthogonalMatrix<T,N>(testPoints[i]));
+      
+        // Test whether the matrix really is orthogonal
+        testOrthogonality(testPoints[i]);
+            
+        testProjectionOntoTangentSpace(testPoints[i]);
         
     }
     
