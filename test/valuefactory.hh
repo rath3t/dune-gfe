@@ -249,4 +249,58 @@ public:
 };
 
 
+/** \brief A class that creates sets of values of various types, to be used in unit tests
+ * 
+ * This is the specialization for OrthogonalMatrices
+ */
+template <class T, int N>
+class ValueFactory<OrthogonalMatrix<T,N> >
+{
+    
+    static Dune::FieldVector<T,N> proj(const Dune::FieldVector<T,N>& u, const Dune::FieldVector<T,N>& v)
+    {
+        Dune::FieldVector<T,N> result = u;
+        result *= (v*u) / (u*u);
+        return result;
+    }
+    
+public:
+    static void get(std::vector<OrthogonalMatrix<T,N> >& values) {
+
+        // Get general matrices
+        std::vector<Dune::FieldMatrix<T,N,N> > mValues;
+        ValueFactory<Dune::FieldMatrix<T,N,N> >::get(mValues);
+                               
+        values.resize(mValues.size());
+
+        // Do Gram-Schmidt orthogonalization of the rows
+        for (size_t m=0; m<mValues.size(); m++) {
+        
+            Dune::FieldMatrix<T,N,N>& v = mValues[m];
+            
+            if (std::fabs(v.determinant()) < 1e-6)
+                continue;
+            
+            for (int j=0; j<N; j++) {
+             
+                for (int i=0; i<j; i++) {
+                 
+                    // v_j = v_j - proj_{v_i} v_j
+                    v[j] -= proj(v[i],v[j]);
+                    
+                }
+                
+                // normalize
+                v[j] /= v[j].two_norm();
+            }
+
+            values[m] = OrthogonalMatrix<T,N>(v);
+
+        }
+        
+    }
+    
+};
+
+
 #endif
