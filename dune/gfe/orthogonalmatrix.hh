@@ -45,7 +45,7 @@ public:
         
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++) {
-                IdMinusXXT = (i==j);
+                IdMinusXXT[i][j] = (i==j);
                 for (int k=0; k<N; k++)
                     IdMinusXXT[i][j] -= X[i][k] * X[j][k];
             }
