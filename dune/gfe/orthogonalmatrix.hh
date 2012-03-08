@@ -12,17 +12,17 @@ class OrthogonalMatrix
 {
 public:
     
+    /** \brief Default constructor -- leaves the matrix uninitialized */
+    OrthogonalMatrix()
+    {}
+    
     /** \brief Constructor from a general matrix
      * 
-     * The input matrix gets normalized to det = 1.  Since computing
-     * the determinant is expensive you may not want to use this method
-     * if you know your input matrix to be orthogonal anyways.
+     * It is not checked whether the matrix is really orthogonal
      */
     explicit OrthogonalMatrix(const Dune::FieldMatrix<T,N,N>& matrix)
     : data_(matrix)
-    {
-        data_ /= matrix.determinant();
-    }
+    {}
 
     /** \brief Const access to the matrix entries */
     const Dune::FieldMatrix<T,N,N>& data() const
