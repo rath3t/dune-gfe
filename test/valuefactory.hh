@@ -6,6 +6,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/orthogonalmatrix.hh>
 
 /** \brief A class that creates sets of values of various types, to be used in unit tests
  * 
