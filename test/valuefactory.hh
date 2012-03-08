@@ -242,7 +242,7 @@ public:
         for (int i=0; i<nTestPoints; i++)
             for (int j=0; j<N; j++)
                 for (int k=0; k<N; k++)
-                    values[i][j][k] = std::rand();
+                    values[i][j][k] = std::rand()%100 - 50;
 
     }
     
