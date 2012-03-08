@@ -6,14 +6,12 @@
 
 #include "valuefactory.hh"
 
-using Dune::FieldVector;
+using namespace Dune;
 
 
 /** \file
     \brief Unit tests for classes that implement value manifolds for geodesic FE functions
 */
-
-using namespace Dune;
 
 /** \brief Computes the diameter of a set */
 template <class TargetSpace>
