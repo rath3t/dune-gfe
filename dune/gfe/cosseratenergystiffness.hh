@@ -12,6 +12,7 @@
 #include "localgeodesicfefunction.hh"
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/tensor3.hh>
+#include <dune/gfe/orthogonalmatrix.hh>
 
 template<class GridView, class LocalFiniteElement, int dim>
 class CosseratEnergyLocalStiffness 
@@ -179,6 +180,26 @@ public:  // for testing
                         for (int l=0; l<4; l++)
                             dDR_dv[i][j][k][v_i] += dd_dq[j][i][l] * derOfGradientWRTCoefficient[l+3][v_i+3][k];
 
+        // Project onto the tangent space at M(q)
+        Dune::FieldMatrix<double,3,3> Mtmp;
+        value.q.matrix(Mtmp);
+        OrthogonalMatrix<double,3> M(Mtmp);                   
+        
+        for (int k=0; k<gridDim; k++)
+            for (int v_i=0; v_i<4; v_i++) {
+                
+                Dune::FieldMatrix<double,3,3> unprojected;
+                for (int i=0; i<3; i++)
+                    for (int j=0; j<3; j++)
+                        unprojected[i][j] = dDR_dv[i][j][k][v_i];
+                    
+                Dune::FieldMatrix<double,3,3> projected = M.projectOntoTangentSpace(unprojected);
+                
+                for (int i=0; i<3; i++)
+                    for (int j=0; j<3; j++)
+                        dDR_dv[i][j][k][v_i] = projected[i][j];
+            }
+            
     }
 
 public:
