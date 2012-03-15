@@ -664,7 +664,7 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
     Tensor3<double,3,3,4> d_RT_DR3(0);
     for (size_t v_i=0; v_i<4; v_i++)
         for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++)
+            for (int j=0; j<gridDim; j++)
                 for (int k=0; k<3; k++)
                     d_RT_DR3[i][j][v_i] += dR_dv[k][i][v_i] * DR[k][2][j] + R[k][i] * dDR_dv[k][2][j][v_i];
                     
