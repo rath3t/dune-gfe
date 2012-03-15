@@ -14,6 +14,7 @@
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/orthogonalmatrix.hh>
 
+#define DONT_USE_CURL
 template<class GridView, class LocalFiniteElement, int dim>
 class CosseratEnergyLocalStiffness 
     : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<double,dim> >
@@ -295,7 +296,11 @@ public:
 
     RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
     {
+#ifdef DONT_USE_CURL
+        return mu_ * std::pow(L_c_ * DR.frobenius_norm(),q_);
+#else
         return mu_ * std::pow(L_c_ * curl(DR).frobenius_norm(),q_);
+#endif
     }
 
     RT bendingEnergy(const Dune::FieldMatrix<double,dim,dim>& R, const Tensor3<double,3,3,3>& DR) const
@@ -610,6 +615,9 @@ curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLoc
                         const Tensor3<double,3,3,3>& DR,
                         const Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv) const
 {
+#ifndef DONT_USE_CURL
+#error curvatureEnergyGradient not implemented for the curl curvature energy
+#endif
     embeddedLocalGradient = 0;
     
     for (size_t v_i=0; v_i<4; v_i++) {
