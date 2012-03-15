@@ -698,7 +698,7 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
         
 }
 
-#if COSSERAT_ENERGY_FD_GRADIENT  // switchable, because not completely implemented yet
+#ifndef COSSERAT_ENERGY_FD_GRADIENT  // switchable, because not completely implemented yet
 template <class GridView, class LocalFiniteElement, int dim>
 void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
 assembleGradient(const Entity& element,
