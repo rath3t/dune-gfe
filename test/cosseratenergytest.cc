@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <dune/grid/uggrid.hh>
+#include <dune/grid/onedgrid.hh>
 
 #include <dune/geometry/type.hh>
 #include <dune/geometry/quadraturerules.hh>
@@ -15,11 +16,28 @@
 #include "multiindex.hh"
 #include "valuefactory.hh"
 
+#ifdef COSSERAT_ENERGY_FD_GRADIENT
+#warning Comparing two finite-difference approximations
+#endif
+
 const double eps = 1e-4;
 
 typedef RigidBodyMotion<double,3> TargetSpace;
 
 using namespace Dune;
+
+
+/** \brief Computes the diameter of a set */
+template <class TargetSpace>
+double diameter(const std::vector<TargetSpace>& v)
+{
+    double d = 0;
+    for (size_t i=0; i<v.size(); i++)
+        for (size_t j=0; j<v.size(); j++)
+            d = std::max(d, Rotation<double,3>::distance(v[i].q,v[j].q));
+    return d;
+}
+
 
 
 // ////////////////////////////////////////////////////////
@@ -236,6 +254,195 @@ void testFrameInvariance()
     
 }
 
+template <int domainDim, class LocalFiniteElement>
+void
+evaluateFD_dDR_WRTCoefficient(const LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,RigidBodyMotion<double,3> >& f,
+                                             const Dune::FieldVector<double, domainDim>& local,
+                                           int coefficient,
+                                           Dune::array<Tensor3<double,3,3,4>, 3>& result)
+{
+    typedef RigidBodyMotion<double,3> TargetSpace;
+    typedef double ctype;
+    
+    double eps = 1e-3;
+    
+    for (int j=0; j<4; j++) {
+
+        assert(f.type().isSimplex());
+        
+        int ncoeff = domainDim+1;
+        std::vector<TargetSpace> cornersPlus(ncoeff);
+        std::vector<TargetSpace> cornersMinus(ncoeff);
+        for (int k=0; k<ncoeff; k++)
+            cornersMinus[k] = cornersPlus[k] = f.coefficient(k);
+        
+        typename TargetSpace::CoordinateType aPlus  = f.coefficient(coefficient).globalCoordinates();
+        typename TargetSpace::CoordinateType aMinus = f.coefficient(coefficient).globalCoordinates();
+        aPlus[j+3]  += eps;
+        aMinus[j+3] -= eps;
+        cornersPlus[coefficient]  = TargetSpace(aPlus);
+        cornersMinus[coefficient] = TargetSpace(aMinus);
+        LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> fPlus(f.localFiniteElement_,cornersPlus);
+        LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> fMinus(f.localFiniteElement_,cornersMinus);
+                
+        TargetSpace qPlus = fPlus.evaluate(local);
+        FieldMatrix<double,7,domainDim> qDerPlus = fPlus.evaluateDerivative(local);
+        TargetSpace qMinus = fMinus.evaluate(local);
+        FieldMatrix<double,7,domainDim> qDerMinus = fMinus.evaluateDerivative(local);
+        Tensor3<double,3,3,3> DRPlus,DRMinus;
+        
+        typedef typename SelectType<domainDim==1,OneDGrid,UGGrid<domainDim> >::Type GridType;
+        CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3>::computeDR(qPlus,qDerPlus,DRPlus);
+        CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3>::computeDR(qMinus,qDerMinus,DRMinus);
+        
+        for (int i=0; i<3; i++)
+            for (int k=0; k<3; k++)
+                for (int l=0; l<3; l++)
+                    result[i][k][l][j] = (DRPlus[i][k][l] - DRMinus[i][k][l]) / (2*eps);
+        
+    }
+    
+    // Project onto the tangent space at M(q)
+    TargetSpace q = f.evaluate(local);
+    Dune::FieldMatrix<double,3,3> Mtmp;
+    q.q.matrix(Mtmp);
+    OrthogonalMatrix<double,3> M(Mtmp);                   
+        
+    for (int k=0; k<domainDim; k++)
+        for (int v_i=0; v_i<4; v_i++) {
+                
+            Dune::FieldMatrix<double,3,3> unprojected;
+            for (int i=0; i<3; i++)
+                for (int j=0; j<3; j++)
+                    unprojected[i][j] = result[i][j][k][v_i];
+                    
+            Dune::FieldMatrix<double,3,3> projected = M.projectOntoTangentSpace(unprojected);
+                
+            for (int i=0; i<3; i++)
+                for (int j=0; j<3; j++)
+                    result[i][j][k][v_i] = projected[i][j];
+        }
+
+}
+
+
+
+template <int domainDim, class GridType, class LocalFiniteElement>
+void testDerivativeOfGradientOfRotationMatrixWRTCoefficient(const LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,RigidBodyMotion<double,3> >& f,
+                                                            const FieldVector<double,domainDim>& local,
+                                                            unsigned int coeff)
+{
+    RigidBodyMotion<double,3> value = f.evaluate(local);
+    FieldMatrix<double,7,domainDim> derOfValueWRTx = f.evaluateDerivative(local);
+
+    FieldMatrix<double,7,7> derOfValueWRTCoefficient;
+    f.evaluateDerivativeOfValueWRTCoefficient(local, coeff, derOfValueWRTCoefficient);
+
+    Tensor3<double,7,7,domainDim> derOfGradientWRTCoefficient;
+    f.evaluateDerivativeOfGradientWRTCoefficient(local, coeff, derOfGradientWRTCoefficient);
+
+    Tensor3<double,7,7,domainDim> FDderOfGradientWRTCoefficient;
+    f.evaluateFDDerivativeOfGradientWRTCoefficient(local, coeff, FDderOfGradientWRTCoefficient);
+
+    // Evaluate the analytical derivative
+    Dune::array<Tensor3<double,3,3,4>, 3> dDR_dv;
+
+    CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3>::compute_dDR_dv(value,
+                                                                                                       derOfValueWRTx,
+                                                                                                       derOfValueWRTCoefficient,
+                                                                                                       derOfGradientWRTCoefficient,
+                                                                                                       dDR_dv);
+
+    Dune::array<Tensor3<double,3,3,4>, 3> dDR_dv_FD;
+
+    evaluateFD_dDR_WRTCoefficient<domainDim,LocalFiniteElement>(f,local, coeff, dDR_dv_FD);
+    
+    // Check whether the two are the same
+    double maxError = 0;
+    for (size_t j=0; j<3; j++)
+        for (size_t k=0; k<3; k++)
+            for (size_t l=0; l<3; l++)
+                for (size_t m=0; m<4; m++) {
+                    double diff = std::fabs(dDR_dv[j][k][l][m] - dDR_dv_FD[j][k][l][m]);
+                    maxError = std::max(maxError, diff);
+                }
+
+    if (maxError > 1e-3) {
+         
+        std::cout << "Analytical and FD derivatives differ!"
+                  << "    local: " << local
+                  << "    coefficient: " << coeff << std::endl;
+            
+        std::cout << "dDR_dv" << std::endl;
+        for (size_t i=0; i<dDR_dv.size(); i++)
+            std::cout << dDR_dv[i] << std::endl << std::endl;
+
+        std::cout << "finite differences: dDR_dv" << std::endl;
+        std::cout << dDR_dv_FD << std::endl;
+
+        abort();
+    }
+
+}
+
+template <int domainDim>
+void testDerivativeOfGradientOfRotationMatrixWRTCoefficient()
+{
+    std::cout << " --- test derivative of gradient of rotation matrix wrt coefficient ---" << std::endl;
+
+    // we just need the type
+    typedef typename SelectType<domainDim==1,OneDGrid,UGGrid<domainDim> >::Type GridType;
+
+    std::vector<TargetSpace> testPoints;
+    ValueFactory<TargetSpace>::get(testPoints);
+
+    // Set up elements of SE(3)
+    std::vector<TargetSpace> coefficients(domainDim+1);
+
+    MultiIndex index(domainDim+1, testPoints.size());
+    int numIndices = index.cycle();
+    
+    for (int i=0; i<numIndices; i++, ++index) {
+        
+        std::cout << "testing der of grad index: " << i << std::endl;
+        
+        for (int j=0; j<domainDim+1; j++)
+            coefficients[j] = testPoints[index[j]];
+
+        if (diameter(coefficients) > M_PI-0.1) {
+            std::cout << "skipping, diameter = " << diameter(coefficients) << std::endl;
+            continue;
+        }
+        
+        PQkLocalFiniteElementCache<double,double,GridType::dimension,1> feCache;
+        typedef typename PQkLocalFiniteElementCache<double,double,GridType::dimension,1>::FiniteElementType LocalFiniteElement;
+    
+        GeometryType simplex;
+        simplex.makeSimplex(domainDim);
+        LocalGeodesicFEFunction<GridType::dimension,double,LocalFiniteElement,RigidBodyMotion<double,3> > f(feCache.get(simplex),coefficients);
+    
+        // Loop over the coefficients -- we test derivation with respect to each of them
+        for (size_t j=0; j<coefficients.size(); j++) {
+
+            // A quadrature rule as a set of test points
+            int quadOrder = 3;
+    
+            const Dune::QuadratureRule<double, domainDim>& quad 
+                = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
+    
+            for (size_t pt=0; pt<quad.size(); pt++) {
+        
+                testDerivativeOfGradientOfRotationMatrixWRTCoefficient<domainDim,GridType,LocalFiniteElement>(f, quad[pt].position(), j);
+
+            }
+
+        }
+        
+    }
+
+}
+
+
 
 template <int domainDim>
 void testEnergyGradient()
@@ -291,9 +498,16 @@ void testEnergyGradient()
 
     for (int i=0; i<numIndices; i++, ++index) {
         
+        std::cout << "testing index: " << i << std::endl;
+        
         for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
+        if (diameter(coefficients) > M_PI-0.05) { 
+            std::cout << "skipped, diameter: " << diameter(coefficients) << std::endl;
+            continue;
+        }
+        
         // Compute the analytical gradient
         assembler.assembleGradient(*grid->template leafbegin<0>(),
                                    feCache.get(grid->template leafbegin<0>()->type()),
@@ -309,16 +523,14 @@ void testEnergyGradient()
                                    fdGradient);
         
         // Check whether the two are the same
-        double diff = 0;
+        double maxError = 0;
         for (size_t j=0; j<gradient.size(); j++)
-            for (size_t k=0; k<gradient[j].size(); k++)
-                diff = std::max(diff, std::fabs(gradient[j][k] - fdGradient[j][k]));
-
-        double maxRelError = 0;
-        for (size_t j=0; j<gradient.size(); j++)
-            maxRelError = std::max(maxRelError, diff/gradient[j].infinity_norm());
+            for (size_t k=0; k<gradient[j].size(); k++) {
+                double diff = std::abs(gradient[j][k] - fdGradient[j][k]);
+                maxError = std::max(maxError, diff);
+            }
             
-        if (maxRelError > 1e-3) {
+        if (maxError > 1e-3) {
          
             std::cout << "Analytical and FD gradients differ!" << std::endl;
             
@@ -373,8 +585,11 @@ int main(int argc, char** argv) try
     //////////////////////////////////////////////////////////////////////////////////////
     //   Test the gradient of the energy functional
     //////////////////////////////////////////////////////////////////////////////////////
-    
-    testEnergyGradient<domainDim>();
+
+    testDerivativeOfGradientOfRotationMatrixWRTCoefficient<1>();
+    testDerivativeOfGradientOfRotationMatrixWRTCoefficient<2>();
+
+    testEnergyGradient<2>();
     
 } catch (Exception e) {
 
