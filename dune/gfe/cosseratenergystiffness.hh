@@ -15,6 +15,13 @@
 #include <dune/gfe/orthogonalmatrix.hh>
 
 #define DONT_USE_CURL
+#define COSSERAT_ENERGY_FD_GRADIENT
+
+#ifdef COSSERAT_ENERGY_FD_GRADIENT
+#warning Finite-difference approximation of the Cosserat energy gradient
+#endif
+
+
 template<class GridView, class LocalFiniteElement, int dim>
 class CosseratEnergyLocalStiffness 
     : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<double,dim> >
@@ -239,7 +246,7 @@ public:
                const LocalFiniteElement& localFiniteElement,
                const std::vector<TargetSpace>& localSolution) const;
 
-#if 0  // out-commented, because not completely implemented yet
+#ifndef COSSERAT_ENERGY_FD_GRADIENT  // switchable, because not completely implemented yet
     /** \brief Assemble the element gradient of the energy functional */
     virtual void assembleGradient(const Entity& element,
                                   const LocalFiniteElement& localFiniteElement,
@@ -691,7 +698,7 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
         
 }
 
-#if 0  // out-commented, because not completely implemented yet
+#if COSSERAT_ENERGY_FD_GRADIENT  // switchable, because not completely implemented yet
 template <class GridView, class LocalFiniteElement, int dim>
 void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
 assembleGradient(const Entity& element,
