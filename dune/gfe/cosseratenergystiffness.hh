@@ -171,14 +171,14 @@ public:  // for testing
                     for (int v_i=0; v_i<4; v_i++)
                         for (int l=0; l<4; l++)
                             for (int m=0; m<4; m++)
-                                dDR_dv[i][j][k][v_i] += dd_dq_dq[j][i][l][m]  * derOfValueWRTx[l+3][k] * derOfValueWRTCoefficient[m+3][v_i+3];
+                                dDR_dv[i][j][k][v_i] += dd_dq_dq[j][i][l][m]  * derOfValueWRTx[l+3][k] * derOfValueWRTCoefficient[v_i+3][m+3];
 
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
                 for (int k=0; k<gridDim; k++)
                     for (int v_i=0; v_i<4; v_i++)
                         for (int l=0; l<4; l++)
-                            dDR_dv[i][j][k][v_i] += dd_dq[j][i][l] * derOfGradientWRTCoefficient[l+3][v_i+3][k];
+                            dDR_dv[i][j][k][v_i] += dd_dq[j][i][l] * derOfGradientWRTCoefficient[v_i+3][l+3][k];
 
         // Project onto the tangent space at M(q)
         Dune::FieldMatrix<double,3,3> Mtmp;
