@@ -816,7 +816,7 @@ assembleGradient(const Entity& element,
             if (gridDim==2) {
                 typename TargetSpace::EmbeddedTangentVector tmp(0);
                 longQuadraticMembraneEnergyGradient(tmp,R,dR_dv,derivative,derOfGradientWRTCoefficient,U);
-                //embeddedLocalGradient[i].axpy(weight * thickness_, tmp);
+                embeddedLocalGradient[i].axpy(weight * thickness_, tmp);
                 
                 tmp = 0;
                 curvatureEnergyGradient(tmp,R,DR,dDR_dv);
@@ -824,7 +824,7 @@ assembleGradient(const Entity& element,
                 
                 tmp = 0;
                 bendingEnergyGradient(tmp,R,dR_dv,DR,dDR_dv);
-                //embeddedLocalGradient[i].axpy(weight * std::pow(thickness_,3) / 12.0, tmp);
+                embeddedLocalGradient[i].axpy(weight * std::pow(thickness_,3) / 12.0, tmp);
             } else if (gridDim==3) {
                 assert(gridDim==2);  // 3d not implemented yet
 //             energy += weight * quadraticMembraneEnergyGradient(U);
