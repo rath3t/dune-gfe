@@ -163,10 +163,12 @@ assembleHessian(const Entity& element,
     std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
     std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
             
+    // we loop over the lower left triangular half of the matrix.
+    // The other half follows from symmetry
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
-            for (size_t j=0; j<localSolution.size(); j++) {
-                for (size_t j2=0; j2<blocksize; j2++) {
+            for (size_t j=0; j<=i; j++) {
+                for (size_t j2=0; j2<((i==j) ? i2+1 : blocksize); j2++) {
 
                     Dune::FieldVector<double,embeddedBlocksize> epsXi  = B[i][i2];    epsXi *= eps;
                     Dune::FieldVector<double,embeddedBlocksize> epsEta = B[j][j2];   epsEta *= eps;
@@ -191,7 +193,7 @@ assembleHessian(const Entity& element,
                     double forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
                     double backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
             
-                    A_[i][j][i2][j2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
+                    A_[i][j][i2][j2] = A_[j][i][j2][i2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
                     
                     // Restore the forwardSolutionXiEta and backwardSolutionXiEta variables.
                     // They will both be identical to the 'solution' array again.
