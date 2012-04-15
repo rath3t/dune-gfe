@@ -170,7 +170,7 @@ public:  // for testing
         Dune::array<Tensor3<double,3,4,4>, 3> dd_dq_dq;
         Rotation<double,3>::getSecondDerivativesOfDirectors(dd_dq_dq);
         
-        for (size_t i=0; i<4; i++)
+        for (size_t i=0; i<dDR_dv.size(); i++)
             dDR_dv[i] = 0;
         
         for (int i=0; i<3; i++)
