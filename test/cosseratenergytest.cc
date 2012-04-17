@@ -53,7 +53,7 @@ std::auto_ptr<GridType> makeSingleSimplexGrid()
     FieldVector<double,domainDim> pos(0);
     factory.insertVertex(pos);
 
-    for (int i=0; i<domainDim+1; i++) {
+    for (int i=0; i<domainDim; i++) {
         pos = 0;
         pos[i] = 1;
         factory.insertVertex(pos);
