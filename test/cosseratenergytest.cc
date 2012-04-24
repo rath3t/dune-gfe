@@ -346,12 +346,14 @@ void testDerivativeOfGradientOfRotationMatrixWRTCoefficient(const LocalGeodesicF
 
     // Evaluate the analytical derivative
     Dune::array<Tensor3<double,3,3,4>, 3> dDR_dv;
+    Tensor3<double,3,domainDim,4> dDR3_dv;
 
     CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3>::compute_dDR_dv(value,
                                                                                                        derOfValueWRTx,
                                                                                                        derOfValueWRTCoefficient,
                                                                                                        derOfGradientWRTCoefficient,
-                                                                                                       dDR_dv);
+                                                                                                       dDR_dv,
+                                                                                                       dDR3_dv);
 
     Dune::array<Tensor3<double,3,3,4>, 3> dDR_dv_FD;
 
@@ -384,6 +386,153 @@ void testDerivativeOfGradientOfRotationMatrixWRTCoefficient(const LocalGeodesicF
     }
 
 }
+
+
+template <int domainDim, class GridType, class LocalFiniteElement>
+void testDerivativeOfBendingEnergy(const LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,RigidBodyMotion<double,3> >& f,
+                                                            const FieldVector<double,domainDim>& local,
+                                                            unsigned int coeff)
+{
+    ParameterTree materialParameters;
+    materialParameters["thickness"] = "1";
+    materialParameters["mu"] = "1";
+    materialParameters["lambda"] = "1";
+    materialParameters["mu_c"] = "1";
+    materialParameters["L_c"] = "1";
+    materialParameters["q"] = "1";
+    materialParameters["kappa"] = "1";
+
+    ConstantFunction<Dune::FieldVector<double,GridType::dimension>, Dune::FieldVector<double,3> > zeroFunction(Dune::FieldVector<double,3>(0));
+    
+    CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3> assembler(materialParameters,
+                                                                                                 NULL,
+                                                                                                 &zeroFunction);
+
+    
+    RigidBodyMotion<double,3> value = f.evaluate(local);
+    FieldMatrix<double,7,domainDim> derOfValueWRTx = f.evaluateDerivative(local);
+
+    FieldMatrix<double,7,7> derOfValueWRTCoefficient;
+    f.evaluateDerivativeOfValueWRTCoefficient(local, coeff, derOfValueWRTCoefficient);
+
+    Tensor3<double,7,7,domainDim> derOfGradientWRTCoefficient;
+    f.evaluateDerivativeOfGradientWRTCoefficient(local, coeff, derOfGradientWRTCoefficient);
+
+    Tensor3<double,7,7,domainDim> FDderOfGradientWRTCoefficient;
+    f.evaluateFDDerivativeOfGradientWRTCoefficient(local, coeff, FDderOfGradientWRTCoefficient);
+
+    // Evaluate the analytical derivative
+    
+    Dune::array<Tensor3<double,3,3,4>, 3> dDR_dv;
+    Tensor3<double,3,domainDim,4> dDR3_dv;
+
+    CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3>::compute_dDR_dv(value,
+                                                                                                       derOfValueWRTx,
+                                                                                                       derOfValueWRTCoefficient,
+                                                                                                       derOfGradientWRTCoefficient,
+                                                                                                       dDR_dv,
+                                                                                                       dDR3_dv);
+              
+    //
+    Dune::FieldMatrix<double,3,3> R;
+    value.q.matrix(R);
+
+    Tensor3<double,3,3,3> DR;
+    CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3>::computeDR(value, derOfValueWRTx, DR);
+
+    Tensor3<double,3,3,4> dR_dv;
+    CosseratEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,3>::computeDR_dv(value, derOfValueWRTCoefficient, dR_dv);
+    
+    FieldVector<double,7> embeddedGradient;
+    assembler.bendingEnergyGradient(embeddedGradient,
+                                    R,
+                                    dR_dv,
+                                    DR,
+                                    dDR3_dv);
+
+    
+    // ///////////////////////////////////////////////////////////
+    //   Compute gradient by finite-difference approximation
+    // ///////////////////////////////////////////////////////////
+
+    double eps = 1e-4;
+    FieldVector<double,4> embeddedFDGradient;
+
+    size_t nDofs = f.localFiniteElement_.localBasis().size();
+    std::vector<TargetSpace> forwardSolution(nDofs);
+    std::vector<TargetSpace> backwardSolution(nDofs);
+    
+    for (size_t i=0; i<nDofs; i++)
+        forwardSolution[i] = backwardSolution[i] = f.coefficient(i);
+
+    for (int j=0; j<4; j++) {
+            
+        FieldVector<double,7> forwardCorrection(0);
+        forwardCorrection[j+3] += eps;
+            
+        FieldVector<double,7> backwardCorrection(0);
+        backwardCorrection[j+3] -= eps;
+            
+        forwardSolution[coeff]  = TargetSpace(f.coefficient(coeff).globalCoordinates() + forwardCorrection);
+        backwardSolution[coeff] = TargetSpace(f.coefficient(coeff).globalCoordinates() + backwardCorrection);
+
+        LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,RigidBodyMotion<double,3> > forwardF(f.localFiniteElement_,forwardSolution);
+        LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,RigidBodyMotion<double,3> > backwardF(f.localFiniteElement_,backwardSolution);
+        
+        RigidBodyMotion<double,3> forwardValue = forwardF.evaluate(local);
+        RigidBodyMotion<double,3> backwardValue = backwardF.evaluate(local);
+        
+        FieldMatrix<double,3,3> forwardR, backwardR;
+        forwardValue.q.matrix(forwardR);
+        backwardValue.q.matrix(backwardR);
+
+        FieldMatrix<double,7,domainDim> forwardDerivative  = forwardF.evaluateDerivative(local);
+        FieldMatrix<double,7,domainDim> backwardDerivative = backwardF.evaluateDerivative(local);
+
+        Tensor3<double,3,3,3> forwardDR;
+        Tensor3<double,3,3,3> backwardDR;
+        
+        assembler.computeDR(forwardValue, forwardDerivative, forwardDR);
+        assembler.computeDR(backwardValue, backwardDerivative, backwardDR);
+
+        double forwardEnergy = assembler.bendingEnergy(forwardR, forwardDR);
+        double backwardEnergy = assembler.bendingEnergy(backwardR, backwardDR);
+        
+        embeddedFDGradient[j] = (forwardEnergy - backwardEnergy) / (2*eps);
+
+    }
+
+    embeddedFDGradient = f.coefficient(coeff).q.projectOntoTangentSpace(embeddedFDGradient);
+
+    ////////////////////////////////////////////////
+    // Check whether the two are the same
+    ////////////////////////////////////////////////
+
+    double maxError = 0;
+    for (size_t i=0; i<4; i++) {
+        double diff = std::fabs(embeddedGradient[i+3] - embeddedFDGradient[i]);
+        maxError = std::max(maxError, diff);
+    }
+
+    if (maxError > 1e-3) {
+         
+        std::cout << "Analytical and FD gradients differ!"
+                  << "    local: " << local
+                  << "    coefficient: " << coeff << std::endl;
+            
+        std::cout << "embeddedGradient:" << std::endl;
+        std::cout << embeddedGradient[3] << " " << embeddedGradient[4] << " " << embeddedGradient[5] << " " << embeddedGradient[6] << std::endl << std::endl;
+
+        std::cout << "embeddedFDGradient:" << std::endl;
+        std::cout << embeddedFDGradient << std::endl;
+
+        abort();
+    }
+
+}
+
+
+
 
 template <int domainDim>
 void testDerivativeOfGradientOfRotationMatrixWRTCoefficient()
@@ -431,8 +580,11 @@ void testDerivativeOfGradientOfRotationMatrixWRTCoefficient()
                 = Dune::QuadratureRules<double, domainDim>::rule(GeometryType(GeometryType::simplex,domainDim), quadOrder);
     
             for (size_t pt=0; pt<quad.size(); pt++) {
-        
-                testDerivativeOfGradientOfRotationMatrixWRTCoefficient<domainDim,GridType,LocalFiniteElement>(f, quad[pt].position(), j);
+                
+                FieldVector<double,domainDim> quadPos = quad[pt].position();
+                
+                testDerivativeOfGradientOfRotationMatrixWRTCoefficient<domainDim,GridType,LocalFiniteElement>(f, quadPos, j);
+                testDerivativeOfBendingEnergy<domainDim,GridType,LocalFiniteElement>(f, quadPos, j);
 
             }
 
@@ -462,8 +614,6 @@ void testEnergyGradient()
     
     PQkLocalFiniteElementCache<double,double,GridType::dimension,1> feCache;
     typedef typename PQkLocalFiniteElementCache<double,double,GridType::dimension,1>::FiniteElementType LocalFiniteElement;
-
-    //LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
 
     ParameterTree materialParameters;
     materialParameters["thickness"] = "0.1";
