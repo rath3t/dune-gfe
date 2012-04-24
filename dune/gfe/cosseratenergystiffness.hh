@@ -15,11 +15,6 @@
 #include <dune/gfe/orthogonalmatrix.hh>
 
 #define DONT_USE_CURL
-#define COSSERAT_ENERGY_FD_GRADIENT
-
-#ifdef COSSERAT_ENERGY_FD_GRADIENT
-#warning Finite-difference approximation of the Cosserat energy gradient
-#endif
 
 
 template<class GridView, class LocalFiniteElement, int dim>
@@ -274,13 +269,11 @@ public:
                const LocalFiniteElement& localFiniteElement,
                const std::vector<TargetSpace>& localSolution) const;
 
-#ifndef COSSERAT_ENERGY_FD_GRADIENT  // switchable, because not completely implemented yet
     /** \brief Assemble the element gradient of the energy functional */
     virtual void assembleGradient(const Entity& element,
                                   const LocalFiniteElement& localFiniteElement,
                                   const std::vector<TargetSpace>& localSolution,
                                   std::vector<typename TargetSpace::TangentVector>& localGradient) const;
-#endif
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the first equation of (4.4) in Neff's paper
@@ -734,7 +727,6 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
         
 }
 
-#ifndef COSSERAT_ENERGY_FD_GRADIENT  // switchable, because not completely implemented yet
 template <class GridView, class LocalFiniteElement, int dim>
 void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
 assembleGradient(const Entity& element,
@@ -927,7 +919,6 @@ assembleGradient(const Entity& element,
     for (size_t i=0; i<localGradient.size(); i++)
         localSolution[i].orthonormalFrame().mv(embeddedLocalGradient[i], localGradient[i]);
 }
-#endif
 
 #endif   //#ifndef COSSERAT_ENERGY_LOCAL_STIFFNESS_HH
 
