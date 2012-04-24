@@ -875,6 +875,7 @@ assembleGradient(const Entity& element,
                 // Only translational dofs are affected by the Neumann force
                 for (size_t v_i=0; v_i<3; v_i++)
                     for (size_t j=0; j<3; j++)
+#warning Try whether the arguments of derOfValueWRTCoefficient are swapped
                         embeddedLocalGradient[i][v_i] += thickness_ * (neumannValue[j] * derOfValueWRTCoefficient[j][v_i]) * quad[pt].weight() * integrationElement;
             
             }
