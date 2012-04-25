@@ -174,10 +174,10 @@ int main (int argc, char *argv[]) try
     //   Assemble Neumann term
     //////////////////////////////////////////////////////////////////////////////
 
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
+    typedef P1NodalBasis<GridType::LeafGridView,double> P1Basis;
     P1Basis p1Basis(grid.leafView());
     
-    BoundaryPatch<typename GridType::LeafGridView> neumannBoundary(grid.leafView(), neumannNodes);
+    BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid.leafView(), neumannNodes);
     
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
@@ -219,7 +219,7 @@ int main (int argc, char *argv[]) try
     materialParameters.report();
 
     CosseratEnergyLocalStiffness<GridType::LeafGridView,
-                                 typename P1Basis::LocalFiniteElement,
+                                 P1Basis::LocalFiniteElement,
                                  3> cosseratEnergyLocalStiffness(materialParameters,
                                                                  &neumannBoundary,
                                                                  &neumannFunction);
