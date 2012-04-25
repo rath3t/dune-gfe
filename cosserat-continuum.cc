@@ -297,7 +297,7 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
     
-    CosseratVTKWriter<GridType>::write(grid,x,"cosserat");
+    CosseratVTKWriter<GridType>::write(grid,x, resultPath + "cosserat");
 
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
