@@ -151,19 +151,6 @@ int main (int argc, char *argv[]) try
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-#if 0
-    BitSetVector<1> allNodes(grid.size(dim));
-    allNodes.setAll();
-    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid.leafView(), allNodes);
-
-    BitSetVector<blocksize> dirichletNodes(grid.size(dim), false);
-    for (int i=0; i<dirichletNodes.size(); i++) {
-        // Only translation dofs are Dirichlet
-        if (dirichletBoundary.containsVertex(i))
-            for (int j=0; j<3; j++)
-                dirichletNodes[i][j] = true;
-    }
-#else
     BitSetVector<blocksize> dirichletNodes(grid.size(dim), false);
     BitSetVector<1> neumannNodes(grid.size(dim), false);
 
@@ -181,7 +168,6 @@ int main (int argc, char *argv[]) try
         }
 
     }
-#endif
 
     //////////////////////////////////////////////////////////////////////////////
     //   Assemble Neumann term
@@ -197,9 +183,6 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
-
-    FieldVector<double,3> yAxis(0);
-    yAxis[1] = 1;
 
     vIt    = grid.leafbegin<dim>();
 
