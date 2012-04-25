@@ -7,6 +7,7 @@ AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/..
 srcincludedir = $(includedir)/dune/common
 srcinclude_HEADERS = averagedistanceassembler.hh \
                      averageinterface.hh \
+                     cosseratvtkwriter.hh \
                      geodesicdifference.hh \
                      geodesicfeassembler.hh \
                      geodesicfefunctionadaptor.hh \
