@@ -394,13 +394,13 @@ void testDerivativeOfBendingEnergy(const LocalGeodesicFEFunction<domainDim,doubl
                                                             unsigned int coeff)
 {
     ParameterTree materialParameters;
-    materialParameters["thickness"] = "1";
-    materialParameters["mu"] = "1";
-    materialParameters["lambda"] = "1";
-    materialParameters["mu_c"] = "1";
-    materialParameters["L_c"] = "1";
-    materialParameters["q"] = "1";
-    materialParameters["kappa"] = "1";
+    materialParameters["thickness"] = "0.1";
+    materialParameters["mu"]        = "3";
+    materialParameters["lambda"]    = "2";
+    materialParameters["mu_c"]      = "4";
+    materialParameters["L_c"]       = "0.1";
+    materialParameters["q"]         = "2.5";
+    materialParameters["kappa"]     = "0.1";
 
     ConstantFunction<Dune::FieldVector<double,GridType::dimension>, Dune::FieldVector<double,3> > zeroFunction(Dune::FieldVector<double,3>(0));
     
