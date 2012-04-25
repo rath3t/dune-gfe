@@ -43,13 +43,14 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 using namespace Dune;
 
 #if 0
-void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out)
+void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
+                     double homotopy)
 {
     out = 0;
     for (int i=0; i<dim; i++)
         out[i] = in[i];
     
-    out[0] = 2.2;
+    out[1] += homotopy;
 }
 #endif
 void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
