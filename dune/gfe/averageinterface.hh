@@ -195,7 +195,7 @@ get_bounds_info(Ipopt::Index n, Ipopt::Number* x_l, Ipopt::Number* x_u,
     //assert(m == 0);
 
     // Be on the safe side: unset all variable bounds
-    for (size_t i=0; i<n; i++) {
+    for (int i=0; i<n; i++) {
         x_l[i] = -std::numeric_limits<double>::max();
         x_u[i] =  std::numeric_limits<double>::max();
     }
@@ -875,7 +875,7 @@ void setRotation(const BoundaryPatch<GridView>& dirichletBoundary,
 
     // Get the relative rotation, first as a quaternion...
     Rotation<double,3> relativeRotation;
-    relativeRotation = referenceInterface.q.inverse();
+    relativeRotation = Rotation<double,3>(referenceInterface.q.inverse());
     relativeRotation = lambda.q.mult(relativeRotation);
 
     // ... then as a matrix
