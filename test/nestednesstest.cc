@@ -31,10 +31,10 @@ double diameter(const std::vector<TargetSpace>& v)
     return d;
 }
 
-template <int domainDim>
+template <int domainDim, int elementOrder>
 std::vector<FieldVector<double,domainDim> > lagrangeNodes(const GeometryType& type)
 {
-    PQkLocalFiniteElementCache<double,double,domainDim,2> feCache;
+    PQkLocalFiniteElementCache<double,double,domainDim,elementOrder> feCache;
     std::vector<FieldVector<double,domainDim> > result(feCache.get(type).localBasis().size());
     
     // evaluate loF at the Lagrange points of the second-order function
@@ -52,15 +52,15 @@ std::vector<FieldVector<double,domainDim> > lagrangeNodes(const GeometryType& ty
 }
 
 
-template <int domainDim, class TargetSpace>
+template <int domainDim, class TargetSpace, int highElementOrder>
 void testNestedness(const LocalGeodesicFEFunction<domainDim,double,typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& loF)
 {
     // Make higher order local gfe function 
-    PQkLocalFiniteElementCache<double,double,domainDim,2> feCache;
-    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,2>::FiniteElementType LocalFiniteElement;
+    PQkLocalFiniteElementCache<double,double,domainDim,highElementOrder> feCache;
+    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,highElementOrder>::FiniteElementType LocalFiniteElement;
     
     // Get the Lagrange nodes of the high-order function
-    std::vector<FieldVector<double,domainDim> > lNodes = lagrangeNodes<domainDim>(loF.type());
+    std::vector<FieldVector<double,domainDim> > lNodes = lagrangeNodes<domainDim,highElementOrder>(loF.type());
     
     // Evaluate low-order function at the high-order nodal values
     std::vector<TargetSpace> nodalValues(lNodes.size());
@@ -140,7 +140,8 @@ void test(const GeometryType& element)
     
         LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
 
-        testNestedness<domainDim>(f);
+        static const int highElementOrder = 2;
+        testNestedness<domainDim,TargetSpace,highElementOrder>(f);
                 
     }
 
