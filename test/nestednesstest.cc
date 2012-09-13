@@ -132,7 +132,9 @@ void testNestedness(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
 template <class TargetSpace, int domainDim, int lowOrder, int highOrder>
 void test(const GeometryType& element)
 {
-    std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << element.dim() << " ---" << std::endl;
+    std::cout << " --- Testing " << element << " --> " << className<TargetSpace>() 
+              << ", low: " << lowOrder
+              << ", high: " << highOrder << std::endl;
 
     std::vector<TargetSpace> testPoints;
     ValueFactory<TargetSpace>::get(testPoints);
@@ -175,6 +177,13 @@ void testElement(const GeometryType& element)
     test<UnitVector<double,3>,domainDim,1,2>(element);
     test<Rotation<double,3>,domainDim,1,2>(element);
     test<RigidBodyMotion<double,3>,domainDim,1,2>(element);
+
+    test<RealTuple<double,1>,domainDim,2,3>(element);
+    test<UnitVector<double,2>,domainDim,2,3>(element);
+    test<UnitVector<double,3>,domainDim,2,3>(element);
+    test<Rotation<double,3>,domainDim,2,3>(element);
+    test<RigidBodyMotion<double,3>,domainDim,2,3>(element);
+
 }
 
 int main()
