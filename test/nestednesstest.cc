@@ -78,16 +78,15 @@ void testNestedness(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
         
         static double maxDiff = 0;
         maxDiff = std::max(maxDiff, diff.infinity_norm());
-        std::cout << "maxDiff: " << maxDiff << std::endl;
         
         if (maxDiff > 0.2)
             assert(false);
         
-        if ( false and diff.infinity_norm() > eps ) {
+        if ( diff.infinity_norm() > eps ) {
             std::cout << className<TargetSpace>() << ": Values doe not match." << std::endl;
             std::cout << "Low order : " << loValue << std::endl;
             std::cout << "High order: " << hoValue << std::endl;
-            //assert(false);
+            assert(false);
         }
 
     }
@@ -155,7 +154,7 @@ int main()
     test<UnitVector<double,3>,1>(element);
     test<Rotation<double,3>,1>(element);
     test<RigidBodyMotion<double,3>,1>(element);
-    exit(0);
+
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d simplex elements
     ////////////////////////////////////////////////////////////////
