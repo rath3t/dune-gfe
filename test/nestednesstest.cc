@@ -129,7 +129,7 @@ void testNestedness(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
 
 
 
-template <class TargetSpace, int domainDim>
+template <class TargetSpace, int domainDim, int lowOrder, int highOrder>
 void test(const GeometryType& element)
 {
     std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << element.dim() << " ---" << std::endl;
@@ -138,7 +138,11 @@ void test(const GeometryType& element)
     ValueFactory<TargetSpace>::get(testPoints);
     
     int nTestPoints = testPoints.size();
-    size_t nVertices = Dune::GenericReferenceElements<double,domainDim>::general(element).size(domainDim);
+
+    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,lowOrder>::FiniteElementType LocalFiniteElement;
+    PQkLocalFiniteElementCache<double,double,domainDim,lowOrder> feCache;
+    
+    size_t nVertices = feCache.get(element).localBasis().size();
 
     // Set up elements of the target space
     std::vector<TargetSpace> corners(nVertices);
@@ -155,18 +159,23 @@ void test(const GeometryType& element)
             continue;
         
         // Make local gfe function to be tested
-        PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
-        typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
-    
         LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
 
-        static const int highElementOrder = 3;
-        testNestedness<domainDim,TargetSpace,highElementOrder>(f);
+        testNestedness<domainDim,TargetSpace,highOrder>(f);
                 
     }
 
 }
 
+template <int domainDim>
+void testElement(const GeometryType& element)
+{
+    test<RealTuple<double,1>,domainDim,1,2>(element);
+    test<UnitVector<double,2>,domainDim,1,2>(element);
+    test<UnitVector<double,3>,domainDim,1,2>(element);
+    test<Rotation<double,3>,domainDim,1,2>(element);
+    test<RigidBodyMotion<double,3>,domainDim,1,2>(element);
+}
 
 int main()
 {
@@ -182,33 +191,18 @@ int main()
     //  Test functions on 1d elements
     ////////////////////////////////////////////////////////////////
     element.makeSimplex(1);
-
-    test<RealTuple<double,1>,1>(element);
-    test<UnitVector<double,2>,1>(element);
-    test<UnitVector<double,3>,1>(element);
-    test<Rotation<double,3>,1>(element);
-    test<RigidBodyMotion<double,3>,1>(element);
+    testElement<1>(element);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d simplex elements
     ////////////////////////////////////////////////////////////////
     element.makeSimplex(2);
-
-    test<RealTuple<double,1>,2>(element);
-    test<UnitVector<double,2>,2>(element);
-    test<UnitVector<double,3>,2>(element);
-    test<Rotation<double,3>,2>(element);
-    test<RigidBodyMotion<double,3>,2>(element);
+    testElement<2>(element);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d quadrilateral elements
     ////////////////////////////////////////////////////////////////
     element.makeCube(2);
-
-    test<RealTuple<double,1>,2>(element);
-    test<UnitVector<double,2>,2>(element);
-    test<UnitVector<double,3>,2>(element);
-    test<Rotation<double,3>,2>(element);
-    test<RigidBodyMotion<double,3>,2>(element);
+    testElement<2>(element);
 
 }
