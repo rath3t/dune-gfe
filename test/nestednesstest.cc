@@ -31,34 +31,40 @@ double diameter(const std::vector<TargetSpace>& v)
     return d;
 }
 
+// The function f(x_1,x_2,x_3) := x_i, needed to get the Lagrange nodes
+// from a Dune LocalFunction
+template <int dim>
+struct CoordinateFunction
+    : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,1> >
+{
+    CoordinateFunction(int dir)
+    : dir_(dir)
+    {}
+    
+    void evaluate(const FieldVector<double, dim>& x, FieldVector<double,1>& out) const {
+        out = x[dir_];
+    }
+
+    int dir_;
+};
+
+
+
 template <int domainDim, int elementOrder>
 std::vector<FieldVector<double,domainDim> > lagrangeNodes(const GeometryType& type)
 {
-    std::vector<FieldVector<double,domainDim> > result;
-    
-    // Special case d=1, q=anything, because that one is easy
-    if (domainDim==1) {
-     
-        result.resize(elementOrder+1);
-        
-        for (size_t i=0; i<result.size(); i++)
-            result[i] = double(i)/double(elementOrder);
-        
-        return result;
-    }
-    
-    assert(elementOrder==2);
     PQkLocalFiniteElementCache<double,double,domainDim,elementOrder> feCache;
-    result.resize(feCache.get(type).localBasis().size());
+
+    std::vector<FieldVector<double,domainDim> > result(feCache.get(type).localBasis().size());
+    std::vector<FieldVector<double,1> > resultCoeff(feCache.get(type).localBasis().size());
+
+    for (size_t i=0; i<domainDim; i++) {
+        
+        CoordinateFunction<domainDim> cF(i);
+        feCache.get(type).localInterpolation().interpolate(cF, resultCoeff);
     
-    // evaluate loF at the Lagrange points of the second-order function
-    const Dune::GenericReferenceElement<double,domainDim>& refElement
-        = Dune::GenericReferenceElements<double,domainDim>::general(type);
-        
-    for (size_t i=0; i<feCache.get(type).localBasis().size(); i++) {
-        
-        result[i] = refElement.position(feCache.get(type).localCoefficients().localKey(i).subEntity(),
-                                        feCache.get(type).localCoefficients().localKey(i).codim());
+        for (size_t j=0; j<result.size(); j++)
+            result[j][i] = resultCoeff[j];
         
     }
     
@@ -110,7 +116,7 @@ void testNestedness(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
             assert(false);
         
         if ( diff.infinity_norm() > eps ) {
-            std::cout << className<TargetSpace>() << ": Values doe not match." << std::endl;
+            std::cout << className<TargetSpace>() << ": Values does not match." << std::endl;
             std::cout << "Low order : " << loValue << std::endl;
             std::cout << "High order: " << hoValue << std::endl;
             assert(false);
