@@ -47,6 +47,7 @@ std::vector<FieldVector<double,domainDim> > lagrangeNodes(const GeometryType& ty
         return result;
     }
     
+    assert(elementOrder==2);
     PQkLocalFiniteElementCache<double,double,domainDim,elementOrder> feCache;
     result.resize(feCache.get(type).localBasis().size());
     
@@ -153,7 +154,7 @@ void test(const GeometryType& element)
     
         LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
 
-        static const int highElementOrder = 2;
+        static const int highElementOrder = 3;
         testNestedness<domainDim,TargetSpace,highElementOrder>(f);
                 
     }
