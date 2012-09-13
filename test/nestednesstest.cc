@@ -31,6 +31,25 @@ double diameter(const std::vector<TargetSpace>& v)
     return d;
 }
 
+template <int domainDim>
+std::vector<FieldVector<double,domainDim> > lagrangeNodes(const GeometryType& type)
+{
+    PQkLocalFiniteElementCache<double,double,domainDim,2> feCache;
+    std::vector<FieldVector<double,domainDim> > result(feCache.get(type).localBasis().size());
+    
+    // evaluate loF at the Lagrange points of the second-order function
+    const Dune::GenericReferenceElement<double,domainDim>& refElement
+        = Dune::GenericReferenceElements<double,domainDim>::general(type);
+        
+    for (size_t i=0; i<feCache.get(type).localBasis().size(); i++) {
+        
+        result[i] = refElement.position(feCache.get(type).localCoefficients().localKey(i).subEntity(),
+                                        feCache.get(type).localCoefficients().localKey(i).codim());
+        
+    }
+    
+    return result;
+}
 
 
 template <int domainDim, class TargetSpace>
@@ -40,19 +59,13 @@ void testNestedness(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
     PQkLocalFiniteElementCache<double,double,domainDim,2> feCache;
     typedef typename PQkLocalFiniteElementCache<double,double,domainDim,2>::FiniteElementType LocalFiniteElement;
     
-    std::vector<TargetSpace> nodalValues(feCache.get(loF.type()).localBasis().size());
+    // Get the Lagrange nodes of the high-order function
+    std::vector<FieldVector<double,domainDim> > lNodes = lagrangeNodes<domainDim>(loF.type());
     
-    // evaluate loF at the Lagrange points of the second-order function
-    const Dune::GenericReferenceElement<double,domainDim>& refElement
-        = Dune::GenericReferenceElements<double,domainDim>::general(loF.type());
-        
-    for (size_t i=0; i<feCache.get(loF.type()).localBasis().size(); i++) {
-        
-        nodalValues[i] = loF.evaluate(refElement.position(feCache.get(loF.type()).localCoefficients().localKey(i).subEntity(),
-                                                          feCache.get(loF.type()).localCoefficients().localKey(i).codim()));
-        
-    }
-        
+    // Evaluate low-order function at the high-order nodal values
+    std::vector<TargetSpace> nodalValues(lNodes.size());
+    for (size_t i=0; i<lNodes.size(); i++)
+        nodalValues[i] = loF.evaluate(lNodes[i]);
     
     LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> hoF(feCache.get(loF.type()),nodalValues);
 
