@@ -40,17 +40,21 @@ public:
             default:
                 assert(false);
         }
+        // Make compiler happy even if NDEBUG is set
+        return 0;
     }
 
     /** \brief Direct access to individual entries */
     T& operator()(size_t i, size_t j, size_t k)
     {
+        assert(i<N1 && j<N2 && k<N3_);
         return data_[i][j][k];
     }
         
     /** \brief Direct const access to individual entries */
     const T& operator()(size_t i, size_t j, size_t k) const
     {
+        assert(i<N1 && j<N2 && k<N3_);
         return data_[i][j][k];
     }
         
