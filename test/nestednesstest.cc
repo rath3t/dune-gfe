@@ -34,8 +34,21 @@ double diameter(const std::vector<TargetSpace>& v)
 template <int domainDim, int elementOrder>
 std::vector<FieldVector<double,domainDim> > lagrangeNodes(const GeometryType& type)
 {
+    std::vector<FieldVector<double,domainDim> > result;
+    
+    // Special case d=1, q=anything, because that one is easy
+    if (domainDim==1) {
+     
+        result.resize(elementOrder+1);
+        
+        for (size_t i=0; i<result.size(); i++)
+            result[i] = double(i)/double(elementOrder);
+        
+        return result;
+    }
+    
     PQkLocalFiniteElementCache<double,double,domainDim,elementOrder> feCache;
-    std::vector<FieldVector<double,domainDim> > result(feCache.get(type).localBasis().size());
+    result.resize(feCache.get(type).localBasis().size());
     
     // evaluate loF at the Lagrange points of the second-order function
     const Dune::GenericReferenceElement<double,domainDim>& refElement
