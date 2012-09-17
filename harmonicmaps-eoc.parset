@@ -26,7 +26,11 @@ baseTolerance = -1
 #   Problem specifications
 ############################
 
-# Number of elements of the rod grid
+gridType = unstructured
+
+gridFile = /home/sander/data/liquidcrystals/ellipsoid/ellipsoid.grid
+
+# Number of elements of the structured grid per dimension
 numBaseElements = 4
 
 # Bounding box
