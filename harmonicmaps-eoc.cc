@@ -33,6 +33,7 @@ const int order = 3;
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/geodesicfefunctionadaptor.hh>
+#include <dune/gfe/gfedifferencenormsquared.hh>
 
 // grid dimension
 const int dim = 2;
@@ -270,12 +271,23 @@ int main (int argc, char *argv[]) try
         for (int j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
 
-#if ! defined THIRD_ORDER && ! defined SECOND_ORDER
         LeafAmiraMeshWriter<GridType> amiramesh;
         amiramesh.addGrid(grid->leafView());
+#if ! defined THIRD_ORDER && ! defined SECOND_ORDER
         amiramesh.addVertexData(xEmbedded, grid->leafView());
-        amiramesh.write("harmonic_result_" + numberAsAscii.str() + ".am");
 #endif
+        amiramesh.write("harmonic_result_" + numberAsAscii.str() + ".am");
+        
+        double newL2 = GFEDifferenceNormSquared<FEBasis,TargetSpace>::compute(*referenceGrid, referenceSolution,
+                                                         *grid, solution,
+                                                         &massMatrixLocalAssembler);
+        newL2 = std::sqrt(newL2);
+
+        double newH1 = GFEDifferenceNormSquared<FEBasis,TargetSpace>::compute(*referenceGrid, referenceSolution,
+                                                         *grid, solution,
+                                                         &laplaceLocalAssembler);
+        newH1 = std::sqrt(newH1);
+        
         
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++) {
@@ -283,7 +295,7 @@ int main (int argc, char *argv[]) try
 #if defined THIRD_ORDER || defined SECOND_ORDER
             GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::higherOrderGFEFunctionAdaptor<order>(basis, *grid, solution);
 #else
-            geodesicFEFunctionAdaptor(*grid, solution);
+            GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::geodesicFEFunctionAdaptor(*grid, solution);
 #endif
         }
 
@@ -299,17 +311,18 @@ int main (int argc, char *argv[]) try
         H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > l2Norm(massMatrix);
 
         // Compute max-norm difference
+        std::cout << "Level: " << i-1 << "   vertices: " << xEmbedded.size() << std::endl;
         std::cout << "h: " << std::pow(0.5, i-1) << std::endl;
         std::cout << "Level: " << i-1 
                   << ",   max-norm error: " << difference.infinity_norm()
                   << std::endl;
 
         std::cout << "Level: " << i-1 
-                  << ",   L2 error: " << l2Norm(difference)
+                  << ",   L2 error: " << l2Norm(difference) << ",   new: " << newL2
                   << std::endl;
 
         std::cout << "Level: " << i-1 
-                  << ",   H1 error: " << h1Norm(difference)
+                  << ",   H1 error: " << h1Norm(difference) << ",   new: " << newH1
                   << std::endl;
                   
         logFile << std::pow(0.5, i-1) << "  " << difference.infinity_norm() 
