@@ -53,7 +53,7 @@ struct DirichletFunction
 #if 0
         FieldVector<double,3> axis;
         axis[0] = x[0];  axis[1] = x[1]; axis[2] = 1;
-        Rotation<3,double> rotation(axis, x.two_norm()*M_PI*3);
+        Rotation<double,3> rotation(axis, x.two_norm()*M_PI*3);
 
         FieldMatrix<double,3,3> rMat;
         rotation.matrix(rMat);
