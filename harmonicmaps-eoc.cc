@@ -2,9 +2,9 @@
 
 //#define HARMONIC_ENERGY_FD_GRADIENT
 //#define HARMONIC_ENERGY_FD_INNER_GRADIENT
-#define THIRD_ORDER
+//#define THIRD_ORDER
 //#define SECOND_ORDER
-const int order = 3;
+const int order = 1;
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
@@ -64,9 +64,9 @@ struct DirichletFunction
         double angle = 0.5 * M_PI * x[0];
         angle *= -4*x[1]*(x[1]-1);
         out = 0;
-        out[0] = std::cos(angle);
-        out[1] = std::sin(angle);
-        
+//         out[0] = std::cos(angle);
+//         out[1] = std::sin(angle);
+        out[2] = 1;
     }
 };
 
