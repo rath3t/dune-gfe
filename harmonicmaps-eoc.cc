@@ -15,6 +15,7 @@ const int order = 3;
 #include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
 #include <dune/grid/io/file/amirameshreader.hh>
+#include <dune/grid/io/file/gmshreader.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/functionspacebases/p2nodalbasis.hh>
@@ -173,6 +174,9 @@ int main (int argc, char *argv[]) try
     const int baseIterations      = parameterSet.get<int>("baseIt");
     const double baseTolerance    = parameterSet.get<double>("baseTolerance");
 
+    // grid file
+    std::string gridFileName = parameterSet.get<std::string>("gridFile");
+    
     // only if a structured grid is used
     const int numBaseElements = parameterSet.get<int>("numBaseElements");
     FieldVector<double,dim> lowerLeft  = parameterSet.get<FieldVector<double,dim> >("lowerLeft");
@@ -194,7 +198,11 @@ int main (int argc, char *argv[]) try
                                                                            upperRight,
                                                                            elements);
     } else {
-        referenceGrid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(parameterSet.get<std::string>("gridFile")));
+        
+        if (gridFileName.rfind(".msh")!=std::string::npos)
+            referenceGrid = shared_ptr<GridType>(GmshReader<GridType>::read(gridFileName));
+        else    
+            referenceGrid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(gridFileName));
     }
     
     referenceGrid->globalRefine(numLevels-1);
