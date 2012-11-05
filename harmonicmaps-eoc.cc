@@ -13,7 +13,7 @@ const int order = 1;
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
-#include <dune/grid/io/file/amirameshwriter.hh>
+#include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/gmshreader.hh>
 
@@ -25,6 +25,7 @@ const int order = 1;
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
+#include <dune/fufem/functions/vtkbasisgridfunction.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
@@ -212,18 +213,8 @@ int main (int argc, char *argv[]) try
     BlockVector<TargetSpace::CoordinateType> xEmbedded(referenceSolution.size());
     for (size_t j=0; j<referenceSolution.size(); j++)
         xEmbedded[j] = referenceSolution[j].globalCoordinates();
-        
-#if !defined THIRD_ORDER && ! defined SECOND_ORDER
-    LeafAmiraMeshWriter<GridType> amiramesh;
-    amiramesh.addGrid(referenceGrid->leafView());
-    amiramesh.addVertexData(xEmbedded, referenceGrid->leafView());
-    amiramesh.write("reference_result.am");
-#endif
-    
-    // //////////////////////////////////////////////////////////////////////
-    //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
-    // //////////////////////////////////////////////////////////////////////
 
+    //  Set up a basis of the underlying fe space
 #ifdef THIRD_ORDER
     typedef P3NodalBasis<GridType::LeafGridView,double> FEBasis;
 #elif defined SECOND_ORDER
@@ -232,6 +223,22 @@ int main (int argc, char *argv[]) try
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
 #endif
     FEBasis referenceBasis(referenceGrid->leafView());
+
+#if !defined THIRD_ORDER && ! defined SECOND_ORDER
+    VTKWriter<GridType::LeafGridView> vtkWriter(referenceGrid->leafView());
+    
+    shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > > vtkVectorField
+        = Dune::shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > >
+            (new VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> >(referenceBasis, xEmbedded, "unit vectors"));
+
+    vtkWriter.addVertexData(vtkVectorField);
+    vtkWriter.write("reference_result");
+#endif
+    
+    // //////////////////////////////////////////////////////////////////////
+    //   Compute mass matrix and laplace matrix to emulate L2 and H1 norms
+    // //////////////////////////////////////////////////////////////////////
+
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(referenceBasis, referenceBasis);
 
     LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler(2*(order-1));
@@ -277,12 +284,15 @@ int main (int argc, char *argv[]) try
         for (size_t j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
 
-        LeafAmiraMeshWriter<GridType> amiramesh;
-        amiramesh.addGrid(grid->leafView());
-#if ! defined THIRD_ORDER && ! defined SECOND_ORDER
-        amiramesh.addVertexData(xEmbedded, grid->leafView());
-#endif
-        amiramesh.write("harmonic_result_" + numberAsAscii.str() + ".am");
+        FEBasis feBasis(grid->leafView());
+        VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafView());
+    
+        shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > > vtkVectorField
+            = Dune::shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > >
+                (new VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> >(feBasis, xEmbedded, "unit vectors"));
+
+        vtkWriter.addVertexData(vtkVectorField);
+        vtkWriter.write("harmonic_result_" + numberAsAscii.str());
         
         double newL2 = GFEDifferenceNormSquared<FEBasis,TargetSpace>::compute(*referenceGrid, referenceSolution,
                                                          *grid, solution,
