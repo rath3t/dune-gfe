@@ -171,8 +171,6 @@ int main (int argc, char *argv[]) try
 
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");
-    const int baseIterations      = parameterSet.get<int>("baseIt");
-    const double baseTolerance    = parameterSet.get<double>("baseTolerance");
 
     // grid file
     std::string gridFileName = parameterSet.get<std::string>("gridFile");
@@ -212,7 +210,7 @@ int main (int argc, char *argv[]) try
     solve(referenceGrid, referenceSolution, numLevels, parameterSet);
 
     BlockVector<TargetSpace::CoordinateType> xEmbedded(referenceSolution.size());
-    for (int j=0; j<referenceSolution.size(); j++)
+    for (size_t j=0; j<referenceSolution.size(); j++)
         xEmbedded[j] = referenceSolution[j].globalCoordinates();
         
 #if !defined THIRD_ORDER && ! defined SECOND_ORDER
@@ -276,7 +274,7 @@ int main (int argc, char *argv[]) try
         numberAsAscii << i;
 
         BlockVector<TargetSpace::CoordinateType> xEmbedded(solution.size());
-        for (int j=0; j<solution.size(); j++)
+        for (size_t j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
 
         LeafAmiraMeshWriter<GridType> amiramesh;
@@ -312,7 +310,7 @@ int main (int argc, char *argv[]) try
 
         BlockVector<TargetSpace::CoordinateType> difference(referenceSolution.size());
 
-        for (int j=0; j<referenceSolution.size(); j++)
+        for (size_t j=0; j<referenceSolution.size(); j++)
             difference[j] = solution[j].globalCoordinates() - referenceSolution[j].globalCoordinates();
 
         H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > h1Norm(laplace);
