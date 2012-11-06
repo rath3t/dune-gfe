@@ -131,6 +131,8 @@ std::ostream& operator<< (std::ostream& s, const Rotation<T,2>& c)
 /** \brief Specialization for dim==3 
 
 Uses unit quaternion coordinates.
+\todo Reimplement the method inverse() such that it returns a Rotation instead of a Quaternion.
+Then remove the cast in the method setRotation, file averageinterface.hh
 */
 template <class T>
 class Rotation<T,3> : public Quaternion<T>
