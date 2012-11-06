@@ -267,7 +267,10 @@ int main (int argc, char *argv[]) try
                                                                       upperRight,
                                                                       elements);
         } else {
-            grid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(parameterSet.get<std::string>("gridFile")));
+            if (gridFileName.rfind(".msh")!=std::string::npos)
+                grid = shared_ptr<GridType>(GmshReader<GridType>::read(gridFileName));
+            else    
+                grid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(gridFileName));
         }
 
         grid->globalRefine(i-1);
