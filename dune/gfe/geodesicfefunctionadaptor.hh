@@ -59,9 +59,10 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
     for (; eIt!=eEndIt; ++eIt) {
 
         // Set up a local gfe function on the father element
-        std::vector<TargetSpace> coefficients(dim+1);
+        size_t nFatherDofs = eIt->father()->template count<dim>();
+        std::vector<TargetSpace> coefficients(nFatherDofs);
 
-        for (int i=0; i<eIt->father()->template count<dim>(); i++)
+        for (int i=0; i<nFatherDofs; i++)
             coefficients[i] = dofMap.find(idSet.subId(*eIt->father(),i,dim))->second;
 
         typedef typename P1NodalBasis<typename GridType::LeafGridView>::LocalFiniteElement LocalFiniteElement;
