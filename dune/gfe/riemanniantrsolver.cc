@@ -113,7 +113,7 @@ setup(const GridType& grid,
                                                                                                    innerIterations_,
                                                                                                    innerTolerance_,
                                                                                                    h1SemiNorm_,
-                                                                                                 Solver::FULL));
+                                                                                                 Solver::REDUCED));
 
     // Write all intermediate solutions, if requested
     if (instrumented_
