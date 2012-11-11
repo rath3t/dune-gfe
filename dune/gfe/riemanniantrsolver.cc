@@ -141,14 +141,14 @@ setup(const GridType& grid,
     for (int i=0; i<hasObstacle_.size()-1; i++)
         hasObstacle_[i].resize(grid_->size(i+1, gridDim),true);
 #else
-    for (int i=0; i<hasObstacle_.size(); i++)
+    for (size_t i=0; i<hasObstacle_.size(); i++)
         hasObstacle_[i].resize(grid_->size(i, gridDim),true);
 #endif
 
     // ////////////////////////////////////
     //   Create the transfer operators
     // ////////////////////////////////////
-    for (int k=0; k<mmgStep->mgTransfer_.size(); k++)
+    for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
     
     mmgStep->mgTransfer_.resize(numLevels-1);
@@ -170,7 +170,7 @@ setup(const GridType& grid,
     }
 
 #else
-    for (int i=0; i<mmgStep->mgTransfer_.size(); i++){
+    for (size_t i=0; i<mmgStep->mgTransfer_.size(); i++){
         TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
         newTransferOp->setup(*grid_,i,i+1);
         mmgStep->mgTransfer_[i] = newTransferOp;
@@ -335,7 +335,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
                 FILE* fpInt = fopen(iSolFilename, "rb");
                 if (!fpInt)
                     DUNE_THROW(Dune::IOError, "Couldn't open intermediate solution");
-                for (int k=0; k<intermediateSol.size(); k++)
+                for (size_t k=0; k<intermediateSol.size(); k++)
                     for (int l=0; l<blocksize; l++)
                         fread(&intermediateSol[k][l], sizeof(double), 1, fpInt);
                 
@@ -393,7 +393,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 #else
         //std::cout << "embedded correction:\n";
-        for (int j=0; j<newIterate.size(); j++) {
+        for (size_t j=0; j<newIterate.size(); j++) {
             Dune::FieldMatrix<double,TargetSpace::TangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension> B = x_[j].orthonormalFrame();
             Dune::FieldVector<double,TargetSpace::EmbeddedTangentVector::dimension> embeddedCorr(0);
             //std::cout << "B[" << j << "]:\n" << B << std::endl;
@@ -489,7 +489,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             if (!fpIterate)
                 DUNE_THROW(SolverError, "Couldn't open file " << iFilename << " for writing");
             
-            for (int j=0; j<x_.size(); j++)
+            for (size_t j=0; j<x_.size(); j++)
                 fwrite(&x_[j], sizeof(TargetSpace), 1, fpIterate);
 
             fclose(fpIterate);
