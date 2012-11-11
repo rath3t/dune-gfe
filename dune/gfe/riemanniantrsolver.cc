@@ -193,7 +193,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
 
     std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep) 
-                                                                                         ? mgStep->numLevels_
+                                                                                         ? mgStep->numLevels()
                                                                                          : 0);
 
    // /////////////////////////////////////////////////////
