@@ -62,12 +62,36 @@ struct DirichletFunction
         rotation.matrix(rMat);
         out = rMat[2];
 #endif   
-        double angle = 0.5 * M_PI * x[0];
-        angle *= -4*x[1]*(x[1]-1);
-        out = 0;
-//         out[0] = std::cos(angle);
-//         out[1] = std::sin(angle);
-        out[2] = 1;
+#if 1   // This data seems to have the necessary smoothness to have optimal
+        // convergence order even for 3rd-order elements
+        double localX = (x[0] + 2)/4;
+        double localY = (x[1] + 1)/2;
+        double angleX = 0.5 * M_PI * sin(M_PI*localX);
+        double angleY = 0.5 * M_PI * sin(M_PI*localY);
+        
+        // Rotation matrix around the x axis
+        FieldMatrix<double,TargetSpace::CoordinateType::dimension,TargetSpace::CoordinateType::dimension> rotationX(0);
+        rotationX[0][0] = 1;
+        rotationX[1][1] = cos(angleY);
+        rotationX[1][2] = -sin(angleY);
+        rotationX[2][1] = sin(angleY);
+        rotationX[2][2] = cos(angleY);
+
+        // Rotation matrix around the y axis
+        FieldMatrix<double,TargetSpace::CoordinateType::dimension,TargetSpace::CoordinateType::dimension> rotationY(0);
+        rotationY[0][0] = cos(angleX);
+        rotationY[0][2] = -sin(angleX);
+        rotationY[1][1] = 1;
+        rotationY[2][0] = sin(angleX);
+        rotationY[2][2] = cos(angleX);
+
+        //angle *= -4*x[1]*(x[1]-1);
+        TargetSpace::CoordinateType unitVector(0);   unitVector[2] = 1;
+        
+        TargetSpace::CoordinateType tmp;
+        rotationX.mv(unitVector,tmp);
+        rotationY.mv(tmp,out);
+#endif
     }
 };
 
