@@ -2,8 +2,8 @@
 
 //#define HARMONIC_ENERGY_FD_GRADIENT
 //#define HARMONIC_ENERGY_FD_INNER_GRADIENT
-//#define THIRD_ORDER
 //#define SECOND_ORDER
+//#define THIRD_ORDER
 const int order = 1;
 
 #include <dune/common/bitsetvector.hh>
