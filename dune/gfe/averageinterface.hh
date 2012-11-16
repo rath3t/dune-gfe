@@ -19,8 +19,8 @@
 #include "rigidbodymotion.hh"
 
 #ifdef HAVE_IPOPT
-#include "coin/IpTNLP.hpp"
-#include "coin/IpIpoptApplication.hpp"
+#include "IpTNLP.hpp"
+#include "IpIpoptApplication.hpp"
 #else
 #error You need IPOpt for this header!
 #endif
