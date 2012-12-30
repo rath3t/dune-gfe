@@ -15,6 +15,7 @@ srcinclude_HEADERS = averagedistanceassembler.hh \
                      globalgfetestfunctionbasis.hh \
                      globalgfetestfunction.hh \
                      harmonicenergystiffness.hh \
+                     hyperbolichalfspacepoint.hh \
                      linearalgebra.hh \
                      localgeodesicfefunction.hh \
                      localgeodesicfestiffness.hh \
