@@ -64,14 +64,16 @@ public:
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<T,N> CoordinateType;
     
-    /** \brief Dimension of the manifold formed by unit vectors */
-    static const int dim = N-1;
+    /** \brief Dimension of the manifold */
+    static const int dim = N;
 
     /** \brief Dimension of the Euclidean space the manifold is embedded in */
     static const int embeddedDim = N;
 
-    typedef Dune::FieldVector<T,N-1> TangentVector;
+    /** \brief Type of a tangent vector in local coordinates */
+    typedef Dune::FieldVector<T,N> TangentVector;
 
+    /** \brief Type of a tangent vector in the embedding space */
     typedef Dune::FieldVector<T,N> EmbeddedTangentVector;
     
     /** \brief Default constructor */
@@ -82,45 +84,26 @@ public:
     HyperbolicHalfspacePoint(const Dune::FieldVector<T,N>& vector)
         : data_(vector)
     {
-        data_ /= data_.two_norm();
+        assert(vector[N-1]>0);
     }
     
     /** \brief Constructor from an array.  The array gets normalized */
     HyperbolicHalfspacePoint(const Dune::array<T,N>& vector)
     {
+        assert(vector.back()>0);
         for (int i=0; i<N; i++)
             data_[i] = vector[i];
-        data_ /= data_.two_norm();
-    }
-
-    UnitVector<T,N>& operator=(const Dune::FieldVector<T,N>& vector)
-    {
-        data_ = vector;
-        data_ /= data_.two_norm();
-        return *this;
     }
 
      /** \brief The exponential map */
     static HyperbolicHalfspacePoint exp(const HyperbolicHalfspacePoint& p, const TangentVector& v) {
 
-        Dune::FieldMatrix<T,N-1,N> frame = p.orthonormalFrame();
+        Dune::FieldMatrix<T,N,N> frame = p.orthonormalFrame();
 
         EmbeddedTangentVector ev;
         frame.mtv(v,ev);
             
         return exp(p,ev);
-    }
-
-     /** \brief The exponential map */
-    static HyperbolicHalfspacePoint exp(const HyperbolicHalfspacePoint& p, const EmbeddedTangentVector& v) {
-
-        assert( std::abs(p.data_*v) < 1e-5 );
-
-        const T norm = v.two_norm();
-        HyperbolicHalfspacePoint result = p;
-        result.data_ *= std::cos(norm);
-        result.data_.axpy(sinc(norm), v);
-        return result;
     }
 
     /** \brief Length of the great arc connecting the two points */
@@ -316,45 +299,15 @@ public:
 
     This basis is of course not globally continuous.
     */
-    Dune::FieldMatrix<T,N-1,N> orthonormalFrame() const {
+    Dune::FieldMatrix<T,N,N> orthonormalFrame() const {
 
-        Dune::FieldMatrix<T,N-1,N> result;
+#warning Use DiagonalMatrix instead of FieldMatrix
+        Dune::FieldMatrix<T,N,N> result(0);
 
-        // Coordinates of the stereographic projection
-        Dune::FieldVector<T,N-1> X;
+        for (size_t i=0; i<N; i++)
+            result[i][i] = 1;
         
-        if (data_[N-1] <= 0) {
-            
-            // Stereographic projection from the north pole onto R^{N-1}
-            for (size_t i=0; i<N-1; i++)
-                X[i] = data_[i] / (1-data_[N-1]);
-            
-        } else {
-            
-            // Stereographic projection from the south pole onto R^{N-1}
-            for (size_t i=0; i<N-1; i++)
-                X[i] = data_[i] / (1+data_[N-1]);
-            
-        }
-            
-        T RSquared = X.two_norm2();
-            
-        for (size_t i=0; i<N-1; i++)
-            for (size_t j=0; j<N-1; j++)
-                // Note: the matrix is the transpose of the one in the paper
-                result[j][i] = 2*(i==j)*(1+RSquared) - 4*X[i]*X[j];
-                
-        for (size_t j=0; j<N-1; j++)
-            result[j][N-1] = 4*X[j];
-            
-        // Upper hemisphere: adapt formulas so it is the stereographic projection from the south pole
-        if (data_[N-1] > 0) 
-            for (size_t j=0; j<N-1; j++)
-                result[j][N-1] *= -1;
-            
-        // normalize the rows to make the orthogonal basis orthonormal
-        for (size_t i=0; i<N-1; i++)
-            result[i] /= result[i].two_norm();
+        std::cout << "FIXME: normalize vectors" << std::endl;
         
         return result;
     }
