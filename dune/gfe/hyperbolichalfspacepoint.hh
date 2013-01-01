@@ -4,6 +4,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
 
+#include <dune/istl/scaledidmatrix.hh>
+
 #include <dune/gfe/tensor3.hh>
 
 /** \brief A point in the hyperbolic half-space H^N
@@ -338,15 +340,9 @@ public:
     */
     Dune::FieldMatrix<T,N,N> orthonormalFrame() const {
 
-#warning Use DiagonalMatrix instead of FieldMatrix
-        Dune::FieldMatrix<T,N,N> result(0);
+        Dune::ScaledIdentityMatrix<T,N> result( data_[N-1]*data_[N-1] );
 
-        for (size_t i=0; i<N; i++)
-            result[i][i] = 1;
-        
-        std::cout << "FIXME: normalize vectors" << std::endl;
-        
-        return result;
+        return Dune::FieldMatrix<T,N,N>(result);
     }
 
     /** \brief Write unit vector object to output stream */
