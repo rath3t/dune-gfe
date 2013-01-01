@@ -32,6 +32,15 @@ class HyperbolicHalfspacePoint
             return -2*std::acos(x) / std::sqrt(1-x*x);
     }
 
+    /** \brief Compute the derivative of arccosh^2 without getting unstable for x close to 1 */
+    static T derivativeOfArcCosHSquared(const T& x) {
+        const T eps = 1e-4;
+        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
+            return 2 - 2*(x-1)/3 + 4/15*(x-1)*(x-1);
+        } else
+            return 2*std::acosh(x) / std::sqrt(x*x-1);
+    }
+
     /** \brief Compute the second derivative of arccos^2 without getting unstable for x close to 1 */
     static T secondDerivativeOfArcCosSquared(const T& x) {
         const T eps = 1e-4;
@@ -97,27 +106,50 @@ public:
 
      /** \brief The exponential map */
     static HyperbolicHalfspacePoint exp(const HyperbolicHalfspacePoint& p, const TangentVector& v) {
+        
+        assert (N==2);
+        
+        T vNorm = v.two_norm();
+        
+        // we compute geodesics by applying an isometry to a fixed unit-speed geodesic.
+        // Hence we need a unit velocity vector.
+        if (vNorm <= 0)
+            return p;
 
-        Dune::FieldMatrix<T,N,N> frame = p.orthonormalFrame();
+        TangentVector vUnit = v;
+        vUnit /= vNorm;
 
-        EmbeddedTangentVector ev;
-        frame.mtv(v,ev);
-            
-        return exp(p,ev);
+        // Compute the coefficients a,b,c,d of the Moebius transform that transforms
+        // the unit speed upward geodesic to the one through p with direction vUnit.
+        // We expect the Moebius transform to be an isometry, i.e. ad-bc = 1.
+        T cc = 1/(2*p.data_[N-1]) - vUnit[N-1] / (2*p.data_[N-1]*p.data_[N-1]);
+        T dd = 1/(2*p.data_[N-1]) + vUnit[N-1] / (2*p.data_[N-1]*p.data_[N-1]);
+        T ac = vUnit[0] / (2*p.data_[N-1]) + p.data_[0]*cc;
+        T bd = p.data_[0] / p.data_[N-1] - ac;
+        
+        HyperbolicHalfspacePoint result;
+        
+        // vertical part
+        result.data_[1] = std::exp(vNorm) / (cc*std::exp(2*vNorm) + dd);
+        
+        // horizontal part
+        result.data_[0] = (ac*std::exp(2*vNorm) + bd) / (cc*std::exp(2*vNorm) + dd);
+        
+        return result;
     }
 
-    /** \brief Length of the great arc connecting the two points */
+    /** \brief Hyperbolic distance between two points
+     * 
+     * \f dist(a,b) = arccosh ( 1 + ||a-b||^2 / (2a_n b_n) \f
+     */
      static T distance(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b) {
 
-         // Not nice: we are in a class for unit vectors, but the class is actually
-         // supposed to handle perturbations of unit vectors as well.  Therefore
-         // we normalize here.
-         T x = a.data_ * b.data_/a.data_.two_norm()/b.data_.two_norm();
+         T result(0);
          
-         // paranoia:  if the argument is just eps larger than 1 acos returns NaN
-         x = std::min(x,1.0);
+         for (size_t i=0; i<N; i++)
+             result += (a.data_[i]-b.data_[i])*(a.data_[i]-b.data_[i]);
          
-         return std::acos(x);
+         return std::acosh(1 + result / (2*a.data_[N-1]*b.data_[N-1]));
     }
 
     /** \brief Compute the gradient of the squared distance function keeping the first argument fixed
@@ -125,17 +157,22 @@ public:
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b) {
-        T x = a.data_ * b.data_;
+        
+        TangentVector result;
+        
+        T diffNormSquared(0);
+         
+        for (size_t i=0; i<N; i++)
+            diffNormSquared += (a.data_[i]-b.data_[i])*(a.data_[i]-b.data_[i]);
 
-        EmbeddedTangentVector result = a.data_;
-
-        result *= derivativeOfArcCosSquared(x);
-
-        // Project gradient onto the tangent plane at b in order to obtain the surface gradient
-        result = b.projectOntoTangentSpace(result);
-
-        // Gradient must be a tangent vector at b, in other words, orthogonal to it
-        assert( std::abs(b.data_ * result) < 1e-5);
+        for (size_t i=0; i<N-1; i++)
+            result[i] = ( b.data_[i] - a.data_[i] ) / (a.data_[N-1] * b.data_[N-1]);
+        
+        result[N-1] = - diffNormSquared / (2*a.data_[N-1]*b.data_[N-1]*b.data_[N-1]) - (a.data_[N-1] - b.data_[N-1]) / (a.data_[N-1]*b.data_[N-1]);
+        
+        T x = 1 + diffNormSquared/ (2*a.data_[N-1]*b.data_[N-1]);
+        
+        result *= derivativeOfArcCosHSquared(x);
 
         return result;
     }
