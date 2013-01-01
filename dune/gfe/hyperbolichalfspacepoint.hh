@@ -322,11 +322,9 @@ public:
     }
     
     
-    /** \brief Project tangent vector of R^n onto the tangent space */
+    /** \brief Project tangent vector of R^n onto the tangent space.  For H^m this is the identity */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
-        EmbeddedTangentVector result = v;
-        result.axpy(-1*(data_*result), data_);
-        return result;
+        return v;
     }
 
     /** \brief The global coordinates, if you really want them */
