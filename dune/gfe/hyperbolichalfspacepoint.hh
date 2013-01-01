@@ -54,6 +54,15 @@ class HyperbolicHalfspacePoint
             return 2/(1-x*x) - 2*x*std::acos(x) / std::pow(1-x*x,1.5);
     }
 
+    /** \brief Compute the second derivative of arccosh^2 without getting unstable for x close to 1 */
+    static T secondDerivativeOfArcCosHSquared(const T& x) {
+        const T eps = 1e-4;
+        if (x < 1+eps) {  // regular expression is unstable, use the series expansion instead
+            return -2.0/3 + 8*(x-1)/15;
+        } else
+            return 2/(x*x-1) - 2*x*std::acosh(x) / std::pow(x*x-1,1.5);
+    }
+
     /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
     static T thirdDerivativeOfArcCosSquared(const T& x) {
         const T eps = 1e-4;
@@ -183,29 +192,62 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const HyperbolicHalfspacePoint& p, const HyperbolicHalfspacePoint& q) {
+    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b) {
 
-        T sp = p.data_ * q.data_;
+        // abbreviate notation
+        const Dune::FieldVector<T,N>& p = a.data_;
+        const Dune::FieldVector<T,N>& q = b.data_;
         
-        Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
+        T diffNormSquared = (p-q).two_norm2();
 
-        Dune::FieldMatrix<T,N,N> A;
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                A[i][j] = pProjected[i]*pProjected[j];
+        // Compute first derivative of F
+        Dune::FieldVector<T,N> dFdq;
+        for (size_t i=0; i<N-1; i++)
+            dFdq[i] = ( b.data_[i] - a.data_[i] ) / (a.data_[N-1] * b.data_[N-1]);
         
-        A *= secondDerivativeOfArcCosSquared(sp);
+        dFdq[N-1] = - diffNormSquared / (2*a.data_[N-1]*b.data_[N-1]*b.data_[N-1]) - (a.data_[N-1] - b.data_[N-1]) / (a.data_[N-1]*b.data_[N-1]);
 
-        // Compute matrix B (see notes)
-        Dune::FieldMatrix<T,N,N> Pq;
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                Pq[i][j] = (i==j) - q.data_[i]*q.data_[j];
+        // Compute second derivatives of F
+        Dune::FieldMatrix<T,N,N> dFdqdq;
+       
+        for (size_t i=0; i<N; i++) {
+            
+            for (size_t j=0; j<N; j++) {
 
-        // Bring it all together
-        A.axpy(-1*derivativeOfArcCosSquared(sp)*sp, Pq);
+                if (i!=N-1 and j!=N-1) {
+                    
+                    dFdqdq[i][j] = (i==j) / (p[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = (p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = (p[j] - q[j]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i==N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]*q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
+                
+                }
+                
+            }
+            
+        }
+        
+        //
+        T x = 1 + diffNormSquared/ (2*p[N-1]*q[N-1]);
+        T alphaPrime      = derivativeOfArcCosHSquared(x);
+        T alphaPrimePrime = secondDerivativeOfArcCosHSquared(x);
 
-        return A;
+        // Sum it all together
+        Dune::FieldMatrix<T,N,N> result;
+        for (size_t i=0; i<N; i++)
+            for (size_t j=0; j<N; j++)
+                result[i][j] = alphaPrimePrime * dFdq[i] * dFdq[j] + alphaPrime * dFdqdq[i][j];
+        
+        return result;
     }
 
     /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
