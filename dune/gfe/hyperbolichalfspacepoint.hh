@@ -37,7 +37,7 @@ class HyperbolicHalfspacePoint
     /** \brief Compute the derivative of arccosh^2 without getting unstable for x close to 1 */
     static T derivativeOfArcCosHSquared(const T& x) {
         const T eps = 1e-4;
-        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
+        if (x < 1+eps) {  // regular expression is unstable, use the series expansion instead
             return 2 - 2*(x-1)/3 + 4/15*(x-1)*(x-1);
         } else
             return 2*std::acosh(x) / std::sqrt(x*x-1);
