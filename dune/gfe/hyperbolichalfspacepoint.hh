@@ -76,6 +76,17 @@ class HyperbolicHalfspacePoint
         }
     }
 
+    /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
+    static T thirdDerivativeOfArcCosHSquared(const T& x) {
+        const T eps = 1e-4;
+        if (x < 1+eps) {  // regular expression is unstable, use the series expansion instead
+            return 8.0/15 - 24*(x-1)/35;
+        } else {
+            T d = x*x-1;
+            return -6*x/(d*d) + (4*x*x+2)*std::acos(x)/(std::pow(d,5.2));
+        }
+    }
+
 public:
 
     /** \brief The type used for coordinates */
@@ -250,43 +261,71 @@ public:
         return result;
     }
 
-    /** \brief Compute the mixed second derivate \partial d^2 / \partial da db
+    /** \brief Compute the mixed second derivative \partial d^2 / \partial da db
 
-    Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b) {
+    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b)
+    {
+        // abbreviate notation
+        const Dune::FieldVector<T,N>& p = a.data_;
+        const Dune::FieldVector<T,N>& q = b.data_;
+        
+        T diffNormSquared = (p-q).two_norm2();
 
-        T sp = a.data_ * b.data_;
+        // Compute first derivatives of F with respect to p and q
+        Dune::FieldVector<T,N> dFdp;
+        for (size_t i=0; i<N-1; i++)
+            dFdp[i] = ( p[i] - q[i] ) / (p[N-1] * q[N-1]);
+        
+        dFdp[N-1] = - diffNormSquared / (2*p[N-1]*q[N-1]*q[N-1]) - (p[N-1] - q[N-1]) / (p[N-1]*q[N-1]);
 
-        // Compute vector A (see notes)
-        Dune::FieldMatrix<T,1,N> row;
-        row[0] = b.projectOntoTangentSpace(a.globalCoordinates());
+        Dune::FieldVector<T,N> dFdq;
+        for (size_t i=0; i<N-1; i++)
+            dFdq[i] = ( q[i] - p[i] ) / (p[N-1] * q[N-1]);
+        
+        dFdq[N-1] = - diffNormSquared / (2*p[N-1]*q[N-1]*q[N-1]) - (p[N-1] - q[N-1]) / (p[N-1]*q[N-1]);
 
-        Dune::FieldVector<T,N> tmp = a.projectOntoTangentSpace(b.globalCoordinates());
-        Dune::FieldMatrix<T,N,1> column;
-        for (int i=0; i<N; i++)  // turn row vector into column vector
-            column[i] = tmp[i];
+        // Compute second derivatives of F
+        Dune::FieldMatrix<T,N,N> dFdpdq;
+       
+        for (size_t i=0; i<N; i++) {
+            
+            for (size_t j=0; j<N; j++) {
 
-        Dune::FieldMatrix<T,N,N> A;
-        // A = row * column
-        Dune::FMatrixHelp::multMatrix(column,row,A);
-        A *= secondDerivativeOfArcCosSquared(sp);
-
-        // Compute matrix B (see notes)
-        Dune::FieldMatrix<T,N,N> Pp, Pq;
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++) {
-                Pp[i][j] = (i==j) - a.data_[i]*a.data_[j];
-                Pq[i][j] = (i==j) - b.data_[i]*b.data_[j];
+                if (i!=N-1 and j!=N-1) {
+                    
+                    dFdpdq[i][j] = -(i==j) / (p[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdpdq[i][j] = -(p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdpdq[i][j] = (p[j] - q[j]) / (p[N-1]*p[N-1]*q[N-1]);
+                    
+                } else if (i==N-1 and j==N-1) {
+                    
+                    dFdpdq[i][j] = -1/(p[N-1]*p[N-1]*q[N-1]) - (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*p[N-1]*q[N-1]*q[N-1]);
+                
+                }
+                
             }
             
-        Dune::FieldMatrix<T,N,N> B;
-        Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
+        }
+        
+        //
+        T x = 1 + diffNormSquared/ (2*p[N-1]*q[N-1]);
+        T alphaPrime      = derivativeOfArcCosHSquared(x);
+        T alphaPrimePrime = secondDerivativeOfArcCosHSquared(x);
 
-        // Bring it all together
-        A.axpy(derivativeOfArcCosSquared(sp), B);
-
-        return A;
+        // Sum it all together
+        Dune::FieldMatrix<T,N,N> result;
+        for (size_t i=0; i<N; i++)
+            for (size_t j=0; j<N; j++)
+                result[i][j] = alphaPrimePrime * dFdp[i] * dFdq[j] + alphaPrime * dFdpdq[i][j];
+        
+        return result;
     }
     
     
