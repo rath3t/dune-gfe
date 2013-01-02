@@ -239,7 +239,7 @@ public:
                     
                 } else if (i==N-1 and j==N-1) {
                     
-                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]*q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
+                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
                 
                 }
                 
