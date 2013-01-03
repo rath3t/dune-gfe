@@ -19,17 +19,6 @@ class HyperbolicHalfspacePoint
 {
     dune_static_assert(N>=2, "A hyperbolic half-space needs to be at least two-dimensional!");
     
-    /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
-    static T derivativeOfArcCosSquared(const T& x) {
-        const T eps = 1e-4;
-        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1);
-        } else if (x < -1+eps) {  // The function is not differentiable
-            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
-        } else
-            return -2*std::acos(x) / std::sqrt(1-x*x);
-    }
-
     /** \brief Compute the derivative of arccosh^2 without getting unstable for x close to 1 */
     static T derivativeOfArcCosHSquared(const T& x) {
         const T eps = 1e-4;
@@ -39,17 +28,6 @@ class HyperbolicHalfspacePoint
             return 2*std::acosh(x) / std::sqrt(x*x-1);
     }
 
-    /** \brief Compute the second derivative of arccos^2 without getting unstable for x close to 1 */
-    static T secondDerivativeOfArcCosSquared(const T& x) {
-        const T eps = 1e-4;
-        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return 2.0/3 - 8*(x-1)/15;
-        } else if (x < -1+eps) {  // The function is not differentiable
-            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
-        } else
-            return 2/(1-x*x) - 2*x*std::acos(x) / std::pow(1-x*x,1.5);
-    }
-
     /** \brief Compute the second derivative of arccosh^2 without getting unstable for x close to 1 */
     static T secondDerivativeOfArcCosHSquared(const T& x) {
         const T eps = 1e-4;
@@ -57,19 +35,6 @@ class HyperbolicHalfspacePoint
             return -2.0/3 + 8*(x-1)/15;
         } else
             return 2/(x*x-1) - 2*x*std::acosh(x) / std::pow(x*x-1,1.5);
-    }
-
-    /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
-    static T thirdDerivativeOfArcCosSquared(const T& x) {
-        const T eps = 1e-4;
-        if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return -8.0/15 + 24*(x-1)/35;
-        } else if (x < -1+eps) {  // The function is not differentiable
-            DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
-        } else {
-            T d = 1-x*x;
-            return 6*x/(d*d) - 6*x*x*std::acos(x)/(d*d*std::sqrt(d)) - 2*std::acos(x)/(d*std::sqrt(d));
-        }
     }
 
     /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
