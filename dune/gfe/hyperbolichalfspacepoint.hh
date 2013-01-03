@@ -450,41 +450,155 @@ public:
     }    
         
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
-
-    Unlike the distance itself the squared distance is differentiable at zero
      */
-    static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const HyperbolicHalfspacePoint& p, const HyperbolicHalfspacePoint& q) {
-
+    static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b)
+    {
         Tensor3<T,N,N,N> result;
 
-        T sp = p.data_ * q.data_;
+        // abbreviate notation
+        const Dune::FieldVector<T,N>& p = a.data_;
+        const Dune::FieldVector<T,N>& q = b.data_;
         
-        // The projection matrix onto the tangent space at p and q
-        Dune::FieldMatrix<T,N,N> Pp, Pq;
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++) {
-                Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
-                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
-            }
+        T diffNormSquared = (p-q).two_norm2();
+
+        // Compute first derivatives of F with respect to p and q
+        Dune::FieldVector<T,N> dFdp;
+        for (size_t i=0; i<N-1; i++)
+            dFdp[i] = ( p[i] - q[i] ) / (p[N-1] * q[N-1]);
+        
+        dFdp[N-1] = - diffNormSquared / (2*p[N-1]*q[N-1]*q[N-1]) - (p[N-1] - q[N-1]) / (p[N-1]*q[N-1]);
+
+        Dune::FieldVector<T,N> dFdq;
+        for (size_t i=0; i<N-1; i++)
+            dFdq[i] = ( b.data_[i] - a.data_[i] ) / (a.data_[N-1] * b.data_[N-1]);
+        
+        dFdq[N-1] = - diffNormSquared / (2*a.data_[N-1]*b.data_[N-1]*b.data_[N-1]) - (a.data_[N-1] - b.data_[N-1]) / (a.data_[N-1]*b.data_[N-1]);
+
+        // Compute second derivatives of F
+        Dune::FieldMatrix<T,N,N> dFdqdq;
+       
+        for (size_t i=0; i<N; i++) {
             
-        Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
-        Dune::FieldVector<T,N> qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
-        
-        Tensor3<T,N,N,N> derivativeOfPqOTimesPq;
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                for (int k=0; k<N; k++) {
-                    derivativeOfPqOTimesPq[i][j][k] = 0;
-                    for (int l=0; l<N; l++)
-                        derivativeOfPqOTimesPq[i][j][k] += Pp[i][l] * (Pq[j][l]*pProjected[k] + pProjected[j]*Pq[k][l]);
+            for (size_t j=0; j<N; j++) {
+
+                if (i!=N-1 and j!=N-1) {
+                    
+                    dFdqdq[i][j] = (i==j) / (p[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = (p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = (p[j] - q[j]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i==N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
+                
                 }
                 
-        result = thirdDerivativeOfArcCosSquared(sp)         * Tensor3<T,N,N,N>::product(qProjected,pProjected,pProjected)
-                 + secondDerivativeOfArcCosSquared(sp)      * derivativeOfPqOTimesPq
-                 - secondDerivativeOfArcCosSquared(sp) * sp * Tensor3<T,N,N,N>::product(qProjected,Pq)
-                 - derivativeOfArcCosSquared(sp)            * Tensor3<T,N,N,N>::product(qProjected,Pq);
-               
+            }
+            
+        }
+
+        Dune::FieldMatrix<T,N,N> dFdpdq;
+       
+        for (size_t i=0; i<N; i++) {
+            
+            for (size_t j=0; j<N; j++) {
+
+                if (i!=N-1 and j!=N-1) {
+                    
+                    dFdpdq[i][j] = -(i==j) / (p[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdpdq[i][j] = -(p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdpdq[i][j] = (p[j] - q[j]) / (p[N-1]*p[N-1]*q[N-1]);
+                    
+                } else if (i==N-1 and j==N-1) {
+                    
+                    dFdpdq[i][j] = -1/(p[N-1]*p[N-1]*q[N-1]) - (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*p[N-1]*q[N-1]*q[N-1]);
+                
+                }
+                
+            }
+            
+        }
+
+        // Compute third derivatives of F
+        Tensor3<T,N,N,N> dFdpdqdq;
+       
+        for (size_t i=0; i<N; i++) {
+            
+            for (size_t j=0; j<N; j++) {
+
+                for (size_t k=0; k<N; k++) {
+                    
+                    if (i!=N-1 and j!=N-1 and k!=N-1) {
+                    
+                        dFdpdqdq[i][j][k] = 0;
+                    
+                    } else if (i!=N-1 and j!=N-1 and k==N-1) {
+                    
+                        dFdpdqdq[i][j][k] = (i==j) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                    } else if (i!=N-1 and j==N-1 and k!=N-1) {
+                    
+                        dFdpdqdq[i][j][k] = (i==k) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                    } else if (i!=N-1 and j==N-1 and k==N-1) {
+                    
+                        dFdpdqdq[i][j][k] = 2*(p[i] - q[i]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                    
+                    } else if (i==N-1 and j!=N-1 and k!=N-1) {
+                    
+                        dFdpdqdq[i][j][k] = (j==k) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                    } else if (i==N-1 and j!=N-1 and k==N-1) {
+                    
+                        dFdpdqdq[i][j][k] = 2*(p[j] - q[j]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                    
+                    } else if (i==N-1 and j==N-1 and k!=N-1) {
+                    
+                        dFdpdqdq[i][j][k] = 2*(p[k] - q[k]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                
+                    } else if (i==N-1 and j==N-1 and k==N-1) {
+                    
+                        dFdpdqdq[i][j][k] = 1.0/(p[N-1]*p[N-1]*q[N-1]*q[N-1]) + 1.0/(p[N-1]*q[N-1]*q[N-1])
+                                          + 2*(p[N-1]-q[N-1])/(p[N-1]*Dune::Power<3>::eval(q[N-1]))
+                                          + 2*(p[N-1]-q[N-1])/(p[N-1]*p[N-1]*q[N-1])
+                                          - diffNormSquared / (p[N-1]*p[N-1]*q[N-1]*q[N-1]);
+                
+                    }
+                    
+                }
+                
+            }
+            
+        }
+
+        //
+        T x = 1 + diffNormSquared/ (2*p[N-1]*q[N-1]);
+        T alphaPrime           = derivativeOfArcCosHSquared(x);
+        T alphaPrimePrime      = secondDerivativeOfArcCosHSquared(x);
+        T alphaPrimePrimePrime = thirdDerivativeOfArcCosHSquared(x);
+
+        // Sum it all together
+        for (size_t i=0; i<N; i++)
+            for (size_t j=0; j<N; j++)
+                for (size_t k=0; k<N; k++)
+                    result[i][j][k] = alphaPrimePrimePrime * dFdp[i] * dFdq[j] * dFdq[k]
+                                    + alphaPrimePrime * (dFdpdq[i][j] * dFdq[k] + dFdpdq[i][k] * dFdq[j] + dFdqdq[j][k] * dFdq[i])
+                                    + alphaPrime * dFdpdqdq[i][j][k];
+
         return result;
+
     }
     
     
