@@ -78,6 +78,48 @@ class HyperbolicHalfspacePoint
         return result;
     }
     
+    /** \brief Compute second derivative of $F(p,q) = 1 + ||p-q||^2 / 2p_nq_n with respect to q 
+     \param[in] diffNormSquared Expected to be ||p-q||^2, taken from the caller for efficiency reasons
+     */
+    static Dune::FieldMatrix<T,N,N> computeDFdqdq(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b, const T& diffNormSquared)
+    {
+        // abbreviate notation
+        const Dune::FieldVector<T,N>& p = a.data_;
+        const Dune::FieldVector<T,N>& q = b.data_;
+        
+        Dune::FieldMatrix<T,N,N> dFdqdq;
+               
+        for (size_t i=0; i<N; i++) {
+            
+            for (size_t j=0; j<N; j++) {
+
+                if (i!=N-1 and j!=N-1) {
+                    
+                    dFdqdq[i][j] = (i==j) / (p[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = (p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i!=N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = (p[j] - q[j]) / (p[N-1]*q[N-1]*q[N-1]);
+                    
+                } else if (i==N-1 and j==N-1) {
+                    
+                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
+                
+                }
+                
+            }
+            
+        }
+
+        return dFdqdq;
+    }
+    
+    
+    
 public:
 
     /** \brief The type used for coordinates */
@@ -191,46 +233,16 @@ public:
      */
     static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b) {
 
-        // abbreviate notation
-        const Dune::FieldVector<T,N>& p = a.data_;
-        const Dune::FieldVector<T,N>& q = b.data_;
-        
-        T diffNormSquared = (p-q).two_norm2();
+        T diffNormSquared = (a.data_-b.data_).two_norm2();
 
         // Compute first derivative of F
         Dune::FieldVector<T,N> dFdq = computeDFdq(a,b,diffNormSquared);
 
         // Compute second derivatives of F
-        Dune::FieldMatrix<T,N,N> dFdqdq;
-       
-        for (size_t i=0; i<N; i++) {
-            
-            for (size_t j=0; j<N; j++) {
-
-                if (i!=N-1 and j!=N-1) {
-                    
-                    dFdqdq[i][j] = (i==j) / (p[N-1]*q[N-1]);
-                    
-                } else if (i!=N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = (p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
-                    
-                } else if (i!=N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = (p[j] - q[j]) / (p[N-1]*q[N-1]*q[N-1]);
-                    
-                } else if (i==N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
-                
-                }
-                
-            }
-            
-        }
+        Dune::FieldMatrix<T,N,N> dFdqdq = computeDFdqdq(a,b,diffNormSquared);
         
         //
-        T x = 1 + diffNormSquared/ (2*p[N-1]*q[N-1]);
+        T x = 1 + diffNormSquared/ (2*a.data_[N-1]*b.data_[N-1]);
         T alphaPrime      = derivativeOfArcCosHSquared(x);
         T alphaPrimePrime = secondDerivativeOfArcCosHSquared(x);
 
@@ -320,33 +332,7 @@ public:
         Dune::FieldVector<T,N> dFdq = computeDFdq(a,b,diffNormSquared);
 
         // Compute second derivatives of F
-        Dune::FieldMatrix<T,N,N> dFdqdq;
-       
-        for (size_t i=0; i<N; i++) {
-            
-            for (size_t j=0; j<N; j++) {
-
-                if (i!=N-1 and j!=N-1) {
-                    
-                    dFdqdq[i][j] = (i==j) / (p[N-1]*q[N-1]);
-                    
-                } else if (i!=N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = (p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
-                    
-                } else if (i!=N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = (p[j] - q[j]) / (p[N-1]*q[N-1]*q[N-1]);
-                    
-                } else if (i==N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
-                
-                }
-                
-            }
-            
-        }
+        Dune::FieldMatrix<T,N,N> dFdqdq = computeDFdqdq(a,b,diffNormSquared);
 
         // Compute third derivatives of F
         Tensor3<T,N,N,N> dFdqdqdq;
@@ -434,33 +420,7 @@ public:
         Dune::FieldVector<T,N> dFdq = computeDFdq(a,b,diffNormSquared);
 
         // Compute second derivatives of F
-        Dune::FieldMatrix<T,N,N> dFdqdq;
-       
-        for (size_t i=0; i<N; i++) {
-            
-            for (size_t j=0; j<N; j++) {
-
-                if (i!=N-1 and j!=N-1) {
-                    
-                    dFdqdq[i][j] = (i==j) / (p[N-1]*q[N-1]);
-                    
-                } else if (i!=N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = (p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
-                    
-                } else if (i!=N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = (p[j] - q[j]) / (p[N-1]*q[N-1]*q[N-1]);
-                    
-                } else if (i==N-1 and j==N-1) {
-                    
-                    dFdqdq[i][j] = 1/(q[N-1]*q[N-1]) + (p[N-1]-q[N-1]) / (p[N-1]*q[N-1]*q[N-1]) + diffNormSquared / (p[N-1]*q[N-1]*q[N-1]*q[N-1]);
-                
-                }
-                
-            }
-            
-        }
+        Dune::FieldMatrix<T,N,N> dFdqdq = computeDFdqdq(a,b,diffNormSquared);
 
         Dune::FieldMatrix<T,N,N> dFdpdq;
        
