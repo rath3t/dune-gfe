@@ -19,11 +19,6 @@ class HyperbolicHalfspacePoint
 {
     dune_static_assert(N>=2, "A hyperbolic half-space needs to be at least two-dimensional!");
     
-    /** \brief Computes sin(x) / x without getting unstable for small x */
-    static T sinc(const T& x) {
-        return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
-    }
-
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
     static T derivativeOfArcCosSquared(const T& x) {
         const T eps = 1e-4;
