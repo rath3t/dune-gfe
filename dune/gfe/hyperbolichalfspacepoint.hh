@@ -566,9 +566,7 @@ public:
         return data_;
     }
 
-    /** \brief Compute an orthonormal basis of the tangent space of S^n.
-
-    This basis is of course not globally continuous.
+    /** \brief Compute an orthonormal basis of the tangent space of H^N.
     */
     Dune::FieldMatrix<T,N,N> orthonormalFrame() const {
 
@@ -578,9 +576,9 @@ public:
     }
 
     /** \brief Write unit vector object to output stream */
-    friend std::ostream& operator<< (std::ostream& s, const HyperbolicHalfspacePoint& unitVector)
+    friend std::ostream& operator<< (std::ostream& s, const HyperbolicHalfspacePoint& p)
     {
-        return s << unitVector.data_;
+        return s << p.data_;
     }
 
 
