@@ -48,6 +48,21 @@ class HyperbolicHalfspacePoint
         }
     }
 
+    /** \brief Compute derivative of $F(p,q) = 1 + ||p-q||^2 / 2p_nq_n with respect to q 
+     \param[in] diffNormSquared Expected to be ||p-q||^2, taken from the caller for efficiency reasons
+     */
+    static Dune::FieldVector<T,N> computeDFdq(const HyperbolicHalfspacePoint& p, const HyperbolicHalfspacePoint& q, const T& diffNormSquared)
+    {
+        Dune::FieldVector<T,N> result;
+        
+        for (size_t i=0; i<N-1; i++)
+            result[i] = ( q.data_[i] - p.data_[i] ) / (q.data_[N-1] * p.data_[N-1]);
+        
+        result[N-1] = - diffNormSquared / (2*p.data_[N-1]*q.data_[N-1]*q.data_[N-1]) - (p.data_[N-1] - q.data_[N-1]) / (p.data_[N-1]*q.data_[N-1]);
+        
+        return result;
+    }
+    
 public:
 
     /** \brief The type used for coordinates */
@@ -141,17 +156,12 @@ public:
      */
     static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const HyperbolicHalfspacePoint& a, const HyperbolicHalfspacePoint& b) {
         
-        TangentVector result;
-        
         T diffNormSquared(0);
          
         for (size_t i=0; i<N; i++)
             diffNormSquared += (a.data_[i]-b.data_[i])*(a.data_[i]-b.data_[i]);
 
-        for (size_t i=0; i<N-1; i++)
-            result[i] = ( b.data_[i] - a.data_[i] ) / (a.data_[N-1] * b.data_[N-1]);
-        
-        result[N-1] = - diffNormSquared / (2*a.data_[N-1]*b.data_[N-1]*b.data_[N-1]) - (a.data_[N-1] - b.data_[N-1]) / (a.data_[N-1]*b.data_[N-1]);
+        TangentVector result = computeDFdq(a,b,diffNormSquared);
         
         T x = 1 + diffNormSquared/ (2*a.data_[N-1]*b.data_[N-1]);
         
@@ -173,11 +183,7 @@ public:
         T diffNormSquared = (p-q).two_norm2();
 
         // Compute first derivative of F
-        Dune::FieldVector<T,N> dFdq;
-        for (size_t i=0; i<N-1; i++)
-            dFdq[i] = ( b.data_[i] - a.data_[i] ) / (a.data_[N-1] * b.data_[N-1]);
-        
-        dFdq[N-1] = - diffNormSquared / (2*a.data_[N-1]*b.data_[N-1]*b.data_[N-1]) - (a.data_[N-1] - b.data_[N-1]) / (a.data_[N-1]*b.data_[N-1]);
+        Dune::FieldVector<T,N> dFdq = computeDFdq(a,b,diffNormSquared);
 
         // Compute second derivatives of F
         Dune::FieldMatrix<T,N,N> dFdqdq;
@@ -240,11 +246,7 @@ public:
         
         dFdp[N-1] = - diffNormSquared / (2*p[N-1]*q[N-1]*q[N-1]) - (p[N-1] - q[N-1]) / (p[N-1]*q[N-1]);
 
-        Dune::FieldVector<T,N> dFdq;
-        for (size_t i=0; i<N-1; i++)
-            dFdq[i] = ( q[i] - p[i] ) / (p[N-1] * q[N-1]);
-        
-        dFdq[N-1] = - diffNormSquared / (2*p[N-1]*q[N-1]*q[N-1]) - (p[N-1] - q[N-1]) / (p[N-1]*q[N-1]);
+        Dune::FieldVector<T,N> dFdq = computeDFdq(a,b,diffNormSquared);
 
         // Compute second derivatives of F
         Dune::FieldMatrix<T,N,N> dFdpdq;
@@ -305,11 +307,7 @@ public:
         T diffNormSquared = (p-q).two_norm2();
 
         // Compute first derivative of F
-        Dune::FieldVector<T,N> dFdq;
-        for (size_t i=0; i<N-1; i++)
-            dFdq[i] = ( b.data_[i] - a.data_[i] ) / (a.data_[N-1] * b.data_[N-1]);
-        
-        dFdq[N-1] = - diffNormSquared / (2*a.data_[N-1]*b.data_[N-1]*b.data_[N-1]) - (a.data_[N-1] - b.data_[N-1]) / (a.data_[N-1]*b.data_[N-1]);
+        Dune::FieldVector<T,N> dFdq = computeDFdq(a,b,diffNormSquared);
 
         // Compute second derivatives of F
         Dune::FieldMatrix<T,N,N> dFdqdq;
@@ -428,11 +426,7 @@ public:
         
         dFdp[N-1] = - diffNormSquared / (2*p[N-1]*q[N-1]*q[N-1]) - (p[N-1] - q[N-1]) / (p[N-1]*q[N-1]);
 
-        Dune::FieldVector<T,N> dFdq;
-        for (size_t i=0; i<N-1; i++)
-            dFdq[i] = ( b.data_[i] - a.data_[i] ) / (a.data_[N-1] * b.data_[N-1]);
-        
-        dFdq[N-1] = - diffNormSquared / (2*a.data_[N-1]*b.data_[N-1]*b.data_[N-1]) - (a.data_[N-1] - b.data_[N-1]) / (a.data_[N-1]*b.data_[N-1]);
+        Dune::FieldVector<T,N> dFdq = computeDFdq(a,b,diffNormSquared);
 
         // Compute second derivatives of F
         Dune::FieldMatrix<T,N,N> dFdqdq;
