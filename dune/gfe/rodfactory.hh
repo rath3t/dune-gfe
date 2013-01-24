@@ -159,7 +159,7 @@ template <int dim>
 
 private:
     
-    const GridView& gridView_;
+    const GridView gridView_;
 };
 
 #endif
