@@ -503,7 +503,7 @@ public:
             for (size_t j=0; j<N; j++)
                 for (size_t k=0; k<N; k++)
                     result[i][j][k] = alphaPrimePrimePrime * dFdp[i] * dFdq[j] * dFdq[k]
-                                    + alphaPrimePrime * (dFdpdq[i][j] * dFdq[k] + dFdpdq[i][k] * dFdq[j] + dFdqdq[j][k] * dFdq[i])
+                                    + alphaPrimePrime * (dFdpdq[i][j] * dFdq[k] + dFdpdq[i][k] * dFdq[j] + dFdqdq[j][k] * dFdp[i])
                                     + alphaPrime * dFdpdqdq[i][j][k];
 
         return result;
