@@ -106,7 +106,7 @@ void testOrthonormalFrame(const TargetSpace& a)
 
     for (size_t i=0; i<spaceDim; i++)
         for (size_t j=0; j<spaceDim; j++)
-            assert( std::fabs(B[i]*B[j] - (i==j)) < 1e-10 );
+            assert( std::fabs(a.metric(B[i],B[j]) - (i==j)) < 1e-10 );
 }
 
 template <class TargetSpace>
