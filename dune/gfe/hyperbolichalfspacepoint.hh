@@ -527,6 +527,12 @@ public:
 
         return Dune::FieldMatrix<T,N,N>(result);
     }
+    
+    /** \brief Scalar product of two tangent vectors */
+    T metric(const TangentVector& v, const TangentVector& w) const
+    {
+        return v*w/(data_[N-1]*data_[N-1]);
+    }
 
     /** \brief Write unit vector object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const HyperbolicHalfspacePoint& p)
