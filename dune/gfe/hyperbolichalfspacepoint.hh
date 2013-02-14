@@ -56,7 +56,7 @@ class HyperbolicHalfspacePoint
         Dune::FieldVector<T,N> result;
         
         for (size_t i=0; i<N-1; i++)
-            result[i] = ( q.data_[i] - p.data_[i] ) / (q.data_[N-1] * p.data_[N-1]);
+            result[i] = ( p.data_[i] - q.data_[i] ) / (q.data_[N-1] * p.data_[N-1]);
         
         result[N-1] = - diffNormSquared / (2*p.data_[N-1]*p.data_[N-1]*q.data_[N-1]) + (p.data_[N-1] - q.data_[N-1]) / (p.data_[N-1]*q.data_[N-1]);
         
