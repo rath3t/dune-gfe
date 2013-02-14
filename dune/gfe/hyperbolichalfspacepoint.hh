@@ -523,7 +523,7 @@ public:
     */
     Dune::FieldMatrix<T,N,N> orthonormalFrame() const {
 
-        Dune::ScaledIdentityMatrix<T,N> result( data_[N-1]*data_[N-1] );
+        Dune::ScaledIdentityMatrix<T,N> result( data_[N-1] );
 
         return Dune::FieldMatrix<T,N,N>(result);
     }
