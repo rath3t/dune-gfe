@@ -3,6 +3,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/rotation.hh>
+#include <dune/gfe/hyperbolichalfspacepoint.hh>
 
 #include "valuefactory.hh"
 
@@ -373,6 +374,8 @@ int main() try
     
     test<RigidBodyMotion<double,3> >();
     
+    test<HyperbolicHalfspacePoint<double,2> >();
+
 } catch (Exception e) {
 
     std::cout << e << std::endl;
