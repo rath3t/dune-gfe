@@ -24,6 +24,9 @@ public:
     /** \brief Dimension of the manifold formed by unit vectors */
     static const int dim = N;
 
+    /** \brief Dimension of the Euclidean space the manifold is embedded in */
+    static const int embeddedDim = N;
+
     typedef Dune::FieldVector<T,N> EmbeddedTangentVector;
 
     typedef Dune::FieldVector<T,N> TangentVector;
