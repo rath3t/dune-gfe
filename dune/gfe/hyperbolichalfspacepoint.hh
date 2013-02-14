@@ -387,10 +387,7 @@ public:
                 
                     } else if (i==N-1 and j==N-1 and k==N-1) {
                     
-                        dFdqdqdq[i][j][k] = -2.0/Dune::Power<3>::eval(q[N-1]) 
-                                          - (2*p[N-1]*p[N-1]*q[N-1] - p[N-1]*q[N-1]*q[N-1]) / (p[N-1]*p[N-1]*Dune::Power<4>::eval(q[N-1]))
-                                          + 2 * (p[N-1]-q[N-1]) / (p[N-1]*Dune::Power<3>::eval(q[N-1])) 
-                                          - 3 * diffNormSquared / (p[N-1]*Dune::Power<4>::eval(q[N-1]));
+                        dFdqdqdq[i][j][k] = (2.0*p[N-1] -1 -4*p[N-1] -3*diffNormSquared)/(p[N-1]*Dune::Power<3>::eval(q[N-1])); 
                 
                     }
                     
