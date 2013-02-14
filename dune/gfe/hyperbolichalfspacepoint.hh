@@ -182,6 +182,9 @@ public:
     /** \brief Type of a tangent vector in the embedding space */
     typedef Dune::FieldVector<T,N> EmbeddedTangentVector;
     
+    /** \brief The global convexity radius of the hyberbolic plane */
+    static constexpr T convexityRadius = std::numeric_limits<T>::infinity();
+    
     /** \brief Default constructor */
     HyperbolicHalfspacePoint()
     {}

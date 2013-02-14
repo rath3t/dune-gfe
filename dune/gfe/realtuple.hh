@@ -28,6 +28,9 @@ public:
 
     typedef Dune::FieldVector<T,N> TangentVector;
 
+    /** \brief The global convexity radius of the Euclidean space */
+    static constexpr T convexityRadius = std::numeric_limits<T>::infinity();
+    
     /** \brief Default constructor */
     RealTuple()
     {}

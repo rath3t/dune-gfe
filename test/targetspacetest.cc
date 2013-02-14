@@ -352,7 +352,7 @@ void test()
             std::vector<TargetSpace> testPointPair(2);
             testPointPair[0] = testPoints[i];
             testPointPair[1] = testPoints[j];
-            if (diameter(testPointPair) > 0.5*M_PI)
+            if (diameter(testPointPair) > TargetSpace::convexityRadius)
                 continue;
             
             testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);

@@ -45,6 +45,9 @@ public:
     This vector is not really embedded in anything.  I have to make my notation more consistent! */
     typedef Dune::FieldVector<T,1> EmbeddedTangentVector;
 
+    /** \brief The global convexity radius of the rotation group */
+    static constexpr T convexityRadius = 0.5 * M_PI;
+    
     /** \brief Default constructor, create the identity rotation */
     Rotation() 
         : angle_(0)
@@ -163,6 +166,9 @@ public:
     /** \brief A tangent vector as a vector in the surrounding coordinate space */
     typedef Quaternion<T> EmbeddedTangentVector;
 
+    /** \brief The global convexity radius of the rotation group */
+    static constexpr T convexityRadius = 0.5 * M_PI;
+    
     /** \brief Default constructor creates the identity element */
     Rotation()
         : Quaternion<T>(0,0,0,1)
