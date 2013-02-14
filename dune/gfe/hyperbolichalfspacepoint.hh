@@ -44,7 +44,7 @@ class HyperbolicHalfspacePoint
             return 8.0/15 - 24*(x-1)/35;
         } else {
             T d = x*x-1;
-            return -6*x/(d*d) + (4*x*x+2)*std::acos(x)/(std::pow(d,5.2));
+            return -6*x/(d*d) + (4*x*x+2)*std::acosh(x)/(std::pow(d,5.2));
         }
     }
 
