@@ -101,7 +101,7 @@ class HyperbolicHalfspacePoint
                     
                     dFdpdq[i][j] = -(p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
                     
-                } else if (i!=N-1 and j==N-1) {
+                } else if (i==N-1 and j!=N-1) {
                     
                     dFdpdq[i][j] = (p[j] - q[j]) / (p[N-1]*p[N-1]*q[N-1]);
                     
@@ -141,7 +141,7 @@ class HyperbolicHalfspacePoint
                     
                     dFdqdq[i][j] = (p[i] - q[i]) / (p[N-1]*q[N-1]*q[N-1]);
                     
-                } else if (i!=N-1 and j==N-1) {
+                } else if (i==N-1 and j!=N-1) {
                     
                     dFdqdq[i][j] = (p[j] - q[j]) / (p[N-1]*q[N-1]*q[N-1]);
                     
