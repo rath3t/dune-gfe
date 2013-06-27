@@ -15,6 +15,7 @@
 
 #include <dune/grid/io/file/amirameshreader.hh>
 #include <dune/grid/io/file/amirameshwriter.hh>
+#include <dune/grid/io/file/gmshreader.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 
@@ -134,14 +135,19 @@ int main (int argc, char *argv[]) try
     //    Create the grid
     // ///////////////////////////////////////
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
-    array<unsigned int,dim> elements;
-    elements.fill(1);
-    elements[0] = 10;
-    FieldVector<double,dim> upper(1);
-    upper[0] = 10;
-    shared_ptr<GridType> grid = StructuredGridFactory<GridType>::createCubeGrid(FieldVector<double,dim>(0),
-                                                                                      upper,
-                                                                                      elements);
+
+    shared_ptr<GridType> grid;
+
+    FieldVector<double,dim> lower = parameterSet.get<FieldVector<double,dim> >("lower");
+    FieldVector<double,dim> upper = parameterSet.get<FieldVector<double,dim> >("upper");
+
+    if (parameterSet.get<bool>("structuredGrid")) {
+
+        array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
+        grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+
+    } else
+        grid = shared_ptr<GridType>(GmshReader<GridType>::read(gridFile));
 
     grid->globalRefine(numLevels-1);
 
