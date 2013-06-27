@@ -57,7 +57,7 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
                      double homotopy
 )
 {
-    double angle = M_PI/4;
+    double angle = 8*M_PI;
     angle *= homotopy;
 
     // center of rotation
