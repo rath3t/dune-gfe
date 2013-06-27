@@ -67,9 +67,9 @@ BlockVector<FieldVector<double,3> >
 computeEmbeddedDifference(const std::vector<TargetSpace>& a, const std::vector<TargetSpace>& b)
 {
     assert(a.size() == b.size());
-    
+
     BlockVector<FieldVector<double,3> > difference(a.size());
-    
+
     for (int i=0; i<a.size(); i++)
         difference[i] = a[i].globalCoordinates() - b[i].globalCoordinates();
 
@@ -112,7 +112,7 @@ int main (int argc, char *argv[]) try
     //    Create the grid
     // ///////////////////////////////////////
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
-    
+
     shared_ptr<GridType> gridPtr;
     if (parameterSet.get<std::string>("gridType")=="structured") {
         array<unsigned int,dim> elements;
@@ -141,7 +141,7 @@ int main (int argc, char *argv[]) try
     BitSetVector<blocksize> dirichletNodes(grid.size(dim));
     for (int i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
-    
+
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
@@ -208,17 +208,17 @@ int main (int argc, char *argv[]) try
 #if defined ROTATION2 || defined REALTUPLE1
             v[0] = 0.5*M_PI;
 #endif
-        }            
+        }
 
 #if defined UNITVECTOR2 || defined UNITVECTOR3 || defined UNITVECTOR4 || defined ROTATION3 || defined REALTUPLE1
         x[idx] = TargetSpace(v);
 #endif
-#if defined ROTATION2 
+#if defined ROTATION2
         x[idx] = v[0];
 #endif
 
     }
-        
+
     // backup for error measurement later
     SolutionType initialIterate = x;
 
@@ -238,7 +238,7 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////
 
     RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
-    solver.setup(grid, 
+    solver.setup(grid,
                  &assembler,
                  x,
                  dirichletNodes,
@@ -251,11 +251,11 @@ int main (int argc, char *argv[]) try
                  baseIterations,
                  baseTolerance,
                  instrumented);
-    
+
     // /////////////////////////////////////////////////////
     //   Solve!
     // /////////////////////////////////////////////////////
-    
+
     std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
     //exit(0);
 
@@ -296,11 +296,11 @@ int main (int argc, char *argv[]) try
     amiramesh.addGrid(grid.leafView());
     amiramesh.addVertexData(xEmbedded, grid.leafView());
     amiramesh.write("resultGrid", 1);
-    
+
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
     // //////////////////////////////////////////////////////////
-    
+
     SolutionType exactSolution = x;
 
     // //////////////////////////////////////////////////////////////////////
@@ -339,20 +339,20 @@ int main (int argc, char *argv[]) try
     double oldError = h1Norm(difference);
     int i;
     for (i=0; i<maxTrustRegionSteps; i++) {
-        
+
         // /////////////////////////////////////////////////////
         //   Read iteration from file
         // /////////////////////////////////////////////////////
         char iSolFilename[100];
         sprintf(iSolFilename, "tmp/intermediateSolution_%04d", i);
-            
+
         FILE* fp = fopen(iSolFilename, "rb");
         if (!fp)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
         for (int j=0; j<intermediateSolution.size(); j++) {
             fread(&intermediateSolution[j], sizeof(TargetSpace), 1, fp);
         }
-        
+
         fclose(fp);
 
         // /////////////////////////////////////////////////////
@@ -360,7 +360,7 @@ int main (int argc, char *argv[]) try
         // /////////////////////////////////////////////////////
 
         difference = computeEmbeddedDifference(exactSolution, intermediateSolution);
-        
+
         //error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(geodesicDifference, hessian));
         error = h1Norm(difference);
 
@@ -375,7 +375,7 @@ int main (int argc, char *argv[]) try
           break;
 
         oldError = error;
-        
+
     }
 
     // //////////////////////////////
