@@ -201,6 +201,9 @@ int main (int argc, char *argv[]) try
     //   Main homotopy loop
     ////////////////////////////////////////////////////////
 
+    // Output initial iterate (of homotopy loop)
+    CosseratVTKWriter<GridType>::write(*grid,x, resultPath + "cosserat_homotopy_0");
+
     for (int i=0; i<numHomotopySteps; i++) {
 
         double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
@@ -273,6 +276,11 @@ int main (int argc, char *argv[]) try
         solver.solve();
 
         x = solver.getSol();
+
+        // Output result of each homotopy step
+        std::stringstream iAsAscii;
+        iAsAscii << i+1;
+        CosseratVTKWriter<GridType>::write(*grid,x, resultPath + "cosserat_homotopy_" + iAsAscii.str());
 
     }
 
