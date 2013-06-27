@@ -49,7 +49,7 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     out = 0;
     for (int i=0; i<dim; i++)
         out[i] = in[i];
-    
+
     out[1] += homotopy;
 }
 #endif
@@ -59,11 +59,11 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
 {
     double angle = M_PI/4;
     angle *= homotopy;
-    
+
     // center of rotation
     FieldVector<double,3> center(0);
     center[1] = 0.5;
-    
+
     FieldMatrix<double,3,3> rotation(0);
     rotation[0][0] = 1;
     rotation[1][1] =  std::cos(angle);
@@ -75,9 +75,9 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     for (int i=0; i<dim; i++)
         inEmbedded[i] = in[i];
     inEmbedded -= center;
-    
+
     rotation.mv(inEmbedded, out);
-    
+
     out += center;
 }
 
@@ -88,7 +88,7 @@ struct NeumannFunction
     NeumannFunction(double homotopyParameter)
     : homotopyParameter_(homotopyParameter)
     {}
-    
+
     void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
         out = 0;
         out[2] = -40*homotopyParameter_;
@@ -157,7 +157,7 @@ int main (int argc, char *argv[]) try
 
     GridType::Codim<dim>::LeafIterator vIt    = grid.leafbegin<dim>();
     GridType::Codim<dim>::LeafIterator vEndIt = grid.leafend<dim>();
-    
+
     for (; vIt!=vEndIt; ++vIt) {
         if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ ) {
             // Only translation dofs are Dirichlet
@@ -176,9 +176,9 @@ int main (int argc, char *argv[]) try
 
     typedef P1NodalBasis<GridType::LeafGridView,double> P1Basis;
     P1Basis p1Basis(grid.leafView());
-    
+
     BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid.leafView(), neumannNodes);
-    
+
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
     // //////////////////////////
@@ -203,7 +203,7 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     for (int i=0; i<numHomotopySteps; i++) {
-        
+
         double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
         std::cout << "Homotopy step: " << i << ",    parameter: " << homotopyParameter << std::endl;
 
@@ -214,7 +214,7 @@ int main (int argc, char *argv[]) try
 
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
     NeumannFunction neumannFunction(homotopyParameter);
-    
+
     std::cout << "Material parameters:" << std::endl;
     materialParameters.report();
 
@@ -232,7 +232,7 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////
 
     RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
-    solver.setup(grid, 
+    solver.setup(grid,
                  &assembler,
                  x,
                  dirichletNodes,
@@ -245,16 +245,16 @@ int main (int argc, char *argv[]) try
                  baseIterations,
                  baseTolerance,
                  instrumented);
-    
+
         ////////////////////////////////////////////////////////
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
-        
+
         for (vIt=grid.leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
 
             int idx = grid.leafIndexSet().index(*vIt);
             if (dirichletNodes[idx][0] and vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
-            
+
                 // Only the positions have Dirichlet values
                 dirichletValues(vIt->geometry().corner(0), x[idx].r,
                                 homotopyParameter);
@@ -266,7 +266,7 @@ int main (int argc, char *argv[]) try
         // /////////////////////////////////////////////////////
         //   Solve!
         // /////////////////////////////////////////////////////
-    
+
         std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
         //exit(0);
 
@@ -276,11 +276,11 @@ int main (int argc, char *argv[]) try
         x = solver.getSol();
 
     }
-    
+
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
-    
+
     CosseratVTKWriter<GridType>::write(grid,x, resultPath + "cosserat");
 
     // finally: compute the average deformation of the Neumann boundary
@@ -290,9 +290,9 @@ int main (int argc, char *argv[]) try
         if (neumannNodes[i][0])
             averageDef += x[i].r;
     averageDef /= neumannNodes.count();
-    
+
     std::cout << "mu_c = " << parameterSet.get<double>("materialParameters.mu_c") << "  "
-              << "kappa = " << parameterSet.get<double>("materialParameters.kappa") << "  " 
+              << "kappa = " << parameterSet.get<double>("materialParameters.kappa") << "  "
               << numLevels << " levels,  average deflection: " << averageDef << std::endl;
 
     // //////////////////////////////
