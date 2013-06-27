@@ -63,14 +63,14 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
-BlockVector<FieldVector<double,3> >
+BlockVector<typename TargetSpace::CoordinateType>
 computeEmbeddedDifference(const std::vector<TargetSpace>& a, const std::vector<TargetSpace>& b)
 {
     assert(a.size() == b.size());
 
-    BlockVector<FieldVector<double,3> > difference(a.size());
+    BlockVector<typename TargetSpace::CoordinateType> difference(a.size());
 
-    for (int i=0; i<a.size(); i++)
+    for (size_t i=0; i<a.size(); i++)
         difference[i] = a[i].globalCoordinates() - b[i].globalCoordinates();
 
     return difference;
@@ -139,7 +139,7 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid.leafView(), allNodes);
 
     BitSetVector<blocksize> dirichletNodes(grid.size(dim));
-    for (int i=0; i<dirichletNodes.size(); i++)
+    for (size_t i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
     // //////////////////////////
@@ -269,7 +269,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
 
     BlockVector<FieldVector<double,3> > xEmbedded(x.size());
-    for (int i=0; i<x.size(); i++) {
+    for (size_t i=0; i<x.size(); i++) {
 #ifdef UNITVECTOR2
         xEmbedded[i][0] = x[i].globalCoordinates()[0];
         xEmbedded[i][1] = 0;
@@ -329,7 +329,7 @@ int main (int argc, char *argv[]) try
     std::ofstream statisticsFile((resultPath + "trStatistics").c_str());
 
     // Compute error of the initial iterate
-    typedef BlockVector<FieldVector<double,3> > DifferenceType;
+    typedef BlockVector<TargetSpace::CoordinateType> DifferenceType;
     DifferenceType difference = computeEmbeddedDifference(exactSolution, initialIterate);
 
     H1SemiNorm< BlockVector<TargetSpace::CoordinateType> > h1Norm(laplaceMatrix);
@@ -349,7 +349,7 @@ int main (int argc, char *argv[]) try
         FILE* fp = fopen(iSolFilename, "rb");
         if (!fp)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
-        for (int j=0; j<intermediateSolution.size(); j++) {
+        for (size_t j=0; j<intermediateSolution.size(); j++) {
             fread(&intermediateSolution[j], sizeof(TargetSpace), 1, fp);
         }
 
