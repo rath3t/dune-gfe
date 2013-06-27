@@ -139,33 +139,32 @@ int main (int argc, char *argv[]) try
     elements[0] = 10;
     FieldVector<double,dim> upper(1);
     upper[0] = 10;
-    shared_ptr<GridType> gridPtr = StructuredGridFactory<GridType>::createCubeGrid(FieldVector<double,dim>(0),
+    shared_ptr<GridType> grid = StructuredGridFactory<GridType>::createCubeGrid(FieldVector<double,dim>(0),
                                                                                       upper,
                                                                                       elements);
-    GridType& grid = *gridPtr.get();
 
-    grid.globalRefine(numLevels-1);
+    grid->globalRefine(numLevels-1);
 
-    SolutionType x(grid.size(dim));
+    SolutionType x(grid->size(dim));
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    BitSetVector<blocksize> dirichletNodes(grid.size(dim), false);
-    BitSetVector<1> neumannNodes(grid.size(dim), false);
+    BitSetVector<blocksize> dirichletNodes(grid->size(dim), false);
+    BitSetVector<1> neumannNodes(grid->size(dim), false);
 
-    GridType::Codim<dim>::LeafIterator vIt    = grid.leafbegin<dim>();
-    GridType::Codim<dim>::LeafIterator vEndIt = grid.leafend<dim>();
+    GridType::Codim<dim>::LeafIterator vIt    = grid->leafbegin<dim>();
+    GridType::Codim<dim>::LeafIterator vEndIt = grid->leafend<dim>();
 
     for (; vIt!=vEndIt; ++vIt) {
         if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ ) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
-                dirichletNodes[grid.leafIndexSet().index(*vIt)][j] = true;
+                dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
         }
         if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 ) {
-            neumannNodes[grid.leafIndexSet().index(*vIt)][0] = true;
+            neumannNodes[grid->leafIndexSet().index(*vIt)][0] = true;
         }
 
     }
@@ -175,9 +174,9 @@ int main (int argc, char *argv[]) try
     //////////////////////////////////////////////////////////////////////////////
 
     typedef P1NodalBasis<GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid.leafView());
+    P1Basis p1Basis(grid->leafView());
 
-    BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid.leafView(), neumannNodes);
+    BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid->leafView(), neumannNodes);
 
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
@@ -185,10 +184,10 @@ int main (int argc, char *argv[]) try
     //   Initial solution
     // //////////////////////////
 
-    vIt    = grid.leafbegin<dim>();
+    vIt    = grid->leafbegin<dim>();
 
     for (; vIt!=vEndIt; ++vIt) {
-        int idx = grid.leafIndexSet().index(*vIt);
+        int idx = grid->leafIndexSet().index(*vIt);
 
         x[idx].r = 0;
         for (int i=0; i<dim; i++)
@@ -224,7 +223,7 @@ int main (int argc, char *argv[]) try
                                                                  &neumannBoundary,
                                                                  &neumannFunction);
 
-    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid.leafView(),
+    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafView(),
                                                                       &cosseratEnergyLocalStiffness);
 
     // /////////////////////////////////////////////////
@@ -232,7 +231,7 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////
 
     RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
-    solver.setup(grid,
+    solver.setup(*grid,
                  &assembler,
                  x,
                  dirichletNodes,
@@ -250,9 +249,9 @@ int main (int argc, char *argv[]) try
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
 
-        for (vIt=grid.leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
+        for (vIt=grid->leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
 
-            int idx = grid.leafIndexSet().index(*vIt);
+            int idx = grid->leafIndexSet().index(*vIt);
             if (dirichletNodes[idx][0] and vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
 
                 // Only the positions have Dirichlet values
@@ -281,7 +280,7 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 
-    CosseratVTKWriter<GridType>::write(grid,x, resultPath + "cosserat");
+    CosseratVTKWriter<GridType>::write(*grid,x, resultPath + "cosserat");
 
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
