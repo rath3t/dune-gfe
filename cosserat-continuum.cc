@@ -13,8 +13,6 @@
 #include <dune/grid/geometrygrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
-#include <dune/grid/io/file/amirameshreader.hh>
-#include <dune/grid/io/file/amirameshwriter.hh>
 #include <dune/grid/io/file/gmshreader.hh>
 
 #include <dune/fufem/boundarypatch.hh>
