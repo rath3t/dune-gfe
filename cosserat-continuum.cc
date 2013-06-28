@@ -94,7 +94,6 @@ struct NeumannFunction
     void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
         out = 0;
         out.axpy(homotopyParameter_, values_);
-        out[2] = -40*homotopyParameter_;
     }
 
     FieldVector<double,3> values_;
