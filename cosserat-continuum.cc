@@ -190,7 +190,7 @@ int main (int argc, char *argv[]) try
             for (int j=0; j<3; j++)
                 dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
         }
-        if (vIt->geometry().corner(0)[0] < -239 )
+        if (vIt->geometry().corner(0)[1] < -239 )
             neumannNodes[grid->leafIndexSet().index(*vIt)][0] = true;
 #endif
     }
