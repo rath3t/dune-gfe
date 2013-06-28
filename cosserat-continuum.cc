@@ -162,15 +162,23 @@ int main (int argc, char *argv[]) try
     GridType::Codim<dim>::LeafIterator vEndIt = grid->leafend<dim>();
 
     for (; vIt!=vEndIt; ++vIt) {
+
+#if 1   // Boundary conditions for the cantilever example
         if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ ) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
                 dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
         }
-        if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 ) {
+        if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
             neumannNodes[grid->leafIndexSet().index(*vIt)][0] = true;
+#endif
+#if 0   // Boundary conditions for the twisted-strip example
+        if (vIt->geometry().corner(0)[0] < lower[0]+1e-3  or vIt->geometry().corner(0)[0] > upper[0]-1e-3 ) {
+            // Only translation dofs are Dirichlet
+            for (int j=0; j<3; j++)
+                dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
         }
-
+#endif
     }
 
     //////////////////////////////////////////////////////////////////////////////
