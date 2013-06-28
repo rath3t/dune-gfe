@@ -145,7 +145,7 @@ int main (int argc, char *argv[]) try
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
     } else
-        grid = shared_ptr<GridType>(GmshReader<GridType>::read(gridFile));
+        grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
 
     grid->globalRefine(numLevels-1);
 
