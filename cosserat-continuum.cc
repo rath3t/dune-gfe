@@ -81,18 +81,23 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
 }
 
 
+/** \brief A constant vector-valued function, for simple Neumann boundary values */
 struct NeumannFunction
     : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
 {
-    NeumannFunction(double homotopyParameter)
-    : homotopyParameter_(homotopyParameter)
+    NeumannFunction(const FieldVector<double,3> values,
+                    double homotopyParameter)
+    : values_(values),
+      homotopyParameter_(homotopyParameter)
     {}
 
     void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
         out = 0;
+        out.axpy(homotopyParameter_, values_);
         out[2] = -40*homotopyParameter_;
     }
 
+    FieldVector<double,3> values_;
     double homotopyParameter_;
 };
 
@@ -236,7 +241,8 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
 
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    NeumannFunction neumannFunction(homotopyParameter);
+    NeumannFunction neumannFunction(parameterSet.get<FieldVector<double,3> >("neumannValues"),
+                                    homotopyParameter);
 
     std::cout << "Material parameters:" << std::endl;
     materialParameters.report();
