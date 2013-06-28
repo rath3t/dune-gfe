@@ -68,6 +68,11 @@ kappa = 1
 
 []
 
+structuredGrid = true
+lower = 0 0
+upper = 10 1
+elements = 10 1
+
 # 2d problem
 #path = /home/haile/sander/data/richards/twosquares/
 #gridFile = twosquares0.grid
