@@ -1,6 +1,8 @@
 #ifndef LOCAL_GEODESIC_FE_STIFFNESS_HH
 #define LOCAL_GEODESIC_FE_STIFFNESS_HH
 
+#include "omp.h"
+
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
@@ -139,6 +141,8 @@ assembleHessian(const Entity& element,
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
     std::vector<Dune::array<double,blocksize> > forwardEnergy(nDofs);
     std::vector<Dune::array<double,blocksize> > backwardEnergy(nDofs);
+
+    #pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
             Dune::FieldVector<double,embeddedBlocksize> epsXi = B[i][i2];
@@ -158,18 +162,19 @@ assembleHessian(const Entity& element,
         }
         
     }
-    
+
     // finite-difference approximation
-    std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
-    std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
-            
     // we loop over the lower left triangular half of the matrix.
     // The other half follows from symmetry
+    #pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
             for (size_t j=0; j<=i; j++) {
                 for (size_t j2=0; j2<((i==j) ? i2+1 : blocksize); j2++) {
 
+                    std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
+                    std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
+            
                     Dune::FieldVector<double,embeddedBlocksize> epsXi  = B[i][i2];    epsXi *= eps;
                     Dune::FieldVector<double,embeddedBlocksize> epsEta = B[j][j2];   epsEta *= eps;
             
@@ -195,17 +200,10 @@ assembleHessian(const Entity& element,
             
                     A_[i][j][i2][j2] = A_[j][i][j2][i2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
                     
-                    // Restore the forwardSolutionXiEta and backwardSolutionXiEta variables.
-                    // They will both be identical to the 'solution' array again.
-                    forwardSolutionXiEta[i] = backwardSolutionXiEta[i] = localSolution[i];
-                    if (i!=j)
-                        forwardSolutionXiEta[j] = backwardSolutionXiEta[j] = localSolution[j];
-
                 }
             }
         }
     }
-        
 }
 
 #endif
