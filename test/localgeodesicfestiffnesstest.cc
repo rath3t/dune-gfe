@@ -7,6 +7,8 @@
 
 #include <dune/geometry/type.hh>
 
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/localgeodesicfestiffness.hh>
@@ -29,9 +31,9 @@ typedef OneDGrid GridType;
 
 
 /** \brief A special energy functional of which I happen to be able to compute the Hessian */
-template<class GridView, class TargetSpace>
+template<class GridView, class LocalFiniteElement, class TargetSpace>
 class TestEnergyLocalStiffness 
-    : public LocalGeodesicFEStiffness<GridView,TargetSpace>
+    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,TargetSpace>
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
@@ -44,17 +46,19 @@ class TestEnergyLocalStiffness
 public:
     
     //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::size };
+    enum { blocksize = TargetSpace::TangentVector::dimension };
 
     /** \brief Assemble the energy for a single element */
     RT energy (const Entity& e,
+               const LocalFiniteElement& localFiniteElement,
                const std::vector<TargetSpace>& localSolution) const;
                
 };
 
-template <class GridView, class TargetSpace>
-typename TestEnergyLocalStiffness<GridView, TargetSpace>::RT TestEnergyLocalStiffness<GridView, TargetSpace>::
+template <class GridView, class LocalFiniteElement, class TargetSpace>
+typename TestEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::RT TestEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::
 energy(const Entity& element,
+       const LocalFiniteElement& localFiniteElement,
        const std::vector<TargetSpace>& localSolution) const
 {
     return TargetSpace::distance(localSolution[0], localSolution[1]) 
@@ -101,8 +105,8 @@ void testHessian()
 {
     const GridType* grid = makeTestGrid<domainDim>();
 
-    const int spaceDim = TargetSpace::TangentVector::size;
-    const int embeddedSpaceDim = TargetSpace::EmbeddedTangentVector::size;
+    const int spaceDim = TargetSpace::TangentVector::dimension;
+    const int embeddedSpaceDim = TargetSpace::EmbeddedTangentVector::dimension;
     
     // //////////////////////////////////////////////////////////
     //  Test whether the energy is invariant under isometries
@@ -113,7 +117,9 @@ void testHessian()
     
     int nTestPoints = testPoints.size();
     
-    TestEnergyLocalStiffness<typename GridType::LeafGridView, TargetSpace> assembler;
+    typedef P1NodalBasis<GridType::LeafGridView,double> P1Basis;
+    P1Basis p1Basis(grid->leafView());
+    TestEnergyLocalStiffness<typename GridType::LeafGridView, P1Basis::LocalFiniteElement, TargetSpace> assembler;
 
     // Set up elements of S^2
     std::vector<TargetSpace> coefficients(domainDim+1);
@@ -132,7 +138,9 @@ void testHessian()
         for (int j=0; j<domainDim+1; j++)
             std::cout << coefficients[j] << std::endl;
         
-        assembler.assembleHessian(*grid->template leafbegin<0>(), coefficients);
+        assembler.assembleHessian(*grid->template leafbegin<0>(), 
+                                  p1Basis.getLocalFiniteElement(*grid->template leafbegin<0>()),
+                                  coefficients);
         
         Matrix<FieldMatrix<double,spaceDim,spaceDim> > fdHessian = assembler.A_;
         
@@ -197,6 +205,6 @@ void testHessian()
 
 int main(int argc, char** argv)
 {
-    testHessian<RealTuple<1>, 1>();
-    testHessian<UnitVector<3>, 1>();
+    testHessian<RealTuple<double,1>, 1>();
+    testHessian<UnitVector<double,3>, 1>();
 }
