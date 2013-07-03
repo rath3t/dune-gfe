@@ -16,6 +16,8 @@
 
 #define DONT_USE_CURL
 
+//#define QUADRATIC_MEMBRANE_ENERGY
+
 
 template<class GridView, class LocalFiniteElement, int dim>
 class CosseratEnergyLocalStiffness 
@@ -525,8 +527,12 @@ energy(const Entity& element,
         
         // Add the local energy density
         if (gridDim==2) {
+#ifdef QUADRATIC_MEMBRANE_ENERGY
             //energy += weight * thickness_ * quadraticMembraneEnergy(U);
             energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
+#else
+            energy += weight * thickness_ * nonquadraticMembraneEnergy(U);
+#endif
             energy += weight * thickness_ * curvatureEnergy(DR);
             energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
         } else if (gridDim==3) {
@@ -953,7 +959,11 @@ assembleGradient(const Entity& element,
             // Add the local energy density
             if (gridDim==2) {
                 typename TargetSpace::EmbeddedTangentVector tmp(0);
+#ifdef QUADRATIC_MEMBRANE_ENERGY
                 longQuadraticMembraneEnergyGradient(tmp,R,dR_dv,derivative,derOfGradientWRTCoefficient,U);
+#else
+                nonquadraticMembraneEnergyGradient(tmp,R,dR_dv,derivative,derOfGradientWRTCoefficient,U);
+#endif
                 embeddedLocalGradient[i].axpy(weight * thickness_, tmp);
                 
                 tmp = 0;
