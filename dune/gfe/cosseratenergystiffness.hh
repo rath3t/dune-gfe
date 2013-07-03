@@ -646,8 +646,8 @@ nonquadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& 
     for (size_t v_i=0; v_i<7; v_i++)
         for (size_t i=0; i<3; i++)
             for (size_t j=0; j<3; j++)
-                embeddedLocalGradient[v_i] += 2 * (detU - 1 - (1.0/detU -1)/(detU*detU)) * adjU[j][i] * dU_dv[i][j][v_i];
-
+                embeddedLocalGradient[v_i] += mu_*lambda_/(2*mu_+lambda_) * (detU - 1 - (1.0/detU -1)/(detU*detU)) * adjU[j][i] * dU_dv[i][j][v_i];
+            
 }
 
 
