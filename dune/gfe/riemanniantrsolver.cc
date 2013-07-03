@@ -1,3 +1,5 @@
+#include "omp.h"
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/timer.hh>
 
@@ -237,16 +239,22 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         Dune::Timer gradientTimer;
         
         if (recomputeGradientHessian) {
+            
+            double oldClock = omp_get_wtime();
+
             assembler_->assembleGradient(x_, rhs);
             rhs *= -1;        // The right hand side is the _negative_ gradient
             std::cout << "gradient assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+            std::cout << "gradient assembly took " << (omp_get_wtime() - oldClock) << " sec." << std::endl;
             gradientTimer.reset();
+            oldClock = omp_get_wtime();
         
             assembler_->assembleMatrix(x_, 
                                        *hessianMatrix_, 
                                        i==0    // assemble occupation pattern only for the first call
                                        );
             std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+            std::cout << "hessian assembly took " << (omp_get_wtime() - oldClock) << " sec." << std::endl;
             recomputeGradientHessian = false;
         }
         
