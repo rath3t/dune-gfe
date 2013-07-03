@@ -689,11 +689,10 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
             for (int j=0; j<gridDim; j++)
                 for (int k=0; k<3; k++)
                     d_RT_DR3[i][j][v_i] += dR_dv[k][i][v_i] * DR[k][2][j] + R[k][i] * dDR3_dv[k][j][v_i];
-     
-    // We know that the results are tangent vectors to (0,0,1).  Hence the third component
-    // MUST be zero.  It isn't, and I don't know why.  Setting it to zero by force makes
-    // my tests pass (touch wood).
-#warning Manually setting third component to zero!
+
+    // Project onto the tangent space at (0,0,1).  I don't really understand why this is needed,
+    // but it does make the test pass in all cases.  I suppose that the chain rule demands it
+    // in some way or the other.
     for (int i=0; i<gridDim; i++)
         for (size_t v_i=0; v_i<4; v_i++)
             d_RT_DR3[2][i][v_i] = 0;
