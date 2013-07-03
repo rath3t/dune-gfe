@@ -314,7 +314,7 @@ public:
     static void get(std::vector<HyperbolicHalfspacePoint<double,2> >& values) {
      
         int nTestPoints = 10;
-        double testPoints[10][2] = {{1,0.01}, {0,0.01}, {-0.838114,0.412667},
+        double testPoints[10][2] = {{0,2}, {0,1}, {0,0.5},
                                     {-0.490946,0.81551},{-0.944506,0.304319},
                                     {-0.6,0.2},{0.45,0.517},
                                     {-0.1,0.1},{-0.444506,0.104319},{-0.7,0.304319}};
