@@ -392,7 +392,8 @@ public:
                 
                     } else if (i==N-1 and j==N-1 and k==N-1) {
                     
-                        dFdqdqdq[i][j][k] = (-1 -6*p[N-1] + 4*q[N-1] -3*diffNormSquared)/(p[N-1]*Dune::Power<3>::eval(q[N-1])); 
+                        dFdqdqdq[i][j][k] = -2/Dune::Power<3>::eval(q[N-1]) - 1/(p[N-1]*q[N-1]*q[N-1]) - 4*(p[N-1]-q[N-1])/(p[N-1]*Dune::Power<3>::eval(q[N-1]))
+                                            - 3*diffNormSquared / (p[N-1]*Dune::Power<4>::eval(q[N-1]));
                 
                     }
                     
@@ -471,18 +472,18 @@ public:
                     
                     } else if (i==N-1 and j!=N-1 and k==N-1) {
                     
-                        dFdpdqdq[i][j][k] = 2*(p[j] - q[j]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                        dFdpdqdq[i][j][k] = -(p[j] - q[j]) / (p[N-1]*p[N-1]*Dune::Power<2>::eval(q[N-1]));
                     
                     } else if (i==N-1 and j==N-1 and k!=N-1) {
                     
-                        dFdpdqdq[i][j][k] = 2*(p[k] - q[k]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                        dFdpdqdq[i][j][k] = -(p[k] - q[k]) / (p[N-1]*p[N-1]*Dune::Power<2>::eval(q[N-1]));
                 
                     } else if (i==N-1 and j==N-1 and k==N-1) {
                     
-                        dFdpdqdq[i][j][k] = 1.0/(p[N-1]*p[N-1]*q[N-1]*q[N-1]) + 1.0/(p[N-1]*q[N-1]*q[N-1])
+                        dFdpdqdq[i][j][k] = 1.0/(p[N-1]*q[N-1]*q[N-1])
                                           + 2*(p[N-1]-q[N-1])/(p[N-1]*Dune::Power<3>::eval(q[N-1]))
-                                          + 2*(p[N-1]-q[N-1])/(p[N-1]*p[N-1]*q[N-1])
-                                          - diffNormSquared / (p[N-1]*p[N-1]*q[N-1]*q[N-1]);
+                                          -   (p[N-1]-q[N-1])/(p[N-1]*p[N-1]*q[N-1]*q[N-1])
+                                          - diffNormSquared / (p[N-1]*p[N-1]*Dune::Power<3>::eval(q[N-1]));
                 
                     }
                     
