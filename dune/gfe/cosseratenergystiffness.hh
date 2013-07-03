@@ -77,6 +77,30 @@ class CosseratEnergyLocalStiffness
         return result;
     }
 
+    /** \brief Return the adjugate of the strain matrix U
+     * 
+     * Optimized for U, as we know a bit about its structure
+     */
+    static Dune::FieldMatrix<double,dim,dim> adjugateU(const Dune::FieldMatrix<double,dim,dim>& U)
+    {
+        Dune::FieldMatrix<double,dim,dim> result;
+        
+        result[0][0] =  U[1][1];
+        result[0][1] = -U[0][1];
+        result[0][2] =  0;
+
+        result[1][0] = -U[1][0];
+        result[1][1] =  U[0][0];
+        result[1][2] =  0;
+
+        result[2][0] =   U[1][0]*U[2][1] - U[2][0]*U[1][1];
+        result[2][1] = - U[0][0]*U[2][1] + U[2][0]*U[0][1];
+        result[2][2] =   U[0][0]*U[1][1] - U[1][0]*U[0][1];
+
+        return result;
+    }
+    
+    
 public:  // for testing
     /** \brief Compute the derivative of the rotation (with respect to x), but wrt matrix coordinates
         \param value Value of the gfe function at a certain point
@@ -321,6 +345,20 @@ public:
         
         return result;
     }
+    
+    /** \brief Energy for large-deformation problems (private communication by Patrizio Neff)
+     */
+    RT nonquadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
+    {
+        Dune::FieldMatrix<double,3,3> UMinus1 = U;
+        for (int i=0; i<dim; i++)
+            UMinus1[i][i] -= 1;
+       
+        RT detU = U.determinant();
+        
+        return mu_ * sym(UMinus1).frobenius_norm2()
+                + (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
+    }
 
     RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
     {
@@ -353,6 +391,13 @@ public:
     //  Methods to compute the energy gradient
     ///////////////////////////////////////////////////////////////////////////////////////
     void longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& localGradient,
+                                    const Dune::FieldMatrix<double,3,3>& R,
+                                    const Tensor3<double,3,3,4>& dR_dv,
+                                    const Dune::FieldMatrix<double,7,gridDim>& derivative,
+                                    const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
+                                    const Dune::FieldMatrix<double,3,3>& U) const;
+
+    void nonquadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& localGradient,
                                     const Dune::FieldMatrix<double,3,3>& R,
                                     const Tensor3<double,3,3,4>& dR_dv,
                                     const Dune::FieldMatrix<double,7,gridDim>& derivative,
@@ -534,6 +579,71 @@ energy(const Entity& element,
     
     return energy;
 }
+
+template <class GridView, class LocalFiniteElement, int dim>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+nonquadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
+                                    const Dune::FieldMatrix<double,3,3>& R,
+                                    const Tensor3<double,3,3,4>& dR_dv,
+                                    const Dune::FieldMatrix<double,7,gridDim>& derivative,
+                                    const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
+                                    const Dune::FieldMatrix<double,3,3>& U
+                                   ) const
+{
+    // Compute partial/partial v ((R_1|R_2)^T\nablam)
+    Tensor3<double,3,3,7> dU_dv(0);
+        
+    for (size_t i=0; i<3; i++) {
+
+        for (size_t j=0; j<2; j++) {
+                
+            for (size_t k=0; k<3; k++) {
+                
+                // Translational dofs of the coefficient
+                for (size_t v_i=0; v_i<3; v_i++)
+                    dU_dv[i][j][v_i] += R[k][i] * derOfGradientWRTCoefficient[k][v_i][j];
+                
+                // Rotational dofs of the coefficient
+                for (size_t v_i=0; v_i<4; v_i++)
+                    dU_dv[i][j][v_i+3] += dR_dv[k][i][v_i] * derivative[k][j];
+                    
+            }
+        
+        }
+        
+        dU_dv[i][2] = 0;
+        
+    }
+    
+    
+    ////////////////////////////////////////////////////////////////////////////////////
+    //  Quadratic part
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    for (size_t v_i=0; v_i<7; v_i++) {
+     
+        for (size_t i=0; i<3; i++)
+            for (size_t j=0; j<3; j++) {
+                double symUMinusI = 0.5*U[i][j] + 0.5*U[j][i] - (i==j);
+                embeddedLocalGradient[v_i] += mu_ * symUMinusI * (dU_dv[i][j][v_i] + dU_dv[j][i][v_i]);
+            }
+
+    }
+
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    //  Nonlinear part
+    /////////////////////////////////////////////////////////////////////////////////////
+    RT detU = U.determinant();  // todo: use structure of U
+    Dune::FieldMatrix<RT,3,3> adjU = adjugateU(U);  // the transpose of the derivative of detU
+    
+    for (size_t v_i=0; v_i<7; v_i++)
+        for (size_t i=0; i<3; i++)
+            for (size_t j=0; j<3; j++)
+                embeddedLocalGradient[v_i] += 2 * (detU - 1 - (1.0/detU -1)/(detU*detU)) * adjU[j][i] * dU_dv[i][j][v_i];
+
+}
+
 
 template <class GridView, class LocalFiniteElement, int dim>
 void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
