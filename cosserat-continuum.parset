@@ -41,24 +41,51 @@ instrumented = 0
 #   Problem specifications
 ############################
 
+
+# Parameters for the twisted 10x1 strip
+#[materialParameters]
+#
+## shell thickness
+#thickness = 0.05
+#
+## Lame parameters
+## corresponds to E = 1e6, nu=0.3
+#mu = 3.8462e+05
+#lambda = 2.7149e+05
+#
+## Cosserat couple modulus
+#mu_c = 0
+##mu_c = 3.8462e+05
+#
+## Length scale parameter
+#L_c = 0.1
+#
+## Curvature exponent
+#q = 2
+#
+## Shear correction factor
+#kappa = 1
+#
+#[]
+
+
+# For the Wriggers L-shape example
 [materialParameters]
 
 # shell thickness
-thickness = 0.05
+thickness = 0.6
 
 # Lame parameters
-# corresponds to E = 1e6, nu=0.3
-mu = 3.8462e+05
-lambda = 2.7149e+05
-#mu = 1
-#lambda = 1
+# corresponds to E = 71240 N/mm^2, nu=0.31
+mu = 2.7191e+04
+lambda = 4.4364e+04
 
 # Cosserat couple modulus
 mu_c = 0
-#mu_c = 3.8462e+05
+#mu_c = 2.7191e+04
 
 # Length scale parameter
-L_c = 0.1
+L_c = 10
 
 # Curvature exponent
 q = 2
@@ -68,15 +95,16 @@ kappa = 1
 
 []
 
-structuredGrid = true
+###  Neumann values, if needed
+neumannValues =  -1e3 0 0
+
+
+
+structuredGrid = false
 lower = 0 0
 upper = 10 1
 elements = 10 1
 
-# 2d problem
-#path = /home/haile/sander/data/richards/twosquares/
-#gridFile = twosquares0.grid
-
-# 3d problem
-path = /home/haile/sander/data/contact/tetracubes/
-gridFile = tetracube0.grid
+# Wriggers L-shape
+path = /home/sander/data/shells/wriggers_L_shape/
+gridFile = wriggers-L-shape.msh
