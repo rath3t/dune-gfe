@@ -36,7 +36,7 @@ setup(const GridType& grid,
          double initialTrustRegionRadius,
          int multigridIterations,
          double mgTolerance,
-         int mu, 
+         int mu,
          int nu1,
          int nu2,
          int baseIterations,
@@ -78,7 +78,7 @@ setup(const GridType& grid,
                                                                             baseEnergyNorm,
                                                                             Solver::QUIET);
 #endif
-    
+
     // Make pre and postsmoothers
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
     TrustRegionGSStep<MatrixType, CorrectionType>* postsmoother = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -125,16 +125,16 @@ setup(const GridType& grid,
     // ////////////////////////////////////////////////////////////
     //    Create Hessian matrix and its occupation structure
     // ////////////////////////////////////////////////////////////
-    
+
     hessianMatrix_ = std::auto_ptr<MatrixType>(new MatrixType);
     Dune::MatrixIndexSet indices(grid_->size(1), grid_->size(1));
     assembler_->getNeighborsPerVertex(indices);
     indices.exportIdx(*hessianMatrix_);
-    
+
     // //////////////////////////////////////////////////////////
     //   Create obstacles
     // //////////////////////////////////////////////////////////
-    
+
     hasObstacle_.resize(numLevels);
 #if defined THIRD_ORDER || defined SECOND_ORDER
     BasisType basis(grid_->leafView());
@@ -152,17 +152,17 @@ setup(const GridType& grid,
     // ////////////////////////////////////
     for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
-    
+
     mmgStep->mgTransfer_.resize(numLevels-1);
-    
+
 #if defined THIRD_ORDER || defined SECOND_ORDER
     if (numLevels>1) {
         P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafView());
-    
+
         PKtoP1MGTransfer<CorrectionType>* topTransferOp = new PKtoP1MGTransfer<CorrectionType>;
         topTransferOp->setup(basis,p1Basis);
         mmgStep->mgTransfer_.back() = topTransferOp;
-    
+
         for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++){
             TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
             newTransferOp->setup(*grid_,i+1,i+2);
@@ -189,12 +189,12 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     // if the inner solver is a monotone multigrid set up a max-norm trust-region
     if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
         mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())->iterationStep_);
-    
-    }    
+
+    }
 
     MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
 
-    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep) 
+    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep)
                                                                                          ? mgStep->numLevels()
                                                                                          : 0);
 
@@ -207,27 +207,27 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         fp = fopen("statistics", "w");
         if (!fp)
             DUNE_THROW(Dune::IOError, "Couldn't open statistics file for writing!");
-    
+
     }
 
     // /////////////////////////////////////////////////////
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
-    
+
     double oldEnergy = assembler_->computeEnergy(x_);
     bool recomputeGradientHessian = true;
     CorrectionType rhs;
-    
+
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
 /*        std::cout << "current iterate:\n";
         for (int j=0; j<x_.size(); j++)
             std::cout << x_[j] << std::endl;*/
-    
+
         Dune::Timer totalTimer;
         if (this->verbosity_ == Solver::FULL) {
             std::cout << "----------------------------------------------------" << std::endl;
-            std::cout << "      Trust-Region Step Number: " << i 
+            std::cout << "      Trust-Region Step Number: " << i
                       << ",     radius: " << trustRegion.radius()
                       << ",     energy: " << assembler_->computeEnergy(x_) << std::endl;
             std::cout << "----------------------------------------------------" << std::endl;
@@ -237,9 +237,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         corr = 0;
 
         Dune::Timer gradientTimer;
-        
+
         if (recomputeGradientHessian) {
-            
+
             double oldClock = omp_get_wtime();
 
             assembler_->assembleGradient(x_, rhs);
@@ -248,33 +248,33 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             std::cout << "gradient assembly took " << (omp_get_wtime() - oldClock) << " sec." << std::endl;
             gradientTimer.reset();
             oldClock = omp_get_wtime();
-        
-            assembler_->assembleMatrix(x_, 
-                                       *hessianMatrix_, 
+
+            assembler_->assembleMatrix(x_,
+                                       *hessianMatrix_,
                                        i==0    // assemble occupation pattern only for the first call
                                        );
             std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             std::cout << "hessian assembly took " << (omp_get_wtime() - oldClock) << " sec." << std::endl;
             recomputeGradientHessian = false;
         }
-        
+
 /*        std::cout << "rhs:\n" << rhs << std::endl;
         std::cout << "matrix[0][0]:\n" << (*hessianMatrix_)[0][0] << std::endl;*/
-        
+
         // //////////////////////////////////////////////////////////////////////
         //   Modify matrix and right-hand side to account for Dirichlet values
         // //////////////////////////////////////////////////////////////////////
 
         typedef typename MatrixType::row_type::Iterator ColumnIterator;
-  
+
         for (size_t j=0; j<ignoreNodes_->size(); j++) {
-            
+
             if (ignoreNodes_->operator[](j).count() > 0) {
-                
+
                 // make matrix row an identity row
                 ColumnIterator cIt    = (*hessianMatrix_)[j].begin();
                 ColumnIterator cEndIt = (*hessianMatrix_)[j].end();
-                
+
                 for (; cIt!=cEndIt; ++cIt) {
                     for (int k=0; k<blocksize; k++) {
                         if (ignoreNodes_->operator[](j)[k]) {
@@ -294,18 +294,18 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         }
 
         mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
-        
+
         trustRegionObstacles.back() = trustRegion.obstacles();
         mgStep->obstacles_ = &trustRegionObstacles;
 
         innerSolver_->preprocess();
-        
+
         // /////////////////////////////
         //    Solve !
         // /////////////////////////////
-        
+
         innerSolver_->solve();
-        
+
         if (mgStep)
             corr = mgStep->getSol();
 
@@ -315,44 +315,44 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
             fprintf(fp, "Trust-region step: %d, trust-region radius: %g\n",
                     i, trustRegion.radius());
-                    
+
             // ///////////////////////////////////////////////////////////////
             //   Compute and measure progress against the exact solution
             //   for each trust region step
             // ///////////////////////////////////////////////////////////////
-    
+
             CorrectionType exactSolution = corr;
 
             // Start from 0
             double oldError = 0;
             double totalConvRate = 1;
             double convRate = 1;
-    
+
             // Write statistics of the initial solution
             // Compute the energy norm
             oldError = h1SemiNorm_->operator()(exactSolution);
-    
+
             for (int j=0; j<innerIterations_; j++) {
-        
+
                 // read iteration from file
                 CorrectionType intermediateSol(grid_->size(gridDim));
                 intermediateSol = 0;
                 char iSolFilename[100];
                 sprintf(iSolFilename, "tmp/mgHistory/intermediatesolution_%04d", j);
-                
+
                 FILE* fpInt = fopen(iSolFilename, "rb");
                 if (!fpInt)
                     DUNE_THROW(Dune::IOError, "Couldn't open intermediate solution");
                 for (size_t k=0; k<intermediateSol.size(); k++)
                     for (int l=0; l<blocksize; l++)
                         fread(&intermediateSol[k][l], sizeof(double), 1, fpInt);
-                
+
                 fclose(fpInt);
                 //std::cout << "intermediateSol\n" << intermediateSol << std::endl;
 
                 // Compute errors
                 intermediateSol -= exactSolution;
-      
+
                 //std::cout << "error\n" << intermediateSol << std::endl;
 
                 // Compute the H1 norm
@@ -360,23 +360,23 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
                 convRate = error / oldError;
                 totalConvRate *= convRate;
-                
+
                 if (error < 1e-12)
                     break;
-                
+
                 std::cout << "Iteration: " << j << "  ";
                 std::cout << "Errors:  error " << error << ", convergence rate: " << convRate
                           << ",  total conv rate " << pow(totalConvRate, 1/((double)j+1)) << std::endl;
-                
+
 
                 fprintf(fp, "%d %g %g %g\n", j+1, error, convRate, pow(totalConvRate, 1/((double)j+1)));
-                
-                
+
+
                 oldError = error;
-                
+
             }
-            
-            
+
+
         }
 
         if (this->verbosity_ == NumProc::FULL)
@@ -390,14 +390,14 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
             break;
         }
-        
+
         // ////////////////////////////////////////////////////
         //   Check whether trust-region step can be accepted
         // ////////////////////////////////////////////////////
-        
+
         SolutionType newIterate = x_;
 #if 0   // out-commented until the Rotation class can distinguish skew-symmetric matrices from three-vectors
-        for (int j=0; j<newIterate.size(); j++) 
+        for (int j=0; j<newIterate.size(); j++)
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 #else
         //std::cout << "embedded correction:\n";
@@ -410,9 +410,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             //std::cout << embeddedCorr << "    " << newIterate[j] << std::endl;
         }
 #endif
-        
-        double energy    = assembler_->computeEnergy(newIterate); 
-        
+
+        double energy    = assembler_->computeEnergy(newIterate);
+
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
         // Note that rhs = -g
@@ -424,14 +424,14 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
 
         if (this->verbosity_ == NumProc::FULL) {
-            std::cout << "Absolute model decrease: " << modelDecrease 
+            std::cout << "Absolute model decrease: " << modelDecrease
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
             std::cout << "Relative model decrease: " << relativeModelDecrease
                       << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
-        }            
+        }
 
         assert(modelDecrease >= 0);
-        
+
         if (energy >= oldEnergy) {
             if (this->verbosity_ == NumProc::FULL)
                 printf("Richtung ist keine Abstiegsrichtung!\n");
@@ -454,36 +454,36 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         // //////////////////////////////////////////////
         if ( (oldEnergy-energy) / modelDecrease > 0.9) {
             // very successful iteration
-            
+
             x_ = newIterate;
             trustRegion.scale(2);
-        
+
             // current energy becomes 'oldEnergy' for the next iteration
             oldEnergy = energy;
-            
+
             recomputeGradientHessian = true;
-            
+
         } else if ( (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
             x_ = newIterate;
-            
+
             // current energy becomes 'oldEnergy' for the next iteration
             oldEnergy = energy;
-        
+
             recomputeGradientHessian = true;
-            
+
         } else {
-            
+
             // unsuccessful iteration
 
             // Decrease the trust-region radius
             trustRegion.scale(0.5);
-            
+
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
-        
+
         // /////////////////////////////////////////////////////////////////////
         //   Write the iterate to disk for later convergence rate measurement
         // /////////////////////////////////////////////////////////////////////
@@ -496,7 +496,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             FILE* fpIterate = fopen(iFilename, "wb");
             if (!fpIterate)
                 DUNE_THROW(SolverError, "Couldn't open file " << iFilename << " for writing");
-            
+
             for (size_t j=0; j<x_.size(); j++)
                 fwrite(&x_[j], sizeof(TargetSpace), 1, fpIterate);
 
