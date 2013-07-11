@@ -232,7 +232,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
     std::vector<Dune::FieldMatrix<ctype,1,dim> > BNested(coefficients_.size());
     localFiniteElement_.localBasis().evaluateJacobian(local, BNested);
-    Dune::Matrix<Dune::FieldMatrix<double,1,1> > B(coefficients_.size(), dim);
+    Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > B(coefficients_.size(), dim);
     for (size_t i=0; i<coefficients_.size(); i++)
         for (size_t j=0; j<dim; j++)
             B[i][j] = BNested[i][0][j];
