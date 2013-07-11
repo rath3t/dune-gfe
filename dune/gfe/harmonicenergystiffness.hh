@@ -63,7 +63,7 @@ energy(const Entity& element,
                                                                                                       localSolution);
 
     int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
-                                                 : (localFiniteElement.localBasis().order()-1) * 2 * gridDim;
+                                                 : localFiniteElement.localBasis().order() * 2 * gridDim;
 
 
 
