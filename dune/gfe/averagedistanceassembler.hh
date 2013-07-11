@@ -21,7 +21,7 @@ public:
     {}
 
     /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
-     * 
+     *
      * The weights are given as a vector of length-1 FieldVectors instead of as a
      * vector of doubles.  The reason is that these weights are actually the values
      * of Lagrange shape functions, and the dune-localfunction interface returns
@@ -52,7 +52,7 @@ public:
     {
         gradient = 0;
         for (size_t i=0; i<coefficients_.size(); i++)
-            gradient.axpy(weights_[i], 
+            gradient.axpy(weights_[i],
                           TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
     }
 
@@ -61,7 +61,7 @@ public:
     {
         typename TargetSpace::EmbeddedTangentVector embeddedGradient;
         assembleEmbeddedGradient(x,embeddedGradient);
-        
+
         Dune::FieldMatrix<double,size,embeddedSize> orthonormalFrame = x.orthonormalFrame();
         orthonormalFrame.mv(embeddedGradient,gradient);
     }
@@ -79,9 +79,9 @@ public:
     {
         Dune::FieldMatrix<double,embeddedSize,embeddedSize> embeddedHessian;
         assembleEmbeddedHessian(x,embeddedHessian);
-        
+
         Dune::FieldMatrix<double,size,embeddedSize> frame = x.orthonormalFrame();
-        
+
         // this is frame * embeddedHessian * frame^T
         for (int i=0; i<size; i++)
             for (int j=0; j<size; j++) {
@@ -90,7 +90,7 @@ public:
                     for (int l=0; l<embeddedSize; l++)
                         matrix[i][j] += frame[i][k]*embeddedHessian[k][l]*frame[j][l];
             }
-        
+
     }
 
     const std::vector<TargetSpace> coefficients_;
