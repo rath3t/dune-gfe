@@ -47,7 +47,9 @@ public:
                                 const std::vector<TargetSpace>& coefficients)
         : localFiniteElement_(localFiniteElement),
         coefficients_(coefficients)
-    {}
+    {
+        assert(localFiniteElement_.localBasis().size() == coefficients_.size());
+    }
 
     /** \brief The number of Lagrange points */
     unsigned int size() const
