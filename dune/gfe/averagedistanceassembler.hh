@@ -7,6 +7,7 @@
 template <class TargetSpace>
 class AverageDistanceAssembler
 {
+    typedef typename TargetSpace::ctype ctype;
     static const int size         = TargetSpace::TangentVector::dimension;
     static const int embeddedSize = TargetSpace::EmbeddedTangentVector::dimension;
 
@@ -15,7 +16,7 @@ public:
     /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
      */
     AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
-                             const std::vector<double>& weights)
+                             const std::vector<ctype>& weights)
         : coefficients_(coefficients),
           weights_(weights)
     {}
@@ -28,7 +29,7 @@ public:
      * shape function values this way.
      */
     AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
-                             const std::vector<Dune::FieldVector<double,1> >& weights)
+                             const std::vector<Dune::FieldVector<ctype,1> >& weights)
         : coefficients_(coefficients),
           weights_(weights.size())
     {
@@ -36,11 +37,11 @@ public:
             weights_[i] = weights[i][0];
     }
 
-    double value(const TargetSpace& x) const {
+    ctype value(const TargetSpace& x) const {
 
-        double result = 0;
+        ctype result = 0;
         for (size_t i=0; i<coefficients_.size(); i++) {
-            double dist = TargetSpace::distance(coefficients_[i], x);
+            ctype dist = TargetSpace::distance(coefficients_[i], x);
             result += weights_[i]*dist*dist;
         }
 
@@ -62,12 +63,12 @@ public:
         typename TargetSpace::EmbeddedTangentVector embeddedGradient;
         assembleEmbeddedGradient(x,embeddedGradient);
 
-        Dune::FieldMatrix<double,size,embeddedSize> orthonormalFrame = x.orthonormalFrame();
+        Dune::FieldMatrix<ctype,size,embeddedSize> orthonormalFrame = x.orthonormalFrame();
         orthonormalFrame.mv(embeddedGradient,gradient);
     }
 
     void assembleEmbeddedHessian(const TargetSpace& x,
-                         Dune::FieldMatrix<double,embeddedSize,embeddedSize>& matrix) const
+                         Dune::FieldMatrix<ctype,embeddedSize,embeddedSize>& matrix) const
     {
         matrix = 0;
         for (size_t i=0; i<coefficients_.size(); i++)
@@ -75,12 +76,12 @@ public:
     }
 
     void assembleHessian(const TargetSpace& x,
-                         Dune::FieldMatrix<double,size,size>& matrix) const
+                         Dune::FieldMatrix<ctype,size,size>& matrix) const
     {
-        Dune::FieldMatrix<double,embeddedSize,embeddedSize> embeddedHessian;
+        Dune::FieldMatrix<ctype,embeddedSize,embeddedSize> embeddedHessian;
         assembleEmbeddedHessian(x,embeddedHessian);
 
-        Dune::FieldMatrix<double,size,embeddedSize> frame = x.orthonormalFrame();
+        Dune::FieldMatrix<ctype,size,embeddedSize> frame = x.orthonormalFrame();
 
         // this is frame * embeddedHessian * frame^T
         for (int i=0; i<size; i++)
@@ -95,7 +96,7 @@ public:
 
     const std::vector<TargetSpace> coefficients_;
 
-    std::vector<double> weights_;
+    std::vector<ctype> weights_;
 
 };
 
