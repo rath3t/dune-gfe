@@ -12,19 +12,19 @@
 #endif
 
 template<class GridView, class LocalFiniteElement, class TargetSpace>
-class HarmonicEnergyLocalStiffness 
+class HarmonicEnergyLocalStiffness
     : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,TargetSpace>
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
-    
+
     // some other sizes
     enum {gridDim=GridView::dimension};
 
 public:
-    
+
     //! Dimension of a tangent space
     enum { blocksize = TargetSpace::TangentVector::dimension };
 
@@ -41,7 +41,7 @@ public:
                                           const LocalFiniteElement& localFiniteElement,
                                           const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::EmbeddedTangentVector>& gradient) const;
-                                    
+
     virtual void assembleGradient(const Entity& element,
                                   const LocalFiniteElement& localFiniteElement,
                                   const std::vector<TargetSpace>& localSolution,
@@ -50,14 +50,14 @@ public:
 };
 
 template <class GridView, class LocalFiniteElement, class TargetSpace>
-typename HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::RT 
+typename HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::RT
 HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
        const std::vector<TargetSpace>& localSolution) const
 {
     assert(element.type() == localFiniteElement.type());
-    
+
     RT energy = 0;
     LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
                                                                                                       localSolution);
@@ -67,18 +67,18 @@ energy(const Entity& element,
 
 
 
-    const Dune::QuadratureRule<double, gridDim>& quad 
+    const Dune::QuadratureRule<double, gridDim>& quad
         = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
-    
+
     for (size_t pt=0; pt<quad.size(); pt++) {
-        
+
         // Local position of the quadrature point
         const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
-        
+
         const double integrationElement = element.geometry().integrationElement(quadPos);
 
         const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
-        
+
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
@@ -121,18 +121,18 @@ assembleEmbeddedGradient(const Entity& element,
                                                  : (localFiniteElement.localBasis().order()-1) * 2 * gridDim;
 
     // numerical quadrature loop
-    const Dune::QuadratureRule<double, gridDim>& quad 
+    const Dune::QuadratureRule<double, gridDim>& quad
         = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
-    
+
     for (size_t pt=0; pt<quad.size(); pt++) {
-        
+
         // Local position of the quadrature point
         const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
-        
+
         const double integrationElement = element.geometry().integrationElement(quadPos);
 
         const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
-        
+
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
@@ -143,10 +143,10 @@ assembleEmbeddedGradient(const Entity& element,
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.mv(referenceDerivative[comp], derivative[comp]);
-        
+
         // loop over all the element's degrees of freedom and compute the gradient wrt it
         for (size_t i=0; i<localSolution.size(); i++) {
-         
+
             Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> referenceDerivativeDerivative;
 #ifdef HARMONIC_ENERGY_FD_INNER_GRADIENT
 #warning Using finite differences to compute the inner gradients!
@@ -154,7 +154,7 @@ assembleEmbeddedGradient(const Entity& element,
 #else
             localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, referenceDerivativeDerivative);
 #endif
-            
+
             // multiply the transformation from the reference element to the actual element
             Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> derivativeDerivative;
             for (int ii=0; ii<TargetSpace::EmbeddedTangentVector::dimension; ii++)
@@ -164,18 +164,18 @@ assembleEmbeddedGradient(const Entity& element,
                         for (int ll=0; ll<gridDim; ll++)
                             derivativeDerivative[ii][jj][kk] += referenceDerivativeDerivative[ii][jj][ll] * jacobianInverseTransposed[kk][ll];
                     }
-        
+
             for (int j=0; j<derivative.rows; j++) {
-                
+
                 for (int k=0; k<derivative.cols; k++) {
-                    
+
                     for (int l=0; l<TargetSpace::EmbeddedTangentVector::dimension; l++)
                         localGradient[i][l] += weight*derivative[j][k] * derivativeDerivative[l][j][k];
-                    
+
                 }
-                
+
             }
-            
+
         }
 
     }
