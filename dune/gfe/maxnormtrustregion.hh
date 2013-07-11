@@ -10,7 +10,7 @@ class MaxNormTrustRegion
 {
 public:
 
-    MaxNormTrustRegion(size_t size, double initialRadius) 
+    MaxNormTrustRegion(size_t size, double initialRadius)
         : obstacles_(size)
     {
         set(initialRadius);
@@ -21,12 +21,12 @@ public:
         for (size_t i=0; i<obstacles_.size(); i++) {
 
             for (int k=0; k<blocksize; k++) {
-                
+
                 obstacles_[i].lower(k) = -radius;
                 obstacles_[i].upper(k) =  radius;
-                
+
             }
-            
+
         }
 
     }
@@ -40,14 +40,14 @@ public:
     void scale(double factor) {
 
         for (size_t i=0; i<obstacles_.size(); i++) {
-            
+
             for (int k=0; k<blocksize; k++) {
-                
+
                 obstacles_[i].lower(k) *= factor;
                 obstacles_[i].upper(k) *= factor;
-                
+
             }
-            
+
         }
 
     }
