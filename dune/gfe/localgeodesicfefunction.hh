@@ -39,6 +39,9 @@ class LocalGeodesicFEFunction
     friend class LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>;
 public:
 
+    /** \brief The type used for derivatives */
+    typedef Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> DerivativeType;
+
     /** \brief Constructor
      * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
      * \param coefficients Values of the function at the Lagrange points
@@ -67,17 +70,17 @@ public:
     TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
 
     /** \brief Evaluate the derivative of the function */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
 
     /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
         \param local Local coordinates in the reference element where to evaluate the derivative
         \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
      */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
-                                                                                       const TargetSpace& q) const;
+    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+                                      const TargetSpace& q) const;
 
     /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
+    DerivativeType evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
 
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
