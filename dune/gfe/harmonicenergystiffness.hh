@@ -60,8 +60,8 @@ energy(const Entity& element,
     typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
 
     RT energy = 0;
-    LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
-                                                                                                      localSolution);
+    typedef LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+    LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
     int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
                                                  : localFiniteElement.localBasis().order() * 2 * gridDim;
@@ -83,10 +83,10 @@ energy(const Entity& element,
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
 
         // The derivative of the function defined on the actual element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative(0);
+        typename LocalGFEFunctionType::DerivativeType derivative(0);
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
@@ -116,8 +116,8 @@ assembleEmbeddedGradient(const Entity& element,
     std::fill(localGradient.begin(), localGradient.end(), typename TargetSpace::EmbeddedTangentVector(0));
 
     // Set up local gfe function from the  local coefficients
-    LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
-                                                                                                      localSolution);
+    typedef LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+    LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
     // I am not sure about the correct quadrature order
     int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
@@ -139,10 +139,10 @@ assembleEmbeddedGradient(const Entity& element,
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
 
         // The derivative of the function defined on the actual element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative;
+        typename LocalGFEFunctionType::DerivativeType derivative;
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.mv(referenceDerivative[comp], derivative[comp]);
