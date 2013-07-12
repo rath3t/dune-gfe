@@ -8,13 +8,13 @@
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-/** \brief Riemannian trust-region solver for geodesic finite-element problems 
+/** \brief Riemannian trust-region solver for geodesic finite-element problems
  \tparam TargetSpace The manifold that our functions take values in
  */
 template <class TargetSpace>
-class TargetSpaceRiemannianTRSolver 
+class TargetSpaceRiemannianTRSolver
     : public NumProc
-{ 
+{
     const static int blocksize = TargetSpace::TangentVector::dimension;
 
     // Centralize the field type here
@@ -77,10 +77,10 @@ protected:
 
     /** \brief The iteration step for the quadratic inner problems */
     std::auto_ptr<TrustRegionGSStep<MatrixType, CorrectionType> > innerSolverStep_;
-    
+
     /** \brief Norm for the quadratic inner problems */
     std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> > energyNorm_;
-    
+
 };
 
 #include "targetspacertrsolver.cc"

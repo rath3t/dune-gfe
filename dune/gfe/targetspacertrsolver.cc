@@ -55,10 +55,10 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
     for (int i=0; i<maxTrustRegionSteps_; i++) {
-        
+
         if (this->verbosity_ == Solver::FULL) {
             std::cout << "----------------------------------------------------" << std::endl;
-            std::cout << "      Trust-Region Step Number: " << i 
+            std::cout << "      Trust-Region Step Number: " << i
                       << ",     radius: " << trustRegion.radius()
                       << ",     energy: " << assembler_->value(x_) << std::endl;
             std::cout << "----------------------------------------------------" << std::endl;
@@ -77,19 +77,19 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         rhs *= -1;
 
         dynamic_cast<LinearIterationStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->setProblem(hesseMatrix, corr, rhs);
-        
+
         dynamic_cast<TrustRegionGSStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->obstacles_ = &trustRegion.obstacles();
-        
+
         innerSolver_->preprocess();
-        
+
         // /////////////////////////////
         //    Solve !
         // /////////////////////////////
-        
+
         innerSolver_->solve();
-        
+
         corr = innerSolver_->iterationStep_->getSol();
-        
+
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
@@ -101,18 +101,18 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
             break;
         }
-        
+
         // ////////////////////////////////////////////////////
         //   Check whether trust-region step can be accepted
         // ////////////////////////////////////////////////////
-        
+
         TargetSpace newIterate = x_;
         newIterate = TargetSpace::exp(newIterate, corr[0]);
-        
+
         /** \todo Don't always recompute oldEnergy */
         double oldEnergy = assembler_->value(x_);
-        double energy    = assembler_->value(newIterate); 
-        
+        double energy    = assembler_->value(newIterate);
+
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
         // Note that rhs = -g
@@ -120,16 +120,16 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         tmp = 0;
         hesseMatrix.umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
-        
+
         if (this->verbosity_ == NumProc::FULL) {
-            std::cout << "Absolute model decrease: " << modelDecrease 
+            std::cout << "Absolute model decrease: " << modelDecrease
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
             std::cout << "Relative model decrease: " << modelDecrease / energy
                       << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
-        }            
+        }
 
         assert(modelDecrease >= 0);
-        
+
         if (energy >= oldEnergy) {
             if (this->verbosity_ == NumProc::FULL)
                 printf("Richtung ist keine Abstiegsrichtung!\n");
@@ -152,22 +152,22 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // //////////////////////////////////////////////
         if ( (oldEnergy-energy) / modelDecrease > 0.9) {
             // very successful iteration
-            
+
             x_ = newIterate;
             trustRegion.scale(2);
-            
+
         } else if ( (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
             x_ = newIterate;
-            
+
         } else {
             // unsuccessful iteration
             trustRegion.scale(0.5);
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
-        
+
         //  Write current energy
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "--- Current energy: " << energy << " ---" << std::endl;
