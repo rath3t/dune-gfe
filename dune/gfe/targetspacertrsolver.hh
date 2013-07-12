@@ -18,7 +18,7 @@ class TargetSpaceRiemannianTRSolver
     const static int blocksize = TargetSpace::TangentVector::dimension;
 
     // Centralize the field type here
-    typedef double field_type;
+    typedef typename TargetSpace::ctype field_type;
 
     // Some types that I need
     // The types have the dynamic outer type because the dune-solvers solvers expect

@@ -48,7 +48,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 template <class TargetSpace>
 void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 {
-    MaxNormTrustRegion<blocksize> trustRegion(1,   // we have only one block
+    MaxNormTrustRegion<blocksize,field_type> trustRegion(1,   // we have only one block
                                               initialTrustRegionRadius_);
 
     // /////////////////////////////////////////////////////
@@ -110,8 +110,8 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         newIterate = TargetSpace::exp(newIterate, corr[0]);
 
         /** \todo Don't always recompute oldEnergy */
-        double oldEnergy = assembler_->value(x_);
-        double energy    = assembler_->value(newIterate);
+        field_type oldEnergy = assembler_->value(x_);
+        field_type energy    = assembler_->value(newIterate);
 
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
@@ -119,7 +119,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         CorrectionType tmp(corr.size());
         tmp = 0;
         hesseMatrix.umv(corr, tmp);
-        double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
+        field_type modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
 
         if (this->verbosity_ == NumProc::FULL) {
             std::cout << "Absolute model decrease: " << modelDecrease
