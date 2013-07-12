@@ -57,6 +57,7 @@ energy(const Entity& element,
        const std::vector<TargetSpace>& localSolution) const
 {
     assert(element.type() == localFiniteElement.type());
+    typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
 
     RT energy = 0;
     LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
@@ -77,7 +78,7 @@ energy(const Entity& element,
 
         const double integrationElement = element.geometry().integrationElement(quadPos);
 
-        const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+        const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
         double weight = quad[pt].weight() * integrationElement;
 
@@ -108,6 +109,8 @@ assembleEmbeddedGradient(const Entity& element,
                          const std::vector<TargetSpace>& localSolution,
                          std::vector<typename TargetSpace::EmbeddedTangentVector>& localGradient) const
 {
+    typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
+
     // initialize gradient
     localGradient.resize(localSolution.size());
     std::fill(localGradient.begin(), localGradient.end(), typename TargetSpace::EmbeddedTangentVector(0));
@@ -131,7 +134,7 @@ assembleEmbeddedGradient(const Entity& element,
 
         const double integrationElement = element.geometry().integrationElement(quadPos);
 
-        const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+        const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
         double weight = quad[pt].weight() * integrationElement;
 
