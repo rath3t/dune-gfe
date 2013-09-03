@@ -198,6 +198,21 @@ public:
         (*this)[3] = std::cos(angle/2);
     }
 
+    /** \brief Rebind the Rotation to another coordinate type */
+    template<class U>
+    struct rebind
+    {
+      typedef Rotation<U,3> other;
+    };
+
+    /** \brief Assigment from RigidBodyMotion with different type -- used for automatic differentiation with ADOL-C */
+    template <class T2>
+    Rotation& operator <<= (const Rotation<T2,3>& other) {
+        for (int i=0; i<4; i++)
+            (*this)[i] <<= other[i];
+        return *this;
+    }
+
     /** \brief Return the identity element */
     static Rotation<T,3> identity() {
         // Default constructor creates an identity
