@@ -1,20 +1,3 @@
-/*----------------------------------------------------------------------------
- ADOL-C -- Automatic Differentiation by Overloading in C++
- File:     speelpenning.cpp
- Revision: $Id: speelpenning.cpp 299 2012-03-21 16:08:40Z kulshres $
- Contents: speelpennings example, described in the manual
-
- Copyright (c) Andrea Walther, Andreas Griewank, Andreas Kowarz,
-               Hristo Mitev, Sebastian Schlenkrich, Jean Utke, Olaf Vogel
-
- This file is part of ADOL-C. This software is provided as open source.
- Any use, reproduction, or distribution of the software constitutes
- recipient's acceptance of the terms of the accompanying license file.
-
----------------------------------------------------------------------------*/
-
-/****************************************************************************/
-/*                                                                 INCLUDES */
 #include "config.h"
 
 #include <adolc/adouble.h>            // use of active doubles
