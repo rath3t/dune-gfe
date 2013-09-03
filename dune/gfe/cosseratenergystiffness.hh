@@ -551,7 +551,8 @@ energy(const Entity& element,
     //   Assemble boundary contributions
     //////////////////////////////////////////////////////////////////////////////
 
-    assert(neumannFunction_);
+    if (not neumannFunction_)
+        return energy;
 
     for (typename Entity::LeafIntersectionIterator it = element.ileafbegin(); it != element.ileafend(); ++it) {
 
@@ -991,8 +992,6 @@ assembleGradient(const Entity& element,
     //////////////////////////////////////////////////////////////////////////////
     //   Assemble boundary contributions
     //////////////////////////////////////////////////////////////////////////////
-
-    assert(neumannFunction_);
 
     for (typename Entity::LeafIntersectionIterator it = element.ileafbegin(); it != element.ileafend(); ++it) {
 
