@@ -800,7 +800,7 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
                 RT_DR3[i][j] += R[k][i] * DR[k][2][j];
 
     for (int i=0; i<gridDim; i++)
-        assert(std::fabs(RT_DR3[2][i]) < 1e-7);
+        assert(std::abs(RT_DR3[2][i]) < 1e-7);
 
     // -----------------------------------------------------------------------------
 
