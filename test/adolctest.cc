@@ -23,10 +23,13 @@
 
 #include <dune/localfunctions/lagrange/q1.hh>
 
+#include <dune/fufem/functionspacebases/q1nodalbasis.hh>
+
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
+#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 
 using namespace Dune;
 
@@ -111,7 +114,7 @@ int main() {
 
   for (size_t i=0; i<localSolution.size(); i++)
     std::cout << localSolution[i] << std::endl;
-
+#if 0
   double laplaceEnergy = energy<GridType::LeafGridView,LocalFE, TargetSpace>(*grid.leafbegin<0>(), localFiniteElement, localSolution);
 
   std::cout << "Laplace energy: " << laplaceEnergy << std::endl;
@@ -152,6 +155,45 @@ int main() {
     }
     std::cout << std::endl;
   }
+#endif
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    typedef Q1NodalBasis<GridType::LeafGridView,double> Q1Basis;
+    Q1Basis q1Basis(grid.leafView());
+
+    ParameterTree parameterSet;
+    ParameterTreeParser::readINITree("../cosserat-continuum.parset", parameterSet);
+
+    const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
+    std::cout << "Material parameters:" << std::endl;
+    materialParameters.report();
+
+
+      CosseratEnergyLocalStiffness<GridType::LeafGridView,
+                                 Q1Basis::LocalFiniteElement,
+                                 3> cosseratEnergyLocalStiffness(materialParameters,NULL,NULL);
+
+    // Assembler using ADOL-C
+    CosseratEnergyLocalStiffness<GridType::LeafGridView,
+                                 Q1Basis::LocalFiniteElement,
+                                 3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters, NULL, NULL);
+    LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
+                                  Q1Basis::LocalFiniteElement,
+                                  TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
+
+
+    cosseratEnergyLocalStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+
+    localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+
+    std::cout << "finite differences:\n" << cosseratEnergyLocalStiffness.A_[0][0] << std::endl;
+
+    std::cout << "ADOL-C:\n" << localGFEADOLCStiffness.A_[0][0] << std::endl;
 
     return 0;
 } // end main
