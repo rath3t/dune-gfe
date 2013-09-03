@@ -24,6 +24,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     innerIterations_          = innerIterations;
     innerTolerance_           = innerTolerance;
     this->verbosity_          = NumProc::QUIET;
+    minNumberOfIterations_    = 4;
 
     // ////////////////////////////////
     //   Create a projected gauss-seidel solver
@@ -48,6 +49,8 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 template <class TargetSpace>
 void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 {
+    assert(minNumberOfIterations_ > 0);
+
     MaxNormTrustRegion<blocksize,field_type> trustRegion(1,   // we have only one block
                                               initialTrustRegionRadius_);
 
@@ -93,7 +96,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
-        if (corr.infinity_norm() < this->tolerance_) {
+        if (corr.infinity_norm() < this->tolerance_ and i>=minNumberOfIterations_-1) {
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
@@ -136,6 +139,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         }
 
         if (energy >= oldEnergy &&
+            i>minNumberOfIterations_-1 &&
             (std::abs(oldEnergy-energy)/energy < 1e-9 || modelDecrease/energy < 1e-9)) {
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Suspecting rounding problems" << std::endl;

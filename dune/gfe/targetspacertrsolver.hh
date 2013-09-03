@@ -81,6 +81,15 @@ protected:
     /** \brief Norm for the quadratic inner problems */
     std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> > energyNorm_;
 
+    /** \brief Specify a minimal number of iterations the trust-region solver has to do
+     *
+     * This is needed when working with automatic differentiation.    While a very low
+     * number of iterations may be enough to precisely compute the value of a
+     * geodesic finite element function, a higher number may be needed to make an AD
+     * system compute a derivative with sufficient precision.
+     */
+    size_t minNumberOfIterations_;
+
 };
 
 #include "targetspacertrsolver.cc"
