@@ -71,39 +71,36 @@ void compareMatrices(const Matrix<FieldMatrix<double,blocksize,blocksize> >& fdM
   }
 }
 
-
+template <class TargetSpace, int gridDim>
 int testHarmonicEnergy() {
 
-  typedef UnitVector<double,3> TargetSpace;
-  const int dim = 1;
-
-  std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << dim << " ---" << std::endl;
+  std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << gridDim << " ---" << std::endl;
 
   // set up a test grid
-  typedef YaspGrid<dim> GridType;
-  FieldVector<double,dim> l(1);
-  std::array<int,dim> elements;
+  typedef YaspGrid<gridDim> GridType;
+  FieldVector<double,gridDim> l(1);
+  std::array<int,gridDim> elements;
   std::fill(elements.begin(), elements.end(), 1);
   GridType grid(l,elements);
 
-  typedef Q1NodalBasis<GridType::LeafGridView,double> Q1Basis;
+  typedef Q1NodalBasis<typename GridType::LeafGridView,double> Q1Basis;
   Q1Basis q1Basis(grid.leafView());
 
-  typedef Q1LocalFiniteElement<double,double,dim> LocalFE;
+  typedef Q1LocalFiniteElement<double,double,gridDim> LocalFE;
   LocalFE localFiniteElement;
 
   // Assembler using finite differences
-  HarmonicEnergyLocalStiffness<GridType::LeafGridView,
-                               Q1Basis::LocalFiniteElement,
+  HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,
+                               typename Q1Basis::LocalFiniteElement,
                                TargetSpace> harmonicEnergyLocalStiffness;
 
   // Assembler using ADOL-C
-  typedef TargetSpace::rebind<adouble>::other ATargetSpace;
-  HarmonicEnergyLocalStiffness<GridType::LeafGridView,
-                               Q1Basis::LocalFiniteElement,
+  typedef typename TargetSpace::template rebind<adouble>::other ATargetSpace;
+  HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,
+                               typename Q1Basis::LocalFiniteElement,
                                ATargetSpace> harmonicEnergyADOLCLocalStiffness;
-  LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
-                                Q1Basis::LocalFiniteElement,
+  LocalGeodesicFEADOLCStiffness<typename GridType::LeafGridView,
+                                typename Q1Basis::LocalFiniteElement,
                                 TargetSpace> localGFEADOLCStiffness(&harmonicEnergyADOLCLocalStiffness);
 
   size_t nDofs = localFiniteElement.localBasis().size();
@@ -132,9 +129,9 @@ int testHarmonicEnergy() {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    harmonicEnergyLocalStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+    harmonicEnergyLocalStiffness.assembleHessian(*grid.template leafbegin<0>(),localFiniteElement, localSolution);
 
-    localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+    localGFEADOLCStiffness.assembleHessian(*grid.template leafbegin<0>(),localFiniteElement, localSolution);
 
     compareMatrices(harmonicEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_);
 
@@ -211,6 +208,10 @@ int testCosseratEnergy() {
 
 int main()
 {
-   testHarmonicEnergy();
+   testHarmonicEnergy<UnitVector<double,2>, 1>();
+   testHarmonicEnergy<UnitVector<double,3>, 1>();
+   testHarmonicEnergy<UnitVector<double,2>, 2>();
+   testHarmonicEnergy<UnitVector<double,3>, 2>();
+
    testCosseratEnergy();
 }
