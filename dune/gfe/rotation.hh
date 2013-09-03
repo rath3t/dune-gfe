@@ -47,9 +47,9 @@ public:
 
     /** \brief The global convexity radius of the rotation group */
     static constexpr T convexityRadius = 0.5 * M_PI;
-    
+
     /** \brief Default constructor, create the identity rotation */
-    Rotation() 
+    Rotation()
         : angle_(0)
     {}
 
@@ -89,7 +89,7 @@ public:
         return result;
     }
 
-    static TangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,2>& a, 
+    static TangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,2>& a,
                                                                       const Rotation<T,2>& b) {
         // This assertion is here to remind me of the following laziness:
         // The difference has to be computed modulo 2\pi
@@ -97,7 +97,7 @@ public:
         return -2 * (a.angle_ - b.angle_);
     }
 
-    static Dune::FieldMatrix<T,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,2>& a, 
+    static Dune::FieldMatrix<T,1,1> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,2>& a,
                                                                                             const Rotation<T,2>& b) {
         return 2;
     }
@@ -116,7 +116,7 @@ public:
     Dune::FieldMatrix<T,1,1> orthonormalFrame() const {
         return Dune::FieldMatrix<T,1,1>(1);
     }
-    
+
     //private:
 
     // We store the rotation as an angle
@@ -131,7 +131,7 @@ std::ostream& operator<< (std::ostream& s, const Rotation<T,2>& c)
   }
 
 
-/** \brief Specialization for dim==3 
+/** \brief Specialization for dim==3
 
 Uses unit quaternion coordinates.
 \todo Reimplement the method inverse() such that it returns a Rotation instead of a Quaternion.
@@ -153,13 +153,13 @@ public:
 
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<T,4> CoordinateType;
-    
+
     /** \brief Dimension of the manifold formed by the 3d rotations */
     static const int dim = 3;
-    
+
     /** \brief Coordinates are embedded into a four-dimension Euclidean space */
     static const int embeddedDim = 4;
-    
+
     /** \brief Member of the corresponding Lie algebra.  This really is a skew-symmetric matrix */
     typedef Dune::FieldVector<T,3> TangentVector;
 
@@ -168,12 +168,12 @@ public:
 
     /** \brief The global convexity radius of the rotation group */
     static constexpr T convexityRadius = 0.5 * M_PI;
-    
+
     /** \brief Default constructor creates the identity element */
     Rotation()
         : Quaternion<T>(0,0,0,1)
     {}
-    
+
     explicit Rotation<T,3>(const Dune::array<T,4>& c)
     {
         for (int i=0; i<4; i++)
@@ -181,14 +181,14 @@ public:
 
         *this /= this->two_norm();
     }
-    
+
     explicit Rotation<T,3>(const Dune::FieldVector<T,4>& c)
         : Quaternion<T>(c)
     {
         *this /= this->two_norm();
     }
-    
-    Rotation<T,3>(Dune::FieldVector<T,3> axis, T angle) 
+
+    Rotation<T,3>(Dune::FieldVector<T,3> axis, T angle)
     {
         axis /= axis.two_norm();
         axis *= std::sin(angle/2);
@@ -229,7 +229,7 @@ public:
 
         // if normV == 0 then q = (0,0,0,1)
         assert(!isnan(sin));
-            
+
         q[0] = sin * vAxial[0];
         q[1] = sin * vAxial[1];
         q[2] = sin * vAxial[2];
@@ -238,7 +238,7 @@ public:
         return q;
     }
 
-    
+
     /** \brief The exponential map from a given point $p \in SO(3)$. */
     static Rotation<T,3> exp(const Rotation<T,3>& p, const SkewMatrix<T,3>& v) {
         Rotation<T,3> corr = exp(v);
@@ -246,18 +246,18 @@ public:
     }
 
     /** \brief The exponential map from a given point $p \in SO(3)$.
-     
+
         There may be a more direct way to implement this
-        
+
         \param v A tangent vector in quaternion coordinates
      */
     static Rotation<T,3> exp(const Rotation<T,3>& p, const EmbeddedTangentVector& v) {
-        
+
         assert( std::fabs(p*v) < 1e-8 );
-        
+
         // The vector v as a quaternion
         Quaternion<T> vQuat(v);
-        
+
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
         assert( std::fabs(vAtIdentity[3]) < 1e-8 );
@@ -267,26 +267,26 @@ public:
         vMatrix.axial()[0] = 2*vAtIdentity[0];
         vMatrix.axial()[1] = 2*vAtIdentity[1];
         vMatrix.axial()[2] = 2*vAtIdentity[2];
-        
+
         // The actual exponential map
         return exp(p, vMatrix);
     }
      /** \brief The exponential map from a given point $p \in SO(3)$.
-     
+
         \param v A tangent vector.
      */
     static Rotation<T,3> exp(const Rotation<T,3>& p, const TangentVector& v) {
-        
+
         // embedded tangent vector
         Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
         Quaternion<T> embeddedTangent;
         basis.mtv(v, embeddedTangent);
-        
+
         return exp(p,embeddedTangent);
 
     }
-       
-    /** \brief Compute tangent vector from given basepoint and skew symmetric matrix. */ 
+
+    /** \brief Compute tangent vector from given basepoint and skew symmetric matrix. */
     static TangentVector skewToTangentVector(const Rotation<T,3>& p, const SkewMatrix<T,3>& v ) {
 
         // embedded tangent vector at identity
@@ -308,20 +308,20 @@ public:
         return tang;
     }
 
-    /** \brief Compute skew matrix from given basepoint and tangent vector. */ 
+    /** \brief Compute skew matrix from given basepoint and tangent vector. */
     static SkewMatrix<T,3> tangentToSkew(const Rotation<T,3>& p, const TangentVector& tangent) {
-        
+
         // embedded tangent vector
         Dune::FieldMatrix<T,3,4> basis = p.orthonormalFrame();
         Quaternion<T> embeddedTangent;
         basis.mtv(tangent, embeddedTangent);
-    
+
         return tangentToSkew(p,embeddedTangent);
     }
 
-    /** \brief Compute skew matrix from given basepoint and an embedded tangent vector. */ 
+    /** \brief Compute skew matrix from given basepoint and an embedded tangent vector. */
     static SkewMatrix<T,3> tangentToSkew(const Rotation<T,3>& p, const EmbeddedTangentVector& q) {
-        
+
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(q);
         assert( std::fabs(vAtIdentity[3]) < 1e-8 );
@@ -335,12 +335,12 @@ public:
     }
 
     static Rotation<T,3> exp(const Rotation<T,3>& p, const Dune::FieldVector<T,4>& v) {
-        
+
         assert( std::fabs(p*v) < 1e-8 );
-        
+
         // The vector v as a quaternion
         Quaternion<T> vQuat(v);
-        
+
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
         assert( std::fabs(vAtIdentity[3]) < 1e-8 );
@@ -350,7 +350,7 @@ public:
         vMatrix.axial()[0] = 2*vAtIdentity[0];
         vMatrix.axial()[1] = 2*vAtIdentity[1];
         vMatrix.axial()[2] = 2*vAtIdentity[2];
-        
+
         // The actual exponential map
         return exp(p, vMatrix);
     }
@@ -360,14 +360,14 @@ public:
         Dune::FieldMatrix<T,4,3> result(0);
         Dune::FieldVector<T,3> vAxial = v.axial();
         T norm = vAxial.two_norm();
-        
+
         for (int i=0; i<3; i++) {
 
             for (int m=0; m<3; m++) {
-                
-                result[m][i] = (norm<1e-10) 
+
+                result[m][i] = (norm<1e-10)
                     /** \todo Isn't there a better way to implement this stably? */
-                    ? 0.5 * (i==m) 
+                    ? 0.5 * (i==m)
                     : 0.5 * std::cos(norm/2) * vAxial[i] * vAxial[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - vAxial[i]*vAxial[m]/(norm*norm));
 
             }
@@ -394,15 +394,15 @@ public:
         } else {
 
             for (int i=0; i<3; i++) {
-                
+
                 for (int j=0; j<3; j++) {
-                    
+
                     for (int m=0; m<3; m++) {
-                        
+
                         result[m][i][j] = -0.25*std::sin(norm/2)*v[i]*v[j]*v[m]/(norm*norm*norm)
                             + ((i==j)*v[m] + (j==m)*v[i] + (i==m)*v[j] - 3*v[i]*v[j]*v[m]/(norm*norm))
                             * (0.5*std::cos(norm/2) - sincHalf(norm)) / (norm*norm);
-                        
+
 
                     }
 
@@ -420,7 +420,7 @@ public:
     /** \brief The inverse of the exponential map */
     static Dune::FieldVector<T,3> expInv(const Rotation<T,3>& q) {
         // Compute v = exp^{-1} q
-        // Due to numerical dirt, q[3] may be larger than 1. 
+        // Due to numerical dirt, q[3] may be larger than 1.
         // In that case, use 1 instead of q[3].
         Dune::FieldVector<T,3> v;
         if (q[3] > 1.0) {
@@ -428,9 +428,9 @@ public:
             v = 0;
 
         } else {
-            
+
             T invSinc = 1/sincHalf(2*std::acos(q[3]));
-            
+
             v[0] = q[0] * invSinc;
             v[1] = q[1] * invSinc;
             v[2] = q[2] * invSinc;
@@ -441,7 +441,7 @@ public:
 
     /** \brief The derivative of the inverse of the exponential map, evaluated at q */
     static Dune::FieldMatrix<T,3,4> DexpInv(const Rotation<T,3>& q) {
-        
+
         // Compute v = exp^{-1} q
         Dune::FieldVector<T,3> v = expInv(q);
 
@@ -471,7 +471,7 @@ public:
         return APseudoInv;
     }
 
-    /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$. 
+    /** \brief The cayley mapping from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$.
      *
      *  The formula is taken from 'J.C.Simo, N.Tarnom, M.Doblare - Non-linear dynamics of
      *  three-dimensional rods:Exact energy and momentum conserving algorithms'
@@ -482,7 +482,7 @@ public:
 
         Dune::FieldVector<T,3> vAxial = s.axial();
         T norm = 0.25*vAxial.two_norm2() + 1;
-        
+
         Dune::FieldMatrix<T,3,3> mat = s.toMatrix();
         mat *= 0.5;
         Dune::FieldMatrix<T,3,3> skewSquare = mat;
@@ -496,20 +496,20 @@ public:
         q.set(mat);
         return q;
     }
-    
-    /** \brief The inverse of the Cayley mapping. 
+
+    /** \brief The inverse of the Cayley mapping.
      *
      *  The formula is taken from J.M.Selig - Cayley Maps for SE(3).
      */
     static SkewMatrix<T,3>  cayleyInv(const Rotation<T,3> q) {
-       
+
         Dune::FieldMatrix<T,3,3> mat;
 
         // compute the trace of the rotation matrix
-        T trace = -q[0]*q[0] -q[1]*q[1] -q[2]*q[2]+3*q[3]*q[3];  
-        
+        T trace = -q[0]*q[0] -q[1]*q[1] -q[2]*q[2]+3*q[3]*q[3];
+
         if ( (trace+1)>1e-6 || (trace+1)<-1e-6) { // if this term doesn't vanish we can use a direct formula
-             
+
             q.matrix(mat);
             Dune::FieldMatrix<T,3,3> matT;
             Rotation<T,3>(q.inverse()).matrix(matT);
@@ -520,7 +520,7 @@ public:
             Dune::FieldMatrix<T,3,3> inv;
             q.matrix(inv);
             Dune::FieldMatrix<T,3,3> notInv = inv;
-            
+
             for (int i=0;i<3;i++) {
                 inv[i][i] +=1;
                 notInv[i][i] -=1;
@@ -532,16 +532,16 @@ public:
 
         // result is a skew symmetric matrix
         SkewMatrix<T,3> res;
-        res.axial()[0] = mat[2][1]; 
-        res.axial()[1] = mat[0][2]; 
+        res.axial()[0] = mat[2][1];
+        res.axial()[1] = mat[0][2];
         res.axial()[2] = mat[1][0];
-    
-        return res; 
+
+        return res;
 
     }
 
     static T distance(const Rotation<T,3>& a, const Rotation<T,3>& b) {
-        
+
         // Distance in the unit quaternions: 2*arccos( ((a^{-1) b)_3 )
         // But note that (a^{-1}b)_3 is actually <a,b> (in R^4)
         T sp = a.globalCoordinates() * b.globalCoordinates();
@@ -564,7 +564,7 @@ public:
         diff = diff.mult(b);
 
         // Compute the geodesical distance between a and b on SO(3)
-        // Due to numerical dirt, diff[3] may be larger than 1. 
+        // Due to numerical dirt, diff[3] may be larger than 1.
         // In that case, use 1 instead of diff[3].
         Dune::FieldVector<T,3> v;
         if (diff[3] > 1.0) {
@@ -572,7 +572,7 @@ public:
             v = 0;
 
         } else {
-            
+
             T dist = 2*std::acos( diff[3] );
 
             // Make sure we do the right thing if a and b are not in the same sheet
@@ -583,7 +583,7 @@ public:
             }
 
             T invSinc = 1/sincHalf(dist);
-            
+
             // Compute difference on T_a SO(3)
             v[0] = diff[0] * invSinc;
             v[1] = diff[1] * invSinc;
@@ -593,9 +593,9 @@ public:
 
         return SkewMatrix<T,3>(v);
     }
-    
+
     /** \brief Compute the derivatives of the director vectors with respect to the quaternion coordinates
-     * 
+     *
      * Let \f$ d_k(q) = (d_{k,1}, d_{k,2}, d_{k,3})\f$ be the k-th director vector at \f$ q \f$.
      * Then the return value of this method is
      * \f[ A_{ijk} = \frac{\partial d_{i,j}}{\partial q_k} \f]
@@ -619,7 +619,7 @@ public:
     }
 
     /** \brief Compute the second derivatives of the director vectors with respect to the quaternion coordinates
-     * 
+     *
      * Let \f$ d_k(q) = (d_{k,1}, d_{k,2}, d_{k,3})\f$ be the k-th director vector at \f$ q \f$.
      * Then the return value of this method is
      * \f[ A_{ijkl} = \frac{\partial^2 d_{i,j}}{\partial q_k \partial q_l} \f]
@@ -644,24 +644,24 @@ public:
     }
 
     /** \brief Compute the derivative of the squared distance function with respect to the second argument
-     * 
+     *
      * The squared distance function is
      * \f[ 4 \arccos^2 (|<p,q>|) \f]
      * Deriving this with respect to the second coordinate gives
      * \f[ 4 (\arccos^2)'(x)|_{x = |<p,q>|} * P_qp \f]
      * The whole thing has to be multiplied by -1 if \f$ <p,q> \f$ is negative
      */
-    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, 
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p,
                                                                       const Rotation<T,3>& q) {
         T sp = p.globalCoordinates() * q.globalCoordinates();
-        
+
         // Compute the projection of p onto the tangent space of q
         EmbeddedTangentVector result = p;
         result.axpy(-1*(q*p), q);
-        
+
         // The ternary operator comes from the derivative of the absolute value function
         result *= 4 * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)) * ( (sp<0) ? -1 : 1 );
-        
+
         return result;
     }
 
@@ -669,14 +669,14 @@ public:
     static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
 
         T sp = p.globalCoordinates() * q.globalCoordinates();
-        
+
         EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
         Dune::FieldMatrix<T,4,4> A;
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
                 A[i][j] = pProjected[i]*pProjected[j];
-        
+
         A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp));
 
         // Compute matrix B (see notes)
@@ -687,13 +687,13 @@ public:
 
         // Bring it all together
         A.axpy(-4* ((sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp))*sp, Pq);
-        
+
         return A;
     }
-    
+
     /** \brief Compute the mixed second derivate \partial d^2 / \partial dp dq */
     static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
-        
+
         T sp = p.globalCoordinates() * q.globalCoordinates();
 
         // Compute vector A (see notes)
@@ -717,34 +717,34 @@ public:
                 Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
             }
-            
+
         Dune::FieldMatrix<T,4,4> B;
         Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
-        
+
         // Bring it all together
         A.axpy(4 * ( (sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)), B);
 
         return A;
     }
-    
+
     /** \brief Compute the third derivative \partial d^3 / \partial dq^3
 
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static Tensor3<T,4,4,4> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
-        
+
         Tensor3<T,4,4,4> result;
 
         T sp = p.globalCoordinates() * q.globalCoordinates();
-        
+
         // The projection matrix onto the tangent space at p and q
         Dune::FieldMatrix<T,4,4> Pq;
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
-            
+
         EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
-        
+
         double plusMinus = (sp < 0) ? -1 : 1;
 
         for (int i=0; i<4; i++)
@@ -764,7 +764,7 @@ public:
 
         return result;
     }
-    
+
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
 
     Unlike the distance itself the squared distance is differentiable at zero
@@ -774,7 +774,7 @@ public:
         Tensor3<T,4,4,4> result;
 
         T sp = p.globalCoordinates() * q.globalCoordinates();
-        
+
         // The projection matrix onto the tangent space at p and q
         Dune::FieldMatrix<T,4,4> Pp, Pq;
         for (int i=0; i<4; i++)
@@ -782,10 +782,10 @@ public:
                 Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
             }
-            
+
         EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
         EmbeddedTangentVector qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
-        
+
         Tensor3<T,4,4,4> derivativeOfPqOTimesPq;
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
@@ -801,16 +801,16 @@ public:
                  + UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp))      * derivativeOfPqOTimesPq
                  - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * sp * Tensor3<T,4,4,4>::product(qProjected,Pq)
                  - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp))            * Tensor3<T,4,4,4>::product(qProjected,Pq);
-               
+
         result *= 4;
-                 
+
         return result;
 
     }
 
 
 
-    
+
     /** \brief Interpolate between two rotations */
     static Rotation<T,3> interpolate(const Rotation<T,3>& a, const Rotation<T,3>& b, T omega) {
 
@@ -822,10 +822,10 @@ public:
         return a.mult(exp(v));
     }
 
-    /** \brief Interpolate between two rotations 
+    /** \brief Interpolate between two rotations
         \param omega must be between 0 and 1
     */
-    static Quaternion<T> interpolateDerivative(const Rotation<T,3>& a, const Rotation<T,3>& b, 
+    static Quaternion<T> interpolateDerivative(const Rotation<T,3>& a, const Rotation<T,3>& b,
                                                T omega) {
         Quaternion<T> result(0);
 
@@ -834,7 +834,7 @@ public:
 
         SkewMatrix<T,3> v = xi;
         v *= omega;
-        
+
         // //////////////////////////////////////////////////////////////
         //   v now contains the derivative at 'a'.  The derivative at
         //   the requested site is v pushed forward by Dexp.
@@ -864,7 +864,7 @@ public:
 
     }
 
-    /** \brief Set rotation from orthogonal matrix 
+    /** \brief Set rotation from orthogonal matrix
 
     We tacitly assume that the matrix really is orthogonal */
     void set(const Dune::FieldMatrix<T,3,3>& m) {
@@ -892,7 +892,7 @@ public:
             p[2] = (m[0][2] + m[2][0]) / 4 / p[0];
 
             // r_0 r_x = (R_32 - R_23) / 4
-            p[3] = (m[2][1] - m[1][2]) / 4 / p[0]; 
+            p[3] = (m[2][1] - m[1][2]) / 4 / p[0];
 
         } else if (p[1] >= p[0] && p[1] >= p[2] && p[1] >= p[3]) {
 
@@ -905,7 +905,7 @@ public:
             p[2] = (m[1][2] + m[2][1]) / 4 / p[1];
 
             // r_0 r_y = (R_13 - R_31) / 4
-            p[3] = (m[0][2] - m[2][0]) / 4 / p[1]; 
+            p[3] = (m[0][2] - m[2][0]) / 4 / p[1];
 
         } else if (p[2] >= p[0] && p[2] >= p[1] && p[2] >= p[3]) {
 
@@ -918,7 +918,7 @@ public:
             p[1] = (m[1][2] + m[2][1]) / 4 / p[2];
 
             // r_0 r_z = (R_21 - R_12) / 4
-            p[3] = (m[1][0] - m[0][1]) / 4 / p[2]; 
+            p[3] = (m[1][0] - m[0][1]) / 4 / p[2];
 
         } else {
 
@@ -931,7 +931,7 @@ public:
             p[1] = (m[0][2] - m[2][0]) / 4 / p[3];
 
             // r_0 r_z = (R_21 - R_12) / 4
-            p[2] = (m[1][0] - m[0][1]) / 4 / p[3]; 
+            p[2] = (m[1][0] - m[0][1]) / 4 / p[3];
 
         }
 
@@ -940,9 +940,9 @@ public:
     /** \brief Create three vectors which form an orthonormal basis of \mathbb{H} together
         with this one.
 
-        This is used to compute the strain in rod problems.  
+        This is used to compute the strain in rod problems.
         See: Dichmann, Li, Maddocks, 'Hamiltonian Formulations and Symmetries in
-        Rod Mechanics', page 83 
+        Rod Mechanics', page 83
     */
     Quaternion<T> B(int m) const {
         assert(m>=0 && m<3);
@@ -962,11 +962,11 @@ public:
             r[1] = -(*this)[0];
             r[2] =  (*this)[3];
             r[3] = -(*this)[2];
-        } 
+        }
 
         return r;
     }
-    
+
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
         EmbeddedTangentVector result = v;
@@ -974,7 +974,7 @@ public:
         result.axpy(-1*(data*result), data);
         return result;
     }
-    
+
     /** \brief The global coordinates, if you really want them */
     const CoordinateType& globalCoordinates() const {
         return *this;
@@ -987,7 +987,7 @@ public:
             result[i] = B(i);
         return result;
     }
-    
+
 };
 
 
