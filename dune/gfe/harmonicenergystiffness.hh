@@ -150,7 +150,7 @@ assembleEmbeddedGradient(const Entity& element,
         // loop over all the element's degrees of freedom and compute the gradient wrt it
         for (size_t i=0; i<localSolution.size(); i++) {
 
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> referenceDerivativeDerivative;
+            typename LocalGFEFunctionType::DerivativeOfGradientWRTCoefficientType referenceDerivativeDerivative;
 #ifdef HARMONIC_ENERGY_FD_INNER_GRADIENT
 #warning Using finite differences to compute the inner gradients!
             localGeodesicFEFunction.evaluateFDDerivativeOfGradientWRTCoefficient(quadPos, i, referenceDerivativeDerivative);
@@ -159,7 +159,7 @@ assembleEmbeddedGradient(const Entity& element,
 #endif
 
             // multiply the transformation from the reference element to the actual element
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> derivativeDerivative;
+            typename LocalGFEFunctionType::DerivativeOfGradientWRTCoefficientType derivativeDerivative;
             for (int ii=0; ii<TargetSpace::EmbeddedTangentVector::dimension; ii++)
                 for (int jj=0; jj<TargetSpace::EmbeddedTangentVector::dimension; jj++)
                     for (int kk=0; kk<gridDim; kk++) {
