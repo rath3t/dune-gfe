@@ -2,6 +2,14 @@
 
 #include <fenv.h>
 
+// Includes for the ADOL-C automatic differentiation library
+// Need to come before (almost) all others.
+#include <adolc/adouble.h>
+#include <adolc/drivers/drivers.h>    // use of "Easy to Use" drivers
+#include <adolc/taping.h>
+#undef overwrite  // stupid: ADOL-C sets this to 1, so the name cannot be used
+
+#include <dune/gfe/adolcnamespaceinjections.hh>
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -19,6 +27,7 @@
 #include <dune/solvers/norms/energynorm.hh>
 
 #include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
@@ -240,6 +249,7 @@ int main (int argc, char *argv[]) try
     std::cout << "Material parameters:" << std::endl;
     materialParameters.report();
 
+#if 0
     CosseratEnergyLocalStiffness<GridType::LeafGridView,
                                  P1Basis::LocalFiniteElement,
                                  3> cosseratEnergyLocalStiffness(materialParameters,
@@ -249,6 +259,20 @@ int main (int argc, char *argv[]) try
     GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafView(),
                                                                       &cosseratEnergyLocalStiffness);
 
+#else
+    // Assembler using ADOL-C
+    CosseratEnergyLocalStiffness<GridType::LeafGridView,
+                                 P1Basis::LocalFiniteElement,
+                                 3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
+                                                                              &neumannBoundary,
+                                                                 &neumannFunction);
+    LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
+                                  P1Basis::LocalFiniteElement,
+                                  TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
+
+    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafView(),
+                                                            &localGFEADOLCStiffness);
+#endif
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
