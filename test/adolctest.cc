@@ -18,6 +18,8 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 
+#include <dune/istl/io.hh>
+
 #include <dune/grid/yaspgrid.hh>
 #include <dune/geometry/quadraturerules.hh>
 
@@ -32,6 +34,26 @@
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 
 using namespace Dune;
+
+template <int blocksize>
+void compareMatrices(const Matrix<FieldMatrix<double,blocksize,blocksize> >& fdMatrix,
+                     const Matrix<FieldMatrix<double,blocksize,blocksize> >& adolcMatrix)
+{
+  assert(fdMatrix.N() == adolcMatrix.N());
+  assert(fdMatrix.M() == adolcMatrix.M());
+
+  Matrix<FieldMatrix<double,blocksize,blocksize> > diff = fdMatrix;
+  diff -= adolcMatrix;
+
+  if ( (diff.frobenius_norm() / fdMatrix.frobenius_norm()) > 1e-4) {
+    std::cout << "Matrices differ:" << std::endl;
+    std::cout << "finite differences:" << std::endl;
+    printmatrix(std::cout, fdMatrix, "finite differences", "--");
+    std::cout << "ADOL-C:" << std::endl;
+    printmatrix(std::cout, adolcMatrix, "ADOL-C", "--");
+    assert(false);
+  }
+}
 
 
 int testHarmonicEnergy() {
@@ -80,9 +102,7 @@ int testHarmonicEnergy() {
 
   localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
 
-  std::cout << "finite differences:\n" << harmonicEnergyLocalStiffness.A_[0][0] << std::endl;
-
-  std::cout << "ADOL-C:\n" << localGFEADOLCStiffness.A_[0][0] << std::endl;
+  compareMatrices(harmonicEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_);
 
     return 0;
 }
@@ -147,9 +167,7 @@ int testCosseratEnergy() {
 
     localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
 
-    std::cout << "finite differences:\n" << cosseratEnergyLocalStiffness.A_[0][0] << std::endl;
-
-    std::cout << "ADOL-C:\n" << localGFEADOLCStiffness.A_[0][0] << std::endl;
+    compareMatrices(cosseratEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_);
 
     return 0;
 }
