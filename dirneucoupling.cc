@@ -76,8 +76,8 @@ int main (int argc, char *argv[]) try
     const double ddTolerance     = parameterSet.get<double>("ddTolerance");
     const int maxDDIterations    = parameterSet.get<int>("maxDirichletNeumannSteps");
     const double damping         = parameterSet.get<double>("damping");
-    
-    
+
+
     const double trTolerance           = parameterSet.get<double>("trTolerance");
     const int maxTrustRegionSteps = parameterSet.get<int>("maxTrustRegionSteps");
     const int trVerbosity            = parameterSet.get<int>("trVerbosity");
@@ -112,19 +112,19 @@ int main (int argc, char *argv[]) try
     Dune::array<FieldVector<double,3>,2> rodRestEndPoint;
     rodRestEndPoint[0] = parameterSet.get<FieldVector<double,3> >("rodRestEndPoint0");
     rodRestEndPoint[1] = parameterSet.get<FieldVector<double,3> >("rodRestEndPoint1");
-    
+
     //////////////////////////////////////////////////////////////////
     //  Print the algorithm type so we have it in the log files
     //////////////////////////////////////////////////////////////////
-    
+
     std::cout << "Algorithm:      " << ddType << std::endl;
     if (ddType=="RichardsonIteration")
         std::cout << "Preconditioner: " << preconditioner << std::endl;
-    
+
     // ///////////////////////////////////////////////
     //    Create the rod grid and continuum grid
     // ///////////////////////////////////////////////
-        
+
     typedef OneDGrid RodGridType;
     typedef UGGrid<dim> GridType;
 
@@ -132,14 +132,14 @@ int main (int argc, char *argv[]) try
     typedef BoundaryPatch<GridType::LeafGridView> LeafBoundaryPatch;
 
     RodContinuumComplex<RodGridType,GridType> complex;
-    
+
     complex.rods_["rod"].grid_ = shared_ptr<RodGridType>
                 (new RodGridType(numRodBaseElements, 0, (rodRestEndPoint[1]-rodRestEndPoint[0]).two_norm()));
 
     complex.continua_["continuum"].grid_ = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + objectName));
     complex.continua_["continuum"].grid_->setRefinementType(GridType::COPY);
-    
-    
+
+
 
     // //////////////////////////////////////
     //   Globally refine grids
@@ -165,41 +165,41 @@ int main (int argc, char *argv[]) try
     rodFactory.create(complex.rods_["rod"].dirichletValues_,
                       RigidBodyMotion<double,3>(FieldVector<double,3>(0), Rotation<double,3>::identity()));
     BitSetVector<1> rodDNodes(complex.rods_["rod"].dirichletValues_.size(), false);
-    
+
     // we need at least one Dirichlet side
     assert(parameterSet.hasKey("dirichletValue0") or parameterSet.hasKey("dirichletValue1"));
 
     if (parameterSet.hasKey("dirichletValue0")){
-        
+
         RigidBodyMotion<double,3> dirichletValue;
         dirichletValue.r = parameterSet.get("dirichletValue0", rodRestEndPoint[0]);
         FieldVector<double,3> axis = parameterSet.get("dirichletAxis0", FieldVector<double,3>(0));
         double angle = parameterSet.get("dirichletAngle0", double(0));
         dirichletValue.q = Rotation<double,3>(axis, M_PI*angle/180);
-        
+
         rodX[0] = dirichletValue;
 
         complex.rods_["rod"].dirichletValues_[0] = dirichletValue;
-        
+
         rodDNodes[0] = true;
-        
+
     }
 
     if (parameterSet.hasKey("dirichletValue1")) {
-        
+
         RigidBodyMotion<double,3> dirichletValue;
         dirichletValue.r = parameterSet.get("dirichletValue1", rodRestEndPoint[1]);
         FieldVector<double,3> axis = parameterSet.get("dirichletAxis1", FieldVector<double,3>(0));
         double angle = parameterSet.get("dirichletAngle1", double(0));
         dirichletValue.q = Rotation<double,3>(axis, M_PI*angle/180);
-        
+
         rodX.back() = dirichletValue;
-    
+
         complex.rods_["rod"].dirichletValues_.back() = dirichletValue;
-        
+
         rodDNodes.back() = true;
 
-    } 
+    }
 
     complex.rods_["rod"].dirichletBoundary_.setup(complex.rods_["rod"].grid_->leafView(),rodDNodes);
 
@@ -215,7 +215,7 @@ int main (int argc, char *argv[]) try
     LevelBoundaryPatch coarseDirichletBoundary;
     coarseDirichletBoundary.setup(complex.continua_["continuum"].grid_->levelView(0));
     readBoundaryPatch<GridType>(coarseDirichletBoundary, path + dirichletNodesFile);
-    
+
     LeafBoundaryPatch dirichletBoundary(complex.continua_["continuum"].grid_->leafView());
     BoundaryPatchProlongator<GridType>::prolong(coarseDirichletBoundary, dirichletBoundary);
     complex.continua_["continuum"].dirichletBoundary_ = dirichletBoundary;
@@ -225,15 +225,15 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
-    sampleOnBitField(*complex.continua_["continuum"].grid_, 
-                     coarseDirichletValues, 
-                     complex.continua_["continuum"].dirichletValues_, 
+    sampleOnBitField(*complex.continua_["continuum"].grid_,
+                     coarseDirichletValues,
+                     complex.continua_["continuum"].dirichletValues_,
                      dirichletNodes);
-    
+
     /////////////////////////////////////////////////////////////////////
     //  Create the two interface boundary patches
     /////////////////////////////////////////////////////////////////////
-    
+
     std::pair<std::string,std::string> interfaceName = std::make_pair("rod", "continuum");
 
     // first for the rod
@@ -249,10 +249,10 @@ int main (int argc, char *argv[]) try
     // then for the continuum
     LevelBoundaryPatch coarseInterfaceBoundary(complex.continua_["continuum"].grid_->levelView(0));
     readBoundaryPatch<GridType>(coarseInterfaceBoundary, path + interfaceNodesFile);
-    
+
     BoundaryPatchProlongator<GridType>::prolong(coarseInterfaceBoundary, complex.couplings_[interfaceName].continuumInterfaceBoundary_);
 
-    // ////////////////////////////////////////// 
+    // //////////////////////////////////////////
     //   Assemble 3d linear elasticity problem
     // //////////////////////////////////////////
 
@@ -268,7 +268,7 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
     //    Create solution and rhs vectors
     // ////////////////////////////////////////////////////////////
-    
+
     VectorType x3d(complex.continua_["continuum"].grid_->size(toplevel,dim));
     VectorType rhs3d(complex.continua_["continuum"].grid_->size(toplevel,dim));
 
@@ -278,7 +278,7 @@ int main (int argc, char *argv[]) try
     // Set initial solution
     const VectorType& dirichletValues = complex.continua_["continuum"].dirichletValues_;
     x3d = 0;
-    for (int i=0; i<x3d.size(); i++) 
+    for (int i=0; i<x3d.size(); i++)
         for (int j=0; j<dim; j++)
             if (dirichletNodes[i][j])
                 x3d[i][j] = dirichletValues[i][j];
@@ -289,7 +289,7 @@ int main (int argc, char *argv[]) try
 
     BitSetVector<6> rodDirichletNodes(complex.rods_["rod"].grid_->size(1));
     rodDirichletNodes.unsetAll();
-        
+
     rodDirichletNodes[0] = true;
     rodDirichletNodes.back() = true;
 
@@ -303,7 +303,7 @@ int main (int argc, char *argv[]) try
     RodAssembler<RodGridType::LeafGridView,3> rodAssembler(complex.rods_["rod"].grid_->leafView(), &rodLocalStiffness);
 
     RiemannianTrustRegionSolver<RodGridType,RigidBodyMotion<double,3> > rodSolver;
-    rodSolver.setup(*complex.rods_["rod"].grid_, 
+    rodSolver.setup(*complex.rods_["rod"].grid_,
                     &rodAssembler,
                     rodX,
                     rodDirichletNodes,
@@ -365,15 +365,15 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////
     for (int k=0; k<multigridStep.mgTransfer_.size(); k++)
         delete(multigridStep.mgTransfer_[k]);
-    
+
     multigridStep.mgTransfer_.resize(toplevel);
-    
+
     for (int i=0; i<multigridStep.mgTransfer_.size(); i++){
         CompressedMultigridTransfer<VectorType>* newTransferOp = new CompressedMultigridTransfer<VectorType>;
         newTransferOp->setup(*complex.continua_["continuum"].grid_,i,i+1);
         multigridStep.mgTransfer_[i] = newTransferOp;
     }
-    
+
 
     // /////////////////////////////////////////////////////
     //   Dirichlet-Neumann Solver
@@ -382,13 +382,13 @@ int main (int argc, char *argv[]) try
     RigidBodyMotion<double,3> referenceInterface = (parameterSet.hasKey("dirichletValue1"))
                                           ? rodX[0]
                                           : rodX.back();
-                                          
+
     complex.couplings_[interfaceName].referenceInterface_ = referenceInterface;
 
     // Init interface value
     std::map<std::pair<std::string,std::string>, RigidBodyMotion<double,3> > lambda;
     lambda[interfaceName] = referenceInterface;
-    
+
     ///////////////////////////////////////////////////////////////////////////7
     // make temporary directory for the intermediate iterates
     ///////////////////////////////////////////////////////////////////////////7
@@ -396,24 +396,24 @@ int main (int argc, char *argv[]) try
     sprintf(tmpPathBuffer, "tmp.XXXXXX");
     char* tmpPathChar = mkdtemp(tmpPathBuffer);
     assert(tmpPathChar);
-    
+
     std::string tmpPath(tmpPathChar);//resultPath + "tmp/";
     tmpPath += "/";
     std::cout << "tmp directory is: " << tmpPath << std::endl;
-        
+
 
     //
     double normOfOldCorrection = 1;
     int dnStepsActuallyTaken = 0;
     for (int i=0; i<maxDDIterations; i++) {
-        
+
         std::cout << "----------------------------------------------------" << std::endl;
         std::cout << "      Domain-Decomposition- Step Number: " << i       << std::endl;
         std::cout << "----------------------------------------------------" << std::endl;
-        
+
         // Backup of the current iterate for the error computation later on
         std::map<std::pair<std::string,std::string>, RigidBodyMotion<double,3> > oldLambda  = lambda;
-        
+
         if (ddType=="FixedPointIteration") {
 
             RodContinuumFixedPointStep<RodGridType,GridType> rodContinuumFixedPointStep(complex,
@@ -422,20 +422,20 @@ int main (int argc, char *argv[]) try
                                                                                         &rodSolver,
                                                                                         &stiffnessMatrix3d,
                                                                                         solver);
-            
+
             rodContinuumFixedPointStep.rodSubdomainSolutions_["rod"] = rodX;
             rodContinuumFixedPointStep.continuumSubdomainSolutions_["continuum"] = x3d;
 
             rodContinuumFixedPointStep.iterate(lambda);
-            
+
             // get the subdomain solutions
             rodX = rodContinuumFixedPointStep.rodSubdomainSolutions_["rod"];
             x3d  = rodContinuumFixedPointStep.continuumSubdomainSolutions_["continuum"];
-           
+
         } else if (ddType=="RichardsonIteration") {
-            
+
             Dune::array<double,2> alpha = parameterSet.get<array<double,2> >("NeumannNeumannDamping");
-            
+
             RodContinuumSteklovPoincareStep<RodGridType,GridType> rodContinuumSteklovPoincareStep(complex,
                                                                                                   preconditioner,
                                                                                                   alpha,
@@ -446,13 +446,13 @@ int main (int argc, char *argv[]) try
                                                                                                   &stiffnessMatrix3d,
                                                                                                   solver,
                                                                                                   &localAssembler);
-            
+
             rodContinuumSteklovPoincareStep.iterate(lambda);
-            
+
             // get the subdomain solutions
             rodX = rodContinuumSteklovPoincareStep.rodSubdomainSolutions_["rod"];
             x3d  = rodContinuumSteklovPoincareStep.continuumSubdomainSolutions_["continuum"];
-            
+
         } else
             DUNE_THROW(NotImplemented, ddType << " is not a known domain decomposition algorithm");
 
@@ -465,7 +465,7 @@ int main (int argc, char *argv[]) try
         // First the 3d body
         std::stringstream iAsAscii;
         iAsAscii << i;
-        
+
         std::string iSolFilename = tmpPath + "intermediate3dSolution_" + iAsAscii.str();
 
         LeafAmiraMeshWriter<GridType> amiraMeshWriter;
@@ -476,7 +476,7 @@ int main (int argc, char *argv[]) try
         iSolFilename = tmpPath + "intermediateRodSolution_" + iAsAscii.str();
 
         RodWriter::writeBinary(rodX, iSolFilename);
-        
+
         // ////////////////////////////////////////////
         //   Compute error in the energy norm
         // ////////////////////////////////////////////
@@ -526,11 +526,11 @@ int main (int argc, char *argv[]) try
     RodSolutionType intermediateSolRod(rodX.size());
 
     // Compute error of the initial 3d solution
-    
+
     // This should really be exactSol-initialSol, but we're starting
     // from zero anyways
     oldError += EnergyNorm<MatrixType,VectorType>::normSquared(exactSol3d, stiffnessMatrix3d);
-    
+
     // Error of the initial rod iterate
     RodDifferenceType rodDifference = computeGeodesicDifference(initialIterateRod, exactSolRod);
     oldError += EnergyNorm<BCRSMatrix<FieldMatrix<double,6,6> >,RodDifferenceType>::normSquared(rodDifference, hessianRod);
@@ -552,7 +552,7 @@ int main (int argc, char *argv[]) try
 
     int i;
     for (i=0; i<dnStepsActuallyTaken; i++) {
-        
+
         // /////////////////////////////////////////////////////
         //   Read iteration from file
         // /////////////////////////////////////////////////////
@@ -561,12 +561,12 @@ int main (int argc, char *argv[]) try
         std::stringstream iAsAscii;
         iAsAscii << i;
         std::string iSolFilename = tmpPath + "intermediate3dSolution_" + iAsAscii.str();
-      
+
         AmiraMeshReader<GridType>::readFunction(intermediateSol3d, iSolFilename);
 
         // Read rod solution from file
         iSolFilename = tmpPath + "intermediateRodSolution_" + iAsAscii.str();
-            
+
         FILE* fpInt = fopen(iSolFilename.c_str(), "rb");
         if (!fpInt)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
@@ -574,7 +574,7 @@ int main (int argc, char *argv[]) try
             fread(&intermediateSolRod[j].r, sizeof(double), dim, fpInt);
             fread(&intermediateSolRod[j].q, sizeof(double), 4, fpInt);
         }
-        
+
         fclose(fpInt);
 
 
@@ -582,23 +582,23 @@ int main (int argc, char *argv[]) try
         // /////////////////////////////////////////////////////
         //   Compute error
         // /////////////////////////////////////////////////////
-        
+
         VectorType solBackup0 = intermediateSol3d;
         solBackup0 -= exactSol3d;
 
         RodDifferenceType rodDifference = computeGeodesicDifference(exactSolRod, intermediateSolRod);
-        
+
         error = std::sqrt(EnergyNorm<MatrixType,VectorType>::normSquared(solBackup0, stiffnessMatrix3d)
                           +
                           EnergyNorm<BCRSMatrix<FieldMatrix<double,6,6> >,RodDifferenceType>::normSquared(rodDifference, hessianRod));
-        
+
 
         double convRate = error / oldError;
         totalConvRate[i+1] = totalConvRate[i] * convRate;
 
         // Output
         std::cout << "DD iteration: " << i << "  error : " << error << ",      "
-                  << "convrate " << convRate 
+                  << "convrate " << convRate
                   << "    total conv rate " << std::pow(totalConvRate[i+1], 1/((double)i+1)) << std::endl;
 
         // Convergence rates tend to stay fairly constant after a few initial iterates.
@@ -608,12 +608,12 @@ int main (int argc, char *argv[]) try
         if (convRate > oldConvRate + 0.15 && i > 5 && firstTime) {
 
             std::cout << "Damping: " << damping
-                      << "   convRate: " << std::pow(totalConvRate[i], 1/((double)i)) 
+                      << "   convRate: " << std::pow(totalConvRate[i], 1/((double)i))
                       << std::endl;
 
             std::ofstream convRateFile(filename.c_str());
-            convRateFile << damping << "   " 
-                         << std::pow(totalConvRate[i], 1/((double)i)) 
+            convRateFile << damping << "   "
+                         << std::pow(totalConvRate[i], 1/((double)i))
                          << std::endl;
 
             firstTime = false;
@@ -624,19 +624,19 @@ int main (int argc, char *argv[]) try
 
         oldError = error;
         oldConvRate = convRate;
-        
-    }            
+
+    }
 
     // Convergence without dirt: write the overall convergence rate now
     if (firstTime) {
         int backTrace = std::min(size_t(4),totalConvRate.size());
         std::cout << "Damping: " << damping
-                  << "   convRate: " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
+                  << "   convRate: " << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace))
                   << std::endl;
-        
+
         std::ofstream convRateFile(filename.c_str());
-        convRateFile << damping << "   " 
-                     << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace)) 
+        convRateFile << damping << "   "
+                     << std::pow(totalConvRate[i+1-backTrace], 1/((double)i+1-backTrace))
                      << std::endl;
     }
 
