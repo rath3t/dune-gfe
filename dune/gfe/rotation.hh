@@ -46,7 +46,7 @@ public:
     typedef Dune::FieldVector<T,1> EmbeddedTangentVector;
 
     /** \brief The global convexity radius of the rotation group */
-    static constexpr T convexityRadius = 0.5 * M_PI;
+    static constexpr double convexityRadius = 0.5 * M_PI;
 
     /** \brief Default constructor, create the identity rotation */
     Rotation()
@@ -176,7 +176,7 @@ public:
     typedef Quaternion<T> EmbeddedTangentVector;
 
     /** \brief The global convexity radius of the rotation group */
-    static constexpr T convexityRadius = 0.5 * M_PI;
+    static constexpr double convexityRadius = 0.5 * M_PI;
 
     /** \brief Default constructor creates the identity element */
     Rotation()

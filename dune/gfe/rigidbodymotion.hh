@@ -31,7 +31,7 @@ public:
     typedef Dune::FieldVector<T,embeddedDim> CoordinateType;
 
     /** \brief The global convexity radius of the rigid body motions */
-    static constexpr T convexityRadius = Rotation<T,N>::convexityRadius;
+    static constexpr double convexityRadius = Rotation<T,N>::convexityRadius;
 
     /** \brief Default constructor */
     RigidBodyMotion()

@@ -79,7 +79,7 @@ public:
     typedef Dune::FieldVector<T,N> EmbeddedTangentVector;
 
     /** \brief The global convexity radius of the unit sphere */
-    static constexpr T convexityRadius = 0.5*M_PI;
+    static constexpr double convexityRadius = 0.5*M_PI;
 
     /** \brief Default constructor */
     UnitVector()
