@@ -140,7 +140,7 @@ assembleHessian(const Entity& element,
     std::vector<Dune::array<RT,blocksize> > forwardEnergy(nDofs);
     std::vector<Dune::array<RT,blocksize> > backwardEnergy(nDofs);
 
-    #pragma omp parallel for schedule (dynamic)
+    //#pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
             typename TargetSpace::EmbeddedTangentVector epsXi = B[i][i2];
@@ -164,7 +164,7 @@ assembleHessian(const Entity& element,
     // finite-difference approximation
     // we loop over the lower left triangular half of the matrix.
     // The other half follows from symmetry
-    #pragma omp parallel for schedule (dynamic)
+    //#pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
             for (size_t j=0; j<=i; j++) {
