@@ -59,6 +59,21 @@ public:
         return *this;
     }
 
+    /** \brief Assigment from RealTuple with different type -- used for automatic differentiation with ADOL-C */
+    template <class T2>
+    RealTuple& operator <<= (const RealTuple<T2,N>& other) {
+        for (size_t i=0; i<N; i++)
+            data_[i] <<= other.data_[i];
+        return *this;
+    }
+
+     /** \brief Rebind the RealTuple to another coordinate type */
+    template<class U>
+    struct rebind
+    {
+      typedef RealTuple<U,N> other;
+    };
+
     /** \brief The exponention map */
     static RealTuple exp(const RealTuple& p, const TangentVector& v) {
         return RealTuple(p.data_+v);

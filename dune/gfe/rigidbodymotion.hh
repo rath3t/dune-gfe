@@ -55,6 +55,22 @@ public:
         q.normalize();
     }
 
+    /** \brief Assigment from RigidBodyMotion with different type -- used for automatic differentiation with ADOL-C */
+    template <class T2>
+    RigidBodyMotion& operator <<= (const RigidBodyMotion<T2,N>& other) {
+        for (int i=0; i<N; i++)
+            r[i] <<= other.r[i];
+        q <<= other.q;
+        return *this;
+    }
+
+     /** \brief Rebind the RigidBodyMotion to another coordinate type */
+    template<class U>
+    struct rebind
+    {
+      typedef RigidBodyMotion<U,N> other;
+    };
+
     /** \brief The exponential map from a given point $p \in SE(d)$.
 
      Why the template parameter?  Well, it should work with both TangentVector and EmbeddedTangentVector.
