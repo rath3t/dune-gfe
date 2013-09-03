@@ -93,7 +93,7 @@ public:
                                                                       const Rotation<T,2>& b) {
         // This assertion is here to remind me of the following laziness:
         // The difference has to be computed modulo 2\pi
-        assert( std::fabs(a.angle_ - b.angle_) <= M_PI );
+        assert( std::abs(a.angle_ - b.angle_) <= M_PI );
         return -2 * (a.angle_ - b.angle_);
     }
 
@@ -253,14 +253,14 @@ public:
      */
     static Rotation<T,3> exp(const Rotation<T,3>& p, const EmbeddedTangentVector& v) {
 
-        assert( std::fabs(p*v) < 1e-8 );
+        assert( std::abs(p*v) < 1e-8 );
 
         // The vector v as a quaternion
         Quaternion<T> vQuat(v);
 
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
-        assert( std::fabs(vAtIdentity[3]) < 1e-8 );
+        assert( std::abs(vAtIdentity[3]) < 1e-8 );
 
         // vAtIdentity as a skew matrix
         SkewMatrix<T,3> vMatrix;
@@ -324,7 +324,7 @@ public:
 
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(q);
-        assert( std::fabs(vAtIdentity[3]) < 1e-8 );
+        assert( std::abs(vAtIdentity[3]) < 1e-8 );
 
         SkewMatrix<T,3> skew;
         skew.axial()[0] = 2*vAtIdentity[0];
@@ -336,14 +336,14 @@ public:
 
     static Rotation<T,3> exp(const Rotation<T,3>& p, const Dune::FieldVector<T,4>& v) {
 
-        assert( std::fabs(p*v) < 1e-8 );
+        assert( std::abs(p*v) < 1e-8 );
 
         // The vector v as a quaternion
         Quaternion<T> vQuat(v);
 
         // left multiplication by the inverse base point yields a tangent vector at the identity
         Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
-        assert( std::fabs(vAtIdentity[3]) < 1e-8 );
+        assert( std::abs(vAtIdentity[3]) < 1e-8 );
 
         // vAtIdentity as a skew matrix
         SkewMatrix<T,3> vMatrix;
@@ -660,7 +660,7 @@ public:
         result.axpy(-1*(q*p), q);
 
         // The ternary operator comes from the derivative of the absolute value function
-        result *= 4 * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)) * ( (sp<0) ? -1 : 1 );
+        result *= 4 * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)) * ( (sp<0) ? -1 : 1 );
 
         return result;
     }
@@ -677,7 +677,7 @@ public:
             for (int j=0; j<4; j++)
                 A[i][j] = pProjected[i]*pProjected[j];
 
-        A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp));
+        A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp));
 
         // Compute matrix B (see notes)
         Dune::FieldMatrix<T,4,4> Pq;
@@ -686,7 +686,7 @@ public:
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
 
         // Bring it all together
-        A.axpy(-4* ((sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp))*sp, Pq);
+        A.axpy(-4* ((sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp))*sp, Pq);
 
         return A;
     }
@@ -708,7 +708,7 @@ public:
         Dune::FieldMatrix<T,4,4> A;
         // A = row * column
         Dune::FMatrixHelp::multMatrix(column,row,A);
-        A *= 4 * UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp));
+        A *= 4 * UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp));
 
         // Compute matrix B (see notes)
         Dune::FieldMatrix<T,4,4> Pp, Pq;
@@ -722,7 +722,7 @@ public:
         Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
 
         // Bring it all together
-        A.axpy(4 * ( (sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)), B);
+        A.axpy(4 * ( (sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)), B);
 
         return A;
     }
@@ -751,12 +751,12 @@ public:
             for (int j=0; j<4; j++)
                 for (int k=0; k<4; k++) {
 
-                    result[i][j][k] = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::fabs(sp)) * pProjected[i] * pProjected[j] * pProjected[k]
-                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * ((i==j)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[j])*pProjected[k]
-                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * ((i==k)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[k])*pProjected[j]
-                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * pProjected[i] * Pq[j][k] * sp
-                                    + plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)) * ((i==j)*q.globalCoordinates()[k] + (i==k)*q.globalCoordinates()[j]) * sp
-                                    - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp)) * p.globalCoordinates()[i] * Pq[j][k];
+                    result[i][j][k] = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::abs(sp)) * pProjected[i] * pProjected[j] * pProjected[k]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * ((i==j)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[j])*pProjected[k]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * ((i==k)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[k])*pProjected[j]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * pProjected[i] * Pq[j][k] * sp
+                                    + plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)) * ((i==j)*q.globalCoordinates()[k] + (i==k)*q.globalCoordinates()[j]) * sp
+                                    - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)) * p.globalCoordinates()[i] * Pq[j][k];
                 }
 
         Pq *= 4;
@@ -797,10 +797,10 @@ public:
 
         double plusMinus = (sp < 0) ? -1 : 1;
 
-        result = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::fabs(sp))         * Tensor3<T,4,4,4>::product(qProjected,pProjected,pProjected)
-                 + UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp))      * derivativeOfPqOTimesPq
-                 - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::fabs(sp)) * sp * Tensor3<T,4,4,4>::product(qProjected,Pq)
-                 - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::fabs(sp))            * Tensor3<T,4,4,4>::product(qProjected,Pq);
+        result = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::abs(sp))         * Tensor3<T,4,4,4>::product(qProjected,pProjected,pProjected)
+                 + UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp))      * derivativeOfPqOTimesPq
+                 - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * sp * Tensor3<T,4,4,4>::product(qProjected,Pq)
+                 - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp))            * Tensor3<T,4,4,4>::product(qProjected,Pq);
 
         result *= 4;
 
