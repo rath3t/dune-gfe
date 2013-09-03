@@ -604,6 +604,9 @@ class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<doubl
 
 public:
 
+    /** \brief The type used for derivatives */
+    typedef Dune::FieldMatrix<ctype, embeddedDim, dim> DerivativeType;
+
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
     typedef Tensor3<ctype,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
 
@@ -656,7 +659,7 @@ public:
     }
 
     /** \brief Evaluate the derivative of the function */
-    Dune::FieldMatrix<ctype, embeddedDim, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
         Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
 
@@ -681,7 +684,7 @@ public:
         \param local Local coordinates in the reference element where to evaluate the derivative
         \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
      */
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                                                                        const TargetSpace& q) const
     {
         Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
@@ -704,7 +707,7 @@ public:
     }
 
     /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
-    Dune::FieldMatrix<ctype, embeddedDim, dim> evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
+    DerivativeType evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
     {
         Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
 
