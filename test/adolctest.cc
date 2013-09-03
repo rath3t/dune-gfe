@@ -34,8 +34,60 @@
 using namespace Dune;
 
 
+int testHarmonicEnergy() {
 
-int main() {
+  size_t nDofs = 4;
+
+  const int dim = 2;
+  typedef YaspGrid<dim> GridType;
+  FieldVector<double,dim> l(1);
+  std::array<int,dim> elements = {{1, 1}};
+  GridType grid(l,elements);
+
+  typedef Q1LocalFiniteElement<double,double,dim> LocalFE;
+  LocalFE localFiniteElement;
+
+  typedef UnitVector<double,3> TargetSpace;
+  std::vector<TargetSpace> localSolution(nDofs);
+
+  for (size_t i=0; i<nDofs; i++)
+    localSolution[i] = FieldVector<double,3>(1.0);
+
+  for (size_t i=0; i<localSolution.size(); i++)
+    std::cout << localSolution[i] << std::endl;
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  typedef Q1NodalBasis<GridType::LeafGridView,double> Q1Basis;
+  Q1Basis q1Basis(grid.leafView());
+
+  HarmonicEnergyLocalStiffness<GridType::LeafGridView,
+                               Q1Basis::LocalFiniteElement,
+                               TargetSpace> harmonicEnergyLocalStiffness;
+
+    // Assembler using ADOL-C
+  typedef TargetSpace::rebind<adouble>::other ATargetSpace;
+  HarmonicEnergyLocalStiffness<GridType::LeafGridView,
+                                Q1Basis::LocalFiniteElement,
+                                ATargetSpace> harmonicEnergyADOLCLocalStiffness;
+  LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
+                                Q1Basis::LocalFiniteElement,
+                                TargetSpace> localGFEADOLCStiffness(&harmonicEnergyADOLCLocalStiffness);
+
+
+  harmonicEnergyLocalStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+
+  localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+
+  std::cout << "finite differences:\n" << harmonicEnergyLocalStiffness.A_[0][0] << std::endl;
+
+  std::cout << "ADOL-C:\n" << localGFEADOLCStiffness.A_[0][0] << std::endl;
+
+    return 0;
+}
+
+int testCosseratEnergy() {
 
   size_t nDofs = 4;
 
@@ -100,5 +152,11 @@ int main() {
     std::cout << "ADOL-C:\n" << localGFEADOLCStiffness.A_[0][0] << std::endl;
 
     return 0;
-} // end main
+}
 
+
+int main()
+{
+   testHarmonicEnergy();
+   testCosseratEnergy();
+}
