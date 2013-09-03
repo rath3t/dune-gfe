@@ -144,59 +144,62 @@ int testHarmonicEnergy() {
 
 int testCosseratEnergy() {
 
-  size_t nDofs = 4;
+  typedef RigidBodyMotion<double,3> TargetSpace;
+  const int gridDim = 2;
 
-  const int dim = 2;
-  typedef YaspGrid<dim> GridType;
-  FieldVector<double,dim> l(1);
-  std::array<int,dim> elements = {{1, 1}};
+  std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << gridDim << " ---" << std::endl;
+
+  ParameterTree parameterSet;
+  ParameterTreeParser::readINITree("../cosserat-continuum.parset", parameterSet);
+
+  const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
+  std::cout << "Material parameters:" << std::endl;
+  materialParameters.report();
+
+  // set up a test grid
+  typedef YaspGrid<gridDim> GridType;
+  FieldVector<double,gridDim> l(1);
+  std::array<int,gridDim> elements;
+  std::fill(elements.begin(), elements.end(), 1);
   GridType grid(l,elements);
 
-  typedef Q1LocalFiniteElement<double,double,dim> LocalFE;
+  typedef Q1NodalBasis<typename GridType::LeafGridView,double> Q1Basis;
+  Q1Basis q1Basis(grid.leafView());
+
+  typedef Q1LocalFiniteElement<double,double,gridDim> LocalFE;
   LocalFE localFiniteElement;
 
-  //typedef RealTuple<double,1> TargetSpace;
-  typedef RigidBodyMotion<double,3> TargetSpace;
+  // Assembler using finite differences
+  CosseratEnergyLocalStiffness<GridType::LeafGridView,
+                               Q1Basis::LocalFiniteElement,
+                               3> cosseratEnergyLocalStiffness(materialParameters,NULL,NULL);
+
+  // Assembler using ADOL-C
+  CosseratEnergyLocalStiffness<GridType::LeafGridView,
+                               Q1Basis::LocalFiniteElement,
+                               3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters, NULL, NULL);
+  LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
+                                Q1Basis::LocalFiniteElement,
+                                TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
+
+  size_t nDofs = localFiniteElement.localBasis().size();
+
   std::vector<TargetSpace> localSolution(nDofs);
-  FieldVector<double,7> identity(0);
-  identity[6] = 1;
+  std::vector<TargetSpace> testPoints;
+  ValueFactory<TargetSpace>::get(testPoints);
 
-  for (auto vIt = grid.leafbegin<dim>(); vIt != grid.leafend<dim>(); ++vIt) {
-    localSolution[grid.leafView().indexSet().index(*vIt)].r = 0;
-    for (int i=0; i<dim; i++)
-      localSolution[grid.leafView().indexSet().index(*vIt)].r[i] = 2*vIt->geometry().corner(0)[i];
-    localSolution[grid.leafView().indexSet().index(*vIt)].q = Rotation<double,3>::identity();
-  }
+  int nTestPoints = testPoints.size();
 
-  for (size_t i=0; i<localSolution.size(); i++)
-    std::cout << localSolution[i] << std::endl;
+  MultiIndex index(nDofs, nTestPoints);
+  int numIndices = index.cycle();
 
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  for (int i=0; i<numIndices; i++, ++index) {
 
-    typedef Q1NodalBasis<GridType::LeafGridView,double> Q1Basis;
-    Q1Basis q1Basis(grid.leafView());
+    for (size_t j=0; j<nDofs; j++)
+      localSolution[j] = testPoints[index[j]];
 
-    ParameterTree parameterSet;
-    ParameterTreeParser::readINITree("../cosserat-continuum.parset", parameterSet);
-
-    const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    std::cout << "Material parameters:" << std::endl;
-    materialParameters.report();
-
-
-      CosseratEnergyLocalStiffness<GridType::LeafGridView,
-                                 Q1Basis::LocalFiniteElement,
-                                 3> cosseratEnergyLocalStiffness(materialParameters,NULL,NULL);
-
-    // Assembler using ADOL-C
-    CosseratEnergyLocalStiffness<GridType::LeafGridView,
-                                 Q1Basis::LocalFiniteElement,
-                                 3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters, NULL, NULL);
-    LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
-                                  Q1Basis::LocalFiniteElement,
-                                  TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
-
+    if (diameter(localSolution) > TargetSpace::convexityRadius)
+        continue;
 
     cosseratEnergyLocalStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
 
@@ -204,7 +207,9 @@ int testCosseratEnergy() {
 
     compareMatrices(cosseratEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_, localSolution);
 
-    return 0;
+  }
+
+  return 0;
 }
 
 
