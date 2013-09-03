@@ -295,9 +295,6 @@ int main (int argc, char *argv[]) try
         //   Solve!
         // /////////////////////////////////////////////////////
 
-        std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
-        //exit(0);
-
         solver.setInitialSolution(x);
         solver.solve();
 
