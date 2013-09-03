@@ -1,6 +1,8 @@
 #ifndef DUNE_GFE_ADOLC_NAMESPACE_INJECTIONS_HH
 #define DUNE_GFE_ADOLC_NAMESPACE_INJECTIONS_HH
 
+#include <limits>
+
 adouble min_hack(const adouble& a, const adouble& b) {
     return min(a,b);
 }
@@ -84,6 +86,21 @@ namespace std
      return std::isinf(a.value());
    }
 
+   /** \brief Specialization of the numeric_limits class for adouble */
+   template <>
+   struct numeric_limits<adouble> {
+
+      static adouble max() {
+        return numeric_limits<double>::max();
+      }
+
+      static adouble quiet_NaN() {
+        return numeric_limits<double>::quiet_NaN();
+      }
+
+      static constexpr bool is_integer = false;
+
+   };
 }
 
 #endif
