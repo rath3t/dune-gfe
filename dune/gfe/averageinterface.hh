@@ -7,6 +7,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 #include <dune/istl/solvers.hh>
+#include <dune/istl/preconditioners.hh>
 
 #include <dune/fufem/dgindexset.hh>
 #include <dune/fufem/crossproduct.hh>
