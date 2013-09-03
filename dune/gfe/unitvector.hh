@@ -64,6 +64,7 @@ public:
 
     /** \brief The type used for coordinates */
     typedef T ctype;
+    typedef T field_type;
 
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<T,N> CoordinateType;
