@@ -85,8 +85,23 @@ energy(const Entity& element,
 
     adouble energy = 0;
 
-    for (size_t i=0; i<localSolution.size(); i++)
-      localASolution[i] <<=localSolution[i];
+    // The following loop is not quite intuitive: we copy the localSolution into an
+    // array of FieldVector<double>, go from there to FieldVector<adouble> and
+    // only then to ATargetSpace.
+    // Rationale: The constructor/assignment-from-vector of TargetSpace frequently
+    // contains a projection onto the manifold from the surrounding Euclidean space.
+    // ADOL-C needs a function on the whole Euclidean space, hence that proction
+    // is part of the function and needs to be taped.
+
+    // The following variable cannot be declared inside of the loop, or ADOL-C will report wrong results
+    // (Presumably because several independent variables use the same memory location.)
+    std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
+    for (size_t i=0; i<localSolution.size(); i++) {
+      typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
+      for (size_t j=0; j<raw.size(); j++)
+        aRaw[i][j] <<= raw[j];
+      localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
+    }
 
     energy = localEnergy_->energy(element,localFiniteElement,localASolution);
 
@@ -118,8 +133,23 @@ assembleGradient(const Entity& element,
 
     adouble energy = 0;
 
-    for (size_t i=0; i<localSolution.size(); i++)
-      localASolution[i] <<=localSolution[i];
+    // The following loop is not quite intuitive: we copy the localSolution into an
+    // array of FieldVector<double>, go from there to FieldVector<adouble> and
+    // only then to ATargetSpace.
+    // Rationale: The constructor/assignment-from-vector of TargetSpace frequently
+    // contains a projection onto the manifold from the surrounding Euclidean space.
+    // ADOL-C needs a function on the whole Euclidean space, hence that proction
+    // is part of the function and needs to be taped.
+
+    // The following variable cannot be declared inside of the loop, or ADOL-C will report wrong results
+    // (Presumably because several independent variables use the same memory location.)
+    std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
+    for (size_t i=0; i<localSolution.size(); i++) {
+      typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
+      for (size_t j=0; j<raw.size(); j++)
+        aRaw[i][j] <<= raw[j];
+      localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
+    }
 
     energy = localEnergy_->energy(element,localFiniteElement,localASolution);
 
@@ -183,8 +213,23 @@ assembleHessian(const Entity& element,
 
     adouble energy = 0;
 
-    for (size_t i=0; i<localSolution.size(); i++)
-      localASolution[i] <<=localSolution[i];
+    // The following loop is not quite intuitive: we copy the localSolution into an
+    // array of FieldVector<double>, go from there to FieldVector<adouble> and
+    // only then to ATargetSpace.
+    // Rationale: The constructor/assignment-from-vector of TargetSpace frequently
+    // contains a projection onto the manifold from the surrounding Euclidean space.
+    // ADOL-C needs a function on the whole Euclidean space, hence that proction
+    // is part of the function and needs to be taped.
+
+    // The following variable cannot be declared inside of the loop, or ADOL-C will report wrong results
+    // (Presumably because several independent variables use the same memory location.)
+    std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
+    for (size_t i=0; i<localSolution.size(); i++) {
+      typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
+      for (size_t j=0; j<raw.size(); j++)
+        aRaw[i][j] <<= raw[j];
+      localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
+    }
 
     energy = localEnergy_->energy(element,localFiniteElement,localASolution);
 
