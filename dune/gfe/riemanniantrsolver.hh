@@ -79,7 +79,11 @@ public:
 
     void solve();
 
-    void setInitialSolution(const SolutionType& x) {
+    void setInitialSolution(const SolutionType& x) DUNE_DEPRECATED {
+        x_ = x;
+    }
+
+    void setInitialIterate(const SolutionType& x) {
         x_ = x;
     }
 
