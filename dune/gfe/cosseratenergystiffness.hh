@@ -19,13 +19,13 @@
 //#define QUADRATIC_MEMBRANE_ENERGY
 
 
-template<class GridView, class LocalFiniteElement, int dim>
+template<class GridView, class LocalFiniteElement, int dim, class field_type=double>
 class CosseratEnergyLocalStiffness
-    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<double,dim> >
+    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<field_type,dim> >
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
-    typedef RigidBodyMotion<double,dim> TargetSpace;
+    typedef RigidBodyMotion<field_type,dim> TargetSpace;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -34,9 +34,9 @@ class CosseratEnergyLocalStiffness
 
 
     /** \brief Compute the symmetric part of a matrix A, i.e. \f$ \frac 12 (A + A^T) \f$ */
-    static Dune::FieldMatrix<double,dim,dim> sym(const Dune::FieldMatrix<double,dim,dim>& A)
+    static Dune::FieldMatrix<field_type,dim,dim> sym(const Dune::FieldMatrix<field_type,dim,dim>& A)
     {
-        Dune::FieldMatrix<double,dim,dim> result;
+        Dune::FieldMatrix<field_type,dim,dim> result;
         for (int i=0; i<dim; i++)
             for (int j=0; j<dim; j++)
                 result[i][j] = 0.5 * (A[i][j] + A[j][i]);
@@ -44,9 +44,9 @@ class CosseratEnergyLocalStiffness
     }
 
     /** \brief Compute the antisymmetric part of a matrix A, i.e. \f$ \frac 12 (A - A^T) \f$ */
-    static Dune::FieldMatrix<double,dim,dim> skew(const Dune::FieldMatrix<double,dim,dim>& A)
+    static Dune::FieldMatrix<field_type,dim,dim> skew(const Dune::FieldMatrix<field_type,dim,dim>& A)
     {
-        Dune::FieldMatrix<double,dim,dim> result;
+        Dune::FieldMatrix<field_type,dim,dim> result;
         for (int i=0; i<dim; i++)
             for (int j=0; j<dim; j++)
                 result[i][j] = 0.5 * (A[i][j] - A[j][i]);
@@ -55,9 +55,9 @@ class CosseratEnergyLocalStiffness
 
     /** \brief Return the square of the trace of a matrix */
     template <int N>
-    static double traceSquared(const Dune::FieldMatrix<double,N,N>& A)
+    static field_type traceSquared(const Dune::FieldMatrix<field_type,N,N>& A)
     {
-        double trace = 0;
+        field_type trace = 0;
         for (int i=0; i<N; i++)
             trace += A[i][i];
         return trace*trace;
@@ -66,9 +66,9 @@ class CosseratEnergyLocalStiffness
     /** \brief Compute the (row-wise) curl of a matrix R \f$
         \param DR The partial derivatives of the matrix R
      */
-    static Dune::FieldMatrix<double,dim,dim> curl(const Tensor3<double,dim,dim,dim>& DR)
+    static Dune::FieldMatrix<field_type,dim,dim> curl(const Tensor3<field_type,dim,dim,dim>& DR)
     {
-        Dune::FieldMatrix<double,dim,dim> result;
+        Dune::FieldMatrix<field_type,dim,dim> result;
 
         for (int i=0; i<dim; i++) {
             result[i][0] = DR[i][2][1] - DR[i][1][2];
@@ -83,9 +83,9 @@ class CosseratEnergyLocalStiffness
      *
      * Optimized for U, as we know a bit about its structure
      */
-    static Dune::FieldMatrix<double,dim,dim> adjugateU(const Dune::FieldMatrix<double,dim,dim>& U)
+    static Dune::FieldMatrix<field_type,dim,dim> adjugateU(const Dune::FieldMatrix<field_type,dim,dim>& U)
     {
-        Dune::FieldMatrix<double,dim,dim> result;
+        Dune::FieldMatrix<field_type,dim,dim> result;
 
         result[0][0] =  U[1][1];
         result[0][1] = -U[0][1];
@@ -109,9 +109,9 @@ public:  // for testing
         \param derivative First derivative of the gfe function wrt x at that point, in quaternion coordinates
         \param DR First derivative of the gfe function wrt x at that point, in matrix coordinates
      */
-    static void computeDR(const RigidBodyMotion<double,3>& value,
-                          const Dune::FieldMatrix<double,7,gridDim>& derivative,
-                          Tensor3<double,3,3,3>& DR)
+    static void computeDR(const RigidBodyMotion<field_type,3>& value,
+                          const Dune::FieldMatrix<field_type,7,gridDim>& derivative,
+                          Tensor3<field_type,3,3,3>& DR)
     {
         // The LocalGFEFunction class gives us the derivatives of the orientation variable,
         // but as a map into quaternion space.  To obtain matrix coordinates we use the
@@ -122,10 +122,10 @@ public:  // for testing
         // corresponding orthogonal matrix, we need to invert the i and j indices
         //
         // So, if I am not mistaken, DR[i][j][k] contains \partial R_ij / \partial k
-        Tensor3<double,3 , 3, 4> dd_dq;
+        Tensor3<field_type,3 , 3, 4> dd_dq;
         value.q.getFirstDerivativesOfDirectors(dd_dq);
 
-        DR = 0;
+        DR = field_type(0);
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
                 for (int k=0; k<gridDim; k++)
@@ -138,9 +138,9 @@ public:  // for testing
         \param value Value of the gfe function at a certain point
         \param derivative First derivative of the gfe function wrt the coefficients at that point, in quaternion coordinates
      */
-    static void computeDR_dv(const RigidBodyMotion<double,3>& value,
-                          const Dune::FieldMatrix<double,7,7>& derivative,
-                          Tensor3<double,3,3,4>& dR_dv)
+    static void computeDR_dv(const RigidBodyMotion<field_type,3>& value,
+                          const Dune::FieldMatrix<field_type,7,7>& derivative,
+                          Tensor3<field_type,3,3,4>& dR_dv)
     {
         // The LocalGFEFunction class gives us the derivatives of the orientation variable,
         // but as a map into quaternion space.  To obtain matrix coordinates we use the
@@ -151,10 +151,10 @@ public:  // for testing
         // corresponding orthogonal matrix, we need to invert the i and j indices
         //
         // So, if I am not mistaken, DR[i][j][k] contains \partial R_ij / \partial k
-        Tensor3<double,3 , 3, 4> dd_dq;
+        Tensor3<field_type,3 , 3, 4> dd_dq;
         value.q.getFirstDerivativesOfDirectors(dd_dq);
 
-        dR_dv = 0;
+        dR_dv = field_type(0);
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
                 for (int k=0; k<4; k++)
@@ -169,12 +169,12 @@ public:  // for testing
         \param value Value of the gfe function at a certain point
         \param derivative First derivative of the gfe function wrt the coefficients at that point, in quaternion coordinates
      */
-    static void compute_dDR_dv(const RigidBodyMotion<double,3>& value,
-                               const Dune::FieldMatrix<double,7,gridDim>& derOfValueWRTx,
-                               const Dune::FieldMatrix<double,7,7>& derOfValueWRTCoefficient,
-                               const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
-                               Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv,
-                               Tensor3<double,3,gridDim,4>& dDR3_dv)
+    static void compute_dDR_dv(const RigidBodyMotion<field_type,3>& value,
+                               const Dune::FieldMatrix<field_type,7,gridDim>& derOfValueWRTx,
+                               const Dune::FieldMatrix<field_type,7,7>& derOfValueWRTCoefficient,
+                               const Tensor3<field_type,7,7,gridDim>& derOfGradientWRTCoefficient,
+                               Dune::array<Tensor3<field_type,3,3,4>, 3>& dDR_dv,
+                               Tensor3<field_type,3,gridDim,4>& dDR3_dv)
     {
         // The LocalGFEFunction class gives us the derivatives of the orientation variable,
         // but as a map into quaternion space.  To obtain matrix coordinates we use the
@@ -185,15 +185,15 @@ public:  // for testing
         // corresponding orthogonal matrix, we need to invert the i and j indices
         //
         // So, if I am not mistaken, DR[i][j][k] contains \partial R_ij / \partial k
-        Tensor3<double,3 , 3, 4> dd_dq;
+        Tensor3<field_type,3 , 3, 4> dd_dq;
         value.q.getFirstDerivativesOfDirectors(dd_dq);
 
         /** \todo This is a constant -- don't recompute it every time */
-        Dune::array<Tensor3<double,3,4,4>, 3> dd_dq_dq;
-        Rotation<double,3>::getSecondDerivativesOfDirectors(dd_dq_dq);
+        Dune::array<Tensor3<field_type,3,4,4>, 3> dd_dq_dq;
+        Rotation<field_type,3>::getSecondDerivativesOfDirectors(dd_dq_dq);
 
         for (size_t i=0; i<dDR_dv.size(); i++)
-            dDR_dv[i] = 0;
+            dDR_dv[i] = field_type(0);
 
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
@@ -215,23 +215,23 @@ public:  // for testing
         // by projecting onto the tangent space at S^2.  Yes, that is something different!
         ///////////////////////////////////////////////////////////////////////////////////////////
 
-        Dune::FieldMatrix<double,3,3> Mtmp;
+        Dune::FieldMatrix<field_type,3,3> Mtmp;
         value.q.matrix(Mtmp);
-        OrthogonalMatrix<double,3> M(Mtmp);
+        OrthogonalMatrix<field_type,3> M(Mtmp);
 
-        Dune::FieldVector<double,3> tmpDirector;
+        Dune::FieldVector<field_type,3> tmpDirector;
         for (int i=0; i<3; i++)
             tmpDirector[i] = M.data()[i][2];
-        UnitVector<double,3> director(tmpDirector);
+        UnitVector<field_type,3> director(tmpDirector);
 
         for (int k=0; k<gridDim; k++)
             for (int v_i=0; v_i<4; v_i++) {
 
-                Dune::FieldVector<double,3> unprojected;
+                Dune::FieldVector<field_type,3> unprojected;
                 for (int i=0; i<3; i++)
                     unprojected[i] = dDR_dv[i][2][k][v_i];
 
-                Dune::FieldVector<double,3> projected = director.projectOntoTangentSpace(unprojected);
+                Dune::FieldVector<field_type,3> projected = director.projectOntoTangentSpace(unprojected);
 
                 for (int i=0; i<3; i++)
                     dDR3_dv[i][k][v_i] = projected[i];
@@ -245,12 +245,12 @@ public:  // for testing
         for (int k=0; k<gridDim; k++)
             for (int v_i=0; v_i<4; v_i++) {
 
-                Dune::FieldMatrix<double,3,3> unprojected;
+                Dune::FieldMatrix<field_type,3,3> unprojected;
                 for (int i=0; i<3; i++)
                     for (int j=0; j<3; j++)
                         unprojected[i][j] = dDR_dv[i][j][k][v_i];
 
-                Dune::FieldMatrix<double,3,3> projected = M.projectOntoTangentSpace(unprojected);
+                Dune::FieldMatrix<field_type,3,3> projected = M.projectOntoTangentSpace(unprojected);
 
                 for (int i=0; i<3; i++)
                     for (int j=0; j<3; j++)
@@ -304,9 +304,9 @@ public:
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the first equation of (4.4) in Neff's paper
      */
-    RT quadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
+    RT quadraticMembraneEnergy(const Dune::FieldMatrix<field_type,3,3>& U) const
     {
-        Dune::FieldMatrix<double,3,3> UMinus1 = U;
+        Dune::FieldMatrix<field_type,3,3> UMinus1 = U;
         for (int i=0; i<dim; i++)
             UMinus1[i][i] -= 1;
 
@@ -318,12 +318,12 @@ public:
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the second equation of (4.4) in Neff's paper
      */
-    RT longQuadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
+    RT longQuadraticMembraneEnergy(const Dune::FieldMatrix<field_type,3,3>& U) const
     {
         RT result = 0;
 
         // shear-stretch energy
-        Dune::FieldMatrix<double,dim-1,dim-1> sym2x2;
+        Dune::FieldMatrix<field_type,dim-1,dim-1> sym2x2;
         for (int i=0; i<dim-1; i++)
             for (int j=0; j<dim-1; j++)
                 sym2x2[i][j] = 0.5 * (U[i][j] + U[j][i]) - (i==j);
@@ -331,7 +331,7 @@ public:
         result += mu_ * sym2x2.frobenius_norm2();
 
         // first order drill energy
-        Dune::FieldMatrix<double,dim-1,dim-1> skew2x2;
+        Dune::FieldMatrix<field_type,dim-1,dim-1> skew2x2;
         for (int i=0; i<dim-1; i++)
             for (int j=0; j<dim-1; j++)
                 skew2x2[i][j] = 0.5 * (U[i][j] - U[j][i]);
@@ -350,9 +350,9 @@ public:
 
     /** \brief Energy for large-deformation problems (private communication by Patrizio Neff)
      */
-    RT nonquadraticMembraneEnergy(const Dune::FieldMatrix<double,3,3>& U) const
+    RT nonquadraticMembraneEnergy(const Dune::FieldMatrix<field_type,3,3>& U) const
     {
-        Dune::FieldMatrix<double,3,3> UMinus1 = U;
+        Dune::FieldMatrix<field_type,3,3> UMinus1 = U;
         for (int i=0; i<dim; i++)
             UMinus1[i][i] -= 1;
 
@@ -362,7 +362,7 @@ public:
                 + (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
     }
 
-    RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
+    RT curvatureEnergy(const Tensor3<field_type,3,3,3>& DR) const
     {
 #ifdef DONT_USE_CURL
         return mu_ * std::pow(L_c_ * DR.frobenius_norm2(),q_/2.0);
@@ -371,10 +371,10 @@ public:
 #endif
     }
 
-    RT bendingEnergy(const Dune::FieldMatrix<double,dim,dim>& R, const Tensor3<double,3,3,3>& DR) const
+    RT bendingEnergy(const Dune::FieldMatrix<field_type,dim,dim>& R, const Tensor3<field_type,3,3,3>& DR) const
     {
         // left-multiply the derivative of the third director (in DR[][2][]) with R^T
-        Dune::FieldMatrix<double,3,3> RT_DR3;
+        Dune::FieldMatrix<field_type,3,3> RT_DR3;
         for (int i=0; i<3; i++)
             for (int j=0; j<3; j++) {
                 RT_DR3[i][j] = 0;
@@ -393,29 +393,29 @@ public:
     //  Methods to compute the energy gradient
     ///////////////////////////////////////////////////////////////////////////////////////
     void longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& localGradient,
-                                    const Dune::FieldMatrix<double,3,3>& R,
-                                    const Tensor3<double,3,3,4>& dR_dv,
-                                    const Dune::FieldMatrix<double,7,gridDim>& derivative,
-                                    const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
-                                    const Dune::FieldMatrix<double,3,3>& U) const;
+                                    const Dune::FieldMatrix<field_type,3,3>& R,
+                                    const Tensor3<field_type,3,3,4>& dR_dv,
+                                    const Dune::FieldMatrix<field_type,7,gridDim>& derivative,
+                                    const Tensor3<field_type,7,7,gridDim>& derOfGradientWRTCoefficient,
+                                    const Dune::FieldMatrix<field_type,3,3>& U) const;
 
     void nonquadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& localGradient,
-                                    const Dune::FieldMatrix<double,3,3>& R,
-                                    const Tensor3<double,3,3,4>& dR_dv,
-                                    const Dune::FieldMatrix<double,7,gridDim>& derivative,
-                                    const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
-                                    const Dune::FieldMatrix<double,3,3>& U) const;
+                                    const Dune::FieldMatrix<field_type,3,3>& R,
+                                    const Tensor3<field_type,3,3,4>& dR_dv,
+                                    const Dune::FieldMatrix<field_type,7,gridDim>& derivative,
+                                    const Tensor3<field_type,7,7,gridDim>& derOfGradientWRTCoefficient,
+                                    const Dune::FieldMatrix<field_type,3,3>& U) const;
 
     void curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
-                                 const Dune::FieldMatrix<double,3,3>& R,
-                                 const Tensor3<double,3,3,3>& DR,
-                                 const Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv) const;
+                                 const Dune::FieldMatrix<field_type,3,3>& R,
+                                 const Tensor3<field_type,3,3,3>& DR,
+                                 const Dune::array<Tensor3<field_type,3,3,4>, 3>& dDR_dv) const;
 
     void bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
-                               const Dune::FieldMatrix<double,3,3>& R,
-                               const Tensor3<double,3,3,4>& dR_dv,
-                               const Tensor3<double,3,3,3>& DR,
-                               const Tensor3<double,3,gridDim,4>& dDR3_dv) const;
+                               const Dune::FieldMatrix<field_type,3,3>& R,
+                               const Tensor3<field_type,3,3,4>& dR_dv,
+                               const Tensor3<field_type,3,3,3>& DR,
+                               const Tensor3<field_type,3,gridDim,4>& dDR3_dv) const;
 
 
     /** \brief The shell thickness */
@@ -443,12 +443,12 @@ public:
     const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction_;
 };
 
-template <class GridView, class LocalFiniteElement, int dim>
-typename CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim>::RT
-CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim>::
+template <class GridView, class LocalFiniteElement, int dim, class field_type>
+typename CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim,field_type>::RT
+CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim,field_type>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
-       const std::vector<RigidBodyMotion<double,dim> >& localSolution) const
+       const std::vector<RigidBodyMotion<field_type,dim> >& localSolution) const
 {
     assert(element.type() == localFiniteElement.type());
     typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
@@ -461,22 +461,22 @@ energy(const Entity& element,
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
                                                  : localFiniteElement.localBasis().order() * gridDim;
 
-    const Dune::QuadratureRule<double, gridDim>& quad
-        = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
+    const Dune::QuadratureRule<DT, gridDim>& quad
+        = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
     for (size_t pt=0; pt<quad.size(); pt++) {
 
         // Local position of the quadrature point
-        const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
+        const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
 
-        const double integrationElement = element.geometry().integrationElement(quadPos);
+        const DT integrationElement = element.geometry().integrationElement(quadPos);
 
         const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
-        double weight = quad[pt].weight() * integrationElement;
+        DT weight = quad[pt].weight() * integrationElement;
 
         // The value of the local function
-        RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
+        RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
         // The derivative of the local function defined on the reference element
         typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
@@ -493,7 +493,7 @@ energy(const Entity& element,
         dune_static_assert(dim>=gridDim, "Codim of the grid must be nonnegative");
 
         //
-        Dune::FieldMatrix<double,dim,dim> R;
+        Dune::FieldMatrix<field_type,dim,dim> R;
         value.q.matrix(R);
 
         /* Compute F, the deformation gradient.
@@ -502,7 +502,7 @@ energy(const Entity& element,
            In the case of a shell it is
           \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
         */
-        Dune::FieldMatrix<double,dim,dim> F;
+        Dune::FieldMatrix<field_type,dim,dim> F;
         for (int i=0; i<dim; i++)
             for (int j=0; j<gridDim; j++)
                 F[i][j] = derivative[i][j];
@@ -512,7 +512,7 @@ energy(const Entity& element,
                 F[i][j] = R[i][j];
 
         // U = R^T F
-        Dune::FieldMatrix<double,dim,dim> U;
+        Dune::FieldMatrix<field_type,dim,dim> U;
         for (int i=0; i<dim; i++)
             for (int j=0; j<dim; j++) {
                 U[i][j] = 0;
@@ -525,7 +525,7 @@ energy(const Entity& element,
         //  Note: we need it in matrix coordinates
         //////////////////////////////////////////////////////////
 
-        Tensor3<double,3,3,3> DR;
+        Tensor3<field_type,3,3,3> DR;
         computeDR(value, derivative, DR);
 
         // Add the local energy density
@@ -559,18 +559,18 @@ energy(const Entity& element,
         if (not neumannBoundary_ or not neumannBoundary_->contains(*it))
             continue;
 
-        const Dune::QuadratureRule<double, gridDim-1>& quad
-            = Dune::QuadratureRules<double, gridDim-1>::rule(it->type(), quadOrder);
+        const Dune::QuadratureRule<DT, gridDim-1>& quad
+            = Dune::QuadratureRules<DT, gridDim-1>::rule(it->type(), quadOrder);
 
         for (size_t pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
-            const Dune::FieldVector<double,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
+            const Dune::FieldVector<DT,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
 
-            const double integrationElement = it->geometry().integrationElement(quad[pt].position());
+            const DT integrationElement = it->geometry().integrationElement(quad[pt].position());
 
             // The value of the local function
-            RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
+            RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
             // Value of the Neumann data at the current position
             Dune::FieldVector<double,3> neumannValue;
@@ -581,7 +581,8 @@ energy(const Entity& element,
                 neumannFunction_->evaluate(it->geometry().global(quad[pt].position()), neumannValue);
 
             // Only translational dofs are affected by the Neumann force
-            energy += thickness_ * (neumannValue * value.r) * quad[pt].weight() * integrationElement;
+            for (size_t i=0; i<neumannValue.size(); i++)
+                energy += thickness_ * (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
 
         }
 
@@ -590,18 +591,18 @@ energy(const Entity& element,
     return energy;
 }
 
-template <class GridView, class LocalFiniteElement, int dim>
-void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+template <class GridView, class LocalFiniteElement, int dim, class field_type>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim, field_type>::
 nonquadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
-                                    const Dune::FieldMatrix<double,3,3>& R,
-                                    const Tensor3<double,3,3,4>& dR_dv,
-                                    const Dune::FieldMatrix<double,7,gridDim>& derivative,
-                                    const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
-                                    const Dune::FieldMatrix<double,3,3>& U
+                                    const Dune::FieldMatrix<field_type,3,3>& R,
+                                    const Tensor3<field_type,3,3,4>& dR_dv,
+                                    const Dune::FieldMatrix<field_type,7,gridDim>& derivative,
+                                    const Tensor3<field_type,7,7,gridDim>& derOfGradientWRTCoefficient,
+                                    const Dune::FieldMatrix<field_type,3,3>& U
                                    ) const
 {
     // Compute partial/partial v ((R_1|R_2)^T\nablam)
-    Tensor3<double,3,3,7> dU_dv(0);
+    Tensor3<field_type,3,3,7> dU_dv(0);
 
     for (size_t i=0; i<3; i++) {
 
@@ -634,7 +635,7 @@ nonquadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& 
 
         for (size_t i=0; i<3; i++)
             for (size_t j=0; j<3; j++) {
-                double symUMinusI = 0.5*U[i][j] + 0.5*U[j][i] - (i==j);
+                field_type symUMinusI = 0.5*U[i][j] + 0.5*U[j][i] - (i==j);
                 embeddedLocalGradient[v_i] += mu_ * symUMinusI * (dU_dv[i][j][v_i] + dU_dv[j][i][v_i]);
             }
 
@@ -655,18 +656,18 @@ nonquadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& 
 }
 
 
-template <class GridView, class LocalFiniteElement, int dim>
-void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+template <class GridView, class LocalFiniteElement, int dim, class field_type>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim, field_type>::
 longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
-                                    const Dune::FieldMatrix<double,3,3>& R,
-                                    const Tensor3<double,3,3,4>& dR_dv,
-                                    const Dune::FieldMatrix<double,7,gridDim>& derivative,
-                                    const Tensor3<double,7,7,gridDim>& derOfGradientWRTCoefficient,
-                                    const Dune::FieldMatrix<double,3,3>& U
+                                    const Dune::FieldMatrix<field_type,3,3>& R,
+                                    const Tensor3<field_type,3,3,4>& dR_dv,
+                                    const Dune::FieldMatrix<field_type,7,gridDim>& derivative,
+                                    const Tensor3<field_type,7,7,gridDim>& derOfGradientWRTCoefficient,
+                                    const Dune::FieldMatrix<field_type,3,3>& U
                                    ) const
 {
     // Compute partial/partial v ((R_1|R_2)^T\nablam)
-    Tensor3<double,2,2,7> dR1R2Tnablam_dv(0);
+    Tensor3<field_type,2,2,7> dR1R2Tnablam_dv(0);
 
     for (size_t i=0; i<2; i++) {
 
@@ -697,7 +698,7 @@ longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector&
 
         for (size_t i=0; i<2; i++)
             for (size_t j=0; j<2; j++) {
-                double symUMinusI = 0.5*U[i][j] + 0.5*U[j][i] - (i==j);
+                field_type symUMinusI = 0.5*U[i][j] + 0.5*U[j][i] - (i==j);
                 embeddedLocalGradient[v_i] += mu_ * symUMinusI * (dR1R2Tnablam_dv[i][j][v_i] + dR1R2Tnablam_dv[j][i][v_i]);
             }
 
@@ -724,10 +725,10 @@ longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector&
     for (size_t v_i=0; v_i<7; v_i++) {
 
         for (size_t j=0; j<2; j++) {
-            double sp = 0;
+            field_type sp = 0;
             for (size_t k=0; k<3; k++)
                 sp += R[k][2]*derivative[k][j];
-            double spDer = 0;
+            field_type spDer = 0;
 
             if (v_i < 3)
                 for (size_t k=0; k<3; k++)
@@ -746,7 +747,7 @@ longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector&
     //  Elongational Stretch Energy
     ////////////////////////////////////////////////////////////////////////////////////
 
-    double trace = U[0][0] + U[1][1] - 2;
+    field_type trace = U[0][0] + U[1][1] - 2;
 
     for (size_t v_i=0; v_i<7; v_i++)
         for (size_t i=0; i<2; i++)
@@ -755,12 +756,12 @@ longQuadraticMembraneEnergyGradient(typename TargetSpace::EmbeddedTangentVector&
 }
 
 
-template <class GridView, class LocalFiniteElement, int dim>
-void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+template <class GridView, class LocalFiniteElement, int dim, class field_type>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim, field_type>::
 curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
-                        const Dune::FieldMatrix<double,3,3>& R,
-                        const Tensor3<double,3,3,3>& DR,
-                        const Dune::array<Tensor3<double,3,3,4>, 3>& dDR_dv) const
+                        const Dune::FieldMatrix<field_type,3,3>& R,
+                        const Tensor3<field_type,3,3,3>& DR,
+                        const Dune::array<Tensor3<field_type,3,3,4>, 3>& dDR_dv) const
 {
 #ifndef DONT_USE_CURL
 #error curvatureEnergyGradient not implemented for the curl curvature energy
@@ -781,18 +782,18 @@ curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLoc
 }
 
 
-template <class GridView, class LocalFiniteElement, int dim>
-void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+template <class GridView, class LocalFiniteElement, int dim, class field_type>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim, field_type>::
 bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocalGradient,
-                      const Dune::FieldMatrix<double,3,3>& R,
-                      const Tensor3<double,3,3,4>& dR_dv,
-                      const Tensor3<double,3,3,3>& DR,
-                      const Tensor3<double,3,gridDim,4>& dDR3_dv) const
+                      const Dune::FieldMatrix<field_type,3,3>& R,
+                      const Tensor3<field_type,3,3,4>& dR_dv,
+                      const Tensor3<field_type,3,3,3>& DR,
+                      const Tensor3<field_type,3,gridDim,4>& dDR3_dv) const
 {
     embeddedLocalGradient = 0;
 
     // left-multiply the derivative of the third director (in DR[][2][]) with R^T
-    Dune::FieldMatrix<double,3,3> RT_DR3(0);
+    Dune::FieldMatrix<field_type,3,3> RT_DR3(0);
     for (int i=0; i<3; i++)
         for (int j=0; j<gridDim; j++)
             for (int k=0; k<3; k++)
@@ -803,7 +804,7 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
 
     // -----------------------------------------------------------------------------
 
-    Tensor3<double,3,3,4> d_RT_DR3(0);
+    Tensor3<field_type,3,3,4> d_RT_DR3(0);
     for (size_t v_i=0; v_i<4; v_i++)
         for (int i=0; i<3; i++)
             for (int j=0; j<gridDim; j++)
@@ -839,15 +840,15 @@ bendingEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLocal
     //  "Elongational Stretch Energy"
     ////////////////////////////////////////////////////////////////////////////////
 
-    double factor = 2 * mu_*lambda_ / (2*mu_ + lambda_) * (RT_DR3[0][0] + RT_DR3[1][1] + RT_DR3[2][2]);
+    field_type factor = 2 * mu_*lambda_ / (2*mu_ + lambda_) * (RT_DR3[0][0] + RT_DR3[1][1] + RT_DR3[2][2]);
     for (size_t v_i=0; v_i<4; v_i++)
         for (int i=0; i<3; i++)
             embeddedLocalGradient[v_i+3] += factor * d_RT_DR3[i][i][v_i];
 
 }
 
-template <class GridView, class LocalFiniteElement, int dim>
-void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim>::
+template <class GridView, class LocalFiniteElement, int dim, class field_type>
+void CosseratEnergyLocalStiffness<GridView, LocalFiniteElement, dim, field_type>::
 assembleGradient(const Entity& element,
                  const LocalFiniteElement& localFiniteElement,
                  const std::vector<TargetSpace>& localSolution,
@@ -865,22 +866,22 @@ assembleGradient(const Entity& element,
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
                                                  : localFiniteElement.localBasis().order() * gridDim;
 
-    const Dune::QuadratureRule<double, gridDim>& quad
-        = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
+    const Dune::QuadratureRule<DT, gridDim>& quad
+        = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
     for (size_t pt=0; pt<quad.size(); pt++) {
 
         // Local position of the quadrature point
-        const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
+        const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
 
-        const double integrationElement = element.geometry().integrationElement(quadPos);
+        const DT integrationElement = element.geometry().integrationElement(quadPos);
 
         const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
-        double weight = quad[pt].weight() * integrationElement;
+        field_type weight = quad[pt].weight() * integrationElement;
 
         // The value of the local function
-        RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
+        RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
         // The derivative of the local function defined on the reference element
         typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
@@ -897,7 +898,7 @@ assembleGradient(const Entity& element,
         dune_static_assert(dim>=gridDim, "Codim of the grid must be nonnegative");
 
         //
-        Dune::FieldMatrix<double,dim,dim> R;
+        Dune::FieldMatrix<field_type,dim,dim> R;
         value.q.matrix(R);
 
         /* Compute F, the deformation gradient.
@@ -906,7 +907,7 @@ assembleGradient(const Entity& element,
            In the case of a shell it is
           \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
         */
-        Dune::FieldMatrix<double,dim,dim> F;
+        Dune::FieldMatrix<field_type,dim,dim> F;
         for (int i=0; i<dim; i++)
             for (int j=0; j<gridDim; j++)
                 F[i][j] = derivative[i][j];
@@ -916,7 +917,7 @@ assembleGradient(const Entity& element,
                 F[i][j] = R[i][j];
 
         // U = R^T F
-        Dune::FieldMatrix<double,dim,dim> U;
+        Dune::FieldMatrix<field_type,dim,dim> U;
         for (int i=0; i<dim; i++)
             for (int j=0; j<dim; j++) {
                 U[i][j] = 0;
@@ -929,25 +930,25 @@ assembleGradient(const Entity& element,
         //  Note: we need it in matrix coordinates
         //////////////////////////////////////////////////////////
 
-        Tensor3<double,3,3,3> DR;
+        Tensor3<field_type,3,3,3> DR;
         computeDR(value, derivative, DR);
 
         // loop over all the element's degrees of freedom and compute the gradient wrt it
         for (size_t i=0; i<localSolution.size(); i++) {
 
             // --------------------------------------------------------------------
-            Dune::FieldMatrix<double,7,7> derOfValueWRTCoefficient;
+            Dune::FieldMatrix<field_type,7,7> derOfValueWRTCoefficient;
             localGeodesicFEFunction.evaluateDerivativeOfValueWRTCoefficient(quadPos, i, derOfValueWRTCoefficient);
 
-            Tensor3<double,3,3,4> dR_dv;
+            Tensor3<field_type,3,3,4> dR_dv;
             computeDR_dv(value, derOfValueWRTCoefficient, dR_dv);
 
             // --------------------------------------------------------------------
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> referenceDerivativeDerivative;
+            Tensor3<field_type, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> referenceDerivativeDerivative;
             localGeodesicFEFunction.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, referenceDerivativeDerivative);
 
             // multiply the transformation from the reference element to the actual element
-            Tensor3<double, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> derOfGradientWRTCoefficient;
+            Tensor3<field_type, TargetSpace::EmbeddedTangentVector::dimension,TargetSpace::EmbeddedTangentVector::dimension,gridDim> derOfGradientWRTCoefficient;
             for (int ii=0; ii<TargetSpace::EmbeddedTangentVector::dimension; ii++)
                 for (int jj=0; jj<TargetSpace::EmbeddedTangentVector::dimension; jj++)
                     for (int kk=0; kk<gridDim; kk++) {
@@ -957,8 +958,8 @@ assembleGradient(const Entity& element,
                     }
 
             // ---------------------------------------------------------------------
-            Dune::array<Tensor3<double,3,3,4>, 3> dDR_dv;
-            Tensor3<double,3,gridDim,4> dDR3_dv;
+            Dune::array<Tensor3<field_type,3,3,4>, 3> dDR_dv;
+            Tensor3<field_type,3,gridDim,4> dDR3_dv;
             compute_dDR_dv(value, derivative, derOfValueWRTCoefficient, derOfGradientWRTCoefficient, dDR_dv, dDR3_dv);
 
             // Add the local energy density
@@ -998,15 +999,15 @@ assembleGradient(const Entity& element,
         if (not neumannBoundary_ or not neumannBoundary_->contains(*it))
             continue;
 
-        const Dune::QuadratureRule<double, gridDim-1>& quad
-            = Dune::QuadratureRules<double, gridDim-1>::rule(it->type(), quadOrder);
+        const Dune::QuadratureRule<DT, gridDim-1>& quad
+            = Dune::QuadratureRules<DT, gridDim-1>::rule(it->type(), quadOrder);
 
         for (size_t pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
-            const Dune::FieldVector<double,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
+            const Dune::FieldVector<DT,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
 
-            const double integrationElement = it->geometry().integrationElement(quad[pt].position());
+            const DT integrationElement = it->geometry().integrationElement(quad[pt].position());
 
             // Value of the Neumann data at the current position
             Dune::FieldVector<double,3> neumannValue;
@@ -1020,7 +1021,7 @@ assembleGradient(const Entity& element,
             for (size_t i=0; i<localSolution.size(); i++) {
 
                 // --------------------------------------------------------------------
-                Dune::FieldMatrix<double,7,7> derOfValueWRTCoefficient;
+                Dune::FieldMatrix<field_type,7,7> derOfValueWRTCoefficient;
                 localGeodesicFEFunction.evaluateDerivativeOfValueWRTCoefficient(quadPos, i, derOfValueWRTCoefficient);
 
                 // Only translational dofs are affected by the Neumann force
