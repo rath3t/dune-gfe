@@ -125,44 +125,9 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
-    double pureEnergy;
+    // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
+    energy(element, localFiniteElement, localSolution);
 
-    std::vector<ATargetSpace> localASolution(localSolution.size());
-
-    trace_on(1);
-
-    adouble energy = 0;
-
-    // The following loop is not quite intuitive: we copy the localSolution into an
-    // array of FieldVector<double>, go from there to FieldVector<adouble> and
-    // only then to ATargetSpace.
-    // Rationale: The constructor/assignment-from-vector of TargetSpace frequently
-    // contains a projection onto the manifold from the surrounding Euclidean space.
-    // ADOL-C needs a function on the whole Euclidean space, hence that proction
-    // is part of the function and needs to be taped.
-
-    // The following variable cannot be declared inside of the loop, or ADOL-C will report wrong results
-    // (Presumably because several independent variables use the same memory location.)
-    std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
-    for (size_t i=0; i<localSolution.size(); i++) {
-      typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
-      for (size_t j=0; j<raw.size(); j++)
-        aRaw[i][j] <<= raw[j];
-      localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
-    }
-
-    energy = localEnergy_->energy(element,localFiniteElement,localASolution);
-
-    energy >>= pureEnergy;
-
-    trace_off(0);
-    //std::cout << "ADOL-C energy: " << pureEnergy << std::endl;
-#if 0
-    size_t tape_stats[STAT_SIZE];
-    tapestats(1,tape_stats);             // reading of tape statistics
-    cout<<"maxlive "<<tape_stats[NUM_MAX_LIVES]<<"\n";
-    // ..... print other tape stats
-#endif
     // Compute the actual gradient
     size_t nDofs = localSolution.size();
     size_t nDoubles = nDofs*embeddedBlocksize;
@@ -205,37 +170,8 @@ assembleHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const std::vector<TargetSpace>& localSolution)
 {
-    double pureEnergy;
-
-    std::vector<ATargetSpace> localASolution(localSolution.size());
-
-    trace_on(1,1);
-
-    adouble energy = 0;
-
-    // The following loop is not quite intuitive: we copy the localSolution into an
-    // array of FieldVector<double>, go from there to FieldVector<adouble> and
-    // only then to ATargetSpace.
-    // Rationale: The constructor/assignment-from-vector of TargetSpace frequently
-    // contains a projection onto the manifold from the surrounding Euclidean space.
-    // ADOL-C needs a function on the whole Euclidean space, hence that proction
-    // is part of the function and needs to be taped.
-
-    // The following variable cannot be declared inside of the loop, or ADOL-C will report wrong results
-    // (Presumably because several independent variables use the same memory location.)
-    std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
-    for (size_t i=0; i<localSolution.size(); i++) {
-      typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
-      for (size_t j=0; j<raw.size(); j++)
-        aRaw[i][j] <<= raw[j];
-      localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
-    }
-
-    energy = localEnergy_->energy(element,localFiniteElement,localASolution);
-
-    energy >>= pureEnergy;
-
-    trace_off(0);
+    // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
+    energy(element, localFiniteElement, localSolution);
 
     /////////////////////////////////////////////////////////////////
     // Compute the gradient.  It is needed to transform the Hessian
