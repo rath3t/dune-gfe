@@ -94,6 +94,9 @@ namespace std
         return numeric_limits<double>::max();
       }
 
+      static adouble epsilon() {
+        return numeric_limits<double>::epsilon();
+      }
       static adouble quiet_NaN() {
         return numeric_limits<double>::quiet_NaN();
       }
