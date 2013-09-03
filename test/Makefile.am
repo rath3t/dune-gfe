@@ -4,7 +4,8 @@
 LDADD = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS)
 AM_CPPFLAGS += $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) -Wall
 
-check_PROGRAMS = averagedistanceassemblertest \
+check_PROGRAMS = adolctest \
+                 averagedistanceassemblertest \
                  cosseratenergytest \
                  frameinvariancetest \
                  globalgfetestfunctionbasistest \
@@ -19,6 +20,9 @@ check_PROGRAMS = averagedistanceassemblertest \
                  rotationtest \
                  svdtest \
                  targetspacetest
+
+adolctest_SOURCES = adolctest.cc
+adolctest_LDADD = -ladolc
 
 frameinvariancetest_SOURCES = frameinvariancetest.cc
 
