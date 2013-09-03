@@ -2,8 +2,6 @@
 
 #include <fenv.h>
 
-#define RIGIDBODYMOTION3
-
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -20,9 +18,7 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/unitvector.hh>
-#include <dune/gfe/realtuple.hh>
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
@@ -32,9 +28,7 @@
 const int dim = 2;
 
 // Image space of the geodesic fe functions
-#ifdef RIGIDBODYMOTION3
 typedef RigidBodyMotion<double,3> TargetSpace;
-#endif
 
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
