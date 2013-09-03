@@ -9,7 +9,7 @@
 #include "localgeodesicfestiffness.hh"
 
 
-/** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces 
+/** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces
  */
 template <class Basis, class TargetSpace>
 class GeodesicFEAssembler {
@@ -19,46 +19,46 @@ class GeodesicFEAssembler {
 
     //! Dimension of the grid.
     enum { gridDim = GridView::dimension };
-    
+
     //! Dimension of a tangent space
     enum { blocksize = TargetSpace::TangentVector::dimension };
-    
+
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
 
 protected:
 
-    const Basis basis_; 
+    const Basis basis_;
 
     LocalGeodesicFEStiffness<GridView,
                              typename Basis::LocalFiniteElement,
                              TargetSpace>* localStiffness_;
 
 public:
-    
+
     /** \brief Constructor for a given grid */
     GeodesicFEAssembler(const Basis& basis,
                         LocalGeodesicFEStiffness<GridView,typename Basis::LocalFiniteElement, TargetSpace>* localStiffness)
         : basis_(basis),
           localStiffness_(localStiffness)
     {}
-    
+
     /** \brief Assemble the tangent stiffness matrix
      */
     virtual void assembleMatrix(const std::vector<TargetSpace>& sol,
                                 Dune::BCRSMatrix<MatrixBlock>& matrix,
                                 bool computeOccupationPattern=true) const;
-    
+
     /** \brief Assemble the gradient */
     virtual void assembleGradient(const std::vector<TargetSpace>& sol,
                           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
     /** \brief Compute the energy of a deformation state */
     virtual double computeEnergy(const std::vector<TargetSpace>& sol) const;
-    
+
     //protected:
     void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
-    
+
 }; // end class
 
 
@@ -68,31 +68,31 @@ void GeodesicFEAssembler<Basis,TargetSpace>::
 getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
     int n = basis_.size();
-    
+
     nb.resize(n, n);
-    
+
     ElementIterator it    = basis_.getGridView().template begin<0>();
     ElementIterator endit = basis_.getGridView().template end<0>  ();
-    
+
     for (; it!=endit; ++it) {
 
         const typename Basis::LocalFiniteElement& lfe = basis_.getLocalFiniteElement(*it);
-        
+
         for (size_t i=0; i<lfe.localBasis().size(); i++) {
-            
+
             for (size_t j=0; j<lfe.localBasis().size(); j++) {
-                
+
                 int iIdx = basis_.index(*it,i);
                 int jIdx = basis_.index(*it,j);
-                
+
                 nb.add(iIdx, jIdx);
-                
+
             }
-            
+
         }
-        
+
     }
-    
+
 }
 
 template <class Basis, class TargetSpace>
@@ -110,33 +110,33 @@ assembleMatrix(const std::vector<TargetSpace>& sol,
     }
 
     matrix = 0;
-    
+
     ElementIterator it    = basis_.getGridView().template begin<0>();
     ElementIterator endit = basis_.getGridView().template end<0>  ();
 
     for( ; it != endit; ++it ) {
-        
+
         const int numOfBaseFct = basis_.getLocalFiniteElement(*it).localBasis().size();
-        
+
         // Extract local solution
         std::vector<TargetSpace> localSolution(numOfBaseFct);
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[basis_.index(*it,i)];
 
-        // setup matrix 
+        // setup matrix
         localStiffness_->assembleHessian(*it, basis_.getLocalFiniteElement(*it), localSolution);
 
         // Add element matrix to global stiffness matrix
-        for(int i=0; i<numOfBaseFct; i++) { 
-            
+        for(int i=0; i<numOfBaseFct; i++) {
+
             int row = basis_.index(*it,i);
 
             for (int j=0; j<numOfBaseFct; j++ ) {
-                
+
                 int col = basis_.index(*it,j);
                 matrix[row][col] += localStiffness_->A_[i][j];
-                
+
             }
         }
 
@@ -166,7 +166,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
 
         // Extract local solution
         std::vector<TargetSpace> localSolution(nDofs);
-        
+
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[basis_.index(*it,i)];
 
@@ -189,7 +189,7 @@ double GeodesicFEAssembler<Basis, TargetSpace>::
 computeEnergy(const std::vector<TargetSpace>& sol) const
 {
     double energy = 0;
-    
+
     if (sol.size()!=basis_.size())
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
@@ -198,7 +198,7 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
-        
+
         // Number of degrees of freedom on this element
         size_t nDofs = basis_.getLocalFiniteElement(*it).localBasis().size();
 
