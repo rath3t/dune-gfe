@@ -17,9 +17,9 @@ class Rotation;
 template <class T, int N>
 class UnitVector
 {
-    // Rotation<T,3> is friend, because it needs the various derivatives of the arccos 
+    // Rotation<T,3> is friend, because it needs the various derivatives of the arccos
     friend class Rotation<T,3>;
-    
+
     /** \brief Computes sin(x) / x without getting unstable for small x */
     static T sinc(const T& x) {
         return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
@@ -67,7 +67,7 @@ public:
 
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<T,N> CoordinateType;
-    
+
     /** \brief Dimension of the manifold formed by unit vectors */
     static const int dim = N-1;
 
@@ -77,21 +77,21 @@ public:
     typedef Dune::FieldVector<T,N-1> TangentVector;
 
     typedef Dune::FieldVector<T,N> EmbeddedTangentVector;
-    
+
     /** \brief The global convexity radius of the unit sphere */
     static constexpr T convexityRadius = 0.5*M_PI;
-    
+
     /** \brief Default constructor */
     UnitVector()
     {}
-    
+
     /** \brief Constructor from a vector.  The vector gets normalized */
     UnitVector(const Dune::FieldVector<T,N>& vector)
         : data_(vector)
     {
         data_ /= data_.two_norm();
     }
-    
+
     /** \brief Constructor from an array.  The array gets normalized */
     UnitVector(const Dune::array<T,N>& vector)
     {
@@ -114,7 +114,7 @@ public:
 
         EmbeddedTangentVector ev;
         frame.mtv(v,ev);
-            
+
         return exp(p,ev);
     }
 
@@ -137,10 +137,10 @@ public:
          // supposed to handle perturbations of unit vectors as well.  Therefore
          // we normalize here.
          T x = a.data_ * b.data_/a.data_.two_norm()/b.data_.two_norm();
-         
+
          // paranoia:  if the argument is just eps larger than 1 acos returns NaN
          x = std::min(x,1.0);
-         
+
          return std::acos(x);
     }
 
@@ -171,14 +171,14 @@ public:
     static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
 
         T sp = p.data_ * q.data_;
-        
+
         Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
         Dune::FieldMatrix<T,N,N> A;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 A[i][j] = pProjected[i]*pProjected[j];
-        
+
         A *= secondDerivativeOfArcCosSquared(sp);
 
         // Compute matrix B (see notes)
@@ -222,7 +222,7 @@ public:
                 Pp[i][j] = (i==j) - a.data_[i]*a.data_[j];
                 Pq[i][j] = (i==j) - b.data_[i]*b.data_[j];
             }
-            
+
         Dune::FieldMatrix<T,N,N> B;
         Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
 
@@ -231,8 +231,8 @@ public:
 
         return A;
     }
-    
-    
+
+
     /** \brief Compute the third derivative \partial d^3 / \partial dq^3
 
     Unlike the distance itself the squared distance is differentiable at zero
@@ -242,13 +242,13 @@ public:
         Tensor3<T,N,N,N> result;
 
         T sp = p.data_ * q.data_;
-        
+
         // The projection matrix onto the tangent space at p and q
         Dune::FieldMatrix<T,N,N> Pq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
-            
+
         Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
         for (int i=0; i<N; i++)
@@ -262,12 +262,12 @@ public:
                                     + derivativeOfArcCosSquared(sp) * ((i==j)*q.globalCoordinates()[k] + (i==k)*q.globalCoordinates()[j]) * sp
                                     - derivativeOfArcCosSquared(sp) * p.globalCoordinates()[i] * Pq[j][k];
                 }
-                
+
         result = Pq * result;
-                
+
         return result;
-    }    
-        
+    }
+
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
 
     Unlike the distance itself the squared distance is differentiable at zero
@@ -277,7 +277,7 @@ public:
         Tensor3<T,N,N,N> result;
 
         T sp = p.data_ * q.data_;
-        
+
         // The projection matrix onto the tangent space at p and q
         Dune::FieldMatrix<T,N,N> Pp, Pq;
         for (int i=0; i<N; i++)
@@ -285,10 +285,10 @@ public:
                 Pp[i][j] = (i==j) - p.globalCoordinates()[i]*p.globalCoordinates()[j];
                 Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
             }
-            
+
         Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
         Dune::FieldVector<T,N> qProjected = p.projectOntoTangentSpace(q.globalCoordinates());
-        
+
         Tensor3<T,N,N,N> derivativeOfPqOTimesPq;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
@@ -297,16 +297,16 @@ public:
                     for (int l=0; l<N; l++)
                         derivativeOfPqOTimesPq[i][j][k] += Pp[i][l] * (Pq[j][l]*pProjected[k] + pProjected[j]*Pq[k][l]);
                 }
-                
+
         result = thirdDerivativeOfArcCosSquared(sp)         * Tensor3<T,N,N,N>::product(qProjected,pProjected,pProjected)
                  + secondDerivativeOfArcCosSquared(sp)      * derivativeOfPqOTimesPq
                  - secondDerivativeOfArcCosSquared(sp) * sp * Tensor3<T,N,N,N>::product(qProjected,Pq)
                  - derivativeOfArcCosSquared(sp)            * Tensor3<T,N,N,N>::product(qProjected,Pq);
-               
+
         return result;
     }
-    
-    
+
+
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
         EmbeddedTangentVector result = v;
@@ -329,40 +329,40 @@ public:
 
         // Coordinates of the stereographic projection
         Dune::FieldVector<T,N-1> X;
-        
+
         if (data_[N-1] <= 0) {
-            
+
             // Stereographic projection from the north pole onto R^{N-1}
             for (size_t i=0; i<N-1; i++)
                 X[i] = data_[i] / (1-data_[N-1]);
-            
+
         } else {
-            
+
             // Stereographic projection from the south pole onto R^{N-1}
             for (size_t i=0; i<N-1; i++)
                 X[i] = data_[i] / (1+data_[N-1]);
-            
+
         }
-            
+
         T RSquared = X.two_norm2();
-            
+
         for (size_t i=0; i<N-1; i++)
             for (size_t j=0; j<N-1; j++)
                 // Note: the matrix is the transpose of the one in the paper
                 result[j][i] = 2*(i==j)*(1+RSquared) - 4*X[i]*X[j];
-                
+
         for (size_t j=0; j<N-1; j++)
             result[j][N-1] = 4*X[j];
-            
+
         // Upper hemisphere: adapt formulas so it is the stereographic projection from the south pole
-        if (data_[N-1] > 0) 
+        if (data_[N-1] > 0)
             for (size_t j=0; j<N-1; j++)
                 result[j][N-1] *= -1;
-            
+
         // normalize the rows to make the orthogonal basis orthonormal
         for (size_t i=0; i<N-1; i++)
             result[i] /= result[i].two_norm();
-        
+
         return result;
     }
 

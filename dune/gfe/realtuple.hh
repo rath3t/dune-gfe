@@ -20,7 +20,7 @@ public:
 
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<T,N> CoordinateType;
-    
+
     /** \brief Dimension of the manifold formed by unit vectors */
     static const int dim = N;
 
@@ -33,7 +33,7 @@ public:
 
     /** \brief The global convexity radius of the Euclidean space */
     static constexpr T convexityRadius = std::numeric_limits<T>::infinity();
-    
+
     /** \brief Default constructor */
     RealTuple()
     {}
@@ -64,7 +64,7 @@ public:
         return RealTuple(p.data_+v);
     }
 
-    /** \brief Geodesic distance between two points 
+    /** \brief Geodesic distance between two points
 
     Simply the Euclidean distance */
     static T distance(const RealTuple& a, const RealTuple& b) {
@@ -101,7 +101,7 @@ public:
     Unlike the distance itself the squared distance is differentiable at zero
      */
     static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const RealTuple& a, const RealTuple& b) {
-        
+
         Dune::FieldMatrix<T,N,N> result;
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
@@ -109,7 +109,7 @@ public:
 
         return result;
     }
-    
+
     /** \brief Compute the mixed third derivative \partial d^3 / \partial db^3
 
         The result is the constant zero-tensor.
@@ -117,7 +117,7 @@ public:
     static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
         return Tensor3<T,N,N,N>(0);
     }
-    
+
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2
 
         The result is the constant zero-tensor.
@@ -125,7 +125,7 @@ public:
     static Tensor3<T,N,N,N> thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const RealTuple& a, const RealTuple& b) {
         return Tensor3<T,N,N,N>(0);
     }
-    
+
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
         return v;
@@ -143,13 +143,13 @@ public:
     Dune::FieldMatrix<T,N,N> orthonormalFrame() const {
 
         Dune::FieldMatrix<T,N,N> result;
-        
+
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 result[i][j] = (i==j);
         return result;
     }
-    
+
     /** \brief Write LocalKey object to output stream */
     friend std::ostream& operator<< (std::ostream& s, const RealTuple& realTuple)
     {
@@ -157,7 +157,7 @@ public:
     }
 
 private:
-    
+
     Dune::FieldVector<T,N> data_;
 
 };
