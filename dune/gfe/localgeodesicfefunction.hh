@@ -30,6 +30,7 @@ class LocalGfeTestFunctionBasis;
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 class LocalGeodesicFEFunction
 {
+    typedef typename TargetSpace::ctype RT;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::dimension;
@@ -40,10 +41,10 @@ class LocalGeodesicFEFunction
 public:
 
     /** \brief The type used for derivatives */
-    typedef Dune::FieldMatrix<ctype, embeddedDim, dim> DerivativeType;
+    typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
 
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
-    typedef Tensor3<ctype,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
+    typedef Tensor3<RT,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
 
     /** \brief Constructor
      * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
@@ -88,12 +89,12 @@ public:
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                  int coefficient,
-                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const;
+                                                 Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& derivative) const;
 
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                  int coefficient,
-                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const;
+                                                 Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& derivative) const;
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
@@ -112,16 +113,16 @@ public:
     }
 private:
 
-    static Dune::FieldMatrix<double,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<double,embeddedDim,embeddedDim>& dFdq,
+    static Dune::FieldMatrix<RT,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& dFdq,
                                                                            const TargetSpace& q)
     {
         const int shortDim = TargetSpace::TangentVector::dimension;
 
         // the orthonormal frame
-        Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
+        Dune::FieldMatrix<RT,shortDim,embeddedDim> O = q.orthonormalFrame();
 
         // compute A = O dFDq O^T
-        Dune::FieldMatrix<ctype,shortDim,shortDim> A;
+        Dune::FieldMatrix<RT,shortDim,shortDim> A;
         for (int i=0; i<shortDim; i++)
             for (int j=0; j<shortDim; j++) {
                 A[i][j] = 0;
@@ -132,7 +133,7 @@ private:
 
         A.invert();
 
-        Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> result;
+        Dune::FieldMatrix<RT,embeddedDim,embeddedDim> result;
         for (int i=0; i<embeddedDim; i++)
             for (int j=0; j<embeddedDim; j++) {
                 result[i][j] = 0;
@@ -145,21 +146,21 @@ private:
     }
 
     /** \brief Compute derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w */
-    Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > computeDFdw(const TargetSpace& q) const
+    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > computeDFdw(const TargetSpace& q) const
     {
-        Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > dFdw(embeddedDim,localFiniteElement_.localBasis().size());
+        Dune::Matrix<Dune::FieldMatrix<RT,1,1> > dFdw(embeddedDim,localFiniteElement_.localBasis().size());
         for (size_t i=0; i<localFiniteElement_.localBasis().size(); i++) {
-            Dune::FieldVector<ctype,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
+            Dune::FieldVector<RT,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
             for (int j=0; j<embeddedDim; j++)
                 dFdw[j][i] = tmp[j];
         }
         return dFdw;
     }
 
-    Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<Dune::FieldVector<ctype,1> >& w, const TargetSpace& q) const
+    Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<Dune::FieldVector<ctype,1> >& w, const TargetSpace& q) const
     {
-        Tensor3<ctype,embeddedDim,embeddedDim,embeddedDim> result;
-        result = 0;
+        Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> result;
+        result = Tensor3<RT,embeddedDim,embeddedDim,embeddedDim>(RT(0));
         for (size_t i=0; i<w.size(); i++)
             result.axpy(w[i][0], TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i],q));
         return result;
@@ -219,7 +220,7 @@ typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::Deri
 LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
 {
-    Dune::FieldMatrix<ctype, embeddedDim, dim> result;
+    Dune::FieldMatrix<RT, embeddedDim, dim> result;
 
 #if 0  // this is probably faster than the general implementation, but we leave it out for testing purposes
     if (dim==1) {
@@ -246,11 +247,11 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
             B[i][j] = BNested[i][0][j];
 
     // compute negative derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > dFdw = computeDFdw(q);
+    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > dFdw = computeDFdw(q);
     dFdw *= -1;
 
     // multiply the two previous matrices: the result is the right hand side
-    Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > RHS = dFdw * B;
+    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > RHS = dFdw * B;
 
     // the actual system matrix
     std::vector<Dune::FieldVector<ctype,1> > w;
@@ -258,7 +259,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
+    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
 
     // ////////////////////////////////////
@@ -275,10 +276,10 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
     const int shortDim = TargetSpace::TangentVector::dimension;
 
     // the orthonormal frame
-    Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
+    Dune::FieldMatrix<RT,shortDim,embeddedDim> O = q.orthonormalFrame();
 
     // compute A = O dFDq O^T
-    Dune::FieldMatrix<ctype,shortDim,shortDim> A;
+    Dune::FieldMatrix<RT,shortDim,shortDim> A;
     for (int i=0; i<shortDim; i++)
         for (int j=0; j<shortDim; j++) {
             A[i][j] = 0;
@@ -289,17 +290,17 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
 
     for (int i=0; i<dim; i++) {
 
-        Dune::FieldVector<ctype,embeddedDim> rhs;
+        Dune::FieldVector<RT,embeddedDim> rhs;
         for (int j=0; j<embeddedDim; j++)
             rhs[j] = RHS[j][i];
 
-        Dune::FieldVector<ctype,shortDim> shortRhs;
+        Dune::FieldVector<RT,shortDim> shortRhs;
         O.mv(rhs,shortRhs);
 
-        Dune::FieldVector<ctype,shortDim> shortX;
+        Dune::FieldVector<RT,shortDim> shortX;
         A.solve(shortX,shortRhs);
 
-        Dune::FieldVector<ctype,embeddedDim> x;
+        Dune::FieldVector<RT,embeddedDim> x;
         O.mtv(shortX,x);
 
         for (int j=0; j<embeddedDim; j++)
@@ -342,7 +343,7 @@ template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                         int coefficient,
-                                        Dune::FieldMatrix<double,embeddedDim,embeddedDim>& result) const
+                                        Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& result) const
 {
     // the function value at the point where we are evaluating the derivative
     TargetSpace q = evaluate(local);
@@ -353,16 +354,16 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
+    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
 
     const int shortDim = TargetSpace::TangentVector::dimension;
 
     // the orthonormal frame
-    Dune::FieldMatrix<ctype,shortDim,embeddedDim> O = q.orthonormalFrame();
+    Dune::FieldMatrix<RT,shortDim,embeddedDim> O = q.orthonormalFrame();
 
     // compute A = O dFDq O^T
-    Dune::FieldMatrix<ctype,shortDim,shortDim> A;
+    Dune::FieldMatrix<RT,shortDim,shortDim> A;
     for (int i=0; i<shortDim; i++)
         for (int j=0; j<shortDim; j++) {
             A[i][j] = 0;
@@ -372,15 +373,15 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
         }
 
     //
-    Dune::FieldMatrix<double,embeddedDim,embeddedDim> rhs = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
+    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> rhs = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
     rhs *= -w[coefficient];
 
     for (int i=0; i<embeddedDim; i++) {
 
-        Dune::FieldVector<ctype,shortDim> shortRhs;
+        Dune::FieldVector<RT,shortDim> shortRhs;
         O.mv(rhs[i],shortRhs);
 
-        Dune::FieldVector<ctype,shortDim> shortX;
+        Dune::FieldVector<RT,shortDim> shortX;
         A.solve(shortX,shortRhs);
 
         O.mtv(shortX,result[i]);
@@ -393,14 +394,14 @@ template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                           int coefficient,
-                                          Dune::FieldMatrix<double,embeddedDim,embeddedDim>& result) const
+                                          Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& result) const
 {
     double eps = 1e-6;
 
     // the function value at the point where we are evaluating the derivative
-    const Dune::FieldMatrix<double,spaceDim,embeddedDim> B = coefficients_[coefficient].orthonormalFrame();
+    const Dune::FieldMatrix<RT,spaceDim,embeddedDim> B = coefficients_[coefficient].orthonormalFrame();
 
-    Dune::FieldMatrix<double,spaceDim,embeddedDim> interimResult;
+    Dune::FieldMatrix<RT,spaceDim,embeddedDim> interimResult;
 
     std::vector<TargetSpace> cornersPlus  = coefficients_;
     std::vector<TargetSpace> cornersMinus = coefficients_;
@@ -449,7 +450,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
     std::vector<Dune::FieldMatrix<ctype,1,dim> > BNested(coefficients_.size());
     localFiniteElement_.localBasis().evaluateJacobian(local, BNested);
-    Dune::Matrix<Dune::FieldMatrix<double,1,1> > B(coefficients_.size(), dim);
+    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > B(coefficients_.size(), dim);
     for (size_t i=0; i<coefficients_.size(); i++)
         for (size_t j=0; j<dim; j++)
             B[i][j] = BNested[i][0][j];
@@ -460,12 +461,12 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdq(0);
+    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
 
 
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> mixedDerivative = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
-    TensorSSD<double,embeddedDim,embeddedDim> dvDwF(coefficients_.size());
+    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> mixedDerivative = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients_[coefficient], q);
+    TensorSSD<RT,embeddedDim,embeddedDim> dvDwF(coefficients_.size());
     dvDwF = 0;
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
@@ -475,34 +476,34 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
     // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
     // best way, though.
-    Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq,q);
+    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq,q);
 
     //
-    Tensor3<double,embeddedDim,embeddedDim,embeddedDim> dvDqF
+    Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> dvDqF
        =  TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(coefficients_[coefficient], q);
 
-    dvDqF = w[coefficient] * dvDqF;
+    dvDqF = RT(w[coefficient]) * dvDqF;
 
     // Put it all together
     // dvq[i][j] = \partial q_j / \partial v_i
-    Dune::FieldMatrix<double,embeddedDim,embeddedDim> dvq;
+    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dvq;
     evaluateDerivativeOfValueWRTCoefficient(local,coefficient,dvq);
 
-    Dune::FieldMatrix<ctype, embeddedDim, dim> derivative = evaluateDerivative(local);
+    Dune::FieldMatrix<RT, embeddedDim, dim> derivative = evaluateDerivative(local);
 
-    Tensor3<double, embeddedDim,embeddedDim,embeddedDim> dqdqF;
+    Tensor3<RT, embeddedDim,embeddedDim,embeddedDim> dqdqF;
     dqdqF = computeDqDqF(w,q);
 
-    TensorSSD<double, embeddedDim,embeddedDim> dqdwF(coefficients_.size());
+    TensorSSD<RT, embeddedDim,embeddedDim> dqdwF(coefficients_.size());
 
     for (size_t k=0; k<coefficients_.size(); k++) {
-        Dune::FieldMatrix<ctype,embeddedDim,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
+        Dune::FieldMatrix<RT,embeddedDim,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
         for (int i=0; i<embeddedDim; i++)
             for (int j=0; j<embeddedDim; j++)
                 dqdwF(i, j, k) = hesse[i][j];
     }
 
-    TensorSSD<double, embeddedDim,embeddedDim> dqdwF_times_dvq(coefficients_.size());
+    TensorSSD<RT, embeddedDim,embeddedDim> dqdwF_times_dvq(coefficients_.size());
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
             for (size_t k=0; k<coefficients_.size(); k++) {
@@ -511,9 +512,9 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
                     dqdwF_times_dvq(i, j, k) += dqdwF(l, j, k) * dvq[i][l];
             }
 
-    Tensor3<double, embeddedDim,embeddedDim,dim> foo;
+    Tensor3<RT,embeddedDim,embeddedDim,dim> foo;
     foo =  -1 * dvDqF*derivative - (dvq*dqdqF)*derivative;
-    TensorSSD<double,embeddedDim,embeddedDim> bar(dim);
+    TensorSSD<RT,embeddedDim,embeddedDim> bar(dim);
     bar = dvDwF * B + dqdwF_times_dvq*B;
 
     for (int i=0; i<embeddedDim; i++)
@@ -521,7 +522,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
             for (int k=0; k<dim; k++)
                 foo[i][j][k] -= bar(i, j, k);
 
-    result = 0;
+    result = RT(0);
     for (int i=0; i<embeddedDim; i++)
         for (int j=0; j<embeddedDim; j++)
             for (int k=0; k<dim; k++)
@@ -553,8 +554,8 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
         LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
         LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
 
-        Dune::FieldMatrix<double,embeddedDim,dim> hPlus  = fPlus.evaluateDerivative(local);
-        Dune::FieldMatrix<double,embeddedDim,dim> hMinus = fMinus.evaluateDerivative(local);
+        Dune::FieldMatrix<RT,embeddedDim,dim> hPlus  = fPlus.evaluateDerivative(local);
+        Dune::FieldMatrix<RT,embeddedDim,dim> hMinus = fMinus.evaluateDerivative(local);
 
         result[j]  = hPlus;
         result[j] -= hMinus;
@@ -565,7 +566,7 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
     for (int j=0; j<embeddedDim; j++) {
 
         TargetSpace q = evaluate(local);
-        Dune::FieldVector<double,embeddedDim> foo;
+        Dune::FieldVector<RT,embeddedDim> foo;
         for (int l=0; l<dim; l++) {
 
             for (int k=0; k<embeddedDim; k++)
