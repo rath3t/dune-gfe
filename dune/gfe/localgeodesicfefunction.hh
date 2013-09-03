@@ -42,6 +42,9 @@ public:
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> DerivativeType;
 
+    /** \brief The type used for derivatives of the gradient with respect to coefficients */
+    typedef Tensor3<ctype,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
+
     /** \brief Constructor
      * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
      * \param coefficients Values of the function at the Lagrange points
@@ -95,12 +98,12 @@ public:
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const;
+                                                    DerivativeOfGradientWRTCoefficientType& result) const;
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& result) const;
+                                                    DerivativeOfGradientWRTCoefficientType& result) const;
 
     /** \brief Get the i'th base coefficient. */
     TargetSpace coefficient(int i) const
@@ -435,7 +438,7 @@ template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                            int coefficient,
-                                           Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
+                                           DerivativeOfGradientWRTCoefficientType& result) const
 {
     // the function value at the point where we are evaluating the derivative
     TargetSpace q = evaluate(local);
@@ -529,7 +532,7 @@ template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
 void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                            int coefficient,
-                                           Tensor3<double,embeddedDim,embeddedDim,dim>& result) const
+                                           DerivativeOfGradientWRTCoefficientType& result) const
 {
     double eps = 1e-6;
     static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
@@ -598,6 +601,9 @@ class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<doubl
     static const int spaceDim = TargetSpace::TangentVector::dimension;
 
 public:
+
+    /** \brief The type used for derivatives of the gradient with respect to coefficients */
+    typedef Tensor3<ctype,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
 
     /** \brief Constructor */
     LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
@@ -762,7 +768,7 @@ public:
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& derivative) const
+                                                    DerivativeOfGradientWRTCoefficientType& derivative) const
     {
         derivative = 0;
 
@@ -784,7 +790,7 @@ public:
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
     void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                     int coefficient,
-                                                    Tensor3<double,embeddedDim,embeddedDim,dim>& derivative) const
+                                                    DerivativeOfGradientWRTCoefficientType& derivative) const
     {
         derivative = 0;
 
