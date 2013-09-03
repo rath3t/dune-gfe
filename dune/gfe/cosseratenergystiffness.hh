@@ -450,6 +450,8 @@ energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
        const std::vector<RigidBodyMotion<double,dim> >& localSolution) const
 {
+    assert(element.type() == localFiniteElement.type());
+
     RT energy = 0;
 
     LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
