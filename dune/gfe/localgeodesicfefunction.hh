@@ -593,10 +593,10 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
 \tparam dim Dimension of the reference element
 \tparam ctype Type used for coordinates on the reference element
 */
-template <int dim, class ctype, class LocalFiniteElement>
-class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<double,3> >
+template <int dim, class ctype, class LocalFiniteElement, class field_type>
+class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<field_type,3> >
 {
-    typedef RigidBodyMotion<double,3> TargetSpace;
+    typedef RigidBodyMotion<field_type,3> TargetSpace;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::dimension;
@@ -606,10 +606,10 @@ class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<doubl
 public:
 
     /** \brief The type used for derivatives */
-    typedef Dune::FieldMatrix<ctype, embeddedDim, dim> DerivativeType;
+    typedef Dune::FieldMatrix<field_type, embeddedDim, dim> DerivativeType;
 
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
-    typedef Tensor3<ctype,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
+    typedef Tensor3<field_type,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
 
     /** \brief Constructor */
     LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
@@ -622,11 +622,11 @@ public:
         for (size_t i=0; i<coefficients.size(); i++)
             translationCoefficients_[i] = coefficients[i].r;
 
-        std::vector<Rotation<ctype,3> > orientationCoefficients(coefficients.size());
+        std::vector<Rotation<field_type,3> > orientationCoefficients(coefficients.size());
         for (size_t i=0; i<coefficients.size(); i++)
             orientationCoefficients[i] = coefficients[i].q;
 
-        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<double,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<double,3> >(localFiniteElement,orientationCoefficients));
+        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> >(localFiniteElement,orientationCoefficients));
 
     }
 
@@ -688,7 +688,7 @@ public:
     DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                                                                        const TargetSpace& q) const
     {
-        Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
+        DerivativeType result(0);
 
         // get translation part
         std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
@@ -699,7 +699,7 @@ public:
                 result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
 
         // get orientation part
-        Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local,q.q);
+        Dune::FieldMatrix<field_type,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local,q.q);
         for (int i=0; i<4; i++)
             for (int j=0; j<dim; j++)
                 result[3+i][j] = qResult[i][j];
@@ -732,7 +732,7 @@ public:
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                  int coefficient,
-                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const
+                                                 Dune::FieldMatrix<field_type,embeddedDim,embeddedDim>& derivative) const
     {
         derivative = 0;
 
@@ -743,7 +743,7 @@ public:
             derivative[i][i] = w[coefficient];
 
         // Rotation part
-        Dune::FieldMatrix<ctype,4,4> qDerivative;
+        Dune::FieldMatrix<field_type,4,4> qDerivative;
         orientationFEFunction_->evaluateDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
@@ -753,7 +753,7 @@ public:
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                  int coefficient,
-                                                 Dune::FieldMatrix<double,embeddedDim,embeddedDim>& derivative) const
+                                                 Dune::FieldMatrix<field_type,embeddedDim,embeddedDim>& derivative) const
     {
         derivative = 0;
 
@@ -776,7 +776,7 @@ public:
                                                     int coefficient,
                                                     DerivativeOfGradientWRTCoefficientType& derivative) const
     {
-        derivative = 0;
+        derivative = field_type(0);
 
         // Translation part
         std::vector<Dune::FieldMatrix<ctype,1,dim> > w;
@@ -785,7 +785,7 @@ public:
             derivative[i][i] = w[coefficient][0];
 
         // Rotation part
-        Tensor3<ctype,4,4,dim> qDerivative;
+        Tensor3<field_type,4,4,dim> qDerivative;
         orientationFEFunction_->evaluateDerivativeOfGradientWRTCoefficient(local,coefficient,qDerivative);
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
@@ -829,9 +829,9 @@ private:
     // The two factors of a RigidBodyMotion
     //LocalGeodesicFEFunction<dim,ctype,RealTuple<3> > translationFEFunction_;
 
-    std::vector<Dune::FieldVector<double,3> > translationCoefficients_;
+    std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
-    std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<double,3> > > orientationFEFunction_;
+    std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > orientationFEFunction_;
 };
 
 
