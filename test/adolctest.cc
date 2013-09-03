@@ -34,61 +34,10 @@
 using namespace Dune;
 
 
-#if 1
-template <class GridView, class LocalFiniteElement, class TargetSpace>
-double
-energy(const typename GridView::template Codim<0>::Entity& element,
-       const LocalFiniteElement& localFiniteElement,
-       const std::vector<TargetSpace>& localPureSolution)
-{
-    double pureEnergy;
 
-    typedef typename TargetSpace::template rebind<adouble>::other ATargetSpace;
-    std::vector<ATargetSpace> localSolution(localPureSolution.size());
-
-#if 0
-    HarmonicEnergyLocalStiffness<GridView,LocalFiniteElement,ATargetSpace> assembler;
-#else
-    ParameterTree parameterSet;
-    ParameterTreeParser::readINITree("../cosserat-continuum.parset", parameterSet);
-
-    const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    std::cout << "Material parameters:" << std::endl;
-    materialParameters.report();
-
-    CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,3, adouble> assembler(materialParameters, NULL, NULL);
-#endif
-
-    trace_on(1);
-
-    adouble energy = 0;
-
-    for (size_t i=0; i<localSolution.size(); i++)
-      localSolution[i] <<=localPureSolution[i];
-
-    energy = assembler.energy(element,localFiniteElement,localSolution);
-
-    energy >>= pureEnergy;
-
-    trace_off(1);
-
-    size_t tape_stats[STAT_SIZE];
-    tapestats(1,tape_stats);             // reading of tape statistics
-    cout<<"maxlive "<<tape_stats[NUM_MAX_LIVES]<<"\n";
-    // ..... print other tape stats
-
-    return pureEnergy;
-}
-#endif
-
-
-/****************************************************************************/
-/*                                                             MAIN PROGRAM */
 int main() {
 
   size_t nDofs = 4;
-
-  //std::cout << className< decltype(adouble() / double()) >() << std::endl;
 
   const int dim = 2;
   typedef YaspGrid<dim> GridType;
@@ -114,52 +63,7 @@ int main() {
 
   for (size_t i=0; i<localSolution.size(); i++)
     std::cout << localSolution[i] << std::endl;
-#if 0
-  double laplaceEnergy = energy<GridType::LeafGridView,LocalFE, TargetSpace>(*grid.leafbegin<0>(), localFiniteElement, localSolution);
 
-  std::cout << "Laplace energy: " << laplaceEnergy << std::endl;
-
-  size_t nDoubles = nDofs*sizeof(TargetSpace) / sizeof(double);
-  std::vector<double> xp(nDoubles);
-  int idx=0;
-  for (size_t i=0; i<nDofs; i++)
-    for (size_t j=0; j<sizeof(TargetSpace) / sizeof(double); j++)
-        xp[idx++] = localSolution[i].globalCoordinates()[j];
-
-  // Compute gradient
-    double* g = new double[nDoubles];
-    gradient(1,nDoubles,xp.data(),g);                  // gradient evaluation
-
-  int idx2 = 0;
-  for(size_t i=0; i<nDofs; i++) {
-    for (size_t j=0; j<sizeof(TargetSpace) / sizeof(double); j++) {
-      std::cout << g[idx2++] << "  ";
-    }
-    std::cout << std::endl;
-  }
-
-
-  //exit(0);
-
-  // Compute Hessian
-  double** H   = (double**) malloc(nDoubles*sizeof(double*));
-  for(size_t i=0; i<nDoubles; i++)
-      H[i] = (double*)malloc((i+1)*sizeof(double));
-  hessian(1,nDoubles,xp.data(),H);                   // H equals (n-1)g since g is
-
-  std::cout << "Hessian:" << std::endl;
-  for(size_t i=0; i<nDoubles; i++) {
-    for (size_t j=0; j<nDoubles; j++) {
-      double value = (j<=i) ? H[i][j] : H[j][i];
-      std::cout << value << "  ";
-    }
-    std::cout << std::endl;
-  }
-#endif
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
