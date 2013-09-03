@@ -21,10 +21,10 @@
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType, class TargetSpace>
-class RiemannianTrustRegionSolver 
+class RiemannianTrustRegionSolver
     : public IterativeSolver<std::vector<TargetSpace>,
                              Dune::BitSetVector<TargetSpace::TangentVector::dimension> >
-{ 
+{
     const static int blocksize = TargetSpace::TangentVector::dimension;
 
     const static int gridDim = GridType::dimension;
@@ -53,7 +53,7 @@ public:
     {}
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
-    void setup(const GridType& grid, 
+    void setup(const GridType& grid,
                const GeodesicFEAssembler<BasisType, TargetSpace>* assembler,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
@@ -62,13 +62,13 @@ public:
                double initialTrustRegionRadius,
                int multigridIterations,
                double mgTolerance,
-               int mu, 
+               int mu,
                int nu1,
                int nu2,
                int baseIterations,
                double baseTolerance,
                bool instrumented);
-    
+
     void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
     {
         ignoreNodes_ = &ignoreNodes;
@@ -123,7 +123,7 @@ protected:
 
     /** \brief The norm used to measure multigrid convergence */
     H1SemiNorm<CorrectionType>* h1SemiNorm_;
-    
+
     /** \brief If set to true we log convergence speed and other stuff */
     bool instrumented_;
 
