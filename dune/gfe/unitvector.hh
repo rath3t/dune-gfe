@@ -335,6 +335,36 @@ public:
         return result;
     }
 
+    /** \brief Project tangent vector of R^n onto the normal space space */
+    EmbeddedTangentVector projectOntoNormalSpace(const EmbeddedTangentVector& v) const {
+
+        EmbeddedTangentVector result;
+
+        T sp = 0;
+        for (int i=0; i<N; i++)
+          sp += v[i] * data_[i];
+
+        for (int i=0; i<N; i++)
+          result[i] = sp * data_[i];
+
+        return result;
+    }
+
+    /** \brief The Weingarten map */
+    EmbeddedTangentVector weingarten(const EmbeddedTangentVector& z, const EmbeddedTangentVector& v) const {
+
+        EmbeddedTangentVector result;
+
+        T sp = 0;
+        for (int i=0; i<N; i++)
+          sp += v[i] * data_[i];
+
+        for (int i=0; i<N; i++)
+          result[i] = -sp * z[i];
+
+        return result;
+    }
+
     /** \brief The global coordinates, if you really want them */
     const CoordinateType& globalCoordinates() const {
         return data_;

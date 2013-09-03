@@ -245,9 +245,64 @@ public:
 
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
-        DUNE_THROW(Dune::NotImplemented, "!");
+        EmbeddedTangentVector result;
+
+        // translation part
+        for (int i=0; i<N; i++)
+          result[i] = v[i];
+
+        // rotation part
+        typename Rotation<T,N>::EmbeddedTangentVector rotV;
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+            rotV[i] = v[i+N];
+
+        rotV = q.projectOntoTangentSpace(rotV);
+
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+          result[i+N] = rotV[i];
+
+        return result;
     }
 
+    /** \brief Project tangent vector of R^n onto the normal space space */
+    EmbeddedTangentVector projectOntoNormalSpace(const EmbeddedTangentVector& v) const {
+
+        EmbeddedTangentVector result;
+
+        // translation part
+        for (int i=0; i<N; i++)
+          result[i] = v[i];
+
+        // rotation part
+        T sp = 0;
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+          sp += v[i+N] * q[i];
+
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+          result[i+N] = sp * q[i];
+
+        return result;
+    }
+
+    /** \brief The Weingarten map */
+    EmbeddedTangentVector weingarten(const EmbeddedTangentVector& z, const EmbeddedTangentVector& v) const {
+
+        EmbeddedTangentVector result;
+
+        // translation part: nothing, the space is flat
+        for (int i=0; i<N; i++)
+          result[i] = 0;
+
+        // rotation part
+        T sp = 0;
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+          sp += v[i+N] * q[i];
+
+        for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
+          result[i+N] = -sp * z[i+N];
+
+        return result;
+    }
 
     /** \brief Compute an orthonormal basis of the tangent space of SE(3).
 
