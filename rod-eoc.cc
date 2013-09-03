@@ -35,7 +35,7 @@ using namespace Dune;
 using std::string;
 
 void solve (const GridType& grid,
-            SolutionType& x, 
+            SolutionType& x,
             int numLevels,
             const TargetSpace& dirichletValue,
             const ParameterTree& parameters)
@@ -80,9 +80,9 @@ void solve (const GridType& grid,
     // Both ends are Dirichlet
     BitSetVector<blocksize> dirichletNodes(grid.size(1));
     dirichletNodes.unsetAll();
-        
+
     dirichletNodes[0] = dirichletNodes.back() = true;
-    
+
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
@@ -91,7 +91,7 @@ void solve (const GridType& grid,
 
     RiemannianTrustRegionSolver<GridType,RigidBodyMotion<double,3> > rodSolver;
 #if 1
-    rodSolver.setup(grid, 
+    rodSolver.setup(grid,
                     &rodAssembler,
                     x,
                     dirichletNodes,
@@ -105,7 +105,7 @@ void solve (const GridType& grid,
                     1e-8,    // base tolerance
                     false);  // instrumentation
 #else
-    rodSolver.setupTCG(grid, 
+    rodSolver.setupTCG(grid,
                        &rodAssembler,
                        x,
                        dirichletNodes,
@@ -145,7 +145,7 @@ int main (int argc, char *argv[]) try
     const double baseTolerance    = parameterSet.get<double>("baseTolerance");
 
     const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
-    
+
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
@@ -168,9 +168,9 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////////////////////
 
     //    Create the reference grid
-    
+
     GridType referenceGrid(numRodBaseElements, 0, 1);
-    
+
     referenceGrid.globalRefine(numLevels-1);
 
     //  Solve the rod Dirichlet problem
@@ -198,7 +198,7 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////////////////////
     //   Compute on all coarser levels, and compare
     // ///////////////////////////////////////////////////////////
-    
+
     for (int i=1; i<=numLevels; i++) {
 
         GridType grid(numRodBaseElements, 0, 1);
@@ -224,20 +224,20 @@ int main (int argc, char *argv[]) try
         H1SemiNorm< BlockVector<TargetSpace::TangentVector> > l2Norm(massMatrix);
 
         // Compute max-norm difference
-        std::cout << "Level: " << i-1 
+        std::cout << "Level: " << i-1
                   << ",   max-norm error: " << difference.infinity_norm()
                   << std::endl;
 
-        std::cout << "Level: " << i-1 
+        std::cout << "Level: " << i-1
                   << ",   L2 error: " << l2Norm(difference)
                   << std::endl;
 
-        std::cout << "Level: " << i-1 
+        std::cout << "Level: " << i-1
                   << ",   H1 error: " << h1Norm(difference)
                   << std::endl;
 
-    }    
-        
+    }
+
  } catch (Exception e) {
 
     std::cout << e << std::endl;
