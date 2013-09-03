@@ -192,7 +192,12 @@ assembleHessian(const Entity& element,
 
     trace_off(0);
 
-    // Compute Hessian
+    /////////////////////////////////////////////////////////////////
+    // Compute the gradient.  It is needed to transform the Hessian
+    // into the correct coordinates.
+    /////////////////////////////////////////////////////////////////
+
+    // Compute the actual gradient
     size_t nDofs = localSolution.size();
     size_t nDoubles = nDofs*embeddedBlocksize;
     std::vector<double> xp(nDoubles);
@@ -201,42 +206,86 @@ assembleHessian(const Entity& element,
         for (size_t j=0; j<embeddedBlocksize; j++)
             xp[idx++] = localSolution[i].globalCoordinates()[j];
 
-    double** H   = (double**) malloc(nDoubles*sizeof(double*));
+  // Compute gradient
+    std::vector<double> g(nDoubles);
+    gradient(1,nDoubles,xp.data(),g.data());                  // gradient evaluation
+
+    // Copy into Dune type
+    std::vector<typename TargetSpace::EmbeddedTangentVector> localEmbeddedGradient(localSolution.size());
+
+    idx=0;
+    for (size_t i=0; i<nDofs; i++)
+        for (size_t j=0; j<embeddedBlocksize; j++)
+            localEmbeddedGradient[i][j] = g[idx++];
+
+    /////////////////////////////////////////////////////////////////
+    // Compute Hessian
+    /////////////////////////////////////////////////////////////////
+    double** rawHessian = (double**) malloc(nDoubles*sizeof(double*));
     for(size_t i=0; i<nDoubles; i++)
-        H[i] = (double*)malloc((i+1)*sizeof(double));
-    hessian(1,nDoubles,xp.data(),H);                   // H equals (n-1)g since g is
+        rawHessian[i] = (double*)malloc((i+1)*sizeof(double));
+    hessian(1,nDoubles,xp.data(),rawHessian);
 
     // Copy Hessian into Dune data type
     Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize, embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
     for(size_t i=0; i<nDoubles; i++) {
       for (size_t j=0; j<nDoubles; j++) {
-        double value = (j<=i) ? H[i][j] : H[j][i];
+        double value = (j<=i) ? rawHessian[i][j] : rawHessian[j][i];
         embeddedHessian[i/embeddedBlocksize][j/embeddedBlocksize][i%embeddedBlocksize][j%embeddedBlocksize] = value;
       }
     }
 
-    // Express Hessian in local coordinate system
+    // From this, compute the Hessian with respect to the manifold (which we assume here is embedded
+    // isometrically in a Euclidean space.
+    // For the detailed explanation of the following see: Absil, Mahoney, Trumpf, "An extrinsic look
+    // at the Riemannian Hessian".
+
+    typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
+    typedef typename TargetSpace::TangentVector         TangentVector;
+
     this->A_.setSize(nDofs,nDofs);
+
     std::vector<Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> > orthonormalFrame(nDofs);
 
     for (size_t i=0; i<nDofs; i++)
         orthonormalFrame[i] = localSolution[i].orthonormalFrame();
 
-    for (size_t row=0; row<nDofs; row++) {
+    for (size_t col=0; col<nDofs; col++) {
 
-        for (size_t col=0; col<nDofs; col++) {
+        for (size_t subCol=0; subCol<blocksize; subCol++) {
 
-            // this is frame * embeddedHessian * frame^T
-            for (int i=0; i<blocksize; i++)
-                for (int j=0; j<blocksize; j++) {
-                    this->A_[row][col][i][j] = 0;
-                    for (int k=0; k<embeddedBlocksize; k++)
-                        for (int l=0; l<embeddedBlocksize; l++)
-                            this->A_[row][col][i][j] += orthonormalFrame[row][i][k]
-                                                 *embeddedHessian[row][col][k][l]
-                                                 *orthonormalFrame[col][j][l];
-                }
+            EmbeddedTangentVector z = orthonormalFrame[col][subCol];
+
+            // P_x \partial^2 f z
+            std::vector<EmbeddedTangentVector> semiEmbeddedProduct(nDofs);
+
+            for (size_t row=0; row<nDofs; row++) {
+                embeddedHessian[row][col].mv(z,semiEmbeddedProduct[row]);
+                //tmp1 = localSolution[row].projectOntoTangentSpace(tmp1);
+                TangentVector tmp2;
+                orthonormalFrame[row].mv(semiEmbeddedProduct[row],tmp2);
+
+                for (int subRow=0; subRow<blocksize; subRow++)
+                    this->A_[row][col][subRow][subCol] = tmp2[subRow];
+            }
+
+            // + A_x (z, P_x^\orth \partial f)
+            for (size_t row=0; row<nDofs; row++) {
+
+                // Get the Euclidean gradient projected onto the normal space
+                EmbeddedTangentVector porthGrad = localSolution[row].projectOntoNormalSpace(localEmbeddedGradient[row]);
+
+                EmbeddedTangentVector tmp3 = localSolution[row].weingarten(z, porthGrad);
+
+                TangentVector tmp4;
+                orthonormalFrame[row].mv(tmp3,tmp4);
+
+                for (int subRow=0; subRow<blocksize; subRow++)
+                    this->A_[row][col][subRow][subCol] += tmp4[subRow];
+            }
+
         }
+
     }
 
 //     std::cout << "ADOL-C stiffness:\n";
