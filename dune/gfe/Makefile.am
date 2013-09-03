@@ -5,7 +5,8 @@ SUBDIRS = coupling
 AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/..
 
 srcincludedir = $(includedir)/dune/common
-srcinclude_HEADERS = averagedistanceassembler.hh \
+srcinclude_HEADERS = adolcnamespaceinjections.hh \
+                     averagedistanceassembler.hh \
                      averageinterface.hh \
                      cosseratvtkwriter.hh \
                      geodesicdifference.hh \
