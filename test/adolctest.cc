@@ -33,7 +33,23 @@
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 
+#include "valuefactory.hh"
+#include "multiindex.hh"
+
 using namespace Dune;
+
+/** \brief Computes the diameter of a set */
+template <class TargetSpace>
+double diameter(const std::vector<TargetSpace>& v)
+{
+    double d = 0;
+    for (size_t i=0; i<v.size(); i++)
+        for (size_t j=0; j<v.size(); j++)
+            d = std::max(d, TargetSpace::distance(v[i],v[j]));
+    return d;
+}
+
+
 
 template <int blocksize>
 void compareMatrices(const Matrix<FieldMatrix<double,blocksize,blocksize> >& fdMatrix,
@@ -58,54 +74,73 @@ void compareMatrices(const Matrix<FieldMatrix<double,blocksize,blocksize> >& fdM
 
 int testHarmonicEnergy() {
 
+  typedef UnitVector<double,3> TargetSpace;
   const int dim = 1;
+
+  std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << dim << " ---" << std::endl;
+
+  // set up a test grid
   typedef YaspGrid<dim> GridType;
   FieldVector<double,dim> l(1);
   std::array<int,dim> elements;
   std::fill(elements.begin(), elements.end(), 1);
   GridType grid(l,elements);
 
-  typedef Q1LocalFiniteElement<double,double,dim> LocalFE;
-  LocalFE localFiniteElement;
-
-  size_t nDofs = localFiniteElement.localBasis().size();
-
-  typedef UnitVector<double,3> TargetSpace;
-  std::vector<TargetSpace> localSolution(nDofs);
-
-  for (size_t i=0; i<nDofs; i++)
-    localSolution[i] = FieldVector<double,3>(1.0);
-
-  for (size_t i=0; i<localSolution.size(); i++)
-    std::cout << localSolution[i] << std::endl;
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
   typedef Q1NodalBasis<GridType::LeafGridView,double> Q1Basis;
   Q1Basis q1Basis(grid.leafView());
 
+  typedef Q1LocalFiniteElement<double,double,dim> LocalFE;
+  LocalFE localFiniteElement;
+
+  // Assembler using finite differences
   HarmonicEnergyLocalStiffness<GridType::LeafGridView,
                                Q1Basis::LocalFiniteElement,
                                TargetSpace> harmonicEnergyLocalStiffness;
 
-    // Assembler using ADOL-C
+  // Assembler using ADOL-C
   typedef TargetSpace::rebind<adouble>::other ATargetSpace;
   HarmonicEnergyLocalStiffness<GridType::LeafGridView,
-                                Q1Basis::LocalFiniteElement,
-                                ATargetSpace> harmonicEnergyADOLCLocalStiffness;
+                               Q1Basis::LocalFiniteElement,
+                               ATargetSpace> harmonicEnergyADOLCLocalStiffness;
   LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
                                 Q1Basis::LocalFiniteElement,
                                 TargetSpace> localGFEADOLCStiffness(&harmonicEnergyADOLCLocalStiffness);
 
+  size_t nDofs = localFiniteElement.localBasis().size();
 
-  harmonicEnergyLocalStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+  std::vector<TargetSpace> localSolution(nDofs);
 
-  localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+  std::vector<TargetSpace> testPoints;
+  ValueFactory<TargetSpace>::get(testPoints);
 
-  compareMatrices(harmonicEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_);
+  int nTestPoints = testPoints.size();
 
-    return 0;
+  MultiIndex index(nDofs, nTestPoints);
+  int numIndices = index.cycle();
+
+  for (int i=0; i<numIndices; i++, ++index) {
+
+    for (size_t j=0; j<nDofs; j++)
+      localSolution[j] = testPoints[index[j]];
+
+    if (diameter(localSolution) > 0.5*M_PI)
+        continue;
+
+    for (size_t j=0; j<localSolution.size(); j++)
+      std::cout << localSolution[j] << std::endl;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    harmonicEnergyLocalStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+
+    localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+
+    compareMatrices(harmonicEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_);
+
+  }
+
+  return 0;
 }
 
 int testCosseratEnergy() {
