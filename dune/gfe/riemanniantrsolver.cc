@@ -396,7 +396,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         // ////////////////////////////////////////////////////
 
         SolutionType newIterate = x_;
-        for (int j=0; j<newIterate.size(); j++)
+        for (size_t j=0; j<newIterate.size(); j++)
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 
         double energy    = assembler_->computeEnergy(newIterate);
