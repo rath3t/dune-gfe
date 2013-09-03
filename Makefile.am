@@ -9,7 +9,7 @@ SUBDIRS = doc m4 dune test
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
 AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
-noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps-eoc dirneucoupling rod-eoc 
+noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps-eoc dirneucoupling rod-eoc
 
 cosserat_continuum_SOURCES  = cosserat-continuum.cc
 cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS) -fopenmp
