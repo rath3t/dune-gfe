@@ -5,18 +5,18 @@
 
 #include <dune/solvers/common/boxconstraint.hh>
 
-template <int blocksize>
+template <int blocksize, class field_type=double>
 class MaxNormTrustRegion
 {
 public:
 
-    MaxNormTrustRegion(size_t size, double initialRadius)
+    MaxNormTrustRegion(size_t size, field_type initialRadius)
         : obstacles_(size)
     {
         set(initialRadius);
     }
 
-    void set(double radius) {
+    void set(field_type radius) {
 
         for (size_t i=0; i<obstacles_.size(); i++) {
 
@@ -31,13 +31,13 @@ public:
 
     }
 
-    double radius() const {
+    field_type radius() const {
         assert(obstacles_.size()>0);
         assert(blocksize>0);
         return obstacles_[0].upper(0);
     }
 
-    void scale(double factor) {
+    void scale(field_type factor) {
 
         for (size_t i=0; i<obstacles_.size(); i++) {
 
@@ -52,13 +52,13 @@ public:
 
     }
 
-    const std::vector<BoxConstraint<double,blocksize> >& obstacles() const {
+    const std::vector<BoxConstraint<field_type,blocksize> >& obstacles() const {
         return obstacles_;
     }
 
 private:
 
-    std::vector<BoxConstraint<double,blocksize> > obstacles_;
+    std::vector<BoxConstraint<field_type,blocksize> > obstacles_;
 
 };
 
