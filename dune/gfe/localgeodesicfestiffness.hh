@@ -143,9 +143,9 @@ assembleHessian(const Entity& element,
     #pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {
-            Dune::FieldVector<double,embeddedBlocksize> epsXi = B[i][i2];
+            typename TargetSpace::EmbeddedTangentVector epsXi = B[i][i2];
             epsXi *= eps;
-            Dune::FieldVector<double,embeddedBlocksize> minusEpsXi = epsXi;
+            typename TargetSpace::EmbeddedTangentVector minusEpsXi = epsXi;
             minusEpsXi  *= -1;
 
             std::vector<TargetSpace> forwardSolution  = localSolution;
@@ -173,11 +173,11 @@ assembleHessian(const Entity& element,
                     std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
                     std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
 
-                    Dune::FieldVector<double,embeddedBlocksize> epsXi  = B[i][i2];    epsXi *= eps;
-                    Dune::FieldVector<double,embeddedBlocksize> epsEta = B[j][j2];   epsEta *= eps;
+                    typename TargetSpace::EmbeddedTangentVector epsXi  = B[i][i2];    epsXi *= eps;
+                    typename TargetSpace::EmbeddedTangentVector epsEta = B[j][j2];   epsEta *= eps;
 
-                    Dune::FieldVector<double,embeddedBlocksize> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
-                    Dune::FieldVector<double,embeddedBlocksize> minusEpsEta = epsEta;  minusEpsEta *= -1;
+                    typename TargetSpace::EmbeddedTangentVector minusEpsXi  = epsXi;   minusEpsXi  *= -1;
+                    typename TargetSpace::EmbeddedTangentVector minusEpsEta = epsEta;  minusEpsEta *= -1;
 
                     if (i==j)
                         forwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],epsXi+epsEta);
