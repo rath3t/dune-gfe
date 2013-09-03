@@ -146,6 +146,15 @@ class Rotation<T,3> : public Quaternion<T>
         return (x < 1e-4) ? 0.5 - (x*x/48)  + (x*x*x*x)/3840 : std::sin(x/2)/x;
     }
 
+    /** \brief Computes sin(sqrt(x)/2) / sqrt(x) without getting unstable for small x
+     *
+     * Using this somewhat exotic series allows to avoid a few calls to std::sqrt near 0,
+     * which ADOL-C doesn't like.
+     */
+    static T sincHalfOfSquare(const T& x) {
+        return (x < 1e-15) ? 0.5 - (x/48)  + (x*x)/(120*32) : std::sin(std::sqrt(x)/2)/std::sqrt(x);
+    }
+
 public:
 
     /** \brief The type used for coordinates */
@@ -237,18 +246,24 @@ public:
         Rotation<T,3> q;
 
         Dune::FieldVector<T,3> vAxial = v.axial();
-        T normV = vAxial.two_norm();
+        T normV2 = vAxial.two_norm2();
 
-        // Stabilization for small |v| due to Grassia
-        T sin = sincHalf(normV);
+        // Stabilization for small |v|
+        T sin = sincHalfOfSquare(normV2);
 
-        // if normV == 0 then q = (0,0,0,1)
-        assert(!isnan(sin));
+        assert(!std::isnan(sin));
 
         q[0] = sin * vAxial[0];
         q[1] = sin * vAxial[1];
         q[2] = sin * vAxial[2];
-        q[3] = std::cos(normV/2);
+
+        // The series expansion of cos(x) at x=0 is
+        // 1 - x*x/2 + x*x*x*x/24 - ...
+        // hence the series of cos(x/2) is
+        // 1 - x*x/8 + x*x*x*x/384 - ...
+        q[3] = (normV2 < 1e-4)
+          ? 1 - normV2/8 + normV2*normV2 / 384
+          : std::cos(std::sqrt(normV2)/2);
 
         return q;
     }
