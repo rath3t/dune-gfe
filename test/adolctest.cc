@@ -51,9 +51,10 @@ double diameter(const std::vector<TargetSpace>& v)
 
 
 
-template <int blocksize>
+template <int blocksize, class TargetSpace>
 void compareMatrices(const Matrix<FieldMatrix<double,blocksize,blocksize> >& fdMatrix,
-                     const Matrix<FieldMatrix<double,blocksize,blocksize> >& adolcMatrix)
+                     const Matrix<FieldMatrix<double,blocksize,blocksize> >& adolcMatrix,
+                     const std::vector<TargetSpace>& configuration)
 {
   assert(fdMatrix.N() == adolcMatrix.N());
   assert(fdMatrix.M() == adolcMatrix.M());
@@ -62,7 +63,11 @@ void compareMatrices(const Matrix<FieldMatrix<double,blocksize,blocksize> >& fdM
   diff -= adolcMatrix;
 
   if ( (diff.frobenius_norm() / fdMatrix.frobenius_norm()) > 1e-4) {
-    std::cout << "Matrices differ:" << std::endl;
+
+    std::cout << "Matrices differ for" << std::endl;
+    for (size_t j=0; j<configuration.size(); j++)
+      std::cout << configuration[j] << std::endl;
+
     std::cout << "finite differences:" << std::endl;
     printmatrix(std::cout, fdMatrix, "finite differences", "--");
     std::cout << "ADOL-C:" << std::endl;
@@ -123,9 +128,6 @@ int testHarmonicEnergy() {
     if (diameter(localSolution) > 0.5*M_PI)
         continue;
 
-    for (size_t j=0; j<localSolution.size(); j++)
-      std::cout << localSolution[j] << std::endl;
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -133,7 +135,7 @@ int testHarmonicEnergy() {
 
     localGFEADOLCStiffness.assembleHessian(*grid.template leafbegin<0>(),localFiniteElement, localSolution);
 
-    compareMatrices(harmonicEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_);
+    compareMatrices(harmonicEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_, localSolution);
 
   }
 
@@ -200,7 +202,7 @@ int testCosseratEnergy() {
 
     localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
 
-    compareMatrices(cosseratEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_);
+    compareMatrices(cosseratEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_, localSolution);
 
     return 0;
 }
