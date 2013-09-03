@@ -202,7 +202,7 @@ assembleHessian(const Entity& element,
     /////////////////////////////////////////////////////////////////
     // Compute Hessian
     /////////////////////////////////////////////////////////////////
-    double** rawHessian = (double**) malloc(nDoubles*sizeof(double*));
+    double* rawHessian[nDoubles];
     for(size_t i=0; i<nDoubles; i++)
         rawHessian[i] = (double*)malloc((i+1)*sizeof(double));
     hessian(1,nDoubles,xp.data(),rawHessian);
@@ -215,6 +215,9 @@ assembleHessian(const Entity& element,
         embeddedHessian[i/embeddedBlocksize][j/embeddedBlocksize][i%embeddedBlocksize][j%embeddedBlocksize] = value;
       }
     }
+
+    for(size_t i=0; i<nDoubles; i++)
+        free(rawHessian[i]);
 
     // From this, compute the Hessian with respect to the manifold (which we assume here is embedded
     // isometrically in a Euclidean space.
