@@ -40,7 +40,7 @@ class LocalGeodesicFEFunction
 public:
 
     /** \brief The type used for derivatives */
-    typedef Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> DerivativeType;
+    typedef Dune::FieldMatrix<ctype, embeddedDim, dim> DerivativeType;
 
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
     typedef Tensor3<ctype,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
@@ -203,7 +203,8 @@ evaluate(const Dune::FieldVector<ctype, dim>& local) const
 }
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
+LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 {
     // the function value at the point where we are evaluating the derivative
@@ -214,7 +215,8 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
 }
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
+LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
 {
     Dune::FieldMatrix<ctype, embeddedDim, dim> result;
@@ -309,12 +311,13 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
 }
 
 template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-Dune::FieldMatrix<ctype, TargetSpace::EmbeddedTangentVector::dimension, dim> LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
+LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
 evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
 {
     double eps = 1e-6;
 
-    Dune::FieldMatrix<ctype, EmbeddedTangentVector::dimension, dim> result;
+    Dune::FieldMatrix<ctype, embeddedDim, dim> result;
 
     for (int i=0; i<dim; i++) {
 
@@ -327,7 +330,7 @@ evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
         EmbeddedTangentVector fdDer = evaluate(forward).globalCoordinates() - evaluate(backward).globalCoordinates();
         fdDer /= 2*eps;
 
-        for (int j=0; j<EmbeddedTangentVector::dimension; j++)
+        for (int j=0; j<embeddedDim; j++)
             result[j][i] = fdDer[j];
 
     }
@@ -535,7 +538,6 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
                                            DerivativeOfGradientWRTCoefficientType& result) const
 {
     double eps = 1e-6;
-    static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
 
     // loop over the different partial derivatives
     for (int j=0; j<embeddedDim; j++) {
