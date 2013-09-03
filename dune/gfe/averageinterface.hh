@@ -32,7 +32,7 @@ class PressureAverager : public Ipopt::TNLP
 
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > MatrixType;
     typedef typename MatrixType::row_type RowType;
-    
+
 
     enum {dim=GridView::dimension};
 
@@ -52,7 +52,7 @@ public:
     {
         patchArea_ = patch->area();
     }
-    
+
     /** default destructor */
     virtual ~PressureAverager() {};
 
@@ -161,15 +161,15 @@ get_nlp_info(Ipopt::Index& n, Ipopt::Index& m, Ipopt::Index& nnz_jac_g,
     // leave out the very small ones, as they create instabilities
     nnz_jac_g = 0;
     for (int i=0; i<m; i++) {
-            
+
         const RowType& jacobianRow = (*constraintJacobian_)[i];
-            
+
         for (typename RowType::ConstIterator cIt = jacobianRow.begin(); cIt!=jacobianRow.end(); ++cIt)
             if ( std::abs((*cIt)[0][0]) > jacobianCutoff_ )
                 nnz_jac_g++;
-        
+
     }
-    
+
     // We only need the lower left corner of the Hessian (since it is symmetric)
     if (!massMatrix_)
         DUNE_THROW(SolverError, "No mass matrix has been supplied!");
@@ -178,7 +178,7 @@ get_nlp_info(Ipopt::Index& n, Ipopt::Index& m, Ipopt::Index& nnz_jac_g,
 
     // use the C style indexing (0-based)
     index_style = Ipopt::TNLP::C_STYLE;
-    
+
     return true;
 }
 
@@ -221,7 +221,7 @@ get_starting_point(Ipopt::Index n, bool init_x, Ipopt::Number* x,
     assert(init_x == true);
     assert(init_z == false);
     assert(init_lambda == false);
-    
+
     // initialize to the given starting point
     for (int i=0; i<n/dim; i++)
         for (int j=0; j<dim; j++)
@@ -241,25 +241,25 @@ eval_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number& obj_va
     ////////////////////////////////////
     // Compute x^T*A*x
     ////////////////////////////////////
-    
+
     for (int rowIdx=0; rowIdx<massMatrix_->N(); rowIdx++) {
-        
+
         const typename MatrixType::row_type& row = (*massMatrix_)[rowIdx];
-        
+
         typename MatrixType::row_type::ConstIterator cIt   = row.begin();
         typename MatrixType::row_type::ConstIterator cEndIt = row.end();
-        
+
         for (; cIt!=cEndIt; ++cIt)
             for (int i=0; i<dim; i++)
                 obj_value += x[dim*rowIdx+i] * x[dim*cIt.index()+i] * (*cIt)[0][0];
 
     }
 
-    // 
+    //
     for (int i=0; i<nodalWeights_->size(); i++)
         for (int j=0; j<dim; j++)
             obj_value -= 2 * x[n-dim + j] * x[i*dim+j] * (*nodalWeights_)[i];
-  
+
     // += c^2 * \int 1 ds
     for (int i=0; i<dim; i++)
         obj_value += patchArea_ * (x[n-dim + i] * x[n-dim + i]);
@@ -284,23 +284,23 @@ eval_grad_f(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Number* g
 
         typename MatrixType::row_type::ConstIterator cIt   = row.begin();
         typename MatrixType::row_type::ConstIterator cEndIt = row.end();
-        
-        for (; cIt!=cEndIt; ++cIt) 
+
+        for (; cIt!=cEndIt; ++cIt)
             for (int j=0; j<dim; j++)
                 grad_f[i*dim+j] += 2 * (*cIt)[0][0] * x[cIt.index()*dim+j];
 
         for (int j=0; j<dim; j++)
             grad_f[i*dim+j] -= 2 * x[n-dim+j] * (*nodalWeights_)[i];
-        
+
     }
 
     for (int i=0; i<dim; i++) {
 
-        for (int j=0; j<nodalWeights_->size(); j++) 
+        for (int j=0; j<nodalWeights_->size(); j++)
             grad_f[n-dim+i] -= 2* (*nodalWeights_)[j]*x[j*dim+i];
 
         grad_f[n-dim+i] += 2*x[n-dim+i]*patchArea_;
-        
+
     }
 
 //     for (int i=0; i<n; i++) {
@@ -333,7 +333,7 @@ eval_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x, Ipopt::Index m, Ipopt
 
 //     for (int i=0; i<m; i++)
 //         std::cout << "g[" << i << "]: " << g[i] << std::endl;
-        
+
   return true;
 }
 
@@ -349,9 +349,9 @@ eval_jac_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
     if (values==NULL) {
 
         for (int i=0; i<m; i++) {
-            
+
             const RowType& jacobianRow = (*constraintJacobian_)[i];
-            
+
             for (typename RowType::ConstIterator cIt = jacobianRow.begin(); cIt!=jacobianRow.end(); ++cIt) {
                 if ( std::abs((*cIt)[0][0]) > jacobianCutoff_ ) {
                     iRow[idx] = i;
@@ -359,19 +359,19 @@ eval_jac_g(Ipopt::Index n, const Ipopt::Number* x, bool new_x,
                     idx++;
                 }
             }
-            
+
         }
 
     } else {
 
         for (int i=0; i<m; i++) {
-            
+
             const RowType& jacobianRow = (*constraintJacobian_)[i];
-            
+
             for (typename RowType::ConstIterator cIt = jacobianRow.begin(); cIt!=jacobianRow.end(); ++cIt)
                 if ( std::abs((*cIt)[0][0]) > jacobianCutoff_ )
                     values[idx++] = (*cIt)[0][0];
-            
+
         }
 
 
@@ -403,7 +403,7 @@ finalize_solution(Ipopt::SolverReturn status,
                   Ipopt::IpoptCalculatedQuantities* ip_cq)
 {
     x_->resize(patch_->numVertices());
-    
+
     for (int i=0; i<x_->size(); i++)
         for (int j=0; j<dim; j++)
             (*x_)[i][j] = x[i*dim+j];
@@ -418,11 +418,11 @@ void weakToStrongBoundaryStress(const BoundaryPatch<GridView>& boundary,
     static const int dim = GridView::dimension;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,dim,dim> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<double,dim> >    VectorType;
-    
+
     // turn residual (== weak form of the Neumann forces) to the strong form
     MatrixType surfaceMassMatrix;
     assembleSurfaceMassMatrix(boundary, surfaceMassMatrix);
-        
+
     std::vector<int> globalToLocal;
     boundary.makeGlobalToLocal(globalToLocal);
     VectorType localWeakBoundaryStress(surfaceMassMatrix.N());
@@ -430,23 +430,23 @@ void weakToStrongBoundaryStress(const BoundaryPatch<GridView>& boundary,
     for (int i=0; i<globalToLocal.size(); i++)
         if (globalToLocal[i] >= 0)
             localWeakBoundaryStress[globalToLocal[i]] = weakBoundaryStress[i];
-        
+
     VectorType localStrongBoundaryStress(surfaceMassMatrix.N());
     localStrongBoundaryStress = 0;
-        
+
     // solve with a cg solver
     Dune::MatrixAdapter<MatrixType,VectorType,VectorType> op(surfaceMassMatrix);
     Dune::SeqILU0<MatrixType,VectorType,VectorType> ilu0(surfaceMassMatrix,1.0);
     Dune::CGSolver<VectorType> cg(op,ilu0,1E-4,100,0);
     Dune::InverseOperatorResult statistics;
     cg.apply(localStrongBoundaryStress, localWeakBoundaryStress, statistics);
-    
+
     VectorType neumannForces(weakBoundaryStress.size());
     neumannForces = 0;
     for (int i=0; i<globalToLocal.size(); i++)
         if (globalToLocal[i] >= 0)
             strongBoundaryStress[i] = localStrongBoundaryStress[globalToLocal[i]];
-    
+
 }
 
 /** \param center Compute total torque around this point
@@ -464,14 +464,14 @@ void computeTotalForceAndTorque(const BoundaryPatch<GridView>& interface,
     // ///////////////////////////////////////////
     totalForce = 0;
     totalTorque = 0;
-    
+
     ////////////////////////////////////////////////////////////////
     //  Interpret the Neumann value coefficients as a P1 function
     ////////////////////////////////////////////////////////////////
     typedef P1NodalBasis<GridView,double> P1Basis;
     P1Basis p1Basis(interface.gridView());
     BasisGridFunction<P1Basis, Dune::BlockVector<Dune::FieldVector<double, GridView::dimension> > > neumannFunction(p1Basis, boundaryStress);
-    
+
     // ///////////////////////////////////////////
     //   Loop and integrate over the interface
     // ///////////////////////////////////////////
@@ -488,24 +488,24 @@ void computeTotalForceAndTorque(const BoundaryPatch<GridView>& interface,
 
         /* Loop over all integration points */
         for (size_t ip=0; ip<quad.size(); ip++) {
-                
+
             // Local position of the quadrature point
             const Dune::FieldVector<double,dim> quadPos = it->geometryInInside().global(quad[ip].position());
             const Dune::FieldVector<double,dim> worldPos = it->geometry().global(quad[ip].position());
-            
+
             const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
 
             Dune::FieldVector<double,dim> value;
             neumannFunction.evaluateLocal(*it->inside(), quadPos, value);
-            
+
             totalForce.axpy(quad[ip].weight() * integrationElement, value);
             totalTorque.axpy(quad[ip].weight() * integrationElement, crossProduct(worldPos-center,value));
-            
+
         }
 
     }
 
-    
+
 }
 
 // Given a resultant force and torque (from a rod problem), this method computes the corresponding
@@ -567,7 +567,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
     for (; it!=endIt; ++it) {
 
         // Get shape functions
-        const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType& 
+        const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType&
             localFiniteElement = finiteElementCache.get(it->inside()->type());
 
             const Dune::GenericReferenceElement<double,dim>& refElement = Dune::GenericReferenceElements<double, dim>::general(it->inside()->type());
@@ -575,30 +575,30 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
             // four rows because a face may have no more than four vertices
             Dune::FieldVector<double,4> mu(0);
             Dune::FieldVector<double,3> mu_tilde[4][3];
-            
+
             for (int i=0; i<4; i++)
                 for (int j=0; j<3; j++)
                     mu_tilde[i][j] = 0;
 
             for (int i=0; i<it->geometry().corners(); i++) {
-                
-                const Dune::QuadratureRule<double, dim-1>& quad 
+
+                const Dune::QuadratureRule<double, dim-1>& quad
                     = Dune::QuadratureRules<double, dim-1>::rule(it->type(), dim-1);
-                
+
                 for (size_t qp=0; qp<quad.size(); qp++) {
-                    
+
                     // Local position of the quadrature point
                     const Dune::FieldVector<double,dim>& quadPos = it->geometryInInside().global(quad[qp].position());
-                    
+
                     const double integrationElement = it->geometry().integrationElement(quad[qp].position());
-                    
+
                     std::vector<Dune::FieldVector<double,1> > shapeFunctionValues;
                     localFiniteElement.localBasis().evaluateFunction(quadPos, shapeFunctionValues);
 
                     // \mu_i = \int_t \varphi_i \ds
                     int indexInFace = refElement.subEntity(it->indexInInside(), 1, i, dim);
                     mu[i] += quad[qp].weight() * integrationElement * shapeFunctionValues[indexInFace];
-                    
+
                     // \tilde{\mu}_i^j = \int_t (x - x_0) \times \varphi_i \ds
                     Dune::FieldVector<double,dim> worldPos = it->geometry().global(quad[qp].position());
 
@@ -607,19 +607,19 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
                         // Vector-valued basis function
                         Dune::FieldVector<double,dim> phi_i(0);
                         phi_i[j] = shapeFunctionValues[indexInFace];
-                        
+
                         mu_tilde[i][j].axpy(quad[qp].weight() * integrationElement,
                                             crossProduct(Dune::FieldVector<double,dim>(worldPos-centerOfTorque), phi_i));
 
                     }
-                    
+
                 }
-                
+
             }
 
             // Set up matrix
             for (int i=0; i<refElement.size(it->indexInInside(),1,dim); i++) {
-                
+
                 int faceIdxi = refElement.subEntity(it->indexInInside(), 1, i, dim);
                 int subIndex = globalToLocal[indexSet.subIndex(*it->inside(), faceIdxi, dim)];
 
@@ -647,10 +647,10 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
         resultantForce[i]  = resultantForceTorque[i];
         resultantTorque[i] = resultantForceTorque[dim+i];
     }
-    
+
     // Create a new instance of IpoptApplication
     Ipopt::SmartPtr<Ipopt::IpoptApplication> app = new Ipopt::IpoptApplication();
-    
+
     // Change some options
     app->Options()->SetNumericValue("tol", 1e-8);
     app->Options()->SetIntegerValue("max_iter", 1000);
@@ -665,7 +665,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
     status = app->Initialize();
     if (status != Ipopt::Solve_Succeeded)
         DUNE_THROW(SolverError, "Error during IPOpt initialization!");
-    
+
     // Ask Ipopt to solve the problem
     Dune::BlockVector<Dune::FieldVector<double,dim> > localPressure;
     Ipopt::SmartPtr<Ipopt::TNLP> defectSolverSmart = new PressureAverager<GridView>(&interface,
@@ -676,7 +676,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
                                                                                     &nodalWeights,
                                                                                     &constraints);
     status = app->OptimizeTNLP(defectSolverSmart);
-    
+
     if (status != Ipopt::Solve_Succeeded
         && status != Ipopt::Solved_To_Acceptable_Level) {
         //DUNE_THROW(SolverError, "Solving the defect problem failed!");
@@ -733,7 +733,7 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
     //   Initialize output configuration
     // ///////////////////////////////////////////
     average.r = 0;
-    
+
     double interfaceArea = 0;
     FieldMatrix<double,dim,dim> deformationGradient(0);
 
@@ -752,15 +752,15 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
             const QuadratureRule<double, dim-1>& quad = QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
 
             // Get set of shape functions on this segment
-            const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType& 
+            const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType&
                 localFiniteElement = finiteElementCache.get(it->inside()->type());
 
             /* Loop over all integration points */
             for (int ip=0; ip<quad.size(); ip++) {
-                
+
                 // Local position of the quadrature point
                 const FieldVector<double,dim> quadPos = it->geometryInInside().global(quad[ip].position());
-                
+
                 const double integrationElement = segmentGeometry.integrationElement(quad[ip].position());
 
                 std::vector<Dune::FieldVector<double,1> > values;
@@ -773,23 +773,23 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
 
                     int idx = indexSet.subIndex(*it->inside(), i, dim);
 
-                    // Deformation at the quadrature point 
+                    // Deformation at the quadrature point
                     posAtQuadPoint.axpy(values[i], deformation[idx]);
                 }
 
                 const FieldMatrix<double,dim,dim>& inv = it->inside()->geometry().jacobianInverseTransposed(quadPos);
-                
+
                 /**********************************************/
                 /* compute gradients of the shape functions   */
                 /**********************************************/
                 std::vector<FieldMatrix<double, 1, dim> > shapeGrads;
                 localFiniteElement.localBasis().evaluateJacobian(quadPos,shapeGrads);
-                
+
                 for (int dof=0; dof<it->inside()->geometry().corners(); dof++) {
-                    
+
                     FieldVector<double,dim> tmp = shapeGrads[dof][0];
-                    
-                    // multiply with jacobian inverse 
+
+                    // multiply with jacobian inverse
                     shapeGrads[dof] = 0;
                     inv.umv(tmp, shapeGrads[dof][0]);
                 }
@@ -801,16 +801,16 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
                 /****************************************************/
                 FieldMatrix<double, dim, dim> F;
                 for (int i=0; i<dim; i++) {
-                    
+
                     for (int j=0; j<dim; j++) {
-                        
+
                         F[i][j] = (i==j) ? 1 : 0;
-                        
+
                         for (int k=0; k<it->inside()->geometry().corners(); k++)
                             F[i][j] += deformation[indexSet.subIndex(*it->inside(), k, dim)][i]*shapeGrads[k][0][j];
-                        
+
                     }
-                    
+
                 }
 
                 // Sum up interface area
@@ -837,8 +837,8 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
     // divided by its area
     deformationGradient /= interfaceArea;
     //std::cout << "deformationGradient: " << std::endl << deformationGradient << std::endl;
-    
-    // Get the rotational part of the deformation gradient by performing a 
+
+    // Get the rotational part of the deformation gradient by performing a
     // polar composition.
     FieldVector<double,dim> W;
     FieldMatrix<double,dim,dim> V, VT, U;
@@ -890,7 +890,7 @@ void setRotation(const BoundaryPatch<GridView>& dirichletBoundary,
     typename BoundaryPatch<GridView>::iterator endIt = dirichletBoundary.end();
 
     for (; it!=endIt; ++it) {
-        
+
         int indexInInside = it->indexInInside();
         int nCorners  = Dune::GenericReferenceElements<double,dim>::general(it->inside()->type()).size(indexInInside, 1, dim);
 
@@ -900,21 +900,21 @@ void setRotation(const BoundaryPatch<GridView>& dirichletBoundary,
 
             // Get vertex position
             const Dune::FieldVector<double,dimworld> pos = it->inside()->geometry().corner(cornerIdx);
-            
+
             // Action of the rigid body motion
             Dune::FieldVector<double,dimworld> rpos;
             rotation.mv(pos-referenceInterface.r, rpos);
             rpos += lambda.r;
-            
+
             // We compute _displacements_, not positions
             rpos -= pos;
-            
+
             deformation[globalIdx] = rpos;
-            
+
         }
-        
+
     }
-    
+
 }
 
 #endif
