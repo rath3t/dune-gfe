@@ -115,7 +115,7 @@ setup(const GridType& grid,
                                                                                                    innerIterations_,
                                                                                                    innerTolerance_,
                                                                                                    h1SemiNorm_,
-                                                                                                 Solver::REDUCED));
+                                                                                                 Solver::QUIET));
 
     // Write all intermediate solutions, if requested
     if (instrumented_
@@ -242,14 +242,16 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
             assembler_->assembleGradient(x_, rhs);
             rhs *= -1;        // The right hand side is the _negative_ gradient
-            std::cout << "gradient assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+            if (this->verbosity_ == Solver::FULL)
+              std::cout << "gradient assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             gradientTimer.reset();
 
             assembler_->assembleMatrix(x_,
                                        *hessianMatrix_,
                                        i==0    // assemble occupation pattern only for the first call
                                        );
-            std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+            if (this->verbosity_ == Solver::FULL)
+              std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             recomputeGradientHessian = false;
         }
 
