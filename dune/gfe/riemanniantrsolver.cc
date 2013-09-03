@@ -221,7 +221,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
 /*        std::cout << "current iterate:\n";
-        for (int j=0; j<x_.size(); j++)
+        for (size_t j=0; j<x_.size(); j++)
             std::cout << x_[j] << std::endl;*/
 
         Dune::Timer totalTimer;
