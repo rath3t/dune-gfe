@@ -1,8 +1,20 @@
 #ifndef DUNE_GFE_ADOLC_NAMESPACE_INJECTIONS_HH
 #define DUNE_GFE_ADOLC_NAMESPACE_INJECTIONS_HH
 
+adouble min_hack(const adouble& a, const adouble& b) {
+    return min(a,b);
+}
+
+adouble max_hack(const adouble& a, const adouble& b) {
+    return max(a,b);
+}
+
 adouble sqrt_hack(adouble a) {
   return sqrt(a);
+}
+
+adouble abs_hack(adouble a) {
+  return fabs(a);
 }
 
 adouble pow_hack(const adouble& a, const adouble& b) {
@@ -13,14 +25,27 @@ adouble pow_hack(const adouble& a, double b) {
     return pow(a,b);
 }
 
+adouble sin_hack(adouble a) {
+  return sin(a);
+}
+
+adouble cos_hack(adouble a) {
+  return cos(a);
+}
+
+adouble acos_hack(adouble a) {
+  return acos(a);
+}
+
+
 namespace std
 {
    adouble min(adouble a, adouble b) {
-      return fmin(a,b);
+      return min_hack(a,b);
    }
 
    adouble max(adouble a, adouble b) {
-      return fmax(a,b);
+      return max_hack(a,b);
    }
 
    adouble sqrt(adouble a) {
@@ -28,12 +53,8 @@ namespace std
    }
 
    adouble abs(adouble a) {
-     return fabs(a);
+     return abs_hack(a);
    }
-
-//    adouble fabs(adouble a) {
-//      return fabs(a);
-//    }
 
    adouble pow(const adouble& a, const adouble& b) {
      return pow_hack(a,b);
@@ -44,15 +65,15 @@ namespace std
    }
 
    adouble sin(adouble a) {
-     return sin(a);
+     return sin_hack(a);
    }
 
    adouble cos(adouble a) {
-     return cos(a);
+     return cos_hack(a);
    }
 
    adouble acos(adouble a) {
-     return acos(a);
+     return acos_hack(a);
    }
 
    bool isnan(adouble a) {
