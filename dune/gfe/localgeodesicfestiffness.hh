@@ -59,7 +59,7 @@ public:
                                   std::vector<typename TargetSpace::TangentVector>& gradient) const;
 
     // assembled data
-    Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > A_;
+    Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> > A_;
 
 };
 
@@ -86,7 +86,7 @@ assembleGradient(const Entity& element,
     for (size_t i=0; i<localSolution.size(); i++) {
 
         // basis vectors of the tangent space of the i-th entry of localSolution
-        const Dune::FieldMatrix<double,blocksize,embeddedBlocksize> B = localSolution[i].orthonormalFrame();
+        const Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> B = localSolution[i].orthonormalFrame();
 
         for (int j=0; j<blocksize; j++) {
 
@@ -136,11 +136,11 @@ assembleHessian(const Entity& element,
 
     // Precompute negative energy at the current configuration
     // (negative because that is how we need it as part of the 2nd-order fd formula)
-    double centerValue   = -energy(element, localFiniteElement, localSolution);
+    RT centerValue   = -energy(element, localFiniteElement, localSolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
-    std::vector<Dune::array<double,blocksize> > forwardEnergy(nDofs);
-    std::vector<Dune::array<double,blocksize> > backwardEnergy(nDofs);
+    std::vector<Dune::array<RT,blocksize> > forwardEnergy(nDofs);
+    std::vector<Dune::array<RT,blocksize> > backwardEnergy(nDofs);
 
     #pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
@@ -195,8 +195,8 @@ assembleHessian(const Entity& element,
                         backwardSolutionXiEta[j] = TargetSpace::exp(localSolution[j],minusEpsEta);
                     }
 
-                    double forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
-                    double backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
+                    RT forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
+                    RT backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
                     A_[i][j][i2][j2] = A_[j][i][j2][i2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
 
