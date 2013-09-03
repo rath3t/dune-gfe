@@ -83,7 +83,7 @@ setup(const GridType& grid,
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
     TrustRegionGSStep<MatrixType, CorrectionType>* postsmoother = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
-    MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>(numLevels);
+    MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>;
 
     mmgStep->setMGType(mu, nu1, nu2);
     mmgStep->ignoreNodes_       = &dirichletNodes;
@@ -288,7 +288,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         }
 
-        mgStep->setProblem(*hessianMatrix_, corr, rhs, grid_->maxLevel()+1);
+        mgStep->setProblem(*hessianMatrix_, corr, rhs);
 
         trustRegionObstacles.back() = trustRegion.obstacles();
         mgStep->obstacles_ = &trustRegionObstacles;
