@@ -365,9 +365,9 @@ public:
     RT curvatureEnergy(const Tensor3<double,3,3,3>& DR) const
     {
 #ifdef DONT_USE_CURL
-        return mu_ * std::pow(L_c_ * DR.frobenius_norm(),q_);
+        return mu_ * std::pow(L_c_ * DR.frobenius_norm2(),q_/2.0);
 #else
-        return mu_ * std::pow(L_c_ * curl(DR).frobenius_norm(),q_);
+        return mu_ * std::pow(L_c_ * curl(DR).frobenius_norm2(),q_/2.0);
 #endif
     }
 
