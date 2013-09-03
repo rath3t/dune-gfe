@@ -3,9 +3,7 @@
 
 #include "omp.h"
 
-#include <dune/istl/bcrsmatrix.hh>
 #include <dune/common/fmatrix.hh>
-#include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
 
 
