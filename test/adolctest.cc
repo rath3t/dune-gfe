@@ -58,16 +58,17 @@ void compareMatrices(const Matrix<FieldMatrix<double,blocksize,blocksize> >& fdM
 
 int testHarmonicEnergy() {
 
-  size_t nDofs = 4;
-
-  const int dim = 2;
+  const int dim = 1;
   typedef YaspGrid<dim> GridType;
   FieldVector<double,dim> l(1);
-  std::array<int,dim> elements = {{1, 1}};
+  std::array<int,dim> elements;
+  std::fill(elements.begin(), elements.end(), 1);
   GridType grid(l,elements);
 
   typedef Q1LocalFiniteElement<double,double,dim> LocalFE;
   LocalFE localFiniteElement;
+
+  size_t nDofs = localFiniteElement.localBasis().size();
 
   typedef UnitVector<double,3> TargetSpace;
   std::vector<TargetSpace> localSolution(nDofs);
