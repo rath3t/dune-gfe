@@ -451,11 +451,12 @@ energy(const Entity& element,
        const std::vector<RigidBodyMotion<double,dim> >& localSolution) const
 {
     assert(element.type() == localFiniteElement.type());
+    typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
 
     RT energy = 0;
 
-    LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
-                                                                                                      localSolution);
+    typedef LocalGeodesicFEFunction<gridDim, DT, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+    LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
                                                  : localFiniteElement.localBasis().order() * gridDim;
@@ -470,7 +471,7 @@ energy(const Entity& element,
 
         const double integrationElement = element.geometry().integrationElement(quadPos);
 
-        const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+        const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
         double weight = quad[pt].weight() * integrationElement;
 
@@ -478,10 +479,10 @@ energy(const Entity& element,
         RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
+        typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
 
         // The derivative of the function defined on the actual element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative(0);
+        typename LocalGFEFunctionType::DerivativeType derivative(0);
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
@@ -851,12 +852,13 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
+    typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
+
     std::vector<typename TargetSpace::EmbeddedTangentVector> embeddedLocalGradient(localSolution.size());
     std::fill(embeddedLocalGradient.begin(), embeddedLocalGradient.end(), 0);
 
-
-    LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> localGeodesicFEFunction(localFiniteElement,
-                                                                                                      localSolution);
+    typedef LocalGeodesicFEFunction<gridDim, DT, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+    LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
     /** \todo Is this larger than necessary? */
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
@@ -872,7 +874,7 @@ assembleGradient(const Entity& element,
 
         const double integrationElement = element.geometry().integrationElement(quadPos);
 
-        const Dune::FieldMatrix<double,gridDim,gridDim>& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+        const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
         double weight = quad[pt].weight() * integrationElement;
 
@@ -880,10 +882,10 @@ assembleGradient(const Entity& element,
         RigidBodyMotion<double,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
         // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
+        typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
 
         // The derivative of the function defined on the actual element
-        Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative(0);
+        typename LocalGFEFunctionType::DerivativeType derivative(0);
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
