@@ -60,6 +60,9 @@ class UnitVector
         }
     }
 
+    template <class T2, int N2>
+    friend class UnitVector;
+
 public:
 
     /** \brief The type used for coordinates */
@@ -100,6 +103,23 @@ public:
             data_[i] = vector[i];
         data_ /= data_.two_norm();
     }
+
+    /** \brief Assigment from UnitVector with different type -- used for automatic differentiation with ADOL-C */
+    template <class T2>
+    UnitVector& operator <<= (const UnitVector<T2,N>& other) {
+        for (int i=0; i<N; i++)
+            data_[i] <<= other.data_[i];
+        return *this;
+    }
+
+     /** \brief Rebind the UnitVector to another coordinate type */
+    template<class U>
+    struct rebind
+    {
+      typedef UnitVector<U,N> other;
+    };
+
+
 
     UnitVector<T,N>& operator=(const Dune::FieldVector<T,N>& vector)
     {
