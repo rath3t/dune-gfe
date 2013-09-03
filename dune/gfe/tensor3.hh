@@ -46,6 +46,18 @@ class Tensor3
             return std::sqrt(norm);
         }
 
+        /** \brief The squared Frobenius norm, i.e., the sum of squared entries */
+        T frobenius_norm2() const
+        {
+            T norm = 0;
+            for (int i=0; i<N1; i++)
+                for (int j=0; j<N2; j++)
+                    for (int k=0; k<N3; k++)
+                        norm += (*this)[i][j][k] * (*this)[i][j][k];
+
+            return norm;
+        }
+
         Tensor3<T,N1,N2,N3>& axpy(const T& alpha, const Tensor3<T,N1,N2,N3>& other)
         {
             for (int i=0; i<N1; i++)
