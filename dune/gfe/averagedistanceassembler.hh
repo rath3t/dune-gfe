@@ -4,7 +4,7 @@
 #include <vector>
 
 /** \tparam TargetSpace The manifold that we are mapping to */
-template <class TargetSpace>
+template <class TargetSpace, class WeightType=double>
 class AverageDistanceAssembler
 {
     typedef typename TargetSpace::ctype ctype;
@@ -16,7 +16,7 @@ public:
     /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
      */
     AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
-                             const std::vector<ctype>& weights)
+                             const std::vector<WeightType>& weights)
         : coefficients_(coefficients),
           weights_(weights)
     {}
@@ -29,7 +29,7 @@ public:
      * shape function values this way.
      */
     AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
-                             const std::vector<Dune::FieldVector<ctype,1> >& weights)
+                             const std::vector<Dune::FieldVector<WeightType,1> >& weights)
         : coefficients_(coefficients),
           weights_(weights.size())
     {
@@ -96,7 +96,7 @@ public:
 
     const std::vector<TargetSpace> coefficients_;
 
-    std::vector<ctype> weights_;
+    std::vector<WeightType> weights_;
 
 };
 
