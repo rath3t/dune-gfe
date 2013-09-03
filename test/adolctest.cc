@@ -5,39 +5,18 @@
 // gradient(.) and hessian(.)
 #include <adolc/taping.h>             // use of taping
 
+#undef overwrite  // stupid: ADOL-C sets this to 1, so the name cannot be used
+
 #include <iostream>
 #include <vector>
 
 #include <cstdlib>
 #include <math.h>
 
-namespace std
-{
-   adouble max(adouble a, adouble b) {
-      return fmax(a,b);
-   }
+#include <dune/gfe/adolcnamespaceinjections.hh>
 
-   adouble sqrt(adouble a) {
-     return sqrt(a);
-   }
-
-   adouble abs(adouble a) {
-     return fabs(a);
-   }
-
-   adouble pow(const adouble& a, const adouble& b) {
-     return pow(a,b);
-   }
-
-   bool isnan(adouble a) {
-     return std::isnan(a.value());
-   }
-
-   bool isinf(adouble a) {
-     return std::isinf(a.value());
-   }
-
-}
+#include <dune/common/parametertree.hh>
+#include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/yaspgrid.hh>
 #include <dune/geometry/quadraturerules.hh>
@@ -47,6 +26,7 @@ namespace std
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/cosseratenergystiffness.hh>
 
 using namespace Dune;
 
@@ -59,19 +39,29 @@ energy(const typename GridView::template Codim<0>::Entity& element,
        const std::vector<TargetSpace>& localPureSolution)
 {
     double pureEnergy;
-    typedef RealTuple<adouble,1> ADTargetSpace;
-    std::vector<ADTargetSpace> localSolution(localPureSolution.size());
 
     typedef typename TargetSpace::template rebind<adouble>::other ATargetSpace;
+    std::vector<ATargetSpace> localSolution(localPureSolution.size());
 
+#if 0
     HarmonicEnergyLocalStiffness<GridView,LocalFiniteElement,ATargetSpace> assembler;
+#else
+    ParameterTree parameterSet;
+    ParameterTreeParser::readINITree("../cosserat-continuum.parset", parameterSet);
+
+    const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
+    std::cout << "Material parameters:" << std::endl;
+    materialParameters.report();
+
+    CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,3, adouble> assembler(materialParameters, NULL, NULL);
+#endif
 
     trace_on(1);
 
     adouble energy = 0;
 
     for (size_t i=0; i<localSolution.size(); i++)
-      localSolution[i] <<= localPureSolution[i];
+      localSolution[i] <<=localPureSolution[i];
 
     energy = assembler.energy(element,localFiniteElement,localSolution);
 
@@ -79,84 +69,21 @@ energy(const typename GridView::template Codim<0>::Entity& element,
 
     trace_off(1);
 
-    return pureEnergy;
-}
-#endif
-
-#if 0
-template <class GridView, class LocalFiniteElement, class TargetSpace>
-double
-energy(const typename GridView::template Codim<0>::Entity& element,
-       const LocalFiniteElement& localFiniteElement,
-       const std::vector<TargetSpace>& localPureSolution)
-{
-    typedef RealTuple<adouble,1> ADTargetSpace;
-    std::vector<ADTargetSpace> localSolution(localPureSolution.size());
-
-    trace_on(1);
-
-    for (size_t i=0; i<localSolution.size(); i++)
-      localSolution[i] <<= localPureSolution[i];
-
-    assert(element.type() == localFiniteElement.type());
-
-    static const int gridDim = GridView::dimension;
-    typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
-
-    double pureEnergy;
-    adouble energy = 0;
-    LocalGeodesicFEFunction<gridDim, adouble, LocalFiniteElement, ADTargetSpace> localGeodesicFEFunction(localFiniteElement,
-                                                                                                      localSolution);
-
-    int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
-                                                 : localFiniteElement.localBasis().order() * 2 * gridDim;
-
-
-
-    const Dune::QuadratureRule<double, gridDim>& quad
-        = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
-
-    for (size_t pt=0; pt<quad.size(); pt++) {
-
-        // Local position of the quadrature point
-        const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
-
-        const double integrationElement = element.geometry().integrationElement(quadPos);
-
-        const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
-
-        double weight = quad[pt].weight() * integrationElement;
-
-        // The derivative of the local function defined on the reference element
-        Dune::FieldMatrix<adouble, TargetSpace::EmbeddedTangentVector::dimension, gridDim> referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
-
-        // The derivative of the function defined on the actual element
-        Dune::FieldMatrix<adouble, TargetSpace::EmbeddedTangentVector::dimension, gridDim> derivative(0);
-
-        for (size_t comp=0; comp<referenceDerivative.N(); comp++)
-            jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
-
-        // Add the local energy density
-        // The Frobenius norm is the correct norm here if the metric of TargetSpace is the identity.
-        // (And if the metric of the domain space is the identity, which it always is here.)
-        energy += weight * derivative.frobenius_norm2();
-
-    }
-
-    energy *= 0.5;
-    energy >>= pureEnergy;
-
-    trace_off(1);
+    size_t tape_stats[STAT_SIZE];
+    tapestats(1,tape_stats);             // reading of tape statistics
+    cout<<"maxlive "<<tape_stats[NUM_MAX_LIVES]<<"\n";
+    // ..... print other tape stats
 
     return pureEnergy;
 }
 #endif
+
 
 /****************************************************************************/
 /*                                                             MAIN PROGRAM */
 int main() {
 
-  size_t n = 4;
+  size_t nDofs = 4;
 
   //std::cout << className< decltype(adouble() / double()) >() << std::endl;
 
@@ -169,33 +96,62 @@ int main() {
   typedef Q1LocalFiniteElement<double,double,dim> LocalFE;
   LocalFE localFiniteElement;
 
-  typedef RealTuple<double,1> TargetSpace;
-  std::vector<TargetSpace> localSolution(n);
-  localSolution[0] = TargetSpace(0);
-  localSolution[1] = TargetSpace(0);
-  localSolution[2] = TargetSpace(1);
-  localSolution[3] = TargetSpace(1);
+  //typedef RealTuple<double,1> TargetSpace;
+  typedef RigidBodyMotion<double,3> TargetSpace;
+  std::vector<TargetSpace> localSolution(nDofs);
+  FieldVector<double,7> identity(0);
+  identity[6] = 1;
+
+  for (auto vIt = grid.leafbegin<dim>(); vIt != grid.leafend<dim>(); ++vIt) {
+    localSolution[grid.leafView().indexSet().index(*vIt)].r = 0;
+    for (int i=0; i<dim; i++)
+      localSolution[grid.leafView().indexSet().index(*vIt)].r[i] = 2*vIt->geometry().corner(0)[i];
+    localSolution[grid.leafView().indexSet().index(*vIt)].q = Rotation<double,3>::identity();
+  }
+
+  for (size_t i=0; i<localSolution.size(); i++)
+    std::cout << localSolution[i] << std::endl;
 
   double laplaceEnergy = energy<GridType::LeafGridView,LocalFE, TargetSpace>(*grid.leafbegin<0>(), localFiniteElement, localSolution);
 
   std::cout << "Laplace energy: " << laplaceEnergy << std::endl;
 
-  std::vector<double> xp(n);
-  for (size_t i=0; i<n; i++)
-    xp[i] = 1;
+  size_t nDoubles = nDofs*sizeof(TargetSpace) / sizeof(double);
+  std::vector<double> xp(nDoubles);
+  int idx=0;
+  for (size_t i=0; i<nDofs; i++)
+    for (size_t j=0; j<sizeof(TargetSpace) / sizeof(double); j++)
+        xp[idx++] = localSolution[i].globalCoordinates()[j];
 
-  double** H   = (double**) malloc(n*sizeof(double*));
-  for(size_t i=0; i<n; i++)
+  // Compute gradient
+    double* g = new double[nDoubles];
+    gradient(1,nDoubles,xp.data(),g);                  // gradient evaluation
+
+  int idx2 = 0;
+  for(size_t i=0; i<nDofs; i++) {
+    for (size_t j=0; j<sizeof(TargetSpace) / sizeof(double); j++) {
+      std::cout << g[idx2++] << "  ";
+    }
+    std::cout << std::endl;
+  }
+
+
+  //exit(0);
+
+  // Compute Hessian
+  double** H   = (double**) malloc(nDoubles*sizeof(double*));
+  for(size_t i=0; i<nDoubles; i++)
       H[i] = (double*)malloc((i+1)*sizeof(double));
-  hessian(1,n,xp.data(),H);                   // H equals (n-1)g since g is
+  hessian(1,nDoubles,xp.data(),H);                   // H equals (n-1)g since g is
 
   std::cout << "Hessian:" << std::endl;
-  for(size_t i=0; i<n; i++) {
-    for (size_t j=0; j<n; j++) {
+  for(size_t i=0; i<nDoubles; i++) {
+    for (size_t j=0; j<nDoubles; j++) {
       double value = (j<=i) ? H[i][j] : H[j][i];
       std::cout << value << "  ";
     }
     std::cout << std::endl;
+    exit(0);
   }
 
   // Get gradient
