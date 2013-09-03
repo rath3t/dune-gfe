@@ -151,7 +151,6 @@ int main() {
       std::cout << value << "  ";
     }
     std::cout << std::endl;
-    exit(0);
   }
 
   // Get gradient
