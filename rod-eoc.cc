@@ -210,7 +210,7 @@ int main (int argc, char *argv[]) try
 
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++)
-            geodesicFEFunctionAdaptor(grid, solution);
+            GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::geodesicFEFunctionAdaptor(grid, solution);
 
         std::stringstream numberAsAscii;
         numberAsAscii << i;
