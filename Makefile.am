@@ -11,7 +11,7 @@ AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
 ADOLC_LIBS = -ladolc
 
-noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps-eoc dirneucoupling rod-eoc
+noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps-eoc rod-eoc
 
 cosserat_continuum_SOURCES  = cosserat-continuum.cc
 cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
@@ -31,11 +31,6 @@ harmonicmaps_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMES
 harmonicmaps_eoc_SOURCES = harmonicmaps-eoc.cc
 harmonicmaps_eoc_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
 harmonicmaps_eoc_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
-                          $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
-
-dirneucoupling_SOURCES  = dirneucoupling.cc
-dirneucoupling_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
-dirneucoupling_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
                           $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
 
 # don't follow the full GNU-standard
