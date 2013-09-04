@@ -1,6 +1,8 @@
 #ifndef ROD_CONTINUUM_COMPLEX_HH
 #define ROD_CONTINUUM_COMPLEX_HH
 
+#warning This file is deprecated.  Use the one in dune-gfe-coupling instead!
+
 #include <map>
 #include <string>
 

@@ -1,6 +1,8 @@
 #ifndef ROD_CONTINUUM_DD_STEP_HH
 #define ROD_CONTINUUM_DD_STEP_HH
 
+#warning This file is deprecated.  Use the one in dune-gfe-coupling instead!
+
 /** \file
  *  \brief Base class for rod-continuum domain decomposition algorithms
  */

@@ -1,6 +1,8 @@
 #ifndef ROD_CONTINUUM_STEKLOV_POINCARE_STEP_HH
 #define ROD_CONTINUUM_STEKLOV_POINCARE_STEP_HH
 
+#warning This file is deprecated.  Use the one in dune-gfe-coupling instead!
+
 #include <vector>
 
 #include <dune/common/shared_ptr.hh>

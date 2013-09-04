@@ -1,6 +1,8 @@
 #ifndef ROD_CONTINUUM_FIXED_POINT_STEP_HH
 #define ROD_CONTINUUM_FIXED_POINT_STEP_HH
 
+#warning This file is deprecated.  Use the one in dune-gfe-coupling instead!
+
 /** \file
  * \brief Iteration step of a fixed-point method for rod-continua couplings
  */
