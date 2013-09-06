@@ -186,7 +186,7 @@ int main (int argc, char *argv[]) try
                 dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
         }
 #endif
-#if 1   // Boundary conditions for the cantilever example
+#if 1   // Boundary conditions for the L-shape example
         if (vIt->geometry().corner(0)[0] < 1.0) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
