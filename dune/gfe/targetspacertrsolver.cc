@@ -57,7 +57,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
     // /////////////////////////////////////////////////////
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
-    for (int i=0; i<maxTrustRegionSteps_; i++) {
+    for (size_t i=0; i<maxTrustRegionSteps_; i++) {
 
         if (this->verbosity_ == Solver::FULL) {
             std::cout << "----------------------------------------------------" << std::endl;

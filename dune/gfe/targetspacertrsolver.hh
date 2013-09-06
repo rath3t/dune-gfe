@@ -61,7 +61,7 @@ protected:
     double initialTrustRegionRadius_;
 
     /** \brief Maximum number of trust-region steps */
-    int maxTrustRegionSteps_;
+    size_t maxTrustRegionSteps_;
 
     /** \brief Maximum number of multigrid iterations */
     int innerIterations_;
