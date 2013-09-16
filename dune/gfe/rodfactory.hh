@@ -5,8 +5,11 @@
 #include <dune/common/fvector.hh>
 #include <dune/fufem/crossproduct.hh>
 
-#include "rigidbodymotion.hh"
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
+
+#include <dune/gfe/rodassembler.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
 
 /** \brief A factory class that implements various ways to create rod configurations
  */
@@ -156,6 +159,66 @@ template <int dim>
             rod[idx].q = Rotation<double,3>::interpolate(beginning.q, end.q, local);
         }
     }
+
+
+/** \brief Make a rod solving a static Dirichlet problem
+
+  \param rod The configuration to be computed
+  \param radius The rod's radius
+  \param E The rod's elastic modulus
+  \param nu The rod's Poission modulus
+  \param beginning The prescribed Dirichlet values
+  \param end The prescribed Dirichlet values
+  \param[out] rod The new rod
+ */
+template <int spaceDim>
+void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
+        double radius, double E, double nu,
+        const RigidBodyMotion<double,spaceDim>& beginning,
+        const RigidBodyMotion<double,spaceDim>& end)
+{
+
+    // Make Dirichlet bitfields for the rods as well
+    Dune::BitSetVector<6> rodDirichletNodes(init.size(),false);
+
+    for (int j=0; j<6; j++) {
+        rodDirichletNodes[0][j] = true;
+        rodDirichletNodes.back()[j] = true;
+    }
+
+    // Create local assembler for the static elastic problem
+    RodLocalStiffness<GridView,double> rodLocalStiffness(gridView_, radius*radius*M_PI,
+            std::pow(radius,4) * 0.25* M_PI, std::pow(radius,4) * 0.25* M_PI, E, nu);
+
+    RodAssembler<GridView,spaceDim> assembler(gridView_, &rodLocalStiffness);
+
+    // Create initial iterate using the straight rod interpolation method
+    create(rod, beginning.r, end.r);
+
+    // Set reference configuration
+    rodLocalStiffness.setReferenceConfiguration(rod);
+
+    // Set Dirichlet values
+    rod[0] = beginning;
+    rod.back() = end;
+
+    // Trust--Region solver
+    RiemannianTrustRegionSolver<typename GridView::Grid, RigidBodyMotion<double,spaceDim> > rodSolver;
+    rodSolver.setup(gridView_.grid(), &assembler, rod,
+            rodDirichletNodes,
+            1e-10, 100, // TR tolerance and iterations
+            20, // init TR radius
+            200, 1e-00, 1, 3, 3, // Multigrid parameters
+            100, 1e-8 , false); // base solver parameters
+
+    rodSolver.verbosity_ = NumProc::QUIET;
+
+    rodSolver.solve();
+
+    rod = rodSolver.getSol();
+
+
+}
 
 private:
     
