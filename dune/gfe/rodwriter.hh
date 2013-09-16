@@ -254,4 +254,85 @@ void writeRodStress(Dune::BlockVector<Dune::FieldVector<double, 6> >& data,
 
 }
 
+/** \brief Write a spatial rod bundle
+ */
+void writeRodBundle(const std::vector<std::vector<RigidBodyMotion<double,3> > >& rods,
+              const std::string& filename,
+              double radius = 1.0)
+{
+    int nRods = rods.size();
+
+    int nPoints(0);
+    for (int i=0; i<nRods; i++)
+        nPoints += rods[i].size();
+
+    // /////////////////////
+    //   Write header
+    // /////////////////////
+
+    time_t rawtime;
+    time (&rawtime);
+
+    std::ofstream outfile(filename.c_str());
+
+    outfile << "# AmiraMesh 3D ASCII 2.0" << std::endl;
+    outfile << std::endl;
+    outfile << "# CreationDate: " << ctime(&rawtime) << std::endl;
+    outfile << std::endl;
+    outfile << std::endl;
+    outfile << "define Rods " << nRods << std::endl;
+    outfile << "nNodes " << nPoints << std::endl;
+    outfile << std::endl;
+    outfile << "Parameters {" << std::endl;
+    outfile << "    ContentType \"RodBundle\"" << std::endl;
+    outfile << "}" << std::endl;
+    outfile << std::endl;
+    outfile << "Rods { int Vertices } @1" << std::endl;
+    outfile << "Nodes { float[3] Coordinates } @2" << std::endl;
+    outfile << "Nodes { float[3] Directors0 } @3" << std::endl;
+    outfile << "Nodes { float[3] Directors1 } @4" << std::endl;
+    outfile << std::endl;
+    outfile << "# Data section follows" << std::endl;
+
+    // ///////////////////////////////////////
+    //   Write the center axis
+    // ///////////////////////////////////////
+    outfile << "@1" << std::endl;
+
+    for (size_t i=0; i<rods.size(); i++)
+        outfile << rods[i].size() << std::endl;
+        //outfile << rod[i].r[0] << "  " << rod[i].r[1] << "  " << rod[i].r[2] << std::endl;
+
+    outfile << std::endl << "@2" << std::endl;
+    for (size_t i=0; i<rods.size(); i++)
+        for (size_t j=0; j<rods[i].size(); j++)
+        outfile << rods[i][j].r << std::endl;
+
+
+    // ///////////////////////////////////////
+    //   Write the directors
+    // ///////////////////////////////////////
+    outfile << std::endl << "@3" << std::endl;
+
+    for (size_t i=0; i<rods.size(); i++)
+        for (size_t j=0; j<rods[i].size(); j++) {
+            Dune::FieldVector<double,3> dir = rods[i][j].q.director(0);
+            dir *= radius;
+            outfile << dir << std::endl;
+        }
+
+    outfile << std::endl << "@4" << std::endl;
+
+    for (size_t i=0; i<rods.size(); i++)
+        for (size_t j=0; j<rods[i].size(); j++) {
+            Dune::FieldVector<double,3> dir = rods[i][j].q.director(1);
+            dir *= radius;
+            outfile << dir << std::endl;
+    }
+
+    std::cout << "Result written successfully to: " << filename << std::endl;
+
+}
+
+
 #endif
