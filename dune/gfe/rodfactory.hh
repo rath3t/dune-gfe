@@ -179,7 +179,7 @@ void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
 {
 
     // Make Dirichlet bitfields for the rods as well
-    Dune::BitSetVector<6> rodDirichletNodes(init.size(),false);
+    Dune::BitSetVector<6> rodDirichletNodes(gridView_.size(GridView::dimension),false);
 
     for (int j=0; j<6; j++) {
         rodDirichletNodes[0][j] = true;
