@@ -764,7 +764,7 @@ curvatureEnergyGradient(typename TargetSpace::EmbeddedTangentVector& embeddedLoc
                         const Dune::array<Tensor3<field_type,3,3,4>, 3>& dDR_dv) const
 {
 #ifndef DONT_USE_CURL
-#error curvatureEnergyGradient not implemented for the curl curvature energy
+    DUNE_THROW(Dune::NotImplemented, "curvatureEnergyGradient not implemented for the curl curvature energy!");
 #endif
     embeddedLocalGradient = 0;
 
