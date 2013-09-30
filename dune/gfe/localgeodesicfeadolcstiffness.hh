@@ -253,22 +253,32 @@ assembleHessian(const Entity& element,
                     this->A_[row][col][subRow][subCol] = tmp2[subRow];
             }
 
-            // + A_x (z, P_x^\orth \partial f)
-            for (size_t row=0; row<nDofs; row++) {
-
-                // Get the Euclidean gradient projected onto the normal space
-                EmbeddedTangentVector porthGrad = localSolution[row].projectOntoNormalSpace(localEmbeddedGradient[row]);
-
-                EmbeddedTangentVector tmp3 = localSolution[row].weingarten(z, porthGrad);
-
-                TangentVector tmp4;
-                orthonormalFrame[row].mv(tmp3,tmp4);
-
-                for (int subRow=0; subRow<blocksize; subRow++)
-                    this->A_[row][col][subRow][subCol] += tmp4[subRow];
-            }
-
         }
+
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    //  Further correction due to non-planar configuration space
+    //  + \mathfrak{A}_x(z,P^\orth_x \partial f)
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    // Project embedded gradient onto normal space
+    std::vector<typename TargetSpace::EmbeddedTangentVector> projectedGradient(localSolution.size());
+    for (size_t i=0; i<localSolution.size(); i++)
+      projectedGradient[i] = localSolution[i].projectOntoNormalSpace(localEmbeddedGradient[i]);
+
+    for (size_t row=0; row<nDofs; row++) {
+
+      for (size_t subRow=0; subRow<blocksize; subRow++) {
+
+        EmbeddedTangentVector z = orthonormalFrame[row][subRow];
+        EmbeddedTangentVector tmp1 = localSolution[row].weingarten(z,projectedGradient[row]);
+
+        TangentVector tmp2;
+        orthonormalFrame[row].mv(tmp1,tmp2);
+
+        this->A_[row][row][subRow] += tmp2;
+      }
 
     }
 
