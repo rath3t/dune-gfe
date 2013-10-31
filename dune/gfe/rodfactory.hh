@@ -18,13 +18,13 @@ template <class GridView>
 class RodFactory
 {
     dune_static_assert(GridView::dimensionworld==1, "RodFactory is only implemented for grids in a 1d world");
-    
+
 public:
 
     RodFactory(const GridView& gridView)
     : gridView_(gridView)
     {}
-    
+
 /** \brief Make a straight, unsheared rod from two given endpoints
 
 \param[out] rod The new rod
@@ -65,30 +65,30 @@ template <int dim>
                      const RigidBodyMotion<double,spaceDim>& beginning,
                      const RigidBodyMotion<double,spaceDim>& end)
 {
-    
+
     static const int dim = GridView::dimension;  // de facto: 1
-    
+
     //////////////////////////////////////////////////////////////////////////////////////////////
     //  Get smallest and largest coordinate, in order to create an arc-length parametrization
     //////////////////////////////////////////////////////////////////////////////////////////////
-    
+
     typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
     typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
-    
+
     double min =  std::numeric_limits<double>::max();
     double max = -std::numeric_limits<double>::max();
-    
+
     for (; vIt != vEndIt; ++vIt) {
         min = std::min(min, vIt->geometry().corner(0)[0]);
         max = std::max(max, vIt->geometry().corner(0)[0]);
     }
-    
+
     ////////////////////////////////////////////////////////////////////////////////////
     //  Interpolate according to arc-length
     ////////////////////////////////////////////////////////////////////////////////////
 
     rod.resize(gridView_.size(dim));
-    
+
     for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
         int idx = gridView_.indexSet().index(*vIt);
         Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
@@ -125,14 +125,14 @@ template <int dim>
         //////////////////////////////////////////////////////////////////////////////////////////////
         //  Get smallest and largest coordinate, in order to create an arc-length parametrization
         //////////////////////////////////////////////////////////////////////////////////////////////
-    
+
         typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
         typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
-    
+
         double min =  std::numeric_limits<double>::max();
         double max = -std::numeric_limits<double>::max();
         RigidBodyMotion<double,spaceDim> beginning, end;
-    
+
         for (; vIt != vEndIt; ++vIt) {
             if (vIt->geometry().corner(0)[0] < min) {
                 min = vIt->geometry().corner(0)[0];
@@ -143,13 +143,13 @@ template <int dim>
                 end = rod[gridView_.indexSet().index(*vIt)];
             }
         }
-    
+
         ////////////////////////////////////////////////////////////////////////////////////
         //  Interpolate according to arc-length
         ////////////////////////////////////////////////////////////////////////////////////
 
         rod.resize(gridView_.size(dim));
-    
+
         for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
             int idx = gridView_.indexSet().index(*vIt);
             Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
@@ -221,7 +221,7 @@ void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
 }
 
 private:
-    
+
     const GridView gridView_;
 };
 
