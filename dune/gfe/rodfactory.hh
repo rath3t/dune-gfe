@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <dune/common/fvector.hh>
-#include <dune/fufem/crossproduct.hh>
+#include <dune/fufem/arithmetic.hh>
 
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
@@ -39,7 +39,7 @@ template <int dim>
 
     Dune::FieldVector<double,3> zAxis(0);
     zAxis[2] = 1;
-    Dune::FieldVector<double,3> axis = crossProduct(Dune::FieldVector<double,3>(end-beginning), zAxis);
+    Dune::FieldVector<double,3> axis = Arithmetic::crossProduct(Dune::FieldVector<double,3>(end-beginning), zAxis);
     if (axis.two_norm() != 0)
         axis /= -axis.two_norm();
 

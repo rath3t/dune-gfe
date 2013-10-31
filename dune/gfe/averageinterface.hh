@@ -10,7 +10,7 @@
 #include <dune/istl/preconditioners.hh>
 
 #include <dune/fufem/dgindexset.hh>
-#include <dune/fufem/crossproduct.hh>
+#include <dune/fufem/arithmetic.hh>
 #include <dune/fufem/surfmassmatrix.hh>
 #include <dune/fufem/functions/basisgridfunction.hh>
 
@@ -500,7 +500,7 @@ void computeTotalForceAndTorque(const BoundaryPatch<GridView>& interface,
             neumannFunction.evaluateLocal(*it->inside(), quadPos, value);
 
             totalForce.axpy(quad[ip].weight() * integrationElement, value);
-            totalTorque.axpy(quad[ip].weight() * integrationElement, crossProduct(worldPos-center,value));
+            totalTorque.axpy(quad[ip].weight() * integrationElement, Arithmetic::crossProduct(worldPos-center,value));
 
         }
 
@@ -607,7 +607,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
                         phi_i[j] = shapeFunctionValues[indexInFace];
 
                         mu_tilde[i][j].axpy(quad[qp].weight() * integrationElement,
-                                            crossProduct(Dune::FieldVector<double,dim>(worldPos-centerOfTorque), phi_i));
+                                            Arithmetic::crossProduct(Dune::FieldVector<double,dim>(worldPos-centerOfTorque), phi_i));
 
                     }
 
