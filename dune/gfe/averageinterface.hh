@@ -520,12 +520,9 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
     const GridView& gridView                    = interface.gridView();
     const typename GridView::IndexSet& indexSet = gridView.indexSet();
     const int dim                               = GridView::dimension;
-    typedef typename GridView::ctype ctype;
     typedef double field_type;
 
     Dune::PQkLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
-
-    typedef typename GridView::template Codim<dim>::Iterator VertexIterator;
 
     // Create the matrix of constraints
     Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > constraints(2*dim, dim*interface.numVertices(),
@@ -571,7 +568,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
         const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType&
             localFiniteElement = finiteElementCache.get(it->inside()->type());
 
-            const Dune::GenericReferenceElement<double,dim>& refElement = Dune::GenericReferenceElements<double, dim>::general(it->inside()->type());
+            const Dune::ReferenceElement<double,dim>& refElement = Dune::ReferenceElements<double, dim>::general(it->inside()->type());
 
             // four rows because a face may have no more than four vertices
             Dune::FieldVector<double,4> mu(0);
@@ -720,7 +717,6 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
 {
     using namespace Dune;
 
-    typedef typename GridView::template Codim<0>::Iterator ElementIterator;
     typedef typename GridView::template Codim<0>::Entity EntityType;
     typedef typename EntityType::LevelIntersectionIterator NeighborIterator;
 
@@ -844,8 +840,6 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
     FieldVector<double,dim> W;
     FieldMatrix<double,dim,dim> V, VT, U;
 
-    FieldMatrix<double,dim,dim> deformationGradientBackup = deformationGradient;
-
     // returns a decomposition U W VT, where U is returned in the first argument
     svdcmp<double,dim,dim>(deformationGradient, W, V);
 
@@ -893,10 +887,10 @@ void setRotation(const BoundaryPatch<GridView>& dirichletBoundary,
     for (; it!=endIt; ++it) {
 
         int indexInInside = it->indexInInside();
-        int nCorners  = Dune::GenericReferenceElements<double,dim>::general(it->inside()->type()).size(indexInInside, 1, dim);
+        int nCorners  = Dune::ReferenceElements<double,dim>::general(it->inside()->type()).size(indexInInside, 1, dim);
 
         for (int i=0; i<nCorners; i++) {
-            int cornerIdx = Dune::GenericReferenceElements<double,dim>::general(it->inside()->type()).subEntity(it->indexInInside(), 1, i, dim);
+            int cornerIdx = Dune::ReferenceElements<double,dim>::general(it->inside()->type()).subEntity(it->indexInInside(), 1, i, dim);
             int globalIdx = indexSet.subIndex(*it->inside(), cornerIdx, dim);
 
             // Get vertex position
