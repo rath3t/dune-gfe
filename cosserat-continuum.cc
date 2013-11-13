@@ -313,7 +313,7 @@ int main (int argc, char *argv[]) try
         //   Solve!
         // /////////////////////////////////////////////////////
 
-        solver.setInitialSolution(x);
+        solver.setInitialIterate(x);
         solver.solve();
 
         x = solver.getSol();
