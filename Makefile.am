@@ -17,7 +17,7 @@ noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps
 
 cosserat_continuum_SOURCES  = cosserat-continuum.cc
 cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS) \
-                              $(ADOLC_CPPFLAGS}
+                              $(ADOLC_CPPFLAGS)
 cosserat_continuum_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
                               $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS) \
                               $(ADOLC_LDFLAGS) $(ADOLC_LIBS)
