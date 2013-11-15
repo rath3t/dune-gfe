@@ -63,12 +63,12 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
-BlockVector<typename TargetSpace::CoordinateType>
+BlockVector<TargetSpace::CoordinateType>
 computeEmbeddedDifference(const std::vector<TargetSpace>& a, const std::vector<TargetSpace>& b)
 {
     assert(a.size() == b.size());
 
-    BlockVector<typename TargetSpace::CoordinateType> difference(a.size());
+    BlockVector<TargetSpace::CoordinateType> difference(a.size());
 
     for (size_t i=0; i<a.size(); i++)
         difference[i] = a[i].globalCoordinates() - b[i].globalCoordinates();
