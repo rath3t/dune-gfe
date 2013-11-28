@@ -256,8 +256,10 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
 
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    NeumannFunction neumannFunction(parameterSet.get<FieldVector<double,3> >("neumannValues"),
-                                    homotopyParameter);
+    shared_ptr<NeumannFunction> neumannFunction;
+    if (parameterSet.hasKey("neumannValues"))
+        neumannFunction = make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,3> >("neumannValues"),
+                                                       homotopyParameter);
 
     std::cout << "Material parameters:" << std::endl;
     materialParameters.report();
@@ -267,7 +269,7 @@ int main (int argc, char *argv[]) try
                                  P1Basis::LocalFiniteElement,
                                  3> cosseratEnergyLocalStiffness(materialParameters,
                                                                  &neumannBoundary,
-                                                                 &neumannFunction);
+                                                                 neumannFunction.get());
 
     GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafView(),
                                                                       &cosseratEnergyLocalStiffness);
@@ -278,7 +280,7 @@ int main (int argc, char *argv[]) try
                                  P1Basis::LocalFiniteElement,
                                  3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                               &neumannBoundary,
-                                                                 &neumannFunction);
+                                                                              neumannFunction.get());
     LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
                                   P1Basis::LocalFiniteElement,
                                   TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
