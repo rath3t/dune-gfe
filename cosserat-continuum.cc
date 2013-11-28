@@ -44,7 +44,7 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
-#if 0
+#if 1
 // Dirichlet boundary data for the shear/wrinkling example
 void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
                      double homotopy)
@@ -57,6 +57,8 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
         out[0] += homotopy;
 }
 #endif
+#if 0
+// Dirichlet boundary data for the 'twisted-strip' example
 void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
                      double homotopy
 )
@@ -87,7 +89,7 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
 
     out += center;
 }
-
+#endif
 
 /** \brief A constant vector-valued function, for simple Neumann boundary values */
 struct NeumannFunction
@@ -184,7 +186,7 @@ int main (int argc, char *argv[]) try
         if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
             neumannNodes[grid->leafIndexSet().index(*vIt)][0] = true;
 #endif
-#if 0   // Boundary conditions for the shearing/wrinkling example
+#if 1   // Boundary conditions for the shearing/wrinkling example
         if (vIt->geometry().corner(0)[1] < 1e-3  or vIt->geometry().corner(0)[1] > upper[1]-1e-3 ) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
@@ -198,7 +200,7 @@ int main (int argc, char *argv[]) try
                 dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
         }
 #endif
-#if 1   // Boundary conditions for the L-shape example
+#if 0   // Boundary conditions for the L-shape example
         if (vIt->geometry().corner(0)[0] < 1.0) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
