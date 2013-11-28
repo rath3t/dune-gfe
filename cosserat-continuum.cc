@@ -139,10 +139,6 @@ int main (int argc, char *argv[]) try
     const bool instrumented               = parameterSet.get<bool>("instrumented");
     std::string resultPath                = parameterSet.get("resultPath", "");
 
-    // read problem settings
-    std::string path                = parameterSet.get<std::string>("path");
-    std::string gridFile            = parameterSet.get<std::string>("gridFile");
-
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
@@ -158,8 +154,11 @@ int main (int argc, char *argv[]) try
         array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
-    } else
+    } else {
+        std::string path                = parameterSet.get<std::string>("path");
+        std::string gridFile            = parameterSet.get<std::string>("gridFile");
         grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+    }
 
     grid->globalRefine(numLevels-1);
 
