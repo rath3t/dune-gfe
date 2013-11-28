@@ -9,7 +9,7 @@ mu_c=$2
 L_c=$3
 
 RESULTPATH=`pwd`/cosserat_wrinkling_${mu_c}_${L_c}_${numLevels}/
-LOGFILE="./cosserat_wrinkling_${mu_c}_${L_c}_${numLevels}.log"
+LOGFILE="${RESULTPATH}/cosserat_wrinkling_${mu_c}_${L_c}_${numLevels}.log"
 
 #echo $RESULTPATH
 
