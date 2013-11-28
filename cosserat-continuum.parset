@@ -1,5 +1,5 @@
 # Number of grid levels
-numLevels = 1
+numLevels = 3
 
 # Number of homotopy steps for the Dirichlet boundary conditions
 numHomotopySteps = 1
@@ -42,50 +42,23 @@ instrumented = 0
 ############################
 
 
-# Parameters for the twisted 10x1 strip
-#[materialParameters]
-#
-## shell thickness
-#thickness = 0.05
-#
-## Lame parameters
-## corresponds to E = 1e6, nu=0.3
-#mu = 3.8462e+05
-#lambda = 2.7149e+05
-#
-## Cosserat couple modulus
-#mu_c = 0
-##mu_c = 3.8462e+05
-#
-## Length scale parameter
-#L_c = 0.1
-#
-## Curvature exponent
-#q = 2
-#
-## Shear correction factor
-#kappa = 1
-#
-#[]
-
-
-# For the Wriggers L-shape example
+ Parameters for the twisted 10x1 strip
 [materialParameters]
 
 # shell thickness
-thickness = 0.6
+thickness = 0.05
 
 # Lame parameters
-# corresponds to E = 71240 N/mm^2, nu=0.31
-mu = 2.7191e+04
-lambda = 4.4364e+04
+# corresponds to E = 1e6, nu=0.3
+mu = 3.8462e+05
+lambda = 2.7149e+05
 
 # Cosserat couple modulus
 mu_c = 0
-#mu_c = 2.7191e+04
+#mu_c = 3.8462e+05
 
 # Length scale parameter
-L_c = 10
+L_c = 0.0002
 
 # Curvature exponent
 q = 2
@@ -95,15 +68,42 @@ kappa = 1
 
 []
 
+
+## For the Wriggers L-shape example
+#[materialParameters]
+#
+## shell thickness
+#thickness = 0.6
+#
+## Lame parameters
+## corresponds to E = 71240 N/mm^2, nu=0.31
+#mu = 2.7191e+04
+#lambda = 4.4364e+04
+#
+## Cosserat couple modulus
+#mu_c = 0
+##mu_c = 2.7191e+04
+#
+## Length scale parameter
+#L_c = 10
+#
+## Curvature exponent
+#q = 2
+#
+## Shear correction factor
+#kappa = 1
+#
+#[]
+
 ###  Neumann values, if needed
 neumannValues =  -1e3 0 0
 
 
 
-structuredGrid = false
+structuredGrid = true
 lower = 0 0
-upper = 10 1
-elements = 10 1
+upper = 5 1
+elements = 5 1
 
 # Wriggers L-shape
 path = /home/sander/data/shells/wriggers_L_shape/

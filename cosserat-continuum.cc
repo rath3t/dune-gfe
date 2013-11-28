@@ -45,6 +45,7 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 using namespace Dune;
 
 #if 0
+// Dirichlet boundary data for the shear/wrinkling example
 void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
                      double homotopy)
 {
@@ -52,7 +53,8 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     for (int i=0; i<dim; i++)
         out[i] = in[i];
 
-    out[1] += homotopy;
+    if (out[1] > 1-1e-3)
+        out[0] += homotopy;
 }
 #endif
 void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
@@ -178,6 +180,13 @@ int main (int argc, char *argv[]) try
         }
         if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
             neumannNodes[grid->leafIndexSet().index(*vIt)][0] = true;
+#endif
+#if 0   // Boundary conditions for the shearing/wrinkling example
+        if (vIt->geometry().corner(0)[1] < 1e-3  or vIt->geometry().corner(0)[1] > upper[1]-1e-3 ) {
+            // Only translation dofs are Dirichlet
+            for (int j=0; j<3; j++)
+                dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
+        }
 #endif
 #if 0   // Boundary conditions for the twisted-strip example
         if (vIt->geometry().corner(0)[0] < lower[0]+1e-3  or vIt->geometry().corner(0)[0] > upper[0]-1e-3 ) {
