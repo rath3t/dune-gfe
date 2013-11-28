@@ -42,9 +42,9 @@ MAXPROCS=4
 
 mu_c=0
 
-for numLevels in 1 2; do
+for numLevels in 1 2 3 4 5 6; do
 
-    for L_c in 0.5 0.25; do     
+    for L_c in 0.1 0.01 0.001 0.0001 1e-5 1e-6 1e-7 1e-8; do
  
         # Do one simulation run
         runComputation $numLevels $mu_c $L_c  &
