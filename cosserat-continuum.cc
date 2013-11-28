@@ -308,7 +308,7 @@ int main (int argc, char *argv[]) try
         for (vIt=grid->leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
 
             int idx = grid->leafIndexSet().index(*vIt);
-            if (dirichletNodes[idx][0] and vIt->geometry().corner(0)[0] > upper[0]-1e-3) {
+            if (dirichletNodes[idx][0]) {
 
                 // Only the positions have Dirichlet values
                 dirichletValues(vIt->geometry().corner(0), x[idx].r,
