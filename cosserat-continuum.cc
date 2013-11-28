@@ -61,6 +61,9 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
                      double homotopy
 )
 {
+    if (not vIt->geometry().corner(0)[0] > upper[0]-1e-3)
+        return;
+
     double angle = 8*M_PI;
     angle *= homotopy;
 
