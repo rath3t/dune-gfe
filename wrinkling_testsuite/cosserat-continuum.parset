@@ -50,8 +50,6 @@ thickness = 0.05
 # corresponds to E = 1e6, nu=0.3
 mu = 3.8462e+05
 lambda = 2.7149e+05
-#mu = 1
-#lambda = 1
 
 # Cosserat couple modulus
 mu_c = 0
@@ -68,10 +66,8 @@ kappa = 1
 
 []
 
-# 2d problem
-#path = /home/haile/sander/data/richards/twosquares/
-#gridFile = twosquares0.grid
+structuredGrid = true
+lower = 0 0
+upper = 5 1
+elements = 5 1
 
-# 3d problem
-path = /home/haile/sander/data/contact/tetracubes/
-gridFile = tetracube0.grid
