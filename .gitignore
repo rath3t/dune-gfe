@@ -6,6 +6,8 @@ am
 *.tap
 *.o
 
+ipopt.out
+
 autom4te.cache/
 config.guess
 config.h
@@ -15,7 +17,6 @@ config.lt
 config.status
 config.sub
 configure
-cosserat-continuum
 depcomp
 dependencies.m4
 doc/Makefile
@@ -27,8 +28,14 @@ install-sh
 libtool
 ltmain.sh
 missing
-rod3d.o
+
+cosserat-continuum
+harmonicmaps
+harmonicmaps-eoc
+rod3d
 rodobstacle
+rod-eoc
+
 stamp-h1
 test/.deps/
 test/adolctest
