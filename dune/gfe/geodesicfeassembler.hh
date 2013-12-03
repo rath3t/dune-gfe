@@ -43,11 +43,15 @@ public:
           localStiffness_(localStiffness)
     {}
 
-    /** \brief Assemble the tangent stiffness matrix
+    /** \brief Assemble the tangent stiffness matrix and the functional gradient together
+     *
+     * This is more efficient than computing them separately, because you need the gradient
+     * anyway to compute the Riemannian Hessian.
      */
-    virtual void assembleMatrix(const std::vector<TargetSpace>& sol,
-                                Dune::BCRSMatrix<MatrixBlock>& matrix,
-                                bool computeOccupationPattern=true) const;
+    virtual void assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
+                                            Dune::BlockVector<Dune::FieldVector<double, blocksize> >& gradient,
+                                            Dune::BCRSMatrix<MatrixBlock>& hessian,
+                                            bool computeOccupationPattern=true) const;
 
     /** \brief Assemble the gradient */
     virtual void assembleGradient(const std::vector<TargetSpace>& sol,
@@ -97,19 +101,23 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 
 template <class Basis, class TargetSpace>
 void GeodesicFEAssembler<Basis,TargetSpace>::
-assembleMatrix(const std::vector<TargetSpace>& sol,
-               Dune::BCRSMatrix<MatrixBlock>& matrix,
-               bool computeOccupationPattern) const
+assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
+                           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& gradient,
+                           Dune::BCRSMatrix<MatrixBlock>& hessian,
+                           bool computeOccupationPattern) const
 {
     if (computeOccupationPattern) {
 
         Dune::MatrixIndexSet neighborsPerVertex;
         getNeighborsPerVertex(neighborsPerVertex);
-        neighborsPerVertex.exportIdx(matrix);
+        neighborsPerVertex.exportIdx(hessian);
 
     }
 
-    matrix = 0;
+    hessian = 0;
+
+    gradient.resize(sol.size());
+    gradient = 0;
 
     ElementIterator it    = basis_.getGridView().template begin<0>();
     ElementIterator endit = basis_.getGridView().template end<0>  ();
@@ -124,8 +132,10 @@ assembleMatrix(const std::vector<TargetSpace>& sol,
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[basis_.index(*it,i)];
 
-        // setup matrix
-        localStiffness_->assembleHessian(*it, basis_.getLocalFiniteElement(*it), localSolution);
+        std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
+
+        // setup local matrix and gradient
+        localStiffness_->assembleGradientAndHessian(*it, basis_.getLocalFiniteElement(*it), localSolution, localGradient);
 
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) {
@@ -135,10 +145,14 @@ assembleMatrix(const std::vector<TargetSpace>& sol,
             for (int j=0; j<numOfBaseFct; j++ ) {
 
                 int col = basis_.index(*it,j);
-                matrix[row][col] += localStiffness_->A_[i][j];
+                hessian[row][col] += localStiffness_->A_[i][j];
 
             }
         }
+
+        // Add local gradient to global gradient
+        for (int i=0; i<numOfBaseFct; i++)
+            gradient[basis_.index(*it,i)] += localGradient[i];
 
     }
 

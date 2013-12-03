@@ -39,9 +39,10 @@ public:
     We compute that using a finite difference approximation.
 
     */
-    virtual void assembleHessian(const Entity& e,
+    virtual void assembleGradientAndHessian(const Entity& e,
                                  const LocalFiniteElement& localFiniteElement,
-                                 const std::vector<TargetSpace>& localSolution);
+                                 const std::vector<TargetSpace>& localSolution,
+                                 std::vector<typename TargetSpace::TangentVector>& localGradient);
 
     /** \brief Compute the energy at the current configuration */
     virtual RT energy (const Entity& e,
@@ -114,9 +115,10 @@ assembleGradient(const Entity& element,
 // ///////////////////////////////////////////////////////////
 template <class GridType, class LocalFiniteElement, class TargetSpace>
 void LocalGeodesicFEStiffness<GridType, LocalFiniteElement, TargetSpace>::
-assembleHessian(const Entity& element,
+assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
-                const std::vector<TargetSpace>& localSolution)
+                const std::vector<TargetSpace>& localSolution,
+                std::vector<typename TargetSpace::TangentVector>& localGradient)
 {
     // Number of degrees of freedom for this element
     size_t nDofs = localSolution.size();
@@ -161,9 +163,22 @@ assembleHessian(const Entity& element,
 
     }
 
-    // finite-difference approximation
-    // we loop over the lower left triangular half of the matrix.
-    // The other half follows from symmetry
+    //////////////////////////////////////////////////////////////
+    //   Compute gradient by finite-difference approximation
+    //////////////////////////////////////////////////////////////
+
+    localGradient.resize(localSolution.size());
+
+    for (size_t i=0; i<localSolution.size(); i++)
+        for (int j=0; j<blocksize; j++)
+            localGradient[i][j] = (forwardEnergy[i][j] - backwardEnergy[i][j]) / (2*eps);
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    //   Compute Riemannian Hesse matrix by finite-difference approximation.
+    //   We loop over the lower left triangular half of the matrix.
+    //   The other half follows from symmetry.
+    ///////////////////////////////////////////////////////////////////////////
     //#pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<blocksize; i2++) {

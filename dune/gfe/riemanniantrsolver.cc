@@ -240,19 +240,19 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         if (recomputeGradientHessian) {
 
-            assembler_->assembleGradient(x_, rhs);
-            rhs *= -1;        // The right hand side is the _negative_ gradient
-            if (this->verbosity_ == Solver::FULL)
-              std::cout << "gradient assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
-            gradientTimer.reset();
+            assembler_->assembleGradientAndHessian(x_,
+                                                   rhs,
+                                                   *hessianMatrix_,
+                                                   i==0    // assemble occupation pattern only for the first call
+                                                   );
 
-            assembler_->assembleMatrix(x_,
-                                       *hessianMatrix_,
-                                       i==0    // assemble occupation pattern only for the first call
-                                       );
+            rhs *= -1;        // The right hand side is the _negative_ gradient
+
             if (this->verbosity_ == Solver::FULL)
-              std::cout << "hessian assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+              std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+
             recomputeGradientHessian = false;
+            
         }
 
 /*        std::cout << "rhs:\n" << rhs << std::endl;

@@ -61,9 +61,10 @@ public:
 
     This uses the automatic differentiation toolbox ADOL_C.
     */
-    virtual void assembleHessian(const Entity& e,
+    virtual void assembleGradientAndHessian(const Entity& e,
                          const LocalFiniteElement& localFiniteElement,
-                         const std::vector<TargetSpace>& localSolution);
+                         const std::vector<TargetSpace>& localSolution,
+                         std::vector<typename TargetSpace::TangentVector>& localGradient);
 
     const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* localEnergy_;
 
@@ -162,13 +163,16 @@ assembleGradient(const Entity& element,
 
 
 // ///////////////////////////////////////////////////////////
-//   Compute gradient by finite-difference approximation
+//   Compute gradient and Hessian together
+//   To compute the Hessian we need to compute the gradient anyway, so we may
+//   as well return it.  This saves assembly time.
 // ///////////////////////////////////////////////////////////
 template <class GridType, class LocalFiniteElement, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<GridType, LocalFiniteElement, TargetSpace>::
-assembleHessian(const Entity& element,
+assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
-                const std::vector<TargetSpace>& localSolution)
+                const std::vector<TargetSpace>& localSolution,
+                std::vector<typename TargetSpace::TangentVector>& localGradient)
 {
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
     energy(element, localFiniteElement, localSolution);
@@ -198,6 +202,12 @@ assembleHessian(const Entity& element,
     for (size_t i=0; i<nDofs; i++)
         for (size_t j=0; j<embeddedBlocksize; j++)
             localEmbeddedGradient[i][j] = g[idx++];
+
+    // Express gradient in local coordinate system
+    for (size_t i=0; i<nDofs; i++) {
+        Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> orthonormalFrame = localSolution[i].orthonormalFrame();
+        orthonormalFrame.mv(localEmbeddedGradient[i],localGradient[i]);
+    }
 
     /////////////////////////////////////////////////////////////////
     // Compute Hessian
