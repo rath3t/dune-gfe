@@ -277,27 +277,6 @@ public:
 
         \param v A tangent vector in quaternion coordinates
      */
-    static Rotation<T,3> exp(const Rotation<T,3>& p, const EmbeddedTangentVector& v) {
-
-        assert( std::abs(p*v) < 1e-8 );
-
-        // The vector v as a quaternion
-        Quaternion<T> vQuat(v);
-
-        // left multiplication by the inverse base point yields a tangent vector at the identity
-        Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
-        assert( std::abs(vAtIdentity[3]) < 1e-8 );
-
-        // vAtIdentity as a skew matrix
-        SkewMatrix<T,3> vMatrix;
-        vMatrix.axial()[0] = 2*vAtIdentity[0];
-        vMatrix.axial()[1] = 2*vAtIdentity[1];
-        vMatrix.axial()[2] = 2*vAtIdentity[2];
-
-        // The actual exponential map
-        return exp(p, vMatrix);
-    }
-
     static Rotation<T,3> exp(const Rotation<T,3>& p, const Dune::FieldVector<T,4>& v) {
 
         assert( std::abs(p*v) < 1e-8 );
