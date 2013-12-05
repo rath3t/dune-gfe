@@ -297,6 +297,29 @@ public:
         // The actual exponential map
         return exp(p, vMatrix);
     }
+
+    static Rotation<T,3> exp(const Rotation<T,3>& p, const Dune::FieldVector<T,4>& v) {
+
+        assert( std::abs(p*v) < 1e-8 );
+
+        // The vector v as a quaternion
+        Quaternion<T> vQuat(v);
+
+        // left multiplication by the inverse base point yields a tangent vector at the identity
+        Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
+        assert( std::abs(vAtIdentity[3]) < 1e-8 );
+
+        // vAtIdentity as a skew matrix
+        SkewMatrix<T,3> vMatrix;
+        vMatrix.axial()[0] = 2*vAtIdentity[0];
+        vMatrix.axial()[1] = 2*vAtIdentity[1];
+        vMatrix.axial()[2] = 2*vAtIdentity[2];
+
+        // The actual exponential map
+        return exp(p, vMatrix);
+    }
+
+
      /** \brief The exponential map from a given point $p \in SO(3)$.
 
         \param v A tangent vector.
@@ -358,27 +381,6 @@ public:
         skew.axial()[2] = 2*vAtIdentity[2];
 
         return skew;
-    }
-
-    static Rotation<T,3> exp(const Rotation<T,3>& p, const Dune::FieldVector<T,4>& v) {
-
-        assert( std::abs(p*v) < 1e-8 );
-
-        // The vector v as a quaternion
-        Quaternion<T> vQuat(v);
-
-        // left multiplication by the inverse base point yields a tangent vector at the identity
-        Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
-        assert( std::abs(vAtIdentity[3]) < 1e-8 );
-
-        // vAtIdentity as a skew matrix
-        SkewMatrix<T,3> vMatrix;
-        vMatrix.axial()[0] = 2*vAtIdentity[0];
-        vMatrix.axial()[1] = 2*vAtIdentity[1];
-        vMatrix.axial()[2] = 2*vAtIdentity[2];
-
-        // The actual exponential map
-        return exp(p, vMatrix);
     }
 
     static Dune::FieldMatrix<T,4,3> Dexp(const SkewMatrix<T,3>& v) {
