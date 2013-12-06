@@ -54,6 +54,8 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
     MaxNormTrustRegion<blocksize,field_type> trustRegion(1,   // we have only one block
                                               initialTrustRegionRadius_);
 
+    field_type energy = assembler_->value(x_);
+
     // /////////////////////////////////////////////////////
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
@@ -63,7 +65,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
             std::cout << "----------------------------------------------------" << std::endl;
             std::cout << "      Trust-Region Step Number: " << i
                       << ",     radius: " << trustRegion.radius()
-                      << ",     energy: " << assembler_->value(x_) << std::endl;
+                      << ",     energy: " << energy << std::endl;
             std::cout << "----------------------------------------------------" << std::endl;
         }
 
@@ -112,8 +114,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         TargetSpace newIterate = x_;
         newIterate = TargetSpace::exp(newIterate, corr[0]);
 
-        /** \todo Don't always recompute oldEnergy */
-        field_type oldEnergy = assembler_->value(x_);
+        field_type oldEnergy = energy;
         field_type energy    = assembler_->value(newIterate);
 
         // compute the model decrease
