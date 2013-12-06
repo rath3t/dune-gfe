@@ -155,6 +155,15 @@ class Rotation<T,3> : public Quaternion<T>
         return (x < 1e-15) ? 0.5 - (x/48)  + (x*x)/(120*32) : std::sin(std::sqrt(x)/2)/std::sqrt(x);
     }
 
+    /** \brief Computes sin(sqrt(x)) / sqrt(x) without getting unstable for small x
+     *
+     * Using this somewhat exotic series allows to avoid a few calls to std::sqrt near 0,
+     * which ADOL-C doesn't like.
+     */
+    static T sincOfSquare(const T& x) {
+        return (x < 1e-15) ? 1 - (x/6)  + (x*x)/120 : std::sin(std::sqrt(x))/std::sqrt(x);
+    }
+
 public:
 
     /** \brief The type used for coordinates */
@@ -281,21 +290,19 @@ public:
 
         assert( std::abs(p*v) < 1e-8 );
 
-        // The vector v as a quaternion
-        Quaternion<T> vQuat(v);
+        const T norm2 = v.two_norm2();
 
-        // left multiplication by the inverse base point yields a tangent vector at the identity
-        Quaternion<T> vAtIdentity = p.inverse().mult(vQuat);
-        assert( std::abs(vAtIdentity[3]) < 1e-8 );
+        Rotation<T,3> result = p;
 
-        // vAtIdentity as a skew matrix
-        SkewMatrix<T,3> vMatrix;
-        vMatrix.axial()[0] = 2*vAtIdentity[0];
-        vMatrix.axial()[1] = 2*vAtIdentity[1];
-        vMatrix.axial()[2] = 2*vAtIdentity[2];
+        // The series expansion of cos(x) at x=0 is
+        // 1 - x*x/2 + x*x*x*x/24 - ...
+        T cos = (norm2 < 1e-4)
+          ? 1 - norm2/2 + norm2*norm2 / 24
+          : std::cos(std::sqrt(norm2));
+        result *= cos;
 
-        // The actual exponential map
-        return exp(p, vMatrix);
+        result.axpy(sincOfSquare(norm2), v);
+        return result;
     }
 
 
