@@ -91,7 +91,7 @@ energy(const Entity& element,
     // only then to ATargetSpace.
     // Rationale: The constructor/assignment-from-vector of TargetSpace frequently
     // contains a projection onto the manifold from the surrounding Euclidean space.
-    // ADOL-C needs a function on the whole Euclidean space, hence that proction
+    // ADOL-C needs a function on the whole Euclidean space, hence that projection
     // is part of the function and needs to be taped.
 
     // The following variable cannot be declared inside of the loop, or ADOL-C will report wrong results
