@@ -229,7 +229,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             std::cout << "----------------------------------------------------" << std::endl;
             std::cout << "      Trust-Region Step Number: " << i
                       << ",     radius: " << trustRegion.radius()
-                      << ",     energy: " << assembler_->computeEnergy(x_) << std::endl;
+                      << ",     energy: " << oldEnergy << std::endl;
             std::cout << "----------------------------------------------------" << std::endl;
         }
 
