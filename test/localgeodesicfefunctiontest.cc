@@ -274,7 +274,7 @@ void test(const GeometryType& element)
     ValueFactory<TargetSpace>::get(testPoints);
     
     int nTestPoints = testPoints.size();
-    size_t nVertices = Dune::GenericReferenceElements<double,domainDim>::general(element).size(domainDim);
+    size_t nVertices = Dune::ReferenceElements<double,domainDim>::general(element).size(domainDim);
 
     // Set up elements of the target space
     std::vector<TargetSpace> corners(nVertices);
