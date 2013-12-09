@@ -89,16 +89,19 @@ public:
     UnitVector()
     {}
 
-    /** \brief Constructor from a vector.  The vector does not get normalized! */
+    /** \brief Constructor from a vector.  The vector gets normalized! */
     UnitVector(const Dune::FieldVector<T,N>& vector)
         : data_(vector)
-    {}
+    {
+        data_ /= data_.two_norm();
+    }
 
-    /** \brief Constructor from an array.  The array does not get normalized! */
+    /** \brief Constructor from an array.  The array gets normalized! */
     UnitVector(const Dune::array<T,N>& vector)
     {
         for (int i=0; i<N; i++)
             data_[i] = vector[i];
+        data_ /= data_.two_norm();
     }
 
     /** \brief Assigment from UnitVector with different type -- used for automatic differentiation with ADOL-C */
@@ -121,6 +124,7 @@ public:
     UnitVector<T,N>& operator=(const Dune::FieldVector<T,N>& vector)
     {
         data_ = vector;
+        data_ /= data_.two_norm();
         return *this;
     }
 

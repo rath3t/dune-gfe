@@ -196,11 +196,15 @@ public:
     {
         for (int i=0; i<4; i++)
             (*this)[i] = c[i];
+
+        *this /= this->two_norm();
     }
 
     explicit Rotation<T,3>(const Dune::FieldVector<T,4>& c)
         : Quaternion<T>(c)
-    {}
+    {
+        *this /= this->two_norm();
+    }
 
     Rotation<T,3>(Dune::FieldVector<T,3> axis, T angle)
     {
