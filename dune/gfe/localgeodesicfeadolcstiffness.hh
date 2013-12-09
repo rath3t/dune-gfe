@@ -113,6 +113,8 @@ energy(const Entity& element,
     size_t tape_stats[STAT_SIZE];
     tapestats(1,tape_stats);             // reading of tape statistics
     cout<<"maxlive "<<tape_stats[NUM_MAX_LIVES]<<"\n";
+    cout<<"tay_stack_size "<<tape_stats[TAY_STACK_SIZE]<<"\n";
+    cout<<"total number of operations "<<tape_stats[NUM_OPERATIONS]<<"\n";
     // ..... print other tape stats
 #endif
     return pureEnergy;
