@@ -26,6 +26,21 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     this->verbosity_          = NumProc::QUIET;
     minNumberOfIterations_    = 4;
 
+#ifdef USE_TCGSOLVER
+    ///////////////////////////////////////////////////
+    //   Create a truncated CG solver
+    ///////////////////////////////////////////////////
+
+    innerSolver_ = std::auto_ptr<TruncatedCGSolver<MatrixType, CorrectionType> >
+                        (new TruncatedCGSolver<MatrixType, CorrectionType>(NULL,
+                                                                           3,//innerIterations,
+                                                                           -1,//innerTolerance,
+                                                                           NULL, //energyNorm_.get(),
+                                                                           NULL,
+                                                                           Solver::QUIET,
+                                                                           false));
+
+#else
     // ////////////////////////////////
     //   Create a projected gauss-seidel solver
     // ////////////////////////////////
@@ -42,7 +57,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
                                                                                                   Solver::QUIET));
 
     innerSolver_->useRelativeError_ = false;
-
+#endif
 }
 
 
@@ -71,7 +86,13 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 
         CorrectionType rhs(1);   // length is 1 _block_
         CorrectionType corr(1);  // length is 1 _block_
+#ifdef USE_TCGSOLVER
+        // CG stops to early when started from zero.
+        // ADOLC needs at least a few iterations to pick up the correct derivatives
+        corr = 1;
+#else
         corr = 0;
+#endif
 
         MatrixType hesseMatrix(1,1);
 
@@ -81,19 +102,28 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // The right hand side is the _negative_ gradient
         rhs *= -1;
 
+#ifdef USE_TCGSOLVER
+        CorrectionType rhsBackup = rhs;  // TruncatedCGSolver overwrites rhs
+        innerSolver_->setProblem(hesseMatrix, &corr, &rhs, trustRegion.obstacles()[0].upper(0));
+#else
         dynamic_cast<LinearIterationStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->setProblem(hesseMatrix, corr, rhs);
 
         dynamic_cast<TrustRegionGSStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->obstacles_ = &trustRegion.obstacles();
 
         innerSolver_->preprocess();
-
+#endif
         // /////////////////////////////
         //    Solve !
         // /////////////////////////////
 
         innerSolver_->solve();
 
+#ifdef USE_TCGSOLVER
+        corr = *innerSolver_->x_;
+#else
         corr = innerSolver_->iterationStep_->getSol();
+#endif
+        //std::cout << "Corr: " << corr << std::endl;
 
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
@@ -123,8 +153,11 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         CorrectionType tmp(corr.size());
         tmp = 0;
         hesseMatrix.umv(corr, tmp);
+#ifdef USE_TCGSOLVER
+        field_type modelDecrease = (rhsBackup*corr) - 0.5 * (corr*tmp);
+#else
         field_type modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
-
+#endif
         if (this->verbosity_ == NumProc::FULL) {
             std::cout << "Absolute model decrease: " << modelDecrease
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
@@ -132,7 +165,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
                       << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
         }
 
-        assert(modelDecrease >= 0);
+        assert(modelDecrease >= -1e-15);
 
         if (energy >= oldEnergy) {
             if (this->verbosity_ == NumProc::FULL)

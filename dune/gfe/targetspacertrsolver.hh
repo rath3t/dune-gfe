@@ -1,11 +1,18 @@
 #ifndef TARGET_SPACE_RIEMANNIAN_TRUST_REGION_SOLVER_HH
 #define TARGET_SPACE_RIEMANNIAN_TRUST_REGION_SOLVER_HH
 
+
+//#define USE_TCGSOLVER
+
 #include <dune/istl/matrix.hh>
 
 #include <dune/solvers/common/boxconstraint.hh>
+#ifdef USE_TCGSOLVER
+#include <dune/solvers/solvers/tcgsolver.hh>
+#else
 #include <dune/solvers/solvers/loopsolver.hh>
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
+#endif
 #include <dune/solvers/norms/energynorm.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems
@@ -72,12 +79,16 @@ protected:
     /** \brief The assembler for the average-distance functional */
     const AverageDistanceAssembler<TargetSpace>* assembler_;
 
+#ifdef USE_TCGSOLVER
+    /** \brief The solver for the quadratic inner problems */
+    std::auto_ptr<TruncatedCGSolver<MatrixType, CorrectionType> > innerSolver_;
+#else
     /** \brief The solver for the quadratic inner problems */
     std::auto_ptr< ::LoopSolver<CorrectionType> > innerSolver_;
 
     /** \brief The iteration step for the quadratic inner problems */
     std::auto_ptr<TrustRegionGSStep<MatrixType, CorrectionType> > innerSolverStep_;
-
+#endif
     /** \brief Norm for the quadratic inner problems */
     std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> > energyNorm_;
 
