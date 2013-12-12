@@ -15,8 +15,14 @@ namespace Dune {
 template <class T, int N>
 class SymmetricMatrix
 {
-
 public:
+
+  /** \brief The type used for scalars
+   */
+  typedef T field_type;
+
+  enum {blocklevel = 0};
+
     /** \brief Default constructor
      *
      *  Tensor is initialized containing zeros if no argument is given.
@@ -24,6 +30,12 @@ public:
      */
     SymmetricMatrix()
     {}
+
+    SymmetricMatrix<T,N>& operator=(const T& s)
+    {
+      data_ = s;
+      return *this;
+    }
 
     /** \brief Matrix style random read/write access to components 
      *  \param i line index
