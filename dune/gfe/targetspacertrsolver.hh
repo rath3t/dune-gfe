@@ -13,6 +13,8 @@
 #endif
 #include <dune/solvers/norms/energynorm.hh>
 
+#include <dune/gfe/symmetricmatrix.hh>
+
 /** \brief Riemannian trust-region solver for geodesic finite-element problems
  \tparam TargetSpace The manifold that our functions take values in
  */
@@ -33,7 +35,7 @@ class TargetSpaceRiemannianTRSolver
     typedef Dune::Matrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >       CorrectionType;
 #else
-    typedef Dune::Matrix<Dune::FieldMatrix<field_type, embeddedBlocksize, embeddedBlocksize> > MatrixType;
+    typedef Dune::Matrix<Dune::SymmetricMatrix<field_type, embeddedBlocksize> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, embeddedBlocksize> >       CorrectionType;
 #endif
 
@@ -89,10 +91,10 @@ protected:
 
     /** \brief The iteration step for the quadratic inner problems */
     std::auto_ptr<TrustRegionGSStep<MatrixType, CorrectionType> > innerSolverStep_;
-#endif
+
     /** \brief Norm for the quadratic inner problems */
     std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> > energyNorm_;
-
+#endif
     /** \brief Specify a minimal number of iterations the trust-region solver has to do
      *
      * This is needed when working with automatic differentiation.    While a very low

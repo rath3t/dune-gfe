@@ -107,14 +107,8 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 #ifdef USE_GAUSS_SEIDEL_SOLVER
         innerSolver_->solve();
 #else
-        Dune::SymmetricMatrix<field_type, embeddedBlocksize> symmetricHessian;
-        for (size_t j=0; j<embeddedBlocksize; j++)
-          for (size_t k=0; k<=j; k++)
-            symmetricHessian(j,k) = hesseMatrix[0][0][j][k];
-
-
         Dune::FieldMatrix<field_type,blocksize,embeddedBlocksize> basis = x_.orthonormalFrame();
-        GramSchmidtSolver<field_type, blocksize, embeddedBlocksize>::solve(symmetricHessian, corr[0], rhs[0], basis);
+        GramSchmidtSolver<field_type, blocksize, embeddedBlocksize>::solve(hesseMatrix[0][0], corr[0], rhs[0], basis);
 #endif
 
 #ifdef USE_GAUSS_SEIDEL_SOLVER
@@ -148,10 +142,14 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
         // Note that rhs = -g
+#ifdef USE_GAUSS_SEIDEL_SOLVER
         CorrectionType tmp(corr.size());
         tmp = 0;
         hesseMatrix.umv(corr, tmp);
         field_type modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
+#else
+        field_type modelDecrease = (rhs*corr) - 0.5 * hesseMatrix[0][0].energyScalarProduct(corr[0],corr[0]);
+#endif
 
         if (this->verbosity_ == NumProc::FULL) {
             std::cout << "Absolute model decrease: " << modelDecrease
