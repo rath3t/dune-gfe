@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include <dune/gfe/symmetricmatrix.hh>
+
 /** \tparam TargetSpace The manifold that we are mapping to */
 template <class TargetSpace, class WeightType=double>
 class AverageDistanceAssembler
@@ -73,6 +75,18 @@ public:
         matrix = 0;
         for (size_t i=0; i<coefficients_.size(); i++)
             matrix.axpy(weights_[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
+    }
+
+    void assembleEmbeddedHessian(const TargetSpace& x,
+                         Dune::SymmetricMatrix<ctype,embeddedSize>& matrix) const
+    {
+        matrix = 0;
+        for (size_t i=0; i<coefficients_.size(); i++) {
+          Dune::FieldMatrix<ctype,embeddedSize,embeddedSize> tmp = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x);
+          for (size_t j=0; j<embeddedSize; j++)
+            for (size_t k=0; k<=j; k++)
+              matrix(j,k) += weights_[i] * tmp[j][k];
+        }
     }
 
     void assembleHessian(const TargetSpace& x,
