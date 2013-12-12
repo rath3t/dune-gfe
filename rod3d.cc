@@ -189,7 +189,8 @@ int main (int argc, char *argv[]) try
     MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
     rodAssembler.getNeighborsPerVertex(indices);
     indices.exportIdx(hessian);
-    rodAssembler.assembleMatrix(exactSolution, hessian);
+    BlockVector<FieldVector<double,6> > dummyRhs(x.size());
+    rodAssembler.assembleGradientAndHessian(exactSolution, dummyRhs, hessian);
 
 
     double error = std::numeric_limits<double>::max();
