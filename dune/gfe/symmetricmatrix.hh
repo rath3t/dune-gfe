@@ -37,7 +37,13 @@ public:
       return *this;
     }
 
-    /** \brief Matrix style random read/write access to components 
+    SymmetricMatrix<T,N>& operator*=(const T& s)
+    {
+      data_ *= s;
+      return *this;
+    }
+
+    /** \brief Matrix style random read/write access to components
      *  \param i line index
      *  \param j column index
      * \note You need to know what you are doing:  You can only access the lower
@@ -71,6 +77,10 @@ public:
       return result;
     }
 
+    void axpy(const T& a, const SymmetricMatrix<T,N>& other)
+    {
+      data_.axpy(a,other.data_);
+    }
 
 private:
     Dune::FieldVector<T,N*(N+1)/2> data_;
