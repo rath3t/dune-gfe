@@ -2,14 +2,12 @@
 #define TARGET_SPACE_RIEMANNIAN_TRUST_REGION_SOLVER_HH
 
 
-//#define USE_TCGSOLVER
+//#define USE_GAUSS_SEIDEL_SOLVER
 
 #include <dune/istl/matrix.hh>
 
 #include <dune/solvers/common/boxconstraint.hh>
-#ifdef USE_TCGSOLVER
-#include <dune/solvers/solvers/tcgsolver.hh>
-#else
+#ifdef USE_GAUSS_SEIDEL_SOLVER
 #include <dune/solvers/solvers/loopsolver.hh>
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #endif
@@ -23,6 +21,7 @@ class TargetSpaceRiemannianTRSolver
     : public NumProc
 {
     const static int blocksize = TargetSpace::TangentVector::dimension;
+    const static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
     // Centralize the field type here
     typedef typename TargetSpace::ctype field_type;
@@ -30,8 +29,13 @@ class TargetSpaceRiemannianTRSolver
     // Some types that I need
     // The types have the dynamic outer type because the dune-solvers solvers expect
     // this sort of type.
+#ifdef USE_GAUSS_SEIDEL_SOLVER
     typedef Dune::Matrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >       CorrectionType;
+#else
+    typedef Dune::Matrix<Dune::FieldMatrix<field_type, embeddedBlocksize, embeddedBlocksize> > MatrixType;
+    typedef Dune::BlockVector<Dune::FieldVector<field_type, embeddedBlocksize> >       CorrectionType;
+#endif
 
 public:
 
@@ -79,10 +83,7 @@ protected:
     /** \brief The assembler for the average-distance functional */
     const AverageDistanceAssembler<TargetSpace>* assembler_;
 
-#ifdef USE_TCGSOLVER
-    /** \brief The solver for the quadratic inner problems */
-    std::auto_ptr<TruncatedCGSolver<MatrixType, CorrectionType> > innerSolver_;
-#else
+#ifdef USE_GAUSS_SEIDEL_SOLVER
     /** \brief The solver for the quadratic inner problems */
     std::auto_ptr< ::LoopSolver<CorrectionType> > innerSolver_;
 

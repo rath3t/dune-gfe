@@ -6,6 +6,8 @@
 
 #include "maxnormtrustregion.hh"
 
+#include <dune/gfe/gramschmidtsolver.hh>
+
 template <class TargetSpace>
 void TargetSpaceRiemannianTRSolver<TargetSpace>::
 setup(const AverageDistanceAssembler<TargetSpace>* assembler,
@@ -26,21 +28,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     this->verbosity_          = NumProc::QUIET;
     minNumberOfIterations_    = 4;
 
-#ifdef USE_TCGSOLVER
-    ///////////////////////////////////////////////////
-    //   Create a truncated CG solver
-    ///////////////////////////////////////////////////
-
-    innerSolver_ = std::auto_ptr<TruncatedCGSolver<MatrixType, CorrectionType> >
-                        (new TruncatedCGSolver<MatrixType, CorrectionType>(NULL,
-                                                                           3,//innerIterations,
-                                                                           -1,//innerTolerance,
-                                                                           NULL, //energyNorm_.get(),
-                                                                           NULL,
-                                                                           Solver::QUIET,
-                                                                           false));
-
-#else
+#ifdef USE_GAUSS_SEIDEL_SOLVER
     // ////////////////////////////////
     //   Create a projected gauss-seidel solver
     // ////////////////////////////////
@@ -86,26 +74,27 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 
         CorrectionType rhs(1);   // length is 1 _block_
         CorrectionType corr(1);  // length is 1 _block_
-#ifdef USE_TCGSOLVER
-        // CG stops to early when started from zero.
-        // ADOLC needs at least a few iterations to pick up the correct derivatives
-        corr = 1;
-#else
+#ifdef USE_GAUSS_SEIDEL_SOLVER
         corr = 0;
 #endif
 
         MatrixType hesseMatrix(1,1);
 
+#ifdef USE_GAUSS_SEIDEL_SOLVER
         assembler_->assembleGradient(x_, rhs[0]);
         assembler_->assembleHessian(x_, hesseMatrix[0][0]);
+#else
+        /** \todo Fix this sense copying */
+        typename TargetSpace::EmbeddedTangentVector foo;
+        assembler_->assembleEmbeddedGradient(x_, foo);
+        rhs[0] = foo;
+        assembler_->assembleEmbeddedHessian(x_, hesseMatrix[0][0]);
+#endif
 
         // The right hand side is the _negative_ gradient
         rhs *= -1;
 
-#ifdef USE_TCGSOLVER
-        CorrectionType rhsBackup = rhs;  // TruncatedCGSolver overwrites rhs
-        innerSolver_->setProblem(hesseMatrix, &corr, &rhs, trustRegion.obstacles()[0].upper(0));
-#else
+#ifdef USE_GAUSS_SEIDEL_SOLVER
         dynamic_cast<LinearIterationStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->setProblem(hesseMatrix, corr, rhs);
 
         dynamic_cast<TrustRegionGSStep<MatrixType,CorrectionType>*>(innerSolver_->iterationStep_)->obstacles_ = &trustRegion.obstacles();
@@ -115,14 +104,17 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // /////////////////////////////
         //    Solve !
         // /////////////////////////////
-
+#ifdef USE_GAUSS_SEIDEL_SOLVER
         innerSolver_->solve();
-
-#ifdef USE_TCGSOLVER
-        corr = *innerSolver_->x_;
 #else
+        Dune::FieldMatrix<field_type,blocksize,embeddedBlocksize> basis = x_.orthonormalFrame();
+        GramSchmidtSolver<field_type, blocksize, embeddedBlocksize>::solve(hesseMatrix[0][0], corr[0], rhs[0], basis);
+#endif
+
+#ifdef USE_GAUSS_SEIDEL_SOLVER
         corr = innerSolver_->iterationStep_->getSol();
 #endif
+
         //std::cout << "Corr: " << corr << std::endl;
 
         if (this->verbosity_ == NumProc::FULL)
@@ -153,11 +145,8 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         CorrectionType tmp(corr.size());
         tmp = 0;
         hesseMatrix.umv(corr, tmp);
-#ifdef USE_TCGSOLVER
-        field_type modelDecrease = (rhsBackup*corr) - 0.5 * (corr*tmp);
-#else
         field_type modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
-#endif
+
         if (this->verbosity_ == NumProc::FULL) {
             std::cout << "Absolute model decrease: " << modelDecrease
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
