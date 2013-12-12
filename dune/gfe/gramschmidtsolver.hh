@@ -2,8 +2,8 @@
 #define DUNE_GFE_GRAMSCHMIDTSOLVER_HH
 
 #include <dune/common/fvector.hh>
-#include <dune/common/fmatrix.hh>
 
+#include <dune/gfe/symmetricmatrix.hh>
 
 /** \brief Direct solver for a dense symmetric linear system, using an orthonormal basis
  *
@@ -24,16 +24,10 @@ class GramSchmidtSolver
    * \param matrix The matrix inducing the matrix norm
    * \param[in,out] v The vector to normalize
    */
-  static void normalize(const Dune::FieldMatrix<field_type,embeddedDim,embeddedDim>& matrix,
+  static void normalize(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
                         Dune::FieldVector<field_type,embeddedDim>& v)
   {
-    field_type energyNormSquared = 0;
-
-    for (int i=0; i<v.size(); i++)
-      for (int j=0; j<v.size(); j++)
-        energyNormSquared += matrix[i][j]*v[i]*v[j];
-
-    v /= std::sqrt(energyNormSquared);
+    v /= std::sqrt(matrix.energyScalarProduct(v,v));
   }
 
 
@@ -41,16 +35,12 @@ class GramSchmidtSolver
    *
    * \param matrix The matrix the defines the scalar product
    */
-  static void project(const Dune::FieldMatrix<field_type,embeddedDim,embeddedDim>& matrix,
+  static void project(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
                       const Dune::FieldVector<field_type,embeddedDim>& vi,
                       Dune::FieldVector<field_type,embeddedDim>& vj)
   {
 
-    field_type energyScalarProduct = 0;
-
-    for (int i=0; i<vi.size(); i++)
-      for (int j=0; j<vj.size(); j++)
-        energyScalarProduct += matrix[i][j]*vi[i]*vj[j];
+    field_type energyScalarProduct = matrix.energyScalarProduct(vi,vj);
 
     for (int i=0; i<vj.size(); i++)
       vj[i] -= energyScalarProduct * vi[i];
@@ -59,7 +49,7 @@ class GramSchmidtSolver
 
 public:
   /** Solve linear system by constructing an energy-orthonormal basis */
-  static void solve(const Dune::FieldMatrix<field_type,embeddedDim,embeddedDim>& matrix,
+  static void solve(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
                     Dune::FieldVector<field_type,embeddedDim>& x,
                     const Dune::FieldVector<field_type,embeddedDim>& rhs,
                     const Dune::FieldMatrix<field_type,dim,embeddedDim>& basis)
