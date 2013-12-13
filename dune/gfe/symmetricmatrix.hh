@@ -72,7 +72,7 @@ public:
       T result = 0;
       for (size_t i=0; i<N; i++)
         for (size_t j=0; j<=i; j++)
-          result += (1+(i!=j)) * operator()(i,j) * v1[i] * v2[j];
+            result += (1-0.5*(i==j)) * operator()(i,j) * (v1[i] * v2[j] + v1[j] * v2[i]);
 
       return result;
     }
