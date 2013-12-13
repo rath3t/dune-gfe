@@ -4,6 +4,7 @@
 #include <dune/common/array.hh>
 #include <dune/common/fvector.hh>
 #include <dune/gfe/tensor3.hh>
+#include <dune/gfe/symmetricmatrix.hh>
 
 
 /** \brief Implement a tuple of real numbers as a Riemannian manifold
@@ -101,12 +102,12 @@ public:
 
     Unlike the distance itself the squared distance is differentiable at zero
         */
-    static Dune::FieldMatrix<T,N,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+    static Dune::SymmetricMatrix<T,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
 
-        Dune::FieldMatrix<T,N,N> result;
+        Dune::SymmetricMatrix<T,N> result;
         for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                result[i][j] = 2*(i==j);
+            for (int j=0; j<=i; j++)
+                result(i,j) = 2*(i==j);
 
         return result;
     }

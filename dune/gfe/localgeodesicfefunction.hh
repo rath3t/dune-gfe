@@ -497,10 +497,11 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     TensorSSD<RT, embeddedDim,embeddedDim> dqdwF(coefficients_.size());
 
     for (size_t k=0; k<coefficients_.size(); k++) {
-        Dune::FieldMatrix<RT,embeddedDim,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
+        Dune::SymmetricMatrix<RT,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
         for (int i=0; i<embeddedDim; i++)
             for (int j=0; j<embeddedDim; j++)
-                dqdwF(i, j, k) = hesse[i][j];
+                dqdwF(i, j, k) = dqdwF(j, i, k) = hesse(i,j);
+
     }
 
     TensorSSD<RT, embeddedDim,embeddedDim> dqdwF_times_dvq(coefficients_.size());

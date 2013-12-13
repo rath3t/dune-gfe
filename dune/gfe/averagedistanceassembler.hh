@@ -73,20 +73,23 @@ public:
                          Dune::FieldMatrix<ctype,embeddedSize,embeddedSize>& matrix) const
     {
         matrix = 0;
-        for (size_t i=0; i<coefficients_.size(); i++)
-            matrix.axpy(weights_[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
+        for (size_t i=0; i<coefficients_.size(); i++) {
+          Dune::SymmetricMatrix<ctype,embeddedSize> tmp = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x);
+          for (int j=0; j<embeddedSize; j++)
+            for (int k=0; k<=j; k++) {
+              matrix[j][k] += weights_[i] * tmp(j,k);
+              if (j!=k)
+                matrix[k][j] += weights_[i] * tmp(j,k);
+            }
+        }
     }
 
     void assembleEmbeddedHessian(const TargetSpace& x,
                          Dune::SymmetricMatrix<ctype,embeddedSize>& matrix) const
     {
         matrix = 0;
-        for (size_t i=0; i<coefficients_.size(); i++) {
-          Dune::FieldMatrix<ctype,embeddedSize,embeddedSize> tmp = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x);
-          for (size_t j=0; j<embeddedSize; j++)
-            for (size_t k=0; k<=j; k++)
-              matrix(j,k) += weights_[i] * tmp[j][k];
-        }
+        for (size_t i=0; i<coefficients_.size(); i++)
+            matrix.axpy(weights_[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
     }
 
     void assembleHessian(const TargetSpace& x,

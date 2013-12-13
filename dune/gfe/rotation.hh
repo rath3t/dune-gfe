@@ -14,6 +14,7 @@
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/skewmatrix.hh>
+#include <dune/gfe/symmetricmatrix.hh>
 
 template <class T, int dim>
 class Rotation
@@ -684,24 +685,24 @@ public:
     }
 
     /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
-    static Dune::FieldMatrix<T,4,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
+    static Dune::SymmetricMatrix<T,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
 
         T sp = p.globalCoordinates() * q.globalCoordinates();
 
         EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
-        Dune::FieldMatrix<T,4,4> A;
+        Dune::SymmetricMatrix<T,4> A;
         for (int i=0; i<4; i++)
-            for (int j=0; j<4; j++)
-                A[i][j] = pProjected[i]*pProjected[j];
+            for (int j=0; j<=i; j++)
+                A(i,j) = pProjected[i]*pProjected[j];
 
         A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp));
 
         // Compute matrix B (see notes)
-        Dune::FieldMatrix<T,4,4> Pq;
+        Dune::SymmetricMatrix<T,4> Pq;
         for (int i=0; i<4; i++)
-            for (int j=0; j<4; j++)
-                Pq[i][j] = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
+            for (int j=0; j<=i; j++)
+                Pq(i,j) = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
 
         // Bring it all together
         A.axpy(-4* ((sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp))*sp, Pq);
