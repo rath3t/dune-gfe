@@ -42,7 +42,7 @@ class GramSchmidtSolver
 
     field_type energyScalarProduct = matrix.energyScalarProduct(vi,vj);
 
-    for (int i=0; i<vj.size(); i++)
+    for (size_t i=0; i<vj.size(); i++)
       vj[i] -= energyScalarProduct * vi[i];
 
   }
