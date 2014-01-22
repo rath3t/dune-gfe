@@ -351,7 +351,7 @@ rodDirichletToNeumannMap(const std::string& rodName,
     ////////////////////////////////////////////////////////////////////////////////
            
     // Set initial iterate by interpolating between the Dirichlet values
-    RodFactory<typename RodGridType::LeafGridView> rodFactory(this->complex_.rodGrid(rodName)->leafView());
+    RodFactory<typename RodGridType::LeafGridView> rodFactory(this->complex_.rodGrid(rodName)->leafGridView());
     rodFactory.create(rodX);
     
     rod(rodName).solver_->setInitialSolution(rodX);

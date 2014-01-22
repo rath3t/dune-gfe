@@ -72,15 +72,15 @@ public:
 
         typedef Dune::GeometryGrid<GridType,DeformationFunction<typename GridType::LeafGridView> > DeformedGridType;
     
-        DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafView(), configuration);
+        DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafGridView(), configuration);
     
         // stupid, can't instantiate deformedGrid with a const grid
         DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
 
         typedef P1NodalBasis<typename DeformedGridType::LeafGridView,double> P1Basis;
-        P1Basis p1Basis(deformedGrid.leafView());
+        P1Basis p1Basis(deformedGrid.leafGridView());
 
-        Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafView());
+        Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
     
         // Make three vector fields containing the directors
         typedef std::vector<Dune::FieldVector<double,3> > CoefficientType;

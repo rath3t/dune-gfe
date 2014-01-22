@@ -50,7 +50,7 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
     //   Restore and interpolate the data
     // /////////////////////////////////////////////////////
 
-    P1NodalBasis<typename GridType::LeafGridView> p1Basis(grid.leafView());
+    P1NodalBasis<typename GridType::LeafGridView> p1Basis(grid.leafGridView());
     x.resize(grid.size(dim));
 
     ElementIterator eIt    = grid.template leafbegin<0>();
@@ -169,7 +169,7 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
     //   Restore and interpolate the data
     // /////////////////////////////////////////////////////
 
-    basis.update(grid.leafView());
+    basis.update(grid.leafGridView());
     
     x.resize(basis.size());
 

@@ -118,7 +118,7 @@ void testHessian()
     int nTestPoints = testPoints.size();
     
     typedef P1NodalBasis<GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid->leafView());
+    P1Basis p1Basis(grid->leafGridView());
     TestEnergyLocalStiffness<typename GridType::LeafGridView, P1Basis::LocalFiniteElement, TargetSpace> assembler;
 
     // Set up elements of S^2

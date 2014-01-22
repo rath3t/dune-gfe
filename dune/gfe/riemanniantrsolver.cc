@@ -97,7 +97,7 @@ setup(const GridType& grid,
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
     typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid.leafView());
+    P1Basis p1Basis(grid.leafGridView());
     OperatorAssembler<P1Basis,P1Basis> operatorAssembler(p1Basis, p1Basis);
 
     LaplaceAssembler<GridType, typename P1Basis::LocalFiniteElement, typename P1Basis::LocalFiniteElement> laplaceStiffness;
@@ -137,7 +137,7 @@ setup(const GridType& grid,
 
     hasObstacle_.resize(numLevels);
 #if defined THIRD_ORDER || defined SECOND_ORDER
-    BasisType basis(grid_->leafView());
+    BasisType basis(grid_->leafGridView());
     hasObstacle_.back().resize(basis.size(), true);
 
     for (int i=0; i<hasObstacle_.size()-1; i++)
@@ -157,7 +157,7 @@ setup(const GridType& grid,
 
 #if defined THIRD_ORDER || defined SECOND_ORDER
     if (numLevels>1) {
-        P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafView());
+        P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
 
         PKtoP1MGTransfer<CorrectionType>* topTransferOp = new PKtoP1MGTransfer<CorrectionType>;
         topTransferOp->setup(basis,p1Basis);

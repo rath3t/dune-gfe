@@ -89,7 +89,7 @@ int testHarmonicEnergy() {
   GridType grid(l,elements);
 
   typedef Q1NodalBasis<typename GridType::LeafGridView,double> Q1Basis;
-  Q1Basis q1Basis(grid.leafView());
+  Q1Basis q1Basis(grid.leafGridView());
 
   typedef Q1LocalFiniteElement<double,double,gridDim> LocalFE;
   LocalFE localFiniteElement;
@@ -164,7 +164,7 @@ int testCosseratEnergy() {
   GridType grid(l,elements);
 
   typedef Q1NodalBasis<typename GridType::LeafGridView,double> Q1Basis;
-  Q1Basis q1Basis(grid.leafView());
+  Q1Basis q1Basis(grid.leafGridView());
 
   typedef Q1LocalFiniteElement<double,double,gridDim> LocalFE;
   LocalFE localFiniteElement;

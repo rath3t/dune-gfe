@@ -539,11 +539,11 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
-    RodLocalStiffness<GridType::LeafGridView,double> localStiffness(grid.leafView(),
+    RodLocalStiffness<GridType::LeafGridView,double> localStiffness(grid.leafGridView(),
                                                                     0.01, 0.0001, 0.0001, 2.5e5, 0.3);
 
 
-    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafView(), &localStiffness);
+    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafGridView(), &localStiffness);
 
     std::cout << "Energy: " << rodAssembler.computeEnergy(x) << std::endl;
 

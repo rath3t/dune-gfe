@@ -115,7 +115,7 @@ void solve (const shared_ptr<GridType>& grid,
 
     BitSetVector<1> allNodes(grid->size(dim));
     allNodes.setAll();
-    BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafView(), allNodes);
+    BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), allNodes);
 
 #if defined THIRD_ORDER
     typedef P3NodalBasis<typename GridType::LeafGridView,double> FEBasis;
@@ -124,7 +124,7 @@ void solve (const shared_ptr<GridType>& grid,
 #else
     typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
 #endif
-    FEBasis feBasis(grid->leafView());
+    FEBasis feBasis(grid->leafGridView());
     
     BitSetVector<blocksize> dirichletNodes;
     constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
@@ -152,7 +152,7 @@ void solve (const shared_ptr<GridType>& grid,
 
     HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,typename FEBasis::LocalFiniteElement, TargetSpace> harmonicEnergyLocalStiffness;
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafView(),
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafGridView(),
                                                        &harmonicEnergyLocalStiffness);
 
     // ///////////////////////////////////////////
@@ -246,10 +246,10 @@ int main (int argc, char *argv[]) try
 #else
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
 #endif
-    FEBasis referenceBasis(referenceGrid->leafView());
+    FEBasis referenceBasis(referenceGrid->leafGridView());
 
 #if !defined THIRD_ORDER && ! defined SECOND_ORDER
-    VTKWriter<GridType::LeafGridView> vtkWriter(referenceGrid->leafView());
+    VTKWriter<GridType::LeafGridView> vtkWriter(referenceGrid->leafGridView());
     
     shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > > vtkVectorField
         = Dune::shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > >
@@ -311,8 +311,8 @@ int main (int argc, char *argv[]) try
         for (size_t j=0; j<solution.size(); j++)
             xEmbedded[j] = solution[j].globalCoordinates();
 
-        FEBasis feBasis(grid->leafView());
-        VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafView());
+        FEBasis feBasis(grid->leafGridView());
+        VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
     
         shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > > vtkVectorField
             = Dune::shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<TargetSpace::CoordinateType> > >
@@ -334,7 +334,7 @@ int main (int argc, char *argv[]) try
         
         // Prolong solution to the very finest grid
         for (int j=i; j<numLevels; j++) {
-            FEBasis basis(grid->leafView());
+            FEBasis basis(grid->leafGridView());
 #if defined THIRD_ORDER || defined SECOND_ORDER
             GeodesicFEFunctionAdaptor<FEBasis,TargetSpace>::higherOrderGFEFunctionAdaptor<order>(basis, *grid, solution);
 #else

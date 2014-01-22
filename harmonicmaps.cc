@@ -136,7 +136,7 @@ int main (int argc, char *argv[]) try
 
     BitSetVector<1> allNodes(grid.size(dim));
     allNodes.setAll();
-    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid.leafView(), allNodes);
+    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid.leafGridView(), allNodes);
 
     BitSetVector<blocksize> dirichletNodes(grid.size(dim));
     for (size_t i=0; i<dirichletNodes.size(); i++)
@@ -226,11 +226,11 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
     typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
-    FEBasis feBasis(grid.leafView());
+    FEBasis feBasis(grid.leafGridView());
 
     HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalFiniteElement, TargetSpace> harmonicEnergyLocalStiffness;
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid.leafView(),
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid.leafGridView(),
                                                                       &harmonicEnergyLocalStiffness);
 
     // /////////////////////////////////////////////////
@@ -293,8 +293,8 @@ int main (int argc, char *argv[]) try
     }
 
     LeafAmiraMeshWriter<GridType> amiramesh;
-    amiramesh.addGrid(grid.leafView());
-    amiramesh.addVertexData(xEmbedded, grid.leafView());
+    amiramesh.addGrid(grid.leafGridView());
+    amiramesh.addVertexData(xEmbedded, grid.leafGridView());
     amiramesh.write("resultGrid", 1);
 
     // //////////////////////////////////////////////////////////
@@ -308,7 +308,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////////////////////////////////
 
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
-    FEBasis basis(grid.leafView());
+    FEBasis basis(grid.leafGridView());
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
 
     LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;

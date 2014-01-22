@@ -215,9 +215,9 @@ int main (int argc, char *argv[]) try
     //////////////////////////////////////////////////////////////////////////////
 
     typedef P1NodalBasis<GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid->leafView());
+    P1Basis p1Basis(grid->leafGridView());
 
-    BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid->leafView(), neumannNodes);
+    BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid->leafGridView(), neumannNodes);
 
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
@@ -271,7 +271,7 @@ int main (int argc, char *argv[]) try
                                                                  &neumannBoundary,
                                                                  neumannFunction.get());
 
-    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafView(),
+    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafGridView(),
                                                                       &cosseratEnergyLocalStiffness);
 
 #else
@@ -285,7 +285,7 @@ int main (int argc, char *argv[]) try
                                   P1Basis::LocalFiniteElement,
                                   TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
-    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafView(),
+    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafGridView(),
                                                             &localGFEADOLCStiffness);
 #endif
     // /////////////////////////////////////////////////

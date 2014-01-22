@@ -55,7 +55,7 @@ void solve (const GridType& grid,
     const double nu              = parameters.get<double>("nu");
 
     //   Create a local assembler
-    RodLocalStiffness<OneDGrid::LeafGridView,double> localStiffness(grid.leafView(),
+    RodLocalStiffness<OneDGrid::LeafGridView,double> localStiffness(grid.leafGridView(),
                                                                     A, J1, J2, E, nu);
 
 
@@ -87,7 +87,7 @@ void solve (const GridType& grid,
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
 
-    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafView(), &localStiffness);
+    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafGridView(), &localStiffness);
 
     RiemannianTrustRegionSolver<GridType,RigidBodyMotion<double,3> > rodSolver;
 #if 1
@@ -183,7 +183,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////////////////////////////////
 
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
-    FEBasis basis(referenceGrid.leafView());
+    FEBasis basis(referenceGrid.leafGridView());
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
 
     LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;

@@ -37,7 +37,7 @@ void test()
 
     // make global basis
     typedef P1NodalBasis<typename OneDGrid::LeafGridView> P1Basis;
-    P1Basis p1Basis(grid.leafView());
+    P1Basis p1Basis(grid.leafGridView());
     typedef GlobalGFETestFunctionBasis<P1Basis,TargetSpace> GlobalBasis;
     GlobalBasis basis(p1Basis,testPoints);
 

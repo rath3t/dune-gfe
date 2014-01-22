@@ -182,7 +182,7 @@ int main (int argc, char *argv[]) try
 
 
         MatrixType hessianMatrix;
-        RodAssembler<GridType::LeafGridView,2> rodAssembler(grid.leafView());
+        RodAssembler<GridType::LeafGridView,2> rodAssembler(grid.leafGridView());
         
         rodAssembler.setParameters(1, 350000, 350000);
         

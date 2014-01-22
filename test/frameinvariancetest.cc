@@ -88,7 +88,7 @@ int main (int argc, char *argv[]) try
     writeRod(x,"rod");
     writeRod(rotatedX, "rotated");
 
-    RodLocalStiffness<GridType::LeafGridView,double> assembler(grid.leafView(),
+    RodLocalStiffness<GridType::LeafGridView,double> assembler(grid.leafGridView(),
                                                                1,1,1,1e6,0.3);
 
     for (int i=1; i<2; i++) {

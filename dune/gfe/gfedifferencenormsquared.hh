@@ -101,10 +101,10 @@ public:
                             std::vector<TargetSpace>& target)
     {
         // Create a leaf function, which we need to be able to call 'evalall()'
-        Basis sourceBasis(sourceGrid.leafView());
+        Basis sourceBasis(sourceGrid.leafGridView());
         GlobalGeodesicFEFunction<Basis,TargetSpace> sourceFunction(sourceBasis, source);
 
-        Basis targetBasis(targetGrid.leafView());
+        Basis targetBasis(targetGrid.leafGridView());
 
         // ///////////////////////////////////////////////////////////////////////////////////////////
         //   Prolong the adaptive solution onto the uniform grid in order to make it comparable
@@ -232,7 +232,7 @@ public:
         // ///////////////////////////////////////////////////////////////////////////////////////////
         
         double energyNormSquared = 0;
-        Basis basis(grid.leafView());
+        Basis basis(grid.leafGridView());
         Dune::Matrix<Dune::FieldMatrix<double,1,1> > localMatrix;
         
         typename GridType::template Codim<0>::LeafIterator eIt    = grid.template leafbegin<0>();
