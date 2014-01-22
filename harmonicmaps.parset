@@ -40,10 +40,10 @@ instrumented = 0
 
 # 2d problem
 #gridType = unstructured
-#path = /home/haile/sander/data/richards/twosquares/
+#path = /home/sander/data/richards/twosquares/
 #gridFile = twosquares0.grid
 
 # 3d problem
 gridType = unstructured
-path = /home/haile/sander/data/contact/tetracubes/
+path = /home/sander/data/contact/tetracubes/
 gridFile = tetracube0.grid
