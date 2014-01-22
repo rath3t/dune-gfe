@@ -67,7 +67,7 @@ void solve (const GridType& grid,
     //   Initial solution
     // //////////////////////////
 
-    for (int i=0; i<x.size(); i++) {
+    for (size_t i=0; i<x.size(); i++) {
         x[i].r[0] = 0;
         x[i].r[1] = 0;
         x[i].r[2] = double(i)/(x.size()-1);
@@ -121,7 +121,7 @@ void solve (const GridType& grid,
     //   Solve!
     // /////////////////////////////////////////////////////
 
-    rodSolver.setInitialSolution(x);
+    rodSolver.setInitialIterate(x);
     rodSolver.solve();
 
     x = rodSolver.getSol();
@@ -138,12 +138,6 @@ int main (int argc, char *argv[]) try
 
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");
-    const int nu1              = parameterSet.get<int>("nu1");
-    const int nu2              = parameterSet.get<int>("nu2");
-    const int mu               = parameterSet.get<int>("mu");
-    const int baseIterations      = parameterSet.get<int>("baseIt");
-    const double baseTolerance    = parameterSet.get<double>("baseTolerance");
-
     const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
 
     // /////////////////////////////////////////
