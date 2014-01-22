@@ -259,7 +259,7 @@ int main (int argc, char *argv[]) try
     std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
     //exit(0);
 
-    solver.setInitialSolution(x);
+    solver.setInitialIterate(x);
     solver.solve();
 
     x = solver.getSol();

@@ -179,7 +179,7 @@ void solve (const shared_ptr<GridType>& grid,
     //   Solve!
     // /////////////////////////////////////////////////////
 
-    solver.setInitialSolution(x);
+    solver.setInitialIterate(x);
     solver.solve();
 
     x = solver.getSol();
@@ -265,8 +265,8 @@ int main (int argc, char *argv[]) try
 
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(referenceBasis, referenceBasis);
 
-    LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler(2*(order-1));
-    MassAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> massMatrixLocalAssembler(2*order);
+    LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;
+    MassAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> massMatrixLocalAssembler;
 
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
     ScalarMatrixType laplace, massMatrix;

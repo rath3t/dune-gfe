@@ -74,7 +74,7 @@ int main (int argc, char *argv[]) try
     //   Initial solution
     // //////////////////////////
 
-    for (int i=0; i<x.size(); i++) {
+    for (size_t i=0; i<x.size(); i++) {
         x[i].r[0] = 0;
         x[i].r[1] = 0;
         x[i].r[2] = double(i)/(x.size()-1);
@@ -158,7 +158,7 @@ int main (int argc, char *argv[]) try
 
     std::cout << "Energy: " << rodAssembler.computeEnergy(x) << std::endl;
     
-    rodSolver.setInitialSolution(x);
+    rodSolver.setInitialIterate(x);
     rodSolver.solve();
 
     x = rodSolver.getSol();
@@ -217,7 +217,7 @@ int main (int argc, char *argv[]) try
         FILE* fp = fopen(iSolFilename, "rb");
         if (!fp)
             DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
-        for (int j=0; j<intermediateSolution.size(); j++) {
+        for (size_t j=0; j<intermediateSolution.size(); j++) {
             fread(&intermediateSolution[j].r, sizeof(double), 3, fp);
             fread(&intermediateSolution[j].q, sizeof(double), 4, fp);
         }
