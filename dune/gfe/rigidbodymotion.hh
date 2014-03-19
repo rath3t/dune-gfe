@@ -88,9 +88,9 @@ public:
             result.r[i] = p.r[i] + v[i];
 
         // Add rotational correction
-        typedef typename Dune::SelectType<Dune::is_same<TVector,TangentVector>::value,
+        typedef typename std::conditional<Dune::is_same<TVector,TangentVector>::value,
                                           typename Rotation<ctype,N>::TangentVector,
-                                          typename Rotation<ctype,N>::EmbeddedTangentVector>::Type RotationTangentVector;
+                                          typename Rotation<ctype,N>::EmbeddedTangentVector>::type RotationTangentVector;
         RotationTangentVector qCorr;
         for (int i=0; i<RotationTangentVector::dimension; i++)
             qCorr[i] = v[N+i];
