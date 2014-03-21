@@ -170,13 +170,11 @@ int main (int argc, char *argv[]) try
     typedef P1NodalBasis<GridView,double> FEBasis;
     FEBasis feBasis(gridView);
 
-    SolutionType x(feBasis.size());
-
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
+    BitSetVector<1> dirichletVertices(feBasis.size(), false);
     BitSetVector<1> neumannNodes(feBasis.size(), false);
 
     GridType::Codim<dim>::LeafIterator vIt    = gridView.begin<dim>();
@@ -187,50 +185,45 @@ int main (int argc, char *argv[]) try
     for (; vIt!=vEndIt; ++vIt) {
 
 #if 0   // Boundary conditions for the cantilever example
-        if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ ) {
-            // Only translation dofs are Dirichlet
-            for (int j=0; j<3; j++)
-                dirichletNodes[indexSet.index(*vIt)][j] = true;
-        }
+        if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ )
+          dirichletVertices[indexSet.index(*vIt)] = true;
         if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
-            neumannNodes[indexSet.index(*vIt)][0] = true;
+            neumannNodes[indexSet.index(*vIt)] = true;
 #endif
 #if 1   // Boundary conditions for the shearing/wrinkling example
-        if (vIt->geometry().corner(0)[1] < 1e-4  or vIt->geometry().corner(0)[1] > upper[1]-1e-4 ) {
-            // Only translation dofs are Dirichlet
-            for (int j=0; j<5; j++)
-                dirichletNodes[indexSet.index(*vIt)][j] = true;
-        }
+        if (vIt->geometry().corner(0)[1] < 1e-4  or vIt->geometry().corner(0)[1] > upper[1]-1e-4 )
+          dirichletVertices[indexSet.index(*vIt)] = true;
 #endif
 #if 0   // Boundary conditions for the twisted-strip example
-        if (vIt->geometry().corner(0)[0] < lower[0]+1e-3  or vIt->geometry().corner(0)[0] > upper[0]-1e-3 ) {
-            // Only translation dofs are Dirichlet
-            for (int j=0; j<3; j++)
-                dirichletNodes[indexSet.index(*vIt)][j] = true;
-        }
+        if (vIt->geometry().corner(0)[0] < lower[0]+1e-3  or vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
+          dirichletVertices[indexSet.index(*vIt)] = true;
 #endif
 #if 0   // Boundary conditions for the L-shape example
-        if (vIt->geometry().corner(0)[0] < 1.0) {
-            // Only translation dofs are Dirichlet
-            for (int j=0; j<3; j++)
-                dirichletNodes[indexSet.index(*vIt)][j] = true;
-        }
+        if (vIt->geometry().corner(0)[0] < 1.0)
+          dirichletVertices[indexSet.index(*vIt)] = true;
         if (vIt->geometry().corner(0)[1] < -239 )
             neumannNodes[indexSet.index(*vIt)][0] = true;
 #endif
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-    //   Assemble Neumann term
-    //////////////////////////////////////////////////////////////////////////////
-
+    BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannNodes);
 
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
+
+
+    BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
+    for (size_t i=0; i<feBasis.size(); i++)
+      if (dirichletVertices[i][0])
+        for (int j=0; j<5; j++)
+          dirichletNodes[i][j] = true;
+
     // //////////////////////////
-    //   Initial solution
+    //   Initial iterate
     // //////////////////////////
+
+    SolutionType x(feBasis.size());
 
     vIt = gridView.begin<dim>();
 
