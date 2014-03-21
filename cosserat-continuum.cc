@@ -22,6 +22,7 @@
 #include <dune/grid/io/file/gmshreader.hh>
 
 #include <dune/fufem/boundarypatch.hh>
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
@@ -163,14 +164,17 @@ int main (int argc, char *argv[]) try
 
     grid->globalRefine(numLevels-1);
 
-    SolutionType x(grid->size(dim));
+    typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
+    FEBasis feBasis(grid->leafGridView());
+
+    SolutionType x(feBasis.size());
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    BitSetVector<blocksize> dirichletNodes(grid->size(dim), false);
-    BitSetVector<1> neumannNodes(grid->size(dim), false);
+    BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
+    BitSetVector<1> neumannNodes(feBasis.size(), false);
 
     GridType::Codim<dim>::LeafIterator vIt    = grid->leafbegin<dim>();
     GridType::Codim<dim>::LeafIterator vEndIt = grid->leafend<dim>();
@@ -214,9 +218,6 @@ int main (int argc, char *argv[]) try
     //////////////////////////////////////////////////////////////////////////////
     //   Assemble Neumann term
     //////////////////////////////////////////////////////////////////////////////
-
-    typedef P1NodalBasis<GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid->leafGridView());
 
     BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid->leafGridView(), neumannNodes);
 
@@ -279,15 +280,15 @@ int main (int argc, char *argv[]) try
 #else
     // Assembler using ADOL-C
     CosseratEnergyLocalStiffness<GridType::LeafGridView,
-                                 P1Basis::LocalFiniteElement,
+                                 FEBasis::LocalFiniteElement,
                                  3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                               &neumannBoundary,
                                                                               neumannFunction.get());
     LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
-                                  P1Basis::LocalFiniteElement,
+                                  FEBasis::LocalFiniteElement,
                                   TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
-    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafGridView(),
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafGridView(),
                                                             &localGFEADOLCStiffness);
 #endif
     // /////////////////////////////////////////////////
