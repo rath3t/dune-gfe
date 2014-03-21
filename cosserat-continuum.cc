@@ -53,8 +53,9 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     for (int i=0; i<dim; i++)
         out[i] = in[i];
 
-    if (out[1] > 1-1e-3)
-        out[0] += homotopy;
+//     if (out[1] > 1-1e-3)
+     if (out[1] > 0.18-1e-4)
+        out[0] += 0.003*homotopy;
 }
 #endif
 #if 0
@@ -188,7 +189,7 @@ int main (int argc, char *argv[]) try
 #if 1   // Boundary conditions for the shearing/wrinkling example
         if (vIt->geometry().corner(0)[1] < 1e-4  or vIt->geometry().corner(0)[1] > upper[1]-1e-4 ) {
             // Only translation dofs are Dirichlet
-            for (int j=0; j<3; j++)
+            for (int j=0; j<5; j++)
                 dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
         }
 #endif
@@ -234,6 +235,7 @@ int main (int argc, char *argv[]) try
         for (int i=0; i<dim; i++)
             x[idx].r[i] = vIt->geometry().corner(0)[i];
 
+        x[idx].r[2] = 0.002*std::cos(1e4*vIt->geometry().corner(0)[0]);
         // x[idx].q is the identity, set by the default constructor
 
     }
