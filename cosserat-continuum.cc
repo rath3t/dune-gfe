@@ -164,8 +164,11 @@ int main (int argc, char *argv[]) try
 
     grid->globalRefine(numLevels-1);
 
-    typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
-    FEBasis feBasis(grid->leafGridView());
+    typedef GridType::LeafGridView GridView;
+    GridView gridView = grid->leafGridView();
+
+    typedef P1NodalBasis<GridView,double> FEBasis;
+    FEBasis feBasis(gridView);
 
     SolutionType x(feBasis.size());
 
@@ -176,8 +179,10 @@ int main (int argc, char *argv[]) try
     BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
     BitSetVector<1> neumannNodes(feBasis.size(), false);
 
-    GridType::Codim<dim>::LeafIterator vIt    = grid->leafbegin<dim>();
-    GridType::Codim<dim>::LeafIterator vEndIt = grid->leafend<dim>();
+    GridType::Codim<dim>::LeafIterator vIt    = gridView.begin<dim>();
+    GridType::Codim<dim>::LeafIterator vEndIt = gridView.end<dim>();
+
+    const GridView::IndexSet& indexSet = gridView.indexSet();
 
     for (; vIt!=vEndIt; ++vIt) {
 
@@ -185,33 +190,33 @@ int main (int argc, char *argv[]) try
         if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ ) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
-                dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
+                dirichletNodes[indexSet.index(*vIt)][j] = true;
         }
         if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
-            neumannNodes[grid->leafIndexSet().index(*vIt)][0] = true;
+            neumannNodes[indexSet.index(*vIt)][0] = true;
 #endif
 #if 1   // Boundary conditions for the shearing/wrinkling example
         if (vIt->geometry().corner(0)[1] < 1e-4  or vIt->geometry().corner(0)[1] > upper[1]-1e-4 ) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<5; j++)
-                dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
+                dirichletNodes[indexSet.index(*vIt)][j] = true;
         }
 #endif
 #if 0   // Boundary conditions for the twisted-strip example
         if (vIt->geometry().corner(0)[0] < lower[0]+1e-3  or vIt->geometry().corner(0)[0] > upper[0]-1e-3 ) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
-                dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
+                dirichletNodes[indexSet.index(*vIt)][j] = true;
         }
 #endif
 #if 0   // Boundary conditions for the L-shape example
         if (vIt->geometry().corner(0)[0] < 1.0) {
             // Only translation dofs are Dirichlet
             for (int j=0; j<3; j++)
-                dirichletNodes[grid->leafIndexSet().index(*vIt)][j] = true;
+                dirichletNodes[indexSet.index(*vIt)][j] = true;
         }
         if (vIt->geometry().corner(0)[1] < -239 )
-            neumannNodes[grid->leafIndexSet().index(*vIt)][0] = true;
+            neumannNodes[indexSet.index(*vIt)][0] = true;
 #endif
     }
 
@@ -219,7 +224,7 @@ int main (int argc, char *argv[]) try
     //   Assemble Neumann term
     //////////////////////////////////////////////////////////////////////////////
 
-    BoundaryPatch<GridType::LeafGridView> neumannBoundary(grid->leafGridView(), neumannNodes);
+    BoundaryPatch<GridView> neumannBoundary(gridView, neumannNodes);
 
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
@@ -227,10 +232,10 @@ int main (int argc, char *argv[]) try
     //   Initial solution
     // //////////////////////////
 
-    vIt    = grid->leafbegin<dim>();
+    vIt = gridView.begin<dim>();
 
     for (; vIt!=vEndIt; ++vIt) {
-        int idx = grid->leafIndexSet().index(*vIt);
+        int idx = indexSet.index(*vIt);
 
         x[idx].r = 0;
         for (int i=0; i<dim; i++)
@@ -268,17 +273,16 @@ int main (int argc, char *argv[]) try
     materialParameters.report();
 
     // Assembler using ADOL-C
-    CosseratEnergyLocalStiffness<GridType::LeafGridView,
+    CosseratEnergyLocalStiffness<GridView,
                                  FEBasis::LocalFiniteElement,
                                  3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                               &neumannBoundary,
                                                                               neumannFunction.get());
-    LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
+    LocalGeodesicFEADOLCStiffness<GridView,
                                   FEBasis::LocalFiniteElement,
                                   TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafGridView(),
-                                                            &localGFEADOLCStiffness);
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, &localGFEADOLCStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
@@ -303,9 +307,9 @@ int main (int argc, char *argv[]) try
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
 
-        for (vIt=grid->leafbegin<dim>(); vIt!=vEndIt; ++vIt) {
+        for (vIt=gridView.begin<dim>(); vIt!=vEndIt; ++vIt) {
 
-            int idx = grid->leafIndexSet().index(*vIt);
+            int idx = indexSet.index(*vIt);
             if (dirichletNodes[idx][0]) {
 
                 // Only the positions have Dirichlet values
