@@ -267,17 +267,6 @@ int main (int argc, char *argv[]) try
     std::cout << "Material parameters:" << std::endl;
     materialParameters.report();
 
-#if 0
-    CosseratEnergyLocalStiffness<GridType::LeafGridView,
-                                 P1Basis::LocalFiniteElement,
-                                 3> cosseratEnergyLocalStiffness(materialParameters,
-                                                                 &neumannBoundary,
-                                                                 neumannFunction.get());
-
-    GeodesicFEAssembler<P1Basis,TargetSpace> assembler(grid->leafGridView(),
-                                                                      &cosseratEnergyLocalStiffness);
-
-#else
     // Assembler using ADOL-C
     CosseratEnergyLocalStiffness<GridType::LeafGridView,
                                  FEBasis::LocalFiniteElement,
@@ -290,7 +279,7 @@ int main (int argc, char *argv[]) try
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafGridView(),
                                                             &localGFEADOLCStiffness);
-#endif
+
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
