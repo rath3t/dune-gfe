@@ -22,6 +22,7 @@
 #include <dune/grid/io/file/gmshreader.hh>
 
 #include <dune/fufem/boundarypatch.hh>
+#include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -212,12 +213,14 @@ int main (int argc, char *argv[]) try
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
 
+    BitSetVector<1> dirichletNodes(feBasis.size(), false);
+    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
 
-    BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
+    BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
     for (size_t i=0; i<feBasis.size(); i++)
-      if (dirichletVertices[i][0])
+      if (dirichletNodes[i][0])
         for (int j=0; j<5; j++)
-          dirichletNodes[i][j] = true;
+          dirichletDofs[i][j] = true;
 
     // //////////////////////////
     //   Initial iterate
@@ -285,7 +288,7 @@ int main (int argc, char *argv[]) try
     solver.setup(*grid,
                  &assembler,
                  x,
-                 dirichletNodes,
+                 dirichletDofs,
                  tolerance,
                  maxTrustRegionSteps,
                  initialTrustRegionRadius,
@@ -303,7 +306,7 @@ int main (int argc, char *argv[]) try
         for (vIt=gridView.begin<dim>(); vIt!=vEndIt; ++vIt) {
 
             int idx = indexSet.index(*vIt);
-            if (dirichletNodes[idx][0]) {
+            if (dirichletDofs[idx][0]) {
 
                 // Only the positions have Dirichlet values
                 dirichletValues(vIt->geometry().corner(0), x[idx].r,
