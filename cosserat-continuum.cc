@@ -23,6 +23,7 @@
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
+#include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -45,6 +46,19 @@ typedef RigidBodyMotion<double,3> TargetSpace;
 const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
+
+class Identity
+: public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3>>
+{
+public:
+  void evaluate(const FieldVector<double,dim>& x, FieldVector<double,3>& y) const
+  {
+    y = 0;
+    for (int i=0; i<dim; i++)
+      y[i] = x[i];
+  }
+};
+
 
 #if 1
 // Dirichlet boundary data for the shear/wrinkling example
@@ -228,14 +242,17 @@ int main (int argc, char *argv[]) try
 
     SolutionType x(feBasis.size());
 
+    Identity identity;
+    std::vector<FieldVector<double,3> > v;
+    Functions::interpolate(feBasis, v, identity);
+
+    for (size_t i=0; i<x.size(); i++)
+      x[i].r = v[i];
+
     vIt = gridView.begin<dim>();
 
     for (; vIt!=vEndIt; ++vIt) {
         int idx = indexSet.index(*vIt);
-
-        x[idx].r = 0;
-        for (int i=0; i<dim; i++)
-            x[idx].r[i] = vIt->geometry().corner(0)[i];
 
         x[idx].r[2] = 0.002*std::cos(1e4*vIt->geometry().corner(0)[0]);
         // x[idx].q is the identity, set by the default constructor
