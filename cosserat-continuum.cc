@@ -273,7 +273,7 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
-    CosseratVTKWriter<GridType>::write(*grid,x, resultPath + "cosserat_homotopy_0");
+    CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_0");
 
     for (int i=0; i<numHomotopySteps; i++) {
 
@@ -349,7 +349,7 @@ int main (int argc, char *argv[]) try
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        CosseratVTKWriter<GridType>::write(*grid,x, resultPath + "cosserat_homotopy_" + iAsAscii.str());
+        CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_" + iAsAscii.str());
 
     }
 
@@ -357,7 +357,7 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 
-    CosseratVTKWriter<GridType>::write(*grid,x, resultPath + "cosserat");
+    CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat");
 
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
