@@ -62,17 +62,26 @@ public:
 
 #if 1
 // Dirichlet boundary data for the shear/wrinkling example
-void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
-                     double homotopy)
+class DirichletValues
+: public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
 {
+  double homotopy_;
+public:
+  DirichletValues(double homotopy)
+  : homotopy_(homotopy)
+  {}
+
+  void evaluate(const FieldVector<double,dim>& in, FieldVector<double,3>& out) const
+  {
     out = 0;
     for (int i=0; i<dim; i++)
-        out[i] = in[i];
+      out[i] = in[i];
 
-//     if (out[1] > 1-1e-3)
-     if (out[1] > 0.18-1e-4)
-        out[0] += 0.003*homotopy;
-}
+    //     if (out[1] > 1-1e-3)
+    if (out[1] > 0.18-1e-4)
+      out[0] += 0.003*homotopy_;
+  }
+};
 #endif
 #if 0
 // Dirichlet boundary data for the 'twisted-strip' example
@@ -320,14 +329,15 @@ int main (int argc, char *argv[]) try
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
 
+        DirichletValues dirichletValues(homotopyParameter);
+
         for (vIt=gridView.begin<dim>(); vIt!=vEndIt; ++vIt) {
 
             int idx = indexSet.index(*vIt);
             if (dirichletDofs[idx][0]) {
 
                 // Only the positions have Dirichlet values
-                dirichletValues(vIt->geometry().corner(0), x[idx].r,
-                                homotopyParameter);
+                dirichletValues.evaluate(vIt->geometry().corner(0), x[idx].r);
 
             }
 
