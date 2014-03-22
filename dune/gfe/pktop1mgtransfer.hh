@@ -46,9 +46,6 @@ public:
                const P1NodalBasis<GridView>& p1Basis)
         {
         typedef typename TransferOperatorType::block_type TransferMatrixBlock;
-        typedef typename GridView::ctype ctype;
-
-        const int dim = GridView::dimension;
 
         int rows = fineBasis.size();
         int cols = p1Basis.size();
