@@ -130,7 +130,7 @@ void solve (const shared_ptr<GridType>& grid,
     constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
     
     // //////////////////////////
-    //   Initial solution
+    //   Initial iterate
     // //////////////////////////
 
     x.resize(feBasis.size());
