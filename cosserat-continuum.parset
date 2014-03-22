@@ -1,5 +1,5 @@
 # Number of grid levels
-numLevels = 3
+numLevels = 2
 
 # Number of homotopy steps for the Dirichlet boundary conditions
 numHomotopySteps = 1
@@ -11,7 +11,7 @@ tolerance = 1e-8
 maxTrustRegionSteps = 20
 
 # Initial trust-region radius
-initialTrustRegionRadius = 1
+initialTrustRegionRadius = 0.001
 
 # Number of multigrid iterations per trust-region step
 numIt = 200
@@ -42,23 +42,22 @@ instrumented = 0
 ############################
 
 
- Parameters for the twisted 10x1 strip
+# Parameters for the shearing/wrinkling example from Taylor,Bertoldi,Steigmann
 [materialParameters]
 
 # shell thickness
-thickness = 0.05
+thickness = 2.5e-5
 
 # Lame parameters
-# corresponds to E = 1e6, nu=0.3
-mu = 3.8462e+05
-lambda = 2.7149e+05
+# corresponds to E = ???
+mu = 5.6452e+09
+lambda = 2.1796e+09
 
 # Cosserat couple modulus
 mu_c = 0
-#mu_c = 3.8462e+05
 
 # Length scale parameter
-L_c = 0.0002
+L_c = 7.2169e-06
 
 # Curvature exponent
 q = 2
@@ -67,6 +66,38 @@ q = 2
 kappa = 1
 
 []
+
+structuredGrid = true
+lower = 0 0
+upper = 0.38 0.18
+elements = 15 5
+
+
+## Parameters for the twisted 10x1 strip
+#[materialParameters]
+
+# shell thickness
+#thickness = 0.002
+
+# Lame parameters
+# corresponds to E = 1e6, nu=0.3
+#mu = 3.8462e+05
+#lambda = 2.7149e+05
+
+# Cosserat couple modulus
+#mu_c = 0
+#mu_c = 3.8462e+05
+
+# Length scale parameter
+#L_c = 0.001
+
+# Curvature exponent
+#q = 2
+
+# Shear correction factor
+#kappa = 1
+
+#[]
 
 
 ## For the Wriggers L-shape example
@@ -100,10 +131,10 @@ neumannValues =  -1e3 0 0
 
 
 
-structuredGrid = true
-lower = 0 0
-upper = 5 1
-elements = 5 1
+#structuredGrid = true
+#lower = 0 0
+#upper = 5 1
+#elements = 5 1
 
 # Wriggers L-shape
 path = /home/sander/data/shells/wriggers_L_shape/
