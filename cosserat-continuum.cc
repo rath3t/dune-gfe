@@ -330,18 +330,12 @@ int main (int argc, char *argv[]) try
         ////////////////////////////////////////////////////////
 
         DirichletValues dirichletValues(homotopyParameter);
+        std::vector<FieldVector<double,3> > dV;
+        Functions::interpolate(feBasis, dV, dirichletValues, dirichletDofs);
 
-        for (vIt=gridView.begin<dim>(); vIt!=vEndIt; ++vIt) {
-
-            int idx = indexSet.index(*vIt);
-            if (dirichletDofs[idx][0]) {
-
-                // Only the positions have Dirichlet values
-                dirichletValues.evaluate(vIt->geometry().corner(0), x[idx].r);
-
-            }
-
-        }
+        for (size_t i=0; i<x.size(); i++)
+          if (dirichletDofs[i][0])
+            x[i].r = dV[i];
 
         // /////////////////////////////////////////////////////
         //   Solve!
