@@ -119,8 +119,8 @@ public:
             iAsAscii << i;
         
             Dune::shared_ptr<VTKBasisGridFunction<P1Basis,CoefficientType> > vtkDirector
-               = Dune::shared_ptr<VTKBasisGridFunction<P1Basis,CoefficientType> >
-                   (new VTKBasisGridFunction<P1Basis,CoefficientType>(p1Basis, directors[i], "director"+iAsAscii.str()));
+               = Dune::make_shared<VTKBasisGridFunction<P1Basis,CoefficientType> >
+                                  (p1Basis, directors[i], "director"+iAsAscii.str());
             vtkWriter.addVertexData(vtkDirector);
         }
         
@@ -181,8 +181,8 @@ public:
             iAsAscii << i;
 
             Dune::shared_ptr<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> > vtkDirector
-               = Dune::shared_ptr<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> >
-                   (new VTKBasisGridFunction<DeformedP1Basis,CoefficientType>(deformedP1Basis, directors[i], "director"+iAsAscii.str()));
+               = Dune::make_shared<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> >
+                                  (deformedP1Basis, directors[i], "director"+iAsAscii.str());
             vtkWriter.addVertexData(vtkDirector);
         }
 
