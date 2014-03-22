@@ -1,5 +1,7 @@
 #include <config.h>
 
+#define SECOND_ORDER
+
 #include <fenv.h>
 
 // Includes for the ADOL-C automatic differentiation library
@@ -25,6 +27,7 @@
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
@@ -191,7 +194,11 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
+#ifdef SECOND_ORDER
+    typedef P2NodalBasis<GridView,double> FEBasis;
+#else
     typedef P1NodalBasis<GridView,double> FEBasis;
+#endif
     FEBasis feBasis(gridView);
 
     // /////////////////////////////////////////
