@@ -201,7 +201,7 @@ int testCosseratEnergy() {
     for (size_t j=0; j<nDofs; j++)
       localSolution[j] = testPoints[index[j]];
 
-    if (diameter(localSolution) > 0.5*TargetSpace::convexityRadius)
+    if (diameter(localSolution) > TargetSpace::convexityRadius)
         continue;
 
     std::vector<typename TargetSpace::TangentVector> localGradient;
