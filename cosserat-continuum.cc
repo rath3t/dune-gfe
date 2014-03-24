@@ -59,6 +59,8 @@ public:
     y = 0;
     for (int i=0; i<dim; i++)
       y[i] = x[i];
+
+    y[2] = 0.002*std::cos(1e4*x[0]);
   }
 };
 
@@ -264,16 +266,6 @@ int main (int argc, char *argv[]) try
 
     for (size_t i=0; i<x.size(); i++)
       x[i].r = v[i];
-
-    vIt = gridView.begin<dim>();
-
-    for (; vIt!=vEndIt; ++vIt) {
-        int idx = indexSet.index(*vIt);
-
-        x[idx].r[2] = 0.002*std::cos(1e4*vIt->geometry().corner(0)[0]);
-        // x[idx].q is the identity, set by the default constructor
-
-    }
 
     ////////////////////////////////////////////////////////
     //   Main homotopy loop
