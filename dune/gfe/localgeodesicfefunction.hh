@@ -9,6 +9,7 @@
 
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
+#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 
 #include <dune/gfe/tensor3.hh>
@@ -187,10 +188,15 @@ evaluate(const Dune::FieldVector<ctype, dim>& local) const
     // The energy functional whose mimimizer is the value of the geodesic interpolation
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
+    // Create a reasonable initial iterate for the iterative solver
+    Dune::GFE::LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> localProjectedFEFunction(localFiniteElement_, coefficients_);
+    TargetSpace initialIterate = localProjectedFEFunction.evaluate(local);
+
+    // Iteratively solve the GFE minimization problem
     TargetSpaceRiemannianTRSolver<TargetSpace> solver;
 
     solver.setup(&assembler,
-                 coefficients_[0],   // initial iterate
+                 initialIterate,
                  1e-14,    // tolerance
                  100,      // maxTrustRegionSteps
                  2,       // initial trust region radius
