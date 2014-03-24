@@ -21,6 +21,7 @@ srcinclude_HEADERS = adolcnamespaceinjections.hh \
                      localgeodesicfefunction.hh \
                      localgeodesicfestiffness.hh \
                      localgfetestfunctionbasis.hh \
+                     localprojectedfefunction.hh \
                      maxnormtrustregion.hh \
                      orthogonalmatrix.hh \
                      pktop1mgtransfer.hh \
