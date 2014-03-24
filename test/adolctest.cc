@@ -131,9 +131,12 @@ int testHarmonicEnergy() {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    harmonicEnergyLocalStiffness.assembleHessian(*grid.template leafbegin<0>(),localFiniteElement, localSolution);
+    std::vector<typename TargetSpace::TangentVector> localGradient;
+    harmonicEnergyLocalStiffness.assembleGradientAndHessian(*grid.template leafbegin<0>(),localFiniteElement, localSolution,
+                                                            localGradient);
 
-    localGFEADOLCStiffness.assembleHessian(*grid.template leafbegin<0>(),localFiniteElement, localSolution);
+    localGFEADOLCStiffness.assembleGradientAndHessian(*grid.template leafbegin<0>(),localFiniteElement, localSolution,
+                                                      localGradient);
 
     compareMatrices(harmonicEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_, localSolution);
 
@@ -198,12 +201,15 @@ int testCosseratEnergy() {
     for (size_t j=0; j<nDofs; j++)
       localSolution[j] = testPoints[index[j]];
 
-    if (diameter(localSolution) > TargetSpace::convexityRadius)
+    if (diameter(localSolution) > 0.5*TargetSpace::convexityRadius)
         continue;
 
-    cosseratEnergyLocalStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+    std::vector<typename TargetSpace::TangentVector> localGradient;
+    cosseratEnergyLocalStiffness.assembleGradientAndHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution,
+                                                            localGradient);
 
-    localGFEADOLCStiffness.assembleHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution);
+    localGFEADOLCStiffness.assembleGradientAndHessian(*grid.leafbegin<0>(),localFiniteElement, localSolution,
+                                                      localGradient);
 
     compareMatrices(cosseratEnergyLocalStiffness.A_, localGFEADOLCStiffness.A_, localSolution);
 
