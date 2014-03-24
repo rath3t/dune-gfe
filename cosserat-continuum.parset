@@ -1,5 +1,5 @@
 # Number of grid levels
-numLevels = 2
+numLevels = 3
 
 # Number of homotopy steps for the Dirichlet boundary conditions
 numHomotopySteps = 1
@@ -8,7 +8,7 @@ numHomotopySteps = 1
 tolerance = 1e-8
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 20
+maxTrustRegionSteps = 200
 
 # Initial trust-region radius
 initialTrustRegionRadius = 0.001
@@ -42,14 +42,15 @@ instrumented = 0
 ############################
 
 
-# Parameters for the shearing/wrinkling example from Taylor,Bertoldi,Steigmann
+# Parameters for the shearing/wrinkling example from Taylor, Bertoldi, Steigmann
+# We use 'meters' as the length unit
 [materialParameters]
 
 # shell thickness
 thickness = 2.5e-5
 
 # Lame parameters
-# corresponds to E = ???
+# # corresponds to E = 3.5GPa, nu=0.31
 mu = 5.6452e+09
 lambda = 2.1796e+09
 
@@ -57,6 +58,7 @@ lambda = 2.1796e+09
 mu_c = 0
 
 # Length scale parameter
+# h * sqrt(1/12)
 L_c = 7.2169e-06
 
 # Curvature exponent
