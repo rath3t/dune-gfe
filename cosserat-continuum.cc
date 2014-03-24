@@ -332,9 +332,9 @@ int main (int argc, char *argv[]) try
         std::vector<FieldVector<double,3> > dV;
         Functions::interpolate(feBasis, dV, dirichletValues, dirichletDofs);
 
-        for (size_t i=0; i<x.size(); i++)
-          if (dirichletDofs[i][0])
-            x[i].r = dV[i];
+        for (size_t j=0; j<x.size(); j++)
+          if (dirichletDofs[j][0])
+            x[j].r = dV[j];
 
         // /////////////////////////////////////////////////////
         //   Solve!
