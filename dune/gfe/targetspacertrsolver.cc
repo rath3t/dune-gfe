@@ -26,7 +26,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
     innerIterations_          = innerIterations;
     innerTolerance_           = innerTolerance;
     this->verbosity_          = NumProc::QUIET;
-    minNumberOfIterations_    = 4;
+    minNumberOfIterations_    = 1;
 
 #ifdef USE_GAUSS_SEIDEL_SOLVER
     // ////////////////////////////////
