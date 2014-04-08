@@ -71,7 +71,7 @@ kappa = 1
 
 structuredGrid = true
 lower = 0 0
-upper = 0.38 0.18
+upper = 0.38 0.128
 elements = 15 5
 
 
