@@ -7,6 +7,7 @@
 
 #include <dune/common/array.hh>
 #include <dune/common/fmatrix.hh>
+#include <dune/common/static_assert.hh>
 
 /** \brief A third-rank tensor
 */
