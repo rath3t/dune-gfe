@@ -83,7 +83,7 @@ public:
       out[i] = in[i];
 
     //     if (out[1] > 1-1e-3)
-    if (out[1] > 0.18-1e-4)
+    if (out[1] > 0.128-1e-4)
       out[0] += 0.003*homotopy_;
   }
 };
