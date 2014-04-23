@@ -196,6 +196,8 @@ int main (int argc, char *argv[]) try
 
     grid->globalRefine(numLevels-1);
 
+    grid->loadBalance();
+
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
