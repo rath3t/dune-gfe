@@ -144,6 +144,9 @@ struct NeumannFunction
 
 int main (int argc, char *argv[]) try
 {
+    // initialize MPI, finalize is done automatically on exit
+    MPIHelper::instance(argc, argv);
+
     //feenableexcept(FE_INVALID);
 
     typedef std::vector<TargetSpace> SolutionType;
