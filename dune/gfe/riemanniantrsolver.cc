@@ -184,6 +184,8 @@ setup(const GridType& grid,
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 {
+    int rank = mpiHelper_.rank();
+
     MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
 
     // if the inner solver is a monotone multigrid set up a max-norm trust-region
@@ -215,6 +217,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     // /////////////////////////////////////////////////////
 
     double oldEnergy = assembler_->computeEnergy(x_);
+    oldEnergy = mpiHelper_.getCollectiveCommunication().sum(oldEnergy);
+
     bool recomputeGradientHessian = true;
     CorrectionType rhs;
 
@@ -225,7 +229,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             std::cout << x_[j] << std::endl;*/
 
         Dune::Timer totalTimer;
-        if (this->verbosity_ == Solver::FULL) {
+        if (this->verbosity_ == Solver::FULL and rank==0) {
             std::cout << "----------------------------------------------------" << std::endl;
             std::cout << "      Trust-Region Step Number: " << i
                       << ",     radius: " << trustRegion.radius()
