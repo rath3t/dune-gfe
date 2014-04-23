@@ -245,19 +245,25 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
     // ////////////////////////////////////////////////////////////////////////
 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
-    std::vector<Dune::FieldMatrix<ctype,1,dim> > BNested(coefficients_.size());
-    localFiniteElement_.localBasis().evaluateJacobian(local, BNested);
-    Dune::Matrix<Dune::FieldMatrix<ctype,1,1> > B(coefficients_.size(), dim);
-    for (size_t i=0; i<coefficients_.size(); i++)
-        for (size_t j=0; j<dim; j++)
-            B[i][j] = BNested[i][0][j];
+    std::vector<Dune::FieldMatrix<ctype,1,dim> > B(coefficients_.size());
+    localFiniteElement_.localBasis().evaluateJacobian(local, B);
 
     // compute negative derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
     Dune::Matrix<Dune::FieldMatrix<RT,1,1> > dFdw = computeDFdw(q);
     dFdw *= -1;
 
     // multiply the two previous matrices: the result is the right hand side
-    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > RHS = dFdw * B;
+    // RHS = dFdw * B;
+    // We need to write this multiplication by hand, because B is actually an (#coefficients) times 1 times dim matrix,
+    // and we need to ignore the middle index.
+    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > RHS(dFdw.N(), dim);
+
+    for (size_t i=0; i<RHS.N(); i++)
+      for (size_t j=0; j<RHS.M(); j++) {
+        RHS[i][j] = 0;
+        for (size_t k=0; k<dFdw.M(); k++)
+          RHS[i][j] += dFdw[i][k]*B[k][0][j];
+      }
 
     // the actual system matrix
     std::vector<Dune::FieldVector<ctype,1> > w;
