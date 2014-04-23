@@ -15,7 +15,7 @@ template <class Basis, class TargetSpace>
 class GeodesicFEAssembler {
 
     typedef typename Basis::GridView GridView;
-    typedef typename GridView::template Codim<0>::Iterator ElementIterator;
+    typedef typename GridView::template Codim<0>::template Partition<Dune::Interior_Partition>::Iterator ElementIterator;
 
     //! Dimension of the grid.
     enum { gridDim = GridView::dimension };
@@ -75,8 +75,8 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 
     nb.resize(n, n);
 
-    ElementIterator it    = basis_.getGridView().template begin<0>();
-    ElementIterator endit = basis_.getGridView().template end<0>  ();
+    ElementIterator it    = basis_.getGridView().template begin<0,Dune::Interior_Partition>();
+    ElementIterator endit = basis_.getGridView().template end<0,Dune::Interior_Partition>  ();
 
     for (; it!=endit; ++it) {
 
@@ -119,8 +119,8 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
     gradient.resize(sol.size());
     gradient = 0;
 
-    ElementIterator it    = basis_.getGridView().template begin<0>();
-    ElementIterator endit = basis_.getGridView().template end<0>  ();
+    ElementIterator it    = basis_.getGridView().template begin<0,Dune::Interior_Partition>();
+    ElementIterator endit = basis_.getGridView().template end<0,Dune::Interior_Partition>  ();
 
     for( ; it != endit; ++it ) {
 
@@ -169,8 +169,8 @@ assembleGradient(const std::vector<TargetSpace>& sol,
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = basis_.getGridView().template begin<0>();
-    ElementIterator endIt = basis_.getGridView().template end<0>();
+    ElementIterator it    = basis_.getGridView().template begin<0,Dune::Interior_Partition>();
+    ElementIterator endIt = basis_.getGridView().template end<0,Dune::Interior_Partition>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
@@ -207,8 +207,8 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
     if (sol.size()!=basis_.size())
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
-    ElementIterator it    = basis_.getGridView().template begin<0>();
-    ElementIterator endIt = basis_.getGridView().template end<0>();
+    ElementIterator it    = basis_.getGridView().template begin<0,Dune::Interior_Partition>();
+    ElementIterator endIt = basis_.getGridView().template end<0,Dune::Interior_Partition>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
