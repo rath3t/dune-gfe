@@ -145,7 +145,7 @@ struct NeumannFunction
 int main (int argc, char *argv[]) try
 {
     // initialize MPI, finalize is done automatically on exit
-    MPIHelper::instance(argc, argv);
+    Dune::MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
 
     //feenableexcept(FE_INVALID);
 
@@ -312,7 +312,7 @@ int main (int argc, char *argv[]) try
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
-    RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
+    RiemannianTrustRegionSolver<GridType,TargetSpace> solver(mpiHelper);
     solver.setup(*grid,
                  &assembler,
                  x,

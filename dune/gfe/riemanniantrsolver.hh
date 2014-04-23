@@ -47,8 +47,9 @@ class RiemannianTrustRegionSolver
 
 public:
 
-    RiemannianTrustRegionSolver()
+    RiemannianTrustRegionSolver(Dune::MPIHelper& mpiHelper)
         : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
+          mpiHelper_(mpiHelper),
           hessianMatrix_(std::auto_ptr<MatrixType>(NULL)), h1SemiNorm_(NULL)
     {}
 
@@ -90,6 +91,9 @@ public:
     SolutionType getSol() const {return x_;}
 
 protected:
+
+    /** \brief Gateway to MPI, for the case that we are working in parallel */
+    Dune::MPIHelper& mpiHelper_;
 
     /** \brief The grid */
     const GridType* grid_;
