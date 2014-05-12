@@ -23,7 +23,17 @@ public:
   };
 
 public:
-  MatrixCommunicator(const GUIndex& gi, const int& root) : guIndex(gi), root_rank(root) {}
+  MatrixCommunicator(const GUIndex& rowIndex, const int& root)
+  : guIndex1_(rowIndex),
+    guIndex2_(rowIndex),
+    root_rank(root)
+  {}
+
+  MatrixCommunicator(const GUIndex& rowIndex, const GUIndex& colIndex, const int& root)
+  : guIndex1_(rowIndex),
+    guIndex2_(colIndex),
+    root_rank(root)
+  {}
 
 
   void transferMatrix(const MatrixType& localMatrix) {
@@ -38,14 +48,14 @@ public:
         const int i = rIt.index();
         const int j = cIt.index();
 
-        localMatrixEntries.push_back(TransferMatrixTuple(guIndex.globalIndex(i), guIndex.globalIndex(j), *cIt));
+        localMatrixEntries.push_back(TransferMatrixTuple(guIndex1_.globalIndex(i), guIndex2_.globalIndex(j), *cIt));
       }
 
     // Get number of matrix entries on each process
-    std::vector<int> localMatrixEntriesSizes(MPIFunctions::shareSizes(guIndex.getGridView(), localMatrixEntries.size()));
+    std::vector<int> localMatrixEntriesSizes(MPIFunctions::shareSizes(guIndex1_.getGridView(), localMatrixEntries.size()));
 
     // Get matrix entries from every process
-    globalMatrixEntries = MPIFunctions::gatherv(guIndex.getGridView(), localMatrixEntries, localMatrixEntriesSizes, root_rank);
+    globalMatrixEntries = MPIFunctions::gatherv(guIndex1_.getGridView(), localMatrixEntries, localMatrixEntriesSizes, root_rank);
   }
 
 
@@ -55,7 +65,7 @@ public:
     // Create occupation pattern in matrix
     Dune::MatrixIndexSet occupationPattern;
 
-    occupationPattern.resize(guIndex.nGlobalEntity(), guIndex.nGlobalEntity());
+    occupationPattern.resize(guIndex1_.nGlobalEntity(), guIndex2_.nGlobalEntity());
 
     for (size_t k = 0; k < globalMatrixEntries.size(); ++k)
       occupationPattern.add(globalMatrixEntries[k].row, globalMatrixEntries[k].col);
@@ -79,7 +89,7 @@ public:
     // Create occupation pattern in matrix
     Dune::MatrixIndexSet occupationPattern;
 
-    occupationPattern.resize(guIndex.nGlobalEntity(), guIndex.nGlobalEntity());
+    occupationPattern.resize(guIndex1_.nGlobalEntity(), guIndex2_.nGlobalEntity());
 
     for (size_t k = 0; k < globalMatrixEntries.size(); ++k)
       occupationPattern.add(globalMatrixEntries[k].row, globalMatrixEntries[k].col);
@@ -95,7 +105,8 @@ public:
   }
 
 private:
-  const GUIndex& guIndex;
+  const GUIndex& guIndex1_;
+  const GUIndex& guIndex2_;
   int root_rank;
 
   std::vector<TransferMatrixTuple> globalMatrixEntries;
