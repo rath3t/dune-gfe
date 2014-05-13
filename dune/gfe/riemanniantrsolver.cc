@@ -405,6 +405,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 
         double energy    = assembler_->computeEnergy(newIterate);
+        energy = mpiHelper.getCollectiveCommunication().sum(energy);
 
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
@@ -413,6 +414,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         tmp = 0;
         hessianMatrix_->umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
+        modelDecrease = mpiHelper.getCollectiveCommunication().sum(modelDecrease);
 
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
 
