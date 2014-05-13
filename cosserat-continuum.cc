@@ -314,7 +314,7 @@ int main (int argc, char *argv[]) try
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
-    RiemannianTrustRegionSolver<GridType,TargetSpace> solver(mpiHelper);
+    RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
     solver.setup(*grid,
                  &assembler,
                  x,

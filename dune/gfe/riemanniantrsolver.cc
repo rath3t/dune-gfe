@@ -2,6 +2,7 @@
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/timer.hh>
+#include <dune/common/parallel/mpihelper.hh>
 
 #include <dune/istl/io.hh>
 
@@ -184,7 +185,10 @@ setup(const GridType& grid,
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 {
-    int rank = mpiHelper_.rank();
+    int argc = 0;
+    char** argv;
+    Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
+    int rank = mpiHelper.rank();
 
     MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
 
@@ -217,7 +221,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     // /////////////////////////////////////////////////////
 
     double oldEnergy = assembler_->computeEnergy(x_);
-    oldEnergy = mpiHelper_.getCollectiveCommunication().sum(oldEnergy);
+    oldEnergy = mpiHelper.getCollectiveCommunication().sum(oldEnergy);
 
     bool recomputeGradientHessian = true;
     CorrectionType rhs;
