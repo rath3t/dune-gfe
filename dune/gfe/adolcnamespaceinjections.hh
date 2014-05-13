@@ -4,11 +4,11 @@
 #include <limits>
 
 adouble min_hack(const adouble& a, const adouble& b) {
-    return min(a,b);
+    return fmin(a,b);
 }
 
 adouble max_hack(const adouble& a, const adouble& b) {
-    return max(a,b);
+    return fmax(a,b);
 }
 
 adouble sqrt_hack(adouble a) {
