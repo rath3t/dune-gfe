@@ -36,8 +36,18 @@ private:
     globalVectorEntries = MPIFunctions::gatherv(guIndex.getGridView(), localVectorEntries, localVectorEntriesSizes, root_rank);
   }
 
+public:
+  VectorCommunicator(const GUIndex& gi, const int& root)
+  : guIndex(gi), root_rank(root)
+  {
+    // Get number of vector entries on each process
+    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), guIndex.nOwnedLocalEntity());
+  }
 
-  VectorType createGlobalVector() const {
+  VectorType reduceAdd(const VectorType& localVector)
+  {
+    transferVector(localVector);
+
     VectorType globalVector(guIndex.nGlobalEntity());
 
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
@@ -46,7 +56,10 @@ private:
     return globalVector;
   }
 
-  VectorType copyIntoGlobalVector() const {
+  VectorType reduceCopy(const VectorType& localVector)
+  {
+    transferVector(localVector);
+
     VectorType globalVector(guIndex.nGlobalEntity());
 
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
@@ -55,7 +68,11 @@ private:
     return globalVector;
   }
 
-  VectorType createLocalSolution() {
+  VectorType scatter(const VectorType& global)
+  {
+    for (size_t k = 0; k < globalVectorEntries.size(); ++k)
+      globalVectorEntries[k].entry = global[globalVectorEntries[k].row];
+
     const int localSize = localVectorEntriesSizes[guIndex.getGridView().comm().rank()];
 
     // Create vector for transfer data
@@ -71,34 +88,6 @@ private:
       x[guIndex.localIndex(localVectorEntries[k].row)] = localVectorEntries[k].entry;
 
     return x;
-  }
-
-public:
-  VectorCommunicator(const GUIndex& gi, const int& root)
-  : guIndex(gi), root_rank(root)
-  {
-    // Get number of vector entries on each process
-    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), guIndex.nOwnedLocalEntity());
-  }
-
-  VectorType reduceAdd(const VectorType& localVector)
-  {
-    transferVector(localVector);
-    return createGlobalVector();
-  }
-
-  VectorType reduceCopy(const VectorType& localVector)
-  {
-    transferVector(localVector);
-    return copyIntoGlobalVector();
-  }
-
-  VectorType scatter(const VectorType& global)
-  {
-    for (size_t k = 0; k < globalVectorEntries.size(); ++k)
-      globalVectorEntries[k].entry = global[globalVectorEntries[k].row];
-
-    return createLocalSolution();
   }
 
 private:
