@@ -11,7 +11,7 @@
 
 template<typename GUIndex, typename MatrixType>
 class MatrixCommunicator {
-public:
+
   struct TransferMatrixTuple {
     typedef typename MatrixType::block_type EntryType;
 
@@ -21,20 +21,6 @@ public:
     TransferMatrixTuple() {}
     TransferMatrixTuple(const size_t& r, const size_t& c, const EntryType& e) : row(r), col(c), entry(e) {}
   };
-
-public:
-  MatrixCommunicator(const GUIndex& rowIndex, const int& root)
-  : guIndex1_(rowIndex),
-    guIndex2_(rowIndex),
-    root_rank(root)
-  {}
-
-  MatrixCommunicator(const GUIndex& rowIndex, const GUIndex& colIndex, const int& root)
-  : guIndex1_(rowIndex),
-    guIndex2_(colIndex),
-    root_rank(root)
-  {}
-
 
   void transferMatrix(const MatrixType& localMatrix) {
     // Create vector for transfer data
@@ -58,8 +44,23 @@ public:
     globalMatrixEntries = MPIFunctions::gatherv(guIndex1_.getGridView(), localMatrixEntries, localMatrixEntriesSizes, root_rank);
   }
 
+public:
+  MatrixCommunicator(const GUIndex& rowIndex, const int& root)
+  : guIndex1_(rowIndex),
+    guIndex2_(rowIndex),
+    root_rank(root)
+  {}
 
-  MatrixType createGlobalMatrix() const {
+  MatrixCommunicator(const GUIndex& rowIndex, const GUIndex& colIndex, const int& root)
+  : guIndex1_(rowIndex),
+    guIndex2_(colIndex),
+    root_rank(root)
+  {}
+
+  MatrixType reduceAdd(const MatrixType& local)
+  {
+    transferMatrix(local);
+
     MatrixType globalMatrix;
 
     // Create occupation pattern in matrix
@@ -79,11 +80,13 @@ public:
     for(size_t k = 0; k < globalMatrixEntries.size(); ++k)
       globalMatrix[globalMatrixEntries[k].row][globalMatrixEntries[k].col] += globalMatrixEntries[k].entry;
 
-
     return globalMatrix;
   }
 
-  MatrixType copyIntoGlobalMatrix() const {
+  MatrixType reduceCopy(const MatrixType& local)
+  {
+    transferMatrix(local);
+
     MatrixType globalMatrix;
 
     // Create occupation pattern in matrix

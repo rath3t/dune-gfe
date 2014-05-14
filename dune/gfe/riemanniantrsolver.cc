@@ -195,12 +195,10 @@ setup(const GridType& grid,
 
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
-        matrixComm.transferMatrix(newTransferOp->getMatrix());
 
-        if (rank==0) {
-            mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
-                 (Dune::make_shared<TransferOperatorType>(matrixComm.copyIntoGlobalMatrix()));
-        }
+        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
+             (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix())));
+
     }
 #endif
 
@@ -341,15 +339,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
               std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
 
             // Transfer matrix data
-            matrixComm.transferMatrix(*hessianMatrix_);
+            stiffnessMatrix = matrixComm.reduceAdd(*hessianMatrix_);
 
             // Transfer vector data
             rhs_global = vectorComm.reduceAdd(rhs);
-
-            if (rank ==0) {
-              // Create global stiffnessMatrix
-              stiffnessMatrix = matrixComm.createGlobalMatrix();
-            }
 
             recomputeGradientHessian = false;
 
