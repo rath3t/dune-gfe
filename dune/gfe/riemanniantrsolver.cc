@@ -25,6 +25,8 @@
 #include <dune/solvers/norms/energynorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 
+#include <dune/gfe/parallel/matrixcommunicator.hh>
+#include <dune/gfe/parallel/vectorcommunicator.hh>
 
 template <class GridType, class TargetSpace>
 void RiemannianTrustRegionSolver<GridType,TargetSpace>::
@@ -44,6 +46,11 @@ setup(const GridType& grid,
          double baseTolerance,
          bool instrumented)
 {
+    int argc = 0;
+    char** argv;
+    Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
+    int rank = mpiHelper.rank();
+
     grid_                     = &grid;
     assembler_                = assembler;
     x_                        = x;
@@ -56,6 +63,12 @@ setup(const GridType& grid,
     ignoreNodes_              = &dirichletNodes;
 
     int numLevels = grid_->maxLevel()+1;
+
+    //////////////////////////////////////////////////////////////////
+    //  Create global numbering for matrix and vector transfer
+    //////////////////////////////////////////////////////////////////
+
+    guIndex_ = std::unique_ptr<GUIndex>(new GUIndex(grid_->leafGridView()));
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -71,7 +84,7 @@ setup(const GridType& grid,
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType, CorrectionType>* baseSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
-    EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep);
+    EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep,1e-3);
 
     ::LoopSolver<CorrectionType>* baseSolver = new ::LoopSolver<CorrectionType>(baseSolverStep,
                                                                             baseIterations,
@@ -80,6 +93,13 @@ setup(const GridType& grid,
                                                                             Solver::QUIET);
 #endif
 
+    // Transfer all Dirichlet data to the master processor
+    VectorCommunicator<GUIndex, Dune::BitSetVector<blocksize> > vectorComm(*guIndex_, 0);
+    vectorComm.transferVector(dirichletNodes);
+    Dune::BitSetVector<blocksize>* globalDirichletNodes = NULL;
+    if (rank==0)
+        globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.copyIntoGlobalVector());
+
     // Make pre and postsmoothers
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
     TrustRegionGSStep<MatrixType, CorrectionType>* postsmoother = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -87,7 +107,10 @@ setup(const GridType& grid,
     MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>;
 
     mmgStep->setMGType(mu, nu1, nu2);
-    mmgStep->ignoreNodes_       = &dirichletNodes;
+    if (mpiHelper.size()==1)
+        mmgStep->ignoreNodes_       = &dirichletNodes;
+    else
+        mmgStep->ignoreNodes_ = globalDirichletNodes;
     mmgStep->basesolver_        = baseSolver;
     mmgStep->setSmoother(presmoother, postsmoother);
     mmgStep->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType>();
@@ -136,9 +159,7 @@ setup(const GridType& grid,
     //   Create the transfer operators
     // ////////////////////////////////////
 
-#if defined THIRD_ORDER || defined SECOND_ORDER
     BasisType basis(grid_->leafGridView());
-#endif
 
     for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
@@ -163,9 +184,25 @@ setup(const GridType& grid,
 
 #else
     for (size_t i=0; i<mmgStep->mgTransfer_.size(); i++){
+
+        // Construct the local multigrid transfer matrix
         TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
         newTransferOp->setup(*grid_,i,i+1);
-        mmgStep->mgTransfer_[i] = newTransferOp;
+
+        // If we are on more than 1 processors, join all local transfer matrices on rank 0,
+        // and construct a single global transfer operator there.
+        typedef GlobalUniqueIndex<typename GridType::LevelGridView, gridDim> LevelGUIndex;
+        LevelGUIndex fineGUIndex(grid_->levelGridView(i+1));
+        LevelGUIndex coarseGUIndex(grid_->levelGridView(i));
+
+        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
+        MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
+        matrixComm.transferMatrix(newTransferOp->getMatrix());
+
+        if (rank==0) {
+            mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
+                 (Dune::make_shared<TransferOperatorType>(matrixComm.copyIntoGlobalMatrix()));
+        }
     }
 #endif
 
@@ -173,10 +210,13 @@ setup(const GridType& grid,
     //   Create obstacles
     // //////////////////////////////////////////////////////////
 
-    hasObstacle_.resize(numLevels);
+    if (rank==0)
+    {
+        hasObstacle_.resize(numLevels);
         hasObstacle_.back().resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_.back())->getMatrix().N(), true);
-    for (int i=0; i<hasObstacle_.size()-1; i++)
-        hasObstacle_[i].resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_[i])->getMatrix().M(),true);
+        for (int i=0; i<hasObstacle_.size()-1; i++)
+            hasObstacle_[i].resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_[i])->getMatrix().M(),true);
+    }
 }
 
 
@@ -196,7 +236,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
     }
 
-    MaxNormTrustRegion<blocksize> trustRegion(x_.size(), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize> trustRegion(guIndex_->nGlobalEntity(), initialTrustRegionRadius_);
 
     std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep)
                                                                                          ? mgStep->numLevels()
@@ -223,6 +263,11 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
     bool recomputeGradientHessian = true;
     CorrectionType rhs;
+    MatrixType stiffnessMatrix;
+    CorrectionType rhs_global;
+
+    VectorCommunicator<GUIndex, CorrectionType> vectorComm(*guIndex_, 0);
+    MatrixCommunicator<GUIndex, MatrixType> matrixComm(*guIndex_, 0);
 
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
@@ -254,65 +299,94 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
             rhs *= -1;        // The right hand side is the _negative_ gradient
 
+            ////////////////////////////////////////////////////////////////////////
+            //   Modify matrix and right-hand side to account for Dirichlet values
+            ////////////////////////////////////////////////////////////////////////
+
+            typedef typename MatrixType::row_type::Iterator ColumnIterator;
+
+            for (size_t j=0; j<ignoreNodes_->size(); j++) {
+
+                if (ignoreNodes_->operator[](j).count() > 0) {
+
+                    // make matrix row an identity row
+                    ColumnIterator cIt    = (*hessianMatrix_)[j].begin();
+                    ColumnIterator cEndIt = (*hessianMatrix_)[j].end();
+
+                    for (; cIt!=cEndIt; ++cIt) {
+                        for (int k=0; k<blocksize; k++) {
+                            if (ignoreNodes_->operator[](j)[k]) {
+                                (*cIt)[k] = 0;
+                                if (j==cIt.index())
+                                    (*cIt)[k][k] = 1;
+                            }
+                        }
+                    }
+
+                    // Dirichlet value.  Zero, because we are solving defect problems
+                    for (int k=0; k<blocksize; k++)
+                        if (ignoreNodes_->operator[](j)[k])
+                             rhs[j][k] = 0;
+                }
+
+            }
+
             if (this->verbosity_ == Solver::FULL)
               std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+
+            // Transfer matrix data
+            matrixComm.transferMatrix(*hessianMatrix_);
+
+            // Transfer vector data
+            vectorComm.transferVector(rhs);
+
+            if (rank ==0) {
+              // Create global stiffnessMatrix
+              stiffnessMatrix = matrixComm.createGlobalMatrix();
+
+              // Create global right hand side
+              rhs_global = vectorComm.createGlobalVector();
+            }
 
             recomputeGradientHessian = false;
             
         }
 
-/*        std::cout << "rhs:\n" << rhs << std::endl;
-        std::cout << "matrix[0][0]:\n" << (*hessianMatrix_)[0][0] << std::endl;*/
+        if (rank==0)
+        {
+            CorrectionType corr_global(rhs_global.size());
+            corr_global = 0;
 
-        // //////////////////////////////////////////////////////////////////////
-        //   Modify matrix and right-hand side to account for Dirichlet values
-        // //////////////////////////////////////////////////////////////////////
+            mgStep->setProblem(stiffnessMatrix, corr_global, rhs_global);
 
-        typedef typename MatrixType::row_type::Iterator ColumnIterator;
+            trustRegionObstacles.back() = trustRegion.obstacles();
+            mgStep->obstacles_ = &trustRegionObstacles;
 
-        for (size_t j=0; j<ignoreNodes_->size(); j++) {
+            innerSolver_->preprocess();
 
-            if (ignoreNodes_->operator[](j).count() > 0) {
+            ///////////////////////////////
+            //    Solve !
+            ///////////////////////////////
 
-                // make matrix row an identity row
-                ColumnIterator cIt    = (*hessianMatrix_)[j].begin();
-                ColumnIterator cEndIt = (*hessianMatrix_)[j].end();
+            std::cout << "Solve quadratic problem..." << std::endl;
 
-                for (; cIt!=cEndIt; ++cIt) {
-                    for (int k=0; k<blocksize; k++) {
-                        if (ignoreNodes_->operator[](j)[k]) {
-                            (*cIt)[k] = 0;
-                            if (j==cIt.index())
-                                (*cIt)[k][k] = 1;
-                        }
-                    }
-                }
+            innerSolver_->solve();
 
-                // Dirichlet value.  Zero, because we are solving defect problems
-                for (int k=0; k<blocksize; k++)
-                    if (ignoreNodes_->operator[](j)[k])
-                        rhs[j][k] = 0;
-            }
+            if (mgStep)
+                corr_global = mgStep->getSol();
 
+            // Translate solution back
+            if (mpiHelper.size()>1)
+                std::cout << "Translating solution back on root process ..." << std::endl;
+
+            // Recycle VectorCommunicator by using it for the solution vector
+            vectorComm.fillEntriesFromVector(corr_global);
+
+            //std::cout << "Correction: " << std::endl << corr_global << std::endl;
         }
 
-        mgStep->setProblem(*hessianMatrix_, corr, rhs);
-
-        trustRegionObstacles.back() = trustRegion.obstacles();
-        mgStep->obstacles_ = &trustRegionObstacles;
-
-        innerSolver_->preprocess();
-
-        // /////////////////////////////
-        //    Solve !
-        // /////////////////////////////
-
-        innerSolver_->solve();
-
-        if (mgStep)
-            corr = mgStep->getSol();
-
-        //std::cout << "Correction: " << std::endl << corr << std::endl;
+        // Distribute solution
+        corr = CorrectionType(vectorComm.createLocalSolution());
 
         if (instrumented_) {
 
@@ -386,10 +460,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
         if (corr.infinity_norm() < this->tolerance_) {
-            if (this->verbosity_ == NumProc::FULL)
+            if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
-            if (this->verbosity_ != NumProc::QUIET)
+            if (this->verbosity_ != NumProc::QUIET and rank==0)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
             break;
         }

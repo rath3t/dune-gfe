@@ -18,6 +18,7 @@
 #include <dune/fufem/functionspacebases/p3nodalbasis.hh>
 
 #include "geodesicfeassembler.hh"
+#include <dune/gfe/parallel/globalindex.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType, class TargetSpace>
@@ -36,6 +37,8 @@ class RiemannianTrustRegionSolver
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef std::vector<TargetSpace>                                               SolutionType;
+
+    typedef GlobalUniqueIndex<typename GridType::LeafGridView, gridDim> GUIndex;
 
 #ifdef THIRD_ORDER
     typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
@@ -91,6 +94,7 @@ public:
 
 protected:
 
+    std::unique_ptr<GUIndex> guIndex_;
 
     /** \brief The grid */
     const GridType* grid_;
