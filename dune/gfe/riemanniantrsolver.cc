@@ -95,10 +95,8 @@ setup(const GridType& grid,
 
     // Transfer all Dirichlet data to the master processor
     VectorCommunicator<GUIndex, Dune::BitSetVector<blocksize> > vectorComm(*guIndex_, 0);
-    vectorComm.transferVector(dirichletNodes);
     Dune::BitSetVector<blocksize>* globalDirichletNodes = NULL;
-    if (rank==0)
-        globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.copyIntoGlobalVector());
+    globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.reduceCopy(dirichletNodes));
 
     // Make pre and postsmoothers
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -346,14 +344,11 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             matrixComm.transferMatrix(*hessianMatrix_);
 
             // Transfer vector data
-            vectorComm.transferVector(rhs);
+            rhs_global = vectorComm.reduceAdd(rhs);
 
             if (rank ==0) {
               // Create global stiffnessMatrix
               stiffnessMatrix = matrixComm.createGlobalMatrix();
-
-              // Create global right hand side
-              rhs_global = vectorComm.createGlobalVector();
             }
 
             recomputeGradientHessian = false;
