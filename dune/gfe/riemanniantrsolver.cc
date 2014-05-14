@@ -418,7 +418,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
 
-        if (this->verbosity_ == NumProc::FULL) {
+        if (this->verbosity_ == NumProc::FULL and rank==0) {
             std::cout << "Absolute model decrease: " << modelDecrease
                       << ",  functional decrease: " << oldEnergy - energy << std::endl;
             std::cout << "Relative model decrease: " << relativeModelDecrease
@@ -427,17 +427,17 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         assert(modelDecrease >= 0);
 
-        if (energy >= oldEnergy) {
+        if (energy >= oldEnergy and rank==0) {
             if (this->verbosity_ == NumProc::FULL)
                 printf("Richtung ist keine Abstiegsrichtung!\n");
         }
 
         if (energy >= oldEnergy &&
             (std::abs(oldEnergy-energy)/energy < 1e-9 || relativeModelDecrease < 1e-9)) {
-            if (this->verbosity_ == NumProc::FULL)
+            if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
-            if (this->verbosity_ != NumProc::QUIET)
+            if (this->verbosity_ != NumProc::QUIET and rank==0)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
 
             x_ = newIterate;
@@ -475,7 +475,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             // Decrease the trust-region radius
             trustRegion.scale(0.5);
 
-            if (this->verbosity_ == NumProc::FULL)
+            if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
 
@@ -498,7 +498,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             fclose(fpIterate);
 
         }
-        std::cout << "iteration took " << totalTimer.elapsed() << " sec." << std::endl;
+
+        if (rank==0)
+            std::cout << "iteration took " << totalTimer.elapsed() << " sec." << std::endl;
     }
 
     // //////////////////////////////////////////////
