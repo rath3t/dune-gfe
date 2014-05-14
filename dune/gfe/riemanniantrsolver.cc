@@ -213,7 +213,14 @@ setup(const GridType& grid,
     if (rank==0)
     {
         hasObstacle_.resize(numLevels);
+
+#if defined THIRD_ORDER || defined SECOND_ORDER
+        // This does not work in parallel
         hasObstacle_.back().resize(basis.size(), true);
+#else
+        // This does not work for higher-order FE
+        hasObstacle_.back().resize(guIndex_->nGlobalEntity(), true);
+#endif
         // If there is more than one level use the transfer operators to determine the correct coarse level system sizes
         for (int i=0; i<hasObstacle_.size()-1; i++)
             hasObstacle_[i].resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_[i])->getMatrix().M(),true);
@@ -350,7 +357,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             }
 
             recomputeGradientHessian = false;
-            
+
         }
 
         if (rank==0)
