@@ -9,7 +9,7 @@
 
 template<typename GUIndex, typename VectorType>
 class VectorCommunicator {
-public:
+
   struct TransferVectorTuple {
     typedef typename VectorType::value_type EntryType;
 
@@ -20,15 +20,7 @@ public:
     TransferVectorTuple(const size_t& r, const EntryType& e) : row(r), entry(e) {}
   };
 
-public:
-  VectorCommunicator(const GUIndex& gi, const int& root)
-  : guIndex(gi), root_rank(root)
-  {
-    // Get number of vector entries on each process
-    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), guIndex.nOwnedLocalEntity());
-  }
-
-
+private:
   void transferVector(const VectorType& localVector) {
     // Create vector for transfer data
     std::vector<TransferVectorTuple> localVectorEntries;
@@ -51,7 +43,6 @@ public:
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
       globalVector[globalVectorEntries[k].row] += globalVectorEntries[k].entry;
 
-
     return globalVector;
   }
 
@@ -64,6 +55,25 @@ public:
     return globalVector;
   }
 
+public:
+  VectorCommunicator(const GUIndex& gi, const int& root)
+  : guIndex(gi), root_rank(root)
+  {
+    // Get number of vector entries on each process
+    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), guIndex.nOwnedLocalEntity());
+  }
+
+  VectorType reduceAdd(const VectorType& localVector)
+  {
+    transferVector(localVector);
+    return createGlobalVector();
+  }
+
+  VectorType reduceCopy(const VectorType& localVector)
+  {
+    transferVector(localVector);
+    return copyIntoGlobalVector();
+  }
 
   void fillEntriesFromVector(const VectorType& x_global) {
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
