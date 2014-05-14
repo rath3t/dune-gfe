@@ -55,6 +55,24 @@ private:
     return globalVector;
   }
 
+  VectorType createLocalSolution() {
+    const int localSize = localVectorEntriesSizes[guIndex.getGridView().comm().rank()];
+
+    // Create vector for transfer data
+    std::vector<TransferVectorTuple> localVectorEntries(localSize);
+
+    MPIFunctions::scatterv(guIndex.getGridView(), localVectorEntries, globalVectorEntries, localVectorEntriesSizes, root_rank);
+
+    // Create vector for local solution
+    VectorType x(localSize);
+
+    // And translate solution again
+    for (size_t k = 0; k < localVectorEntries.size(); ++k)
+      x[guIndex.localIndex(localVectorEntries[k].row)] = localVectorEntries[k].entry;
+
+    return x;
+  }
+
 public:
   VectorCommunicator(const GUIndex& gi, const int& root)
   : guIndex(gi), root_rank(root)
@@ -75,29 +93,12 @@ public:
     return copyIntoGlobalVector();
   }
 
-  void fillEntriesFromVector(const VectorType& x_global) {
+  VectorType scatter(const VectorType& global)
+  {
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
-      globalVectorEntries[k].entry = x_global[globalVectorEntries[k].row];
-  }
+      globalVectorEntries[k].entry = global[globalVectorEntries[k].row];
 
-
-  VectorType createLocalSolution() {
-    const int localSize = localVectorEntriesSizes[guIndex.getGridView().comm().rank()];
-
-    // Create vector for transfer data
-    std::vector<TransferVectorTuple> localVectorEntries(localSize);
-
-    MPIFunctions::scatterv(guIndex.getGridView(), localVectorEntries, globalVectorEntries, localVectorEntriesSizes, root_rank);
-
-    // Create vector for local solution
-    VectorType x(localSize);
-
-    // And translate solution again
-    for (size_t k = 0; k < localVectorEntries.size(); ++k)
-      x[guIndex.localIndex(localVectorEntries[k].row)] = localVectorEntries[k].entry;
-
-
-    return x;
+    return createLocalSolution();
   }
 
 private:

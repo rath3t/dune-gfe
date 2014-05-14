@@ -355,11 +355,11 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         }
 
+        CorrectionType corr_global(rhs_global.size());
+        corr_global = 0;
+
         if (rank==0)
         {
-            CorrectionType corr_global(rhs_global.size());
-            corr_global = 0;
-
             mgStep->setProblem(stiffnessMatrix, corr_global, rhs_global);
 
             trustRegionObstacles.back() = trustRegion.obstacles();
@@ -378,18 +378,14 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             if (mgStep)
                 corr_global = mgStep->getSol();
 
-            // Translate solution back
-            if (mpiHelper.size()>1)
-                std::cout << "Translating solution back on root process ..." << std::endl;
-
-            // Recycle VectorCommunicator by using it for the solution vector
-            vectorComm.fillEntriesFromVector(corr_global);
-
             //std::cout << "Correction: " << std::endl << corr_global << std::endl;
         }
 
         // Distribute solution
-        corr = CorrectionType(vectorComm.createLocalSolution());
+        if (mpiHelper.size()>1)
+            std::cout << "Transfer solution back to root process ..." << std::endl;
+
+        corr = vectorComm.scatter(corr_global);
 
         if (instrumented_) {
 
