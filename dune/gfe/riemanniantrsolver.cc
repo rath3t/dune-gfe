@@ -132,25 +132,14 @@ setup(const GridType& grid,
     assembler_->getNeighborsPerVertex(indices);
     indices.exportIdx(*hessianMatrix_);
 
-    // //////////////////////////////////////////////////////////
-    //   Create obstacles
-    // //////////////////////////////////////////////////////////
-
-    hasObstacle_.resize(numLevels);
-#if defined THIRD_ORDER || defined SECOND_ORDER
-    BasisType basis(grid_->leafGridView());
-    hasObstacle_.back().resize(basis.size(), true);
-
-    for (int i=0; i<hasObstacle_.size()-1; i++)
-        hasObstacle_[i].resize(grid_->size(i+1, gridDim),true);
-#else
-    for (size_t i=0; i<hasObstacle_.size(); i++)
-        hasObstacle_[i].resize(grid_->size(i, gridDim),true);
-#endif
-
     // ////////////////////////////////////
     //   Create the transfer operators
     // ////////////////////////////////////
+
+#if defined THIRD_ORDER || defined SECOND_ORDER
+    BasisType basis(grid_->leafGridView());
+#endif
+
     for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
 
@@ -179,6 +168,15 @@ setup(const GridType& grid,
         mmgStep->mgTransfer_[i] = newTransferOp;
     }
 #endif
+
+    // //////////////////////////////////////////////////////////
+    //   Create obstacles
+    // //////////////////////////////////////////////////////////
+
+    hasObstacle_.resize(numLevels);
+    hasObstacle_.back().resize(basis.size(), true);
+    for (int i=0; i<hasObstacle_.size()-1; i++)
+        hasObstacle_[i].resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_[i])->getMatrix().M(),true);
 }
 
 
