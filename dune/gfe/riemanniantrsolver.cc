@@ -174,7 +174,7 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////
 
     hasObstacle_.resize(numLevels);
-    hasObstacle_.back().resize(basis.size(), true);
+        hasObstacle_.back().resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_.back())->getMatrix().N(), true);
     for (int i=0; i<hasObstacle_.size()-1; i++)
         hasObstacle_[i].resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_[i])->getMatrix().M(),true);
 }
