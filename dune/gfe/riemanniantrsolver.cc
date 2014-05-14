@@ -382,7 +382,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         }
 
         // Distribute solution
-        if (mpiHelper.size()>1)
+        if (mpiHelper.size()>1 and rank==0)
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
         corr = vectorComm.scatter(corr_global);
