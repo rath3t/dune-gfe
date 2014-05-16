@@ -188,8 +188,7 @@ public:
   /**********************************************************************************************************************/
   GlobalUniqueIndex(const GridView& gridview)
     :       gridview_(gridview),
-	    uniqueEntityPartition_(gridview),
-	    size_(gridview.comm().size())
+	    uniqueEntityPartition_(gridview)
   {
     int rank = gridview.comm().rank();
     int size = gridview.comm().size();
@@ -214,16 +213,14 @@ public:
      *  for this; first, we gather the number of locally owned entities on the root process and, second, we
      *  broadcast the array to all processes where the respective offset can be calculated. */
 
-    int offset[size];
-
-    for(int ii=0;ii<size;ii++)
-	offset[ii]=0;
+    std::vector<int> offset(size);
+    std::fill(offset.begin(), offset.end(), 0);
 
     /** gather number of locally owned entities on root process */
-    collective.template gather<int>(&nLocalEntity_,offset,1,0);
+    collective.template gather<int>(&nLocalEntity_,offset.data(),1,0);
 
     /** broadcast the array containing the number of locally owned entities to all processes */
-    collective.template broadcast<int>(offset,size_,0);
+    collective.template broadcast<int>(offset.data(),size,0);
 
     indexOffset_.clear();
     indexOffset_.resize(size,0);
