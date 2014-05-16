@@ -303,38 +303,6 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
             rhs *= -1;        // The right hand side is the _negative_ gradient
 
-            ////////////////////////////////////////////////////////////////////////
-            //   Modify matrix and right-hand side to account for Dirichlet values
-            ////////////////////////////////////////////////////////////////////////
-
-            typedef typename MatrixType::row_type::Iterator ColumnIterator;
-
-            for (size_t j=0; j<ignoreNodes_->size(); j++) {
-
-                if (ignoreNodes_->operator[](j).count() > 0) {
-
-                    // make matrix row an identity row
-                    ColumnIterator cIt    = (*hessianMatrix_)[j].begin();
-                    ColumnIterator cEndIt = (*hessianMatrix_)[j].end();
-
-                    for (; cIt!=cEndIt; ++cIt) {
-                        for (int k=0; k<blocksize; k++) {
-                            if (ignoreNodes_->operator[](j)[k]) {
-                                (*cIt)[k] = 0;
-                                if (j==cIt.index())
-                                    (*cIt)[k][k] = 1;
-                            }
-                        }
-                    }
-
-                    // Dirichlet value.  Zero, because we are solving defect problems
-                    for (int k=0; k<blocksize; k++)
-                        if (ignoreNodes_->operator[](j)[k])
-                             rhs[j][k] = 0;
-                }
-
-            }
-
             if (this->verbosity_ == Solver::FULL)
               std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
 
