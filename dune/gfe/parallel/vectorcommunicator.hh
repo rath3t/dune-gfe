@@ -13,11 +13,13 @@ class VectorCommunicator {
   struct TransferVectorTuple {
     typedef typename VectorType::value_type EntryType;
 
-    size_t row;
-    EntryType entry;
+    size_t globalIndex_;
+    EntryType value_;
 
     TransferVectorTuple() {}
-    TransferVectorTuple(const size_t& r, const EntryType& e) : row(r), entry(e) {}
+    TransferVectorTuple(const size_t& r, const EntryType& e)
+    : globalIndex_(r),
+      value_(e) {}
   };
 
 private:
@@ -52,7 +54,7 @@ public:
     VectorType globalVector(guIndex.nGlobalEntity());
 
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
-      globalVector[globalVectorEntries[k].row] += globalVectorEntries[k].entry;
+      globalVector[globalVectorEntries[k].globalIndex_] += globalVectorEntries[k].value_;
 
     return globalVector;
   }
@@ -64,7 +66,7 @@ public:
     VectorType globalVector(guIndex.nGlobalEntity());
 
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
-      globalVector[globalVectorEntries[k].row] = globalVectorEntries[k].entry;
+      globalVector[globalVectorEntries[k].globalIndex_] = globalVectorEntries[k].value_;
 
     return globalVector;
   }
@@ -72,7 +74,7 @@ public:
   VectorType scatter(const VectorType& global)
   {
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
-      globalVectorEntries[k].entry = global[globalVectorEntries[k].row];
+      globalVectorEntries[k].value_ = global[globalVectorEntries[k].globalIndex_];
 
     const int localSize = localVectorEntriesSizes[guIndex.getGridView().comm().rank()];
 
@@ -86,7 +88,7 @@ public:
 
     // And translate solution again
     for (size_t k = 0; k < localVectorEntries.size(); ++k)
-      x[guIndex.localIndex(localVectorEntries[k].row)] = localVectorEntries[k].entry;
+      x[guIndex.localIndex(localVectorEntries[k].globalIndex_)] = localVectorEntries[k].value_;
 
     return x;
   }
