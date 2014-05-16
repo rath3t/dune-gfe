@@ -130,34 +130,22 @@ public:
 
 	// assign own rank to entities that I might have
 	for(Iterator it = gridview_.template begin<CODIM>();it!=gridview_.template end<CODIM>(); ++it)
-	{
-	  if ( (it->partitionType()==Dune::InteriorEntity) || (it->partitionType()==Dune::BorderEntity) )
-	  {
-		assignment_[gridview_.indexSet().template index(*it)] = rank_; // set to own rank
-	  }
-	  else
-	  {
-		assignment_[gridview_.indexSet().template index(*it)] = -1; // it is a ghost entity, I will not possibly own it.
-	  }
-	}
+          assignment_[gridview_.indexSet().template index(*it)]
+            = ( (it->partitionType()==Dune::InteriorEntity) || (it->partitionType()==Dune::BorderEntity) )
+            ? rank_  // set to own rank
+            : - 1;   // it is a ghost entity, I will not possibly own it.
 
-	/** exchange entity index through communication */
+        /** exchange entity index through communication */
 	MinimumExchange<IndexSet,std::vector<int> > dh(gridview_.indexSet(),assignment_);
 
 	gridview_.communicate(dh,Dune::All_All_Interface,Dune::ForwardCommunication);
 
 	/* convert vector of minimum ranks to assignment vector */
 	for(Iterator it = gridview_.template begin<CODIM>();it!=gridview_.template end<CODIM>(); ++it)
-	{
-	  if (assignment_[gridview_.indexSet().template index(*it)] == rank_)
-	  {
-		  assignment_[gridview_.indexSet().template index(*it)] = 1;
-	  }
-	  else
-	  {
-		  assignment_[gridview_.indexSet().template index(*it)] = 0;
-	  }
-	}
+        {
+          size_t idx = gridview_.indexSet().template index(*it);
+          assignment_[idx] = (assignment_[idx] == rank_) ? 1 : 0;
+        }
   }
 
   /** answer question if entity belongs to me, to this process */
@@ -173,7 +161,7 @@ public:
 //  }
 
   /** auxiliary routine that keeps the member of a vector if it belongs
-   *  to this process, otherwise it set set the vector's member to zero */
+   *  to this process, otherwise it sets the vector's member to zero */
   template<typename X>
   void keepOwner (X& x) const
   {
