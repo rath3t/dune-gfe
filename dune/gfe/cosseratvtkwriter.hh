@@ -6,6 +6,7 @@
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
+#include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 
 
@@ -186,6 +187,14 @@ public:
             vtkWriter.addVertexData(vtkDirector);
         }
 
+        // For easier visualization of wrinkles: add z-coordinate as scalar field
+        std::vector<double> zCoord(downsampledConfig.size());
+        for (size_t i=0; i<zCoord.size(); i++)
+          zCoord[i] = downsampledConfig[i].r[2];
+
+        vtkWriter.addVertexData(zCoord, "zCoord");
+
+        // Write the file to disk
         vtkWriter.write(filename);
 
     }
