@@ -21,9 +21,10 @@
 #include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/grid/io/file/amirameshreader.hh>
-#include <dune/grid/io/file/amirameshwriter.hh>
+#include <dune/grid/io/file/vtk.hh>
 
 #include <dune/fufem/boundarypatch.hh>
+#include <dune/fufem/functions/vtkbasisgridfunction.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
@@ -268,7 +269,8 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 
-    BlockVector<FieldVector<double,3> > xEmbedded(x.size());
+    typedef BlockVector<FieldVector<double,3> > EmbeddedVectorType;
+    EmbeddedVectorType xEmbedded(x.size());
     for (size_t i=0; i<x.size(); i++) {
 #ifdef UNITVECTOR2
         xEmbedded[i][0] = x[i].globalCoordinates()[0];
@@ -292,10 +294,13 @@ int main (int argc, char *argv[]) try
 #endif
     }
 
-    LeafAmiraMeshWriter<GridType> amiramesh;
-    amiramesh.addGrid(grid.leafGridView());
-    amiramesh.addVertexData(xEmbedded, grid.leafGridView());
-    amiramesh.write("resultGrid", 1);
+    VTKWriter<GridType::LeafGridView> vtkWriter(grid.leafGridView());
+    Dune::shared_ptr<VTKBasisGridFunction<FEBasis,EmbeddedVectorType> > vtkVectorField
+        = Dune::shared_ptr<VTKBasisGridFunction<FEBasis,EmbeddedVectorType> >
+               (new VTKBasisGridFunction<FEBasis,EmbeddedVectorType>(feBasis, xEmbedded, "orientation"));
+    vtkWriter.addVertexData(vtkVectorField);
+
+    vtkWriter.write("resultGrid");
 
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
