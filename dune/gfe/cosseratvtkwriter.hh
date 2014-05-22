@@ -136,6 +136,7 @@ public:
                       const std::vector<RigidBodyMotion<double,3> >& configuration,
                       const std::string& filename)
     {
+#if defined SECOND_ORDER || defined THIRD_ORDER  // No special handling: downsample to first order
         typedef typename GridType::LeafGridView GridView;
 
         const GridType& grid = basis.getGridView().grid();
@@ -197,6 +198,57 @@ public:
         // Write the file to disk
         vtkWriter.write(filename);
 
+#else   // FIRST_ORDER
+        typedef typename GridType::LeafGridView GridView;
+
+        const GridType& grid = basis.getGridView().grid();
+
+        //////////////////////////////////////////////////////////////////////////////////
+        //  Deform the grid according to the position information in 'configuration'
+        //////////////////////////////////////////////////////////////////////////////////
+
+        typedef Dune::GeometryGrid<GridType,DeformationFunction<GridView> > DeformedGridType;
+
+        DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafGridView(), configuration);
+
+        // stupid, can't instantiate deformedGrid with a const grid
+        DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
+
+        typedef P1NodalBasis<typename DeformedGridType::LeafGridView,double> DeformedP1Basis;
+        DeformedP1Basis deformedP1Basis(deformedGrid.leafGridView());
+
+        Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
+
+        // Make three vector fields containing the directors
+        typedef std::vector<Dune::FieldVector<double,3> > CoefficientType;
+
+        std::vector<CoefficientType> directors(3);
+
+        for (int i=0; i<3; i++) {
+
+            directors[i].resize(configuration.size());
+            for (size_t j=0; j<configuration.size(); j++)
+                directors[i][j] = configuration[j].q.director(i);
+
+            std::stringstream iAsAscii;
+            iAsAscii << i;
+
+            Dune::shared_ptr<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> > vtkDirector
+               = Dune::make_shared<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> >
+                                  (deformedP1Basis, directors[i], "director"+iAsAscii.str());
+            vtkWriter.addVertexData(vtkDirector);
+        }
+
+        // For easier visualization of wrinkles: add z-coordinate as scalar field
+        std::vector<double> zCoord(configuration.size());
+        for (size_t i=0; i<zCoord.size(); i++)
+          zCoord[i] = configuration[i].r[2];
+
+        vtkWriter.addVertexData(zCoord, "zCoord");
+
+        // Write the file to disk
+        vtkWriter.write(filename);
+#endif
     }
 
 };
