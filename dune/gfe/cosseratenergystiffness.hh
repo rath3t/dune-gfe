@@ -13,6 +13,7 @@
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/orthogonalmatrix.hh>
+#include <dune/gfe/cosseratstrain.hh>
 
 #define DONT_USE_CURL
 
@@ -149,7 +150,7 @@ public:
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the first equation of (4.4) in Neff's paper
      */
-    RT quadraticMembraneEnergy(const Dune::FieldMatrix<field_type,3,3>& U) const
+    RT quadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
     {
         Dune::FieldMatrix<field_type,3,3> UMinus1 = U;
         for (int i=0; i<dim; i++)
@@ -163,7 +164,7 @@ public:
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the second equation of (4.4) in Neff's paper
      */
-    RT longQuadraticMembraneEnergy(const Dune::FieldMatrix<field_type,3,3>& U) const
+    RT longQuadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
     {
         RT result = 0;
 
@@ -171,7 +172,7 @@ public:
         Dune::FieldMatrix<field_type,dim-1,dim-1> sym2x2;
         for (int i=0; i<dim-1; i++)
             for (int j=0; j<dim-1; j++)
-                sym2x2[i][j] = 0.5 * (U[i][j] + U[j][i]) - (i==j);
+                sym2x2[i][j] = 0.5 * (U.matrix()[i][j] + U.matrix()[j][i]) - (i==j);
 
         result += mu_ * sym2x2.frobenius_norm2();
 
@@ -179,13 +180,13 @@ public:
         Dune::FieldMatrix<field_type,dim-1,dim-1> skew2x2;
         for (int i=0; i<dim-1; i++)
             for (int j=0; j<dim-1; j++)
-                skew2x2[i][j] = 0.5 * (U[i][j] - U[j][i]);
+                skew2x2[i][j] = 0.5 * (U.matrix()[i][j] - U.matrix()[j][i]);
 
         result += mu_c_ * skew2x2.frobenius_norm2();
 
 
         // classical transverse shear energy
-        result += kappa_ * (mu_ + mu_c_)/2 * (U[2][0]*U[2][0] + U[2][1]*U[2][1]);
+        result += kappa_ * (mu_ + mu_c_)/2 * (U.matrix()[2][0]*U.matrix()[2][0] + U.matrix()[2][1]*U.matrix()[2][1]);
 
         // elongational stretch energy
         result += mu_*lambda_ / (2*mu_ + lambda_) * traceSquared(sym2x2);
@@ -195,9 +196,9 @@ public:
 
     /** \brief Energy for large-deformation problems (private communication by Patrizio Neff)
      */
-    RT nonquadraticMembraneEnergy(const Dune::FieldMatrix<field_type,3,3>& U) const
+    RT nonquadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
     {
-        Dune::FieldMatrix<field_type,3,3> UMinus1 = U;
+        Dune::FieldMatrix<field_type,3,3> UMinus1 = U.matrix();
         for (int i=0; i<dim; i++)
             UMinus1[i][i] -= 1;
 
@@ -312,29 +313,7 @@ energy(const Entity& element,
         Dune::FieldMatrix<field_type,dim,dim> R;
         value.q.matrix(R);
 
-        /* Compute F, the deformation gradient.
-           In the continuum case this is
-           \f$ \hat{F} = \nabla m  \f$
-           In the case of a shell it is
-          \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
-        */
-        Dune::FieldMatrix<field_type,dim,dim> F;
-        for (int i=0; i<dim; i++)
-            for (int j=0; j<gridDim; j++)
-                F[i][j] = derivative[i][j];
-
-        for (int i=0; i<dim; i++)
-            for (int j=gridDim; j<dim; j++)
-                F[i][j] = R[i][j];
-
-        // U = R^T F
-        Dune::FieldMatrix<field_type,dim,dim> U;
-        for (int i=0; i<dim; i++)
-            for (int j=0; j<dim; j++) {
-                U[i][j] = 0;
-                for (int k=0; k<dim; k++)
-                    U[i][j] += R[k][i] * F[k][j];
-            }
+        Dune::GFE::CosseratStrain<field_type,dim,gridDim> U(derivative,R);
 
         //////////////////////////////////////////////////////////
         //  Compute the derivative of the rotation
@@ -347,7 +326,7 @@ energy(const Entity& element,
         // Add the local energy density
         if (gridDim==2) {
 #ifdef QUADRATIC_MEMBRANE_ENERGY
-            //energy += weight * thickness_ * quadraticMembraneEnergy(U);
+            //energy += weight * thickness_ * quadraticMembraneEnergy(U.matrix());
             energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
 #else
             energy += weight * thickness_ * nonquadraticMembraneEnergy(U);
