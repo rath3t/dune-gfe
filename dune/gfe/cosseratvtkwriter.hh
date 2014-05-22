@@ -14,7 +14,7 @@
 template <class GridType>
 class CosseratVTKWriter
 {
-    
+
     static const int dim = GridType::dimension;
 
     /** \brief Encapsulates the grid deformation for the GeometryGrid class */
@@ -26,7 +26,7 @@ class CosseratVTKWriter
         typedef Dune :: DiscreteCoordFunction< double, 3, This > Base;
 
         static const int dim = HostGridView::dimension;
-    
+
     public:
 
         DeformationFunction(const HostGridView& gridView,
@@ -83,7 +83,7 @@ class CosseratVTKWriter
       for (size_t i=0; i<v2.size(); i++)
         v2[i] = RigidBodyMotion<double,3>(v2Embedded[i]);
     }
-    
+
 public:
 
     /** \brief Write a Cosserat configuration given as vertex data
@@ -94,9 +94,9 @@ public:
     {
 
         typedef Dune::GeometryGrid<GridType,DeformationFunction<typename GridType::LeafGridView> > DeformedGridType;
-    
+
         DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafGridView(), configuration);
-    
+
         // stupid, can't instantiate deformedGrid with a const grid
         DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
 
@@ -104,30 +104,30 @@ public:
         P1Basis p1Basis(deformedGrid.leafGridView());
 
         Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
-    
+
         // Make three vector fields containing the directors
         typedef std::vector<Dune::FieldVector<double,3> > CoefficientType;
-        
+
         std::vector<CoefficientType> directors(3);
-        
+
         for (int i=0; i<3; i++) {
-     
+
             directors[i].resize(configuration.size());
             for (size_t j=0; j<configuration.size(); j++)
                 directors[i][j] = configuration[j].q.director(i);
-        
+
             std::stringstream iAsAscii;
             iAsAscii << i;
-        
+
             Dune::shared_ptr<VTKBasisGridFunction<P1Basis,CoefficientType> > vtkDirector
                = Dune::make_shared<VTKBasisGridFunction<P1Basis,CoefficientType> >
                                   (p1Basis, directors[i], "director"+iAsAscii.str());
             vtkWriter.addVertexData(vtkDirector);
         }
-        
+
         vtkWriter.write(filename);
-    
-    }    
+
+    }
 
     /** \brief Write a configuration given with respect to a scalar function space basis
      */
