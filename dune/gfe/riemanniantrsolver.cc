@@ -105,10 +105,7 @@ setup(const GridType& grid,
     MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>;
 
     mmgStep->setMGType(mu, nu1, nu2);
-    if (mpiHelper.size()==1)
-        mmgStep->ignoreNodes_       = &dirichletNodes;
-    else
-        mmgStep->ignoreNodes_ = globalDirichletNodes;
+    mmgStep->ignoreNodes_ = globalDirichletNodes;
     mmgStep->basesolver_        = baseSolver;
     mmgStep->setSmoother(presmoother, postsmoother);
     mmgStep->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType>();
