@@ -28,9 +28,8 @@ private:
     std::vector<TransferVectorTuple> localVectorEntries;
 
     // Translate vector entries
-    const auto& gridView = guIndex.getGridView();
-    for (auto it = gridView.template begin<2>(); it != gridView.template end<2>(); ++ it)
-        localVectorEntries.push_back(TransferVectorTuple(guIndex.globalIndex(*it), localVector[guIndex.localIndex(*it)]));
+    for (int k=0; k<localVector.size(); k++)
+        localVectorEntries.push_back(TransferVectorTuple(guIndex.globalIndex(k), localVector[k]));
 
     // Get number of vector entries on each process
     localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), localVectorEntries.size());
@@ -89,7 +88,7 @@ public:
 
     // And translate solution again
     for (size_t k = 0; k < localVectorEntries.size(); ++k)
-      x[guIndex.localIndex(localVectorEntries[k].globalIndex_)] = localVectorEntries[k].value_;
+      x[k] = localVectorEntries[k].value_;
 
     return x;
   }
