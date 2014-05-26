@@ -38,7 +38,11 @@ class RiemannianTrustRegionSolver
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef std::vector<TargetSpace>                                               SolutionType;
 
+#ifdef SECOND_ORDER
+    typedef Dune::GlobalP2Mapper<typename GridType::LeafGridView> GUIndex;
+#else
     typedef GlobalUniqueIndex<typename GridType::LeafGridView, gridDim> GUIndex;
+#endif
 
 #ifdef THIRD_ORDER
     typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
