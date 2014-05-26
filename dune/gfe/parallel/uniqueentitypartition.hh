@@ -165,23 +165,6 @@ public:
 	return(assignment_[gridview_.indexSet().template index(entity)]);
   }
 
-//  /** answer question if entity belongs to me, to this process */
-//  bool owner (size_t index) const
-//  {
-//	return(assignment_[index]);
-//  }
-
-  /** auxiliary routine that keeps the member of a vector if it belongs
-   *  to this process, otherwise it sets the vector's member to zero */
-  template<typename X>
-  void keepOwner (X& x) const
-  {
-	for (size_t i=0; i<x.size(); ++i)
-	{
-		x[i] *= assignment_[i];
-	}
-  }
-
 private:
   /** declare private data members */
   const GridView& gridview_;
