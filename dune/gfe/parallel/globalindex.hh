@@ -73,7 +73,7 @@ private:
 
   typedef typename GridView::Grid::GlobalIdSet GlobalIdSet;
   typedef typename GridView::Grid::GlobalIdSet::IdType IdType;
-  typedef typename GridView::Traits::template Codim<CODIM>::Iterator Iterator;
+  typedef typename GridView::Traits::template Codim<0>::Iterator Iterator;
   typedef typename GridView::Traits::template Codim<CODIM>::Entity Entity;
 
 
@@ -196,9 +196,7 @@ public:
     nLocalEntity_=0;
     nGlobalEntity_=0;
 
-    for(Iterator iter = gridview_.template begin<CODIM>();iter!=gridview_.template end<CODIM>(); ++iter)
-	if(uniqueEntityPartition_.owner((*iter)) == true)
-	    ++nLocalEntity_;
+    nLocalEntity_ = uniqueEntityPartition_.numOwners();
 
 
     /** compute the global, non-redundant number of entities, i.e. the number of entities in the set
@@ -255,26 +253,40 @@ public:
 
     int globalcontrib=0;    /** initialize contribution for the global index */
 
-    for(Iterator iter = gridview_.template begin<CODIM>();iter!=gridview_.template end<CODIM>(); ++iter)
+    std::vector<bool> firstTime(gridview_.size(CODIM));
+    std::fill(firstTime.begin(), firstTime.end(), true);
+
+    for(Iterator iter = gridview_.template begin<0>();iter!=gridview_.template end<0>(); ++iter)
+    {
+      for (size_t i=0; i<iter->template count<CODIM>(); i++)
       {
-	IdType id=globalIdSet.id(*iter);                 /** retrieve the entity's id */
+        IdType id=globalIdSet.subId(*iter,i,CODIM);                 /** retrieve the entity's id */
 
-	if(uniqueEntityPartition_.owner(*iter) == true)  /** if the entity is owned by the process, go ahead with computing the global index */
-	  {
-	    const int gindex = myoffset + globalcontrib;    /** compute global index */
-	    globalIndex.insert(std::make_pair(id,gindex)); /** insert pair (key, dataum) into the map */
+        int idx = gridview_.indexSet().subIndex(*iter,i,CODIM);
 
-	    const int lindex = indexSet.index(*iter);
-	    localGlobalMap_[lindex] = gindex;
-	    globalLocalMap_[gindex] = lindex;
+        if (! firstTime[idx] )
+          continue;
 
-	    globalcontrib++;                                /** increment contribution to global index */
-	  }
-	else /** if entity is not owned, insert -1 to signal not yet calculated global index */
-	  {
-	    globalIndex.insert(std::make_pair(id,-1));
-	  }
+        firstTime[idx] = false;
+
+        if(uniqueEntityPartition_.owner(idx) == true)  /** if the entity is owned by the process, go ahead with computing the global index */
+        {
+          const int gindex = myoffset + globalcontrib;    /** compute global index */
+          globalIndex.insert(std::make_pair(id,gindex)); /** insert pair (key, value) into the map */
+
+          const int lindex = idx;
+          localGlobalMap_[lindex] = gindex;
+          globalLocalMap_[gindex] = lindex;
+
+          globalcontrib++;                                /** increment contribution to global index */
+        }
+        else /** if entity is not owned, insert -1 to signal not yet calculated global index */
+        {
+          globalIndex.insert(std::make_pair(id,-1));
+        }
       }
+
+    }
 
     /** 2nd stage of global index calculation: communicate global index for non-owned entities */
 

@@ -149,6 +149,17 @@ public:
   }
 
   /** answer question if entity belongs to me, to this process */
+  bool owner(size_t i)
+  {
+    return assignment_[i];
+  }
+
+  size_t numOwners() const
+  {
+    return std::accumulate(assignment_.begin(), assignment_.end(), 0);
+  }
+
+  /** answer question if entity belongs to me, to this process */
   bool owner(const Entity& entity)
   {
 	return(assignment_[gridview_.indexSet().template index(entity)]);
