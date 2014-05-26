@@ -46,10 +46,7 @@ setup(const GridType& grid,
          double baseTolerance,
          bool instrumented)
 {
-    int argc = 0;
-    char** argv;
-    Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
-    int rank = mpiHelper.rank();
+    int rank = grid.comm().rank();
 
     grid_                     = &grid;
     assembler_                = assembler;
