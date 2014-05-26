@@ -167,12 +167,34 @@ setup(const GridType& grid,
 
         PKtoP1MGTransfer<CorrectionType>* topTransferOp = new PKtoP1MGTransfer<CorrectionType>;
         topTransferOp->setup(basis,p1Basis);
-        mmgStep->mgTransfer_.back() = topTransferOp;
+
+        // If we are on more than 1 processors, join all local transfer matrices on rank 0,
+        // and construct a single global transfer operator there.
+        typedef GlobalUniqueIndex<typename GridType::LeafGridView, gridDim> LeafP1GUIndex;
+        LeafP1GUIndex p1Index(grid_->leafGridView());
+
+        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
+        MatrixCommunicator<GUIndex, TransferOperatorType, LeafP1GUIndex> matrixComm(*guIndex_, p1Index, 0);
+
+        mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>
+           (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix())));
 
         for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++){
-            TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
-            newTransferOp->setup(*grid_,i+1,i+2);
-            mmgStep->mgTransfer_[i] = newTransferOp;
+          // Construct the local multigrid transfer matrix
+          TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
+          newTransferOp->setup(*grid_,i+1,i+2);
+
+          // If we are on more than 1 processors, join all local transfer matrices on rank 0,
+          // and construct a single global transfer operator there.
+          typedef GlobalUniqueIndex<typename GridType::LevelGridView, gridDim> LevelGUIndex;
+          LevelGUIndex fineGUIndex(grid_->levelGridView(i+2));
+          LevelGUIndex coarseGUIndex(grid_->levelGridView(i+1));
+
+          typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
+          MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
+
+          mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
+             (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix())));
         }
 
     }
@@ -206,14 +228,8 @@ setup(const GridType& grid,
     if (rank==0)
     {
         hasObstacle_.resize(numLevels);
-
-#if defined THIRD_ORDER || defined SECOND_ORDER
-        // This does not work in parallel
-        hasObstacle_.back().resize(basis.size(), true);
-#else
-        // This does not work for higher-order FE
         hasObstacle_.back().resize(guIndex_->nGlobalEntity(), true);
-#endif
+
         // If there is more than one level use the transfer operators to determine the correct coarse level system sizes
         for (int i=0; i<hasObstacle_.size()-1; i++)
             hasObstacle_[i].resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_[i])->getMatrix().M(),true);
