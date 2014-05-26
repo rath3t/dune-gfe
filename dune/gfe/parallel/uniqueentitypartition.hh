@@ -129,11 +129,14 @@ public:
 	typedef typename GridView::IndexSet IndexSet;
 
 	// assign own rank to entities that I might have
-	for(Iterator it = gridview_.template begin<CODIM>();it!=gridview_.template end<CODIM>(); ++it)
-          assignment_[gridview_.indexSet().template index(*it)]
-            = ( (it->partitionType()==Dune::InteriorEntity) || (it->partitionType()==Dune::BorderEntity) )
-            ? rank_  // set to own rank
-            : - 1;   // it is a ghost entity, I will not possibly own it.
+        for(auto it = gridview_.template begin<0>();it!=gridview_.template end<0>(); ++it)
+          for (int i=0; i<it->template count<CODIM>(); i++)
+          {
+            assignment_[gridview_.indexSet().template subIndex(*it,i,CODIM)]
+              = ( (it->template subEntity<CODIM>(i)->partitionType()==Dune::InteriorEntity) || (it->template subEntity<CODIM>(i)->partitionType()==Dune::BorderEntity) )
+              ? rank_  // set to own rank
+              : - 1;   // it is a ghost entity, I will not possibly own it.
+          }
 
         /** exchange entity index through communication */
 	MinimumExchange<IndexSet,std::vector<int> > dh(gridview_.indexSet(),assignment_);
@@ -141,11 +144,8 @@ public:
 	gridview_.communicate(dh,Dune::All_All_Interface,Dune::ForwardCommunication);
 
 	/* convert vector of minimum ranks to assignment vector */
-	for(Iterator it = gridview_.template begin<CODIM>();it!=gridview_.template end<CODIM>(); ++it)
-        {
-          size_t idx = gridview_.indexSet().template index(*it);
-          assignment_[idx] = (assignment_[idx] == rank_) ? 1 : 0;
-        }
+        for (size_t i=0; i<assignment_.size(); i++)
+          assignment_[i] = (assignment_[i] == rank_) ? 1 : 0;
   }
 
   /** answer question if entity belongs to me, to this process */
