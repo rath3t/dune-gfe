@@ -41,6 +41,13 @@ public:
     PKtoP1MGTransfer()
     {}
 
+    /** \brief Constructor with a given transfer matrix
+     */
+    PKtoP1MGTransfer(std::shared_ptr<TransferOperatorType> matrix)
+    : TruncatedCompressedMGTransfer<VectorType,BitVectorType,MatrixType>(matrix)
+    {}
+
+
     template <class Basis, class GridView>
     void setup(const Basis& fineBasis,
                const P1NodalBasis<GridView>& p1Basis)
