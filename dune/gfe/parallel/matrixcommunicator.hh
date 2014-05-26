@@ -9,7 +9,7 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
-template<typename GUIndex, typename MatrixType>
+template<typename GUIndex, typename MatrixType, typename ColGUIndex=GUIndex>
 class MatrixCommunicator {
 
   struct TransferMatrixTuple {
@@ -51,7 +51,7 @@ public:
     root_rank(root)
   {}
 
-  MatrixCommunicator(const GUIndex& rowIndex, const GUIndex& colIndex, const int& root)
+  MatrixCommunicator(const GUIndex& rowIndex, const ColGUIndex& colIndex, const int& root)
   : guIndex1_(rowIndex),
     guIndex2_(colIndex),
     root_rank(root)
@@ -109,7 +109,7 @@ public:
 
 private:
   const GUIndex& guIndex1_;
-  const GUIndex& guIndex2_;
+  const ColGUIndex& guIndex2_;
   int root_rank;
 
   std::vector<TransferMatrixTuple> globalMatrixEntries;
