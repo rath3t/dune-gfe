@@ -118,12 +118,16 @@ setup(const GridType& grid,
 
     LaplaceAssembler<GridType, typename BasisType::LocalFiniteElement, typename BasisType::LocalFiniteElement> laplaceStiffness;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
-    ScalarMatrixType* A = new ScalarMatrixType;
+    ScalarMatrixType localA;
 
-    operatorAssembler.assemble(laplaceStiffness, *A);
+    operatorAssembler.assemble(laplaceStiffness, localA);
 
     if (h1SemiNorm_)
         delete h1SemiNorm_;
+
+
+    MatrixCommunicator<GUIndex, ScalarMatrixType> matrixComm(*guIndex_, 0);
+    ScalarMatrixType* A = new ScalarMatrixType(matrixComm.reduceAdd(localA));
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
 
