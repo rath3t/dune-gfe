@@ -112,11 +112,11 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> P1Basis;
-    P1Basis p1Basis(grid.leafGridView());
-    OperatorAssembler<P1Basis,P1Basis> operatorAssembler(p1Basis, p1Basis);
 
-    LaplaceAssembler<GridType, typename P1Basis::LocalFiniteElement, typename P1Basis::LocalFiniteElement> laplaceStiffness;
+    BasisType basis(grid.leafGridView());
+    OperatorAssembler<BasisType,BasisType> operatorAssembler(basis, basis);
+
+    LaplaceAssembler<GridType, typename BasisType::LocalFiniteElement, typename BasisType::LocalFiniteElement> laplaceStiffness;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
     ScalarMatrixType* A = new ScalarMatrixType;
 
@@ -150,8 +150,6 @@ setup(const GridType& grid,
     // ////////////////////////////////////
     //   Create the transfer operators
     // ////////////////////////////////////
-
-    BasisType basis(grid_->leafGridView());
 
     for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
