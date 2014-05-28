@@ -234,6 +234,9 @@ int main (int argc, char *argv[]) try
 
     grid->loadBalance();
 
+    if (mpiHelper.rank()==0)
+      std::cout << "There are " << grid->leafGridView().comm().size() << " processes" << std::endl;
+
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
@@ -283,7 +286,8 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannNodes);
 
-    std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
+    if (mpiHelper.rank()==0)
+      std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
 
     BitSetVector<1> dirichletNodes(feBasis.size(), false);
@@ -318,7 +322,8 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<numHomotopySteps; i++) {
 
         double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
-        std::cout << "Homotopy step: " << i << ",    parameter: " << homotopyParameter << std::endl;
+        if (mpiHelper.rank()==0)
+            std::cout << "Homotopy step: " << i << ",    parameter: " << homotopyParameter << std::endl;
 
 
     // ////////////////////////////////////////////////////////////
@@ -331,8 +336,11 @@ int main (int argc, char *argv[]) try
         neumannFunction = make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,3> >("neumannValues"),
                                                        homotopyParameter);
 
-    std::cout << "Material parameters:" << std::endl;
-    materialParameters.report();
+
+        if (mpiHelper.rank() == 0) {
+            std::cout << "Material parameters:" << std::endl;
+            materialParameters.report();
+        }
 
     // Assembler using ADOL-C
     CosseratEnergyLocalStiffness<GridView,
@@ -415,9 +423,12 @@ int main (int argc, char *argv[]) try
             averageDef += x[i].r;
     averageDef /= neumannNodes.count();
 
+    if (mpiHelper.rank()==0)
+    {
     std::cout << "mu_c = " << parameterSet.get<double>("materialParameters.mu_c") << "  "
               << "kappa = " << parameterSet.get<double>("materialParameters.kappa") << "  "
               << numLevels << " levels,  average deflection: " << averageDef << std::endl;
+    }
 
     // //////////////////////////////
  } catch (Exception e) {
