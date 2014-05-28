@@ -65,15 +65,15 @@ public:
 };
 
 
-#if 1
 // Dirichlet boundary data for the shear/wrinkling example
-class DirichletValues
+class WrinklingDirichletValues
 : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
 {
+  FieldVector<double,2> upper_;
   double homotopy_;
 public:
-  DirichletValues(double homotopy)
-  : homotopy_(homotopy)
+  WrinklingDirichletValues(FieldVector<double,2> upper, double homotopy)
+  : upper_(upper), homotopy_(homotopy)
   {}
 
   void evaluate(const FieldVector<double,dim>& in, FieldVector<double,3>& out) const
@@ -83,22 +83,28 @@ public:
       out[i] = in[i];
 
     //     if (out[1] > 1-1e-3)
-    if (out[1] > 0.128-1e-4)
+    if (out[1] > upper_[1]-1e-4)
       out[0] += 0.003*homotopy_;
   }
 };
-#endif
-#if 0
-// Dirichlet boundary data for the 'twisted-strip' example
-void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& out,
-                     double homotopy
-)
-{
-    if (not vIt->geometry().corner(0)[0] > upper[0]-1e-3)
-        return;
 
-    double angle = 8*M_PI;
-    angle *= homotopy;
+
+// Dirichlet boundary data for the 'twisted-strip' example
+class TwistedStripDeformationDirichletValues
+: public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
+{
+  FieldVector<double,2> upper_;
+  double homotopy_;
+public:
+
+  TwistedStripDeformationDirichletValues(FieldVector<double,2> upper, double homotopy)
+  : upper_(upper), homotopy_(homotopy)
+  {}
+
+  void evaluate(const FieldVector<double,dim>& in, FieldVector<double,3>& out) const
+  {
+    double angle = 0.5*M_PI * in[0]/upper_[0];
+    angle *= homotopy_;
 
     // center of rotation
     FieldVector<double,3> center(0);
@@ -119,8 +125,38 @@ void dirichletValues(const FieldVector<double,dim>& in, FieldVector<double,3>& o
     rotation.mv(inEmbedded, out);
 
     out += center;
-}
-#endif
+  }
+};
+
+// Dirichlet boundary data for the 'twisted-strip' example
+class TwistedStripOrientationDirichletValues
+: public Dune::VirtualFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> >
+{
+  FieldVector<double,2> upper_;
+  double homotopy_;
+public:
+
+  TwistedStripOrientationDirichletValues(FieldVector<double,2> upper, double homotopy)
+  : upper_(upper), homotopy_(homotopy)
+  {}
+
+  void evaluate(const FieldVector<double,dim>& in, FieldMatrix<double,3,3>& out) const
+  {
+    double angle = 0.5*M_PI * in[0]/upper_[0];
+    angle *= homotopy_;
+
+    // center of rotation
+    FieldMatrix<double,3,3> rotation(0);
+    rotation[0][0] = 1;
+    rotation[1][1] =  std::cos(angle);
+    rotation[1][2] = -std::sin(angle);
+    rotation[2][1] =  std::sin(angle);
+    rotation[2][2] =  std::cos(angle);
+
+    out = rotation;
+  }
+};
+
 
 /** \brief A constant vector-valued function, for simple Neumann boundary values */
 struct NeumannFunction
@@ -228,11 +264,11 @@ int main (int argc, char *argv[]) try
         if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
             neumannNodes[indexSet.index(*vIt)] = true;
 #endif
-#if 1   // Boundary conditions for the shearing/wrinkling example
+#if 0   // Boundary conditions for the shearing/wrinkling example
         if (vIt->geometry().corner(0)[1] < 1e-4  or vIt->geometry().corner(0)[1] > upper[1]-1e-4 )
           dirichletVertices[indexSet.index(*vIt)] = true;
 #endif
-#if 0   // Boundary conditions for the twisted-strip example
+#if 1   // Boundary conditions for the twisted-strip example
         if (vIt->geometry().corner(0)[0] < lower[0]+1e-3  or vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
           dirichletVertices[indexSet.index(*vIt)] = true;
 #endif
@@ -333,13 +369,21 @@ int main (int argc, char *argv[]) try
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
 
-        DirichletValues dirichletValues(homotopyParameter);
-        std::vector<FieldVector<double,3> > dV;
-        Functions::interpolate(feBasis, dV, dirichletValues, dirichletDofs);
+        TwistedStripDeformationDirichletValues deformationDirichletValues(upper,homotopyParameter);
+        std::vector<FieldVector<double,3> > ddV;
+        Functions::interpolate(feBasis, ddV, deformationDirichletValues, dirichletDofs);
+
+
+        TwistedStripOrientationDirichletValues orientationDirichletValues(upper,homotopyParameter);
+        std::vector<FieldMatrix<double,3,3> > dOV;
+        Functions::interpolate(feBasis, dOV, orientationDirichletValues, dirichletDofs);
 
         for (size_t j=0; j<x.size(); j++)
-          if (dirichletDofs[j][0])
-            x[j].r = dV[j];
+          if (dirichletNodes[j][0])
+          {
+            x[j].r = ddV[j];
+            x[j].q.set(dOV[j]);
+          }
 
         // /////////////////////////////////////////////////////
         //   Solve!
