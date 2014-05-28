@@ -108,7 +108,7 @@ public:
 
     // center of rotation
     FieldVector<double,3> center(0);
-    center[1] = 0.5;
+    center[1] = upper_[1]/2.0;
 
     FieldMatrix<double,3,3> rotation(0);
     rotation[0][0] = 1;
