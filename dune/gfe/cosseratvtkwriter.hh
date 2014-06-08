@@ -202,7 +202,17 @@ public:
 
 #elif defined SECOND_ORDER  // Write as P2 space
 
-        std::ofstream outFile(filename + ".vtu");
+        std::stringstream fullfilename;
+
+        // Prepend rank and communicator size to the filename, if there are more than one process
+        if (gridView.comm().size() > 1)
+        {
+          fullfilename << 's' << std::setw(4) << std::setfill('0') << gridView.comm().size() << '-';
+          fullfilename << 'p' << std::setw(4) << std::setfill('0') << gridView.comm().rank() << '-';
+          fullfilename << filename;
+        }
+
+        std::ofstream outFile(fullfilename.str() + ".vtu");
 
         // Write header
         outFile << "<?xml version=\"1.0\"?>" << std::endl;
