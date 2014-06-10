@@ -3,6 +3,7 @@
 
 #include <dune/grid/geometrygrid.hh>
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
+#include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
@@ -82,6 +83,53 @@ class CosseratVTKWriter
       v2.resize(v2Embedded.size());
       for (size_t i=0; i<v2.size(); i++)
         v2[i] = RigidBodyMotion<double,3>(v2Embedded[i]);
+    }
+
+    /** \brief Extend filename to contain communicator rank and size
+     *
+     * Copied from dune-grid vtkwriter.hh
+     */
+    static std::string getParallelPieceName(const std::string& name,
+                                            const std::string& path,
+                                            int commRank, int commSize)
+    {
+      std::ostringstream s;
+      if(path.size() > 0) {
+        s << path;
+        if(path[path.size()-1] != '/')
+          s << '/';
+      }
+      s << 's' << std::setw(4) << std::setfill('0') << commSize << '-';
+      s << 'p' << std::setw(4) << std::setfill('0') << commRank << '-';
+      s << name;
+      if(GridType::dimension > 1)
+        s << ".vtu";
+      else
+        s << ".vtp";
+      return s.str();
+    }
+
+    /** \brief Extend filename to contain communicator rank and size
+     *
+     * Copied from dune-grid vtkwriter.hh
+     */
+    static std::string getParallelName(const std::string& name,
+                                       const std::string& path,
+                                       int commSize)
+    {
+      std::ostringstream s;
+      if(path.size() > 0) {
+        s << path;
+        if(path[path.size()-1] != '/')
+          s << '/';
+      }
+      s << 's' << std::setw(4) << std::setfill('0') << commSize << '-';
+      s << name;
+      if(GridType::dimension > 1)
+        s << ".pvtu";
+      else
+        s << ".pvtp";
+      return s.str();
     }
 
 public:
@@ -202,17 +250,40 @@ public:
 
 #elif defined SECOND_ORDER  // Write as P2 space
 
-        std::stringstream fullfilename;
+        std::string fullfilename = filename + ".vtu";
 
         // Prepend rank and communicator size to the filename, if there are more than one process
         if (gridView.comm().size() > 1)
+          fullfilename = getParallelPieceName(filename, "", gridView.comm().rank(), gridView.comm().size());
+
+        // Write the pvtu file that ties together the different parts
+        if (gridView.comm().size() > 1 && gridView.comm().rank()==0)
         {
-          fullfilename << 's' << std::setw(4) << std::setfill('0') << gridView.comm().size() << '-';
-          fullfilename << 'p' << std::setw(4) << std::setfill('0') << gridView.comm().rank() << '-';
-          fullfilename << filename;
+          std::ofstream pvtuOutFile(getParallelName(filename, "", gridView.comm().size()));
+          Dune::VTK::PVTUWriter writer(pvtuOutFile, Dune::VTK::unstructuredGrid);
+
+          writer.beginMain();
+
+          writer.beginPointData();
+          writer.addArray<float>("director0", 3);
+          writer.addArray<float>("director1", 3);
+          writer.addArray<float>("director2", 3);
+          writer.addArray<float>("zCoord", 1);
+          writer.endPointData();
+
+          // dump point coordinates
+          writer.beginPoints();
+          writer.addArray<float>("Coordinates", 3);
+          writer.endPoints();
+
+          for (int i=0; i<gridView.comm().size(); i++)
+          writer.addPiece(getParallelPieceName(filename, "", i, gridView.comm().size()));
+
+          // finish main section
+          writer.endMain();
         }
 
-        std::ofstream outFile(fullfilename.str() + ".vtu");
+        std::ofstream outFile(fullfilename);
 
         // Write header
         outFile << "<?xml version=\"1.0\"?>" << std::endl;
