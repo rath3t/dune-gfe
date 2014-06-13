@@ -214,22 +214,60 @@ assembleGradientAndHessian(const Entity& element,
     /////////////////////////////////////////////////////////////////
     // Compute Hessian
     /////////////////////////////////////////////////////////////////
-    double* rawHessian[nDoubles];
-    for(size_t i=0; i<nDoubles; i++)
-        rawHessian[i] = (double*)malloc((i+1)*sizeof(double));
-    hessian(1,nDoubles,xp.data(),rawHessian);
 
-    // Copy Hessian into Dune data type
-    Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize, embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
-    for(size_t i=0; i<nDoubles; i++) {
-      for (size_t j=0; j<nDoubles; j++) {
-        double value = (j<=i) ? rawHessian[i][j] : rawHessian[j][i];
-        embeddedHessian[i/embeddedBlocksize][j/embeddedBlocksize][i%embeddedBlocksize][j%embeddedBlocksize] = value;
+    // We compute the Hessian of the energy functional using the ADOL-C system.
+    // Since ADOL-C does not know about nonlinear spaces, what we get is actually
+    // the Hessian of a prolongation of the energy functional into the surrounding
+    // Euclidean space.  To obtain the Riemannian Hessian from this we apply the
+    // formula described in Absil, Mahoney, Trumpf, "An extrinsic look at the Riemannian Hessian".
+    // This formula consists of two steps:
+    // 1) Remove all entries of the Hessian pertaining to the normal space of the
+    //    manifold.  In the aforementioned paper this is done by projection onto the
+    //    tangent space.  Since we want a matrix that is really smaller (but full rank again),
+    //    we can achieve the same effect by multiplying the embedded Hessian from the left
+    //    and from the right by the matrix of orthonormal frames.
+    // 2) Add a correction involving the Weingarten map.
+    //
+    // This works, and is easy to implement using the ADOL-C "hessian" driver.
+    // However, here we implement a small shortcut.  Computing the embedded Hessian and
+    // multiplying one side by the orthonormal frame is the same as evaluating the Hessian
+    // (seen as an operator from R^n to R^n) in the directions of the vectors of the
+    // orthonormal frame.  By luck, ADOL-C can compute the evaluations of the Hessian in
+    // a given direction directly (in fact, this is also how the "hessian" driver works).
+    // Since there are less frame vectors than the dimension of the embedding space,
+    // this reinterpretation allows to reduce the number of calls to ADOL-C.
+    // In my Cosserat shell tests this reduced assembly time by about 10%.
+
+    std::vector<Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> > orthonormalFrame(nDofs);
+
+    for (size_t i=0; i<nDofs; i++)
+        orthonormalFrame[i] = localSolution[i].orthonormalFrame();
+
+    Dune::Matrix<Dune::FieldMatrix<double,blocksize, embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
+
+    std::vector<double> v(nDoubles);
+    std::vector<double> w(nDoubles);
+
+    std::fill(v.begin(), v.end(), 0.0);
+
+    for (int i=0; i<nDofs; i++)
+      for (int ii=0; ii<blocksize; ii++)
+      {
+        // Evaluate Hessian in the direction of each vector of the orthonormal frame
+        for (size_t k=0; k<embeddedBlocksize; k++)
+          v[i*embeddedBlocksize + k] = orthonormalFrame[i][ii][k];
+
+        int rc= 3;
+        MINDEC(rc, hess_vec(1, nDoubles, xp.data(), v.data(), w.data()));
+        if (rc < 0)
+          DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
+
+        for (int j=0; j<nDoubles; j++)
+          embeddedHessian[i][j/embeddedBlocksize][ii][j%embeddedBlocksize] = w[j];
+
+        // Make v the null vector again
+        std::fill(&v[i*embeddedBlocksize], &v[(i+1)*embeddedBlocksize], 0.0);
       }
-    }
-
-    for(size_t i=0; i<nDoubles; i++)
-        free(rawHessian[i]);
 
     // From this, compute the Hessian with respect to the manifold (which we assume here is embedded
     // isometrically in a Euclidean space.
@@ -241,11 +279,6 @@ assembleGradientAndHessian(const Entity& element,
 
     this->A_.setSize(nDofs,nDofs);
 
-    std::vector<Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> > orthonormalFrame(nDofs);
-
-    for (size_t i=0; i<nDofs; i++)
-        orthonormalFrame[i] = localSolution[i].orthonormalFrame();
-
     for (size_t col=0; col<nDofs; col++) {
 
         for (size_t subCol=0; subCol<blocksize; subCol++) {
@@ -253,16 +286,12 @@ assembleGradientAndHessian(const Entity& element,
             EmbeddedTangentVector z = orthonormalFrame[col][subCol];
 
             // P_x \partial^2 f z
-            std::vector<EmbeddedTangentVector> semiEmbeddedProduct(nDofs);
-
             for (size_t row=0; row<nDofs; row++) {
-                embeddedHessian[row][col].mv(z,semiEmbeddedProduct[row]);
-                //tmp1 = localSolution[row].projectOntoTangentSpace(tmp1);
-                TangentVector tmp2;
-                orthonormalFrame[row].mv(semiEmbeddedProduct[row],tmp2);
+                TangentVector semiEmbeddedProduct;
+                embeddedHessian[row][col].mv(z,semiEmbeddedProduct);
 
                 for (int subRow=0; subRow<blocksize; subRow++)
-                    this->A_[row][col][subRow][subCol] = tmp2[subRow];
+                    this->A_[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
             }
 
         }
