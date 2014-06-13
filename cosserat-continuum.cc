@@ -60,7 +60,7 @@ public:
     for (int i=0; i<dim; i++)
       y[i] = x[i];
 
-    y[2] = 0.002*std::cos(1e4*x[0]);
+    //y[2] = 0.002*std::cos(1e4*x[0]);
   }
 };
 
@@ -103,7 +103,7 @@ public:
 
   void evaluate(const FieldVector<double,dim>& in, FieldVector<double,3>& out) const
   {
-    double angle = 0.5*M_PI * in[0]/upper_[0];
+    double angle = 6*M_PI * in[0]/upper_[0];
     angle *= homotopy_;
 
     // center of rotation
@@ -142,7 +142,7 @@ public:
 
   void evaluate(const FieldVector<double,dim>& in, FieldMatrix<double,3,3>& out) const
   {
-    double angle = 0.5*M_PI * in[0]/upper_[0];
+    double angle = 6*M_PI * in[0]/upper_[0];
     angle *= homotopy_;
 
     // center of rotation
