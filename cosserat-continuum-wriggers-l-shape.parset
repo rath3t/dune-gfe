@@ -84,6 +84,14 @@ kappa = 1
 #  Boundary values
 #############################################
 
+###  Python predicate specifying all Dirichlet grid vertices
+# x is the vertex coordinate
+dirichletVerticesPredicate = "x[0] < 0.001"
+
+###  Python predicate specifying all Dirichlet grid vertices
+# x is the vertex coordinate
+neumannVerticesPredicate = "x[1] < -0.239"
+
 ###  Neumann values, if needed
 neumannValues =  -1e3 0 0
 

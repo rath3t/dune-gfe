@@ -230,7 +230,7 @@ int main (int argc, char *argv[]) try
 
         lower = parameterSet.get<FieldVector<double,dim> >("lower");
         upper = parameterSet.get<FieldVector<double,dim> >("upper");
-        
+
         array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
@@ -269,24 +269,18 @@ int main (int argc, char *argv[]) try
 
     const GridView::IndexSet& indexSet = gridView.indexSet();
 
-    // Make Python functions that computes which vertices are on the Dirichlet boundary,
+    // Make Python function that computes which vertices are on the Dirichlet boundary,
     // based on the vertex positions.
     Python::runStream()
       << std::endl << "def dirichletVertices(x):"
-#if 1   // Cantilever example
-      << std::endl << "    result = x[0] < 1.0+1e-3"
-#endif
-#if 1   // Wong/Pellegrino shearing/wrinkling example
-      << std::endl << "    result = x[1] < 1e-4  or x[1] > upper[1]-1e-4"
-#endif
-#if 1   // Twisted-strip example
-      << std::endl << "    result = x[0] < lower[0]+1e-3 or x[0] > upper[0]-1e-3"
-#endif
-#if 1   // Wriggers L-shape example
-      << std::endl << "    result = x[0] < 0.001"
-#endif
-      << std::endl << "    return result";
+      << std::endl << "    return " << parameterSet.get<std::string>("dirichletVerticesPredicate");
     PythonFunction<FieldVector<double,dim>, int> pythonDirichletVertices(main.get("dirichletVertices"));
+
+    // Same for the Neumann boundary
+    Python::runStream()
+      << std::endl << "def neumannVertices(x):"
+      << std::endl << "    return " << parameterSet.get<std::string>("neumannVerticesPredicate", "0");
+    PythonFunction<FieldVector<double,dim>, int> pythonNeumannVertices(main.get("neumannVertices"));
 
     for (; vIt!=vEndIt; ++vIt) {
 
@@ -294,15 +288,10 @@ int main (int argc, char *argv[]) try
         pythonDirichletVertices.evaluate(vIt->geometry().corner(0), isDirichlet);
         dirichletVertices[indexSet.index(*vIt)] = isDirichlet;
 
-        // Neumann boundary
-#if 0   // Boundary conditions for the cantilever example
-        if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
-            neumannNodes[indexSet.index(*vIt)] = true;
-#endif
-#if 1   // Boundary conditions for the L-shape example
-        if (vIt->geometry().corner(0)[1] < -0.239 )
-            neumannNodes[indexSet.index(*vIt)][0] = true;
-#endif
+        int isNeumann;
+        pythonNeumannVertices.evaluate(vIt->geometry().corner(0), isNeumann);
+        neumannNodes[indexSet.index(*vIt)] = isNeumann;
+
     }
 
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
