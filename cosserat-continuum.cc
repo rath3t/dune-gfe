@@ -219,11 +219,13 @@ int main (int argc, char *argv[]) try
 
     shared_ptr<GridType> grid;
 
-    FieldVector<double,dim> lower = parameterSet.get<FieldVector<double,dim> >("lower");
-    FieldVector<double,dim> upper = parameterSet.get<FieldVector<double,dim> >("upper");
+    FieldVector<double,dim> lower, upper;
 
     if (parameterSet.get<bool>("structuredGrid")) {
 
+        lower = parameterSet.get<FieldVector<double,dim> >("lower");
+        upper = parameterSet.get<FieldVector<double,dim> >("upper");
+        
         array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
