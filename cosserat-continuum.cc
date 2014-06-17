@@ -189,7 +189,10 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ParameterTree parameterSet;
-    ParameterTreeParser::readINITree("cosserat-continuum.parset", parameterSet);
+    if (argc != 2)
+      DUNE_THROW(Exception, "Usage: ./cosserat-continuum <parameter file>");
+
+    ParameterTreeParser::readINITree(argv[1], parameterSet);
 
     ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
