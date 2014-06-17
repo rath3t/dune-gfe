@@ -1,5 +1,17 @@
+#############################################
+#  Grid parameters
+#############################################
+
+structuredGrid = false
+path = /home/sander/data/shells/wriggers_L_shape/
+gridFile = wriggers-L-shape_99.msh
+
 # Number of grid levels
 numLevels = 1
+
+#############################################
+#  Solver parameters
+#############################################
 
 # Number of homotopy steps for the Dirichlet boundary conditions
 numHomotopySteps = 1
@@ -38,72 +50,9 @@ baseTolerance = 1e-8
 instrumented = 0
 
 ############################
-#   Problem specifications
+#   Material parameters
 ############################
 
-
-# Parameters for the shearing/wrinkling example from Taylor, Bertoldi, Steigmann
-# We use 'meters' as the length unit
-#[materialParameters]
-
-# shell thickness
-#thickness = 2.5e-5
-
-# Lame parameters
-# # corresponds to E = 3.5GPa, nu=0.31
-#mu = 5.6452e+09
-#lambda = 2.1796e+09
-
-# Cosserat couple modulus
-#mu_c = 0
-
-# Length scale parameter
-# h * sqrt(1/12)
-#L_c = 7.2169e-06
-
-# Curvature exponent
-#q = 2
-
-# Shear correction factor
-#kappa = 1
-
-[]
-
-#structuredGrid = true
-#lower = 0 0
-#upper = 0.38 0.128
-#elements = 15 5
-
-
-## Parameters for the twisted 10x1 strip
-#[materialParameters]
-
-# shell thickness
-#thickness = 0.002
-
-# Lame parameters
-# # corresponds to E = 3.5GPa, nu=0.31
-#mu = 5.6452e+09
-#lambda = 2.1796e+09
-
-# Cosserat couple modulus
-mu_c = 0
-
-# Length scale parameter
-#L_c = 0.002
-
-# Curvature exponent
-#q = 2
-
-# Shear correction factor
-#kappa = 1
-
-#[]
-
-#structuredGrid = true
-#lower = 0 0
-#upper = 0.1 0.01
-#elements = 10 1
 
 ## For the Wriggers L-shape example
 [materialParameters]
@@ -131,9 +80,10 @@ kappa = 1
 
 []
 
+#############################################
+#  Boundary values
+#############################################
+
 ###  Neumann values, if needed
 neumannValues =  -1e3 0 0
 
-structuredGrid = false
-path = /home/sander/data/shells/wriggers_L_shape/
-gridFile = wriggers-L-shape_99.msh
