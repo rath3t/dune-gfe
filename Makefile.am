@@ -16,13 +16,11 @@ ADOLC_LIBS = -ladolc
 noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps-eoc rod-eoc
 
 cosserat_continuum_SOURCES  = cosserat-continuum.cc
-cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS) \
+cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
                               $(ADOLC_CPPFLAGS) $(PYTHON_CPPFLAGS)
-cosserat_continuum_LDADD    = $(UG_LIBS) $(AMIRAMESH_LIBS) \
-                              $(IPOPT_LIBS) $(PSURFACE_LIBS) \
+cosserat_continuum_LDADD    = $(UG_LIBS) $(IPOPT_LIBS) \
                               $(ADOLC_LIBS) $(PYTHON_LIBS)
-cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) \
-                              $(IPOPT_LDFLAGS) $(PSURFACE_LDFLAGS) \
+cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
                               $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS)
 
 rodobstacle_SOURCES = rodobstacle.cc
