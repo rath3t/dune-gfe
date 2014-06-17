@@ -28,6 +28,7 @@
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
@@ -183,6 +184,10 @@ int main (int argc, char *argv[]) try
     // initialize MPI, finalize is done automatically on exit
     Dune::MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
 
+    // Start Python interpreter
+    Python::start();
+    Python::Reference main = Python::import("__main__");
+
     //feenableexcept(FE_INVALID);
 
     typedef std::vector<TargetSpace> SolutionType;
@@ -264,26 +269,38 @@ int main (int argc, char *argv[]) try
 
     const GridView::IndexSet& indexSet = gridView.indexSet();
 
+    // Make Python functions that computes which vertices are on the Dirichlet boundary,
+    // based on the vertex positions.
+    Python::runStream()
+      << std::endl << "def dirichletVertices(x):"
+#if 1   // Cantilever example
+      << std::endl << "    result = x[0] < 1.0+1e-3"
+#endif
+#if 1   // Wong/Pellegrino shearing/wrinkling example
+      << std::endl << "    result = x[1] < 1e-4  or x[1] > upper[1]-1e-4"
+#endif
+#if 1   // Twisted-strip example
+      << std::endl << "    result = x[0] < lower[0]+1e-3 or x[0] > upper[0]-1e-3"
+#endif
+#if 1   // Wriggers L-shape example
+      << std::endl << "    result = x[0] < 0.001"
+#endif
+      << std::endl << "    return result";
+    PythonFunction<FieldVector<double,dim>, int> pythonDirichletVertices(main.get("dirichletVertices"));
+
     for (; vIt!=vEndIt; ++vIt) {
 
+        int isDirichlet;
+        pythonDirichletVertices.evaluate(vIt->geometry().corner(0), isDirichlet);
+        dirichletVertices[indexSet.index(*vIt)] = isDirichlet;
+
+        // Neumann boundary
 #if 0   // Boundary conditions for the cantilever example
-        if (vIt->geometry().corner(0)[0] < 1.0+1e-3 /* or vIt->geometry().corner(0)[0] > upper[0]-1e-3*/ )
-          dirichletVertices[indexSet.index(*vIt)] = true;
         if (vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
             neumannNodes[indexSet.index(*vIt)] = true;
 #endif
-#if 0   // Boundary conditions for the shearing/wrinkling example
-        if (vIt->geometry().corner(0)[1] < 1e-4  or vIt->geometry().corner(0)[1] > upper[1]-1e-4 )
-          dirichletVertices[indexSet.index(*vIt)] = true;
-#endif
-#if 1   // Boundary conditions for the twisted-strip example
-        if (vIt->geometry().corner(0)[0] < lower[0]+1e-3  or vIt->geometry().corner(0)[0] > upper[0]-1e-3 )
-          dirichletVertices[indexSet.index(*vIt)] = true;
-#endif
-#if 0   // Boundary conditions for the L-shape example
-        if (vIt->geometry().corner(0)[0] < 1.0)
-          dirichletVertices[indexSet.index(*vIt)] = true;
-        if (vIt->geometry().corner(0)[1] < -239 )
+#if 1   // Boundary conditions for the L-shape example
+        if (vIt->geometry().corner(0)[1] < -0.239 )
             neumannNodes[indexSet.index(*vIt)][0] = true;
 #endif
     }
