@@ -7,7 +7,6 @@
 
 #include <dune/common/array.hh>
 #include <dune/common/fmatrix.hh>
-#include <dune/common/static_assert.hh>
 
 /** \brief A third-rank tensor
 */
@@ -29,7 +28,7 @@ class Tensor3
 
         T infinity_norm() const
         {
-            dune_static_assert(N1>0, "infinity_norm not implemented for empty tensors");
+            static_assert(N1>0, "infinity_norm not implemented for empty tensors");
             T norm = (*this)[0].infinity_norm();
             for (int i=1; i<N1; i++)
                 norm = std::max(norm, (*this)[i].infinity_norm());
