@@ -88,4 +88,7 @@ kappa = 1
 # x is the vertex coordinate
 dirichletVerticesPredicate = "x[0] < 0.001 or x[0] > 0.0999"
 
+# Initial deformation
+initialDeformation = "[x[0], x[1], 0]"
+
 

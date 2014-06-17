@@ -137,3 +137,6 @@ neumannValues =  -1e3 0 0
 structuredGrid = false
 path = /home/sander/data/shells/wriggers_L_shape/
 gridFile = wriggers-L-shape_99.msh
+
+# Initial deformation
+initialDeformation = "[x[0], x[1], 0.002*cos(1e4*x[0])]"

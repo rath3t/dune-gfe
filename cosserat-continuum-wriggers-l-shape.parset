@@ -95,3 +95,5 @@ neumannVerticesPredicate = "x[1] < -0.239"
 ###  Neumann values, if needed
 neumannValues =  -1e3 0 0
 
+# Initial deformation
+initialDeformation = "[x[0], x[1], 0]"

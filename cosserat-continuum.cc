@@ -51,21 +51,6 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
-class Identity
-: public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3>>
-{
-public:
-  void evaluate(const FieldVector<double,dim>& x, FieldVector<double,3>& y) const
-  {
-    y = 0;
-    for (int i=0; i<dim; i++)
-      y[i] = x[i];
-
-    //y[2] = 0.002*std::cos(1e4*x[0]);
-  }
-};
-
-
 // Dirichlet boundary data for the shear/wrinkling example
 class WrinklingDirichletValues
 : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
@@ -312,9 +297,11 @@ int main (int argc, char *argv[]) try
 
     SolutionType x(feBasis.size());
 
-    Identity identity;
+    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
+    PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
+
     std::vector<FieldVector<double,3> > v;
-    Functions::interpolate(feBasis, v, identity);
+    Functions::interpolate(feBasis, v, pythonInitialDeformation);
 
     for (size_t i=0; i<x.size(); i++)
       x[i].r = v[i];
