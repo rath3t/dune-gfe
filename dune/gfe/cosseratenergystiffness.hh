@@ -307,7 +307,7 @@ energy(const Entity& element,
         /////////////////////////////////////////////////////////
         // compute U, the Cosserat strain
         /////////////////////////////////////////////////////////
-        dune_static_assert(dim>=gridDim, "Codim of the grid must be nonnegative");
+        static_assert(dim>=gridDim, "Codim of the grid must be nonnegative");
 
         //
         Dune::FieldMatrix<field_type,dim,dim> R;
