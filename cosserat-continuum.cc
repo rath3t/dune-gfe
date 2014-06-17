@@ -9,7 +9,6 @@
 #include <adolc/adouble.h>
 #include <adolc/drivers/drivers.h>    // use of "Easy to Use" drivers
 #include <adolc/taping.h>
-#undef overwrite  // stupid: ADOL-C sets this to 1, so the name cannot be used
 
 #include <dune/gfe/adolcnamespaceinjections.hh>
 #include <dune/common/bitsetvector.hh>

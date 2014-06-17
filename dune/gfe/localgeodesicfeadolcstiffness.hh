@@ -6,8 +6,6 @@
 // gradient(.) and hessian(.)
 #include <adolc/taping.h>             // use of taping
 
-#undef overwrite  // stupid: ADOL-C sets this to 1, so the name cannot be used
-
 #include <dune/gfe/adolcnamespaceinjections.hh>
 
 #include <dune/common/fmatrix.hh>
