@@ -58,7 +58,7 @@ instrumented = 0
 [materialParameters]
 
 # shell thickness
-thickness = 0.6
+thickness = 0.6e-3
 
 # Lame parameters
 # corresponds to E = 71240 N/mm^2, nu=0.31
@@ -70,7 +70,7 @@ lambda = 4.4364e+10
 mu_c = 0
 
 # Length scale parameter
-L_c = 0.6
+L_c = 0.6e-3
 
 # Curvature exponent
 q = 2
