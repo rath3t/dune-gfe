@@ -93,7 +93,7 @@ dirichletVerticesPredicate = "x[0] < 0.001"
 neumannVerticesPredicate = "x[1] < -0.239"
 
 ###  Neumann values, if needed
-neumannValues =  -1e3 0 0
+neumannValues =  -5e6 0 0
 
 # Initial deformation
-initialDeformation = "[x[0], x[1], 0]"
+initialDeformation = "[x[0], x[1], 0.1*x[0]*(0.24+x[1])]"
