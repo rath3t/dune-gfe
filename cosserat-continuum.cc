@@ -208,7 +208,7 @@ int main (int argc, char *argv[]) try
 
     shared_ptr<GridType> grid;
 
-    FieldVector<double,dim> lower, upper;
+    FieldVector<double,dim> lower(0), upper(1);
 
     if (parameterSet.get<bool>("structuredGrid")) {
 
