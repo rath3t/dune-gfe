@@ -406,8 +406,6 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 
-    CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat");
-
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
