@@ -171,6 +171,7 @@ int main (int argc, char *argv[]) try
     // Start Python interpreter
     Python::start();
     Python::Reference main = Python::import("__main__");
+    Python::run("import math");
 
     //feenableexcept(FE_INVALID);
 
