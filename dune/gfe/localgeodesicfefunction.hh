@@ -473,6 +473,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
+    /** \todo Use a symmetric matrix here */
     Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdq(0);
     assembler.assembleEmbeddedHessian(q,dFdq);
 
