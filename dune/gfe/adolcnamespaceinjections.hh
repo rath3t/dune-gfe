@@ -3,14 +3,6 @@
 
 #include <limits>
 
-adouble min_hack(const adouble& a, const adouble& b) {
-    return fmin(a,b);
-}
-
-adouble max_hack(const adouble& a, const adouble& b) {
-    return fmax(a,b);
-}
-
 adouble sqrt_hack(adouble a) {
   return sqrt(a);
 }
@@ -43,11 +35,13 @@ adouble acos_hack(adouble a) {
 namespace std
 {
    adouble min(adouble a, adouble b) {
-      return min_hack(a,b);
+     // Do not use 'min', because ADOL-C lacks support for that in vector-mode
+     return  (a + b - abs_hack(a - b))*0.5;
    }
 
    adouble max(adouble a, adouble b) {
-      return max_hack(a,b);
+     // Do not use 'max', because ADOL-C lacks support for that in vector-mode
+     return - min(-a,-b);
    }
 
    adouble sqrt(adouble a) {
