@@ -4,6 +4,7 @@
 #include <adolc/adouble.h>            // use of active doubles
 #include <adolc/drivers/drivers.h>    // use of "Easy to Use" drivers
 // gradient(.) and hessian(.)
+#include <adolc/interfaces.h>    // use of "Easy to Use" drivers
 #include <adolc/taping.h>             // use of taping
 
 #include <dune/gfe/adolcnamespaceinjections.hh>
@@ -12,6 +13,8 @@
 #include <dune/istl/matrix.hh>
 
 #include <dune/gfe/localgeodesicfestiffness.hh>
+
+#define ADOLC_VECTOR_MODE
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
@@ -241,6 +244,7 @@ assembleGradientAndHessian(const Entity& element,
     for (size_t i=0; i<nDofs; i++)
         orthonormalFrame[i] = localSolution[i].orthonormalFrame();
 
+#ifndef ADOLC_VECTOR_MODE
     Dune::Matrix<Dune::FieldMatrix<double,blocksize, embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
 
     std::vector<double> v(nDoubles);
@@ -295,6 +299,75 @@ assembleGradientAndHessian(const Entity& element,
         }
 
     }
+
+#else
+    Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize, embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
+
+    int n = nDoubles;
+    //std::cout << "n: " << n << std::endl;
+    int nDirections = nDoubles;
+    double* tangent[nDoubles];
+    for(size_t i=0; i<nDoubles; i++)
+        tangent[i] = (double*)malloc(nDirections*sizeof(double));
+
+    double* rawHessian[nDoubles];
+    for(size_t i=0; i<nDoubles; i++)
+        rawHessian[i] = (double*)malloc(nDirections*sizeof(double));
+
+    //std::cout << "nDirections: " << nDirections << std::endl;
+    for (int i=0; i<n; i++)
+      for (int j=0; j<nDirections; j++)
+        tangent[i][j] = (i==j);
+
+    hess_mat(1,nDoubles,nDirections,xp.data(),tangent,rawHessian);
+
+    //std::cout << "Hallo Welt!" << std::endl;
+
+    // Copy Hessian into Dune data type
+    for(size_t i=0; i<nDoubles; i++)
+      for (size_t j=0; j<nDoubles; j++)
+        embeddedHessian[i/embeddedBlocksize][j/embeddedBlocksize][i%embeddedBlocksize][j%embeddedBlocksize] = rawHessian[i][j];
+
+
+    for(size_t i=0; i<nDoubles; i++) {
+        free(rawHessian[i]);
+        free(tangent[i]);
+    }
+    //printmatrix(std::cout, embeddedHessian, "hessian", "--");
+
+    // From this, compute the Hessian with respect to the manifold (which we assume here is embedded
+    // isometrically in a Euclidean space.
+    // For the detailed explanation of the following see: Absil, Mahoney, Trumpf, "An extrinsic look
+    // at the Riemannian Hessian".
+
+    typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
+    typedef typename TargetSpace::TangentVector         TangentVector;
+
+    this->A_.setSize(nDofs,nDofs);
+
+    for (size_t col=0; col<nDofs; col++) {
+
+        for (size_t subCol=0; subCol<blocksize; subCol++) {
+
+            EmbeddedTangentVector z = orthonormalFrame[col][subCol];
+
+            // P_x \partial^2 f z
+            std::vector<EmbeddedTangentVector> semiEmbeddedProduct(nDofs);
+
+            for (size_t row=0; row<nDofs; row++) {
+                embeddedHessian[row][col].mv(z,semiEmbeddedProduct[row]);
+                //tmp1 = localSolution[row].projectOntoTangentSpace(tmp1);
+                TangentVector tmp2;
+                orthonormalFrame[row].mv(semiEmbeddedProduct[row],tmp2);
+
+                for (int subRow=0; subRow<blocksize; subRow++)
+                    this->A_[row][col][subRow][subCol] = tmp2[subRow];
+            }
+
+        }
+
+    }
+#endif
 
     //////////////////////////////////////////////////////////////////////////////////////
     //  Further correction due to non-planar configuration space
