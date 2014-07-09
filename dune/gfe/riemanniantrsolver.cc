@@ -473,7 +473,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         }
 
         if (energy >= oldEnergy &&
-            (std::abs(oldEnergy-energy)/energy < 1e-9 || relativeModelDecrease < 1e-9)) {
+            (std::abs((oldEnergy-energy)/energy) < 1e-9 || relativeModelDecrease < 1e-9)) {
             if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "Suspecting rounding problems" << std::endl;
 
