@@ -257,19 +257,19 @@ int main (int argc, char *argv[]) try
     // Make Python function that computes which vertices are on the Dirichlet boundary,
     // based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, int> pythonDirichletVertices(Python::evaluate(lambda));
+    PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
 
     // Same for the Neumann boundary
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, int> pythonNeumannVertices(Python::evaluate(lambda));
+    PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
 
     for (; vIt!=vEndIt; ++vIt) {
 
-        int isDirichlet;
+        bool isDirichlet;
         pythonDirichletVertices.evaluate(vIt->geometry().corner(0), isDirichlet);
         dirichletVertices[indexSet.index(*vIt)] = isDirichlet;
 
-        int isNeumann;
+        bool isNeumann;
         pythonNeumannVertices.evaluate(vIt->geometry().corner(0), isNeumann);
         neumannNodes[indexSet.index(*vIt)] = isNeumann;
 
