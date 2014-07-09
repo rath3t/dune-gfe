@@ -106,7 +106,6 @@ setup(const GridType& grid,
     mmgStep->basesolver_        = baseSolver;
     mmgStep->setSmoother(presmoother, postsmoother);
     mmgStep->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType>();
-    mmgStep->hasObstacle_       = &hasObstacle_;
     mmgStep->verbosity_         = Solver::QUIET;
 
     // //////////////////////////////////////////////////////////////////////////////////////
@@ -226,13 +225,10 @@ setup(const GridType& grid,
 
     if (rank==0)
     {
-        hasObstacle_.resize(numLevels);
-        hasObstacle_.back().resize(guIndex_->nGlobalEntity(), true);
-
-        // If there is more than one level use the transfer operators to determine the correct coarse level system sizes
-        for (int i=0; i<hasObstacle_.size()-1; i++)
-            hasObstacle_[i].resize(dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>* >(mmgStep->mgTransfer_[i])->getMatrix().M(),true);
+        hasObstacle_.resize(guIndex_->nGlobalEntity(), true);
+        mmgStep->hasObstacle_ = &hasObstacle_;
     }
+
 }
 
 
@@ -336,7 +332,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
             mgStep->setProblem(stiffnessMatrix, corr_global, rhs_global);
 
             trustRegionObstacles.back() = trustRegion.obstacles();
-            mgStep->obstacles_ = &trustRegionObstacles;
+            mgStep->obstacles_ = &trustRegionObstacles.back();
 
             innerSolver_->preprocess();
 
