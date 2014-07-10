@@ -73,44 +73,40 @@ public:
   }
 };
 
-
-// Dirichlet boundary data for the 'twisted-strip' example
-class TwistedStripDeformationDirichletValues
-: public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
+class TwistedStripDeformationDirichletValuesPythonWriter
 {
   FieldVector<double,2> upper_;
   double homotopy_;
 public:
 
-  TwistedStripDeformationDirichletValues(FieldVector<double,2> upper, double homotopy)
+  TwistedStripDeformationDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
   : upper_(upper), homotopy_(homotopy)
   {}
 
-  void evaluate(const FieldVector<double,dim>& in, FieldVector<double,3>& out) const
+  void write()
   {
-    double angle = 6*M_PI * in[0]/upper_[0];
-    angle *= homotopy_;
+    Python::runStream()
+        << std::endl << "def deformationDirichletValues(x):"
+        << std::endl << "    upper = [0.1, 0.01]"
+        << std::endl << "    homotopy = " << homotopy_
+        << std::endl << "    angle = 6*math.pi * x[0]/upper[0];"
+        << std::endl << "    angle *= homotopy;"
 
-    // center of rotation
-    FieldVector<double,3> center(0);
-    center[1] = upper_[1]/2.0;
+        // center of rotation
+        << std::endl << "    center = [0, 0, 0]"
+        << std::endl << "    center[1] = upper[1]/2.0"
 
-    FieldMatrix<double,3,3> rotation(0);
-    rotation[0][0] = 1;
-    rotation[1][1] =  std::cos(angle);
-    rotation[1][2] = -std::sin(angle);
-    rotation[2][1] =  std::sin(angle);
-    rotation[2][2] =  std::cos(angle);
+        << std::endl << "    rotation = numpy.array([[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]])"
 
-    FieldVector<double,3> inEmbedded(0);
-    for (int i=0; i<dim; i++)
-        inEmbedded[i] = in[i];
-    inEmbedded -= center;
+        << std::endl << "    inEmbedded = [x[0]-center[0], x[1]-center[1], 0-center[2]]"
 
-    rotation.mv(inEmbedded, out);
+        // Matrix-vector product
+        << std::endl << "    out = [rotation[0][0]*inEmbedded[0]+rotation[0][1]*inEmbedded[1], rotation[1][0]*inEmbedded[0]+rotation[1][1]*inEmbedded[1], rotation[2][0]*inEmbedded[0]+rotation[2][1]*inEmbedded[1]]"
 
-    out += center;
+        << std::endl << "    out = [out[0]+center[0], out[1]+center[1], out[2]+center[2]]"
+        << std::endl << "    return out";
   }
+
 };
 
 // Dirichlet boundary data for the 'twisted-strip' example
@@ -172,6 +168,7 @@ int main (int argc, char *argv[]) try
     Python::start();
     Python::Reference main = Python::import("__main__");
     Python::run("import math");
+    Python::run("import numpy");
 
     //feenableexcept(FE_INVALID);
 
@@ -371,7 +368,22 @@ int main (int argc, char *argv[]) try
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
 
-        TwistedStripDeformationDirichletValues deformationDirichletValues(upper,homotopyParameter);
+        if (parameterSet.get<std::string>("problem") == "twisted-strip")
+        {
+          TwistedStripDeformationDirichletValuesPythonWriter twistedStripDeformationDirichletValuesPythonWriter(upper, homotopyParameter);
+          twistedStripDeformationDirichletValuesPythonWriter.write();
+        } else if (parameterSet.get<std::string>("problem") == "wong-pellegrino")
+        {
+
+        } else if (parameterSet.get<std::string>("problem") == "wriggers-L-shape")
+        {
+
+        } else
+          DUNE_THROW(Exception, "Unknown problem type");
+
+        PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > deformationDirichletValues(main.get("deformationDirichletValues"));
+
+
         std::vector<FieldVector<double,3> > ddV;
         Functions::interpolate(feBasis, ddV, deformationDirichletValues, dirichletDofs);
 
