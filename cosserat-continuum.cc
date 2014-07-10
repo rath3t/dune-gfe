@@ -73,24 +73,27 @@ public:
   }
 };
 
-class TwistedStripDeformationDirichletValuesPythonWriter
+class TwistedStripDirichletValuesPythonWriter
 {
   FieldVector<double,2> upper_;
   double homotopy_;
+  double totalAngle_;
 public:
 
-  TwistedStripDeformationDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
+  TwistedStripDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
   : upper_(upper), homotopy_(homotopy)
-  {}
+  {
+    totalAngle_ = 6*M_PI;
+  }
 
-  void write()
+  void writeDeformation()
   {
     Python::runStream()
         << std::endl << "def deformationDirichletValues(x):"
-        << std::endl << "    upper = [0.1, 0.01]"
+        << std::endl << "    upper = [" << upper_[0] << ", " << upper_[1] << "]"
         << std::endl << "    homotopy = " << homotopy_
-        << std::endl << "    angle = 6*math.pi * x[0]/upper[0];"
-        << std::endl << "    angle *= homotopy;"
+        << std::endl << "    angle = " << totalAngle_ << " * x[0]/upper[0]"
+        << std::endl << "    angle *= homotopy"
 
         // center of rotation
         << std::endl << "    center = [0, 0, 0]"
@@ -107,24 +110,12 @@ public:
         << std::endl << "    return out";
   }
 
-};
-
-class TwistedStripOrientationDirichletValuesPythonWriter
-{
-  FieldVector<double,2> upper_;
-  double homotopy_;
-public:
-
-  TwistedStripOrientationDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
-  : upper_(upper), homotopy_(homotopy)
-  {}
-
-  void write()
+  void writeOrientation()
   {
     Python::runStream()
         << std::endl << "def orientationDirichletValues(x):"
         << std::endl << "    upper = [" << upper_[0] << ", " << upper_[1] << "]"
-        << std::endl << "    angle = 6*math.pi * x[0]/upper[0];"
+        << std::endl << "    angle = " << totalAngle_ << " * x[0]/upper[0];"
         << std::endl << "    angle *= " << homotopy_
 
         << std::endl << "    rotation = numpy.array([[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]])"
@@ -365,11 +356,9 @@ int main (int argc, char *argv[]) try
 
         if (parameterSet.get<std::string>("problem") == "twisted-strip")
         {
-          TwistedStripDeformationDirichletValuesPythonWriter twistedStripDeformationDirichletValuesPythonWriter(upper, homotopyParameter);
-          twistedStripDeformationDirichletValuesPythonWriter.write();
-
-          TwistedStripOrientationDirichletValuesPythonWriter twistedStripOrientationDirichletValuesPythonWriter(upper, homotopyParameter);
-          twistedStripOrientationDirichletValuesPythonWriter.write();
+          TwistedStripDirichletValuesPythonWriter twistedStripDirichletValuesPythonWriter(upper, homotopyParameter);
+          twistedStripDirichletValuesPythonWriter.writeDeformation();
+          twistedStripDirichletValuesPythonWriter.writeOrientation();
 
         } else if (parameterSet.get<std::string>("problem") == "wong-pellegrino")
         {
@@ -380,7 +369,7 @@ int main (int argc, char *argv[]) try
         } else
           DUNE_THROW(Exception, "Unknown problem type");
 
-        PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > deformationDirichletValues(main.get("deformationDirichletValues"));
+        PythonFunction<FieldVector<double,dim>, FieldVector<double,3> >   deformationDirichletValues(main.get("deformationDirichletValues"));
         PythonFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> > orientationDirichletValues(main.get("orientationDirichletValues"));
 
         std::vector<FieldVector<double,3> > ddV;
