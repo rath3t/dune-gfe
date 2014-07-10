@@ -109,33 +109,28 @@ public:
 
 };
 
-// Dirichlet boundary data for the 'twisted-strip' example
-class TwistedStripOrientationDirichletValues
-: public Dune::VirtualFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> >
+class TwistedStripOrientationDirichletValuesPythonWriter
 {
   FieldVector<double,2> upper_;
   double homotopy_;
 public:
 
-  TwistedStripOrientationDirichletValues(FieldVector<double,2> upper, double homotopy)
+  TwistedStripOrientationDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
   : upper_(upper), homotopy_(homotopy)
   {}
 
-  void evaluate(const FieldVector<double,dim>& in, FieldMatrix<double,3,3>& out) const
+  void write()
   {
-    double angle = 6*M_PI * in[0]/upper_[0];
-    angle *= homotopy_;
+    Python::runStream()
+        << std::endl << "def orientationDirichletValues(x):"
+        << std::endl << "    upper = [" << upper_[0] << ", " << upper_[1] << "]"
+        << std::endl << "    angle = 6*math.pi * x[0]/upper[0];"
+        << std::endl << "    angle *= " << homotopy_
 
-    // center of rotation
-    FieldMatrix<double,3,3> rotation(0);
-    rotation[0][0] = 1;
-    rotation[1][1] =  std::cos(angle);
-    rotation[1][2] = -std::sin(angle);
-    rotation[2][1] =  std::sin(angle);
-    rotation[2][2] =  std::cos(angle);
-
-    out = rotation;
+        << std::endl << "    rotation = numpy.array([[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]])"
+        << std::endl << "    return rotation";
   }
+
 };
 
 
@@ -372,6 +367,10 @@ int main (int argc, char *argv[]) try
         {
           TwistedStripDeformationDirichletValuesPythonWriter twistedStripDeformationDirichletValuesPythonWriter(upper, homotopyParameter);
           twistedStripDeformationDirichletValuesPythonWriter.write();
+
+          TwistedStripOrientationDirichletValuesPythonWriter twistedStripOrientationDirichletValuesPythonWriter(upper, homotopyParameter);
+          twistedStripOrientationDirichletValuesPythonWriter.write();
+
         } else if (parameterSet.get<std::string>("problem") == "wong-pellegrino")
         {
 
@@ -382,13 +381,11 @@ int main (int argc, char *argv[]) try
           DUNE_THROW(Exception, "Unknown problem type");
 
         PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > deformationDirichletValues(main.get("deformationDirichletValues"));
-
+        PythonFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> > orientationDirichletValues(main.get("orientationDirichletValues"));
 
         std::vector<FieldVector<double,3> > ddV;
         Functions::interpolate(feBasis, ddV, deformationDirichletValues, dirichletDofs);
 
-
-        TwistedStripOrientationDirichletValues orientationDirichletValues(upper,homotopyParameter);
         std::vector<FieldMatrix<double,3,3> > dOV;
         Functions::interpolate(feBasis, dOV, orientationDirichletValues, dirichletDofs);
 
