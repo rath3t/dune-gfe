@@ -73,6 +73,37 @@ public:
   }
 };
 
+class WongPellegrinoDirichletValuesPythonWriter
+{
+  FieldVector<double,2> upper_;
+  double homotopy_;
+public:
+
+  WongPellegrinoDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
+  : upper_(upper), homotopy_(homotopy)
+  {}
+
+  void writeDeformation()
+  {
+    Python::runStream()
+        << std::endl << "def deformationDirichletValues(x):"
+        << std::endl << "    out = [x[0], x[1], 0]"
+        << std::endl << "    if x[1] > " << upper_[1]-1e-4 << ":"
+        << std::endl << "        out[0] += 0.003 * " << homotopy_
+        << std::endl << "    return out";
+  }
+
+  void writeOrientation()
+  {
+    Python::runStream()
+        << std::endl << "def orientationDirichletValues(x):"
+        << std::endl << "    rotation = numpy.array([[1,0,0], [0, 1, 0], [0, 0, 1]])"
+        << std::endl << "    return rotation";
+  }
+
+};
+
+
 class TwistedStripDirichletValuesPythonWriter
 {
   FieldVector<double,2> upper_;
@@ -362,6 +393,9 @@ int main (int argc, char *argv[]) try
 
         } else if (parameterSet.get<std::string>("problem") == "wong-pellegrino")
         {
+          WongPellegrinoDirichletValuesPythonWriter wongPellegrinoDirichletValuesPythonWriter(upper, homotopyParameter);
+          wongPellegrinoDirichletValuesPythonWriter.writeDeformation();
+          wongPellegrinoDirichletValuesPythonWriter.writeOrientation();
 
         } else if (parameterSet.get<std::string>("problem") == "wriggers-L-shape")
         {
