@@ -90,4 +90,4 @@ kappa = 1
 dirichletVerticesPredicate = "x[1] < 0.0001 or x[1] > 0.128 - 0.0001"
 
 # Initial deformation
-initialDeformation = "[x[0], x[1], 0.002*math.cos(1e4*x[0])]"
+initialDeformation = "[x[0] + 0.003*x[1] / 0.128, x[1], 0.002*math.cos(1e4*x[0])]"
