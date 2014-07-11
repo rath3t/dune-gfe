@@ -85,6 +85,8 @@ kappa = 1
 #  Boundary values
 #############################################
 
+problem = wong-pellegrino
+
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
 dirichletVerticesPredicate = "x[1] < 0.0001 or x[1] > 0.128 - 0.0001"
