@@ -24,7 +24,7 @@ tolerance = 1e-8
 maxTrustRegionSteps = 200
 
 # Initial trust-region radius
-initialTrustRegionRadius = 0.1
+initialTrustRegionRadius = 0.001
 
 # Number of multigrid iterations per trust-region step
 numIt = 200
