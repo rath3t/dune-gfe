@@ -22,7 +22,7 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include "maxnormtrustregion.hh"
 
-#include <dune/solvers/norms/energynorm.hh>
+#include <dune/solvers/norms/twonorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 
 #include <dune/gfe/parallel/matrixcommunicator.hh>
@@ -81,12 +81,13 @@ setup(const GridType& grid,
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType, CorrectionType>* baseSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
-    EnergyNorm<MatrixType, CorrectionType>* baseEnergyNorm = new EnergyNorm<MatrixType, CorrectionType>(*baseSolverStep,1e-3);
+    // Hack: the two-norm may not scale all that well, but it is fast!
+    TwoNorm<CorrectionType>* baseNorm = new TwoNorm<CorrectionType>;
 
     ::LoopSolver<CorrectionType>* baseSolver = new ::LoopSolver<CorrectionType>(baseSolverStep,
                                                                             baseIterations,
                                                                             baseTolerance,
-                                                                            baseEnergyNorm,
+                                                                            baseNorm,
                                                                             Solver::QUIET);
 #endif
 
