@@ -128,7 +128,7 @@ protected:
     std::shared_ptr<Solver> innerSolver_;
 
     /** \brief Contains 'true' everywhere -- the trust-region is bounded */
-    Dune::BitSetVector<1> hasObstacle_;
+    Dune::BitSetVector<blocksize> hasObstacle_;
 
     /** \brief The Dirichlet nodes */
     const Dune::BitSetVector<blocksize>* ignoreNodes_;
