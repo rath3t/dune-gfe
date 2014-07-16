@@ -145,38 +145,6 @@ public:
 
     }
 
-
-#if 0
-    /** \brief Restrict level fL of f and store the result in level cL of t
-     *
-     * \param critical Has to contain an entry for each degree of freedom.
-     *        Those dofs with a set bit are treated as critical.
-     */
-    void restrict(const VectorType& f, VectorType &t, const BitVectorType& critical) const;
-
-    /** \brief Restriction of  MultiGridTransfer*/
-    using CompressedMultigridTransfer< VectorType, BitVectorType, MatrixType >::restrict;
-
-    /** \brief Prolong level cL of f and store the result in level fL of t
-     * 
-     * \param critical Has to contain an entry for each degree of freedom.
-     *        Those dofs with a set bit are treated as critical.
-     */
-    void prolong(const VectorType& f, VectorType &t, const BitVectorType& critical) const;
-
-    /** \brief Prolongation of  MultiGridTransfer*/
-    using CompressedMultigridTransfer< VectorType, BitVectorType, MatrixType >::prolong;
-
-    /** \brief Galerkin assemble a coarse stiffness matrix
-     *
-     * \param critical Has to contain an entry for each degree of freedom.
-     *        Those dofs with a set bit are treated as critical.
-     */
-    void galerkinRestrict(const MatrixType& fineMat, MatrixType& coarseMat, const BitVectorType& critical) const;
-
-    /** \brief Galerkin restriction of  MultiGridTransfer*/
-    using CompressedMultigridTransfer< VectorType, BitVectorType, MatrixType >::galerkinRestrict;
-#endif
 };
 
 #endif
