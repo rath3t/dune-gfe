@@ -48,7 +48,50 @@ class GramSchmidtSolver
   }
 
 public:
-  /** Solve linear system by constructing an energy-orthonormal basis */
+
+  /** \brief Constructor computing the A-orthogonal basis
+   *
+   * This constructor uses Gram-Schmidt orthogonalization to compute an A-orthogonal basis.
+   * All (non-static) calls to 'solve' will use that basis.  Since computing the basis
+   * is the expensive part, the calls to 'solve' will be comparatively cheap.
+   *
+   * \param basis Any basis of the space, used as the input for the Gram-Schmidt orthogonalization process
+   */
+  GramSchmidtSolver(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
+                    const Dune::FieldMatrix<field_type,dim,embeddedDim>& basis)
+  : orthonormalBasis_(basis)
+  {
+    // Use the Gram-Schmidt algorithm to compute a basis that is orthonormal
+    // with respect to the given matrix.
+    for (int i=0; i<dim; i++) {
+
+      normalize(matrix, orthonormalBasis_[i]);
+
+      for (int j=0; j<i; j++)
+        project(matrix, orthonormalBasis_[i], orthonormalBasis_[j]);
+
+    }
+
+  }
+
+  void solve(Dune::FieldVector<field_type,embeddedDim>& x,
+             const Dune::FieldVector<field_type,embeddedDim>& rhs) const
+  {
+    // Solve the system in the orthonormal basis
+    Dune::FieldVector<field_type,dim> orthoCoefficient;
+    for (int i=0; i<dim; i++)
+      orthoCoefficient[i] = rhs*orthonormalBasis_[i];
+
+    // Solution in canonical basis
+    x = 0;
+    for (int i=0; i<dim; i++)
+      x.axpy(orthoCoefficient[i], orthonormalBasis_[i]);
+  }
+
+  /** Solve linear system by constructing an energy-orthonormal basis
+
+   * \param basis Any basis of the space, used as the input for the Gram-Schmidt orthogonalization process
+   */
   static void solve(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
                     Dune::FieldVector<field_type,embeddedDim>& x,
                     const Dune::FieldVector<field_type,embeddedDim>& rhs,
@@ -78,6 +121,10 @@ public:
       x.axpy(orthoCoefficient[i], orthonormalBasis[i]);
 
   }
+
+private:
+
+  Dune::FieldMatrix<field_type,dim,embeddedDim> orthonormalBasis_;
 
 };
 
