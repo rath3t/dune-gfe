@@ -271,34 +271,18 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdq(0);
+    Dune::SymmetricMatrix<RT,embeddedDim> dFdq;
     assembler.assembleEmbeddedHessian(q,dFdq);
 
-    // ////////////////////////////////////
-    //   solve the system
-    //
     // We want to solve
     //     dFdq * x = rhs
-    // However as dFdq is defined in the embedding space it has a positive rank.
-    // Hence we use the orthonormal frame at q to get rid of its kernel.
-    // That means we instead solve
-    // O dFdq O^T O x = O rhs
-    // ////////////////////////////////////
+    // We use the Gram-Schmidt solver because we know that dFdq is rank-deficient.
 
     const int shortDim = TargetSpace::TangentVector::dimension;
 
     // the orthonormal frame
-    Dune::FieldMatrix<RT,shortDim,embeddedDim> O = q.orthonormalFrame();
-
-    // compute A = O dFDq O^T
-    Dune::FieldMatrix<RT,shortDim,shortDim> A;
-    for (int i=0; i<shortDim; i++)
-        for (int j=0; j<shortDim; j++) {
-            A[i][j] = 0;
-            for (int k=0; k<embeddedDim; k++)
-                for (int l=0; l<embeddedDim; l++)
-                    A[i][j] += O[i][k]*dFdq[k][l]*O[j][l];
-        }
+    Dune::FieldMatrix<RT,shortDim,embeddedDim> basis = q.orthonormalFrame();
+    GramSchmidtSolver<RT,shortDim,embeddedDim> gramSchmidtSolver(dFdq, basis);
 
     for (int i=0; i<dim; i++) {
 
@@ -306,14 +290,8 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
         for (int j=0; j<embeddedDim; j++)
             rhs[j] = RHS[j][i];
 
-        Dune::FieldVector<RT,shortDim> shortRhs;
-        O.mv(rhs,shortRhs);
-
-        Dune::FieldVector<RT,shortDim> shortX;
-        A.solve(shortX,shortRhs);
-
         Dune::FieldVector<RT,embeddedDim> x;
-        O.mtv(shortX,x);
+        gramSchmidtSolver.solve(x, rhs);
 
         for (int j=0; j<embeddedDim; j++)
             result[j][i] = x[j];
