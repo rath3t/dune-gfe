@@ -71,13 +71,12 @@ setup(const GridType& grid,
     //   Create a multigrid solver
     // ////////////////////////////////
 
-#ifdef HAVE_IPOPT
+#if 0//def HAVE_IPOPT
     // First create an IPOpt base solver
     QuadraticIPOptSolver<MatrixType, CorrectionType>* baseSolver = new QuadraticIPOptSolver<MatrixType,CorrectionType>;
     baseSolver->verbosity_ = NumProc::QUIET;
     baseSolver->tolerance_ = baseTolerance;
 #else
-#warning IPOpt not installed -- falling back onto a Gauss-Seidel base solver
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType, CorrectionType>* baseSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
 
