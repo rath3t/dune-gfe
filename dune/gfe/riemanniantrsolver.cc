@@ -428,7 +428,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
-        if (corr.infinity_norm() < this->tolerance_) {
+        if (corr_global.infinity_norm() < this->tolerance_) {
             if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
