@@ -28,7 +28,7 @@ private:
     std::vector<TransferVectorTuple> localVectorEntries;
 
     // Translate vector entries
-    for (int k=0; k<localVector.size(); k++)
+    for (size_t k=0; k<localVector.size(); k++)
         localVectorEntries.push_back(TransferVectorTuple(guIndex.globalIndex(k), localVector[k]));
 
     // Get number of vector entries on each process
