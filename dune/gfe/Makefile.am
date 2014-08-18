@@ -20,6 +20,7 @@ srcinclude_HEADERS = adolcnamespaceinjections.hh \
                      linearalgebra.hh \
                      localgeodesicfefunction.hh \
                      localgeodesicfestiffness.hh \
+                     localgeodesicfefdstiffness.hh \
                      localgfetestfunctionbasis.hh \
                      localprojectedfefunction.hh \
                      maxnormtrustregion.hh \
