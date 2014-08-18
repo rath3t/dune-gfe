@@ -262,7 +262,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
       for (size_t j=0; j<RHS.M(); j++) {
         RHS[i][j] = 0;
         for (size_t k=0; k<dFdw.M(); k++)
-          RHS[i][j] += dFdw[i][k]*B[k][0][j];
+          RHS[i][j] += dFdw[i][k][0][0]*B[k][0][j];
       }
 
     // the actual system matrix
