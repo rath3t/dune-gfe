@@ -271,7 +271,7 @@ public:
 
         // translation part
         for (int i=0; i<N; i++)
-          result[i] = v[i];
+          result[i] = 0;
 
         // rotation part
         T sp = 0;
