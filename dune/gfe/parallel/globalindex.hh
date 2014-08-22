@@ -258,7 +258,11 @@ public:
 
     for(Iterator iter = gridview_.template begin<0>();iter!=gridview_.template end<0>(); ++iter)
     {
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+      for (size_t i=0; i<iter->subEntities(CODIM); i++)
+#else
       for (size_t i=0; i<iter->template count<CODIM>(); i++)
+#endif
       {
         IdType id=globalIdSet.subId(*iter,i,CODIM);                 /** retrieve the entity's id */
 
@@ -369,7 +373,11 @@ namespace Dune {
       for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
       {
         // Loop over all vertices
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+        for (size_t i=0; i<it->subEntities(2); i++)
+#else
         for (size_t i=0; i<it->template count<2>(); i++)
+#endif
         {
           //int localIndex  = globalVertexIndex.localIndex (*it->template subEntity<2>(i));
           int localIndex  = p2Mapper.map(*it, i, 2);
@@ -380,7 +388,11 @@ namespace Dune {
         }
 
         // Loop over all edges
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+        for (size_t i=0; i<it->subEntities(1); i++)
+#else
         for (size_t i=0; i<it->template count<1>(); i++)
+#endif
         {
           //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
           int localIndex  = p2Mapper.map(*it, i, 1);

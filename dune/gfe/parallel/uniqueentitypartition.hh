@@ -130,7 +130,11 @@ public:
 
 	// assign own rank to entities that I might have
         for(auto it = gridview_.template begin<0>();it!=gridview_.template end<0>(); ++it)
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+          for (int i=0; i<it->subEntities(CODIM); i++)
+#else
           for (int i=0; i<it->template count<CODIM>(); i++)
+#endif
           {
             assignment_[gridview_.indexSet().template subIndex(*it,i,CODIM)]
               = ( (it->template subEntity<CODIM>(i)->partitionType()==Dune::InteriorEntity) || (it->template subEntity<CODIM>(i)->partitionType()==Dune::BorderEntity) )
