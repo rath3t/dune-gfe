@@ -413,7 +413,7 @@ assembleGradientAndHessian(const Entity& element,
 
         for (size_t subCol=0; subCol<blocksize1; subCol++) {
 
-            typename TargetSpace0::EmbeddedTangentVector z = orthonormalFrame0[col][subCol];
+            typename TargetSpace1::EmbeddedTangentVector z = orthonormalFrame1[col][subCol];
 
             // P_x \partial^2 f z
             for (size_t row=0; row<nDofs0; row++) {
@@ -434,7 +434,7 @@ assembleGradientAndHessian(const Entity& element,
 
         for (size_t subCol=0; subCol<blocksize0; subCol++) {
 
-            typename TargetSpace1::EmbeddedTangentVector z = orthonormalFrame1[col][subCol];
+            typename TargetSpace0::EmbeddedTangentVector z = orthonormalFrame0[col][subCol];
 
             // P_x \partial^2 f z
             for (size_t row=0; row<nDofs1; row++) {
