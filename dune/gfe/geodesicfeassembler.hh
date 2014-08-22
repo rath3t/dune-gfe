@@ -26,9 +26,10 @@ class GeodesicFEAssembler {
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
 
-protected:
-
+public:
     const Basis basis_;
+
+protected:
 
     LocalGeodesicFEStiffness<GridView,
                              typename Basis::LocalFiniteElement,
