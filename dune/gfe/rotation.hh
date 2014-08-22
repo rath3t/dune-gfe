@@ -994,6 +994,28 @@ public:
         return result;
     }
 
+    /** \brief Project tangent vector of R^n onto the normal space space */
+    EmbeddedTangentVector projectOntoNormalSpace(const EmbeddedTangentVector& v) const {
+        Dune::FieldVector<T,4> data = *this;
+        T sp = v*data;
+        EmbeddedTangentVector result = *this;
+        result *= sp;
+        return result;
+    }
+
+    /** \brief The Weingarten map */
+    EmbeddedTangentVector weingarten(const EmbeddedTangentVector& z, const EmbeddedTangentVector& v) const {
+
+        EmbeddedTangentVector result;
+
+        T sp = v*(*this);
+
+        for (int i=0; i<embeddedDim; i++)
+          result[i] = -sp * z[i];
+
+        return result;
+    }
+
     /** \brief The global coordinates, if you really want them */
     const CoordinateType& globalCoordinates() const {
         return *this;

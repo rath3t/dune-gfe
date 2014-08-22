@@ -147,6 +147,16 @@ public:
         return v;
     }
 
+        /** \brief Project tangent vector of R^n onto the normal space space */
+    EmbeddedTangentVector projectOntoNormalSpace(const EmbeddedTangentVector& v) const {
+        return EmbeddedTangentVector(0);
+    }
+
+    /** \brief The Weingarten map */
+    EmbeddedTangentVector weingarten(const EmbeddedTangentVector& z, const EmbeddedTangentVector& v) const {
+        return EmbeddedTangentVector(0);
+    }
+
     /** \brief The global coordinates, if you really want them */
     const Dune::FieldVector<T,N>& globalCoordinates() const {
         return data_;
