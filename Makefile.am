@@ -9,8 +9,8 @@ SUBDIRS = doc m4 dune test
 LDADD = $(IPOPT_LDFLAGS) $(IPOPT_LIBS)
 AM_CPPFLAGS += $(IPOPT_CPPFLAGS)
 
-ADOLC_CPPFLAGS = -I/usr/include
-ADOLC_LDFLAGS = -L/usr/lib
+ADOLC_CPPFLAGS = -I/home/sander/adolc-inst/include
+ADOLC_LDFLAGS = -L/home/sander/adolc-inst/lib64
 ADOLC_LIBS = -ladolc
 
 noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps-eoc rod-eoc
