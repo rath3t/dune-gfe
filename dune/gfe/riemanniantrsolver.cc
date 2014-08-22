@@ -250,9 +250,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
     MaxNormTrustRegion<blocksize> trustRegion(guIndex_->nGlobalEntity(), initialTrustRegionRadius_);
 
-    std::vector<std::vector<BoxConstraint<field_type,blocksize> > > trustRegionObstacles((mgStep)
-                                                                                         ? mgStep->numLevels()
-                                                                                         : 0);
+    std::vector<BoxConstraint<field_type,blocksize> > trustRegionObstacles;
 
    // /////////////////////////////////////////////////////
     //   Set up the log file, if requested
@@ -331,8 +329,8 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         {
             mgStep->setProblem(stiffnessMatrix, corr_global, rhs_global);
 
-            trustRegionObstacles.back() = trustRegion.obstacles();
-            mgStep->obstacles_ = &trustRegionObstacles.back();
+            trustRegionObstacles = trustRegion.obstacles();
+            mgStep->obstacles_ = &trustRegionObstacles;
 
             innerSolver_->preprocess();
 
