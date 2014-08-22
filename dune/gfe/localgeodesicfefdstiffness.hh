@@ -17,6 +17,8 @@ class LocalGeodesicFEFDStiffness
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
+    typedef typename TargetSpace::template rebind<double>::other ATargetSpace;
+
     // some other sizes
     enum {gridDim=GridView::dimension};
 
@@ -28,7 +30,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, TargetSpace>* energy)
+    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -67,7 +69,7 @@ public:
                                  std::vector<typename TargetSpace::TangentVector>& localGradient);
 
 
-    const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, TargetSpace>* localEnergy_;
+    const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* localEnergy_;
 
 };
 
