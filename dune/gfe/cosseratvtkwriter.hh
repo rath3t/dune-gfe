@@ -440,7 +440,10 @@ public:
 
         // We only do P2 spaces at the moment
         if (order != 2)
-          abort();
+        {
+          std::cout << "Warning: CosseratVTKWriter only supports P2 spaces -- skipping" << std::endl;
+          return;
+        }
 
         std::string fullfilename = filename + ".vtu";
 
