@@ -422,6 +422,150 @@ public:
 #endif
     }
 
+    /** \brief Write a configuration given with respect to a scalar function space basis
+     */
+    template <typename DisplacementBasis, typename OrientationBasis>
+    static void writeMixed(const DisplacementBasis& displacementBasis,
+                           const std::vector<RealTuple<double,3> >& displacementConfiguration,
+                           const OrientationBasis& orientationBasis,
+                           const std::vector<Rotation<double,3> >& orientationConfiguration,
+                           const std::string& filename)
+    {
+        assert(displacementBasis.size() == displacementConfiguration.size());
+        assert(orientationBasis.size()  == orientationConfiguration.size());
+        auto gridView = displacementBasis.getGridView();
+
+        // Determine order of the displacement basis
+        int order = displacementBasis.getLocalFiniteElement(*gridView.template begin<0>()).localBasis().order();
+
+        // We only do P2 spaces at the moment
+        if (order != 2)
+          abort();
+
+        std::string fullfilename = filename + ".vtu";
+
+        // Prepend rank and communicator size to the filename, if there are more than one process
+        if (gridView.comm().size() > 1)
+          fullfilename = getParallelPieceName(filename, "", gridView.comm().rank(), gridView.comm().size());
+
+        // Write the pvtu file that ties together the different parts
+        if (gridView.comm().size() > 1 && gridView.comm().rank()==0)
+        {
+          std::ofstream pvtuOutFile(getParallelName(filename, "", gridView.comm().size()));
+          Dune::VTK::PVTUWriter writer(pvtuOutFile, Dune::VTK::unstructuredGrid);
+
+          writer.beginMain();
+
+          //writer.beginPointData();
+          //writer.addArray<float>("director0", 3);
+          //writer.addArray<float>("director1", 3);
+          //writer.addArray<float>("director2", 3);
+          //writer.addArray<float>("zCoord", 1);
+          //writer.endPointData();
+
+          // dump point coordinates
+          writer.beginPoints();
+          writer.addArray<float>("Coordinates", 3);
+          writer.endPoints();
+
+          for (int i=0; i<gridView.comm().size(); i++)
+          writer.addPiece(getParallelPieceName(filename, "", i, gridView.comm().size()));
+
+          // finish main section
+          writer.endMain();
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////
+        //  Write the actual vtu file
+        /////////////////////////////////////////////////////////////////////////////////
+        std::ofstream outFile(fullfilename);
+
+        // Write header
+        outFile << "<?xml version=\"1.0\"?>" << std::endl;
+        outFile << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
+        outFile << "  <UnstructuredGrid>" << std::endl;
+        outFile << "    <Piece NumberOfCells=\"" << gridView.size(0) << "\" NumberOfPoints=\"" << displacementConfiguration.size() << "\">" << std::endl;
+
+        // Write vertex coordinates
+        outFile << "      <Points>" << std::endl;
+        outFile << "        <DataArray type=\"Float32\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
+        for (size_t i=0; i<displacementConfiguration.size(); i++)
+          outFile << "          " << displacementConfiguration[i] << std::endl;
+        outFile << "        </DataArray>" << std::endl;
+        outFile << "      </Points>" << std::endl;
+
+        // Write elements
+        outFile << "      <Cells>" << std::endl;
+
+        outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        {
+          outFile << "          ";
+          if (it->type().isQuadrilateral())
+          {
+            outFile << displacementBasis.index(*it,0) << " ";
+            outFile << displacementBasis.index(*it,2) << " ";
+            outFile << displacementBasis.index(*it,8) << " ";
+            outFile << displacementBasis.index(*it,6) << " ";
+
+            outFile << displacementBasis.index(*it,1) << " ";
+            outFile << displacementBasis.index(*it,5) << " ";
+            outFile << displacementBasis.index(*it,7) << " ";
+            outFile << displacementBasis.index(*it,3) << " ";
+            outFile << std::endl;
+          }
+        }
+        outFile << "         </DataArray>" << std::endl;
+
+        outFile << "         <DataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        size_t offsetCounter = 0;
+        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        {
+          outFile << "          ";
+          if (it->type().isQuadrilateral())
+            offsetCounter += 8;
+          outFile << offsetCounter << std::endl;
+        }
+        outFile << "         </DataArray>" << std::endl;
+
+        outFile << "         <DataArray type=\"UInt8\" Name=\"types\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        {
+          outFile << "          ";
+          if (it->type().isQuadrilateral())
+            outFile << "23" << std::endl;
+        }
+        outFile << "         </DataArray>" << std::endl;
+
+        outFile << "      </Cells>" << std::endl;
+#if 0
+        // Point data
+        outFile << "      <PointData Scalars=\"zCoord\" Vectors=\"director0\">" << std::endl;
+
+        // Z coordinate for better visualization of wrinkles
+        outFile << "        <DataArray type=\"Float32\" Name=\"zCoord\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        for (size_t i=0; i<configuration.size(); i++)
+          outFile << "          " << configuration[i].r[2] << std::endl;
+        outFile << "        </DataArray>" << std::endl;
+
+        // The three director fields
+        for (size_t i=0; i<3; i++)
+        {
+          outFile << "        <DataArray type=\"Float32\" Name=\"director" << i <<"\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
+          for (size_t j=0; j<configuration.size(); j++)
+            outFile << "          " << configuration[j].q.director(i) << std::endl;
+          outFile << "        </DataArray>" << std::endl;
+        }
+
+        outFile << "      </PointData>" << std::endl;
+#endif
+        // Write footer
+        outFile << "    </Piece>" << std::endl;
+        outFile << "  </UnstructuredGrid>" << std::endl;
+        outFile << "</VTKFile>" << std::endl;
+
+    }
+
 };
 
 #endif
