@@ -244,7 +244,7 @@ int main (int argc, char *argv[]) try
     GridView gridView = grid->leafGridView();
 
     typedef P2NodalBasis<GridView,double> DeformationFEBasis;
-    typedef P2NodalBasis<GridView,double> OrientationFEBasis;
+    typedef P1NodalBasis<GridView,double> OrientationFEBasis;
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
@@ -340,7 +340,7 @@ int main (int argc, char *argv[]) try
     // Output initial iterate (of homotopy loop)
     CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,xDisp,
                                                                                    orientationFEBasis,xOrient,
-                                                                                   resultPath + "cosserat_homotopy_0");
+                                                                                   resultPath + "mixed-cosserat_homotopy_0");
 
     for (int i=0; i<numHomotopySteps; i++) {
 
@@ -461,7 +461,7 @@ int main (int argc, char *argv[]) try
         iAsAscii << i+1;
         CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,xDisp,
                                                                                        orientationFEBasis,xOrient,
-                                                                                       resultPath + "cosserat_homotopy_" + iAsAscii.str());
+                                                                                       resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
 
     }
 

@@ -610,7 +610,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         iAsAscii << i+1;
         CosseratVTKWriter<GridType>::template writeMixed<Basis0,Basis1>(assembler_->basis0_,x0_,
                                                                         assembler_->basis1_,x1_,
-                                                                        "cosserat_iterate_" + iAsAscii.str());
+                                                                        "mixed-cosserat_iterate_" + iAsAscii.str());
 
         if (rank==0)
             std::cout << "iteration took " << totalTimer.elapsed() << " sec." << std::endl;
