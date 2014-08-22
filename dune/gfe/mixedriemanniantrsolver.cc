@@ -445,6 +445,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
 
 
             std::cout << "Solve quadratic problem..." << std::endl;
+            double oldEnergy = 0;
             Dune::Timer solutionTimer;
             for (int ii=0; ii<200; ii++)
             {
@@ -459,6 +460,24 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
               mmgStep1->setRhs(residual1);
               mmgStep1->iterate();
 
+              // Compute energy
+              CorrectionType0 tmp0(corr_global0);
+              stiffnessMatrix00.mv(corr_global0,tmp0);
+              stiffnessMatrix01.umv(corr_global1,tmp0);
+
+              CorrectionType1 tmp1(corr_global1);
+              stiffnessMatrix10.mv(corr_global0,tmp1);
+              stiffnessMatrix11.umv(corr_global1,tmp1);
+
+              double energy = 0.5 * (tmp0*corr_global0 + tmp1*corr_global1) - (rhs_global0*corr_global0 + rhs_global1*corr_global1);
+
+
+              std::cout << "Energy: " << energy << std::endl;
+
+              if (energy >= oldEnergy)
+                DUNE_THROW(Dune::Exception, "energy increase!");
+
+              oldEnergy = energy;
             }
 
             std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
