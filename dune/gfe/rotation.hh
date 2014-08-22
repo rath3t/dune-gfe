@@ -224,6 +224,14 @@ public:
       typedef Rotation<U,3> other;
     };
 
+    Rotation& operator= (const Dune::FieldVector<T,4>& other)
+    {
+      for (int i=0; i<4; i++)
+        (*this)[i] = other[i];
+      *this /= this->two_norm();
+      return *this;
+    }
+
     /** \brief Assigment from RigidBodyMotion with different type -- used for automatic differentiation with ADOL-C */
     template <class T2>
     Rotation& operator <<= (const Rotation<T2,3>& other) {
