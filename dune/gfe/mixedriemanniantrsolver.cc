@@ -428,29 +428,38 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             ///////////////////////////////
             //    Solve !
             ///////////////////////////////
+            CorrectionType0 residual0 = rhs_global0;
+            CorrectionType1 residual1 = rhs_global1;
+
+            mmgStep0->setProblem(stiffnessMatrix00, corr_global0, residual0);
+            trustRegionObstacles0 = trustRegion0.obstacles();
+            mmgStep0->obstacles_ = &trustRegionObstacles0;
+
+            mmgStep0->preprocess();
+
+            mmgStep1->setProblem(stiffnessMatrix11, corr_global1, residual1);
+            trustRegionObstacles1 = trustRegion1.obstacles();
+            mmgStep1->obstacles_ = &trustRegionObstacles1;
+
+            mmgStep1->preprocess();
+
 
             std::cout << "Solve quadratic problem..." << std::endl;
             Dune::Timer solutionTimer;
             for (int ii=0; ii<200; ii++)
             {
               std::cout << "Iteration " << ii << std::endl;
-              CorrectionType0 residual0 = rhs_global0;
-              CorrectionType1 residual1 = rhs_global1;
+              residual0 = rhs_global0;
+              residual1 = rhs_global1;
 
               stiffnessMatrix01.mmv(corr_global1, residual0);
               mmgStep0->setProblem(stiffnessMatrix00, corr_global0, residual0);
-              trustRegionObstacles0 = trustRegion0.obstacles();
-              mmgStep0->obstacles_ = &trustRegionObstacles0;
 
-              mmgStep0->preprocess();
               mmgStep0->iterate();
 
               stiffnessMatrix10.mmv(corr_global0, residual1);
               mmgStep1->setProblem(stiffnessMatrix11, corr_global1, residual1);
-              trustRegionObstacles1 = trustRegion1.obstacles();
-              mmgStep1->obstacles_ = &trustRegionObstacles1;
 
-              mmgStep1->preprocess();
               mmgStep1->iterate();
 
             }
