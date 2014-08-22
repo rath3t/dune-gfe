@@ -13,7 +13,9 @@ ADOLC_CPPFLAGS = -I/home/sander/adolc-inst/include
 ADOLC_LDFLAGS = -L/home/sander/adolc-inst/lib64
 ADOLC_LIBS = -ladolc
 
-noinst_PROGRAMS = cosserat-continuum rodobstacle rod3d harmonicmaps harmonicmaps-eoc rod-eoc
+noinst_PROGRAMS = cosserat-continuum \
+                  mixed-cosserat-continuum \
+                  rodobstacle rod3d harmonicmaps harmonicmaps-eoc rod-eoc
 
 cosserat_continuum_SOURCES  = cosserat-continuum.cc
 cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
@@ -21,6 +23,14 @@ cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
 cosserat_continuum_LDADD    = $(UG_LIBS) $(IPOPT_LIBS) \
                               $(ADOLC_LIBS) $(PYTHON_LIBS)
 cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
+                              $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS)
+
+mixed_cosserat_continuum_SOURCES  = mixed-cosserat-continuum.cc
+mixed_cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
+                              $(ADOLC_CPPFLAGS) $(PYTHON_CPPFLAGS)
+mixed_cosserat_continuum_LDADD    = $(UG_LIBS) $(IPOPT_LIBS) \
+                              $(ADOLC_LIBS) $(PYTHON_LIBS)
+mixed_cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
                               $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS)
 
 rodobstacle_SOURCES = rodobstacle.cc
