@@ -450,16 +450,13 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             {
               std::cout << "Iteration " << ii << std::endl;
               residual0 = rhs_global0;
-              residual1 = rhs_global1;
-
               stiffnessMatrix01.mmv(corr_global1, residual0);
-              mmgStep0->setProblem(stiffnessMatrix00, corr_global0, residual0);
-
+              mmgStep0->setRhs(residual0);
               mmgStep0->iterate();
 
+              residual1 = rhs_global1;
               stiffnessMatrix10.mmv(corr_global0, residual1);
-              mmgStep1->setProblem(stiffnessMatrix11, corr_global1, residual1);
-
+              mmgStep1->setRhs(residual1);
               mmgStep1->iterate();
 
             }
