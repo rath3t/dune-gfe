@@ -70,43 +70,7 @@ assembleGradient(const Entity& element,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
-
-    // ///////////////////////////////////////////////////////////
-    //   Compute gradient by finite-difference approximation
-    // ///////////////////////////////////////////////////////////
-
-    double eps = 1e-6;
-
-    localGradient.resize(localSolution.size());
-
-    std::vector<TargetSpace> forwardSolution = localSolution;
-    std::vector<TargetSpace> backwardSolution = localSolution;
-
-    for (size_t i=0; i<localSolution.size(); i++) {
-
-        // basis vectors of the tangent space of the i-th entry of localSolution
-        const Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> B = localSolution[i].orthonormalFrame();
-
-        for (int j=0; j<blocksize; j++) {
-
-            typename TargetSpace::EmbeddedTangentVector forwardCorrection = B[j];
-            forwardCorrection *= eps;
-
-            typename TargetSpace::EmbeddedTangentVector backwardCorrection = B[j];
-            backwardCorrection *= -eps;
-
-            forwardSolution[i]  = TargetSpace::exp(localSolution[i], forwardCorrection);
-            backwardSolution[i] = TargetSpace::exp(localSolution[i], backwardCorrection);
-
-            localGradient[i][j] = (energy(element,localFiniteElement,forwardSolution) - energy(element,localFiniteElement, backwardSolution)) / (2*eps);
-
-        }
-
-        forwardSolution[i]  = localSolution[i];
-        backwardSolution[i] = localSolution[i];
-
-    }
-
+  DUNE_THROW(Dune::NotImplemented, "!");
 }
 
 
@@ -120,103 +84,7 @@ assembleGradientAndHessian(const Entity& element,
                 const std::vector<TargetSpace>& localSolution,
                 std::vector<typename TargetSpace::TangentVector>& localGradient)
 {
-    // Number of degrees of freedom for this element
-    size_t nDofs = localSolution.size();
-
-    // Clear assemble data
-    A_.setSize(nDofs, nDofs);
-
-    A_ = 0;
-
-    const double eps = 1e-4;
-
-    std::vector<Dune::FieldMatrix<double,blocksize,embeddedBlocksize> > B(localSolution.size());
-    for (size_t i=0; i<B.size(); i++)
-        B[i] = localSolution[i].orthonormalFrame();
-
-    // Precompute negative energy at the current configuration
-    // (negative because that is how we need it as part of the 2nd-order fd formula)
-    RT centerValue   = -energy(element, localFiniteElement, localSolution);
-
-    // Precompute energy infinitesimal corrections in the directions of the local basis vectors
-    std::vector<Dune::array<RT,blocksize> > forwardEnergy(nDofs);
-    std::vector<Dune::array<RT,blocksize> > backwardEnergy(nDofs);
-
-    //#pragma omp parallel for schedule (dynamic)
-    for (size_t i=0; i<localSolution.size(); i++) {
-        for (size_t i2=0; i2<blocksize; i2++) {
-            typename TargetSpace::EmbeddedTangentVector epsXi = B[i][i2];
-            epsXi *= eps;
-            typename TargetSpace::EmbeddedTangentVector minusEpsXi = epsXi;
-            minusEpsXi  *= -1;
-
-            std::vector<TargetSpace> forwardSolution  = localSolution;
-            std::vector<TargetSpace> backwardSolution = localSolution;
-
-            forwardSolution[i]  = TargetSpace::exp(localSolution[i],epsXi);
-            backwardSolution[i] = TargetSpace::exp(localSolution[i],minusEpsXi);
-
-            forwardEnergy[i][i2]  = energy(element, localFiniteElement, forwardSolution);
-            backwardEnergy[i][i2] = energy(element, localFiniteElement, backwardSolution);
-
-        }
-
-    }
-
-    //////////////////////////////////////////////////////////////
-    //   Compute gradient by finite-difference approximation
-    //////////////////////////////////////////////////////////////
-
-    localGradient.resize(localSolution.size());
-
-    for (size_t i=0; i<localSolution.size(); i++)
-        for (int j=0; j<blocksize; j++)
-            localGradient[i][j] = (forwardEnergy[i][j] - backwardEnergy[i][j]) / (2*eps);
-
-
-    ///////////////////////////////////////////////////////////////////////////
-    //   Compute Riemannian Hesse matrix by finite-difference approximation.
-    //   We loop over the lower left triangular half of the matrix.
-    //   The other half follows from symmetry.
-    ///////////////////////////////////////////////////////////////////////////
-    //#pragma omp parallel for schedule (dynamic)
-    for (size_t i=0; i<localSolution.size(); i++) {
-        for (size_t i2=0; i2<blocksize; i2++) {
-            for (size_t j=0; j<=i; j++) {
-                for (size_t j2=0; j2<((i==j) ? i2+1 : blocksize); j2++) {
-
-                    std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
-                    std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
-
-                    typename TargetSpace::EmbeddedTangentVector epsXi  = B[i][i2];    epsXi *= eps;
-                    typename TargetSpace::EmbeddedTangentVector epsEta = B[j][j2];   epsEta *= eps;
-
-                    typename TargetSpace::EmbeddedTangentVector minusEpsXi  = epsXi;   minusEpsXi  *= -1;
-                    typename TargetSpace::EmbeddedTangentVector minusEpsEta = epsEta;  minusEpsEta *= -1;
-
-                    if (i==j)
-                        forwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],epsXi+epsEta);
-                    else {
-                        forwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],epsXi);
-                        forwardSolutionXiEta[j] = TargetSpace::exp(localSolution[j],epsEta);
-                    }
-
-                    if (i==j)
-                        backwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],minusEpsXi+minusEpsEta);
-                    else {
-                        backwardSolutionXiEta[i] = TargetSpace::exp(localSolution[i],minusEpsXi);
-                        backwardSolutionXiEta[j] = TargetSpace::exp(localSolution[j],minusEpsEta);
-                    }
-
-                    RT forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
-                    RT backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
-
-                    A_[i][j][i2][j2] = A_[j][i][j2][i2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
-
-                }
-            }
-        }
-    }
+  DUNE_THROW(Dune::NotImplemented, "!");
 }
 
 #endif
