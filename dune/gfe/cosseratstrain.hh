@@ -54,6 +54,38 @@ namespace Dune {
 
       }
 
+      /** \brief Compute strain from the deformation gradient and the microrotation
+       *
+       * \param R The microrotation
+       */
+      CosseratStrain(const FieldMatrix<T,dimworld,dim>& deformationGradient,
+                     const FieldMatrix<T,dimworld,dimworld>& R)
+      {
+        /* Compute F, the deformation gradient.
+           In the continuum case (domain dimension == world dimension) this is
+           \f$ \hat{F} = \nabla m  \f$
+           In the case of a shell it is
+          \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
+        */
+        FieldMatrix<T,dimworld,dimworld> F;
+        for (int i=0; i<dimworld; i++)
+            for (int j=0; j<dim; j++)
+                F[i][j] = deformationGradient[i][j];
+
+        for (int i=0; i<dimworld; i++)
+            for (int j=dim; j<dimworld; j++)
+                F[i][j] = R[i][j];
+
+        // U = R^T F
+        for (int i=0; i<dimworld; i++)
+            for (int j=0; j<dimworld; j++) {
+                data_[i][j] = 0;
+                for (int k=0; k<dimworld; k++)
+                    data_[i][j] += R[k][i] * F[k][j];
+            }
+
+      }
+
       T determinant() const
       {
         return data_.determinant();
