@@ -259,8 +259,8 @@ int main (int argc, char *argv[]) try
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    BitSetVector<1> dirichletVertices(feBasis.size(), false);
-    BitSetVector<1> neumannNodes(feBasis.size(), false);
+    BitSetVector<1> dirichletVertices(gridView.size(dim), false);
+    BitSetVector<1> neumannNodes(gridView.size(dim), false);
 
     GridType::Codim<dim>::LeafIterator vIt    = gridView.begin<dim>();
     GridType::Codim<dim>::LeafIterator vEndIt = gridView.end<dim>();
