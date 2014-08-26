@@ -85,6 +85,26 @@ class CosseratVTKWriter
         v2[i] = RigidBodyMotion<double,3>(v2Embedded[i]);
     }
 
+    template <typename Basis1, typename Basis2>
+    static void downsample(const Basis1& basis1, const std::vector<RealTuple<double,3> >& v1,
+                           const Basis2& basis2,       std::vector<RealTuple<double,3> >& v2)
+    {
+      // Copy from RealTuple to FieldVector
+      std::vector<Dune::FieldVector<double,3> > v1Embedded(v1.size());
+      for (size_t i=0; i<v1.size(); i++)
+        v1Embedded[i] = v1[i].globalCoordinates();
+
+      // Interpolate
+      BasisGridFunction<Basis1, std::vector<Dune::FieldVector<double,3> > > function(basis1, v1Embedded);
+      std::vector<Dune::FieldVector<double,3> > v2Embedded;
+      Functions::interpolate(basis2, v2Embedded, function);
+
+      // Copy back from FieldVector to RealTuple
+      v2.resize(v2Embedded.size());
+      for (size_t i=0; i<v2.size(); i++)
+        v2[i] = RealTuple<double,3>(v2Embedded[i]);
+    }
+
     /** \brief Extend filename to contain communicator rank and size
      *
      * Copied from dune-grid vtkwriter.hh
@@ -426,12 +446,12 @@ public:
      */
     template <typename DisplacementBasis, typename OrientationBasis>
     static void writeMixed(const DisplacementBasis& displacementBasis,
-                           const std::vector<RealTuple<double,3> >& displacementConfiguration,
+                           const std::vector<RealTuple<double,3> >& deformationConfiguration,
                            const OrientationBasis& orientationBasis,
                            const std::vector<Rotation<double,3> >& orientationConfiguration,
                            const std::string& filename)
     {
-        assert(displacementBasis.size() == displacementConfiguration.size());
+        assert(displacementBasis.size() == deformationConfiguration.size());
         assert(orientationBasis.size()  == orientationConfiguration.size());
         auto gridView = displacementBasis.getGridView();
 
@@ -439,10 +459,26 @@ public:
         int order = displacementBasis.getLocalFiniteElement(*gridView.template begin<0>()).localBasis().order();
 
         // We only do P2 spaces at the moment
-        if (order != 2)
+        if (order != 2 and order != 3)
         {
           std::cout << "Warning: CosseratVTKWriter only supports P2 spaces -- skipping" << std::endl;
           return;
+        }
+
+        std::vector<RealTuple<double,3> > displacementConfiguration = deformationConfiguration;
+        typedef typename GridType::LeafGridView GridView;
+        typedef P2NodalBasis<GridView,double> P2DeformationBasis;
+        P2DeformationBasis p2DeformationBasis(displacementBasis.getGridView());
+
+        if (order == 3)
+        {
+          // resample to 2nd order -- vtk can't do anything higher
+          std::vector<RealTuple<double,3> > p2DeformationConfiguration;
+
+          downsample<DisplacementBasis,P2DeformationBasis>(displacementBasis, displacementConfiguration,
+                     p2DeformationBasis, p2DeformationConfiguration);
+
+          displacementConfiguration = p2DeformationConfiguration;
         }
 
         std::string fullfilename = filename + ".vtu";
@@ -506,15 +542,15 @@ public:
           outFile << "          ";
           if (it->type().isQuadrilateral())
           {
-            outFile << displacementBasis.index(*it,0) << " ";
-            outFile << displacementBasis.index(*it,2) << " ";
-            outFile << displacementBasis.index(*it,8) << " ";
-            outFile << displacementBasis.index(*it,6) << " ";
+            outFile << p2DeformationBasis.index(*it,0) << " ";
+            outFile << p2DeformationBasis.index(*it,2) << " ";
+            outFile << p2DeformationBasis.index(*it,8) << " ";
+            outFile << p2DeformationBasis.index(*it,6) << " ";
 
-            outFile << displacementBasis.index(*it,1) << " ";
-            outFile << displacementBasis.index(*it,5) << " ";
-            outFile << displacementBasis.index(*it,7) << " ";
-            outFile << displacementBasis.index(*it,3) << " ";
+            outFile << p2DeformationBasis.index(*it,1) << " ";
+            outFile << p2DeformationBasis.index(*it,5) << " ";
+            outFile << p2DeformationBasis.index(*it,7) << " ";
+            outFile << p2DeformationBasis.index(*it,3) << " ";
             outFile << std::endl;
           }
         }
