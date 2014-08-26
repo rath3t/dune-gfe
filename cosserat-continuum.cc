@@ -97,7 +97,7 @@ public:
   {
     Python::runStream()
         << std::endl << "def orientationDirichletValues(x):"
-        << std::endl << "    rotation = numpy.array([[1,0,0], [0, 1, 0], [0, 0, 1]])"
+        << std::endl << "    rotation = [[1,0,0], [0, 1, 0], [0, 0, 1]]"
         << std::endl << "    return rotation";
   }
 
@@ -130,7 +130,7 @@ public:
         << std::endl << "    center = [0, 0, 0]"
         << std::endl << "    center[1] = upper[1]/2.0"
 
-        << std::endl << "    rotation = numpy.array([[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]])"
+        << std::endl << "    rotation = [[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]]"
 
         << std::endl << "    inEmbedded = [x[0]-center[0], x[1]-center[1], 0-center[2]]"
 
@@ -149,7 +149,7 @@ public:
         << std::endl << "    angle = " << totalAngle_ << " * x[0]/upper[0];"
         << std::endl << "    angle *= " << homotopy_
 
-        << std::endl << "    rotation = numpy.array([[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]])"
+        << std::endl << "    rotation = [[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]]"
         << std::endl << "    return rotation";
   }
 
@@ -185,7 +185,6 @@ int main (int argc, char *argv[]) try
     Python::start();
     Python::Reference main = Python::import("__main__");
     Python::run("import math");
-    Python::run("import numpy");
 
     //feenableexcept(FE_INVALID);
 
