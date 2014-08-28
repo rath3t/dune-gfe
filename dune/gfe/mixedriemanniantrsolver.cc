@@ -474,8 +474,9 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
 
               std::cout << "Energy: " << energy << std::endl;
 
-              if (energy >= oldEnergy)
-                DUNE_THROW(Dune::Exception, "energy increase!");
+              if (energy > oldEnergy)
+                //DUNE_THROW(Dune::Exception, "energy increase!");
+                std::cout << "Warning: energy increase!" << std::endl;
 
               oldEnergy = energy;
             }
