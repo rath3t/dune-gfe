@@ -340,7 +340,9 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
             std::cout << "Solve quadratic problem..." << std::endl;
 
+            Dune::Timer solutionTimer;
             innerSolver_->solve();
+            std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
 
             if (mgStep)
                 corr_global = mgStep->getSol();
