@@ -204,7 +204,7 @@ public:
 
         RT detU = U.determinant();
 
-        return mu_ * sym(UMinus1).frobenius_norm2()
+        return mu_ * sym(UMinus1).frobenius_norm2() + mu_c_ * skew(UMinus1).frobenius_norm2()
                 + (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
     }
 
