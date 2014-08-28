@@ -11,6 +11,10 @@ adouble abs_hack(adouble a) {
   return fabs(a);
 }
 
+adouble log_hack(adouble a) {
+  return log(a);
+}
+
 adouble pow_hack(const adouble& a, const adouble& b) {
     return pow(a,b);
 }
@@ -50,6 +54,10 @@ namespace std
 
    adouble abs(adouble a) {
      return abs_hack(a);
+   }
+
+   adouble log(adouble a) {
+     return log_hack(a);
    }
 
    adouble pow(const adouble& a, const adouble& b) {
