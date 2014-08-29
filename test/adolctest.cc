@@ -16,7 +16,6 @@
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/grid/yaspgrid.hh>
-#include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/istl/io.hh>
 
@@ -465,16 +464,13 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     typedef YaspGrid<dim> GridType;
 
-    shared_ptr<GridType> grid;
-
-    FieldVector<double,dim> lower = {{0, 0}};
     FieldVector<double,dim> upper = {{0.38, 0.128}};
 
-    array<unsigned int,dim> elements = {{15, 5}};
-    grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+    array<int,dim> elements = {{15, 5}};
+    GridType grid(upper, elements);
 
     typedef GridType::LeafGridView GridView;
-    GridView gridView = grid->leafGridView();
+    GridView gridView = grid.leafGridView();
 
     typedef P2NodalBasis<GridView,double> FEBasis;
     FEBasis feBasis(gridView);
