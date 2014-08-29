@@ -574,7 +574,7 @@ public:
         T sp = a.globalCoordinates() * b.globalCoordinates();
 
         // Scalar product may be larger than 1.0, due to numerical dirt
-        T dist = 2*std::acos( std::min(sp,1.0) );
+        T dist = 2*std::acos( std::min(sp,T(1.0)) );
 
         // Make sure we do the right thing if a and b are not in the same sheet
         // of the double covering of the unit quaternions over SO(3)
