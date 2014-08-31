@@ -296,23 +296,6 @@ public:
     : localEnergy_(energy)
     {}
 
-    /** \brief Compute the energy at the current configuration */
-    virtual field_type energy (const Entity& element,
-               const LocalFiniteElement& localFiniteElement,
-               const std::vector<TargetSpace>& localSolution) const
-    {
-      std::vector<ATargetSpace> localASolution(localSolution.size());
-      std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
-      for (size_t i=0; i<localSolution.size(); i++) {
-        typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
-        for (size_t j=0; j<raw.size(); j++)
-          aRaw[i][j] = raw[j];
-        localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
-      }
-
-      return localEnergy_->energy(element,localFiniteElement,localASolution);
-    }
-
     virtual void assembleGradientAndHessian(const Entity& e,
                                  const LocalFiniteElement& localFiniteElement,
                                  const std::vector<TargetSpace>& localSolution,
@@ -361,7 +344,7 @@ assembleGradientAndHessian(const Entity& element,
 
     // Precompute negative energy at the current configuration
     // (negative because that is how we need it as part of the 2nd-order fd formula)
-    field_type centerValue   = -energy(element, localFiniteElement, localSolution);
+    field_type centerValue   = -localEnergy_->energy(element, localFiniteElement, localSolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
     std::vector<Dune::array<field_type,embeddedBlocksize> > forwardEnergy(nDofs);
@@ -380,8 +363,8 @@ assembleGradientAndHessian(const Entity& element,
             forwardSolution[i]  = ATargetSpace(localASolution[i].globalCoordinates() + epsXi);
             backwardSolution[i] = ATargetSpace(localASolution[i].globalCoordinates() + minusEpsXi);
 
-            forwardEnergy[i][i2]  = energy(element, localFiniteElement, forwardSolution);
-            backwardEnergy[i][i2] = energy(element, localFiniteElement, backwardSolution);
+            forwardEnergy[i][i2]  = localEnergy_->energy(element, localFiniteElement, forwardSolution);
+            backwardEnergy[i][i2] = localEnergy_->energy(element, localFiniteElement, backwardSolution);
 
         }
 
@@ -431,8 +414,8 @@ assembleGradientAndHessian(const Entity& element,
                         backwardSolutionXiEta[j] = ATargetSpace(localASolution[j].globalCoordinates() + minusEpsEta);
                     }
 
-                    field_type forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
-                    field_type backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
+                    field_type forwardValue  = localEnergy_->energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
+                    field_type backwardValue = localEnergy_->energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
                     localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
 
