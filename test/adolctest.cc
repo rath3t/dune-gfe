@@ -4,6 +4,8 @@
 
 #include <fenv.h>
 
+typedef double FDType;
+
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
@@ -279,6 +281,9 @@ class LocalGeodesicFEFDStiffness
     typedef typename GridView::Grid::ctype DT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
+    typedef typename TargetSpace::template rebind<field_type>::other ATargetSpace;
+
+
 public:
 
     //! Dimension of a tangent space
@@ -287,7 +292,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, TargetSpace>* energy)
+    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -296,7 +301,16 @@ public:
                const LocalFiniteElement& localFiniteElement,
                const std::vector<TargetSpace>& localSolution) const
     {
-      return localEnergy_->energy(element,localFiniteElement,localSolution);
+      std::vector<ATargetSpace> localASolution(localSolution.size());
+      std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
+      for (size_t i=0; i<localSolution.size(); i++) {
+        typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
+        for (size_t j=0; j<raw.size(); j++)
+          aRaw[i][j] = raw[j];
+        localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
+      }
+
+      return localEnergy_->energy(element,localFiniteElement,localASolution);
     }
 
     virtual void assembleGradientAndHessian(const Entity& e,
@@ -305,7 +319,7 @@ public:
                                  std::vector<Dune::FieldVector<double,4> >& localGradient,
                                  Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& localHessian);
 
-    const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, TargetSpace>* localEnergy_;
+    const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* localEnergy_;
 };
 
 // ///////////////////////////////////////////////////////////
@@ -328,6 +342,15 @@ assembleGradientAndHessian(const Entity& element,
 
     const field_type eps = 1e-4;
 
+    std::vector<ATargetSpace> localASolution(localSolution.size());
+    std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
+    for (size_t i=0; i<localSolution.size(); i++) {
+      typename TargetSpace::CoordinateType raw = localSolution[i].globalCoordinates();
+      for (size_t j=0; j<raw.size(); j++)
+          aRaw[i][j] = raw[j];
+      localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
+    }
+
     std::vector<Dune::FieldMatrix<field_type,embeddedBlocksize,embeddedBlocksize> > B(localSolution.size());
     for (size_t i=0; i<B.size(); i++)
     {
@@ -346,16 +369,16 @@ assembleGradientAndHessian(const Entity& element,
 
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<embeddedBlocksize; i2++) {
-            typename TargetSpace::EmbeddedTangentVector epsXi = B[i][i2];
+            typename ATargetSpace::EmbeddedTangentVector epsXi = B[i][i2];
             epsXi *= eps;
-            typename TargetSpace::EmbeddedTangentVector minusEpsXi = epsXi;
+            typename ATargetSpace::EmbeddedTangentVector minusEpsXi = epsXi;
             minusEpsXi  *= -1;
 
-            std::vector<TargetSpace> forwardSolution  = localSolution;
-            std::vector<TargetSpace> backwardSolution = localSolution;
+            std::vector<ATargetSpace> forwardSolution  = localASolution;
+            std::vector<ATargetSpace> backwardSolution = localASolution;
 
-            forwardSolution[i]  = TargetSpace(localSolution[i].globalCoordinates() + epsXi);
-            backwardSolution[i] = TargetSpace(localSolution[i].globalCoordinates() + minusEpsXi);
+            forwardSolution[i]  = ATargetSpace(localASolution[i].globalCoordinates() + epsXi);
+            backwardSolution[i] = ATargetSpace(localASolution[i].globalCoordinates() + minusEpsXi);
 
             forwardEnergy[i][i2]  = energy(element, localFiniteElement, forwardSolution);
             backwardEnergy[i][i2] = energy(element, localFiniteElement, backwardSolution);
@@ -385,27 +408,27 @@ assembleGradientAndHessian(const Entity& element,
             for (size_t j=0; j<=i; j++) {
                 for (size_t j2=0; j2<((i==j) ? i2+1 : embeddedBlocksize); j2++) {
 
-                    std::vector<TargetSpace> forwardSolutionXiEta  = localSolution;
-                    std::vector<TargetSpace> backwardSolutionXiEta  = localSolution;
+                    std::vector<ATargetSpace> forwardSolutionXiEta  = localASolution;
+                    std::vector<ATargetSpace> backwardSolutionXiEta  = localASolution;
 
-                    typename TargetSpace::EmbeddedTangentVector epsXi  = B[i][i2];    epsXi *= eps;
-                    typename TargetSpace::EmbeddedTangentVector epsEta = B[j][j2];   epsEta *= eps;
+                    typename ATargetSpace::EmbeddedTangentVector epsXi  = B[i][i2];    epsXi *= eps;
+                    typename ATargetSpace::EmbeddedTangentVector epsEta = B[j][j2];   epsEta *= eps;
 
-                    typename TargetSpace::EmbeddedTangentVector minusEpsXi  = epsXi;   minusEpsXi  *= -1;
-                    typename TargetSpace::EmbeddedTangentVector minusEpsEta = epsEta;  minusEpsEta *= -1;
+                    typename ATargetSpace::EmbeddedTangentVector minusEpsXi  = epsXi;   minusEpsXi  *= -1;
+                    typename ATargetSpace::EmbeddedTangentVector minusEpsEta = epsEta;  minusEpsEta *= -1;
 
                     if (i==j)
-                        forwardSolutionXiEta[i] = TargetSpace(localSolution[i].globalCoordinates() + epsXi+epsEta);
+                        forwardSolutionXiEta[i] = ATargetSpace(localASolution[i].globalCoordinates() + epsXi+epsEta);
                     else {
-                        forwardSolutionXiEta[i] = TargetSpace(localSolution[i].globalCoordinates() + epsXi);
-                        forwardSolutionXiEta[j] = TargetSpace(localSolution[j].globalCoordinates() + epsEta);
+                        forwardSolutionXiEta[i] = ATargetSpace(localASolution[i].globalCoordinates() + epsXi);
+                        forwardSolutionXiEta[j] = ATargetSpace(localASolution[j].globalCoordinates() + epsEta);
                     }
 
                     if (i==j)
-                        backwardSolutionXiEta[i] = TargetSpace(localSolution[i].globalCoordinates() + minusEpsXi+minusEpsEta);
+                        backwardSolutionXiEta[i] = ATargetSpace(localASolution[i].globalCoordinates() + minusEpsXi+minusEpsEta);
                     else {
-                        backwardSolutionXiEta[i] = TargetSpace(localSolution[i].globalCoordinates() + minusEpsXi);
-                        backwardSolutionXiEta[j] = TargetSpace(localSolution[j].globalCoordinates() + minusEpsEta);
+                        backwardSolutionXiEta[i] = ATargetSpace(localASolution[i].globalCoordinates() + minusEpsXi);
+                        backwardSolutionXiEta[j] = ATargetSpace(localASolution[j].globalCoordinates() + minusEpsEta);
                     }
 
                     field_type forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
@@ -521,10 +544,10 @@ int main (int argc, char *argv[]) try
 
     CosseratEnergyLocalStiffness<GridView,
                                  FEBasis::LocalFiniteElement,
-                                 3,double> cosseratEnergyFDLocalStiffness;
+                                 3,FDType> cosseratEnergyFDLocalStiffness;
 
     LocalGeodesicFEFDStiffness<GridView,
-                             FEBasis::LocalFiniteElement> localGFEFDStiffness(&cosseratEnergyFDLocalStiffness);
+                             FEBasis::LocalFiniteElement,FDType> localGFEFDStiffness(&cosseratEnergyFDLocalStiffness);
 
     // Compute and compare matrices
     auto it    = gridView.template begin<0>();
