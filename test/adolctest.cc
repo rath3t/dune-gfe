@@ -270,14 +270,13 @@ assembleGradientAndHessian(const Entity& element,
 
 }
 
-/** \brief Assembles energy gradient and Hessian with ADOL-C
+/** \brief Assembles energy gradient and Hessian with finite differences
  */
-template<class GridView, class LocalFiniteElement>
+template<class GridView, class LocalFiniteElement, class field_type=double>
 class LocalGeodesicFEFDStiffness
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
-    typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
 public:
@@ -293,7 +292,7 @@ public:
     {}
 
     /** \brief Compute the energy at the current configuration */
-    virtual RT energy (const Entity& element,
+    virtual field_type energy (const Entity& element,
                const LocalFiniteElement& localFiniteElement,
                const std::vector<TargetSpace>& localSolution) const
     {
@@ -304,7 +303,7 @@ public:
                                  const LocalFiniteElement& localFiniteElement,
                                  const std::vector<TargetSpace>& localSolution,
                                  std::vector<Dune::FieldVector<double,4> >& localGradient,
-                                 Dune::Matrix<Dune::FieldMatrix<RT,embeddedBlocksize,embeddedBlocksize> >& localHessian);
+                                 Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& localHessian);
 
     const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, TargetSpace>* localEnergy_;
 };
@@ -312,13 +311,13 @@ public:
 // ///////////////////////////////////////////////////////////
 //   Compute gradient by finite-difference approximation
 // ///////////////////////////////////////////////////////////
-template <class GridType, class LocalFiniteElement>
-void LocalGeodesicFEFDStiffness<GridType, LocalFiniteElement>::
+template <class GridType, class LocalFiniteElement, class field_type>
+void LocalGeodesicFEFDStiffness<GridType, LocalFiniteElement, field_type>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const std::vector<TargetSpace>& localSolution,
                 std::vector<Dune::FieldVector<double, 4> >& localGradient,
-                Dune::Matrix<Dune::FieldMatrix<RT,embeddedBlocksize,embeddedBlocksize> >& localHessian)
+                Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& localHessian)
 {
     // Number of degrees of freedom for this element
     size_t nDofs = localSolution.size();
@@ -327,9 +326,9 @@ assembleGradientAndHessian(const Entity& element,
     localHessian.setSize(nDofs, nDofs);
     localHessian = 0;
 
-    const double eps = 1e-4;
+    const field_type eps = 1e-4;
 
-    std::vector<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > B(localSolution.size());
+    std::vector<Dune::FieldMatrix<field_type,embeddedBlocksize,embeddedBlocksize> > B(localSolution.size());
     for (size_t i=0; i<B.size(); i++)
     {
         B[i] = 0;
@@ -339,11 +338,11 @@ assembleGradientAndHessian(const Entity& element,
 
     // Precompute negative energy at the current configuration
     // (negative because that is how we need it as part of the 2nd-order fd formula)
-    RT centerValue   = -energy(element, localFiniteElement, localSolution);
+    field_type centerValue   = -energy(element, localFiniteElement, localSolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
-    std::vector<Dune::array<RT,embeddedBlocksize> > forwardEnergy(nDofs);
-    std::vector<Dune::array<RT,embeddedBlocksize> > backwardEnergy(nDofs);
+    std::vector<Dune::array<field_type,embeddedBlocksize> > forwardEnergy(nDofs);
+    std::vector<Dune::array<field_type,embeddedBlocksize> > backwardEnergy(nDofs);
 
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<embeddedBlocksize; i2++) {
@@ -409,8 +408,8 @@ assembleGradientAndHessian(const Entity& element,
                         backwardSolutionXiEta[j] = TargetSpace(localSolution[j].globalCoordinates() + minusEpsEta);
                     }
 
-                    RT forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
-                    RT backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
+                    field_type forwardValue  = energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
+                    field_type backwardValue = energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
                     localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
 
