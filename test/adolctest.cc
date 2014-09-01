@@ -4,7 +4,10 @@
 
 #include <fenv.h>
 
-typedef double FDType;
+#include <boost/multiprecision/mpfr.hpp>
+
+//typedef double FDType;
+typedef boost::multiprecision::mpfr_float_50 FDType;
 
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
@@ -344,7 +347,7 @@ assembleGradientAndHessian(const Entity& element,
 
     // Precompute negative energy at the current configuration
     // (negative because that is how we need it as part of the 2nd-order fd formula)
-    field_type centerValue   = -localEnergy_->energy(element, localFiniteElement, localSolution);
+    field_type centerValue   = -localEnergy_->energy(element, localFiniteElement, localASolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
     std::vector<Dune::array<field_type,embeddedBlocksize> > forwardEnergy(nDofs);
@@ -378,7 +381,10 @@ assembleGradientAndHessian(const Entity& element,
 
     for (size_t i=0; i<localSolution.size(); i++)
         for (int j=0; j<embeddedBlocksize; j++)
-            localGradient[i][j] = (forwardEnergy[i][j] - backwardEnergy[i][j]) / (2*eps);
+        {
+          field_type foo = (forwardEnergy[i][j] - backwardEnergy[i][j]) / (2*eps);
+            localGradient[i][j] = foo.template convert_to<double>();
+        }
 
     ///////////////////////////////////////////////////////////////////////////
     //   Compute Riemannian Hesse matrix by finite-difference approximation.
@@ -417,7 +423,8 @@ assembleGradientAndHessian(const Entity& element,
                     field_type forwardValue  = localEnergy_->energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
                     field_type backwardValue = localEnergy_->energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
-                    localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
+                    field_type foo = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
+                    localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = foo.template convert_to<double>();
 
                 }
             }
