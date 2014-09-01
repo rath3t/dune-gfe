@@ -326,7 +326,7 @@ assembleGradientAndHessian(const Entity& element,
     localHessian.setSize(nDofs, nDofs);
     localHessian = 0;
 
-    const field_type eps = 1e-4;
+    const field_type eps = 1e-10;
 
     std::vector<ATargetSpace> localASolution(localSolution.size());
     std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
