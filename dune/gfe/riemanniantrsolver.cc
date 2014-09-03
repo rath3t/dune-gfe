@@ -136,6 +136,19 @@ setup(const GridType& grid,
                                                                                                    h1SemiNorm_,
                                                                                                  Solver::QUIET));
 
+    // //////////////////////////////////////////////////////////////////////////////////////
+    //   Assemble a mass matrix to create a norm that's equivalent to the L2-norm
+    //   This will be used to monitor the gradient
+    // //////////////////////////////////////////////////////////////////////////////////////
+
+    MassAssembler<GridType, typename BasisType::LocalFiniteElement, typename BasisType::LocalFiniteElement> massStiffness;
+    ScalarMatrixType localMassMatrix;
+
+    operatorAssembler.assemble(massStiffness, localMassMatrix);
+
+    ScalarMatrixType* massMatrix = new ScalarMatrixType(matrixComm.reduceAdd(localMassMatrix));
+    l2Norm_ = std::make_shared<H1SemiNorm<CorrectionType> >(*massMatrix);
+
     // Write all intermediate solutions, if requested
     if (instrumented_
         && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get()))
@@ -309,14 +322,23 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
             rhs *= -1;        // The right hand side is the _negative_ gradient
 
+            // Transfer vector data
+            rhs_global = vectorComm.reduceAdd(rhs);
+
+            CorrectionType gradient = rhs_global;
+            for (size_t j=0; j<gradient.size(); j++)
+              for (int k=0; k<gradient[j].size(); k++)
+                if ((*ignoreNodes_)[j][k])
+                  gradient[j][k] = 0;
+
+            if (this->verbosity_ == Solver::FULL and rank==0)
+              std::cout << "Gradient norm: " << l2Norm_->operator()(gradient) << std::endl;
+
             if (this->verbosity_ == Solver::FULL)
               std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
 
             // Transfer matrix data
             stiffnessMatrix = matrixComm.reduceAdd(*hessianMatrix_);
-
-            // Transfer vector data
-            rhs_global = vectorComm.reduceAdd(rhs);
 
             recomputeGradientHessian = false;
 

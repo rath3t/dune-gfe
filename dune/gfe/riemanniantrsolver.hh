@@ -136,6 +136,9 @@ protected:
     /** \brief The norm used to measure multigrid convergence */
     H1SemiNorm<CorrectionType>* h1SemiNorm_;
 
+    /** \brief An L2-norm, really.  The H1SemiNorm class is badly named */
+    std::shared_ptr<H1SemiNorm<CorrectionType> > l2Norm_;
+
     /** \brief If set to true we log convergence speed and other stuff */
     bool instrumented_;
 
