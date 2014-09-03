@@ -50,29 +50,6 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
-// Dirichlet boundary data for the shear/wrinkling example
-class WrinklingDirichletValues
-: public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
-{
-  FieldVector<double,2> upper_;
-  double homotopy_;
-public:
-  WrinklingDirichletValues(FieldVector<double,2> upper, double homotopy)
-  : upper_(upper), homotopy_(homotopy)
-  {}
-
-  void evaluate(const FieldVector<double,dim>& in, FieldVector<double,3>& out) const
-  {
-    out = 0;
-    for (int i=0; i<dim; i++)
-      out[i] = in[i];
-
-    //     if (out[1] > 1-1e-3)
-    if (out[1] > upper_[1]-1e-4)
-      out[0] += 0.003*homotopy_;
-  }
-};
-
 class WongPellegrinoDirichletValuesPythonWriter
 {
   FieldVector<double,2> upper_;
