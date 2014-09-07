@@ -52,6 +52,8 @@
 // Include proprietary header files.
 #include "uniqueentitypartition.hh"
 
+#include <dune/common/version.hh>
+
 /** include parallel capability */
 #if HAVE_MPI
   #include <dune/common/parallel/mpihelper.hh>
