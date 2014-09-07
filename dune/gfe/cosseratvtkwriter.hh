@@ -303,13 +303,18 @@ public:
           writer.endMain();
         }
 
+        // Stupid: I can't directly get the number of Interior_Partition elements
+        size_t numElements = 0;
+        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+          numElements++;
+
         std::ofstream outFile(fullfilename);
 
         // Write header
         outFile << "<?xml version=\"1.0\"?>" << std::endl;
         outFile << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
         outFile << "  <UnstructuredGrid>" << std::endl;
-        outFile << "    <Piece NumberOfCells=\"" << gridView.size(0) << "\" NumberOfPoints=\"" << configuration.size() << "\">" << std::endl;
+        outFile << "    <Piece NumberOfCells=\"" << numElements << "\" NumberOfPoints=\"" << configuration.size() << "\">" << std::endl;
 
         // Write vertex coordinates
         outFile << "      <Points>" << std::endl;
@@ -323,7 +328,7 @@ public:
         outFile << "      <Cells>" << std::endl;
 
         outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
         {
           outFile << "          ";
           if (it->type().isQuadrilateral())
@@ -517,13 +522,19 @@ public:
         /////////////////////////////////////////////////////////////////////////////////
         //  Write the actual vtu file
         /////////////////////////////////////////////////////////////////////////////////
+
+        // Stupid: I can't directly get the number of Interior_Partition elements
+        size_t numElements = 0;
+        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+          numElements++;
+
         std::ofstream outFile(fullfilename);
 
         // Write header
         outFile << "<?xml version=\"1.0\"?>" << std::endl;
         outFile << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
         outFile << "  <UnstructuredGrid>" << std::endl;
-        outFile << "    <Piece NumberOfCells=\"" << gridView.size(0) << "\" NumberOfPoints=\"" << displacementConfiguration.size() << "\">" << std::endl;
+        outFile << "    <Piece NumberOfCells=\"" << numElements << "\" NumberOfPoints=\"" << displacementConfiguration.size() << "\">" << std::endl;
 
         // Write vertex coordinates
         outFile << "      <Points>" << std::endl;
@@ -537,7 +548,7 @@ public:
         outFile << "      <Cells>" << std::endl;
 
         outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        for (auto it = gridView.template begin<0, Dune::Interior_Partition>(); it != gridView.template end<0, Dune::Interior_Partition>(); ++it)
         {
           outFile << "          ";
           if (it->type().isQuadrilateral())
