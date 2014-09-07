@@ -378,6 +378,10 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
         corr = vectorComm.scatter(corr_global);
 
+        // Make infinity norm of corr_global known on all processors
+        double corrNorm = corr.infinity_norm();
+        double corrGlobalInfinityNorm = mpiHelper.getCollectiveCommunication().max(corrNorm);
+
         if (instrumented_) {
 
             fprintf(fp, "Trust-region step: %d, trust-region radius: %g\n",
@@ -449,7 +453,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
-        if (corr_global.infinity_norm() < this->tolerance_) {
+        if (corrGlobalInfinityNorm < this->tolerance_) {
             if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
