@@ -38,6 +38,8 @@
 #include <map>
 #include <utility>
 
+#include <dune/common/version.hh>
+
 /** Include base class functionality for the communication interface */
 #include <dune/grid/common/datahandleif.hh>
 
