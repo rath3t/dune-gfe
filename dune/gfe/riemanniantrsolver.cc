@@ -187,8 +187,9 @@ setup(const GridType& grid,
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         MatrixCommunicator<GUIndex, TransferOperatorType, LeafP1GUIndex> matrixComm(*guIndex_, p1Index, 0);
 
-        mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>
-           (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix())));
+        mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>;
+        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix()));
+        dynamic_cast<PKtoP1MGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
 
         for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++){
           // Construct the local multigrid transfer matrix
@@ -204,8 +205,9 @@ setup(const GridType& grid,
           typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
           MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
 
-          mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
-             (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix())));
+          mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
+          Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
+          dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
         }
 
     }
