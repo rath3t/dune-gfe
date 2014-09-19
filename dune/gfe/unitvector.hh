@@ -374,6 +374,15 @@ public:
         return result;
     }
 
+    static Dune::FieldMatrix<T, N, N> derivativeOfProjection(const Dune::FieldVector<T,N>& p)
+    {
+      Dune::FieldMatrix<T,N,N> result;
+      for (int i=0; i<N; i++)
+        for (int j=0; j<N; j++)
+          result[i][j] = ( (i==j) - p[i]*p[j] / p.two_norm2() ) / p.two_norm();
+      return result;
+    }
+
     /** \brief The global coordinates, if you really want them */
     const CoordinateType& globalCoordinates() const {
         return data_;
