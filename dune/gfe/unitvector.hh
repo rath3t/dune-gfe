@@ -152,6 +152,14 @@ public:
         return result;
     }
 
+    static EmbeddedTangentVector log(const UnitVector& p, const UnitVector& q)
+    {
+      EmbeddedTangentVector result = p.projectOntoTangentSpace(q.data_-p.data_);
+      if (result.two_norm() > 1e-10)
+        result *= distance(p,q) / result.two_norm();
+      return result;
+    }
+
     /** \brief Length of the great arc connecting the two points */
      static T distance(const UnitVector& a, const UnitVector& b) {
 
