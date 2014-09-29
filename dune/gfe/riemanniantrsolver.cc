@@ -228,8 +228,9 @@ setup(const GridType& grid,
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
 
-        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
-             (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix())));
+        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
+        Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
+        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
 
     }
 #endif
