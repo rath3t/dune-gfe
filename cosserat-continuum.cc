@@ -36,6 +36,7 @@
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
+#include <dune/gfe/cosseratvtkreader.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
@@ -208,6 +209,10 @@ int main (int argc, char *argv[]) try
 
     SolutionType x(feBasis.size());
 
+    if (parameterSet.hasKey("startFromFile"))
+    {
+      GFE::CosseratVTKReader::read(x, parameterSet.get<std::string>("initialIterateFilename"));
+    } else {
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
 
@@ -216,6 +221,7 @@ int main (int argc, char *argv[]) try
 
     for (size_t i=0; i<x.size(); i++)
       x[i].r = v[i];
+    }
 
     ////////////////////////////////////////////////////////
     //   Main homotopy loop
