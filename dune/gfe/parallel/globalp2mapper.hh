@@ -1,0 +1,134 @@
+#ifndef DUNE_GFE_PARALLEL_GLOBALP2MAPPER_HH
+#define DUNE_GFE_PARALLEL_GLOBALP2MAPPER_HH
+
+/** \brief Include standard header files. */
+#include <vector>
+#include <iostream>
+#include <fstream>
+#include <map>
+#include <utility>
+
+/** include base class functionality for the communication interface */
+#include <dune/grid/common/datahandleif.hh>
+
+// Include Dune header files
+#include <dune/common/version.hh>
+#include "uniqueentitypartition.hh"
+
+/** include parallel capability */
+#if HAVE_MPI
+  #include <dune/common/parallel/mpihelper.hh>
+#endif
+
+namespace Dune {
+
+  template <class GridView>
+  class GlobalP2Mapper
+  {
+  public:
+
+    typedef std::map<int,int>    IndexMap;
+
+    GlobalP2Mapper(const GridView& gridView)
+    : gridView_(gridView)
+    {
+      static_assert(GridView::dimension==2, "Only implemented for two-dimensional grids");
+
+      P2BasisMapper<GridView> p2Mapper(gridView);
+
+      GlobalUniqueIndex<GridView,2> globalVertexIndex(gridView);
+      GlobalUniqueIndex<GridView,1> globalEdgeIndex(gridView);
+      GlobalUniqueIndex<GridView,0> globalElementIndex(gridView);
+
+      // total number of degrees of freedom
+      nGlobalEntity_ = globalVertexIndex.nGlobalEntity() + globalEdgeIndex.nGlobalEntity() + globalElementIndex.nGlobalEntity();
+      nOwnedLocalEntity_ = globalVertexIndex.nOwnedLocalEntity() + globalEdgeIndex.nOwnedLocalEntity() + globalElementIndex.nOwnedLocalEntity();
+
+      // Determine
+      for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+      {
+        // Loop over all vertices
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+        for (size_t i=0; i<it->subEntities(2); i++)
+#else
+        for (size_t i=0; i<it->template count<2>(); i++)
+#endif
+        {
+          //int localIndex  = globalVertexIndex.localIndex (*it->template subEntity<2>(i));
+          int localIndex  = p2Mapper.map(*it, i, 2);
+          int globalIndex = globalVertexIndex.globalIndex(*it->template subEntity<2>(i));
+
+          localGlobalMap_[localIndex]  = globalIndex;
+          globalLocalMap_[globalIndex] = localIndex;
+        }
+
+        // Loop over all edges
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+        for (size_t i=0; i<it->subEntities(1); i++)
+#else
+        for (size_t i=0; i<it->template count<1>(); i++)
+#endif
+        {
+          //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
+          int localIndex  = p2Mapper.map(*it, i, 1);
+          int globalIndex = globalEdgeIndex.globalIndex(*it->template subEntity<1>(i)) + globalVertexIndex.nGlobalEntity();
+
+          localGlobalMap_[localIndex]  = globalIndex;
+          globalLocalMap_[globalIndex] = localIndex;
+        }
+
+        // One element degree of freedom for quadrilaterals
+        if (not it->type().isQuadrilateral())
+          DUNE_THROW(Dune::NotImplemented, "for non-quadrilaterals");
+
+        if (it->type().isQuadrilateral())
+        {
+          //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
+          int localIndex  = p2Mapper.map(*it, 0, 0);
+          int globalIndex = globalElementIndex.globalIndex(*it->template subEntity<0>(0))
+                            + globalEdgeIndex.nGlobalEntity()
+                            + globalVertexIndex.nGlobalEntity();
+
+          localGlobalMap_[localIndex]  = globalIndex;
+          globalLocalMap_[globalIndex] = localIndex;
+        }
+
+      }
+
+    }
+
+    /** \brief Given a local index, retrieve its index globally unique over all processes. */
+    int globalIndex(const int& localIndex) const {
+      return localGlobalMap_.find(localIndex)->second;
+    }
+
+    int localIndex(const int& globalIndex) const {
+      return globalLocalMap_.find(globalIndex)->second;
+    }
+
+    unsigned int nGlobalEntity() const
+    {
+      return nGlobalEntity_;
+    }
+
+    unsigned int nOwnedLocalEntity() const
+    {
+      return nOwnedLocalEntity_;
+    }
+
+    const GridView& getGridView() const {
+      return gridView_;
+    }
+
+    const GridView gridView_;
+
+    IndexMap localGlobalMap_;
+    IndexMap globalLocalMap_;
+
+    size_t nOwnedLocalEntity_;
+    size_t nGlobalEntity_;
+
+  };
+
+}
+#endif /* GLOBALUNIQUEINDEX_HH_ */
