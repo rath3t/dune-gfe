@@ -9,6 +9,7 @@ srcinclude_HEADERS = adolcnamespaceinjections.hh \
                      averagedistanceassembler.hh \
                      averageinterface.hh \
                      cosseratvtkwriter.hh \
+                     cosseratvtkreader.hh \
                      geodesicdifference.hh \
                      geodesicfeassembler.hh \
                      geodesicfefunctionadaptor.hh \
