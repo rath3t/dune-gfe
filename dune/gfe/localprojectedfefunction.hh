@@ -70,11 +70,11 @@ namespace Dune {
       DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                         const TargetSpace& q) const;
 
-                                        /** \brief Get the i'th base coefficient. */
-                                        TargetSpace coefficient(int i) const
-                                        {
-                                          return coefficients_[i];
-                                        }
+      /** \brief Get the i'th base coefficient. */
+      TargetSpace coefficient(int i) const
+      {
+        return coefficients_[i];
+      }
     private:
 
       /** \brief The scalar local finite element, which provides the weighting factors
@@ -119,7 +119,36 @@ namespace Dune {
     LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
     evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
     {
-      DUNE_THROW(NotImplemented, "Not implemented yet!");
+      // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
+      std::vector<Dune::FieldVector<ctype,1> > w;
+      localFiniteElement_.localBasis().evaluateFunction(local,w);
+
+      std::vector<Dune::FieldMatrix<ctype,1,dim> > wDer;
+      localFiniteElement_.localBasis().evaluateDerivative(local,wDer);
+
+      typename TargetSpace::CoordinateType embeddedInterpolation(0);
+      for (size_t i=0; i<coefficients_.size(); i++)
+        embeddedInterpolation.axpy(w[i][0], coefficients_[i].globalCoordinates());
+
+      Dune::FieldMatrix<ctype,embeddedDim,dim> derivative(0);
+      for (size_t i=0; i<embeddedDim; i++)
+        for (size_t j=0; j<dim; j++)
+          for (size_t k=0; k<coefficients_.size(); k++)
+            derivative[i][j] += wDer[k][0][j] * coefficients_[k].globalCoordinates()[i];
+
+      typename TargetSpace::DerivativeOfProjection derivativeOfProjection = TargetSpace::derivativeOfProjection(embeddedInterpolation);
+
+      typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType result;
+
+      for (int i=0; i<result.N(); i++)
+        for (int j=0; j<result.M(); j++)
+        {
+          result[i][j] = 0;
+          for (int k=0; k<derivativeOfProjection.M(); k++)
+            result[i][k] += derivativeOfProjection[i][k]*derivative[k][j];
+        }
+
+      return result;
     }
 
   }
