@@ -304,55 +304,77 @@ public:
         vtkFile.write(filename);
 
 #else   // FIRST_ORDER
-        typedef typename GridType::LeafGridView GridView;
 
-        const GridType& grid = basis.getGridView().grid();
+        Dune::GFE::VTKFile vtkFile(gridView.comm().rank(), gridView.comm().size());
 
-        //////////////////////////////////////////////////////////////////////////////////
-        //  Deform the grid according to the position information in 'configuration'
-        //////////////////////////////////////////////////////////////////////////////////
+        // Stupid: I can't directly get the number of Interior_Partition elements
+        size_t numElements = 0;
+        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+          numElements++;
 
-        typedef Dune::GeometryGrid<GridType,DeformationFunction<GridView> > DeformedGridType;
+        // Enter vertex coordinates
+        std::vector<Dune::FieldVector<double, 3> > points(configuration.size());
+        for (size_t i=0; i<configuration.size(); i++)
+          points[i] = configuration[i].r;
 
-        DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafGridView(), configuration);
+        vtkFile.points_ = points;
 
-        // stupid, can't instantiate deformedGrid with a const grid
-        DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
+        // Enter elements
+        std::vector<int> connectivity(numElements*4);
 
-        typedef P1NodalBasis<typename DeformedGridType::LeafGridView,double> DeformedP1Basis;
-        DeformedP1Basis deformedP1Basis(deformedGrid.leafGridView());
-
-        Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
-
-        // Make three vector fields containing the directors
-        typedef std::vector<Dune::FieldVector<double,3> > CoefficientType;
-
-        std::vector<CoefficientType> directors(3);
-
-        for (int i=0; i<3; i++) {
-
-            directors[i].resize(configuration.size());
-            for (size_t j=0; j<configuration.size(); j++)
-                directors[i][j] = configuration[j].q.director(i);
-
-            std::stringstream iAsAscii;
-            iAsAscii << i;
-
-            Dune::shared_ptr<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> > vtkDirector
-               = Dune::make_shared<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> >
-                                  (deformedP1Basis, directors[i], "director"+iAsAscii.str());
-            vtkWriter.addVertexData(vtkDirector);
+        size_t i=0;
+        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+        {
+          if (it->type().isQuadrilateral())
+          {
+            connectivity[i++] = basis.index(*it,0);
+            connectivity[i++] = basis.index(*it,1);
+            connectivity[i++] = basis.index(*it,3);
+            connectivity[i++] = basis.index(*it,2);
+          }
         }
 
-        // For easier visualization of wrinkles: add z-coordinate as scalar field
-        std::vector<double> zCoord(configuration.size());
-        for (size_t i=0; i<zCoord.size(); i++)
+        vtkFile.cellConnectivity_ = connectivity;
+
+        std::vector<int> offsets(numElements);
+        i = 0;
+        int offsetCounter = 0;
+        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        {
+          if (it->type().isQuadrilateral())
+            offsetCounter += 4;
+          offsets[i++] += offsetCounter;
+        }
+
+        vtkFile.cellOffsets_ = offsets;
+
+        std::vector<int> cellTypes(numElements);
+        i = 0;
+        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        {
+          if (it->type().isQuadrilateral())
+            cellTypes[i++] = 9;
+        }
+        vtkFile.cellTypes_ = cellTypes;
+
+        // Z coordinate for better visualization of wrinkles
+        std::vector<double> zCoord(points.size());
+        for (size_t i=0; i<configuration.size(); i++)
           zCoord[i] = configuration[i].r[2];
 
-        vtkWriter.addVertexData(zCoord, "zCoord");
+        vtkFile.zCoord_ = zCoord;
 
-        // Write the file to disk
-        vtkWriter.write(filename);
+        // The three director fields
+        for (size_t i=0; i<3; i++)
+        {
+          vtkFile.directors_[i].resize(configuration.size());
+          for (size_t j=0; j<configuration.size(); j++)
+            vtkFile.directors_[i][j] = configuration[j].q.director(i);
+        }
+
+        // Actually write the VTK file to disk
+        vtkFile.write(filename);
+
 #endif
     }
 
