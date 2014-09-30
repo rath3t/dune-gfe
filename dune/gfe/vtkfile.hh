@@ -31,31 +31,23 @@ namespace Dune {
 
     public:
 
-      /** \brief Empty constructor, for a single-process situation */
-      VTKFile()
-      : commRank_(0),
-        commSize_(1)
-      {}
-
-      /** \brief Constructor taking the communicator rank and size */
-      VTKFile(int commRank, int commSize)
-      : commRank_(commRank),
-        commSize_(commSize)
-      {}
-
       /** \brief Write the file to disk */
       void write(const std::string& filename) const
       {
+        int argc = 0;
+        char** argv;
+        Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
+
         std::string fullfilename = filename + ".vtu";
 
         // Prepend rank and communicator size to the filename, if there are more than one process
-        if (commSize_ > 1)
-          fullfilename = getParallelPieceName(filename, "", commRank_, commSize_);
+        if (mpiHelper.size() > 1)
+          fullfilename = getParallelPieceName(filename, "", mpiHelper.rank(), mpiHelper.size());
 
         // Write the pvtu file that ties together the different parts
-        if (commSize_> 1 && commRank_==0)
+        if (mpiHelper.size() > 1 && mpiHelper.rank()==0)
         {
-          std::ofstream pvtuOutFile(getParallelName(filename, "", commSize_));
+          std::ofstream pvtuOutFile(getParallelName(filename, "", mpiHelper.size()));
           Dune::VTK::PVTUWriter writer(pvtuOutFile, Dune::VTK::unstructuredGrid);
 
           writer.beginMain();
@@ -72,8 +64,8 @@ namespace Dune {
           writer.addArray<float>("Coordinates", 3);
           writer.endPoints();
 
-          for (int i=0; i<commSize_; i++)
-          writer.addPiece(getParallelPieceName(filename, "", i, commSize_));
+          for (int i=0; i<mpiHelper.size(); i++)
+          writer.addPiece(getParallelPieceName(filename, "", i, mpiHelper.size()));
 
           // finish main section
           writer.endMain();
@@ -154,11 +146,15 @@ namespace Dune {
        */
       void read(const std::string& filename)
       {
+        int argc = 0;
+        char** argv;
+        Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
+
         std::string fullfilename = filename + ".vtu";
 
         // Prepend rank and communicator size to the filename, if there are more than one process
-        if (commSize_ > 1)
-          fullfilename = getParallelPieceName(filename, "", commRank_, commSize_);
+        if (mpiHelper.size() > 1)
+          fullfilename = getParallelPieceName(filename, "", mpiHelper.rank(), mpiHelper.size());
 
 #if ! HAVE_TINYXML2
         DUNE_THROW(Dune::NotImplemented, "You need TinyXML2 for vtk file reading!");
@@ -326,11 +322,6 @@ namespace Dune {
         return s.str();
       }
 
-
-      int commRank_;
-
-      // Communicator size
-      int commSize_;
     };
 
   }

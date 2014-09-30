@@ -228,7 +228,7 @@ public:
 
 #else // Write as P2 or as P1 space
 
-        Dune::GFE::VTKFile vtkFile(gridView.comm().rank(), gridView.comm().size());
+        Dune::GFE::VTKFile vtkFile;
 
         // Stupid: I can't directly get the number of Interior_Partition elements
         size_t numElements = 0;
