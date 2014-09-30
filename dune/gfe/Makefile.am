@@ -40,6 +40,7 @@ srcinclude_HEADERS = adolcnamespaceinjections.hh \
                      targetspacertrsolver.hh \
                      tensorssd.hh \
                      tensor3.hh \
-                     unitvector.hh
+                     unitvector.hh \
+                     vtkfile.hh
 
 include $(top_srcdir)/am/global-rules
