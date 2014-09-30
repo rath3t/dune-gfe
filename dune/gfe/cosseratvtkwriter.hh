@@ -278,7 +278,7 @@ public:
         std::vector<int> offsets(numElements);
         i = 0;
         int offsetCounter = 0;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
         {
           if (it->type().isQuadrilateral())
 #ifdef SECOND_ORDER
@@ -293,7 +293,7 @@ public:
 
         std::vector<int> cellTypes(numElements);
         i = 0;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
         {
           if (it->type().isQuadrilateral())
 #ifdef SECOND_ORDER
