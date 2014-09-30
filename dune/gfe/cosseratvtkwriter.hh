@@ -9,6 +9,7 @@
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/vtkfile.hh>
 
 
 /** \brief Write the configuration of a Cosserat material in VTK format */
@@ -270,129 +271,80 @@ public:
 
 #elif defined SECOND_ORDER  // Write as P2 space
 
-        std::string fullfilename = filename + ".vtu";
-
-        // Prepend rank and communicator size to the filename, if there are more than one process
-        if (gridView.comm().size() > 1)
-          fullfilename = getParallelPieceName(filename, "", gridView.comm().rank(), gridView.comm().size());
-
-        // Write the pvtu file that ties together the different parts
-        if (gridView.comm().size() > 1 && gridView.comm().rank()==0)
-        {
-          std::ofstream pvtuOutFile(getParallelName(filename, "", gridView.comm().size()));
-          Dune::VTK::PVTUWriter writer(pvtuOutFile, Dune::VTK::unstructuredGrid);
-
-          writer.beginMain();
-
-          writer.beginPointData();
-          writer.addArray<float>("director0", 3);
-          writer.addArray<float>("director1", 3);
-          writer.addArray<float>("director2", 3);
-          writer.addArray<float>("zCoord", 1);
-          writer.endPointData();
-
-          // dump point coordinates
-          writer.beginPoints();
-          writer.addArray<float>("Coordinates", 3);
-          writer.endPoints();
-
-          for (int i=0; i<gridView.comm().size(); i++)
-          writer.addPiece(getParallelPieceName(filename, "", i, gridView.comm().size()));
-
-          // finish main section
-          writer.endMain();
-        }
+        Dune::GFE::VTKFile vtkFile(gridView.comm().rank(), gridView.comm().size());
 
         // Stupid: I can't directly get the number of Interior_Partition elements
         size_t numElements = 0;
         for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
           numElements++;
 
-        std::ofstream outFile(fullfilename);
-
-        // Write header
-        outFile << "<?xml version=\"1.0\"?>" << std::endl;
-        outFile << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
-        outFile << "  <UnstructuredGrid>" << std::endl;
-        outFile << "    <Piece NumberOfCells=\"" << numElements << "\" NumberOfPoints=\"" << configuration.size() << "\">" << std::endl;
-
-        // Write vertex coordinates
-        outFile << "      <Points>" << std::endl;
-        outFile << "        <DataArray type=\"Float32\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
+        // Enter vertex coordinates
+        std::vector<Dune::FieldVector<double, 3> > points(configuration.size());
         for (size_t i=0; i<configuration.size(); i++)
-          outFile << "          " << configuration[i].r << std::endl;
-        outFile << "        </DataArray>" << std::endl;
-        outFile << "      </Points>" << std::endl;
+          points[i] = configuration[i].r;
 
-        // Write elements
-        outFile << "      <Cells>" << std::endl;
+        vtkFile.points_ = points;
 
-        outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        // Enter elements
+        std::vector<int> connectivity(numElements*8);
+
+        size_t i=0;
         for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
         {
-          outFile << "          ";
           if (it->type().isQuadrilateral())
           {
-            outFile << basis.index(*it,0) << " ";
-            outFile << basis.index(*it,2) << " ";
-            outFile << basis.index(*it,8) << " ";
-            outFile << basis.index(*it,6) << " ";
+            connectivity[i++] = basis.index(*it,0);
+            connectivity[i++] = basis.index(*it,2);
+            connectivity[i++] = basis.index(*it,8);
+            connectivity[i++] = basis.index(*it,6);
 
-            outFile << basis.index(*it,1) << " ";
-            outFile << basis.index(*it,5) << " ";
-            outFile << basis.index(*it,7) << " ";
-            outFile << basis.index(*it,3) << " ";
-            outFile << std::endl;
+            connectivity[i++] = basis.index(*it,1);
+            connectivity[i++] = basis.index(*it,5);
+            connectivity[i++] = basis.index(*it,7);
+            connectivity[i++] = basis.index(*it,3);
           }
         }
-        outFile << "         </DataArray>" << std::endl;
 
-        outFile << "         <DataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        size_t offsetCounter = 0;
+        vtkFile.cellConnectivity_ = connectivity;
+
+        std::vector<int> offsets(numElements);
+        i = 0;
+        int offsetCounter = 0;
         for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
         {
-          outFile << "          ";
           if (it->type().isQuadrilateral())
             offsetCounter += 8;
-          outFile << offsetCounter << std::endl;
+          offsets[i++] += offsetCounter;
         }
-        outFile << "         </DataArray>" << std::endl;
 
-        outFile << "         <DataArray type=\"UInt8\" Name=\"types\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        vtkFile.cellOffsets_ = offsets;
+
+        std::vector<int> cellTypes(numElements);
+        i = 0;
         for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
         {
-          outFile << "          ";
           if (it->type().isQuadrilateral())
-            outFile << "23" << std::endl;
+            cellTypes[i++] = 23;
         }
-        outFile << "         </DataArray>" << std::endl;
-
-        outFile << "      </Cells>" << std::endl;
-
-        // Point data
-        outFile << "      <PointData Scalars=\"zCoord\" Vectors=\"director0\">" << std::endl;
+        vtkFile.cellTypes_ = cellTypes;
 
         // Z coordinate for better visualization of wrinkles
-        outFile << "        <DataArray type=\"Float32\" Name=\"zCoord\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        std::vector<double> zCoord(points.size());
         for (size_t i=0; i<configuration.size(); i++)
-          outFile << "          " << configuration[i].r[2] << std::endl;
-        outFile << "        </DataArray>" << std::endl;
+          zCoord[i] = configuration[i].r[2];
+
+        vtkFile.zCoord_ = zCoord;
 
         // The three director fields
         for (size_t i=0; i<3; i++)
         {
-          outFile << "        <DataArray type=\"Float32\" Name=\"director" << i <<"\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
+          vtkFile.directors_[i].resize(configuration.size());
           for (size_t j=0; j<configuration.size(); j++)
-            outFile << "          " << configuration[j].q.director(i) << std::endl;
-          outFile << "        </DataArray>" << std::endl;
+            vtkFile.directors_[i][j] = configuration[j].q.director(i);
         }
 
-        outFile << "      </PointData>" << std::endl;
-
-        // Write footer
-        outFile << "    </Piece>" << std::endl;
-        outFile << "  </UnstructuredGrid>" << std::endl;
-        outFile << "</VTKFile>" << std::endl;
+        // Actually write the VTK file to disk
+        vtkFile.write(filename);
 
 #else   // FIRST_ORDER
         typedef typename GridType::LeafGridView GridView;
