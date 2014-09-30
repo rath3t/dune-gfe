@@ -28,7 +28,7 @@ namespace Dune
           FieldMatrix<double,3,3> R;
           for (int j=0; j<3; j++)
             for (int k=0; k<3; k++)
-              R[j][k] = vtkFile.directors_[j][i][k];
+              R[j][k] = vtkFile.directors_[k][i][j];
 
           configuration[i].q.set(R);
         }
