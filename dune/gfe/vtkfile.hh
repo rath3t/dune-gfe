@@ -1,6 +1,19 @@
 #ifndef DUNE_GFE_VTKFILE_HH
 #define DUNE_GFE_VTKFILE_HH
 
+#include <vector>
+#include <fstream>
+
+#if HAVE_TINYXML2
+// For VTK file reading
+#include <tinyxml2.h>
+#endif
+
+#include <dune/common/fvector.hh>
+
+// For parallel infrastructure stuff:
+#include <dune/grid/io/file/vtk.hh>
+
 namespace Dune {
 
   namespace GFE {
@@ -127,6 +140,116 @@ namespace Dune {
         outFile << "</VTKFile>" << std::endl;
 
 
+      }
+
+      /** \brief Read a VTKFile object from a file
+       *
+       * This method uses TinyXML2.  If you do not have TinyXML2 installed the code will simply throw a NotImplemented exception.
+       */
+      void read(const std::string& filename)
+      {
+#if ! HAVE_TINYXML2
+        DUNE_THROW(Dune::NotImplemented, "You need TinyXML2 for vtk file reading!");
+#else
+        tinyxml2::XMLDocument doc;
+        if (doc.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS)
+          DUNE_THROW(Dune::IOError, "Couldn't open the file '" << filename << "'");
+
+        // Get number of cells and number of points
+        tinyxml2::XMLElement* pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "UnstructuredGrid" )->FirstChildElement( "Piece" );
+
+        int numberOfCells;
+        int numberOfPoints;
+        pieceElement->QueryIntAttribute( "NumberOfCells", &numberOfCells );
+        pieceElement->QueryIntAttribute( "NumberOfPoints", &numberOfPoints );
+
+        //////////////////////////////////
+        //  Read point coordinates
+        //////////////////////////////////
+        points_.resize(numberOfPoints);
+        tinyxml2::XMLElement* pointsElement = pieceElement->FirstChildElement( "Points" )->FirstChildElement( "DataArray" );
+
+        std::stringstream coordsStream(pointsElement->GetText());
+
+        double inDouble;
+        size_t i=0;
+        while (coordsStream >> inDouble)
+        {
+          points_[i/3][i%3] = inDouble;
+          i++;
+        }
+
+        ///////////////////////////////////
+        //  Read cells
+        ///////////////////////////////////
+        tinyxml2::XMLElement* cellsElement = pieceElement->FirstChildElement( "Cells" )->FirstChildElement( "DataArray" );
+
+        for (int i=0; i<3; i++)
+        {
+          int inInt;
+          if (cellsElement->Attribute("Name", "connectivity"))
+          {
+            std::stringstream connectivityStream(cellsElement->GetText());
+            while (connectivityStream >> inInt)
+              cellConnectivity_.push_back(inInt);
+          }
+          if (cellsElement->Attribute("Name", "offsets"))
+          {
+            std::stringstream offsetsStream(cellsElement->GetText());
+            while (offsetsStream >> inInt)
+              cellOffsets_.push_back(inInt);
+          }
+          if (cellsElement->Attribute("Name", "types"))
+          {
+            std::stringstream typesStream(cellsElement->GetText());
+            while (typesStream >> inInt)
+              cellTypes_.push_back(inInt);
+          }
+
+          cellsElement = cellsElement->NextSiblingElement();
+        }
+
+        /////////////////////////////////////
+        //  Read point data
+        /////////////////////////////////////
+
+        tinyxml2::XMLElement* pointDataElement = pieceElement->FirstChildElement( "PointData" )->FirstChildElement( "DataArray" );
+
+        for (int i=0; i<4; i++)
+        {
+          size_t j=0;
+          std::stringstream directorStream(pointDataElement->GetText());
+          if (pointDataElement->Attribute("Name", "director0"))
+          {
+            directors_[0].resize(numberOfPoints);
+            while (directorStream >> inDouble)
+            {
+              directors_[0][j/3][j%3] = inDouble;
+              j++;
+            }
+          }
+          if (pointDataElement->Attribute("Name", "director1"))
+          {
+            directors_[1].resize(numberOfPoints);
+            while (directorStream >> inDouble)
+            {
+              directors_[1][j/3][j%3] = inDouble;
+              j++;
+            }
+          }
+          if (pointDataElement->Attribute("Name", "director2"))
+          {
+            directors_[2].resize(numberOfPoints);
+            while (directorStream >> inDouble)
+            {
+              directors_[2][j/3][j%3] = inDouble;
+              j++;
+            }
+          }
+
+          pointDataElement = pointDataElement->NextSiblingElement();
+        }
+#endif
       }
 
       std::vector<Dune::FieldVector<double,3> > points_;
