@@ -31,6 +31,12 @@ namespace Dune {
 
     public:
 
+      /** \brief Empty constructor, for a single-process situation */
+      VTKFile()
+      : commRank_(0),
+        commSize_(1)
+      {}
+
       /** \brief Constructor taking the communicator rank and size */
       VTKFile(int commRank, int commSize)
       : commRank_(commRank),
