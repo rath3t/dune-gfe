@@ -226,7 +226,7 @@ public:
         // Write the file to disk
         vtkWriter.write(filename);
 
-#elif defined SECOND_ORDER  // Write as P2 space
+#else // Write as P2 or as P1 space
 
         Dune::GFE::VTKFile vtkFile(gridView.comm().rank(), gridView.comm().size());
 
@@ -243,13 +243,18 @@ public:
         vtkFile.points_ = points;
 
         // Enter elements
+#ifdef SECOND_ORDER
         std::vector<int> connectivity(numElements*8);
+#else
+        std::vector<int> connectivity(numElements*4);
+#endif
 
         size_t i=0;
         for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
         {
           if (it->type().isQuadrilateral())
           {
+#ifdef SECOND_ORDER
             connectivity[i++] = basis.index(*it,0);
             connectivity[i++] = basis.index(*it,2);
             connectivity[i++] = basis.index(*it,8);
@@ -259,78 +264,12 @@ public:
             connectivity[i++] = basis.index(*it,5);
             connectivity[i++] = basis.index(*it,7);
             connectivity[i++] = basis.index(*it,3);
-          }
-        }
-
-        vtkFile.cellConnectivity_ = connectivity;
-
-        std::vector<int> offsets(numElements);
-        i = 0;
-        int offsetCounter = 0;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
-        {
-          if (it->type().isQuadrilateral())
-            offsetCounter += 8;
-          offsets[i++] += offsetCounter;
-        }
-
-        vtkFile.cellOffsets_ = offsets;
-
-        std::vector<int> cellTypes(numElements);
-        i = 0;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
-        {
-          if (it->type().isQuadrilateral())
-            cellTypes[i++] = 23;
-        }
-        vtkFile.cellTypes_ = cellTypes;
-
-        // Z coordinate for better visualization of wrinkles
-        std::vector<double> zCoord(points.size());
-        for (size_t i=0; i<configuration.size(); i++)
-          zCoord[i] = configuration[i].r[2];
-
-        vtkFile.zCoord_ = zCoord;
-
-        // The three director fields
-        for (size_t i=0; i<3; i++)
-        {
-          vtkFile.directors_[i].resize(configuration.size());
-          for (size_t j=0; j<configuration.size(); j++)
-            vtkFile.directors_[i][j] = configuration[j].q.director(i);
-        }
-
-        // Actually write the VTK file to disk
-        vtkFile.write(filename);
-
-#else   // FIRST_ORDER
-
-        Dune::GFE::VTKFile vtkFile(gridView.comm().rank(), gridView.comm().size());
-
-        // Stupid: I can't directly get the number of Interior_Partition elements
-        size_t numElements = 0;
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
-          numElements++;
-
-        // Enter vertex coordinates
-        std::vector<Dune::FieldVector<double, 3> > points(configuration.size());
-        for (size_t i=0; i<configuration.size(); i++)
-          points[i] = configuration[i].r;
-
-        vtkFile.points_ = points;
-
-        // Enter elements
-        std::vector<int> connectivity(numElements*4);
-
-        size_t i=0;
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
-        {
-          if (it->type().isQuadrilateral())
-          {
+#else  // first order
             connectivity[i++] = basis.index(*it,0);
             connectivity[i++] = basis.index(*it,1);
             connectivity[i++] = basis.index(*it,3);
             connectivity[i++] = basis.index(*it,2);
+#endif
           }
         }
 
@@ -342,7 +281,11 @@ public:
         for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
         {
           if (it->type().isQuadrilateral())
+#ifdef SECOND_ORDER
+            offsetCounter += 8;
+#else
             offsetCounter += 4;
+#endif
           offsets[i++] += offsetCounter;
         }
 
@@ -353,7 +296,11 @@ public:
         for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
         {
           if (it->type().isQuadrilateral())
+#ifdef SECOND_ORDER
+            cellTypes[i++] = 23;
+#else
             cellTypes[i++] = 9;
+#endif
         }
         vtkFile.cellTypes_ = cellTypes;
 
@@ -374,7 +321,6 @@ public:
 
         // Actually write the VTK file to disk
         vtkFile.write(filename);
-
 #endif
     }
 
