@@ -154,12 +154,18 @@ namespace Dune {
        */
       void read(const std::string& filename)
       {
+        std::string fullfilename = filename + ".vtu";
+
+        // Prepend rank and communicator size to the filename, if there are more than one process
+        if (commSize_ > 1)
+          fullfilename = getParallelPieceName(filename, "", commRank_, commSize_);
+
 #if ! HAVE_TINYXML2
         DUNE_THROW(Dune::NotImplemented, "You need TinyXML2 for vtk file reading!");
 #else
         tinyxml2::XMLDocument doc;
-        if (doc.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS)
-          DUNE_THROW(Dune::IOError, "Couldn't open the file '" << filename << "'");
+        if (doc.LoadFile(fullfilename.c_str()) != tinyxml2::XML_SUCCESS)
+          DUNE_THROW(Dune::IOError, "Couldn't open the file '" << fullfilename << "'");
 
         // Get number of cells and number of points
         tinyxml2::XMLElement* pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "UnstructuredGrid" )->FirstChildElement( "Piece" );
