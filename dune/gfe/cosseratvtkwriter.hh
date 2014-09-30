@@ -155,49 +155,6 @@ class CosseratVTKWriter
 
 public:
 
-    /** \brief Write a Cosserat configuration given as vertex data
-     */
-    static void write(const GridType& grid,
-                      const std::vector<RigidBodyMotion<double,3> >& configuration,
-                      const std::string& filename)
-    {
-
-        typedef Dune::GeometryGrid<GridType,DeformationFunction<typename GridType::LeafGridView> > DeformedGridType;
-
-        DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafGridView(), configuration);
-
-        // stupid, can't instantiate deformedGrid with a const grid
-        DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
-
-        typedef P1NodalBasis<typename DeformedGridType::LeafGridView,double> P1Basis;
-        P1Basis p1Basis(deformedGrid.leafGridView());
-
-        Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
-
-        // Make three vector fields containing the directors
-        typedef std::vector<Dune::FieldVector<double,3> > CoefficientType;
-
-        std::vector<CoefficientType> directors(3);
-
-        for (int i=0; i<3; i++) {
-
-            directors[i].resize(configuration.size());
-            for (size_t j=0; j<configuration.size(); j++)
-                directors[i][j] = configuration[j].q.director(i);
-
-            std::stringstream iAsAscii;
-            iAsAscii << i;
-
-            Dune::shared_ptr<VTKBasisGridFunction<P1Basis,CoefficientType> > vtkDirector
-               = Dune::make_shared<VTKBasisGridFunction<P1Basis,CoefficientType> >
-                                  (p1Basis, directors[i], "director"+iAsAscii.str());
-            vtkWriter.addVertexData(vtkDirector);
-        }
-
-        vtkWriter.write(filename);
-
-    }
-
     /** \brief Write a configuration given with respect to a scalar function space basis
      */
     template <typename Basis>
