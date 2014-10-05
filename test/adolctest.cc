@@ -6,8 +6,13 @@
 
 #include <boost/multiprecision/mpfr.hpp>
 
-//typedef double FDType;
+//#define MULTIPRECISION
+
+#ifdef MULTIPRECISION
 typedef boost::multiprecision::mpfr_float_50 FDType;
+#else
+typedef double FDType;
+#endif
 
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
@@ -31,6 +36,8 @@ typedef boost::multiprecision::mpfr_float_50 FDType;
 #include <dune/gfe/localgeodesicfestiffness.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
+#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/localgeodesicfefdstiffness.hh>
 
 // grid dimension
 const int dim = 2;
@@ -45,7 +52,7 @@ using namespace Dune;
 /** \brief Assembles energy gradient and Hessian with ADOL-C
  */
 template<class GridView, class LocalFiniteElement>
-class LocalGeodesicFEADOLCStiffness
+class LocalADOLCStiffness
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
@@ -62,7 +69,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEADOLCStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
+    LocalADOLCStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -88,8 +95,8 @@ public:
 
 
 template <class GridView, class LocalFiniteElement>
-typename LocalGeodesicFEADOLCStiffness<GridView, LocalFiniteElement>::RT
-LocalGeodesicFEADOLCStiffness<GridView, LocalFiniteElement>::
+typename LocalADOLCStiffness<GridView, LocalFiniteElement>::RT
+LocalADOLCStiffness<GridView, LocalFiniteElement>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
        const std::vector<TargetSpace>& localSolution) const
@@ -136,7 +143,7 @@ energy(const Entity& element,
 //   as well return it.  This saves assembly time.
 // ///////////////////////////////////////////////////////////
 template <class GridType, class LocalFiniteElement>
-void LocalGeodesicFEADOLCStiffness<GridType, LocalFiniteElement>::
+void LocalADOLCStiffness<GridType, LocalFiniteElement>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const std::vector<TargetSpace>& localSolution,
@@ -203,7 +210,7 @@ assembleGradientAndHessian(const Entity& element,
 /** \brief Assembles energy gradient and Hessian with finite differences
  */
 template<class GridView, class LocalFiniteElement, class field_type=double>
-class LocalGeodesicFEFDStiffness
+class LocalFDStiffness
 {
     // grid types
     typedef typename GridView::Grid::ctype DT;
@@ -220,7 +227,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
+    LocalFDStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -237,7 +244,7 @@ public:
 //   Compute gradient by finite-difference approximation
 // ///////////////////////////////////////////////////////////
 template <class GridType, class LocalFiniteElement, class field_type>
-void LocalGeodesicFEFDStiffness<GridType, LocalFiniteElement, field_type>::
+void LocalFDStiffness<GridType, LocalFiniteElement, field_type>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const std::vector<TargetSpace>& localSolution,
@@ -251,7 +258,11 @@ assembleGradientAndHessian(const Entity& element,
     localHessian.setSize(nDofs, nDofs);
     localHessian = 0;
 
+#ifdef MULTIPRECISION
     const field_type eps = 1e-10;
+#else
+    const field_type eps = 1e-4;
+#endif
 
     std::vector<ATargetSpace> localASolution(localSolution.size());
     std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
@@ -308,7 +319,11 @@ assembleGradientAndHessian(const Entity& element,
         for (int j=0; j<embeddedBlocksize; j++)
         {
           field_type foo = (forwardEnergy[i][j] - backwardEnergy[i][j]) / (2*eps);
+#ifdef MULTIPRECISION
             localGradient[i][j] = foo.template convert_to<double>();
+#else
+            localGradient[i][j] = foo;
+#endif
         }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -349,8 +364,11 @@ assembleGradientAndHessian(const Entity& element,
                     field_type backwardValue = localEnergy_->energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
                     field_type foo = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
+#ifdef MULTIPRECISION
                     localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = foo.template convert_to<double>();
-
+#else
+                    localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = foo;
+#endif
                 }
             }
         }
@@ -359,15 +377,16 @@ assembleGradientAndHessian(const Entity& element,
 
 
 // Compare two matrices
-void compareMatrices(const Matrix<FieldMatrix<double,7,7> >& matrixA, std::string nameA,
-                     const Matrix<FieldMatrix<double,7,7> >& matrixB, std::string nameB)
+template <int N>
+void compareMatrices(const Matrix<FieldMatrix<double,N,N> >& matrixA, std::string nameA,
+                     const Matrix<FieldMatrix<double,N,N> >& matrixB, std::string nameB)
 {
   double maxAbsDifference = -1;
   double maxRelDifference = -1;
 
-  for(int i=0; i<matrixA.N(); i++) {
+  for(size_t i=0; i<matrixA.N(); i++) {
 
-    for (int j=0; j<matrixA.M(); j++ ) {
+    for (size_t j=0; j<matrixA.M(); j++ ) {
 
       for (int ii=0; ii<matrixA[i][j].N(); ii++)
         for (int jj=0; jj<matrixA[i][j].M(); jj++)
@@ -396,6 +415,7 @@ int main (int argc, char *argv[]) try
 {
     typedef std::vector<TargetSpace> SolutionType;
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
+    enum { blocksize = TargetSpace::TangentVector::dimension };
 
     // ///////////////////////////////////////
     //    Create the grid
@@ -444,28 +464,46 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
 
     ParameterTree materialParameters;
-    materialParameters["thickness"] = "2.5e-5";
-    materialParameters["mu"] = "5.6452e+09";
-    materialParameters["lambda"] = "2.1796e+09";
-    materialParameters["mu_c"] = "5.6452e+09";
+    materialParameters["thickness"] = "1";
+    materialParameters["mu"] = "1";
+    materialParameters["lambda"] = "1";
+    materialParameters["mu_c"] = "1";
     materialParameters["L_c"] = "1";
     materialParameters["q"] = "2";
     materialParameters["kappa"] = "1";
+
+    ///////////////////////////////////////////////////////////////////////
+    //  Assemblers for the Euclidean derivatives in an embedding space
+    ///////////////////////////////////////////////////////////////////////
 
     // Assembler using ADOL-C
     CosseratEnergyLocalStiffness<GridView,
                                  FEBasis::LocalFiniteElement,
                                  3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters, nullptr, nullptr);
 
-    LocalGeodesicFEADOLCStiffness<GridView,
-                                  FEBasis::LocalFiniteElement> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
+    LocalADOLCStiffness<GridView,
+                        FEBasis::LocalFiniteElement> localADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
     CosseratEnergyLocalStiffness<GridView,
                                  FEBasis::LocalFiniteElement,
                                  3,FDType> cosseratEnergyFDLocalStiffness(materialParameters, nullptr, nullptr);
 
+    LocalFDStiffness<GridView,
+                    FEBasis::LocalFiniteElement,FDType> localFDStiffness(&cosseratEnergyFDLocalStiffness);
+
+    ///////////////////////////////////////////////////////////////////////
+    //  Assemblers for the Riemannian derivatives without embedding space
+    ///////////////////////////////////////////////////////////////////////
+
+    // Assembler using ADOL-C
+    LocalGeodesicFEADOLCStiffness<GridView,
+                                  FEBasis::LocalFiniteElement,
+                                  TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
+
     LocalGeodesicFEFDStiffness<GridView,
-                             FEBasis::LocalFiniteElement,FDType> localGFEFDStiffness(&cosseratEnergyFDLocalStiffness);
+                               FEBasis::LocalFiniteElement,
+                               TargetSpace,
+                               FDType> localGFEFDStiffness(&cosseratEnergyFDLocalStiffness);
 
     // Compute and compare matrices
     auto it    = gridView.template begin<0>();
@@ -477,7 +515,7 @@ int main (int argc, char *argv[]) try
 
         const int numOfBaseFct = feBasis.getLocalFiniteElement(*it).localBasis().size();
 
-        // Extract local solution
+        // Extract local configuration
         std::vector<TargetSpace> localSolution(numOfBaseFct);
 
         for (int i=0; i<numOfBaseFct; i++)
@@ -488,28 +526,54 @@ int main (int argc, char *argv[]) try
         std::vector<Dune::FieldVector<double,embeddedBlocksize> > localFDGradient(numOfBaseFct);
 
         Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localADHessian;
-        Matrix<FieldMatrix<double,7,7> > localADVMHessian;   // VM: vector-mode
-        Matrix<FieldMatrix<double,7,7> > localFDHessian;
-
-        // setup local matrix and gradient
-        localGFEADOLCStiffness.assembleGradientAndHessian(*it,
+        Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localADVMHessian;   // VM: vector-mode
+        Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localFDHessian;
+        if (false) {
+        // Assemble Euclidean derivatives
+        localADOLCStiffness.assembleGradientAndHessian(*it,
                                                           feBasis.getLocalFiniteElement(*it),
                                                           localSolution,
                                                           localADGradient,
                                                           localADHessian,
                                                           false);   // 'true' means 'vector mode'
 
-        localGFEADOLCStiffness.assembleGradientAndHessian(*it,
+        localADOLCStiffness.assembleGradientAndHessian(*it,
                                                           feBasis.getLocalFiniteElement(*it),
                                                           localSolution,
                                                           localADGradient,
                                                           localADVMHessian,
                                                           true);   // 'true' means 'vector mode'
 
-        localGFEFDStiffness.assembleGradientAndHessian(*it, feBasis.getLocalFiniteElement(*it), localSolution, localFDGradient, localFDHessian);
+        localFDStiffness.assembleGradientAndHessian(*it,
+                                                    feBasis.getLocalFiniteElement(*it),
+                                                    localSolution,
+                                                    localFDGradient,
+                                                    localFDHessian);
 
+        // compare
         compareMatrices(localADHessian, "AD", localFDHessian, "FD");
         compareMatrices(localADHessian, "AD scalar", localADVMHessian, "AD vector");
+        }
+        // Assemble Riemannian derivatives
+        std::vector<Dune::FieldVector<double,blocksize> > localRiemannianADGradient(numOfBaseFct);
+        std::vector<Dune::FieldVector<double,blocksize> > localRiemannianFDGradient(numOfBaseFct);
+
+        Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianADHessian;
+        Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianFDHessian;
+
+        localGFEADOLCStiffness.assembleGradientAndHessian(*it,
+                                                          feBasis.getLocalFiniteElement(*it),
+                                                          localSolution,
+                                                          localRiemannianADGradient);
+
+        localGFEFDStiffness.assembleGradientAndHessian(*it,
+                                                       feBasis.getLocalFiniteElement(*it),
+                                                       localSolution,
+                                                       localRiemannianFDGradient);
+
+        // compare
+        compareMatrices(localGFEADOLCStiffness.A_, "Riemannian AD", localGFEFDStiffness.A_, "Riemannian FD");
+
     }
 
     // //////////////////////////////
