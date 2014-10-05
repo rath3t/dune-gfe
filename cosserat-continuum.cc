@@ -197,6 +197,9 @@ int main (int argc, char *argv[]) try
     BitSetVector<1> dirichletNodes(feBasis.size(), false);
     constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
 
+    BitSetVector<1> neumannNodes(feBasis.size(), false);
+    constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
+
     BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
     for (size_t i=0; i<feBasis.size(); i++)
       if (dirichletNodes[i][0])
@@ -336,9 +339,9 @@ int main (int argc, char *argv[]) try
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
     for (size_t i=0; i<x.size(); i++)
-        if (neumannVertices[i][0])
+        if (neumannNodes[i][0])
             averageDef += x[i].r;
-    averageDef /= neumannVertices.count();
+    averageDef /= neumannNodes.count();
 
     if (mpiHelper.rank()==0)
     {
