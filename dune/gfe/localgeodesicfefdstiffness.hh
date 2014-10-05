@@ -117,7 +117,11 @@ assembleGradient(const Entity& element,
             backwardSolution[i] = ATargetSpace::exp(localASolution[i], backwardCorrection);
 
             field_type foo = (localEnergy_->energy(element,localFiniteElement,forwardSolution) - localEnergy_->energy(element,localFiniteElement, backwardSolution)) / (2*eps);
+#ifdef MULTIPRECISION
             localGradient[i][j] = foo.template convert_to<double>();
+#else
+            localGradient[i][j] = foo;
+#endif
 
         }
 
@@ -147,7 +151,11 @@ assembleGradientAndHessian(const Entity& element,
 
     this->A_ = 0;
 
+#ifdef MULTIPRECISION
     const field_type eps = 1e-10;
+#else
+    const field_type eps = 1e-4;
+#endif
 
     std::vector<ATargetSpace> localASolution(localSolution.size());
     std::vector<typename ATargetSpace::CoordinateType> aRaw(localSolution.size());
@@ -201,7 +209,11 @@ assembleGradientAndHessian(const Entity& element,
         for (int j=0; j<blocksize; j++)
         {
           field_type foo = (forwardEnergy[i][j] - backwardEnergy[i][j]) / (2*eps);
+#ifdef MULTIPRECISION
           localGradient[i][j] = foo.template convert_to<double>();
+#else
+          localGradient[i][j] = foo;
+#endif
         }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -242,8 +254,11 @@ assembleGradientAndHessian(const Entity& element,
                     field_type backwardValue = localEnergy_->energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
                     field_type foo = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
+#ifdef MULTIPRECISION
                     this->A_[i][j][i2][j2] = this->A_[j][i][j2][i2] = foo.template convert_to<double>();
-
+#else
+                    this->A_[i][j][i2][j2] = this->A_[j][i][j2][i2] = foo;
+#endif
                 }
             }
         }
