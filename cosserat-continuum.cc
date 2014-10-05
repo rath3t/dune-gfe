@@ -159,7 +159,7 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////
 
     BitSetVector<1> dirichletVertices(gridView.size(dim), false);
-    BitSetVector<1> neumannNodes(gridView.size(dim), false);
+    BitSetVector<1> neumannVertices(gridView.size(dim), false);
 
     GridType::Codim<dim>::LeafIterator vIt    = gridView.begin<dim>();
     GridType::Codim<dim>::LeafIterator vEndIt = gridView.end<dim>();
@@ -183,12 +183,12 @@ int main (int argc, char *argv[]) try
 
         bool isNeumann;
         pythonNeumannVertices.evaluate(vIt->geometry().corner(0), isNeumann);
-        neumannNodes[indexSet.index(*vIt)] = isNeumann;
+        neumannVertices[indexSet.index(*vIt)] = isNeumann;
 
     }
 
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
-    BoundaryPatch<GridView> neumannBoundary(gridView, neumannNodes);
+    BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
     if (mpiHelper.rank()==0)
       std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
@@ -336,9 +336,9 @@ int main (int argc, char *argv[]) try
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
     for (size_t i=0; i<x.size(); i++)
-        if (neumannNodes[i][0])
+        if (neumannVertices[i][0])
             averageDef += x[i].r;
-    averageDef /= neumannNodes.count();
+    averageDef /= neumannVertices.count();
 
     if (mpiHelper.rank()==0)
     {
