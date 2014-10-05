@@ -528,7 +528,7 @@ int main (int argc, char *argv[]) try
         Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localADHessian;
         Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localADVMHessian;   // VM: vector-mode
         Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localFDHessian;
-        if (false) {
+
         // Assemble Euclidean derivatives
         localADOLCStiffness.assembleGradientAndHessian(*it,
                                                           feBasis.getLocalFiniteElement(*it),
@@ -553,7 +553,7 @@ int main (int argc, char *argv[]) try
         // compare
         compareMatrices(localADHessian, "AD", localFDHessian, "FD");
         compareMatrices(localADHessian, "AD scalar", localADVMHessian, "AD vector");
-        }
+
         // Assemble Riemannian derivatives
         std::vector<Dune::FieldVector<double,blocksize> > localRiemannianADGradient(numOfBaseFct);
         std::vector<Dune::FieldVector<double,blocksize> > localRiemannianFDGradient(numOfBaseFct);
