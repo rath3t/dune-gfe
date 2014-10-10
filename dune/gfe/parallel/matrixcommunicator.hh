@@ -5,7 +5,7 @@
 
 #include <dune/istl/matrixindexset.hh>
 
-#include <dune/grid/utility/globalindex.hh>
+#include <dune/gfe/parallel/globalindex.hh>
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
