@@ -66,6 +66,9 @@
 /* of a given codim in a given GridView, assuming they all have the same geometry,           */
 /* i.e. codim, type                                                                          */
 /*********************************************************************************************/
+
+namespace Dune {
+
 template<class GridView, int CODIM>
 class GlobalUniqueIndex
 {
@@ -345,5 +348,7 @@ protected:
   IndexMap localGlobalMap_;
   IndexMap globalLocalMap_;
 };
+
+}  // namespace Dune
 
 #endif /* GLOBALUNIQUEINDEX_HH_ */
