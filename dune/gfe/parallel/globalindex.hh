@@ -70,7 +70,7 @@
 namespace Dune {
 
 template<class GridView, int CODIM>
-class GlobalUniqueIndex
+class GlobalIndexSet
 {
 private:
   /** define data types */
@@ -191,7 +191,7 @@ public:
   /*  later query the global index, by directly passing the entity in question: then the respective global              */
   /*  index is returned.                                                                                                */
   /**********************************************************************************************************************/
-  GlobalUniqueIndex(const GridView& gridview)
+  GlobalIndexSet(const GridView& gridview)
     :       gridview_(gridview),
 	    uniqueEntityPartition_(gridview)
   {

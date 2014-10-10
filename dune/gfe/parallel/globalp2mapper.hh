@@ -36,9 +36,9 @@ namespace Dune {
 
       P2BasisMapper<GridView> p2Mapper(gridView);
 
-      GlobalUniqueIndex<GridView,2> globalVertexIndex(gridView);
-      GlobalUniqueIndex<GridView,1> globalEdgeIndex(gridView);
-      GlobalUniqueIndex<GridView,0> globalElementIndex(gridView);
+      GlobalIndexSet<GridView,2> globalVertexIndex(gridView);
+      GlobalIndexSet<GridView,1> globalEdgeIndex(gridView);
+      GlobalIndexSet<GridView,0> globalElementIndex(gridView);
 
       // total number of degrees of freedom
       nGlobalEntity_ = globalVertexIndex.nGlobalEntity() + globalEdgeIndex.nGlobalEntity() + globalElementIndex.nGlobalEntity();
