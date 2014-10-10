@@ -32,10 +32,10 @@ private:
         localVectorEntries.push_back(TransferVectorTuple(guIndex.index(k), localVector[k]));
 
     // Get number of vector entries on each process
-    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), localVectorEntries.size());
+    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView().comm(), localVectorEntries.size());
 
     // Get vector entries from every process
-    globalVectorEntries = MPIFunctions::gatherv(guIndex.getGridView(), localVectorEntries, localVectorEntriesSizes, root_rank);
+    globalVectorEntries = MPIFunctions::gatherv(guIndex.getGridView().comm(), localVectorEntries, localVectorEntriesSizes, root_rank);
   }
 
 public:
@@ -43,7 +43,7 @@ public:
   : guIndex(gi), root_rank(root)
   {
     // Get number of vector entries on each process
-    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), guIndex.nOwnedLocalEntity());
+    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView().comm(), guIndex.nOwnedLocalEntity());
   }
 
   VectorType reduceAdd(const VectorType& localVector)
@@ -81,7 +81,7 @@ public:
     // Create vector for transfer data
     std::vector<TransferVectorTuple> localVectorEntries(localSize);
 
-    MPIFunctions::scatterv(guIndex.getGridView(), localVectorEntries, globalVectorEntries, localVectorEntriesSizes, root_rank);
+    MPIFunctions::scatterv(guIndex.getGridView().comm(), localVectorEntries, globalVectorEntries, localVectorEntriesSizes, root_rank);
 
     // Create vector for local solution
     VectorType x(localSize);

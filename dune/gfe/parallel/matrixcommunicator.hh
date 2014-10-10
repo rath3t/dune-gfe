@@ -38,10 +38,10 @@ class MatrixCommunicator {
       }
 
     // Get number of matrix entries on each process
-    std::vector<int> localMatrixEntriesSizes(MPIFunctions::shareSizes(guIndex1_.getGridView(), localMatrixEntries.size()));
+    std::vector<int> localMatrixEntriesSizes(MPIFunctions::shareSizes(guIndex1_.getGridView().comm(), localMatrixEntries.size()));
 
     // Get matrix entries from every process
-    globalMatrixEntries = MPIFunctions::gatherv(guIndex1_.getGridView(), localMatrixEntries, localMatrixEntriesSizes, root_rank);
+    globalMatrixEntries = MPIFunctions::gatherv(guIndex1_.getGridView().comm(), localMatrixEntries, localMatrixEntriesSizes, root_rank);
   }
 
 public:
