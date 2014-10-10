@@ -29,7 +29,7 @@ private:
 
     // Translate vector entries
     for (size_t k=0; k<localVector.size(); k++)
-        localVectorEntries.push_back(TransferVectorTuple(guIndex.globalIndex(k), localVector[k]));
+        localVectorEntries.push_back(TransferVectorTuple(guIndex.index(k), localVector[k]));
 
     // Get number of vector entries on each process
     localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView(), localVectorEntries.size());

@@ -56,7 +56,7 @@ namespace Dune {
         {
           //int localIndex  = globalVertexIndex.localIndex (*it->template subEntity<2>(i));
           int localIndex  = p2Mapper.map(*it, i, 2);
-          int globalIndex = globalVertexIndex.globalIndex(*it->template subEntity<2>(i));
+          int globalIndex = globalVertexIndex.index(*it->template subEntity<2>(i));
 
           localGlobalMap_[localIndex]  = globalIndex;
           globalLocalMap_[globalIndex] = localIndex;
@@ -71,7 +71,7 @@ namespace Dune {
         {
           //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
           int localIndex  = p2Mapper.map(*it, i, 1);
-          int globalIndex = globalEdgeIndex.globalIndex(*it->template subEntity<1>(i)) + globalVertexIndex.nGlobalEntity();
+          int globalIndex = globalEdgeIndex.index(*it->template subEntity<1>(i)) + globalVertexIndex.nGlobalEntity();
 
           localGlobalMap_[localIndex]  = globalIndex;
           globalLocalMap_[globalIndex] = localIndex;
@@ -85,7 +85,7 @@ namespace Dune {
         {
           //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
           int localIndex  = p2Mapper.map(*it, 0, 0);
-          int globalIndex = globalElementIndex.globalIndex(*it->template subEntity<0>(0))
+          int globalIndex = globalElementIndex.index(*it->template subEntity<0>(0))
                             + globalEdgeIndex.nGlobalEntity()
                             + globalVertexIndex.nGlobalEntity();
 
@@ -98,7 +98,7 @@ namespace Dune {
     }
 
     /** \brief Given a local index, retrieve its index globally unique over all processes. */
-    int globalIndex(const int& localIndex) const {
+    int index(const int& localIndex) const {
       return localGlobalMap_.find(localIndex)->second;
     }
 

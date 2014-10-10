@@ -306,7 +306,7 @@ public:
 
 
   /** \brief Given a local index, retrieve its index globally unique over all processes. */
-  int globalIndex(const int& localIndex) const {
+  int index(const int& localIndex) const {
     return localGlobalMap_.find(localIndex)->second;
   }
 
@@ -314,7 +314,7 @@ public:
     return globalLocalMap_.find(globalIndex)->second;
   }
 
-  int globalIndex(const typename GridView::template Codim<CODIM>::Entity& entity) const
+  int index(const typename GridView::template Codim<CODIM>::Entity& entity) const
   {
     return localGlobalMap_.find(gridview_.indexSet().index(entity))->second;
   }

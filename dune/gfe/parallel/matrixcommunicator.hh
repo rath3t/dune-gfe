@@ -34,7 +34,7 @@ class MatrixCommunicator {
         const int i = rIt.index();
         const int j = cIt.index();
 
-        localMatrixEntries.push_back(TransferMatrixTuple(guIndex1_.globalIndex(i), guIndex2_.globalIndex(j), *cIt));
+        localMatrixEntries.push_back(TransferMatrixTuple(guIndex1_.index(i), guIndex2_.index(j), *cIt));
       }
 
     // Get number of matrix entries on each process
