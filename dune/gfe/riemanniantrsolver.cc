@@ -91,7 +91,9 @@ setup(const GridType& grid,
 #endif
 
     // Transfer all Dirichlet data to the master processor
-    VectorCommunicator<GUIndex, Dune::BitSetVector<blocksize> > vectorComm(*guIndex_, 0);
+    VectorCommunicator<GUIndex, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*guIndex_,
+                                                                                                                                     grid_->leafGridView().comm(),
+                                                                                                                                     0);
     Dune::BitSetVector<blocksize>* globalDirichletNodes = NULL;
     globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.reduceCopy(dirichletNodes));
 
@@ -125,7 +127,7 @@ setup(const GridType& grid,
         delete h1SemiNorm_;
 
 
-    MatrixCommunicator<GUIndex, ScalarMatrixType> matrixComm(*guIndex_, 0);
+    MatrixCommunicator<GUIndex, typename GridType::LeafGridView::CollectiveCommunication, ScalarMatrixType> matrixComm(*guIndex_, grid_->leafGridView().comm(), 0);
     ScalarMatrixType* A = new ScalarMatrixType(matrixComm.reduceAdd(localA));
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
@@ -185,7 +187,10 @@ setup(const GridType& grid,
         LeafP1GUIndex p1Index(grid_->leafGridView());
 
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        MatrixCommunicator<GUIndex, TransferOperatorType, LeafP1GUIndex> matrixComm(*guIndex_, p1Index, 0);
+        MatrixCommunicator<GUIndex,
+                           typename GridType::LeafGridView::CollectiveCommunication,
+                           TransferOperatorType,
+                           LeafP1GUIndex> matrixComm(*guIndex_, p1Index, grid_->leafGridView().comm(), 0);
 
         mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>;
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix()));
@@ -203,7 +208,9 @@ setup(const GridType& grid,
           LevelGUIndex coarseGUIndex(grid_->levelGridView(i+1));
 
           typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-          MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
+          MatrixCommunicator<LevelGUIndex,
+                             typename GridType::LevelGridView::CollectiveCommunication,
+                             TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1).comm(), 0);
 
           mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
           Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
@@ -292,8 +299,12 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     MatrixType stiffnessMatrix;
     CorrectionType rhs_global;
 
-    VectorCommunicator<GUIndex, CorrectionType> vectorComm(*guIndex_, 0);
-    MatrixCommunicator<GUIndex, MatrixType> matrixComm(*guIndex_, 0);
+    VectorCommunicator<GUIndex, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*guIndex_,
+                                                                                                                     grid_->leafGridView().comm(),
+                                                                                                                     0);
+    MatrixCommunicator<GUIndex, typename GridType::LeafGridView::CollectiveCommunication, MatrixType> matrixComm(*guIndex_,
+                                                                                                                 grid_->leafGridView().comm(),
+                                                                                                                 0);
 
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 

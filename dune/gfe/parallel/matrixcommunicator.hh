@@ -9,7 +9,7 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
-template<typename GUIndex, typename MatrixType, typename ColGUIndex=GUIndex>
+template<typename GUIndex, typename Communicator, typename MatrixType, typename ColGUIndex=GUIndex>
 class MatrixCommunicator {
 
   struct TransferMatrixTuple {
@@ -38,22 +38,24 @@ class MatrixCommunicator {
       }
 
     // Get number of matrix entries on each process
-    std::vector<int> localMatrixEntriesSizes(MPIFunctions::shareSizes(guIndex1_.getGridView().comm(), localMatrixEntries.size()));
+    std::vector<int> localMatrixEntriesSizes(MPIFunctions::shareSizes(communicator_, localMatrixEntries.size()));
 
     // Get matrix entries from every process
-    globalMatrixEntries = MPIFunctions::gatherv(guIndex1_.getGridView().comm(), localMatrixEntries, localMatrixEntriesSizes, root_rank);
+    globalMatrixEntries = MPIFunctions::gatherv(communicator_, localMatrixEntries, localMatrixEntriesSizes, root_rank);
   }
 
 public:
-  MatrixCommunicator(const GUIndex& rowIndex, const int& root)
+  MatrixCommunicator(const GUIndex& rowIndex, const Communicator& communicator, const int& root)
   : guIndex1_(rowIndex),
     guIndex2_(rowIndex),
+    communicator_(communicator),
     root_rank(root)
   {}
 
-  MatrixCommunicator(const GUIndex& rowIndex, const ColGUIndex& colIndex, const int& root)
+  MatrixCommunicator(const GUIndex& rowIndex, const ColGUIndex& colIndex, const Communicator& communicator, const int& root)
   : guIndex1_(rowIndex),
     guIndex2_(colIndex),
+    communicator_(communicator),
     root_rank(root)
   {}
 
@@ -110,6 +112,7 @@ public:
 private:
   const GUIndex& guIndex1_;
   const ColGUIndex& guIndex2_;
+  const Communicator& communicator_;
   int root_rank;
 
   std::vector<TransferMatrixTuple> globalMatrixEntries;

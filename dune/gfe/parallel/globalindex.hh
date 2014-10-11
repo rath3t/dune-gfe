@@ -333,10 +333,6 @@ public:
     return(nLocalEntity_);
   }
 
-  const GridView& getGridView() const {
-    return gridview_;
-  }
-
 protected:
   /** store data members */
   const GridView gridview_;                                                       /** store a const reference to a gridview */

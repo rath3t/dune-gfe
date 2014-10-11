@@ -30,7 +30,6 @@ namespace Dune {
     typedef std::map<int,int>    IndexMap;
 
     GlobalP2Mapper(const GridView& gridView)
-    : gridView_(gridView)
     {
       static_assert(GridView::dimension==2, "Only implemented for two-dimensional grids");
 
@@ -115,12 +114,6 @@ namespace Dune {
     {
       return nOwnedLocalEntity_;
     }
-
-    const GridView& getGridView() const {
-      return gridView_;
-    }
-
-    const GridView gridView_;
 
     IndexMap localGlobalMap_;
     IndexMap globalLocalMap_;

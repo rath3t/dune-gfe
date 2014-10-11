@@ -7,7 +7,7 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
-template<typename GUIndex, typename VectorType>
+template<typename GUIndex, typename Communicator, typename VectorType>
 class VectorCommunicator {
 
   struct TransferVectorTuple {
@@ -32,18 +32,20 @@ private:
         localVectorEntries.push_back(TransferVectorTuple(guIndex.index(k), localVector[k]));
 
     // Get number of vector entries on each process
-    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView().comm(), localVectorEntries.size());
+    localVectorEntriesSizes = MPIFunctions::shareSizes(communicator_, localVectorEntries.size());
 
     // Get vector entries from every process
-    globalVectorEntries = MPIFunctions::gatherv(guIndex.getGridView().comm(), localVectorEntries, localVectorEntriesSizes, root_rank);
+    globalVectorEntries = MPIFunctions::gatherv(communicator_, localVectorEntries, localVectorEntriesSizes, root_rank);
   }
 
 public:
-  VectorCommunicator(const GUIndex& gi, const int& root)
-  : guIndex(gi), root_rank(root)
+  VectorCommunicator(const GUIndex& gi,
+                     const Communicator& communicator,
+                     const int& root)
+  : guIndex(gi), communicator_(communicator), root_rank(root)
   {
     // Get number of vector entries on each process
-    localVectorEntriesSizes = MPIFunctions::shareSizes(guIndex.getGridView().comm(), guIndex.nOwnedLocalEntity());
+    localVectorEntriesSizes = MPIFunctions::shareSizes(communicator, guIndex.nOwnedLocalEntity());
   }
 
   VectorType reduceAdd(const VectorType& localVector)
@@ -76,12 +78,12 @@ public:
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
       globalVectorEntries[k].value_ = global[globalVectorEntries[k].globalIndex_];
 
-    const int localSize = localVectorEntriesSizes[guIndex.getGridView().comm().rank()];
+    const int localSize = localVectorEntriesSizes[communicator_.rank()];
 
     // Create vector for transfer data
     std::vector<TransferVectorTuple> localVectorEntries(localSize);
 
-    MPIFunctions::scatterv(guIndex.getGridView().comm(), localVectorEntries, globalVectorEntries, localVectorEntriesSizes, root_rank);
+    MPIFunctions::scatterv(communicator_, localVectorEntries, globalVectorEntries, localVectorEntriesSizes, root_rank);
 
     // Create vector for local solution
     VectorType x(localSize);
@@ -95,6 +97,7 @@ public:
 
 private:
   const GUIndex& guIndex;
+  const Communicator& communicator_;
   int root_rank;
 
   std::vector<int> localVectorEntriesSizes;
