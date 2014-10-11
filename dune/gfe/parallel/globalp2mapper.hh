@@ -13,7 +13,6 @@
 
 // Include Dune header files
 #include <dune/common/version.hh>
-#include "uniqueentitypartition.hh"
 
 /** include parallel capability */
 #if HAVE_MPI
@@ -35,9 +34,9 @@ namespace Dune {
 
       P2BasisMapper<GridView> p2Mapper(gridView);
 
-      GlobalIndexSet<GridView,2> globalVertexIndex(gridView);
-      GlobalIndexSet<GridView,1> globalEdgeIndex(gridView);
-      GlobalIndexSet<GridView,0> globalElementIndex(gridView);
+      GlobalIndexSet<GridView> globalVertexIndex(gridView,2);
+      GlobalIndexSet<GridView> globalEdgeIndex(gridView,1);
+      GlobalIndexSet<GridView> globalElementIndex(gridView,0);
 
       // total number of degrees of freedom
       nGlobalEntity_ = globalVertexIndex.nGlobalEntity() + globalEdgeIndex.nGlobalEntity() + globalElementIndex.nGlobalEntity();

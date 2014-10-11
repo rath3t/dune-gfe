@@ -183,8 +183,8 @@ setup(const GridType& grid,
 
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
-        typedef Dune::GlobalIndexSet<typename GridType::LeafGridView, gridDim> LeafP1GUIndex;
-        LeafP1GUIndex p1Index(grid_->leafGridView());
+        typedef Dune::GlobalIndexSet<typename GridType::LeafGridView> LeafP1GUIndex;
+        LeafP1GUIndex p1Index(grid_->leafGridView(), gridDim);
 
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         MatrixCommunicator<GUIndex,
@@ -203,9 +203,9 @@ setup(const GridType& grid,
 
           // If we are on more than 1 processors, join all local transfer matrices on rank 0,
           // and construct a single global transfer operator there.
-          typedef Dune::GlobalIndexSet<typename GridType::LevelGridView, gridDim> LevelGUIndex;
-          LevelGUIndex fineGUIndex(grid_->levelGridView(i+2));
-          LevelGUIndex coarseGUIndex(grid_->levelGridView(i+1));
+          typedef Dune::GlobalIndexSet<typename GridType::LevelGridView> LevelGUIndex;
+          LevelGUIndex fineGUIndex(grid_->levelGridView(i+2), gridDim);
+          LevelGUIndex coarseGUIndex(grid_->levelGridView(i+1), gridDim);
 
           typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
           MatrixCommunicator<LevelGUIndex,

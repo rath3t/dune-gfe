@@ -18,7 +18,7 @@
 #include <dune/fufem/functionspacebases/p3nodalbasis.hh>
 
 #include "geodesicfeassembler.hh"
-#include <dune/gfe/parallel/globalindex.hh>
+#include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalp2mapper.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
