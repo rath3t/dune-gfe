@@ -39,7 +39,9 @@ class RiemannianTrustRegionSolver
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef std::vector<TargetSpace>                                               SolutionType;
 
-#ifdef SECOND_ORDER
+#ifdef THIRD_ORDER
+#error RiemannianTrustRegionSolver cannot currently be used for third-order spaces
+#elif defined SECOND_ORDER
     typedef Dune::GlobalP2Mapper<typename GridType::LeafGridView> GUIndex;
 #else
     typedef GlobalUniqueIndex<typename GridType::LeafGridView, gridDim> GUIndex;
