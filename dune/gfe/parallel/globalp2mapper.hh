@@ -26,7 +26,10 @@ namespace Dune {
   {
   public:
 
-    typedef std::map<int,int>    IndexMap;
+    /** \brief The integer number type used for indices */
+    typedef typename GridView::IndexSet::IndexType Index;
+
+    typedef std::map<Index,Index>    IndexMap;
 
     GlobalP2Mapper(const GridView& gridView)
     {
@@ -96,11 +99,11 @@ namespace Dune {
     }
 
     /** \brief Given a local index, retrieve its index globally unique over all processes. */
-    int index(const int& localIndex) const {
+    Index index(const int& localIndex) const {
       return localGlobalMap_.find(localIndex)->second;
     }
 
-    int localIndex(const int& globalIndex) const {
+    Index localIndex(const int& globalIndex) const {
       return globalLocalMap_.find(globalIndex)->second;
     }
 
