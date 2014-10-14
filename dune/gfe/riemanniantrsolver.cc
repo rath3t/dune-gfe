@@ -6,6 +6,8 @@
 
 #include <dune/istl/io.hh>
 
+#include <dune/grid/common/mcmgmapper.hh>
+
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
@@ -126,8 +128,14 @@ setup(const GridType& grid,
     if (h1SemiNorm_)
         delete h1SemiNorm_;
 
+    LocalMapper localMapper(grid_->leafGridView());
 
-    MatrixCommunicator<GUIndex, typename GridType::LeafGridView::CollectiveCommunication, ScalarMatrixType> matrixComm(*guIndex_, grid_->leafGridView().comm(), 0);
+    MatrixCommunicator<GUIndex,
+                       typename GridType::LeafGridView,
+                       ScalarMatrixType,
+                       LocalMapper,
+                       LocalMapper> matrixComm(*guIndex_, grid_->leafGridView(), localMapper, localMapper, 0);
+
     ScalarMatrixType* A = new ScalarMatrixType(matrixComm.reduceAdd(localA));
 
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
@@ -186,11 +194,16 @@ setup(const GridType& grid,
         typedef Dune::GlobalIndexSet<typename GridType::LeafGridView> LeafP1GUIndex;
         LeafP1GUIndex p1Index(grid_->leafGridView(), gridDim);
 
+        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LeafP1LocalMapper;
+        LeafP1LocalMapper leafP1LocalMapper(grid_->leafGridView());
+
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         MatrixCommunicator<GUIndex,
-                           typename GridType::LeafGridView::CollectiveCommunication,
+                           typename GridType::LeafGridView,
                            TransferOperatorType,
-                           LeafP1GUIndex> matrixComm(*guIndex_, p1Index, grid_->leafGridView().comm(), 0);
+                           LocalMapper,
+                           LeafP1LocalMapper,
+                           LeafP1GUIndex> matrixComm(*guIndex_, p1Index, grid_->leafGridView(), localMapper, leafP1LocalMapper, 0);
 
         mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>;
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix()));
@@ -207,10 +220,16 @@ setup(const GridType& grid,
           LevelGUIndex fineGUIndex(grid_->levelGridView(i+2), gridDim);
           LevelGUIndex coarseGUIndex(grid_->levelGridView(i+1), gridDim);
 
+          typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView, Dune::MCMGVertexLayout> LevelLocalMapper;
+          LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+2));
+          LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i+1));
+
           typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
           MatrixCommunicator<LevelGUIndex,
-                             typename GridType::LevelGridView::CollectiveCommunication,
-                             TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1).comm(), 0);
+                             typename GridType::LevelGridView,
+                             TransferOperatorType,
+                             LevelLocalMapper,
+                             LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
 
           mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
           Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
@@ -302,9 +321,17 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     VectorCommunicator<GUIndex, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*guIndex_,
                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                      0);
-    MatrixCommunicator<GUIndex, typename GridType::LeafGridView::CollectiveCommunication, MatrixType> matrixComm(*guIndex_,
-                                                                                                                 grid_->leafGridView().comm(),
-                                                                                                                 0);
+
+    LocalMapper localMapper(grid_->leafGridView());
+    MatrixCommunicator<GUIndex,
+                       typename GridType::LeafGridView,
+                       MatrixType,
+                       LocalMapper,
+                       LocalMapper> matrixComm(*guIndex_,
+                                               grid_->leafGridView(),
+                                               localMapper,
+                                               localMapper,
+                                               0);
 
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 

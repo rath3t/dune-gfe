@@ -32,17 +32,16 @@ namespace Dune {
     typedef std::map<Index,Index>    IndexMap;
 
     GlobalP2Mapper(const GridView& gridView)
+    : p2Mapper_(gridView)
     {
       static_assert(GridView::dimension==2, "Only implemented for two-dimensional grids");
-
-      P2BasisMapper<GridView> p2Mapper(gridView);
 
       GlobalIndexSet<GridView> globalVertexIndex(gridView,2);
       GlobalIndexSet<GridView> globalEdgeIndex(gridView,1);
       GlobalIndexSet<GridView> globalElementIndex(gridView,0);
 
       // total number of degrees of freedom
-      nGlobalEntity_ = globalVertexIndex.nGlobalEntity() + globalEdgeIndex.nGlobalEntity() + globalElementIndex.nGlobalEntity();
+      nGlobalEntity_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
       nOwnedLocalEntity_ = globalVertexIndex.nOwnedLocalEntity() + globalEdgeIndex.nOwnedLocalEntity() + globalElementIndex.nOwnedLocalEntity();
 
       // Determine
@@ -56,7 +55,7 @@ namespace Dune {
 #endif
         {
           //int localIndex  = globalVertexIndex.localIndex (*it->template subEntity<2>(i));
-          int localIndex  = p2Mapper.map(*it, i, 2);
+          int localIndex  = p2Mapper_.map(*it, i, 2);
           int globalIndex = globalVertexIndex.index(*it->template subEntity<2>(i));
 
           localGlobalMap_[localIndex]  = globalIndex;
@@ -71,8 +70,8 @@ namespace Dune {
 #endif
         {
           //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
-          int localIndex  = p2Mapper.map(*it, i, 1);
-          int globalIndex = globalEdgeIndex.index(*it->template subEntity<1>(i)) + globalVertexIndex.nGlobalEntity();
+          int localIndex  = p2Mapper_.map(*it, i, 1);
+          int globalIndex = globalEdgeIndex.index(*it->template subEntity<1>(i)) + globalVertexIndex.size(2);
 
           localGlobalMap_[localIndex]  = globalIndex;
           globalLocalMap_[globalIndex] = localIndex;
@@ -85,7 +84,7 @@ namespace Dune {
         if (it->type().isQuadrilateral())
         {
           //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
-          int localIndex  = p2Mapper.map(*it, 0, 0);
+          int localIndex  = p2Mapper_.map(*it, 0, 0);
           int globalIndex = globalElementIndex.index(*it->template subEntity<0>(0))
                             + globalEdgeIndex.nGlobalEntity()
                             + globalVertexIndex.nGlobalEntity();
@@ -103,6 +102,13 @@ namespace Dune {
       return localGlobalMap_.find(localIndex)->second;
     }
 
+    template <class Entity>
+    Index subIndex(const Entity& entity, uint i, uint codim) const
+    {
+      int localIndex = p2Mapper_.map(entity, i, codim);
+      return localGlobalMap_.find(localIndex)->second;
+    }
+
     Index localIndex(const int& globalIndex) const {
       return globalLocalMap_.find(globalIndex)->second;
     }
@@ -116,6 +122,8 @@ namespace Dune {
     {
       return nOwnedLocalEntity_;
     }
+
+    P2BasisMapper<GridView> p2Mapper_;
 
     IndexMap localGlobalMap_;
     IndexMap globalLocalMap_;

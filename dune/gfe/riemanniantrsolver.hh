@@ -51,8 +51,10 @@ class RiemannianTrustRegionSolver
     typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
 #elif defined SECOND_ORDER
     typedef P2NodalBasis<typename GridType::LeafGridView,double> BasisType;
+    typedef P2BasisMapper<typename GridType::LeafGridView> LocalMapper;
 #else
     typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
+    typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::VertexLayout> LocalMapper;
 #endif
 
 public:

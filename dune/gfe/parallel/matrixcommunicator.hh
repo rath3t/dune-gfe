@@ -9,7 +9,7 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
-template<typename GUIndex, typename Communicator, typename MatrixType, typename ColGUIndex=GUIndex>
+template<typename GUIndex, typename GridView, typename MatrixType, typename LocalMapper1, typename LocalMapper2, typename ColGUIndex=GUIndex>
 class MatrixCommunicator {
 
   struct TransferMatrixTuple {
@@ -34,7 +34,7 @@ class MatrixCommunicator {
         const int i = rIt.index();
         const int j = cIt.index();
 
-        localMatrixEntries.push_back(TransferMatrixTuple(guIndex1_.index(i), guIndex2_.index(j), *cIt));
+        localMatrixEntries.push_back(TransferMatrixTuple(localToGlobal1_[i], localToGlobal2_[j], *cIt));
       }
 
     // Get number of matrix entries on each process
@@ -45,19 +45,27 @@ class MatrixCommunicator {
   }
 
 public:
-  MatrixCommunicator(const GUIndex& rowIndex, const Communicator& communicator, const int& root)
+  MatrixCommunicator(const GUIndex& rowIndex, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
   : guIndex1_(rowIndex),
     guIndex2_(rowIndex),
-    communicator_(communicator),
+    localMapper1_(localMapper1),
+    localMapper2_(localMapper2),
+    communicator_(gridView.comm()),
     root_rank(root)
-  {}
+  {
+    setLocalToGlobal(gridView);
+  }
 
-  MatrixCommunicator(const GUIndex& rowIndex, const ColGUIndex& colIndex, const Communicator& communicator, const int& root)
+  MatrixCommunicator(const GUIndex& rowIndex, const ColGUIndex& colIndex, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
   : guIndex1_(rowIndex),
     guIndex2_(colIndex),
-    communicator_(communicator),
+    localMapper1_(localMapper1),
+    localMapper2_(localMapper2),
+    communicator_(gridView.comm()),
     root_rank(root)
-  {}
+  {
+    setLocalToGlobal(gridView);
+  }
 
   MatrixType reduceAdd(const MatrixType& local)
   {
@@ -110,10 +118,41 @@ public:
   }
 
 private:
+
+  void setLocalToGlobal(const GridView& gridView)
+  {
+    localToGlobal1_.resize(localMapper1_.size());
+    localToGlobal2_.resize(localMapper2_.size());
+
+    for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+      for (int codim = 0; codim <= GridView::dimension; codim++)
+        for (size_t i=0; i<it->subEntities(codim); i++)
+        {
+          typename GUIndex::Index localIdx = localMapper1_.map(*it,i,codim);
+          typename GUIndex::Index globalIdx = guIndex1_.subIndex(*it,i,codim);
+          localToGlobal1_[localIdx] = globalIdx;
+
+          localIdx = localMapper2_.map(*it,i,codim);
+          globalIdx = guIndex2_.subIndex(*it,i,codim);
+          localToGlobal2_[localIdx] = globalIdx;
+        }
+
+
+  }
+
+  // Mappers for the global numbering
   const GUIndex& guIndex1_;
   const ColGUIndex& guIndex2_;
-  const Communicator& communicator_;
+
+  // Mappers for the local numbering
+  const LocalMapper1& localMapper1_;
+  const LocalMapper2& localMapper2_;
+
+  const typename GridView::CollectiveCommunication& communicator_;
   int root_rank;
+
+  std::vector<typename GUIndex::Index> localToGlobal1_;
+  std::vector<typename ColGUIndex::Index> localToGlobal2_;
 
   std::vector<TransferMatrixTuple> globalMatrixEntries;
 };
