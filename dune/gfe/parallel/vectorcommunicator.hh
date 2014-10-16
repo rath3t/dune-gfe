@@ -43,10 +43,7 @@ public:
                      const Communicator& communicator,
                      const int& root)
   : guIndex(gi), communicator_(communicator), root_rank(root)
-  {
-    // Get number of vector entries on each process
-    localVectorEntriesSizes = MPIFunctions::shareSizes(communicator, guIndex.nOwnedLocalEntity());
-  }
+  {}
 
   VectorType reduceAdd(const VectorType& localVector)
   {
