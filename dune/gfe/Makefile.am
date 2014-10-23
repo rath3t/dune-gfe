@@ -41,6 +41,8 @@ srcinclude_HEADERS = adolcnamespaceinjections.hh \
                      targetspacertrsolver.hh \
                      tensorssd.hh \
                      tensor3.hh \
+                     trustregionsolver.hh \
+                     trustregionsolver.cc \
                      unitvector.hh \
                      vtkfile.hh
 

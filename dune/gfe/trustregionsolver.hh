@@ -1,0 +1,137 @@
+#ifndef DUNE_GFE_TRUST_REGION_SOLVER_HH
+#define DUNE_GFE_TRUST_REGION_SOLVER_HH
+
+#include <vector>
+
+#include <dune/common/bitsetvector.hh>
+
+#include <dune/istl/bcrsmatrix.hh>
+#include <dune/istl/bvector.hh>
+
+#include <dune/solvers/common/boxconstraint.hh>
+#include <dune/solvers/norms/h1seminorm.hh>
+#include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/solvers/loopsolver.hh>
+
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p3nodalbasis.hh>
+
+#include <dune/gfe/feassembler.hh>
+
+/** \brief Trust-region solver  */
+template <class GridType, class VectorType>
+class TrustRegionSolver
+    : public IterativeSolver<VectorType,
+                             Dune::BitSetVector<VectorType::value_type::dimension> >
+{
+    const static int blocksize = VectorType::value_type::dimension;
+
+    const static int gridDim = GridType::dimension;
+
+    // Centralize the field type here
+    typedef double field_type;
+
+    // Some types that I need
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
+    typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
+    typedef VectorType                                                             SolutionType;
+
+#ifdef THIRD_ORDER
+    typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
+#elif defined SECOND_ORDER
+    typedef P2NodalBasis<typename GridType::LeafGridView,double> BasisType;
+#else
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
+#endif
+
+public:
+
+    TrustRegionSolver()
+        : IterativeSolver<VectorType, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
+          hessianMatrix_(std::auto_ptr<MatrixType>(NULL)), h1SemiNorm_(NULL)
+    {}
+
+    /** \brief Set up the solver using a monotone multigrid method as the inner solver */
+    void setup(const GridType& grid,
+               const FEAssembler<BasisType,VectorType>* assembler,
+               const SolutionType& x,
+               const Dune::BitSetVector<blocksize>& dirichletNodes,
+               double tolerance,
+               int maxTrustRegionSteps,
+               double initialTrustRegionRadius,
+               int multigridIterations,
+               double mgTolerance,
+               int mu,
+               int nu1,
+               int nu2,
+               int baseIterations,
+               double baseTolerance);
+
+    void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
+    {
+        ignoreNodes_ = &ignoreNodes;
+        Dune::shared_ptr<LoopSolver<CorrectionType> > loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
+        assert(loopSolver);
+        loopSolver->iterationStep_->ignoreNodes_ = ignoreNodes_;
+    }
+
+    void solve();
+
+    void setInitialSolution(const SolutionType& x) DUNE_DEPRECATED {
+        x_ = x;
+    }
+
+    void setInitialIterate(const SolutionType& x) {
+        x_ = x;
+    }
+
+    SolutionType getSol() const {return x_;}
+
+protected:
+
+    /** \brief The grid */
+    const GridType* grid_;
+
+    /** \brief The solution vector */
+    SolutionType x_;
+
+    /** \brief The initial trust-region radius in the maximum-norm */
+    double initialTrustRegionRadius_;
+
+    /** \brief Maximum number of trust-region steps */
+    int maxTrustRegionSteps_;
+
+    /** \brief Maximum number of multigrid iterations */
+    int innerIterations_;
+
+    /** \brief Error tolerance of the multigrid QP solver */
+    double innerTolerance_;
+
+    /** \brief Hessian matrix */
+    std::auto_ptr<MatrixType> hessianMatrix_;
+
+    /** \brief The assembler for the material law */
+    const FEAssembler<BasisType, VectorType>* assembler_;
+
+    /** \brief The solver for the quadratic inner problems */
+    std::shared_ptr<Solver> innerSolver_;
+
+    /** \brief Contains 'true' everywhere -- the trust-region is bounded */
+    Dune::BitSetVector<blocksize> hasObstacle_;
+
+    /** \brief The Dirichlet nodes */
+    const Dune::BitSetVector<blocksize>* ignoreNodes_;
+
+    /** \brief The norm used to measure multigrid convergence */
+    H1SemiNorm<CorrectionType>* h1SemiNorm_;
+
+    /** \brief An L2-norm, really.  The H1SemiNorm class is badly named */
+    std::shared_ptr<H1SemiNorm<CorrectionType> > l2Norm_;
+public:
+    VectorType identity_;
+};
+
+#include "trustregionsolver.cc"
+
+#endif
