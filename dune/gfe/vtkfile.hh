@@ -59,6 +59,10 @@ namespace Dune {
           writer.addArray<float>("zCoord", 1);
           writer.endPointData();
 
+          writer.beginCellData();
+          writer.addArray<float>("mycelldata", 1);
+          writer.endCellData();
+
           // dump point coordinates
           writer.beginPoints();
           writer.addArray<float>("Coordinates", 3);
@@ -112,7 +116,9 @@ namespace Dune {
 
         outFile << "      </Cells>" << std::endl;
 
-        // Point data
+        //////////////////////////////////////////////////
+        //   Point data
+        //////////////////////////////////////////////////
         outFile << "      <PointData Scalars=\"zCoord\" Vectors=\"director0\">" << std::endl;
 
         // Z coordinate for better visualization of wrinkles
@@ -132,7 +138,25 @@ namespace Dune {
 
         outFile << "      </PointData>" << std::endl;
 
-        // Write footer
+        //////////////////////////////////////////////////
+        //   Cell data
+        //////////////////////////////////////////////////
+
+        if (cellData_.size() > 0)
+        {
+          outFile << "      <CellData>" << std::endl;
+
+          outFile << "        <DataArray type=\"Float32\" Name=\"mycelldata\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+          for (size_t i=0; i<cellData_.size(); i++)
+            outFile << "          " << cellData_[i] << std::endl;
+          outFile << "        </DataArray>" << std::endl;
+
+          outFile << "      </CellData>" << std::endl;
+        }
+
+        //////////////////////////////////////////////////
+        //   Write footer
+        //////////////////////////////////////////////////
         outFile << "    </Piece>" << std::endl;
         outFile << "  </UnstructuredGrid>" << std::endl;
         outFile << "</VTKFile>" << std::endl;
@@ -269,6 +293,8 @@ namespace Dune {
       std::vector<int> cellTypes_;
 
       std::vector<double> zCoord_;
+
+      std::vector<double> cellData_;
 
       std::array<std::vector<Dune::FieldVector<double,3> >, 3 > directors_;
 
