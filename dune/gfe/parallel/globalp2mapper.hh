@@ -42,7 +42,6 @@ namespace Dune {
 
       // total number of degrees of freedom
       nGlobalEntity_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
-      nOwnedLocalEntity_ = globalVertexIndex.nOwnedLocalEntity() + globalEdgeIndex.nOwnedLocalEntity() + globalElementIndex.nOwnedLocalEntity();
 
       // Determine
       for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
@@ -116,11 +115,6 @@ namespace Dune {
     unsigned int nGlobalEntity() const
     {
       return nGlobalEntity_;
-    }
-
-    unsigned int nOwnedLocalEntity() const
-    {
-      return nOwnedLocalEntity_;
     }
 
     P2BasisMapper<GridView> p2Mapper_;
