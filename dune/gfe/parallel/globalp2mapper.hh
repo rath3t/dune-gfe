@@ -85,8 +85,8 @@ namespace Dune {
           //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
           int localIndex  = p2Mapper_.map(*it, 0, 0);
           int globalIndex = globalElementIndex.index(*it->template subEntity<0>(0))
-                            + globalEdgeIndex.nGlobalEntity()
-                            + globalVertexIndex.nGlobalEntity();
+                            + globalEdgeIndex.size(1)
+                            + globalVertexIndex.size(2);
 
           localGlobalMap_[localIndex]  = globalIndex;
           globalLocalMap_[globalIndex] = localIndex;
