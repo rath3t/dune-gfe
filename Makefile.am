@@ -14,6 +14,7 @@ ADOLC_LDFLAGS = -L/home/sander/adolc-inst/lib64
 ADOLC_LIBS = -ladolc
 
 noinst_PROGRAMS = cosserat-continuum \
+                  finite-strain-elasticity \
                   mixed-cosserat-continuum \
                   rodobstacle rod3d harmonicmaps harmonicmaps-eoc rod-eoc
 
@@ -24,6 +25,14 @@ cosserat_continuum_LDADD    = $(UG_LIBS) $(IPOPT_LIBS) \
                               $(ADOLC_LIBS) $(PYTHON_LIBS)
 cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
                               $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS)
+
+finite_strain_elasticity_SOURCES  = finite-strain-elasticity.cc
+finite_strain_elasticity_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
+                              $(ADOLC_CPPFLAGS) $(PYTHON_CPPFLAGS) $(UMFPACK_CPPFLAGS)
+finite_strain_elasticity_LDADD    = $(UG_LIBS) $(IPOPT_LIBS) \
+                              $(ADOLC_LIBS) $(PYTHON_LIBS) $(UMFPACK_LIBS)
+finite_strain_elasticity_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
+                              $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS) $(UMFPACK_LDFLAGS)
 
 mixed_cosserat_continuum_SOURCES  = mixed-cosserat-continuum.cc
 mixed_cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
