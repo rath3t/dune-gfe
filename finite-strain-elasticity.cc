@@ -260,12 +260,9 @@ int main (int argc, char *argv[]) try
     StVenantKirchhoffEnergy<GridView,
                  FEBasis::LocalFiniteElement,
                  adouble> henckyEnergy(materialParameters,
-#if 0
                                          &neumannBoundary,
                                          neumannFunction.get());
-#else
-                                       nullptr, nullptr);
-#endif
+
     LocalADOLCStiffness<GridView,
                         FEBasis::LocalFiniteElement,
                         SolutionType> localADOLCStiffness(&henckyEnergy);
