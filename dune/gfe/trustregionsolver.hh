@@ -66,7 +66,8 @@ public:
                int nu1,
                int nu2,
                int baseIterations,
-               double baseTolerance);
+               double baseTolerance,
+               const SolutionType& pointLoads);
 
     void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
     {
@@ -128,6 +129,9 @@ protected:
 
     /** \brief An L2-norm, really.  The H1SemiNorm class is badly named */
     std::shared_ptr<H1SemiNorm<CorrectionType> > l2Norm_;
+
+    SolutionType pointLoads_;
+
 public:
     VectorType identity_;
 };
