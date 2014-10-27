@@ -11,13 +11,13 @@
 
 /** \brief A point in the hyperbolic half-space H^N
 
-    \tparam N Dimension of the hyperbolic space space
+    \tparam N Dimension of the hyperbolic half-space
     \tparam T The type used for individual coordinates
 */
 template <class T, int N>
 class HyperbolicHalfspacePoint
 {
-    dune_static_assert(N>=2, "A hyperbolic half-space needs to be at least two-dimensional!");
+    static_assert(N>=2, "A hyperbolic half-space needs to be at least two-dimensional!");
     
     /** \brief Compute the derivative of arccosh^2 without getting unstable for x close to 1 */
     static T derivativeOfArcCosHSquared(const T& x) {
