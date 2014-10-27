@@ -129,7 +129,7 @@ public:
         mu_ = parameters.template get<double>("mu");
         lambda_ = parameters.template get<double>("lambda");
 
-        // Cosserat couple modulus, preferably 0
+        // Cosserat couple modulus
         mu_c_ = parameters.template get<double>("mu_c");
 
         // Length scale parameter
@@ -206,6 +206,40 @@ public:
 
         return mu_ * sym(UMinus1).frobenius_norm2() + mu_c_ * skew(UMinus1).frobenius_norm2()
                 + (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
+    }
+
+    /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
+     * the second equation of (4.4) in Neff's paper
+     */
+    RT longNonquadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
+    {
+        RT result = 0;
+
+        // shear-stretch energy
+        Dune::FieldMatrix<field_type,dim-1,dim-1> sym2x2;
+        for (int i=0; i<dim-1; i++)
+            for (int j=0; j<dim-1; j++)
+                sym2x2[i][j] = 0.5 * (U.matrix()[i][j] + U.matrix()[j][i]) - (i==j);
+
+        result += mu_ * sym2x2.frobenius_norm2();
+
+        // first order drill energy
+        Dune::FieldMatrix<field_type,dim-1,dim-1> skew2x2;
+        for (int i=0; i<dim-1; i++)
+            for (int j=0; j<dim-1; j++)
+                skew2x2[i][j] = 0.5 * (U.matrix()[i][j] - U.matrix()[j][i]);
+
+        result += mu_c_ * skew2x2.frobenius_norm2();
+
+
+        // classical transverse shear energy
+        result += kappa_ * (mu_ + mu_c_)/2 * (U.matrix()[2][0]*U.matrix()[2][0] + U.matrix()[2][1]*U.matrix()[2][1]);
+
+        // elongational stretch energy
+        RT detU = U.determinant();
+        result += (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
+
+        return result;
     }
 
     RT curvatureEnergy(const Tensor3<field_type,3,3,3>& DR) const
@@ -329,7 +363,8 @@ energy(const Entity& element,
             //energy += weight * thickness_ * quadraticMembraneEnergy(U.matrix());
             energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
 #else
-            energy += weight * thickness_ * nonquadraticMembraneEnergy(U);
+            //energy += weight * thickness_ * nonquadraticMembraneEnergy(U);
+            energy += weight * thickness_ * longNonquadraticMembraneEnergy(U);
 #endif
             energy += weight * thickness_ * curvatureEnergy(DR);
             energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
