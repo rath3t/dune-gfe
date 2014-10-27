@@ -19,6 +19,7 @@
 
 #include "geodesicfeassembler.hh"
 #include <dune/grid/utility/globalindexset.hh>
+#include <dune/gfe/parallel/globalp1mapper.hh>
 #include <dune/gfe/parallel/globalp2mapper.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
@@ -44,7 +45,7 @@ class RiemannianTrustRegionSolver
 #elif defined SECOND_ORDER
     typedef Dune::GlobalP2Mapper<typename GridType::LeafGridView> GUIndex;
 #else
-    typedef GlobalUniqueIndex<typename GridType::LeafGridView, gridDim> GUIndex;
+    typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GUIndex;
 #endif
 
 #ifdef THIRD_ORDER
@@ -54,7 +55,7 @@ class RiemannianTrustRegionSolver
     typedef P2BasisMapper<typename GridType::LeafGridView> LocalMapper;
 #else
     typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
-    typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::VertexLayout> LocalMapper;
+    typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LocalMapper;
 #endif
 
 public:

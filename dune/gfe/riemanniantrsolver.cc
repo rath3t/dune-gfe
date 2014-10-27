@@ -247,12 +247,25 @@ setup(const GridType& grid,
 
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
-        typedef Dune::GlobalIndexSet<typename GridType::LevelGridView, gridDim> LevelGUIndex;
-        LevelGUIndex fineGUIndex(grid_->levelGridView(i+1));
-        LevelGUIndex coarseGUIndex(grid_->levelGridView(i));
+        typedef Dune::GlobalIndexSet<typename GridType::LevelGridView> LevelGUIndex;
+        LevelGUIndex fineGUIndex(grid_->levelGridView(i+1), gridDim);
+        LevelGUIndex coarseGUIndex(grid_->levelGridView(i), gridDim);
+
+        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView, Dune::MCMGVertexLayout> LevelLocalMapper;
+        LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+1));
+        LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i));
 
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
+        MatrixCommunicator<LevelGUIndex,
+                           typename GridType::LevelGridView,
+                           TransferOperatorType,
+                           LevelLocalMapper,
+                           LevelLocalMapper> matrixComm(fineGUIndex,
+                                                        coarseGUIndex,
+                                                        grid_->levelGridView(i),
+                                                        fineLevelLocalMapper,
+                                                        coarseLevelLocalMapper,
+                                                        0);
 
         mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
         Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
