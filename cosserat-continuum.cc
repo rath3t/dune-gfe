@@ -345,9 +345,8 @@ int main (int argc, char *argv[]) try
 
     if (mpiHelper.rank()==0)
     {
-    std::cout << "mu_c = " << parameterSet.get<double>("materialParameters.mu_c") << "  "
-              << "kappa = " << parameterSet.get<double>("materialParameters.kappa") << "  "
-              << numLevels << " levels,  average deflection: " << averageDef << std::endl;
+      std::cout << "Neumann value = " << parameterSet.get<double>("neumannValue") << "  "
+                << ",  average deflection: " << averageDef << std::endl;
     }
 
     // //////////////////////////////
