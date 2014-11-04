@@ -33,6 +33,18 @@ public:
 
     }
 
+    /** \brief Return true if the given vector is not contained in the trust region */
+    bool violates(const Dune::BlockVector<Dune::FieldVector<double,blocksize> >& v) const
+    {
+      assert(v.size() == obstacles_.size());
+      for (size_t i=0; i<v.size(); i++)
+        for (size_t j=0; j<blocksize; j++)
+          if (v[i][j] < obstacles_[i].lower(j) or v[i][j] > obstacles_[i].upper(j))
+            return true;
+
+      return false;
+    }
+
     field_type radius() const {
         return radius_;
     }
