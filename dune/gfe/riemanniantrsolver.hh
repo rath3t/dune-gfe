@@ -41,20 +41,16 @@ class RiemannianTrustRegionSolver
     typedef std::vector<TargetSpace>                                               SolutionType;
 
 #ifdef THIRD_ORDER
+    // Error: we don't currently have a global P3 mapper
 #error RiemannianTrustRegionSolver cannot currently be used for third-order spaces
-#elif defined SECOND_ORDER
-    typedef Dune::GlobalP2Mapper<typename GridType::LeafGridView> GUIndex;
-#else
-    typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GUIndex;
-#endif
-
-#ifdef THIRD_ORDER
     typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
 #elif defined SECOND_ORDER
     typedef P2NodalBasis<typename GridType::LeafGridView,double> BasisType;
+    typedef Dune::GlobalP2Mapper<typename GridType::LeafGridView> GlobalMapper;
     typedef P2BasisMapper<typename GridType::LeafGridView> LocalMapper;
 #else
     typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
+    typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LocalMapper;
 #endif
 
@@ -104,7 +100,7 @@ public:
 
 protected:
 
-    std::unique_ptr<GUIndex> guIndex_;
+    std::unique_ptr<GlobalMapper> globalMapper_;
 
     /** \brief The grid */
     const GridType* grid_;
