@@ -18,6 +18,8 @@ public:
 
     void set(field_type radius) {
 
+        radius_ = radius;
+
         for (size_t i=0; i<obstacles_.size(); i++) {
 
             for (int k=0; k<blocksize; k++) {
@@ -32,12 +34,12 @@ public:
     }
 
     field_type radius() const {
-        assert(obstacles_.size()>0);
-        assert(blocksize>0);
-        return obstacles_[0].upper(0);
+        return radius_;
     }
 
     void scale(field_type factor) {
+
+        radius_ *= factor;
 
         for (size_t i=0; i<obstacles_.size(); i++) {
 
@@ -59,6 +61,8 @@ public:
 private:
 
     std::vector<BoxConstraint<field_type,blocksize> > obstacles_;
+
+    field_type radius_;
 
 };
 
