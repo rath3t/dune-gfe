@@ -33,6 +33,24 @@ public:
 
     }
 
+    /** \brief Set trust region radius with a separate scaling for each vector block component
+     */
+    void set(field_type radius, const Dune::FieldVector<field_type, blocksize>& scaling) {
+
+      radius_ = radius;
+
+        for (size_t i=0; i<obstacles_.size(); i++) {
+
+            for (int k=0; k<blocksize; k++) {
+
+                obstacles_[i].lower(k) = -radius*scaling[k];
+                obstacles_[i].upper(k) =  radius*scaling[k];
+
+            }
+        }
+
+    }
+
     /** \brief Return true if the given vector is not contained in the trust region */
     bool violates(const Dune::BlockVector<Dune::FieldVector<double,blocksize> >& v) const
     {
