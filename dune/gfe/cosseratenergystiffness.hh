@@ -412,7 +412,7 @@ energy(const Entity& element,
 
             // Only translational dofs are affected by the Neumann force
             for (size_t i=0; i<neumannValue.size(); i++)
-                energy += thickness_ * (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+                energy -= thickness_ * (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
 
         }
 
