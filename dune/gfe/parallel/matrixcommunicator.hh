@@ -76,7 +76,7 @@ public:
     // Create occupation pattern in matrix
     Dune::MatrixIndexSet occupationPattern;
 
-    occupationPattern.resize(guIndex1_.nGlobalEntity(), guIndex2_.nGlobalEntity());
+    occupationPattern.resize(guIndex1_.size(), guIndex2_.size());
 
     for (size_t k = 0; k < globalMatrixEntries.size(); ++k)
       occupationPattern.add(globalMatrixEntries[k].row, globalMatrixEntries[k].col);

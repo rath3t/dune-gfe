@@ -41,7 +41,7 @@ namespace Dune {
       GlobalIndexSet<GridView> globalElementIndex(gridView,0);
 
       // total number of degrees of freedom
-      nGlobalEntity_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
+      size_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
 
       // Determine
       for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
@@ -112,9 +112,9 @@ namespace Dune {
       return globalLocalMap_.find(globalIndex)->second;
     }
 
-    unsigned int nGlobalEntity() const
+    unsigned int size() const
     {
-      return nGlobalEntity_;
+      return size_;
     }
 
     P2BasisMapper<GridView> p2Mapper_;
@@ -123,7 +123,7 @@ namespace Dune {
     IndexMap globalLocalMap_;
 
     size_t nOwnedLocalEntity_;
-    size_t nGlobalEntity_;
+    size_t size_;
 
   };
 

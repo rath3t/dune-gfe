@@ -280,7 +280,7 @@ setup(const GridType& grid,
 
     if (rank==0)
     {
-        hasObstacle_.resize(globalMapper_->nGlobalEntity(), true);
+        hasObstacle_.resize(globalMapper_->size(), true);
         mmgStep->hasObstacle_ = &hasObstacle_;
     }
 
@@ -303,7 +303,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
     }
 
-    MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->nGlobalEntity(), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
 
     std::vector<BoxConstraint<field_type,blocksize> > trustRegionObstacles;
 

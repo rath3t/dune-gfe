@@ -49,7 +49,7 @@ public:
   {
     transferVector(localVector);
 
-    VectorType globalVector(guIndex.nGlobalEntity());
+    VectorType globalVector(guIndex.size());
     globalVector = 0;
 
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
@@ -62,7 +62,7 @@ public:
   {
     transferVector(localVector);
 
-    VectorType globalVector(guIndex.nGlobalEntity());
+    VectorType globalVector(guIndex.size());
 
     for (size_t k = 0; k < globalVectorEntries.size(); ++k)
       globalVector[globalVectorEntries[k].globalIndex_] = globalVectorEntries[k].value_;
