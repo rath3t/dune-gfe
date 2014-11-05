@@ -76,6 +76,15 @@ namespace Dune {
       return localGlobalMap_.find(localIndex)->second;
     }
 
+    template <class Entity>
+    bool contains(const Entity& entity, uint i, uint codim, Index& result) const
+    {
+      if (codim != GridView::dimension)
+        return false;
+      result = subIndex(entity,i,codim);
+      return true;
+    }
+
     Index localIndex(const int& globalIndex) const {
       return globalLocalMap_.find(globalIndex)->second;
     }
