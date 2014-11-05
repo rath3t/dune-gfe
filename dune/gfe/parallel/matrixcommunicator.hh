@@ -128,13 +128,15 @@ private:
       for (int codim = 0; codim <= GridView::dimension; codim++)
         for (size_t i=0; i<it->subEntities(codim); i++)
         {
-          typename GUIndex::Index localIdx = localMapper1_.map(*it,i,codim);
-          typename GUIndex::Index globalIdx = guIndex1_.subIndex(*it,i,codim);
-          localToGlobal1_[localIdx] = globalIdx;
+          typename GUIndex::Index localIdx;
+          typename GUIndex::Index globalIdx;
+          if (localMapper1_.contains(*it,i,codim,localIdx)
+              and guIndex1_.contains(*it,i,codim,globalIdx))
+            localToGlobal1_[localIdx] = globalIdx;
 
-          localIdx = localMapper2_.map(*it,i,codim);
-          globalIdx = guIndex2_.subIndex(*it,i,codim);
-          localToGlobal2_[localIdx] = globalIdx;
+          if (localMapper2_.contains(*it,i,codim,localIdx)
+              and guIndex2_.contains(*it,i,codim,globalIdx))
+            localToGlobal2_[localIdx] = globalIdx;
         }
 
 
