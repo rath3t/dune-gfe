@@ -138,7 +138,7 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
   matrix_->umv(*x_, tmp);
   double modelDecrease = (modifiedRhs*(*x_)) - 0.5 * ((*x_)*tmp);
 
-  if (modelDecrease < 0)
+  if (std::isnan(modelDecrease) or modelDecrease < 0)
   {
     std::cout << "Model increase: " << -modelDecrease << ", falling back to slower solver" << std::endl;
 
