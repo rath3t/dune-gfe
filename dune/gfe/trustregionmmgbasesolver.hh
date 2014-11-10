@@ -146,6 +146,7 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
     baseSolver.verbosity_ = NumProc::QUIET;
     baseSolver.tolerance_ = 1e-8;
 
+    *x_ = 0;
     baseSolver.setProblem(*matrix_, *x_, *rhs_);
     baseSolver.obstacles_ = obstacles_;
 
@@ -175,6 +176,7 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
     baseSolver.verbosity_ = NumProc::QUIET;
     baseSolver.tolerance_ = 1e-8;
 
+    *x_ = 0;
     baseSolver.setProblem(*matrix_, *x_, *rhs_);
     baseSolver.obstacles_ = obstacles_;
 
