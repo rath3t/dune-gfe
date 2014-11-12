@@ -58,7 +58,6 @@ namespace Dune {
           int globalIndex = globalVertexIndex.index(*it->template subEntity<2>(i));
 
           localGlobalMap_[localIndex]  = globalIndex;
-          globalLocalMap_[globalIndex] = localIndex;
         }
 
         // Loop over all edges
@@ -73,7 +72,6 @@ namespace Dune {
           int globalIndex = globalEdgeIndex.index(*it->template subEntity<1>(i)) + globalVertexIndex.size(2);
 
           localGlobalMap_[localIndex]  = globalIndex;
-          globalLocalMap_[globalIndex] = localIndex;
         }
 
         // One element degree of freedom for quadrilaterals
@@ -89,7 +87,6 @@ namespace Dune {
                             + globalVertexIndex.size(2);
 
           localGlobalMap_[localIndex]  = globalIndex;
-          globalLocalMap_[globalIndex] = localIndex;
         }
 
       }
@@ -118,10 +115,6 @@ namespace Dune {
       return true;
     }
 
-    Index localIndex(const int& globalIndex) const {
-      return globalLocalMap_.find(globalIndex)->second;
-    }
-
     unsigned int size() const
     {
       return size_;
@@ -130,7 +123,6 @@ namespace Dune {
     P2BasisMapper<GridView> p2Mapper_;
 
     IndexMap localGlobalMap_;
-    IndexMap globalLocalMap_;
 
     size_t nOwnedLocalEntity_;
     size_t size_;

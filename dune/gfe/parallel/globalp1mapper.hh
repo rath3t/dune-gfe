@@ -57,7 +57,6 @@ namespace Dune {
           int globalIndex = globalVertexIndexSet.subIndex(*it, i, dim);
 
           localGlobalMap_[localIndex]  = globalIndex;
-          globalLocalMap_[globalIndex] = localIndex;
         }
 
       }
@@ -85,10 +84,6 @@ namespace Dune {
       return true;
     }
 
-    Index localIndex(const int& globalIndex) const {
-      return globalLocalMap_.find(globalIndex)->second;
-    }
-
     unsigned int size() const
     {
       return size_;
@@ -97,7 +92,6 @@ namespace Dune {
     P1BasisMapper p1Mapper_;
 
     IndexMap localGlobalMap_;
-    IndexMap globalLocalMap_;
 
     size_t size_;
 
