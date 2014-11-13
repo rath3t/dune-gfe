@@ -9,7 +9,7 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
-template<typename GUIndex, typename GridView, typename MatrixType, typename LocalMapper1, typename LocalMapper2, typename ColGUIndex=GUIndex>
+template<typename RowGlobalMapper, typename GridView, typename MatrixType, typename LocalMapper1, typename LocalMapper2, typename ColumnGlobalMapper=RowGlobalMapper>
 class MatrixCommunicator {
 
   struct TransferMatrixTuple {
@@ -45,9 +45,9 @@ class MatrixCommunicator {
   }
 
 public:
-  MatrixCommunicator(const GUIndex& rowIndex, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
-  : guIndex1_(rowIndex),
-    guIndex2_(rowIndex),
+  MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
+  : rowGlobalMapper_(rowGlobalMapper),
+    columnGlobalMapper_(rowGlobalMapper),
     localMapper1_(localMapper1),
     localMapper2_(localMapper2),
     communicator_(gridView.comm()),
@@ -56,9 +56,9 @@ public:
     setLocalToGlobal(gridView);
   }
 
-  MatrixCommunicator(const GUIndex& rowIndex, const ColGUIndex& colIndex, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
-  : guIndex1_(rowIndex),
-    guIndex2_(colIndex),
+  MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const ColumnGlobalMapper& columnGlobalMapper, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
+  : rowGlobalMapper_(rowGlobalMapper),
+    columnGlobalMapper_(columnGlobalMapper),
     localMapper1_(localMapper1),
     localMapper2_(localMapper2),
     communicator_(gridView.comm()),
@@ -76,7 +76,7 @@ public:
     // Create occupation pattern in matrix
     Dune::MatrixIndexSet occupationPattern;
 
-    occupationPattern.resize(guIndex1_.size(), guIndex2_.size());
+    occupationPattern.resize(rowGlobalMapper_.size(), columnGlobalMapper_.size());
 
     for (size_t k = 0; k < globalMatrixEntries.size(); ++k)
       occupationPattern.add(globalMatrixEntries[k].row, globalMatrixEntries[k].col);
@@ -128,14 +128,14 @@ private:
       for (int codim = 0; codim <= GridView::dimension; codim++)
         for (size_t i=0; i<it->subEntities(codim); i++)
         {
-          typename GUIndex::Index localIdx;
-          typename GUIndex::Index globalIdx;
+          typename RowGlobalMapper::Index localIdx;
+          typename RowGlobalMapper::Index globalIdx;
           if (localMapper1_.contains(*it,i,codim,localIdx)
-              and guIndex1_.contains(*it,i,codim,globalIdx))
+              and rowGlobalMapper_.contains(*it,i,codim,globalIdx))
             localToGlobal1_[localIdx] = globalIdx;
 
           if (localMapper2_.contains(*it,i,codim,localIdx)
-              and guIndex2_.contains(*it,i,codim,globalIdx))
+              and columnGlobalMapper_.contains(*it,i,codim,globalIdx))
             localToGlobal2_[localIdx] = globalIdx;
         }
 
@@ -143,8 +143,8 @@ private:
   }
 
   // Mappers for the global numbering
-  const GUIndex& guIndex1_;
-  const ColGUIndex& guIndex2_;
+  const RowGlobalMapper&    rowGlobalMapper_;
+  const ColumnGlobalMapper& columnGlobalMapper_;
 
   // Mappers for the local numbering
   const LocalMapper1& localMapper1_;
@@ -153,8 +153,8 @@ private:
   const typename GridView::CollectiveCommunication& communicator_;
   int root_rank;
 
-  std::vector<typename GUIndex::Index> localToGlobal1_;
-  std::vector<typename ColGUIndex::Index> localToGlobal2_;
+  std::vector<typename RowGlobalMapper::Index> localToGlobal1_;
+  std::vector<typename ColumnGlobalMapper::Index> localToGlobal2_;
 
   std::vector<TransferMatrixTuple> globalMatrixEntries;
 };
