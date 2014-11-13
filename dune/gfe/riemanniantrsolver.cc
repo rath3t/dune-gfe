@@ -181,10 +181,10 @@ setup(const GridType& grid,
     for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
 
-    mmgStep->mgTransfer_.resize(numLevels-1);
-
 #if defined THIRD_ORDER || defined SECOND_ORDER
-    if (numLevels>1) {
+    mmgStep->mgTransfer_.resize(numLevels);
+
+    {
         P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
 
         PKtoP1MGTransfer<CorrectionType>* topTransferOp = new PKtoP1MGTransfer<CorrectionType>;
@@ -212,19 +212,20 @@ setup(const GridType& grid,
         dynamic_cast<PKtoP1MGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
 
         for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++){
+
           // Construct the local multigrid transfer matrix
           TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
-          newTransferOp->setup(*grid_,i+1,i+2);
+          newTransferOp->setup(*grid_,i,i+1);
 
           // If we are on more than 1 processors, join all local transfer matrices on rank 0,
           // and construct a single global transfer operator there.
           typedef Dune::GlobalP1Mapper<typename GridType::LevelGridView> GlobalLevelP1Mapper;
-          GlobalLevelP1Mapper fineGUIndex(grid_->levelGridView(i+2));
-          GlobalLevelP1Mapper coarseGUIndex(grid_->levelGridView(i+1));
+          GlobalLevelP1Mapper fineGUIndex(grid_->levelGridView(i+1));
+          GlobalLevelP1Mapper coarseGUIndex(grid_->levelGridView(i));
 
           typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView, Dune::MCMGVertexLayout> LevelLocalMapper;
-          LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+2));
-          LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i+1));
+          LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+1));
+          LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i));
 
           typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
           MatrixCommunicator<GlobalLevelP1Mapper,
@@ -232,16 +233,17 @@ setup(const GridType& grid,
                              typename GridType::LevelGridView,
                              TransferOperatorType,
                              LevelLocalMapper,
-                             LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+2), grid_->levelGridView(i+1), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
+                             LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1), grid_->levelGridView(i), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
 
           mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
           Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
           dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
         }
-
     }
 
 #else
+    mmgStep->mgTransfer_.resize(numLevels-1);
+
     for (size_t i=0; i<mmgStep->mgTransfer_.size(); i++){
 
         // Construct the local multigrid transfer matrix
