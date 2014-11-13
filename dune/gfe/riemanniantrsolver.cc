@@ -132,6 +132,7 @@ setup(const GridType& grid,
 
     MatrixCommunicator<GlobalMapper,
                        typename GridType::LeafGridView,
+                       typename GridType::LeafGridView,
                        ScalarMatrixType,
                        LocalMapper,
                        LocalMapper> matrixComm(*globalMapper_, grid_->leafGridView(), localMapper, localMapper, 0);
@@ -200,10 +201,11 @@ setup(const GridType& grid,
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         MatrixCommunicator<GlobalMapper,
                            typename GridType::LeafGridView,
+                           typename GridType::LeafGridView,
                            TransferOperatorType,
                            LocalMapper,
                            LeafP1LocalMapper,
-                           GlobalLeafP1Mapper> matrixComm(*globalMapper_, p1Index, grid_->leafGridView(), localMapper, leafP1LocalMapper, 0);
+                           GlobalLeafP1Mapper> matrixComm(*globalMapper_, p1Index, grid_->leafGridView(), grid_->leafGridView(), localMapper, leafP1LocalMapper, 0);
 
         mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>;
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix()));
@@ -227,9 +229,10 @@ setup(const GridType& grid,
           typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
           MatrixCommunicator<GlobalLevelP1Mapper,
                              typename GridType::LevelGridView,
+                             typename GridType::LevelGridView,
                              TransferOperatorType,
                              LevelLocalMapper,
-                             LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
+                             LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+2), grid_->levelGridView(i+1), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
 
           mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
           Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
@@ -337,6 +340,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
     LocalMapper localMapper(grid_->leafGridView());
     MatrixCommunicator<GlobalMapper,
+                       typename GridType::LeafGridView,
                        typename GridType::LeafGridView,
                        MatrixType,
                        LocalMapper,

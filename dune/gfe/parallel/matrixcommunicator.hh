@@ -9,7 +9,7 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
-template<typename RowGlobalMapper, typename GridView, typename MatrixType, typename LocalMapper1, typename LocalMapper2, typename ColumnGlobalMapper=RowGlobalMapper>
+template<typename RowGlobalMapper, typename GridView1, typename GridView2, typename MatrixType, typename LocalMapper1, typename LocalMapper2, typename ColumnGlobalMapper=RowGlobalMapper>
 class MatrixCommunicator {
 
   struct TransferMatrixTuple {
@@ -45,7 +45,7 @@ class MatrixCommunicator {
   }
 
 public:
-  MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
+  MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const GridView1& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
   : rowGlobalMapper_(rowGlobalMapper),
     columnGlobalMapper_(rowGlobalMapper),
     localMapper1_(localMapper1),
@@ -53,18 +53,22 @@ public:
     communicator_(gridView.comm()),
     root_rank(root)
   {
-    setLocalToGlobal(gridView);
+    setLocalToGlobalRows(gridView);
+    setLocalToGlobalColumns(gridView);
   }
 
-  MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const ColumnGlobalMapper& columnGlobalMapper, const GridView& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
+  MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const ColumnGlobalMapper& columnGlobalMapper,
+                     const GridView1& gridView1, const GridView2& gridView2,
+                     const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
   : rowGlobalMapper_(rowGlobalMapper),
     columnGlobalMapper_(columnGlobalMapper),
     localMapper1_(localMapper1),
     localMapper2_(localMapper2),
-    communicator_(gridView.comm()),
+    communicator_(gridView1.comm()),
     root_rank(root)
   {
-    setLocalToGlobal(gridView);
+    setLocalToGlobalRows(gridView1);
+    setLocalToGlobalColumns(gridView2);
   }
 
   MatrixType reduceAdd(const MatrixType& local)
@@ -119,26 +123,37 @@ public:
 
 private:
 
-  void setLocalToGlobal(const GridView& gridView)
+  void setLocalToGlobalRows(const GridView1& gridView)
   {
     localToGlobal1_.resize(localMapper1_.size());
-    localToGlobal2_.resize(localMapper2_.size());
 
     for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
-      for (int codim = 0; codim <= GridView::dimension; codim++)
+      for (int codim = 0; codim <= GridView1::dimension; codim++)
         for (size_t i=0; i<it->subEntities(codim); i++)
         {
-          typename RowGlobalMapper::Index localIdx;
+          typename LocalMapper1::Index localIdx;
           typename RowGlobalMapper::Index globalIdx;
           if (localMapper1_.contains(*it,i,codim,localIdx)
               and rowGlobalMapper_.contains(*it,i,codim,globalIdx))
             localToGlobal1_[localIdx] = globalIdx;
+        }
 
+  }
+
+  void setLocalToGlobalColumns(const GridView2& gridView)
+  {
+    localToGlobal2_.resize(localMapper2_.size());
+
+    for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+      for (int codim = 0; codim <= GridView2::dimension; codim++)
+        for (size_t i=0; i<it->subEntities(codim); i++)
+        {
+          typename LocalMapper2::Index localIdx;
+          typename ColumnGlobalMapper::Index globalIdx;
           if (localMapper2_.contains(*it,i,codim,localIdx)
               and columnGlobalMapper_.contains(*it,i,codim,globalIdx))
             localToGlobal2_[localIdx] = globalIdx;
         }
-
 
   }
 
@@ -150,7 +165,7 @@ private:
   const LocalMapper1& localMapper1_;
   const LocalMapper2& localMapper2_;
 
-  const typename GridView::CollectiveCommunication& communicator_;
+  const typename GridView1::CollectiveCommunication& communicator_;
   int root_rank;
 
   std::vector<typename RowGlobalMapper::Index> localToGlobal1_;
