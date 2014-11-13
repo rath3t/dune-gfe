@@ -73,7 +73,7 @@ setup(const GridType& grid,
     //   Create a multigrid solver
     // ////////////////////////////////
 
-#if 0//def HAVE_IPOPT
+#ifdef HAVE_IPOPT
     // First create an IPOpt base solver
     QuadraticIPOptSolver<MatrixType, CorrectionType>* baseSolver = new QuadraticIPOptSolver<MatrixType,CorrectionType>;
     baseSolver->verbosity_ = NumProc::QUIET;
