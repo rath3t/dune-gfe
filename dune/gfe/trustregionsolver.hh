@@ -20,11 +20,13 @@
 #include <dune/gfe/feassembler.hh>
 
 /** \brief Trust-region solver  */
-template <class GridType, class VectorType>
+template <class BasisType, class VectorType>
 class TrustRegionSolver
     : public IterativeSolver<VectorType,
                              Dune::BitSetVector<VectorType::value_type::dimension> >
 {
+    typedef typename BasisType::GridView::Grid GridType;
+
     const static int blocksize = VectorType::value_type::dimension;
 
     const static int gridDim = GridType::dimension;
@@ -36,14 +38,6 @@ class TrustRegionSolver
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef VectorType                                                             SolutionType;
-
-#ifdef THIRD_ORDER
-    typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
-#elif defined SECOND_ORDER
-    typedef P2NodalBasis<typename GridType::LeafGridView,double> BasisType;
-#else
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
-#endif
 
 public:
 
