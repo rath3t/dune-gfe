@@ -22,9 +22,9 @@
 #include <dune/solvers/norms/twonorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 
-template <class GridType, class VectorType>
-void TrustRegionSolver<GridType,VectorType>::
-setup(const GridType& grid,
+template <class BasisType, class VectorType>
+void TrustRegionSolver<BasisType,VectorType>::
+setup(const typename BasisType::GridView::Grid& grid,
       const FEAssembler<BasisType, VectorType>* assembler,
          const SolutionType& x,
          const Dune::BitSetVector<blocksize>& dirichletNodes,
@@ -186,8 +186,8 @@ setup(const GridType& grid,
 }
 
 
-template <class GridType, class VectorType>
-void TrustRegionSolver<GridType,VectorType>::solve()
+template <class BasisType, class VectorType>
+void TrustRegionSolver<BasisType,VectorType>::solve()
 {
     MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
 
