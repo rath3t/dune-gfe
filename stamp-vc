@@ -1,1 +1,1 @@
-Stamp file to show that we are not in a distribution tarball (i.e., dune-autogen.sh needs to be called).
+A stamp file to signify that this directory comes from a version control system, not an unpacked tarball
