@@ -11,7 +11,6 @@
 #include <dune/gfe/localfestiffness.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/realtuple.hh>
-#include <dune/gfe/eigenvalues.hh>
 
 namespace Dune {
 
