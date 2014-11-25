@@ -106,7 +106,7 @@ public:
     // Create occupation pattern in matrix
     Dune::MatrixIndexSet occupationPattern;
 
-    occupationPattern.resize(localMapper1_.size(), localMapper2_.size());
+    occupationPattern.resize(rowGlobalMapper_.size(), columnGlobalMapper_.size());
 
     for (size_t k = 0; k < globalMatrixEntries.size(); ++k)
       occupationPattern.add(globalMatrixEntries[k].row, globalMatrixEntries[k].col);
