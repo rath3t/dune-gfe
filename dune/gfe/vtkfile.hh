@@ -184,8 +184,11 @@ namespace Dune {
         DUNE_THROW(Dune::NotImplemented, "You need TinyXML2 for vtk file reading!");
 #else
         tinyxml2::XMLDocument doc;
-        if (doc.LoadFile(fullfilename.c_str()) != tinyxml2::XML_SUCCESS)
+        if (int error = doc.LoadFile(fullfilename.c_str()) != tinyxml2::XML_SUCCESS)
+        {
+          std::cout << "Error: " << error << std::endl;
           DUNE_THROW(Dune::IOError, "Couldn't open the file '" << fullfilename << "'");
+        }
 
         // Get number of cells and number of points
         tinyxml2::XMLElement* pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "UnstructuredGrid" )->FirstChildElement( "Piece" );
