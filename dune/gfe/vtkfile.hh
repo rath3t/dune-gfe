@@ -85,34 +85,33 @@ namespace Dune {
 
         // Write vertex coordinates
         outFile << "      <Points>" << std::endl;
-        outFile << "        <DataArray type=\"Float32\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
-        for (size_t i=0; i<points_.size(); i++)
-          outFile << "          " << points_[i] << std::endl;
-        outFile << "        </DataArray>" << std::endl;
+        {  // extra parenthesis to control destruction of the pointsWriter object
+          Dune::VTK::AsciiDataArrayWriter<float> pointsWriter(outFile, "Coordinates", 3, Dune::Indent(4));
+          for (size_t i=0; i<points_.size(); i++)
+            for (int j=0; j<3; j++)
+              pointsWriter.write(points_[i][j]);
+        }  // destructor of pointsWriter objects writes trailing </DataArray> to file
         outFile << "      </Points>" << std::endl;
 
         // Write elements
         outFile << "      <Cells>" << std::endl;
-
-        outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (size_t i=0; i<cellConnectivity_.size(); i++)
-        {
-          if ( (i%8)==0)
-            outFile << std::endl << "          ";
-          outFile << cellConnectivity_[i] << " ";
+        {  // extra parenthesis to control destruction of the cellConnectivityWriter object
+          Dune::VTK::AsciiDataArrayWriter<int> cellConnectivityWriter(outFile, "connectivity", 1, Dune::Indent(4));
+          for (size_t i=0; i<cellConnectivity_.size(); i++)
+            cellConnectivityWriter.write(cellConnectivity_[i]);
         }
-        outFile << "         </DataArray>" << std::endl;
 
-        outFile << "         <DataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (size_t i=0; i<cellOffsets_.size(); i++)
-          outFile << "          " << cellOffsets_[i] << std::endl;
-        outFile << "         </DataArray>" << std::endl;
+        {  // extra parenthesis to control destruction of the writer object
+          Dune::VTK::AsciiDataArrayWriter<int> cellOffsetsWriter(outFile, "offsets", 1, Dune::Indent(4));
+          for (size_t i=0; i<cellOffsets_.size(); i++)
+            cellOffsetsWriter.write(cellOffsets_[i]);
+        }
 
-        outFile << "         <DataArray type=\"UInt8\" Name=\"types\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (size_t i=0; i<cellTypes_.size(); i++)
-          outFile << "          " << cellTypes_[i] << std::endl;
-
-        outFile << "         </DataArray>" << std::endl;
+        {  // extra parenthesis to control destruction of the writer object
+          Dune::VTK::AsciiDataArrayWriter<unsigned int> cellTypesWriter(outFile, "types", 1, Dune::Indent(4));
+          for (size_t i=0; i<cellTypes_.size(); i++)
+            cellTypesWriter.write(cellTypes_[i]);
+        }
 
         outFile << "      </Cells>" << std::endl;
 
@@ -122,18 +121,19 @@ namespace Dune {
         outFile << "      <PointData Scalars=\"zCoord\" Vectors=\"director0\">" << std::endl;
 
         // Z coordinate for better visualization of wrinkles
-        outFile << "        <DataArray type=\"Float32\" Name=\"zCoord\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (size_t i=0; i<zCoord_.size(); i++)
-          outFile << "          " << zCoord_[i] << std::endl;
-        outFile << "        </DataArray>" << std::endl;
+        {  // extra parenthesis to control destruction of the writer object
+          Dune::VTK::AsciiDataArrayWriter<float> zCoordWriter(outFile, "zCoord", 1, Dune::Indent(4));
+          for (size_t i=0; i<zCoord_.size(); i++)
+            zCoordWriter.write(zCoord_[i]);
+        }
 
         // The three director fields
         for (size_t i=0; i<3; i++)
         {
-          outFile << "        <DataArray type=\"Float32\" Name=\"director" << i <<"\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
+          Dune::VTK::AsciiDataArrayWriter<float> directorWriter(outFile, "director" + std::to_string(i), 3, Dune::Indent(4));
           for (size_t j=0; j<directors_[i].size(); j++)
-            outFile << "          " << directors_[i][j] << std::endl;
-          outFile << "        </DataArray>" << std::endl;
+            for (int k=0; k<3; k++)
+              directorWriter.write(directors_[i][j][k]);
         }
 
         outFile << "      </PointData>" << std::endl;
@@ -145,12 +145,11 @@ namespace Dune {
         if (cellData_.size() > 0)
         {
           outFile << "      <CellData>" << std::endl;
-
-          outFile << "        <DataArray type=\"Float32\" Name=\"mycelldata\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-          for (size_t i=0; i<cellData_.size(); i++)
-            outFile << "          " << cellData_[i] << std::endl;
-          outFile << "        </DataArray>" << std::endl;
-
+          {  // extra parenthesis to control destruction of the writer object
+            Dune::VTK::AsciiDataArrayWriter<float> cellDataWriter(outFile, "mycelldata", 1, Dune::Indent(4));
+            for (size_t i=0; i<cellData_.size(); i++)
+              cellDataWriter.write(cellData_[i]);
+          }
           outFile << "      </CellData>" << std::endl;
         }
 
