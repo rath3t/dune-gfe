@@ -124,10 +124,10 @@ protected:
     void getLocalReferenceConfiguration(const Entity& element,
                                         std::vector<RigidBodyMotion<RT,3> >& localReferenceConfiguration) const {
 
-        int numOfBaseFct = element.template count<dim>();
+        unsigned int numOfBaseFct = element.subEntities(dim);
         localReferenceConfiguration.resize(numOfBaseFct);
 
-        for (int i=0; i<numOfBaseFct; i++)
+        for (size_t i=0; i<numOfBaseFct; i++)
             localReferenceConfiguration[i] = referenceConfiguration_[gridView_.indexSet().subIndex(element,i,dim)];
     }
 
