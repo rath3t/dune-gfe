@@ -17,7 +17,7 @@
 template <class GridView, int spaceDim>
 class RodAssembler
 {
-    dune_static_assert(spaceDim==2 || spaceDim==3,
+    static_assert(spaceDim==2 || spaceDim==3,
                        "You can only instantiate the class RodAssembler for 2d and 3d spaces");
 };
 
