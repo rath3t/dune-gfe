@@ -43,7 +43,6 @@ mixed_cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
                               $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS)
 
 rodobstacle_SOURCES = rodobstacle.cc
-rod3d_SOURCES = rod3d.cc
 
 rod_eoc_SOURCES = rod-eoc.cc
 

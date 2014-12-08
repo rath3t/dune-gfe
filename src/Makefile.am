@@ -1,7 +1,12 @@
 
 SUBDIRS =
 
-noinst_PROGRAMS = 
+noinst_PROGRAMS = rod3d
+
+rod3d_SOURCES = rod3d.cc
+rod3d_CXXFLAGS = $(IPOPT_CPPFLAGS)
+rod3d_LDADD    = $(IPOPT_LIBS)
+rod3d_LDFLAGS  = $(IPOPT_LDFLAGS)
 
 # we need automake 1.5
 AUTOMAKE_OPTIONS = foreign 1.5
