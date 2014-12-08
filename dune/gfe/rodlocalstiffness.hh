@@ -12,7 +12,7 @@
 #include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
-class RodLocalStiffness 
+class RodLocalStiffness
     : public LocalGeodesicFEStiffness<GridView, typename P1NodalBasis<GridView>::LocalFiniteElement, RigidBodyMotion<RT,3> >
 {
     typedef RigidBodyMotion<RT,3> TargetSpace;
@@ -20,7 +20,7 @@ class RodLocalStiffness
     // grid types
     typedef typename GridView::Grid::ctype DT;
     typedef typename GridView::template Codim<0>::Entity Entity;
-    
+
     // some other sizes
     enum {dim=GridView::dimension};
 
@@ -36,7 +36,7 @@ public:
     std::vector<RigidBodyMotion<RT,3> > referenceConfiguration_;
 
 public:
-    
+
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
     enum { blocksize = 6 };
 
@@ -51,7 +51,7 @@ public:
     // /////////////////////////////////
     //   The material parameters
     // /////////////////////////////////
-    
+
     /** \brief Material constants */
     Dune::array<double,3> K_;
     Dune::array<double,3> A_;
@@ -81,22 +81,22 @@ public:
     {
         // shear modulus
         double G = E/(2+2*nu);
-        
+
         K_[0] = E * J1;
         K_[1] = E * J2;
         K_[2] = G * (J1 + J2);
-        
+
         A_[0] = G * A;
         A_[1] = G * A;
         A_[2] = E * A;
     }
 
-    
+
 
     void setReferenceConfiguration(const std::vector<RigidBodyMotion<RT,3> >& referenceConfiguration) {
         referenceConfiguration_ = referenceConfiguration;
     }
-    
+
     /** \brief Local element energy for a P1 element */
     virtual RT energy (const Entity& e,
                        const Dune::array<RigidBodyMotion<RT,3>, dim+1>& localSolution) const;
@@ -114,19 +114,19 @@ public:
     void assembleGradient(const Entity& element,
                           const std::vector<RigidBodyMotion<RT,3> >& solution,
                           std::vector<Dune::FieldVector<double,6> >& gradient) const;
-    
+
     Dune::FieldVector<double, 6> getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
                                            const Entity& element,
                                            const Dune::FieldVector<double,1>& pos) const;
 
 protected:
 
-    void getLocalReferenceConfiguration(const Entity& element, 
+    void getLocalReferenceConfiguration(const Entity& element,
                                         std::vector<RigidBodyMotion<RT,3> >& localReferenceConfiguration) const {
 
         int numOfBaseFct = element.template count<dim>();
         localReferenceConfiguration.resize(numOfBaseFct);
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localReferenceConfiguration[i] = referenceConfiguration_[gridView_.indexSet().subIndex(element,i,dim)];
     }
@@ -140,17 +140,17 @@ public:
 
 protected:
     template <class T>
-    static Dune::FieldVector<T,3> darboux(const Rotation<T,3>& q, const Dune::FieldVector<T,4>& q_s) 
+    static Dune::FieldVector<T,3> darboux(const Rotation<T,3>& q, const Dune::FieldVector<T,4>& q_s)
     {
         Dune::FieldVector<double,3> u;  // The Darboux vector
-        
+
         u[0] = 2 * (q.B(0) * q_s);
         u[1] = 2 * (q.B(1) * q_s);
         u[2] = 2 * (q.B(2) * q_s);
-        
+
         return u;
     }
-        
+
 };
 
 template <class GridType, class RT>
@@ -160,7 +160,7 @@ energy(const Entity& element,
        ) const
 {
     RT energy = 0;
-    
+
     std::vector<RigidBodyMotion<RT,3> > localReferenceConfiguration;
     getLocalReferenceConfiguration(element, localReferenceConfiguration);
 
@@ -170,51 +170,51 @@ energy(const Entity& element,
     //   formula, even though it should be second order.  This prevents shear-locking.
     // ///////////////////////////////////////////////////////////////////////////////
 
-    const Dune::QuadratureRule<double, 1>& shearingQuad 
+    const Dune::QuadratureRule<double, 1>& shearingQuad
         = Dune::QuadratureRules<double, 1>::rule(element.type(), shearQuadOrder);
-    
+
     // hack: convert from std::array to std::vector
     std::vector<RigidBodyMotion<RT,3> > localSolutionVector(localSolution.begin(), localSolution.end());
 
     for (size_t pt=0; pt<shearingQuad.size(); pt++) {
-        
+
         // Local position of the quadrature point
         const Dune::FieldVector<double,1>& quadPos = shearingQuad[pt].position();
-        
+
         const double integrationElement = element.geometry().integrationElement(quadPos);
-        
+
         double weight = shearingQuad[pt].weight() * integrationElement;
-        
+
         Dune::FieldVector<double,6> strain = getStrain(localSolutionVector, element, quadPos);
-        
+
         // The reference strain
         Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
-        
+
         for (int i=0; i<3; i++)
             energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
 
     }
-    
+
     // Get quadrature rule
-    const Dune::QuadratureRule<double, 1>& bendingQuad 
+    const Dune::QuadratureRule<double, 1>& bendingQuad
         = Dune::QuadratureRules<double, 1>::rule(element.type(), bendingQuadOrder);
-    
+
     for (size_t pt=0; pt<bendingQuad.size(); pt++) {
-        
+
         // Local position of the quadrature point
         const Dune::FieldVector<double,1>& quadPos = bendingQuad[pt].position();
-        
+
         double weight = bendingQuad[pt].weight() * element.geometry().integrationElement(quadPos);
-        
+
         Dune::FieldVector<double,6> strain = getStrain(localSolutionVector, element, quadPos);
-        
+
         // The reference strain
         Dune::FieldVector<double,6> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
-        
+
         // Part II: the bending and twisting energy
         for (int i=0; i<3; i++)
             energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
-        
+
     }
 
     return energy;
@@ -257,9 +257,9 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
         Quaternion<RT> dw;
         for (int j=0; j<4; j++)
             dw[j] = 0.5 * (i==j);  // dExp[j][i] at v=0
-        
+
         dw = q1InvQ0.Quaternion<double>::mult(dw);
-        
+
         mat.umv(dw,grad[i]);
         grad[i] = q1.Quaternion<double>::mult(grad[i]);
 
@@ -296,7 +296,7 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
             dw[j] = 0.5 * ((i-3)==j);  // dExp[j][i-3] at v=0
 
         dw = q0InvQ1.Quaternion<double>::mult(dw);
-        
+
         mat.umv(dw,grad[i]);
         grad[i] = q0.Quaternion<double>::mult(grad[i]);
 
@@ -337,7 +337,7 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
             for (int k=0; k<3; k++)
                 mat[i][j] += 1/intervalLength * dExp_v[i][k] * dExpInv[k][j];
 
-    
+
     // /////////////////////////////////////////////////
     // The derivatives with respect to w^0
     // /////////////////////////////////////////////////
@@ -419,10 +419,10 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
         // ///////////////////////////////////
         //   second addend
         // ///////////////////////////////////
-            
-        
+
+
         dw = q0Inv.Quaternion<double>::mult(q1.Quaternion<double>::mult(dw));
-        
+
         mat.umv(dw,grad[i]);
         grad[i] += vHv;
 
@@ -449,55 +449,55 @@ getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
     // Extract local solution on this element
     Dune::P1LocalFiniteElement<double,double,1> localFiniteElement;
     int numOfBaseFct = localFiniteElement.localCoefficients().size();
-    
+
     const Dune::FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(pos);
-    
+
     // ///////////////////////////////////////
     //   Compute deformation gradient
     // ///////////////////////////////////////
     std::vector<Dune::FieldMatrix<double,1,1> > shapeGrad;
 
     localFiniteElement.localBasis().evaluateJacobian(pos, shapeGrad);
-        
+
     for (int dof=0; dof<numOfBaseFct; dof++) {
-            
-        // multiply with jacobian inverse 
+
+        // multiply with jacobian inverse
         Dune::FieldVector<double,1> tmp(0);
         inv.umv(shapeGrad[dof][0], tmp);
         shapeGrad[dof] = tmp;
-        
+
     }
-        
+
     // //////////////////////////////////
     //   Interpolate
     // //////////////////////////////////
-        
+
     Dune::FieldVector<double,3> r_s;
     for (int i=0; i<3; i++)
         r_s[i] = localSolution[0].r[i]*shapeGrad[0][0] + localSolution[1].r[i]*shapeGrad[1][0];
-        
+
     // Interpolate the rotation at the quadrature point
     Rotation<RT,3> q = Rotation<RT,3>::interpolate(localSolution[0].q, localSolution[1].q, pos);
-        
+
     // Get the derivative of the rotation at the quadrature point by interpolating in $H$
     Quaternion<double> q_s = Rotation<RT,3>::interpolateDerivative(localSolution[0].q, localSolution[1].q,
                                                                        pos);
     // Transformation from the reference element
     q_s *= inv[0][0];
-        
+
     // /////////////////////////////////////////////
     //   Sum it all up
     // /////////////////////////////////////////////
-        
+
     // Part I: the shearing and stretching strain
     strain[0] = r_s * q.director(0);    // shear strain
     strain[1] = r_s * q.director(1);    // shear strain
     strain[2] = r_s * q.director(2);    // stretching strain
-        
+
     // Part II: the Darboux vector
-        
+
     Dune::FieldVector<double,3> u = darboux(q, q_s);
-    
+
     strain[3] = u[0];
     strain[4] = u[1];
     strain[5] = u[2];
@@ -519,7 +519,7 @@ assembleGradient(const Entity& element,
     // Extract local solution on this element
     Dune::P1LocalFiniteElement<double,double,1> localFiniteElement;
     int numOfBaseFct = localFiniteElement.localCoefficients().size();
-        
+
     // init
     gradient.resize(numOfBaseFct);
     for (size_t i=0; i<gradient.size(); i++)
@@ -528,24 +528,24 @@ assembleGradient(const Entity& element,
     double intervalLength = element.geometry().corner(1)[0] - element.geometry().corner(0)[0];
 
     // ///////////////////////////////////////////////////////////////////////////////////
-    //   Reduced integration to avoid locking:  assembly is split into a shear part 
+    //   Reduced integration to avoid locking:  assembly is split into a shear part
     //   and a bending part.  Different quadrature rules are used for the two parts.
     //   This avoids locking.
     // ///////////////////////////////////////////////////////////////////////////////////
-    
+
     // Get quadrature rule
     const QuadratureRule<double, 1>& shearingQuad = QuadratureRules<double, 1>::rule(element.type(), shearQuadOrder);
 
     for (size_t pt=0; pt<shearingQuad.size(); pt++) {
-        
+
         // Local position of the quadrature point
         const FieldVector<double,1>& quadPos = shearingQuad[pt].position();
-        
+
         const FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(quadPos);
         const double integrationElement = element.geometry().integrationElement(quadPos);
-        
+
         double weight = shearingQuad[pt].weight() * integrationElement;
-        
+
         // ///////////////////////////////////////
         //   Compute deformation gradient
         // ///////////////////////////////////////
@@ -553,36 +553,36 @@ assembleGradient(const Entity& element,
         localFiniteElement.localBasis().evaluateJacobian(quadPos, shapeGrad);
 
         for (int dof=0; dof<numOfBaseFct; dof++) {
-            
-            // multiply with jacobian inverse 
+
+            // multiply with jacobian inverse
             FieldVector<double,1> tmp(0);
             inv.umv(shapeGrad[dof][0], tmp);
             shapeGrad[dof] = tmp;
-            
+
         }
-        
+
         // //////////////////////////////////
         //   Interpolate
         // //////////////////////////////////
-        
+
         FieldVector<double,3> r_s;
         for (int i=0; i<3; i++)
             r_s[i] = solution[0].r[i]*shapeGrad[0] + solution[1].r[i]*shapeGrad[1];
-        
+
         // Interpolate current rotation at this quadrature point
         Rotation<RT,3> q = Rotation<RT,3>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
-        
+
         // The current strain
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
-        
+
         // The reference strain
         FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
-        
-        
+
+
         // dd_dvij[m][i][j] = \parder {(d_k)_i} {q}
         Tensor3<double,3 ,3, 4> dd_dq;
         q.getFirstDerivativesOfDirectors(dd_dq);
-        
+
         // First derivatives of the position
         array<Quaternion<double>,6> dq_dwij;
         interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
@@ -592,33 +592,33 @@ assembleGradient(const Entity& element,
         // /////////////////////////////////////////////
 
         for (int i=0; i<numOfBaseFct; i++) {
-            
+
             // /////////////////////////////////////////////
             //   The translational part
             // /////////////////////////////////////////////
-            
+
             // \partial \bar{W} / \partial r^i_j
             for (int j=0; j<3; j++) {
-                
-                for (int m=0; m<3; m++) 
-                    gradient[i][j] += weight 
+
+                for (int m=0; m<3; m++)
+                    gradient[i][j] += weight
                         * (  A_[m] * (strain[m] - referenceStrain[m]) * shapeGrad[i] * q.director(m)[j]);
-                
+
             }
-            
+
             // \partial \bar{W}_v / \partial v^i_j
             for (int j=0; j<3; j++) {
-                
+
                 for (int m=0; m<3; m++) {
                     FieldVector<double,3> tmp(0);
                     dd_dq[m].umv(dq_dwij[3*i+j], tmp);
-                    gradient[i][3+j] += weight 
+                    gradient[i][3+j] += weight
                         * A_[m] * (strain[m] - referenceStrain[m]) * (r_s*tmp);
                 }
             }
-            
+
         }
-        
+
     }
 
     // /////////////////////////////////////////////////////
@@ -629,37 +629,37 @@ assembleGradient(const Entity& element,
     const QuadratureRule<double, 1>& bendingQuad = QuadratureRules<double, 1>::rule(element.type(), bendingQuadOrder);
 
     for (int pt=0; pt<bendingQuad.size(); pt++) {
-        
+
         // Local position of the quadrature point
         const FieldVector<double,1>& quadPos = bendingQuad[pt].position();
-        
+
         const FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(quadPos);
         const double integrationElement = element.geometry().integrationElement(quadPos);
-        
+
         double weight = bendingQuad[pt].weight() * integrationElement;
-        
+
         // Interpolate current rotation at this quadrature point
         Rotation<RT,3> q = Rotation<RT,3>::interpolate(solution[0].q, solution[1].q,quadPos[0]);
-        
+
         // Get the derivative of the rotation at the quadrature point by interpolating in $H$
         Quaternion<double> q_s = Rotation<RT,3>::interpolateDerivative(solution[0].q, solution[1].q,
                                                                            quadPos);
         // Transformation from the reference element
         q_s *= inv[0][0];
-        
-        
+
+
         // The current strain
         FieldVector<double,blocksize> strain = getStrain(solution, element, quadPos);
-        
+
         // The reference strain
         FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
-        
+
         // First derivatives of the position
         array<Quaternion<double>,6> dq_dwij;
         interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
 
         array<Quaternion<double>,6> dq_ds_dwij;
-        interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos[0]*intervalLength, intervalLength, 
+        interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos[0]*intervalLength, intervalLength,
                                         dq_ds_dwij);
 
         // /////////////////////////////////////////////
@@ -667,32 +667,32 @@ assembleGradient(const Entity& element,
         // /////////////////////////////////////////////
 
         for (int i=0; i<numOfBaseFct; i++) {
-            
+
             // /////////////////////////////////////////////
             //   The rotational part
             // /////////////////////////////////////////////
 
             // \partial \bar{W}_v / \partial v^i_j
             for (int j=0; j<3; j++) {
-                
+
                 for (int m=0; m<3; m++) {
-                    
+
                     // Compute derivative of the strain
                     /** \todo Is this formula correct?  It seems strange to call
                         B(m) for a _derivative_ of a rotation */
                     double du_dvij_m = 2 * (dq_dwij[i*3+j].B(m) * q_s)
                         + 2* ( q.B(m) * dq_ds_dwij[i*3+j]);
-                    
+
                     // Sum it up
-                    gradient[i][3+j] += weight * K_[m] 
+                    gradient[i][3+j] += weight * K_[m]
                         * (strain[m+3]-referenceStrain[m+3]) * du_dvij_m;
-                    
+
                 }
-                
+
             }
 
         }
-        
+
     }
 }
 
