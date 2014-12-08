@@ -22,6 +22,7 @@ AC_CONFIG_FILES([Makefile
                  dune/Makefile
                  dune/gfe/Makefile
                  dune/gfe/coupling/Makefile
+                 src/Makefile
                  test/Makefile
                  m4/Makefile
                  dune-gfe.pc
