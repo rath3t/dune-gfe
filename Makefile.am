@@ -16,7 +16,7 @@ ADOLC_LIBS = -ladolc
 noinst_PROGRAMS = cosserat-continuum \
                   finite-strain-elasticity \
                   mixed-cosserat-continuum \
-                  rodobstacle rod3d harmonicmaps harmonicmaps-eoc rod-eoc
+                  rodobstacle harmonicmaps harmonicmaps-eoc rod-eoc
 
 cosserat_continuum_SOURCES  = cosserat-continuum.cc
 cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
