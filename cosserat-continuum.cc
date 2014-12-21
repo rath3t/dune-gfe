@@ -345,7 +345,7 @@ int main (int argc, char *argv[]) try
 
     if (mpiHelper.rank()==0)
     {
-      std::cout << "Neumann value = " << parameterSet.get<double>("neumannValue") << "  "
+      std::cout << "Neumann values = " << parameterSet.get<FieldVector<double, 3> >("neumannValues") << "  "
                 << ",  average deflection: " << averageDef << std::endl;
     }
 
