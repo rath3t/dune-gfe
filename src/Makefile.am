@@ -1,7 +1,20 @@
 
 SUBDIRS =
 
-noinst_PROGRAMS = rod3d
+ADOLC_CPPFLAGS = -I/home/sander/adolc-inst/include
+ADOLC_LDFLAGS = -L/home/sander/adolc-inst/lib64
+ADOLC_LIBS = -ladolc
+
+noinst_PROGRAMS = cosserat-continuum \
+                  rod3d
+
+cosserat_continuum_SOURCES  = cosserat-continuum.cc
+cosserat_continuum_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
+                              $(ADOLC_CPPFLAGS) $(PYTHON_CPPFLAGS)
+cosserat_continuum_LDADD    = $(UG_LIBS) $(IPOPT_LIBS) \
+                              $(ADOLC_LIBS) $(PYTHON_LIBS)
+cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
+                              $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS)
 
 rod3d_SOURCES = rod3d.cc
 rod3d_CXXFLAGS = $(IPOPT_CPPFLAGS)
