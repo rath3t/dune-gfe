@@ -6,6 +6,7 @@ class DirichletValues:
         out = [x[0], x[1], 0]
         if x[1] >  0.128-1e-4 :
             out[0] += 0.003 * self.homotopyParameter
+            out[1] += 0.0005
         return out
 
     def orientation(self, x):
