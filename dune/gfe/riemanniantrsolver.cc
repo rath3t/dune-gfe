@@ -197,7 +197,7 @@ setup(const GridType& grid,
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
         typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GlobalLeafP1Mapper;
-        GlobalLeafP1Mapper p1Index(grid_->leafGridView()        );
+        GlobalLeafP1Mapper p1Index(grid_->leafGridView());
 
         typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LeafP1LocalMapper;
         LeafP1LocalMapper leafP1LocalMapper(grid_->leafGridView());
