@@ -26,7 +26,6 @@ srcinclude_HEADERS = adolcnamespaceinjections.hh \
                      localprojectedfefunction.hh \
                      maxnormtrustregion.hh \
                      orthogonalmatrix.hh \
-                     pktop1mgtransfer.hh \
                      quaternion.hh \
                      realtuple.hh \
                      riemanniantrsolver.hh \

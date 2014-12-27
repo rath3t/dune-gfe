@@ -12,14 +12,12 @@
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
+#include <dune/fufem/assemblers/basisinterpolationmatrixassembler.hh>
 
 // Using a monotone multigrid as the inner solver
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
-#if defined THIRD_ORDER || defined SECOND_ORDER
-#include <dune/gfe/pktop1mgtransfer.hh>
-#endif
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include "maxnormtrustregion.hh"
@@ -189,10 +187,13 @@ setup(const GridType& grid,
 
 #if defined THIRD_ORDER || defined SECOND_ORDER
     {
+        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
 
-        PKtoP1MGTransfer<CorrectionType>* topTransferOp = new PKtoP1MGTransfer<CorrectionType>;
-        topTransferOp->setup(basis,p1Basis);
+        TransferOperatorType pkToP1TransferMatrix;
+        assembleBasisInterpolationMatrix<TransferOperatorType,
+                                         P1NodalBasis<typename GridType::LeafGridView,double>,
+                                         BasisType>(pkToP1TransferMatrix,p1Basis,basis);
 
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
@@ -202,7 +203,6 @@ setup(const GridType& grid,
         typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LeafP1LocalMapper;
         LeafP1LocalMapper leafP1LocalMapper(grid_->leafGridView());
 
-        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         MatrixCommunicator<GlobalMapper,
                            typename GridType::LeafGridView,
                            typename GridType::LeafGridView,
@@ -211,9 +211,9 @@ setup(const GridType& grid,
                            LeafP1LocalMapper,
                            GlobalLeafP1Mapper> matrixComm(*globalMapper_, p1Index, grid_->leafGridView(), grid_->leafGridView(), localMapper, leafP1LocalMapper, 0);
 
-        mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>;
-        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix()));
-        dynamic_cast<PKtoP1MGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
+        mmgStep->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType>;
+        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(pkToP1TransferMatrix));
+        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
     }
 #endif
 
