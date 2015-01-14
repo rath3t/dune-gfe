@@ -15,7 +15,7 @@ ADOLC_LIBS = -ladolc
 
 noinst_PROGRAMS = finite-strain-elasticity \
                   mixed-cosserat-continuum \
-                  rodobstacle harmonicmaps harmonicmaps-eoc rod-eoc
+                  rodobstacle harmonicmaps-eoc rod-eoc
 
 finite_strain_elasticity_SOURCES  = finite-strain-elasticity.cc
 finite_strain_elasticity_CXXFLAGS = $(UG_CPPFLAGS) $(IPOPT_CPPFLAGS) \
@@ -36,11 +36,6 @@ mixed_cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
 rodobstacle_SOURCES = rodobstacle.cc
 
 rod_eoc_SOURCES = rod-eoc.cc
-
-harmonicmaps_SOURCES = harmonicmaps.cc
-harmonicmaps_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
-harmonicmaps_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
-                          $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
 
 harmonicmaps_eoc_SOURCES = harmonicmaps-eoc.cc
 harmonicmaps_eoc_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)

@@ -6,6 +6,7 @@ ADOLC_LDFLAGS = -L/home/sander/adolc-inst/lib64
 ADOLC_LIBS = -ladolc
 
 noinst_PROGRAMS = cosserat-continuum \
+                  harmonicmaps \
                   rod3d
 
 cosserat_continuum_SOURCES  = cosserat-continuum.cc
@@ -15,6 +16,11 @@ cosserat_continuum_LDADD    = $(UG_LIBS) $(IPOPT_LIBS) \
                               $(ADOLC_LIBS) $(PYTHON_LIBS)
 cosserat_continuum_LDFLAGS  = $(UG_LDFLAGS) $(IPOPT_LDFLAGS) \
                               $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS)
+
+harmonicmaps_SOURCES = harmonicmaps.cc
+harmonicmaps_CXXFLAGS = $(UG_CPPFLAGS) $(AMIRAMESH_CPPFLAGS) $(IPOPT_CPPFLAGS) $(PSURFACE_CPPFLAGS)
+harmonicmaps_LDADD    = $(UG_LDFLAGS) $(AMIRAMESH_LDFLAGS) $(UG_LIBS) $(AMIRAMESH_LIBS) \
+                          $(IPOPT_LDFLAGS) $(IPOPT_LIBS) $(PSURFACE_LDFLAGS) $(PSURFACE_LIBS)
 
 rod3d_SOURCES = rod3d.cc
 rod3d_CXXFLAGS = $(IPOPT_CPPFLAGS)
