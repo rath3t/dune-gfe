@@ -59,7 +59,9 @@ public:
     RiemannianTrustRegionSolver()
         : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
           hessianMatrix_(std::auto_ptr<MatrixType>(NULL)), h1SemiNorm_(NULL)
-    {}
+    {
+      std::fill(scaling_.begin(), scaling_.end(), 1.0);
+    }
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid,
@@ -78,6 +80,11 @@ public:
                double baseTolerance,
                bool instrumented);
 
+    void setScaling(const Dune::FieldVector<double,blocksize>& scaling)
+    {
+      scaling_(scaling);
+    }
+    
     void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
     {
         ignoreNodes_ = &ignoreNodes;
@@ -110,6 +117,9 @@ protected:
 
     /** \brief The initial trust-region radius in the maximum-norm */
     double initialTrustRegionRadius_;
+
+    /** \brief Trust-region norm scaling */
+    Dune::FieldVector<double,blocksize> scaling_;
 
     /** \brief Maximum number of trust-region steps */
     int maxTrustRegionSteps_;

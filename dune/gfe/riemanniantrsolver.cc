@@ -280,6 +280,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
     }
 
     MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
+    trustRegion.set(initialTrustRegionRadius_, scaling_);
 
     std::vector<BoxConstraint<field_type,blocksize> > trustRegionObstacles;
 
