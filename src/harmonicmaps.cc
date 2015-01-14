@@ -6,8 +6,8 @@
 //#define HARMONIC_ENERGY_FD_GRADIENT
 
 //#define UNITVECTOR2
-//#define UNITVECTOR3
-#define UNITVECTOR4
+#define UNITVECTOR3
+//#define UNITVECTOR4
 //#define ROTATION2
 //#define ROTATION3
 //#define REALTUPLE1
@@ -38,7 +38,7 @@
 #include <dune/gfe/riemanniantrsolver.hh>
 
 // grid dimension
-const int dim = 3;
+const int dim = 2;
 
 // Image space of the geodesic fe functions
 #ifdef ROTATION2
