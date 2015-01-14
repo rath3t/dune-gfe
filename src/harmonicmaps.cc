@@ -149,7 +149,7 @@ int main (int argc, char *argv[]) try
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
     // //////////////////////////
-    //   Initial solution
+    //   Initial iterate
     // //////////////////////////
 
     FieldVector<double,3> yAxis(0);
