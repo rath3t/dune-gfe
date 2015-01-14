@@ -53,7 +53,11 @@ namespace Dune {
         for (size_t i=0; i<it->template count<dim>(); i++)
 #endif
         {
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+          int localIndex  = p1Mapper_.subIndex(*it, i, dim);
+#else
           int localIndex  = p1Mapper_.map(*it, i, dim);
+#endif
           int globalIndex = globalVertexIndexSet.subIndex(*it, i, dim);
 
           localGlobalMap_[localIndex]  = globalIndex;
@@ -71,7 +75,11 @@ namespace Dune {
     template <class Entity>
     Index subIndex(const Entity& entity, uint i, uint codim) const
     {
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+      int localIndex = p1Mapper_.subIndex(entity, i, codim);
+#else
       int localIndex = p1Mapper_.map(entity, i, codim);
+#endif
       return localGlobalMap_.find(localIndex)->second;
     }
 
