@@ -127,7 +127,7 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
 
-    shared_ptr<GridType> gridPtr;
+    shared_ptr<GridType> grid;
     FieldVector<double,dim> lower(0), upper(1);
 
     if (parameterSet.get<bool>("structuredGrid")) {
@@ -136,31 +136,29 @@ int main (int argc, char *argv[]) try
         upper = parameterSet.get<FieldVector<double,dim> >("upper");
 
         array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
-        gridPtr = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+        grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
     } else {
 
         std::string path                = parameterSet.get<std::string>("path");
         std::string gridFile            = parameterSet.get<std::string>("gridFile");
 
-        gridPtr = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + gridFile));
+        grid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + gridFile));
     }
 
-    GridType& grid = *gridPtr.get();
+    grid->globalRefine(numLevels-1);
 
-    grid.globalRefine(numLevels-1);
-
-    SolutionType x(grid.size(dim));
+    SolutionType x(grid->size(dim));
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    BitSetVector<1> allNodes(grid.size(dim));
+    BitSetVector<1> allNodes(grid->size(dim));
     allNodes.setAll();
-    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid.leafGridView(), allNodes);
+    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), allNodes);
 
-    BitSetVector<blocksize> dirichletNodes(grid.size(dim));
+    BitSetVector<blocksize> dirichletNodes(grid->size(dim));
     for (size_t i=0; i<dirichletNodes.size(); i++)
         dirichletNodes[i] = dirichletBoundary.containsVertex(i);
 
@@ -169,7 +167,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////
 
     typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
-    FEBasis feBasis(grid.leafGridView());
+    FEBasis feBasis(grid->leafGridView());
 
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialIterate") + std::string(")");
     PythonFunction<FieldVector<double,dim>, TargetSpace::CoordinateType > pythonInitialIterate(Python::evaluate(lambda));
@@ -195,14 +193,14 @@ int main (int argc, char *argv[]) try
                                   FEBasis::LocalFiniteElement,
                                   TargetSpace> localGFEADOLCStiffness(&harmonicEnergyADOLCLocalStiffness);
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid.leafGridView(), &localGFEADOLCStiffness);
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafGridView(), &localGFEADOLCStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
     RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
-    solver.setup(grid,
+    solver.setup(*grid,
                  &assembler,
                  x,
                  dirichletNodes,
@@ -257,7 +255,7 @@ int main (int argc, char *argv[]) try
 #endif
     }
 
-    VTKWriter<GridType::LeafGridView> vtkWriter(grid.leafGridView());
+    VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
     Dune::shared_ptr<VTKBasisGridFunction<FEBasis,EmbeddedVectorType> > vtkVectorField
         = Dune::shared_ptr<VTKBasisGridFunction<FEBasis,EmbeddedVectorType> >
                (new VTKBasisGridFunction<FEBasis,EmbeddedVectorType>(feBasis, xEmbedded, "orientation"));
@@ -276,7 +274,7 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////////////////////////////////////////////
 
     typedef P1NodalBasis<GridType::LeafGridView,double> FEBasis;
-    FEBasis basis(grid.leafGridView());
+    FEBasis basis(grid->leafGridView());
     OperatorAssembler<FEBasis,FEBasis> operatorAssembler(basis, basis);
 
     LaplaceAssembler<GridType, FEBasis::LocalFiniteElement, FEBasis::LocalFiniteElement> laplaceLocalAssembler;
