@@ -359,7 +359,7 @@ void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
 
             CorrectionType gradient = rhs_global;
             for (size_t j=0; j<gradient.size(); j++)
-              for (int k=0; k<gradient[j].size(); k++)
+              for (size_t k=0; k<gradient[j].size(); k++)
                 if ((*mgStep->ignoreNodes_)[j][k])  // global Dirichlet nodes set
                   gradient[j][k] = 0;
 
