@@ -106,23 +106,27 @@ int main (int argc, char *argv[]) try
     const bool instrumented               = parameterSet.get<bool>("instrumented");
     std::string resultPath                = parameterSet.get("resultPath", "");
 
-    // read problem settings
-    std::string path                = parameterSet.get<std::string>("path");
-    std::string gridFile            = parameterSet.get<std::string>("gridFile");
-
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
 
     shared_ptr<GridType> gridPtr;
-    if (parameterSet.get<std::string>("gridType")=="structured") {
-        array<unsigned int,dim> elements;
-        elements.fill(3);
-        gridPtr = StructuredGridFactory<GridType>::createSimplexGrid(FieldVector<double,dim>(0),
-                                                                     FieldVector<double,dim>(1),
-                                                                     elements);
+    FieldVector<double,dim> lower(0), upper(1);
+
+    if (parameterSet.get<bool>("structuredGrid")) {
+
+        lower = parameterSet.get<FieldVector<double,dim> >("lower");
+        upper = parameterSet.get<FieldVector<double,dim> >("upper");
+
+        array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
+        gridPtr = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+
     } else {
+
+        std::string path                = parameterSet.get<std::string>("path");
+        std::string gridFile            = parameterSet.get<std::string>("gridFile");
+
         gridPtr = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + gridFile));
     }
 
