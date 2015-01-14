@@ -12,6 +12,11 @@
 //#define ROTATION3
 //#define REALTUPLE1
 
+// Includes for the ADOL-C automatic differentiation library
+// Need to come before (almost) all others.
+#include <adolc/adouble.h>
+#include <dune/gfe/adolcnamespaceinjections.hh>
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -34,6 +39,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
+#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
 #include <dune/gfe/chiralskyrmionenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
@@ -185,10 +191,14 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
 
     GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalFiniteElement, double> chiralSkyrmionEnergy;
-    HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalFiniteElement, TargetSpace> harmonicEnergyLocalStiffness;
+    // Assembler using ADOL-C
+    typedef TargetSpace::rebind<adouble>::other ATargetSpace;
+    HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalFiniteElement, ATargetSpace> harmonicEnergyADOLCLocalStiffness;
+    LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
+                                  FEBasis::LocalFiniteElement,
+                                  TargetSpace> localGFEADOLCStiffness(&harmonicEnergyADOLCLocalStiffness);
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid.leafGridView(),
-                                                                      &harmonicEnergyLocalStiffness);
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid.leafGridView(), &localGFEADOLCStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
