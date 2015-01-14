@@ -33,6 +33,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/chiralskyrmionenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
@@ -229,6 +230,7 @@ int main (int argc, char *argv[]) try
     typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
     FEBasis feBasis(grid.leafGridView());
 
+    GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalFiniteElement, double> chiralSkyrmionEnergy;
     HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalFiniteElement, TargetSpace> harmonicEnergyLocalStiffness;
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid.leafGridView(),

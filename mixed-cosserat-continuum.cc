@@ -243,12 +243,14 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-    typedef P2NodalBasis<GridView,double> DeformationFEBasis;
-    typedef P1NodalBasis<GridView,double> OrientationFEBasis;
+    typedef P3NodalBasis<GridView,double> DeformationFEBasis;
+    typedef P2NodalBasis<GridView,double> OrientationFEBasis;
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
 
+    std::cout << "Deformation: " << deformationFEBasis.size() << ",   orientation: " << orientationFEBasis.size() << std::endl;
+    
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////

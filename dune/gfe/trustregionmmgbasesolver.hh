@@ -3,6 +3,7 @@
 #ifndef DUNE_GFE_TRUSTREGIONMMGBASESOLVER_HH
 #define DUNE_GFE_TRUSTREGIONMMGBASESOLVER_HH
 
+#include <dune/istl/solver.hh>
 #include <dune/istl/umfpack.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -102,6 +103,10 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
   ///////////////////////////////////////////
 
   for (size_t j=0; j<modifiedStiffness.N(); j++)
+    for (int k=0; k<blocksize; k++)
+      modifiedStiffness[j][j][k][k] += 0.0;
+
+  for (size_t j=0; j<modifiedStiffness.N(); j++)
   {
     auto cIt    = modifiedStiffness[j].begin();
     auto cEndIt = modifiedStiffness[j].end();
@@ -128,6 +133,7 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
   /////////////////////////////////////////////////////////////////
   Dune::InverseOperatorResult statistics;
   Dune::UMFPack<MatrixType> solver(modifiedStiffness);
+  solver.setOption(UMFPACK_PRL, 0);   // no output at all
   solver.apply(*x_, modifiedRhs, statistics);
 
   // Model increase?  Then the matrix is not positive definite -- fall back to ipopt solver
@@ -138,17 +144,21 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
   matrix_->umv(*x_, tmp);
   double modelDecrease = (modifiedRhs*(*x_)) - 0.5 * ((*x_)*tmp);
 
-  if (std::isnan(modelDecrease) or modelDecrease < 0)
+  if (std::isnan(modelDecrease) or modelDecrease < 0 or true)
   {
     std::cout << "Model increase: " << -modelDecrease << ", falling back to slower solver" << std::endl;
 
+    std::cout << "Total VARIABLES: " << x_->size() << " x " << blocksize << " = " << x_->size()*blocksize << std::endl;
+    std::cout << "Dirichlet DOFS: " << this->ignoreNodes_->count() << std::endl;
+
     QuadraticIPOptSolver<MatrixType, VectorType> baseSolver;
-    baseSolver.verbosity_ = NumProc::QUIET;
+    baseSolver.verbosity_ = NumProc::REDUCED;
     baseSolver.tolerance_ = 1e-8;
 
     *x_ = 0;
     baseSolver.setProblem(*matrix_, *x_, *rhs_);
     baseSolver.obstacles_ = obstacles_;
+    baseSolver.ignoreNodes_ = this->ignoreNodes_;
 
     baseSolver.solve();
   }
@@ -173,12 +183,13 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
     std::cout << "Inadmissible step, falling back to slower solver" << std::endl;
 
     QuadraticIPOptSolver<MatrixType, VectorType> baseSolver;
-    baseSolver.verbosity_ = NumProc::QUIET;
+    baseSolver.verbosity_ = NumProc::REDUCED;
     baseSolver.tolerance_ = 1e-8;
 
     *x_ = 0;
     baseSolver.setProblem(*matrix_, *x_, *rhs_);
     baseSolver.obstacles_ = obstacles_;
+    baseSolver.ignoreNodes_ = this->ignoreNodes_;
 
     baseSolver.solve();
   }

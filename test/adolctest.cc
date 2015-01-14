@@ -30,6 +30,7 @@ typedef double FDType;
 #include <dune/istl/io.hh>
 
 #include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/fufem/functiontools/basisinterpolator.hh>
 
 
 #include <dune/gfe/rigidbodymotion.hh>
@@ -47,7 +48,19 @@ typedef RigidBodyMotion<double,3> TargetSpace;
 
 using namespace Dune;
 
+class Identity
+: public VirtualFunction<FieldVector<double,2>, FieldVector<double,3> >
+{
+public:
+  void evaluate(const FieldVector<double,2>& in,
+                FieldVector<double,3>& out) const
+  {
+    out[0] = in[0];
+    out[1] = in[1];
+    out[2] = 0.0;
+  }
 
+};
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C
  */
@@ -446,6 +459,7 @@ int main (int argc, char *argv[]) try
     //////////////////////////////////////////7
     //  Read initial iterate from file
     //////////////////////////////////////////7
+#if 0
     Dune::BlockVector<FieldVector<double,7> > xEmbedded(x.size());
 
     std::ifstream file("dangerous_iterate", std::ios::in|std::ios::binary);
@@ -458,6 +472,15 @@ int main (int argc, char *argv[]) try
 
     for (int ii=0; ii<x.size(); ii++)
       x[ii] = xEmbedded[ii];
+#else
+    Identity identity;
+
+    std::vector<FieldVector<double,3> > v;
+    Functions::interpolate(feBasis, v, identity);
+
+    for (size_t i=0; i<x.size(); i++)
+      x[i].r = v[i];
+#endif
 
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the energy functional

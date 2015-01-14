@@ -21,7 +21,7 @@ numHomotopySteps = 1
 tolerance = 1e-8
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 200
+maxTrustRegionSteps = 500
 
 # Initial trust-region radius
 initialTrustRegionRadius = 0.001
@@ -71,7 +71,7 @@ lambda = 2.1796e+09
 mu_c = 0
 
 # Length scale parameter
-L_c = 2.5e-5
+L_c = 2.5e-8
 
 # Curvature exponent
 q = 2
@@ -92,4 +92,6 @@ problem = wong-pellegrino
 dirichletVerticesPredicate = "x[1] < 0.0001 or x[1] > 0.128 - 0.0001"
 
 # Initial deformation
+#startFromFile = true
+initialIterateFilename = cosserat_iterate_2.vtu
 initialDeformation = "[x[0] + 0.003*x[1] / 0.128, x[1], 0.002*math.cos(1e4*x[0])]"

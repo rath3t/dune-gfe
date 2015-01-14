@@ -19,6 +19,7 @@ check_PROGRAMS = adolctest \
                  globalgfetestfunctionbasistest \
                  harmonicenergytest \
                  interpolationtest \
+                 interillustration \
                  localgeodesicfefunctiontest \
                  localgeodesicfestiffnesstest \
                  localgfetestfunctiontest \
@@ -30,11 +31,12 @@ check_PROGRAMS = adolctest \
                  rotationtest \
                  svdtest \
                  targetspacetest \
-                 true-adolctest
+                 true-adolctest \
+                 vtkreadertest
 
 adolctest_SOURCES = adolctest.cc
 adolctest_LDFLAGS = $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS) $(IPOPT_LDFLAGS)
-adolctest_LDADD = $(ADOLC_LIBS) $(PYTHON_LIBS) $(IPOPT_LIBS)
+adolctest_LDADD = $(ADOLC_LIBS) $(PYTHON_LIBS) $(IPOPT_LIBS) -lmpfr -lgmpxx -lgmp
 
 true_adolctest_SOURCES = true-adolctest.cc
 true_adolctest_LDFLAGS = $(ADOLC_LDFLAGS) $(PYTHON_LDFLAGS) $(IPOPT_LDFLAGS)
@@ -64,6 +66,8 @@ harmonicenergytest_SOURCES = harmonicenergytest.cc
 
 interpolationtest_SOURCES = interpolationtest.cc
 
+interillustration_SOURCES = interillustration.cc
+
 cosseratenergytest_SOURCES = cosseratenergytest.cc
 
 averagedistanceassemblertest_SOURCES = averagedistanceassemblertest.cc
@@ -75,6 +79,10 @@ rodassemblertest_SOURCES = rodassemblertest.cc
 targetspacetest_SOURCES = targetspacetest.cc
 
 svdtest_SOURCES = svdtest.cc
+
+vtkreadertest_SOURCES = vtkreadertest.cc
+vtkreadertest_CXXFLAGS = -DHAVE_TINYXML2
+vtkreadertest_LDADD = -ltinyxml2
 
 # don't follow the full GNU-standard
 # we need automake 1.5

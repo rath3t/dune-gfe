@@ -345,7 +345,7 @@ void test()
     // Test each element in the list
     for (int i=0; i<nTestPoints; i++) {
         
-        testOrthonormalFrame<TargetSpace>(testPoints[i]);
+        //testOrthonormalFrame<TargetSpace>(testPoints[i]);
         
         for (int j=0; j<nTestPoints; j++) {
             
@@ -354,8 +354,13 @@ void test()
             testPointPair[1] = testPoints[j];
             if (diameter(testPointPair) > TargetSpace::convexityRadius)
                 continue;
+
+            TargetSpace p = testPointPair[0];
+            TargetSpace q = testPointPair[1];
+            std::cout << "p: " << testPointPair[0] << ",   q: " << testPointPair[1] << std::endl;
+            std::cout << TargetSpace::exp(p, TargetSpace::log(p,q)) << std::endl;
             
-            testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);
+            //testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);
             
         }
         
@@ -366,18 +371,18 @@ void test()
 
 int main() try
 {
-    test<RealTuple<double,1> >();
-    test<RealTuple<double,3> >();
+//     test<RealTuple<double,1> >();
+//     test<RealTuple<double,3> >();
     
     test<UnitVector<double,2> >();
     test<UnitVector<double,3> >();
     test<UnitVector<double,4> >();
 
-    test<Rotation<double,3> >();
-    
-    test<RigidBodyMotion<double,3> >();
-    
-    test<HyperbolicHalfspacePoint<double,2> >();
+//     test<Rotation<double,3> >();
+//
+//     test<RigidBodyMotion<double,3> >();
+//
+//     test<HyperbolicHalfspacePoint<double,2> >();
 
 } catch (Exception e) {
 

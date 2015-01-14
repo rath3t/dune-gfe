@@ -134,7 +134,8 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-    typedef P1NodalBasis<GridView,double> FEBasis;
+//    typedef P1NodalBasis<GridView,double> FEBasis;
+    typedef P2NodalBasis<GridView,double> FEBasis;
     FEBasis feBasis(gridView);
 
     // /////////////////////////////////////////
@@ -271,14 +272,14 @@ int main (int argc, char *argv[]) try
 
     std::vector<FieldVector<double,3> > pointLoads(x.size());
     std::fill(pointLoads.begin(), pointLoads.end(), 0);
-    pointLoads[1372] = parameterSet.get<FieldVector<double,3> >("neumannValues");
-    pointLoads[1372] *= 0.5;
+//     pointLoads[1372] = parameterSet.get<FieldVector<double,3> >("neumannValues");
+//     pointLoads[1372] *= 0.5;
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
-    TrustRegionSolver<GridType,SolutionType> solver;
+    TrustRegionSolver<FEBasis,SolutionType> solver;
     solver.setup(*grid,
                  &assembler,
                  x,

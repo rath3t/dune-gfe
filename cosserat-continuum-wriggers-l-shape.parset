@@ -17,10 +17,10 @@ numLevels = 1
 numHomotopySteps = 1
 
 # Tolerance of the trust region solver
-tolerance = 1e-8
+tolerance = 1e-6
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 200
+maxTrustRegionSteps = 500
 
 # Initial trust-region radius
 initialTrustRegionRadius = 0.1
@@ -76,13 +76,15 @@ L_c = 0.6e-3
 q = 2
 
 # Shear correction factor
-kappa = 1
+kappa = 0.01
 
 []
 
 #############################################
 #  Boundary values
 #############################################
+
+problem = wriggers-l-shape
 
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
@@ -93,7 +95,8 @@ dirichletVerticesPredicate = "x[0] < 0.001"
 neumannVerticesPredicate = "x[1] < -0.239"
 
 ###  Neumann values, if needed
-neumannValues =  -5e6 0 0
+#neumannValues =  -2e7 0 0
 
 # Initial deformation
-initialDeformation = "[x[0], x[1], -0.1*x[0]*(0.24+x[1])]"
+#initialDeformation = "[x[0], x[1], -0.3*x[0]*(0.24+x[1])]"
+initialDeformation = "[x[0], x[1], 0 if (x[0] < 0.225 or x[1] <-0.015) else 4*(x[0]-0.225)*(x[1]+0.015)]"
