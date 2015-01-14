@@ -25,6 +25,7 @@
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
+#include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
@@ -81,6 +82,17 @@ computeEmbeddedDifference(const std::vector<TargetSpace>& a, const std::vector<T
 int main (int argc, char *argv[]) try
 {
     //feenableexcept(FE_INVALID);
+    // Start Python interpreter
+    Python::start();
+    Python::Reference main = Python::import("__main__");
+    Python::run("import math");
+
+    //feenableexcept(FE_INVALID);
+    Python::runStream()
+        << std::endl << "import sys"
+        << std::endl << "sys.path.append('/home/sander/dune/dune-gfe/src')"
+        << std::endl;
+
 
     typedef std::vector<TargetSpace> SolutionType;
 
