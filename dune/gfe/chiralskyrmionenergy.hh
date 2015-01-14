@@ -1,0 +1,124 @@
+#ifndef DUNE_GFE_CHIRALSKYRMIONENERGY_HH
+#define DUNE_GFE_CHIRALSKYRMIONENERGY_HH
+
+#include <dune/common/fmatrix.hh>
+#include <dune/geometry/quadraturerules.hh>
+
+#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
+
+namespace Dune {
+
+namespace GFE {
+
+/** \brief Energy of certain chiral Skyrmion
+ *
+ * The energy is discussed in:
+ * - Christof Melcher, "Chiral skyrmions in the plane", Proc. of the Royal Society, online DOI DOI: 10.1098/rspa.2014.0394
+ */
+template<class GridView, class LocalFiniteElement, class field_type>
+class ChiralSkyrmionEnergy
+: public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,UnitVector<field_type,3> >
+{
+  // various useful types
+  typedef UnitVector<field_type,3> TargetSpace;
+  typedef typename GridView::Grid::ctype DT;
+  typedef typename TargetSpace::ctype RT;
+  typedef typename GridView::template Codim<0>::Entity Entity;
+
+  // some other sizes
+  enum {gridDim=GridView::dimension};
+
+public:
+
+  //! Dimension of a tangent space
+  enum { blocksize = TargetSpace::TangentVector::dimension };
+
+  /** \brief Assemble the energy for a single element */
+  RT energy (const Entity& e,
+             const LocalFiniteElement& localFiniteElement,
+             const std::vector<TargetSpace>& localConfiguration) const;
+
+  field_type h_ = 3;
+  field_type kappa_ = 1;
+};
+
+template <class GridView, class LocalFiniteElement, class field_type>
+typename ChiralSkyrmionEnergy<GridView, LocalFiniteElement, field_type>::RT
+ChiralSkyrmionEnergy<GridView, LocalFiniteElement, field_type>::
+energy(const Entity& element,
+       const LocalFiniteElement& localFiniteElement,
+       const std::vector<TargetSpace>& localConfiguration) const
+{
+  assert(element.type() == localFiniteElement.type());
+  typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
+
+  RT energy = 0;
+  typedef LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+  LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localConfiguration);
+
+  int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
+                                               : localFiniteElement.localBasis().order() * 2 * gridDim;
+
+
+
+  const Dune::QuadratureRule<double, gridDim>& quad
+      = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
+
+  for (size_t pt=0; pt<quad.size(); pt++) {
+
+    // Local position of the quadrature point
+    const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
+
+    const double integrationElement = element.geometry().integrationElement(quadPos);
+
+    const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+
+    double weight = quad[pt].weight() * integrationElement;
+
+    // The value of the function
+    auto value = localGeodesicFEFunction.evaluate(quadPos);
+
+    // The derivative of the local function defined on the reference element
+    typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
+
+    // The derivative of the function defined on the actual element
+    typename LocalGFEFunctionType::DerivativeType derivative(0);
+
+    for (size_t comp=0; comp<referenceDerivative.N(); comp++)
+      jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
+
+    //////////////////////////////////////////////////////////////
+    //  Exchange energy (aka harmonic energy)
+    //////////////////////////////////////////////////////////////
+    // The Frobenius norm is the correct norm here if the metric of TargetSpace is the identity.
+    // (And if the metric of the domain space is the identity, which it always is here.)
+    energy += weight * 0.5 * derivative.frobenius_norm2();
+
+    //////////////////////////////////////////////////////////////
+    //  Dzyaloshinkii-Moriya interaction term
+    //////////////////////////////////////////////////////////////
+
+    // derivative[a][b] contains the partial derivative of m_a in the direction x_b
+    Dune::FieldVector<field_type, 3> curl = {derivative[2][1], -derivative[2][0], derivative[1][0]-derivative[0][1]};
+
+    FieldVector<field_type, 3> v = value.globalCoordinates();
+
+    energy += weight * kappa_ * (v * curl);
+
+    //////////////////////////////////////////////////////////////
+    //  Zeeman interaction term
+    //////////////////////////////////////////////////////////////
+    v[2] -= 1;   // subtract e_3
+    energy += weight * 0.5 * h_ * v.two_norm2();
+
+  }
+
+  return energy;
+}
+
+}  // namespace GFE
+
+}  // namespace Dune
+#endif
+
