@@ -2,7 +2,6 @@
 
 #include <fenv.h>
 
-//#define LAPLACE_DEBUG
 //#define HARMONIC_ENERGY_FD_GRADIENT
 
 //#define UNITVECTOR2
