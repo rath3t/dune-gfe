@@ -25,6 +25,7 @@
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
+#include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -164,71 +165,17 @@ int main (int argc, char *argv[]) try
     //   Initial iterate
     // //////////////////////////
 
-    FieldVector<double,3> yAxis(0);
-    yAxis[1] = 1;
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+    FEBasis feBasis(grid.leafGridView());
 
-    GridType::LeafGridView::Codim<dim>::Iterator vIt    = grid.leafbegin<dim>();
-    GridType::LeafGridView::Codim<dim>::Iterator vEndIt = grid.leafend<dim>();
+    std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialIterate") + std::string(")");
+    PythonFunction<FieldVector<double,dim>, TargetSpace::CoordinateType > pythonInitialIterate(Python::evaluate(lambda));
 
-    for (; vIt!=vEndIt; ++vIt) {
-        int idx = grid.leafIndexSet().index(*vIt);
+    std::vector<TargetSpace::CoordinateType> v;
+    Functions::interpolate(feBasis, v, pythonInitialIterate);
 
-        TargetSpace::CoordinateType v;
-
-        FieldVector<double,dim> pos = vIt->geometry().corner(0);
-        FieldVector<double,3> axis;
-        axis[0] = pos[0];  axis[1] = pos[1]; axis[2] = 1;
-        Rotation<double,3> rotation(axis, pos.two_norm()*M_PI*1.5);
-
-        //dirichletNodes[idx] = pos[0]<0.01 || pos[0] > 0.99;
-
-        if (dirichletNodes[idx][0]) {
-//             FieldMatrix<double,3,3> rMat;
-//             rotation.matrix(rMat);
-//             v = rMat[2];
-#ifdef UNITVECTOR3
-            v[0] = std::sin(pos[0]*M_PI);
-            v[1] = 0;
-            v[2] = std::cos(pos[0]*M_PI);
-#endif
-#ifdef UNITVECTOR3
-            v[0] = 1;
-            v[1] = 0;
-            v[2] = 0;
-#endif
-#if defined UNITVECTOR4 || defined ROTATION3
-            FieldMatrix<double,3,3> rMat;
-            rotation.matrix(rMat);
-            v[0] = rMat[2][0];
-            v[1] = rMat[2][1];
-            v[2] = rMat[2][2];
-            v[3] = 0;
-#endif
-#ifdef UNITVECTOR2
-            v[0] = std::sin(pos[0]*M_PI);
-            v[1] = std::cos(pos[0]*M_PI);
-#endif
-#if defined ROTATION2 || defined REALTUPLE1
-            v[0] = pos[0]/*M_PI*/;
-#endif
-        } else {
-#if defined UNITVECTOR2 || defined UNITVECTOR3 || defined UNITVECTOR4 || defined ROTATION3
-            v = 0;
-            v[0] = 1;
-#endif
-#if defined ROTATION2 || defined REALTUPLE1
-            v[0] = 0.5*M_PI;
-#endif
-        }
-
-#if defined UNITVECTOR2 || defined UNITVECTOR3 || defined UNITVECTOR4 || defined ROTATION3 || defined REALTUPLE1
-        x[idx] = TargetSpace(v);
-#endif
-#if defined ROTATION2
-        x[idx] = v[0];
-#endif
-
-    }
+    for (size_t i=0; i<x.size(); i++)
+      x[i] = v[i];
 
     // backup for error measurement later
     SolutionType initialIterate = x;
@@ -236,8 +183,6 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
-    FEBasis feBasis(grid.leafGridView());
 
     GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalFiniteElement, double> chiralSkyrmionEnergy;
     HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalFiniteElement, TargetSpace> harmonicEnergyLocalStiffness;
