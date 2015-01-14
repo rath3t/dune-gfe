@@ -161,15 +161,8 @@ int main (int argc, char *argv[]) try
     for (; vIt!=vEndIt; ++vIt) {
         int idx = grid.leafIndexSet().index(*vIt);
 
-#ifdef REALTUPLE1
-        FieldVector<double,1> v;
-#elif defined UNITVECTOR3
-        FieldVector<double,3> v;
-#elif defined UNITVECTOR4 || defined ROTATION3
-        FieldVector<double,4> v;
-#else
-        FieldVector<double,2> v;
-#endif
+        TargetSpace::CoordinateType v;
+
         FieldVector<double,dim> pos = vIt->geometry().corner(0);
         FieldVector<double,3> axis;
         axis[0] = pos[0];  axis[1] = pos[1]; axis[2] = 1;
