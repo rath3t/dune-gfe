@@ -107,6 +107,8 @@ int main (int argc, char *argv[]) try
     else
         ParameterTreeParser::readINITree("harmonicmaps.parset", parameterSet);
 
+    ParameterTreeParser::readOptions(argc, argv, parameterSet);
+
     // read solver settings
     const int numLevels                   = parameterSet.get<int>("numLevels");
     const double tolerance                = parameterSet.get<double>("tolerance");
