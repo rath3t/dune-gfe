@@ -198,7 +198,7 @@ int main (int argc, char *argv[]) try
     } else if (energy == "chiral_skyrmion")
     {
 
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalFiniteElement, adouble>);
+      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalFiniteElement, adouble>(parameterSet.sub("energyParameters")));
 
     } else
       DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");

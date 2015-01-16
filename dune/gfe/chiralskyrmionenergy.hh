@@ -31,6 +31,12 @@ class ChiralSkyrmionEnergy
 
 public:
 
+  ChiralSkyrmionEnergy(const Dune::ParameterTree& parameters)
+  {
+    h_     = parameters.template get<double>("h");
+    kappa_ = parameters.template get<double>("kappa");
+  }
+
   //! Dimension of a tangent space
   enum { blocksize = TargetSpace::TangentVector::dimension };
 
@@ -39,8 +45,8 @@ public:
              const LocalFiniteElement& localFiniteElement,
              const std::vector<TargetSpace>& localConfiguration) const;
 
-  field_type h_ = 3;
-  field_type kappa_ = 1;
+  field_type h_;
+  field_type kappa_;
 };
 
 template <class GridView, class LocalFiniteElement, class field_type>
