@@ -38,6 +38,10 @@ instrumented = 0
 #   Problem specifications
 ############################
 
+# Type of energy we are minimizing
+#energy = harmonic
+energy = chiral_skyrmion
+
 # 2d problem
 #structuredGrid = false
 #path = /home/sander/data/richards/twosquares/
