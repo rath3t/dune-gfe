@@ -277,7 +277,7 @@ int main (int argc, char *argv[]) try
                (new VTKBasisGridFunction<FEBasis,EmbeddedVectorType>(feBasis, xEmbedded, "orientation"));
     vtkWriter.addVertexData(vtkVectorField);
 
-    vtkWriter.write("resultGrid");
+    vtkWriter.write(resultPath + "_" + energy + "_result");
 
     // //////////////////////////////////////////////////////////
     //   Recompute and compare against exact solution
