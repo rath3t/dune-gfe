@@ -35,6 +35,7 @@
 #include <dune/gfe/chiralskyrmionenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/embeddedglobalgfefunction.hh>
 
 // grid dimension
 const int dim = 2;
@@ -241,11 +242,7 @@ int main (int argc, char *argv[]) try
       std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("referenceSolution") + std::string(")");
       PythonFunction<FieldVector<double,dim>, TargetSpace::CoordinateType > pythonReferenceSolution(Python::evaluate(lambda));
 
-      std::vector<TargetSpace::CoordinateType> xEmbedded(x.size());
-      for (size_t i=0; i<x.size(); i++)
-        xEmbedded[i] = x[i].globalCoordinates();
-
-      BasisGridFunction<FEBasis,std::vector<TargetSpace::CoordinateType> > numericalSolution(feBasis, xEmbedded);
+      GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
 
       // QuadratureRule for the integral of the L^2 error
       QuadratureRuleKey quadKey(dim,3);
