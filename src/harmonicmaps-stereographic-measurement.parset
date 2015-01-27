@@ -44,9 +44,6 @@ mgTolerance = 1e-10
 # Tolerance of the base grid solver
 baseTolerance = 1e-8
 
-# Measure convergence
-instrumented = false
-
 ############################
 #   Problem specifications
 ############################
