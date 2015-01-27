@@ -51,18 +51,6 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
-BlockVector<TargetSpace::CoordinateType>
-computeEmbeddedDifference(const std::vector<TargetSpace>& a, const std::vector<TargetSpace>& b)
-{
-    assert(a.size() == b.size());
-
-    BlockVector<TargetSpace::CoordinateType> difference(a.size());
-
-    for (size_t i=0; i<a.size(); i++)
-        difference[i] = a[i].globalCoordinates() - b[i].globalCoordinates();
-
-    return difference;
-}
 
 int main (int argc, char *argv[]) try
 {
@@ -102,7 +90,6 @@ int main (int argc, char *argv[]) try
     const int baseIterations              = parameterSet.get<int>("baseIt");
     const double mgTolerance              = parameterSet.get<double>("mgTolerance");
     const double baseTolerance            = parameterSet.get<double>("baseTolerance");
-    const bool instrumented               = parameterSet.get<bool>("instrumented");
     std::string resultPath                = parameterSet.get("resultPath", "");
 
     // ///////////////////////////////////////
@@ -209,7 +196,7 @@ int main (int argc, char *argv[]) try
                  mu, nu1, nu2,
                  baseIterations,
                  baseTolerance,
-                 instrumented);
+                 false);   // instrumented
 
     // /////////////////////////////////////////////////////
     //   Solve!
