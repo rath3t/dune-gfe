@@ -21,6 +21,7 @@
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
+#include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -229,6 +230,35 @@ int main (int argc, char *argv[]) try
     vtkWriter.addVertexData(vtkVectorField);
 
     vtkWriter.write(resultPath + "_" + energy + "_result");
+
+    /////////////////////////////////////////////////////////////////
+    //   Measure the discretization error, if requested
+    /////////////////////////////////////////////////////////////////
+
+    if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
+    {
+      // Read reference solution into a PythonFunction
+      std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("referenceSolution") + std::string(")");
+      PythonFunction<FieldVector<double,dim>, TargetSpace::CoordinateType > pythonReferenceSolution(Python::evaluate(lambda));
+
+      std::vector<TargetSpace::CoordinateType> xEmbedded(x.size());
+      for (size_t i=0; i<x.size(); i++)
+        xEmbedded[i] = x[i].globalCoordinates();
+
+      BasisGridFunction<FEBasis,std::vector<TargetSpace::CoordinateType> > numericalSolution(feBasis, xEmbedded);
+
+      // QuadratureRule for the integral of the L^2 error
+      QuadratureRuleKey quadKey(dim,3);
+
+      // Compute the embedded L^2 error
+      double l2Error = DiscretizationError<GridType::LeafGridView>::computeL2Error(&numericalSolution,
+                                                                                   &pythonReferenceSolution,
+                                                                                   quadKey);
+
+      std::cout << "L^2 error: " << l2Error << std::endl;
+
+
+    }
 
  } catch (Exception e) {
 
