@@ -2,13 +2,6 @@
 
 #include <fenv.h>
 
-//#define UNITVECTOR2
-#define UNITVECTOR3
-//#define UNITVECTOR4
-//#define ROTATION2
-//#define ROTATION3
-//#define REALTUPLE1
-
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
@@ -46,24 +39,12 @@
 const int dim = 2;
 
 // Image space of the geodesic fe functions
-#ifdef ROTATION2
-typedef Rotation<double,2> TargetSpace;
-#endif
-#ifdef ROTATION3
-typedef Rotation<double,3> TargetSpace;
-#endif
-#ifdef UNITVECTOR2
-typedef UnitVector<double,2> TargetSpace;
-#endif
-#ifdef UNITVECTOR3
+// typedef Rotation<double,2> TargetSpace;
+// typedef Rotation<double,3> TargetSpace;
+// typedef UnitVector<double,2> TargetSpace;
 typedef UnitVector<double,3> TargetSpace;
-#endif
-#ifdef UNITVECTOR4
-typedef UnitVector<double,4> TargetSpace;
-#endif
-#ifdef REALTUPLE1
-typedef RealTuple<double,1> TargetSpace;
-#endif
+// typedef UnitVector<double,4> TargetSpace;
+// typedef RealTuple<double,1> TargetSpace;
 
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
@@ -249,26 +230,9 @@ int main (int argc, char *argv[]) try
     typedef BlockVector<FieldVector<double,3> > EmbeddedVectorType;
     EmbeddedVectorType xEmbedded(x.size());
     for (size_t i=0; i<x.size(); i++) {
-#ifdef UNITVECTOR2
-        xEmbedded[i][0] = x[i].globalCoordinates()[0];
-        xEmbedded[i][1] = 0;
-        xEmbedded[i][2] = x[i].globalCoordinates()[1];
-#endif
-#ifdef UNITVECTOR3
         xEmbedded[i][0] = x[i].globalCoordinates()[0];
         xEmbedded[i][1] = x[i].globalCoordinates()[1];
         xEmbedded[i][2] = x[i].globalCoordinates()[2];
-#endif
-#ifdef ROTATION2
-        xEmbedded[i][0] = std::sin(x[i].angle_);
-        xEmbedded[i][1] = 0;
-        xEmbedded[i][2] = std::cos(x[i].angle_);
-#endif
-#ifdef REALTUPLE1
-        xEmbedded[i][0] = std::sin(x[i].globalCoordinates()[0]);
-        xEmbedded[i][1] = 0;
-        xEmbedded[i][2] = std::cos(x[i].globalCoordinates()[0]);
-#endif
     }
 
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
