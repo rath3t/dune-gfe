@@ -53,9 +53,9 @@ energy = chiral_skyrmion
 #gridFile = tetracube0.grid
 
 structuredGrid = true
-lower = -10 -10
-upper =  10 10
-elements = 100 100
+lower = -5 -5
+upper =  5  5
+elements = 30 30
 
 [energyParameters]
 
