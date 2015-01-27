@@ -102,10 +102,10 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ParameterTree parameterSet;
-    if (argc==2)
-        ParameterTreeParser::readINITree(argv[1], parameterSet);
-    else
-        ParameterTreeParser::readINITree("harmonicmaps.parset", parameterSet);
+    if (argc < 2)
+      DUNE_THROW(Exception, "Usage: ./harmonicmaps <parameter file>");
+
+    ParameterTreeParser::readINITree(argv[1], parameterSet);
 
     ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
