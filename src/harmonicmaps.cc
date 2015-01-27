@@ -238,10 +238,13 @@ int main (int argc, char *argv[]) try
 
     if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
     {
-      // Read reference solution into a PythonFunction
-      std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("referenceSolution") + std::string(")");
-      PythonFunction<FieldVector<double,dim>, TargetSpace::CoordinateType > pythonReferenceSolution(Python::evaluate(lambda));
+      // Read reference solution and its derivative into a PythonFunction
+      typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
 
+      Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
+      auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
+
+      // The numerical solution, as a grid function
       GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
 
       // QuadratureRule for the integral of the L^2 error
@@ -249,11 +252,18 @@ int main (int argc, char *argv[]) try
 
       // Compute the embedded L^2 error
       double l2Error = DiscretizationError<GridType::LeafGridView>::computeL2Error(&numericalSolution,
-                                                                                   &pythonReferenceSolution,
+                                                                                   referenceSolution.get(),
                                                                                    quadKey);
 
-      std::cout << "L^2 error: " << l2Error << std::endl;
+      // Compute the embedded H^1 error
+      double h1Error = DiscretizationError<GridType::LeafGridView>::computeH1HalfNormDifferenceSquared(grid->leafGridView(),
+                                                                                                       &numericalSolution,
+                                                                                                       referenceSolution.get(),
+                                                                                                       quadKey);
 
+      std::cout << "L^2 error: " << l2Error
+                << "      ";
+      std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
 
     }
 
