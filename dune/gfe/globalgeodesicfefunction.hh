@@ -15,6 +15,7 @@
  */
 template<class B, class TargetSpace>
 class GlobalGeodesicFEFunction
+: public VirtualGridViewFunction<typename B::GridView, TargetSpace>
 {
 
 public:
@@ -37,6 +38,7 @@ public:
 
     //! Create global function by a global basis and the corresponding coefficient vector
     GlobalGeodesicFEFunction(const Basis& basis, const std::vector<TargetSpace>& coefficients) :
+        VirtualGridViewFunction<typename B::GridView, TargetSpace>(basis.getGridView()),
         basis_(basis),
         coefficients_(coefficients)
     {}
