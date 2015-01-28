@@ -21,6 +21,7 @@
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
+#include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
 
@@ -120,7 +121,14 @@ int main (int argc, char *argv[]) try
 
     grid->globalRefine(numLevels-1);
 
-    SolutionType x(grid->size(dim));
+    //////////////////////////////////////////////////////////////////////////////////
+    //  Construct the scalar function space basis corresponding to the GFE space
+    //////////////////////////////////////////////////////////////////////////////////
+
+    typedef P2NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+    FEBasis feBasis(grid->leafGridView());
+
+    SolutionType x(feBasis.size());
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -128,18 +136,14 @@ int main (int argc, char *argv[]) try
 
     BitSetVector<1> allNodes(grid->size(dim));
     allNodes.setAll();
-    BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), allNodes);
+    BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), allNodes);
 
-    BitSetVector<blocksize> dirichletNodes(grid->size(dim));
-    for (size_t i=0; i<dirichletNodes.size(); i++)
-        dirichletNodes[i] = dirichletBoundary.containsVertex(i);
+    BitSetVector<blocksize> dirichletNodes;
+    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
 
     // //////////////////////////
     //   Initial iterate
     // //////////////////////////
-
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
-    FEBasis feBasis(grid->leafGridView());
 
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialIterate") + std::string(")");
     PythonFunction<FieldVector<double,dim>, TargetSpace::CoordinateType > pythonInitialIterate(Python::evaluate(lambda));
