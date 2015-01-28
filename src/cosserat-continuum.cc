@@ -271,7 +271,7 @@ int main (int argc, char *argv[]) try
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
-    RiemannianTrustRegionSolver<GridType,TargetSpace> solver;
+    RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
     solver.setup(*grid,
                  &assembler,
                  x,

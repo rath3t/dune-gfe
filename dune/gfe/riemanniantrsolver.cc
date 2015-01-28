@@ -26,10 +26,10 @@
 #include <dune/gfe/parallel/matrixcommunicator.hh>
 #include <dune/gfe/parallel/vectorcommunicator.hh>
 
-template <class GridType, class TargetSpace>
-void RiemannianTrustRegionSolver<GridType,TargetSpace>::
+template <class Basis, class TargetSpace>
+void RiemannianTrustRegionSolver<Basis,TargetSpace>::
 setup(const GridType& grid,
-      const GeodesicFEAssembler<BasisType, TargetSpace>* assembler,
+      const GeodesicFEAssembler<Basis, TargetSpace>* assembler,
          const SolutionType& x,
          const Dune::BitSetVector<blocksize>& dirichletNodes,
          double tolerance,
@@ -112,10 +112,10 @@ setup(const GridType& grid,
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
 
-    BasisType basis(grid.leafGridView());
-    OperatorAssembler<BasisType,BasisType> operatorAssembler(basis, basis);
+    Basis basis(grid.leafGridView());
+    OperatorAssembler<Basis,Basis> operatorAssembler(basis, basis);
 
-    LaplaceAssembler<GridType, typename BasisType::LocalFiniteElement, typename BasisType::LocalFiniteElement> laplaceStiffness;
+    LaplaceAssembler<GridType, typename Basis::LocalFiniteElement, typename Basis::LocalFiniteElement> laplaceStiffness;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
     ScalarMatrixType localA;
 
@@ -148,7 +148,7 @@ setup(const GridType& grid,
     //   This will be used to monitor the gradient
     // //////////////////////////////////////////////////////////////////////////////////////
 
-    MassAssembler<GridType, typename BasisType::LocalFiniteElement, typename BasisType::LocalFiniteElement> massStiffness;
+    MassAssembler<GridType, typename Basis::LocalFiniteElement, typename Basis::LocalFiniteElement> massStiffness;
     ScalarMatrixType localMassMatrix;
 
     operatorAssembler.assemble(massStiffness, localMassMatrix);
@@ -191,7 +191,7 @@ setup(const GridType& grid,
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
                                          P1NodalBasis<typename GridType::LeafGridView,double>,
-                                         BasisType>(pkToP1TransferMatrix,p1Basis,basis);
+                                         Basis>(pkToP1TransferMatrix,p1Basis,basis);
 
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
@@ -261,8 +261,8 @@ setup(const GridType& grid,
 }
 
 
-template <class GridType, class TargetSpace>
-void RiemannianTrustRegionSolver<GridType,TargetSpace>::solve()
+template <class Basis, class TargetSpace>
+void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 {
     int argc = 0;
     char** argv;

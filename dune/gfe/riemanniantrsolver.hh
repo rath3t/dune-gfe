@@ -51,11 +51,13 @@ struct MapperFactory<P3NodalBasis<GridView,field_type> >
 };
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
-template <class GridType, class TargetSpace>
+template <class Basis, class TargetSpace>
 class RiemannianTrustRegionSolver
     : public IterativeSolver<std::vector<TargetSpace>,
                              Dune::BitSetVector<TargetSpace::TangentVector::dimension> >
 {
+    typedef typename Basis::GridView::Grid GridType;
+
     const static int blocksize = TargetSpace::TangentVector::dimension;
 
     const static int gridDim = GridType::dimension;
@@ -68,15 +70,8 @@ class RiemannianTrustRegionSolver
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef std::vector<TargetSpace>                                               SolutionType;
 
-#ifdef THIRD_ORDER
-    typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
-#elif defined SECOND_ORDER
-    typedef P2NodalBasis<typename GridType::LeafGridView,double> BasisType;
-#else
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
-#endif
-    typedef typename MapperFactory<BasisType>::GlobalMapper GlobalMapper;
-    typedef typename MapperFactory<BasisType>::LocalMapper LocalMapper;
+    typedef typename MapperFactory<Basis>::GlobalMapper GlobalMapper;
+    typedef typename MapperFactory<Basis>::LocalMapper LocalMapper;
 
 
 public:
@@ -90,7 +85,7 @@ public:
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid,
-               const GeodesicFEAssembler<BasisType, TargetSpace>* assembler,
+               const GeodesicFEAssembler<Basis, TargetSpace>* assembler,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
@@ -109,7 +104,7 @@ public:
     {
       scaling_(scaling);
     }
-    
+
     void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
     {
         ignoreNodes_ = &ignoreNodes;
@@ -159,7 +154,7 @@ protected:
     std::auto_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const GeodesicFEAssembler<BasisType, TargetSpace>* assembler_;
+    const GeodesicFEAssembler<Basis, TargetSpace>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
     std::shared_ptr<Solver> innerSolver_;
