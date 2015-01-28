@@ -22,6 +22,34 @@
 #include <dune/gfe/parallel/globalp1mapper.hh>
 #include <dune/gfe/parallel/globalp2mapper.hh>
 
+/** \brief Assign GlobalMapper and LocalMapper types to a dune-fufem FunctionSpaceBasis */
+template <typename Basis>
+struct MapperFactory
+{};
+
+/** \brief Specialization for P1NodalBasis */
+template <typename GridView, typename field_type>
+struct MapperFactory<P1NodalBasis<GridView,field_type> >
+{
+    typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
+    typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView, Dune::MCMGVertexLayout> LocalMapper;
+};
+
+/** \brief Specialization for P2NodalBasis */
+template <typename GridView, typename field_type>
+struct MapperFactory<P2NodalBasis<GridView,field_type> >
+{
+    typedef Dune::GlobalP2Mapper<GridView> GlobalMapper;
+    typedef P2BasisMapper<GridView> LocalMapper;
+};
+
+/** \brief Specialization for P3NodalBasis */
+template <typename GridView, typename field_type>
+struct MapperFactory<P3NodalBasis<GridView,field_type> >
+{
+    // Error: we don't currently have a global P3 mapper
+};
+
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType, class TargetSpace>
 class RiemannianTrustRegionSolver
@@ -41,18 +69,15 @@ class RiemannianTrustRegionSolver
     typedef std::vector<TargetSpace>                                               SolutionType;
 
 #ifdef THIRD_ORDER
-    // Error: we don't currently have a global P3 mapper
-#error RiemannianTrustRegionSolver cannot currently be used for third-order spaces
     typedef P3NodalBasis<typename GridType::LeafGridView,double> BasisType;
 #elif defined SECOND_ORDER
     typedef P2NodalBasis<typename GridType::LeafGridView,double> BasisType;
-    typedef Dune::GlobalP2Mapper<typename GridType::LeafGridView> GlobalMapper;
-    typedef P2BasisMapper<typename GridType::LeafGridView> LocalMapper;
 #else
     typedef P1NodalBasis<typename GridType::LeafGridView,double> BasisType;
-    typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GlobalMapper;
-    typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LocalMapper;
 #endif
+    typedef typename MapperFactory<BasisType>::GlobalMapper GlobalMapper;
+    typedef typename MapperFactory<BasisType>::LocalMapper LocalMapper;
+
 
 public:
 
