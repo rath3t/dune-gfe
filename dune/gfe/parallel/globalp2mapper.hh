@@ -53,8 +53,11 @@ namespace Dune {
         for (size_t i=0; i<it->template count<2>(); i++)
 #endif
         {
-          //int localIndex  = globalVertexIndex.localIndex (*it->template subEntity<2>(i));
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+          int localIndex  = p2Mapper_.subIndex(*it, i, 2);
+#else
           int localIndex  = p2Mapper_.map(*it, i, 2);
+#endif
           int globalIndex = globalVertexIndex.index(*it->template subEntity<2>(i));
 
           localGlobalMap_[localIndex]  = globalIndex;
@@ -67,8 +70,11 @@ namespace Dune {
         for (size_t i=0; i<it->template count<1>(); i++)
 #endif
         {
-          //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+          int localIndex  = p2Mapper_.subIndex(*it, i, 1);
+#else
           int localIndex  = p2Mapper_.map(*it, i, 1);
+#endif
           int globalIndex = globalEdgeIndex.index(*it->template subEntity<1>(i)) + globalVertexIndex.size(2);
 
           localGlobalMap_[localIndex]  = globalIndex;
@@ -80,8 +86,11 @@ namespace Dune {
 
         if (it->type().isQuadrilateral())
         {
-          //int localIndex  = globalEdgeIndex.localIndex (*it->template subEntity<1>(i)) + gridView.size(2);
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+          int localIndex  = p2Mapper_.subIndex(*it, 0, 0);
+#else
           int localIndex  = p2Mapper_.map(*it, 0, 0);
+#endif
           int globalIndex = globalElementIndex.index(*it->template subEntity<0>(0))
                             + globalEdgeIndex.size(1)
                             + globalVertexIndex.size(2);
