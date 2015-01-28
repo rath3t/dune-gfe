@@ -3,8 +3,8 @@
 #############################################
 
 structuredGrid = true
-lower = 0 0
-upper = 0.1 0.01
+lower = 0  -0.005
+upper = 0.1 0.005
 elements = 10 1
 
 # Number of grid levels
