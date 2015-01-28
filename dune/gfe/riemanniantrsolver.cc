@@ -1,5 +1,3 @@
-#include "omp.h"
-
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/timer.hh>
 #include <dune/common/parallel/mpihelper.hh>
