@@ -8,7 +8,7 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 
-/** \brief Global geodesic finite element function. 
+/** \brief Global geodesic finite element function.
  *
  *  \tparam B  - The global basis type.
  *  \tparam TargetSpace - The manifold that this functions takes its values in.
@@ -30,7 +30,7 @@ public:
 
     //! Dimension of the grid.
     enum { gridDim = GridView::dimension };
-    
+
     //! Dimension of the embedded tanget space
     enum { embeddedDim = EmbeddedTangentVector::dimension };
 
@@ -43,13 +43,13 @@ public:
 
 
     /** \brief Evaluate the function at local coordinates. */
-    void evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, TargetSpace& out) const 
+    void evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, TargetSpace& out) const
     {
-        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size(); 
+        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size();
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localCoeff[i] = coefficients_[basis_.index(element,i)];
 
@@ -59,14 +59,14 @@ public:
     }
 
     /** \brief Evaluate the derivative of the function at local coordinates. */
-    void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, 
+    void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local,
                                  Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
     {
-        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size(); 
+        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size();
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localCoeff[i] = coefficients_[basis_.index(element,i)];
 
@@ -89,12 +89,12 @@ public:
     {
         return basis_;
     }
-    
+
     /** \brief Export coefficients. */
     const std::vector<TargetSpace>& coefficients() const
     {
         return coefficients_;
-    }    
+    }
 
 private:
     //! The global basis
