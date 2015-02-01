@@ -177,13 +177,24 @@ setup(const GridType& grid,
     for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
 
-#if defined THIRD_ORDER || defined SECOND_ORDER
-    mmgStep->mgTransfer_.resize(numLevels);
-#else
-    mmgStep->mgTransfer_.resize(numLevels-1);
-#endif
+    ////////////////////////////////////////////////////////////////////////
+    //  The P1 space (actually P1/Q1, depending on the grid) is special:
+    //  If we work in such a space, then the multigrid hierarchy of spaces
+    //  is constructed in the usual way.  For all other space, there is
+    //  an additional restriction operator on the top of the hierarchy, which
+    //  restricts the FE space to the P1/Q1 space on the same grid.
+    //  On the lower grid levels a hierarchy of P1/Q1 spaces is used again.
+    ////////////////////////////////////////////////////////////////////////
 
-#if defined THIRD_ORDER || defined SECOND_ORDER
+    bool isP1Basis = std::is_same<Basis,P1NodalBasis<typename Basis::GridView> >::value;
+
+    if (isP1Basis)
+      mmgStep->mgTransfer_.resize(numLevels-1);
+    else
+      mmgStep->mgTransfer_.resize(numLevels);
+
+    // Here we set up the restriction of the leaf grid space into the leaf grid P1/Q1 space
+    if (not isP1Basis)
     {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
@@ -213,13 +224,9 @@ setup(const GridType& grid,
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(pkToP1TransferMatrix));
         dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
     }
-#endif
 
-#if defined THIRD_ORDER || defined SECOND_ORDER
-    for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++) {
-#else
-    for (size_t i=0; i<mmgStep->mgTransfer_.size(); i++) {
-#endif
+    // Now the P1/Q1 restriction operators for the remaining levels
+    for (int i=0; i<numLevels-1; i++) {
 
         // Construct the local multigrid transfer matrix
         TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
