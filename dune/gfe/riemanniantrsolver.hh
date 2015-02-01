@@ -70,8 +70,10 @@ class RiemannianTrustRegionSolver
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >           CorrectionType;
     typedef std::vector<TargetSpace>                                               SolutionType;
 
+#if HAVE_MPI
     typedef typename MapperFactory<Basis>::GlobalMapper GlobalMapper;
     typedef typename MapperFactory<Basis>::LocalMapper LocalMapper;
+#endif
 
 
 public:
@@ -127,7 +129,9 @@ public:
 
 protected:
 
+#if HAVE_MPI
     std::unique_ptr<GlobalMapper> globalMapper_;
+#endif
 
     /** \brief The grid */
     const GridType* grid_;

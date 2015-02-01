@@ -23,8 +23,10 @@
 #include <dune/solvers/norms/twonorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 
+#if HAVE_MPI
 #include <dune/gfe/parallel/matrixcommunicator.hh>
 #include <dune/gfe/parallel/vectorcommunicator.hh>
+#endif
 
 template <class Basis, class TargetSpace>
 void RiemannianTrustRegionSolver<Basis,TargetSpace>::
@@ -63,7 +65,9 @@ setup(const GridType& grid,
     //  Create global numbering for matrix and vector transfer
     //////////////////////////////////////////////////////////////////
 
+#if HAVE_MPI
     globalMapper_ = std::unique_ptr<GlobalMapper>(new GlobalMapper(grid_->leafGridView()));
+#endif
 
     // ////////////////////////////////
     //   Create a multigrid solver
@@ -87,13 +91,17 @@ setup(const GridType& grid,
                                                                             baseNorm,
                                                                             Solver::QUIET);
 #endif
-
+#if HAVE_MPI
     // Transfer all Dirichlet data to the master processor
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
                                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                                      0);
     Dune::BitSetVector<blocksize>* globalDirichletNodes = NULL;
     globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.reduceCopy(dirichletNodes));
+#else
+    Dune::BitSetVector<blocksize>* globalDirichletNodes = NULL;
+    globalDirichletNodes = new Dune::BitSetVector<blocksize>(dirichletNodes);
+#endif
 
     // Make pre and postsmoothers
     TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -123,7 +131,7 @@ setup(const GridType& grid,
 
     if (h1SemiNorm_)
         delete h1SemiNorm_;
-
+#if HAVE_MPI
     LocalMapper localMapper(grid_->leafGridView());
 
     MatrixCommunicator<GlobalMapper,
@@ -134,7 +142,9 @@ setup(const GridType& grid,
                        LocalMapper> matrixComm(*globalMapper_, grid_->leafGridView(), localMapper, localMapper, 0);
 
     ScalarMatrixType* A = new ScalarMatrixType(matrixComm.reduceAdd(localA));
-
+#else
+    ScalarMatrixType* A = new ScalarMatrixType(localA);
+#endif
     h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
 
     innerSolver_ = std::shared_ptr<LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(mmgStep,
@@ -153,7 +163,11 @@ setup(const GridType& grid,
 
     operatorAssembler.assemble(massStiffness, localMassMatrix);
 
+#if HAVE_MPI
     ScalarMatrixType* massMatrix = new ScalarMatrixType(matrixComm.reduceAdd(localMassMatrix));
+#else
+    ScalarMatrixType* massMatrix = new ScalarMatrixType(localMassMatrix);
+#endif
     l2Norm_ = std::make_shared<H1SemiNorm<CorrectionType> >(*massMatrix);
 
     // Write all intermediate solutions, if requested
@@ -203,7 +217,7 @@ setup(const GridType& grid,
         assembleBasisInterpolationMatrix<TransferOperatorType,
                                          P1NodalBasis<typename GridType::LeafGridView,double>,
                                          Basis>(pkToP1TransferMatrix,p1Basis,basis);
-
+#if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
         typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GlobalLeafP1Mapper;
@@ -222,6 +236,10 @@ setup(const GridType& grid,
 
         mmgStep->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType>;
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(pkToP1TransferMatrix));
+#else
+        mmgStep->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType>;
+        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
+#endif
         dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
     }
 
@@ -231,7 +249,7 @@ setup(const GridType& grid,
         // Construct the local multigrid transfer matrix
         TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
         newTransferOp->setup(*grid_,i,i+1);
-
+#if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
         typedef Dune::GlobalP1Mapper<typename GridType::LevelGridView> GlobalLevelP1Mapper;
@@ -241,8 +259,9 @@ setup(const GridType& grid,
         typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView, Dune::MCMGVertexLayout> LevelLocalMapper;
         LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+1));
         LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i));
-
+#endif
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
+#if HAVE_MPI
         MatrixCommunicator<GlobalLevelP1Mapper,
                            typename GridType::LevelGridView,
                            typename GridType::LevelGridView,
@@ -251,7 +270,11 @@ setup(const GridType& grid,
                            LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1), grid_->levelGridView(i), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
 
         mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
-        Dune::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
+
+#else
+        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
+        std::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(newTransferOp->getMatrix());
+#endif
         dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
     }
 
@@ -261,7 +284,11 @@ setup(const GridType& grid,
 
     if (rank==0)
     {
+#if HAVE_MPI
         hasObstacle_.resize(globalMapper_->size(), true);
+#else
+        hasObstacle_.resize(basis.size(), true);
+#endif
         mmgStep->hasObstacle_ = &hasObstacle_;
     }
 
@@ -284,7 +311,12 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 
     }
 
+#if HAVE_MPI
     MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
+#else
+    Basis basis(grid_->leafGridView());
+    MaxNormTrustRegion<blocksize> trustRegion(basis.size(), initialTrustRegionRadius_);
+#endif
     trustRegion.set(initialTrustRegionRadius_, scaling_);
 
     std::vector<BoxConstraint<field_type,blocksize> > trustRegionObstacles;
@@ -312,7 +344,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     CorrectionType rhs;
     MatrixType stiffnessMatrix;
     CorrectionType rhs_global;
-
+#if HAVE_MPI
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*globalMapper_,
                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                      0);
@@ -328,7 +360,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                                                localMapper,
                                                localMapper,
                                                0);
-
+#endif
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
 /*        std::cout << "current iterate:\n";
@@ -360,8 +392,11 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             rhs *= -1;        // The right hand side is the _negative_ gradient
 
             // Transfer vector data
+#if HAVE_MPI
             rhs_global = vectorComm.reduceAdd(rhs);
-
+#else
+            rhs_global = rhs;
+#endif
             CorrectionType gradient = rhs_global;
             for (size_t j=0; j<gradient.size(); j++)
               for (size_t k=0; k<gradient[j].size(); k++)
@@ -375,8 +410,11 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
               std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
 
             // Transfer matrix data
+#if HAVE_MPI
             stiffnessMatrix = matrixComm.reduceAdd(*hessianMatrix_);
-
+#else
+            stiffnessMatrix = *hessianMatrix_;
+#endif
             recomputeGradientHessian = false;
 
         }
@@ -413,7 +451,11 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         if (mpiHelper.size()>1 and rank==0)
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
+#if HAVE_MPI
         corr = vectorComm.scatter(corr_global);
+#else
+        corr = corr_global;
+#endif
 
         // Make infinity norm of corr_global known on all processors
         double corrNorm = corr.infinity_norm();
