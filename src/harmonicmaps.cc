@@ -116,7 +116,7 @@ int main (int argc, char *argv[]) try
         std::string path                = parameterSet.get<std::string>("path");
         std::string gridFile            = parameterSet.get<std::string>("gridFile");
 
-        grid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + gridFile));
+        grid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + "/" + gridFile));
     }
 
     grid->globalRefine(numLevels-1);
