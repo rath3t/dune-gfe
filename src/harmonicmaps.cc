@@ -15,7 +15,7 @@
 #include <dune/grid/onedgrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
-#include <dune/grid/io/file/amirameshreader.hh>
+#include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/fufem/boundarypatch.hh>
@@ -116,7 +116,7 @@ int main (int argc, char *argv[]) try
         std::string path                = parameterSet.get<std::string>("path");
         std::string gridFile            = parameterSet.get<std::string>("gridFile");
 
-        grid = shared_ptr<GridType>(AmiraMeshReader<GridType>::read(path + "/" + gridFile));
+        grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
     }
 
     grid->globalRefine(numLevels-1);
