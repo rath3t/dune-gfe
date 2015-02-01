@@ -265,7 +265,9 @@ int main (int argc, char *argv[]) try
                                                                                                        referenceSolution.get(),
                                                                                                        quadKey);
 
-      std::cout << "L^2 error: " << l2Error
+      std::cout << "levels: " << numLevels
+                << "      "
+                << "L^2 error: " << l2Error
                 << "      ";
       std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
 
