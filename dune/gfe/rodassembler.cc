@@ -537,7 +537,7 @@ computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const
 
         int numOfBaseFct = localFiniteElement.localBasis().size();
 
-        RigidBodyMotion<double,2> localSolution[numOfBaseFct];
+        std::vector<RigidBodyMotion<double,2> > localSolution(numOfBaseFct);
 
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
