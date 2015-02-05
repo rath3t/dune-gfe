@@ -35,16 +35,16 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
 
         // Extract local solution
         std::vector<RigidBodyMotion<double,3> > localSolution(nDofs);
-        
+
         for (int i=0; i<nDofs; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
 
         // Assemble local gradient
         std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
 
-        this->localStiffness_->assembleGradient(*it, 
+        this->localStiffness_->assembleGradient(*it,
                                                 this->basis_.getLocalFiniteElement(*it),
-                                                localSolution, 
+                                                localSolution,
                                                 localGradient);
 
         // Add to global gradient
@@ -85,7 +85,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
         int numOfBaseFct = localFiniteElement.localCoefficients().size();
 
         std::vector<RigidBodyMotion<double,3> > localSolution(2);
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
 
@@ -101,7 +101,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
             double weight = quad[pt].weight() * it->geometry().integrationElement(quadPos);
 
             FieldVector<double,blocksize> localStrain = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->getStrain(localSolution, *it, quad[pt].position());
-            
+
             // Sum it all up
             strain[elementIdx].axpy(weight, localStrain);
 
@@ -112,7 +112,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
         //   the integral we just computed by the element volume.
         // /////////////////////////////////////////////////////////////////////////
         // we know the element is a line, therefore the integration element is the volume
-        FieldVector<double,1> dummyPos(0.5);  
+        FieldVector<double,1> dummyPos(0.5);
         strain[elementIdx] /= it->geometry().integrationElement(dummyPos);
 
     }
@@ -195,9 +195,9 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
 
             FieldMatrix<double,3,3> orientationMatrix;
             sol[indexSet.subIndex(*it->inside(),it->indexInInside(),1)].q.matrix(orientationMatrix);
-            
+
             orientationMatrix.umv(localStress, canonicalStress);
-            
+
             orientationMatrix.umv(localTorque, canonicalTorque);
             // Reverse transformation to make sure we did the correct thing
 //             assert( std::abs(localStress[0]-canonicalStress*sol[0].q.director(0)) < 1e-6 );
@@ -207,7 +207,7 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
             // Multiply force times boundary normal to get the transmitted force
             canonicalStress *= it->unitOuterNormal(FieldVector<double,0>(0))[0];
             canonicalTorque *= it->unitOuterNormal(FieldVector<double,0>(0))[0];
-            
+
     }
 
     Dune::FieldVector<double,6> result;
@@ -215,7 +215,7 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
         result[i] = canonicalStress[i];
         result[i+3] = canonicalTorque[i];
     }
-    
+
     return result;
 }
 
@@ -227,42 +227,42 @@ assembleMatrix(const std::vector<RigidBodyMotion<double,2> >& sol,
 {
     Dune::MatrixIndexSet neighborsPerVertex;
     this->getNeighborsPerVertex(neighborsPerVertex);
-    
+
     matrix = 0;
-    
+
     ElementIterator it    = this->basis_.getGridView().template begin<0>();
     ElementIterator endit = this->basis_.getGridView().template end<0>  ();
 
     Dune::Matrix<MatrixBlock> mat;
-    
+
     for( ; it != endit; ++it ) {
-        
-        const int numOfBaseFct = 2;  
-        
+
+        const int numOfBaseFct = 2;
+
         // Extract local solution
         std::vector<RigidBodyMotion<double,2> > localSolution(numOfBaseFct);
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
 
-        // setup matrix 
+        // setup matrix
         getLocalMatrix( *it, localSolution, mat);
-        
+
         // Add element matrix to global stiffness matrix
-        for(int i=0; i<numOfBaseFct; i++) { 
-            
+        for(int i=0; i<numOfBaseFct; i++) {
+
             int row = this->basis_.index(*it,i);
 
             for (int j=0; j<numOfBaseFct; j++ ) {
-                
+
                 int col = this->basis_.index(*it,j);
                 matrix[row][col] += mat[i][j];
-                
+
             }
         }
 
     }
-    
+
 }
 
 
@@ -272,7 +272,7 @@ assembleMatrix(const std::vector<RigidBodyMotion<double,2> >& sol,
 
 template <class GridView>
 void RodAssembler<GridView,2>::
-getLocalMatrix( EntityType &entity, 
+getLocalMatrix( EntityType &entity,
                 const std::vector<RigidBodyMotion<double,2> >& localSolution,
                 Dune::Matrix<MatrixBlock>& localMat) const
 {
@@ -281,25 +281,25 @@ getLocalMatrix( EntityType &entity,
 
     localMat.setSize(ndof,ndof);
     localMat = 0;
-    
+
     Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
 
     // Get quadrature rule
     const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(entity.type(), 2);
-    
+
     /* Loop over all integration points */
     for (int ip=0; ip<quad.size(); ip++) {
-        
+
         // Local position of the quadrature point
         const Dune::FieldVector<double,gridDim>& quadPos = quad[ip].position();
 
-        // calc Jacobian inverse before integration element is evaluated 
+        // calc Jacobian inverse before integration element is evaluated
         const Dune::FieldMatrix<double,gridDim,gridDim>& inv = entity.geometry().jacobianInverseTransposed(quadPos);
         const double integrationElement = entity.geometry().integrationElement(quadPos);
-        
+
         /* Compute the weight of the current integration point */
         double weight = quad[ip].weight() * integrationElement;
-        
+
         /**********************************************/
         /* compute gradients of the shape functions   */
         /**********************************************/
@@ -307,19 +307,19 @@ getLocalMatrix( EntityType &entity,
         localFiniteElement.localBasis().evaluateJacobian(quadPos,referenceElementGradients);
 
         std::vector<Dune::FieldVector<double,gridDim> > shapeGrad(ndof);
-        
-        // multiply with jacobian inverse 
+
+        // multiply with jacobian inverse
         for (int dof=0; dof<ndof; dof++)
             inv.mv(referenceElementGradients[dof][0], shapeGrad[dof]);
-        
-        
+
+
         std::vector<Dune::FieldVector<double,1> > shapeFunction;
         localFiniteElement.localBasis().evaluateFunction(quadPos,shapeFunction);
 
         // //////////////////////////////////
         //   Interpolate
         // //////////////////////////////////
-        
+
         double x_s     = localSolution[0].r[0]*shapeGrad[0][0] + localSolution[1].r[0]*shapeGrad[1][0];
         double y_s     = localSolution[0].r[1]*shapeGrad[0][0] + localSolution[1].r[1]*shapeGrad[1][0];
 
@@ -380,42 +380,42 @@ getLocalMatrix( EntityType &entity,
                        + A1 * (x_s*cos(theta) - y_s*sin(theta)) * (-x_s*cos(theta)+ y_s*sin(theta))
                        + A3 * (x_s*cos(theta) - y_s*sin(theta)) * (x_s*cos(theta) - y_s*sin(theta))
                        - A3 * (x_s*sin(theta) + y_s*cos(theta) - 1) * (x_s*sin(theta) + y_s*cos(theta)));
-                                                
+
 
 
             }
-        
+
         }
-        
-        
+
+
     }
-    
+
 #if 0
     static int eleme = 0;
     printf("********* Element %d **********\n", eleme++);
     for (int row=0; row<matSize; row++) {
-        
+
         for (int rcomp=0; rcomp<dim; rcomp++) {
-            
+
             for (int col=0; col<matSize; col++) {
-                
+
                 for (int ccomp=0; ccomp<dim; ccomp++)
                     std::cout << mat[row][col][rcomp][ccomp] << "  ";
-                
+
                 std::cout << "    ";
-                
+
             }
-            
+
             std::cout << std::endl;
-            
+
         }
-        
+
         std::cout << std::endl;
-        
+
     }
     exit(0);
 #endif
-    
+
 }
 
 template <class GridView>
@@ -437,10 +437,10 @@ assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
 
         // Extract local solution on this element
         Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
-        const int numOfBaseFct = localFiniteElement.localBasis().size();  
-        
+        const int numOfBaseFct = localFiniteElement.localBasis().size();
+
         RigidBodyMotion<double,2> localSolution[numOfBaseFct];
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
 
@@ -451,21 +451,21 @@ assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
 
             // Local position of the quadrature point
             const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
-            
+
             const Dune::FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
             const double integrationElement = it->geometry().integrationElement(quadPos);
-        
+
             double weight = quad[pt].weight() * integrationElement;
-            
+
             /**********************************************/
             /* compute gradients of the shape functions   */
             /**********************************************/
             std::vector<Dune::FieldMatrix<double,1,gridDim> > referenceElementGradients(numOfBaseFct);
             localFiniteElement.localBasis().evaluateJacobian(quadPos,referenceElementGradients);
-            
+
             std::vector<Dune::FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
-            
-            // multiply with jacobian inverse 
+
+            // multiply with jacobian inverse
             for (int dof=0; dof<numOfBaseFct; dof++)
                 inv.mv(referenceElementGradients[dof][0], shapeGrad[dof]);
 
@@ -538,7 +538,7 @@ computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const
         int numOfBaseFct = localFiniteElement.localBasis().size();
 
         RigidBodyMotion<double,2> localSolution[numOfBaseFct];
-        
+
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i] = sol[this->basis_.index(*it,i)];
 
@@ -549,21 +549,21 @@ computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const
 
             // Local position of the quadrature point
             const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
-            
+
             const Dune::FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
             const double integrationElement = it->geometry().integrationElement(quadPos);
-        
+
             double weight = quad[pt].weight() * integrationElement;
-            
+
             /**********************************************/
             /* compute gradients of the shape functions   */
             /**********************************************/
             std::vector<Dune::FieldMatrix<double,1,gridDim> > referenceElementGradients(numOfBaseFct);
             localFiniteElement.localBasis().evaluateJacobian(quadPos,referenceElementGradients);
-            
+
             std::vector<Dune::FieldVector<double,gridDim> > shapeGrad(numOfBaseFct);
-            
-            // multiply with jacobian inverse 
+
+            // multiply with jacobian inverse
             for (int dof=0; dof<numOfBaseFct; dof++)
                 inv.mv(referenceElementGradients[dof][0], shapeGrad[dof]);
 

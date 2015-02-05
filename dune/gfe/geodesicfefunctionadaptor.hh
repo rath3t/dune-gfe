@@ -95,8 +95,8 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
 }
 
 
-/** \brief Coordinate function in one variable, constant in the others 
- 
+/** \brief Coordinate function in one variable, constant in the others
+
     This is used to extract the positions of the Lagrange nodes.
  */
 template <int dim>
@@ -106,7 +106,7 @@ struct CoordinateFunction
     CoordinateFunction(int d)
     : d_(d)
     {}
-    
+
     void evaluate(const Dune::FieldVector<double, dim>& x, Dune::FieldVector<double,1>& out) const {
         out[0] = x[d_];
     }
@@ -117,7 +117,7 @@ struct CoordinateFunction
 
 
 /** \brief Refine a grid globally and prolong a given geodesic finite element function
- * 
+ *
  * \tparam order Interpolation order of the function space.  Kinda stupid that I
  *  have to provide this by hand.  Will change...
  */
@@ -140,7 +140,7 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
     std::map<IdType, std::vector<TargetSpace> > dofMap;
 
     assert(x.size() == basis.size());
-    
+
     ElementIterator eIt    = grid.template leafbegin<0>();
     ElementIterator eEndIt = grid.template leafend<0>();
 
@@ -148,13 +148,13 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
 
         const typename Basis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);
         std::vector<TargetSpace> coefficients(lfe.localCoefficients().size());
-        
+
         for (size_t i=0; i<lfe.localCoefficients().size(); i++)
             coefficients[i] = x[basis.index(*eIt, i)];
 
         IdType id = idSet.id(*eIt);
         dofMap.insert(std::make_pair(id, coefficients));
-        
+
     }
 
 
@@ -170,7 +170,7 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
     // /////////////////////////////////////////////////////
 
     basis.update(grid.leafGridView());
-    
+
     x.resize(basis.size());
 
     for (eIt=grid.template leafbegin<0>(); eIt!=eEndIt; ++eIt) {
@@ -178,13 +178,13 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
         const typename Basis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);
 
         typedef typename Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::FiniteElementType FatherFiniteElementType;
-        
-        std::auto_ptr<FatherFiniteElementType> fatherLFE 
+
+        std::auto_ptr<FatherFiniteElementType> fatherLFE
             = std::auto_ptr<FatherFiniteElementType>(Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::create(eIt->father()->type()));
-        
+
         // Set up a local gfe function on the father element
         std::vector<TargetSpace> coefficients = dofMap[idSet.id(*eIt->father())];
-        
+
         LocalGeodesicFEFunction<dim,double,typename Basis::LocalFiniteElement,TargetSpace> fatherFunction(*fatherLFE, coefficients);
 
         // The embedding of this element into the father geometry
@@ -192,15 +192,15 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
 
         // Generate position of the Lagrange nodes
         std::vector<Dune::FieldVector<double,dim> > lagrangeNodes(lfe.localBasis().size());
-        
+
         for (int i=0; i<dim; i++) {
             CoordinateFunction<dim> lFunction(i);
             std::vector<Dune::FieldVector<double,1> > coordinates;
             lfe.localInterpolation().interpolate(lFunction, coordinates);
-            
+
             for (size_t j=0; j<coordinates.size(); j++)
                 lagrangeNodes[j][i] = coordinates[j];
-            
+
         }
 
         for (int i=0; i<lfe.localCoefficients().size(); i++) {
