@@ -59,7 +59,11 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
     for (; eIt!=eEndIt; ++eIt) {
 
         // Set up a local gfe function on the father element
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+        size_t nFatherDofs = eIt->father()->subEntities(dim);
+#else
         size_t nFatherDofs = eIt->father()->template count<dim>();
+#endif
         std::vector<TargetSpace> coefficients(nFatherDofs);
 
         for (int i=0; i<nFatherDofs; i++)
@@ -72,7 +76,12 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
         // The embedding of this element into the father geometry
         const typename GridType::template Codim<0>::LocalGeometry& geometryInFather = eIt->geometryInFather();
 
-        for (int i=0; i<eIt->template count<dim>(); i++) {
+#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
+        size_t nDofs = eIt->subEntities(dim);
+#else
+        size_t nDofs = eIt->template count<dim>();
+#endif
+        for (int i=0; i<nDofs; i++) {
 
             if (dofMap.find(idSet.subId(*eIt,i,dim)) != dofMap.end()) {
 
