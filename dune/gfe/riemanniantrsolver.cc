@@ -270,6 +270,7 @@ setup(const GridType& grid,
                            LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1), grid_->levelGridView(i), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
 
         mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
+        std::shared_ptr<TransferOperatorType> transferOperatorMatrix = std::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
 
 #else
         mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
