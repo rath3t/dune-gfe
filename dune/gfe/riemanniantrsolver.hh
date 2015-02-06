@@ -80,7 +80,7 @@ public:
 
     RiemannianTrustRegionSolver()
         : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
-          hessianMatrix_(std::auto_ptr<MatrixType>(NULL)), h1SemiNorm_(NULL)
+          hessianMatrix_(nullptr), h1SemiNorm_(NULL)
     {
       std::fill(scaling_.begin(), scaling_.end(), 1.0);
     }
@@ -155,7 +155,7 @@ protected:
     double innerTolerance_;
 
     /** \brief Hessian matrix */
-    std::auto_ptr<MatrixType> hessianMatrix_;
+    std::unique_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
     const GeodesicFEAssembler<Basis, TargetSpace>* assembler_;

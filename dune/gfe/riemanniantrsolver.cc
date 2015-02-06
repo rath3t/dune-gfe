@@ -179,7 +179,7 @@ setup(const GridType& grid,
     //    Create Hessian matrix and its occupation structure
     // ////////////////////////////////////////////////////////////
 
-    hessianMatrix_ = std::auto_ptr<MatrixType>(new MatrixType);
+    hessianMatrix_ = std::unique_ptr<MatrixType>(new MatrixType);
     Dune::MatrixIndexSet indices(grid_->size(1), grid_->size(1));
     assembler_->getNeighborsPerVertex(indices);
     indices.exportIdx(*hessianMatrix_);

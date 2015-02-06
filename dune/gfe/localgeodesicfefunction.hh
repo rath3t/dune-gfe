@@ -618,7 +618,7 @@ public:
         for (size_t i=0; i<coefficients.size(); i++)
             orientationCoefficients[i] = coefficients[i].q;
 
-        orientationFEFunction_ = std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> >(localFiniteElement,orientationCoefficients));
+        orientationFEFunction_ = std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> >(localFiniteElement,orientationCoefficients));
 
     }
 
@@ -823,7 +823,7 @@ private:
 
     std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
-    std::auto_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > orientationFEFunction_;
+    std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > orientationFEFunction_;
 };
 
 
