@@ -17,7 +17,7 @@
 template <class GridView>
 class RodFactory
 {
-    dune_static_assert(GridView::dimensionworld==1, "RodFactory is only implemented for grids in a 1d world");
+    static_assert(GridView::dimensionworld==1, "RodFactory is only implemented for grids in a 1d world");
 
 public:
 
