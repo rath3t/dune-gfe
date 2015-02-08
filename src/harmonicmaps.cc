@@ -252,7 +252,7 @@ int main (int argc, char *argv[]) try
       GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
 
       // QuadratureRule for the integral of the L^2 error
-      QuadratureRuleKey quadKey(dim,3);
+      QuadratureRuleKey quadKey(dim,6);
 
       // Compute the embedded L^2 error
       double l2Error = DiscretizationError<GridType::LeafGridView>::computeL2Error(&numericalSolution,
