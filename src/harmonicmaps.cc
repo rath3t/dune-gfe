@@ -125,7 +125,7 @@ int main (int argc, char *argv[]) try
     //  Construct the scalar function space basis corresponding to the GFE space
     //////////////////////////////////////////////////////////////////////////////////
 
-    typedef P2NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
     FEBasis feBasis(grid->leafGridView());
 
     SolutionType x(feBasis.size());
