@@ -124,13 +124,13 @@ namespace Dune {
       localFiniteElement_.localBasis().evaluateFunction(local,w);
 
       std::vector<Dune::FieldMatrix<ctype,1,dim> > wDer;
-      localFiniteElement_.localBasis().evaluateDerivative(local,wDer);
+      localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
 
       typename TargetSpace::CoordinateType embeddedInterpolation(0);
       for (size_t i=0; i<coefficients_.size(); i++)
         embeddedInterpolation.axpy(w[i][0], coefficients_[i].globalCoordinates());
 
-      Dune::FieldMatrix<ctype,embeddedDim,dim> derivative(0);
+      Dune::FieldMatrix<RT,embeddedDim,dim> derivative(0);
       for (size_t i=0; i<embeddedDim; i++)
         for (size_t j=0; j<dim; j++)
           for (size_t k=0; k<coefficients_.size(); k++)
@@ -140,8 +140,8 @@ namespace Dune {
 
       typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType result;
 
-      for (int i=0; i<result.N(); i++)
-        for (int j=0; j<result.M(); j++)
+      for (size_t i=0; i<result.N(); i++)
+        for (size_t j=0; j<result.M(); j++)
         {
           result[i][j] = 0;
           for (int k=0; k<derivativeOfProjection.M(); k++)
