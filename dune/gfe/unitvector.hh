@@ -86,6 +86,9 @@ public:
     /** \brief The global convexity radius of the unit sphere */
     static constexpr double convexityRadius = 0.5*M_PI;
 
+    /** \brief The return type of the derivativeOfProjection method */
+    typedef Dune::FieldMatrix<T, N, N> DerivativeOfProjection;
+
     /** \brief Default constructor */
     UnitVector()
     {}
@@ -374,7 +377,7 @@ public:
         return result;
     }
 
-    static Dune::FieldMatrix<T, N, N> derivativeOfProjection(const Dune::FieldVector<T,N>& p)
+    static DerivativeOfProjection derivativeOfProjection(const Dune::FieldVector<T,N>& p)
     {
       Dune::FieldMatrix<T,N,N> result;
       for (int i=0; i<N; i++)
