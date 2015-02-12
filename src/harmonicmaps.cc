@@ -145,11 +145,14 @@ int main (int argc, char *argv[]) try
     //   Initial iterate
     // //////////////////////////
 
-    std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialIterate") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, TargetSpace::CoordinateType > pythonInitialIterate(Python::evaluate(lambda));
+    // Read initial iterate into a PythonFunction
+    typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
+
+    Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
+    auto pythonInitialIterate = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
     std::vector<TargetSpace::CoordinateType> v;
-    Functions::interpolate(feBasis, v, pythonInitialIterate);
+    Functions::interpolate(feBasis, v, *pythonInitialIterate);
 
     for (size_t i=0; i<x.size(); i++)
       x[i] = v[i];
