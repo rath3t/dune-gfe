@@ -294,7 +294,7 @@ assembleGradientAndHessian(const Entity& element,
 
     // Copy Hessian into Dune data type
     for(size_t i=0; i<nDoubles; i++)
-      for (size_t j=0; j<nDirections; j++)
+      for (int j=0; j<nDirections; j++)
         embeddedHessian[j/blocksize][i/embeddedBlocksize][j%blocksize][i%embeddedBlocksize] = rawHessian[i][j];
 
     for(size_t i=0; i<nDoubles; i++) {
