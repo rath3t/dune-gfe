@@ -1,13 +1,12 @@
+set(programs cosserat-continuum
+             harmonicmaps)
 
-add_executable("cosserat-continuum" cosserat-continuum.cc)
-target_link_dune_default_libraries("cosserat-continuum")
-
-if (ADOLC_FOUND)
-    add_dune_adolc_flags(cosserat-continuum)
-endif()
-
-add_dune_pythonlibs_flags(cosserat-continuum)
-
-add_dune_ipopt_flags(cosserat-continuum)
-
-add_dune_ug_flags(cosserat-continuum)
+foreach(_program ${programs})
+  add_executable(${_program} ${_program}.cc)
+  add_dune_adolc_flags(${_program})
+  add_dune_ipopt_flags(${_program})
+  add_dune_pythonlibs_flags(${_program})
+  add_dune_ug_flags(${_program})
+  add_dune_mpi_flags(${_program})
+#  target_compile_options(${_program} PRIVATE "-fpermissive")
+endforeach()
