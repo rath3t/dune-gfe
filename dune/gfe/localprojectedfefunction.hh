@@ -145,7 +145,7 @@ namespace Dune {
         {
           result[i][j] = 0;
           for (int k=0; k<derivativeOfProjection.M(); k++)
-            result[i][k] += derivativeOfProjection[i][k]*derivative[k][j];
+            result[i][j] += derivativeOfProjection[i][k]*derivative[k][j];
         }
 
       return result;
