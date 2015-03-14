@@ -2,6 +2,9 @@
 
 #include <fenv.h>
 
+// TODO: With cmake I need this hack to make IPOpt happy
+#define HAVE_CSTDDEF
+
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
