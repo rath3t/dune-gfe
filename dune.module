@@ -7,4 +7,4 @@ Module:dune-gfe
 Version: svn
 Maintainer: sander@igpm.rwth-aachen.de
 #depending on
-Depends: dune-grid dune-istl dune-localfunctions dune-solvers dune-fufem
+Depends: dune-grid dune-istl dune-localfunctions dune-functions dune-solvers dune-fufem
