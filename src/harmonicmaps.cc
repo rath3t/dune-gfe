@@ -189,7 +189,7 @@ int main (int argc, char *argv[]) try
                                   FEBasis::LocalFiniteElement,
                                   TargetSpace> localGFEADOLCStiffness(localEnergy.get());
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(grid->leafGridView(), &localGFEADOLCStiffness);
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, &localGFEADOLCStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
