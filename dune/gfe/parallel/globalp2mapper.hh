@@ -55,10 +55,11 @@ namespace Dune {
         {
 #if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
           int localIndex  = p2Mapper_.subIndex(*it, i, 2);
+          int globalIndex = globalVertexIndex.index(it->template subEntity<2>(i));
 #else
           int localIndex  = p2Mapper_.map(*it, i, 2);
-#endif
           int globalIndex = globalVertexIndex.index(*it->template subEntity<2>(i));
+#endif
 
           localGlobalMap_[localIndex]  = globalIndex;
         }
