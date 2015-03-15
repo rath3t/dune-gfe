@@ -21,10 +21,14 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
+#include <dune/functions/functionspacebases/pq1nodalbasis.hh>
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
+#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
 
@@ -128,7 +132,7 @@ int main (int argc, char *argv[]) try
     //  Construct the scalar function space basis corresponding to the GFE space
     //////////////////////////////////////////////////////////////////////////////////
 
-    typedef P1NodalBasis<typename GridType::LeafGridView,double> FEBasis;
+    typedef DuneFunctionsBasis<Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 3> > FEBasis;
     FEBasis feBasis(grid->leafGridView());
 
     SolutionType x(feBasis.size());
@@ -155,7 +159,7 @@ int main (int argc, char *argv[]) try
     auto pythonInitialIterate = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
     std::vector<TargetSpace::CoordinateType> v;
-    Functions::interpolate(feBasis, v, *pythonInitialIterate);
+    ::Functions::interpolate(feBasis, v, *pythonInitialIterate);
 
     for (size_t i=0; i<x.size(); i++)
       x[i] = v[i];
