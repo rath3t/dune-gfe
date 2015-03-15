@@ -120,10 +120,11 @@ setup(const GridType& grid,
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
 
-    Basis basis(grid.leafGridView());
-    OperatorAssembler<Basis,Basis> operatorAssembler(basis, basis);
+    typedef DuneFunctionsBasis<Basis> FufemBasis;
+    FufemBasis basis(grid.leafGridView());
+    OperatorAssembler<FufemBasis,FufemBasis> operatorAssembler(basis, basis);
 
-    LaplaceAssembler<GridType, typename Basis::LocalFiniteElement, typename Basis::LocalFiniteElement> laplaceStiffness;
+    LaplaceAssembler<GridType, typename FufemBasis::LocalFiniteElement, typename FufemBasis::LocalFiniteElement> laplaceStiffness;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
     ScalarMatrixType localA;
 
@@ -158,7 +159,7 @@ setup(const GridType& grid,
     //   This will be used to monitor the gradient
     // //////////////////////////////////////////////////////////////////////////////////////
 
-    MassAssembler<GridType, typename Basis::LocalFiniteElement, typename Basis::LocalFiniteElement> massStiffness;
+    MassAssembler<GridType, typename Basis::LocalView::Tree::FiniteElement, typename Basis::LocalView::Tree::FiniteElement> massStiffness;
     ScalarMatrixType localMassMatrix;
 
     operatorAssembler.assemble(massStiffness, localMassMatrix);
@@ -216,7 +217,7 @@ setup(const GridType& grid,
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
                                          P1NodalBasis<typename GridType::LeafGridView,double>,
-                                         Basis>(pkToP1TransferMatrix,p1Basis,basis);
+                                         FufemBasis>(pkToP1TransferMatrix,p1Basis,basis);
 #if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
@@ -316,7 +317,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
 #else
     Basis basis(grid_->leafGridView());
-    MaxNormTrustRegion<blocksize> trustRegion(basis.size(), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize> trustRegion(basis.indexSet().size(), initialTrustRegionRadius_);
 #endif
     trustRegion.set(initialTrustRegionRadius_, scaling_);
 

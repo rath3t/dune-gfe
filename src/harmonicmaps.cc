@@ -132,10 +132,14 @@ int main (int argc, char *argv[]) try
     //  Construct the scalar function space basis corresponding to the GFE space
     //////////////////////////////////////////////////////////////////////////////////
 
-    typedef DuneFunctionsBasis<Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 3> > FEBasis;
+    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 3> FEBasis;
+
     FEBasis feBasis(grid->leafGridView());
 
-    SolutionType x(feBasis.size());
+    typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
+    FufemFEBasis fufemFeBasis(feBasis);
+
+    SolutionType x(fufemFeBasis.size());
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -146,7 +150,7 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), allNodes);
 
     BitSetVector<blocksize> dirichletNodes;
-    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+    constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
 
     // //////////////////////////
     //   Initial iterate
@@ -159,7 +163,7 @@ int main (int argc, char *argv[]) try
     auto pythonInitialIterate = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
     std::vector<TargetSpace::CoordinateType> v;
-    ::Functions::interpolate(feBasis, v, *pythonInitialIterate);
+    ::Functions::interpolate(fufemFeBasis, v, *pythonInitialIterate);
 
     for (size_t i=0; i<x.size(); i++)
       x[i] = v[i];
@@ -173,24 +177,24 @@ int main (int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     typedef TargetSpace::rebind<adouble>::other ATargetSpace;
-    std::shared_ptr<LocalGeodesicFEStiffness<GridType::LeafGridView,FEBasis::LocalFiniteElement,ATargetSpace> > localEnergy;
+    std::shared_ptr<LocalGeodesicFEStiffness<GridType::LeafGridView,FEBasis::LocalView::Tree::FiniteElement,ATargetSpace> > localEnergy;
 
     std::string energy = parameterSet.get<std::string>("energy");
     if (energy == "harmonic")
     {
 
-      localEnergy.reset(new HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalFiniteElement, ATargetSpace>);
+      localEnergy.reset(new HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>);
 
     } else if (energy == "chiral_skyrmion")
     {
 
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalFiniteElement, adouble>(parameterSet.sub("energyParameters")));
+      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalView::Tree::FiniteElement, adouble>(parameterSet.sub("energyParameters")));
 
     } else
       DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");
 
     LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
-                                  FEBasis::LocalFiniteElement,
+                                  FEBasis::LocalView::Tree::FiniteElement,
                                   TargetSpace> localGFEADOLCStiffness(localEnergy.get());
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, &localGFEADOLCStiffness);
@@ -239,9 +243,9 @@ int main (int argc, char *argv[]) try
     }
 
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-    Dune::shared_ptr<VTKBasisGridFunction<FEBasis,EmbeddedVectorType> > vtkVectorField
-        = Dune::shared_ptr<VTKBasisGridFunction<FEBasis,EmbeddedVectorType> >
-               (new VTKBasisGridFunction<FEBasis,EmbeddedVectorType>(feBasis, xEmbedded, "orientation"));
+    Dune::shared_ptr<VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType> > vtkVectorField
+        = Dune::shared_ptr<VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType> >
+               (new VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType>(fufemFeBasis, xEmbedded, "orientation"));
     vtkWriter.addVertexData(vtkVectorField);
 
     vtkWriter.write(resultPath + "_" + energy + "_result");
@@ -259,7 +263,7 @@ int main (int argc, char *argv[]) try
       auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
       // The numerical solution, as a grid function
-      GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
+      GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(feBasis, x);
 
       // QuadratureRule for the integral of the L^2 error
       QuadratureRuleKey quadKey(dim,6);
