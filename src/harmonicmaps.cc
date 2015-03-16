@@ -243,9 +243,7 @@ int main (int argc, char *argv[]) try
     }
 
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-    Dune::shared_ptr<VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType> > vtkVectorField
-        = Dune::shared_ptr<VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType> >
-               (new VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType>(fufemFeBasis, xEmbedded, "orientation"));
+    auto vtkVectorField = std::make_shared<VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType> >(fufemFeBasis, xEmbedded, "orientation");
     vtkWriter.addVertexData(vtkVectorField);
 
     vtkWriter.write(resultPath + "_" + energy + "_result");
