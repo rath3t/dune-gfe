@@ -21,11 +21,11 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
+#include <dune/functions/gridfunctions/discretescalarglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/pq1nodalbasis.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
-#include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
@@ -240,10 +240,11 @@ int main (int argc, char *argv[]) try
         xEmbedded[i][2] = x[i].globalCoordinates()[2];
     }
 
-    VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-    auto vtkVectorField = std::make_shared<VTKBasisGridFunction<FufemFEBasis,EmbeddedVectorType> >(fufemFeBasis, xEmbedded, "orientation");
-    vtkWriter.addVertexData(vtkVectorField);
+    Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(xEmbedded)> xFunction(feBasis,xEmbedded);
+    auto localXFunction = localFunction(xFunction);
 
+    VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
+    vtkWriter.addVertexData(localXFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, 3));
     vtkWriter.write(resultPath + "_" + energy + "_result");
 
     /////////////////////////////////////////////////////////////////
