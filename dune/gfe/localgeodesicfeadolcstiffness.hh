@@ -18,12 +18,14 @@
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
-template<class GridView, class LocalFiniteElement, class TargetSpace>
+template<class Basis, class TargetSpace>
 class LocalGeodesicFEADOLCStiffness
-    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,TargetSpace>
+    : public LocalGeodesicFEStiffness<Basis,TargetSpace>
 {
     // grid types
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename Basis::GridView GridView;
+    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
+    typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -40,7 +42,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEADOLCStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
+    LocalGeodesicFEADOLCStiffness(const LocalGeodesicFEStiffness<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -67,14 +69,14 @@ public:
                          const std::vector<TargetSpace>& localSolution,
                          std::vector<typename TargetSpace::TangentVector>& localGradient);
 
-    const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* localEnergy_;
+    const LocalGeodesicFEStiffness<Basis, ATargetSpace>* localEnergy_;
 
 };
 
 
-template <class GridView, class LocalFiniteElement, class TargetSpace>
-typename LocalGeodesicFEADOLCStiffness<GridView, LocalFiniteElement, TargetSpace>::RT
-LocalGeodesicFEADOLCStiffness<GridView, LocalFiniteElement, TargetSpace>::
+template <class Basis, class TargetSpace>
+typename LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::RT
+LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
        const std::vector<TargetSpace>& localSolution) const
@@ -122,8 +124,8 @@ energy(const Entity& element,
 }
 
 
-template <class GridView, class LocalFiniteElement, class TargetSpace>
-void LocalGeodesicFEADOLCStiffness<GridView, LocalFiniteElement, TargetSpace>::
+template <class Basis, class TargetSpace>
+void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradient(const Entity& element,
                  const LocalFiniteElement& localFiniteElement,
                  const std::vector<TargetSpace>& localSolution,
@@ -170,8 +172,8 @@ assembleGradient(const Entity& element,
 //   To compute the Hessian we need to compute the gradient anyway, so we may
 //   as well return it.  This saves assembly time.
 // ///////////////////////////////////////////////////////////
-template <class GridType, class LocalFiniteElement, class TargetSpace>
-void LocalGeodesicFEADOLCStiffness<GridType, LocalFiniteElement, TargetSpace>::
+template <class Basis, class TargetSpace>
+void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const std::vector<TargetSpace>& localSolution,

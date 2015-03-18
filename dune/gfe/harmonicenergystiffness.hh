@@ -7,12 +7,14 @@
 #include "localgeodesicfestiffness.hh"
 #include "localgeodesicfefunction.hh"
 
-template<class GridView, class LocalFiniteElement, class TargetSpace>
+template<class Basis, class TargetSpace>
 class HarmonicEnergyLocalStiffness
-    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,TargetSpace>
+    : public LocalGeodesicFEStiffness<Basis,TargetSpace>
 {
     // grid types
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename Basis::GridView GridView;
+    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
+    typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -31,9 +33,9 @@ public:
 
 };
 
-template <class GridView, class LocalFiniteElement, class TargetSpace>
-typename HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::RT
-HarmonicEnergyLocalStiffness<GridView, LocalFiniteElement, TargetSpace>::
+template <class Basis, class TargetSpace>
+typename HarmonicEnergyLocalStiffness<Basis, TargetSpace>::RT
+HarmonicEnergyLocalStiffness<Basis, TargetSpace>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
        const std::vector<TargetSpace>& localSolution) const

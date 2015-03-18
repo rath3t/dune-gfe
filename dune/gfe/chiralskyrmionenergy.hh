@@ -16,13 +16,15 @@ namespace GFE {
  * The energy is discussed in:
  * - Christof Melcher, "Chiral skyrmions in the plane", Proc. of the Royal Society, online DOI DOI: 10.1098/rspa.2014.0394
  */
-template<class GridView, class LocalFiniteElement, class field_type>
+template<class Basis, class field_type>
 class ChiralSkyrmionEnergy
-: public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,UnitVector<field_type,3> >
+: public LocalGeodesicFEStiffness<Basis,UnitVector<field_type,3> >
 {
   // various useful types
   typedef UnitVector<field_type,3> TargetSpace;
-  typedef typename GridView::Grid::ctype DT;
+  typedef typename Basis::GridView GridView;
+  typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
+  typedef typename GridView::ctype DT;
   typedef typename TargetSpace::ctype RT;
   typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -49,9 +51,9 @@ public:
   field_type kappa_;
 };
 
-template <class GridView, class LocalFiniteElement, class field_type>
-typename ChiralSkyrmionEnergy<GridView, LocalFiniteElement, field_type>::RT
-ChiralSkyrmionEnergy<GridView, LocalFiniteElement, field_type>::
+template <class Basis, class field_type>
+typename ChiralSkyrmionEnergy<Basis, field_type>::RT
+ChiralSkyrmionEnergy<Basis, field_type>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
        const std::vector<TargetSpace>& localConfiguration) const

@@ -32,15 +32,13 @@ public:
 
 protected:
 
-    LocalGeodesicFEStiffness<GridView,
-                             typename Basis::LocalView::Tree::FiniteElement,
-                             TargetSpace>* localStiffness_;
+    LocalGeodesicFEStiffness<Basis,TargetSpace>* localStiffness_;
 
 public:
 
     /** \brief Constructor for a given grid */
     GeodesicFEAssembler(const Basis& basis,
-                        LocalGeodesicFEStiffness<GridView,typename Basis::LocalView::Tree::FiniteElement, TargetSpace>* localStiffness)
+                        LocalGeodesicFEStiffness<Basis, TargetSpace>* localStiffness)
         : basis_(basis),
           basisIndexSet_(basis_.indexSet()),
           localStiffness_(localStiffness)

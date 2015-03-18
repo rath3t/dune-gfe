@@ -7,11 +7,13 @@
 #include <dune/istl/matrix.hh>
 
 
-template<class GridView, class LocalFiniteElement, class TargetSpace>
+template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness
 {
     // grid types
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename Basis::GridView GridView;
+    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
+    typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -63,8 +65,8 @@ public:
 };
 
 
-template <class GridView, class LocalFiniteElement, class TargetSpace>
-void LocalGeodesicFEStiffness<GridView, LocalFiniteElement, TargetSpace>::
+template <class Basis, class TargetSpace>
+void LocalGeodesicFEStiffness<Basis, TargetSpace>::
 assembleGradient(const Entity& element,
                  const LocalFiniteElement& localFiniteElement,
                  const std::vector<TargetSpace>& localSolution,
@@ -77,8 +79,8 @@ assembleGradient(const Entity& element,
 // ///////////////////////////////////////////////////////////
 //   Compute gradient by finite-difference approximation
 // ///////////////////////////////////////////////////////////
-template <class GridType, class LocalFiniteElement, class TargetSpace>
-void LocalGeodesicFEStiffness<GridType, LocalFiniteElement, TargetSpace>::
+template <class Basis, class TargetSpace>
+void LocalGeodesicFEStiffness<Basis, TargetSpace>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const std::vector<TargetSpace>& localSolution,

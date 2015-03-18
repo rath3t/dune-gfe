@@ -177,25 +177,23 @@ int main (int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     typedef TargetSpace::rebind<adouble>::other ATargetSpace;
-    std::shared_ptr<LocalGeodesicFEStiffness<GridType::LeafGridView,FEBasis::LocalView::Tree::FiniteElement,ATargetSpace> > localEnergy;
+    std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > localEnergy;
 
     std::string energy = parameterSet.get<std::string>("energy");
     if (energy == "harmonic")
     {
 
-      localEnergy.reset(new HarmonicEnergyLocalStiffness<GridType::LeafGridView, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>);
+      localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, ATargetSpace>);
 
     } else if (energy == "chiral_skyrmion")
     {
 
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<GridType::LeafGridView, FEBasis::LocalView::Tree::FiniteElement, adouble>(parameterSet.sub("energyParameters")));
+      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, adouble>(parameterSet.sub("energyParameters")));
 
     } else
       DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");
 
-    LocalGeodesicFEADOLCStiffness<GridType::LeafGridView,
-                                  FEBasis::LocalView::Tree::FiniteElement,
-                                  TargetSpace> localGFEADOLCStiffness(localEnergy.get());
+    LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy.get());
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, &localGFEADOLCStiffness);
 
