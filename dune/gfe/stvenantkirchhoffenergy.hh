@@ -153,20 +153,20 @@ energy(const Entity& element,
     if (not neumannFunction_)
         return energy;
 
-    for (typename Entity::LeafIntersectionIterator it = element.ileafbegin(); it != element.ileafend(); ++it) {
-
-        if (not neumannBoundary_ or not neumannBoundary_->contains(*it))
+    for (auto&& it : intersections(neumannBoundary_->gridView(),element) )
+    {
+        if (not neumannBoundary_ or not neumannBoundary_->contains(it))
             continue;
 
         const Dune::QuadratureRule<DT, gridDim-1>& quad
-            = Dune::QuadratureRules<DT, gridDim-1>::rule(it->type(), quadOrder);
+            = Dune::QuadratureRules<DT, gridDim-1>::rule(it.type(), quadOrder);
 
         for (size_t pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
-            const Dune::FieldVector<DT,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
+            const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());
 
-            const DT integrationElement = it->geometry().integrationElement(quad[pt].position());
+            const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
 
             // The value of the local function
             //RealTuple<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
@@ -184,7 +184,7 @@ energy(const Entity& element,
             if (dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_))
                 dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
             else
-                neumannFunction_->evaluate(it->geometry().global(quad[pt].position()), neumannValue);
+                neumannFunction_->evaluate(it.geometry().global(quad[pt].position()), neumannValue);
 
             // Only translational dofs are affected by the Neumann force
             for (size_t i=0; i<neumannValue.size(); i++)
