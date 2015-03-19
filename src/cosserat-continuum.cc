@@ -4,6 +4,9 @@
 
 #include <fenv.h>
 
+// Hack to make IPOpt happy.  No idea why the build system doesn't properly handle this
+#define HAVE_CSTDDEF
+
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
