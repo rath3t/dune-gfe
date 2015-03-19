@@ -1,5 +1,8 @@
 #include <config.h>
 
+// Hack to make IPOpt happy.  No idea why the build system doesn't properly handle this
+#define HAVE_CSTDDEF
+
 #define SECOND_ORDER
 
 #include <fenv.h>
@@ -250,7 +253,7 @@ int main (int argc, char *argv[]) try
     OrientationFEBasis orientationFEBasis(gridView);
 
     std::cout << "Deformation: " << deformationFEBasis.size() << ",   orientation: " << orientationFEBasis.size() << std::endl;
-    
+
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
