@@ -20,12 +20,14 @@
 //#define QUADRATIC_MEMBRANE_ENERGY
 
 
-template<class GridView, class LocalFiniteElement, int dim, class field_type=double>
+template<class Basis, int dim, class field_type=double>
 class CosseratEnergyLocalStiffness
-    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,RigidBodyMotion<field_type,dim> >
+    : public LocalGeodesicFEStiffness<Basis,RigidBodyMotion<field_type,dim> >
 {
     // grid types
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename Basis::GridView GridView;
+    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
+    typedef typename GridView::ctype DT;
     typedef RigidBodyMotion<field_type,dim> TargetSpace;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -294,11 +296,11 @@ public:
     const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction_;
 };
 
-template <class GridView, class LocalFiniteElement, int dim, class field_type>
-typename CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim,field_type>::RT
-CosseratEnergyLocalStiffness<GridView,LocalFiniteElement,dim,field_type>::
+template <class Basis, int dim, class field_type>
+typename CosseratEnergyLocalStiffness<Basis,dim,field_type>::RT
+CosseratEnergyLocalStiffness<Basis,dim,field_type>::
 energy(const Entity& element,
-       const LocalFiniteElement& localFiniteElement,
+       const typename Basis::LocalView::Tree::FiniteElement& localFiniteElement,
        const std::vector<RigidBodyMotion<field_type,dim> >& localSolution) const
 {
     assert(element.type() == localFiniteElement.type());
