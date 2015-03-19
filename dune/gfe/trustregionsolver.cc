@@ -239,7 +239,7 @@ void TrustRegionSolver<BasisType,VectorType>::solve()
             // Compute gradient norm to monitor convergence
             CorrectionType gradient = rhs;
             for (size_t j=0; j<gradient.size(); j++)
-              for (int k=0; k<gradient[j].size(); k++)
+              for (size_t k=0; k<gradient[j].size(); k++)
                 if ((*ignoreNodes_)[j][k])
                   gradient[j][k] = 0;
 
