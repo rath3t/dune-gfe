@@ -6,6 +6,7 @@
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/gfe/rigidbodymotion.hh>
