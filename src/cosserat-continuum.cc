@@ -24,11 +24,12 @@
 
 #include <dune/grid/io/file/gmshreader.hh>
 
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -150,11 +151,14 @@ int main (int argc, char *argv[]) try
     GridView gridView = grid->leafGridView();
 
 #ifdef SECOND_ORDER
-    typedef P2NodalBasis<GridView,double> FEBasis;
+    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 2> FEBasis;
 #else
-    typedef P1NodalBasis<GridView,double> FEBasis;
+    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
 #endif
     FEBasis feBasis(gridView);
+
+    typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
+    FufemFEBasis fufemFeBasis(feBasis);
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -196,14 +200,14 @@ int main (int argc, char *argv[]) try
       std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
 
-    BitSetVector<1> dirichletNodes(feBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+    BitSetVector<1> dirichletNodes(feBasis.indexSet().size(), false);
+    constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
 
-    BitSetVector<1> neumannNodes(feBasis.size(), false);
-    constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
+    BitSetVector<1> neumannNodes(feBasis.indexSet().size(), false);
+    constructBoundaryDofs(neumannBoundary,fufemFeBasis,neumannNodes);
 
-    BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
-    for (size_t i=0; i<feBasis.size(); i++)
+    BitSetVector<blocksize> dirichletDofs(feBasis.indexSet().size(), false);
+    for (size_t i=0; i<feBasis.indexSet().size(); i++)
       if (dirichletNodes[i][0])
         for (int j=0; j<5; j++)
           dirichletDofs[i][j] = true;
@@ -212,7 +216,7 @@ int main (int argc, char *argv[]) try
     //   Initial iterate
     // //////////////////////////
 
-    SolutionType x(feBasis.size());
+    SolutionType x(feBasis.indexSet().size());
 
     if (parameterSet.hasKey("startFromFile"))
     {
@@ -222,7 +226,7 @@ int main (int argc, char *argv[]) try
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
 
     std::vector<FieldVector<double,3> > v;
-    Functions::interpolate(feBasis, v, pythonInitialDeformation);
+      ::Functions::interpolate(fufemFeBasis, v, pythonInitialDeformation);
 
     for (size_t i=0; i<x.size(); i++)
       x[i].r = v[i];
@@ -233,7 +237,7 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
-    CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_0");
+    CosseratVTKWriter<GridType>::write<FufemFEBasis>(fufemFeBasis,x, resultPath + "cosserat_homotopy_0");
 
     for (int i=0; i<numHomotopySteps; i++) {
 
@@ -259,13 +263,11 @@ int main (int argc, char *argv[]) try
         }
 
     // Assembler using ADOL-C
-    CosseratEnergyLocalStiffness<GridView,
-                                 FEBasis::LocalFiniteElement,
+    CosseratEnergyLocalStiffness<FEBasis,
                                  3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                               &neumannBoundary,
                                                                               neumannFunction.get());
-    LocalGeodesicFEADOLCStiffness<GridView,
-                                  FEBasis::LocalFiniteElement,
+    LocalGeodesicFEADOLCStiffness<FEBasis,
                                   TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, &localGFEADOLCStiffness);
@@ -305,10 +307,10 @@ int main (int argc, char *argv[]) try
         PythonFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> > orientationDirichletValues(dirichletValuesPythonObject.get("orientation"));
 
         std::vector<FieldVector<double,3> > ddV;
-        Functions::interpolate(feBasis, ddV, deformationDirichletValues, dirichletDofs);
+        ::Functions::interpolate(fufemFeBasis, ddV, deformationDirichletValues, dirichletDofs);
 
         std::vector<FieldMatrix<double,3,3> > dOV;
-        Functions::interpolate(feBasis, dOV, orientationDirichletValues, dirichletDofs);
+        ::Functions::interpolate(fufemFeBasis, dOV, orientationDirichletValues, dirichletDofs);
 
         for (size_t j=0; j<x.size(); j++)
           if (dirichletNodes[j][0])
@@ -329,7 +331,7 @@ int main (int argc, char *argv[]) try
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_" + iAsAscii.str());
+        CosseratVTKWriter<GridType>::write<FufemFEBasis>(fufemFeBasis,x, resultPath + "cosserat_homotopy_" + iAsAscii.str());
 
     }
 
