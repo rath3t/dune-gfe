@@ -8,6 +8,8 @@
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
+#include <dune/grid/utility/globalindexset.hh>
+
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -19,7 +21,6 @@
 #include <dune/fufem/functionspacebases/p3nodalbasis.hh>
 
 #include <dune/gfe/mixedgfeassembler.hh>
-#include <dune/gfe/parallel/globalindex.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType,
