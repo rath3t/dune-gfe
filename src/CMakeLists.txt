@@ -1,5 +1,9 @@
 set(programs cosserat-continuum
-             harmonicmaps)
+             finite-strain-elasticity
+             harmonicmaps
+             mixed-cosserat-continuum
+             rod-eoc
+             rodobstacle)
 
 foreach(_program ${programs})
   add_executable(${_program} ${_program}.cc)
