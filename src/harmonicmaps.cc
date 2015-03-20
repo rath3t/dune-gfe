@@ -240,7 +240,7 @@ int main (int argc, char *argv[]) try
         xEmbedded[i][2] = x[i].globalCoordinates()[2];
     }
 
-    Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(xEmbedded)> xFunction(feBasis,xEmbedded);
+    Dune::Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(xEmbedded)> xFunction(feBasis,xEmbedded);
     auto localXFunction = localFunction(xFunction);
 
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
