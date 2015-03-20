@@ -101,7 +101,6 @@ int main (int argc, char *argv[]) try
     const int baseIterations              = parameterSet.get<int>("baseIt");
     const double mgTolerance              = parameterSet.get<double>("mgTolerance");
     const double baseTolerance            = parameterSet.get<double>("baseTolerance");
-    const bool instrumented               = parameterSet.get<bool>("instrumented");
     std::string resultPath                = parameterSet.get("resultPath", "");
 
     // ///////////////////////////////////////
