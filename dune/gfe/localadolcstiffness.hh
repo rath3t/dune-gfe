@@ -147,8 +147,8 @@ assembleGradientAndHessian(const Entity& element,
 
     std::fill(v.begin(), v.end(), 0.0);
 
-    for (int i=0; i<nDofs; i++)
-      for (int ii=0; ii<blocksize; ii++)
+    for (size_t i=0; i<nDofs; i++)
+      for (size_t ii=0; ii<blocksize; ii++)
       {
         // Evaluate Hessian in the direction of each vector of the orthonormal frame
         for (size_t k=0; k<blocksize; k++)
@@ -159,7 +159,7 @@ assembleGradientAndHessian(const Entity& element,
         if (rc < 0)
           DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
 
-        for (int j=0; j<nDoubles; j++)
+        for (size_t j=0; j<nDoubles; j++)
           this->A_[i][j/blocksize][ii][j%blocksize] = w[j];
 
         // Make v the null vector again
