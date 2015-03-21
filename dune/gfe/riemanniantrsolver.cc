@@ -1,6 +1,5 @@
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/timer.hh>
-#include <dune/common/parallel/mpihelper.hh>
 
 #include <dune/istl/io.hh>
 
@@ -301,10 +300,7 @@ setup(const GridType& grid,
 template <class Basis, class TargetSpace>
 void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 {
-    int argc = 0;
-    char** argv;
-    Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
-    int rank = mpiHelper.rank();
+    int rank = grid_->comm().rank();
 
     MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
 
@@ -341,7 +337,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     // /////////////////////////////////////////////////////
 
     double oldEnergy = assembler_->computeEnergy(x_);
-    oldEnergy = mpiHelper.getCollectiveCommunication().sum(oldEnergy);
+    oldEnergy = grid_->comm().sum(oldEnergy);
 
     bool recomputeGradientHessian = true;
     CorrectionType rhs;
@@ -451,7 +447,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         }
 
         // Distribute solution
-        if (mpiHelper.size()>1 and rank==0)
+        if (grid_->comm().size()>1 and rank==0)
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
 #if HAVE_MPI
@@ -462,7 +458,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 
         // Make infinity norm of corr_global known on all processors
         double corrNorm = corr.infinity_norm();
-        double corrGlobalInfinityNorm = mpiHelper.getCollectiveCommunication().max(corrNorm);
+        double corrGlobalInfinityNorm = grid_->comm().max(corrNorm);
 
         if (instrumented_) {
 
@@ -553,7 +549,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 
         double energy    = assembler_->computeEnergy(newIterate);
-        energy = mpiHelper.getCollectiveCommunication().sum(energy);
+        energy = grid_->comm().sum(energy);
 
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
@@ -562,7 +558,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         tmp = 0;
         hessianMatrix_->umv(corr, tmp);
         double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
-        modelDecrease = mpiHelper.getCollectiveCommunication().sum(modelDecrease);
+        modelDecrease = grid_->comm().sum(modelDecrease);
 
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
 

@@ -35,7 +35,7 @@ namespace Dune {
       void write(const std::string& filename) const
       {
         int argc = 0;
-        char** argv;
+        char** argv = nullptr;
         Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
 
         std::string fullfilename = filename + ".vtu";
@@ -170,7 +170,7 @@ namespace Dune {
       void read(const std::string& filename)
       {
         int argc = 0;
-        char** argv;
+        char** argv = nullptr;
         Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
 
         std::string fullfilename = filename + ".vtu";
