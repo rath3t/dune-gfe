@@ -1,8 +1,6 @@
 #ifndef LOCAL_GEODESIC_FE_STIFFNESS_HH
 #define LOCAL_GEODESIC_FE_STIFFNESS_HH
 
-#include "omp.h"
-
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 
