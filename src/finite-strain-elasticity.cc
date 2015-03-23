@@ -221,7 +221,7 @@ int main (int argc, char *argv[]) try
   auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
                                                                (feBasis, displacement, "Displacement");
   vtkWriter.addVertexData(vtkDisplacement);
-  vtkWriter.write(resultPath + "hencky_homotopy_0");
+  vtkWriter.write(resultPath + "finite-strain_homotopy_0");
 
   for (int i=0; i<numHomotopySteps; i++)
   {
@@ -252,13 +252,13 @@ int main (int argc, char *argv[]) try
 
     StVenantKirchhoffEnergy<GridView,
                             FEBasis::LocalFiniteElement,
-                            adouble> henckyEnergy(materialParameters,
+                            adouble> elasticEnergy(materialParameters,
                                                   &neumannBoundary,
                                                   neumannFunction.get());
 
     LocalADOLCStiffness<GridView,
                         FEBasis::LocalFiniteElement,
-                        SolutionType> localADOLCStiffness(&henckyEnergy);
+                        SolutionType> localADOLCStiffness(&elasticEnergy);
 
     FEAssembler<FEBasis,SolutionType> assembler(gridView, &localADOLCStiffness);
 
@@ -327,7 +327,7 @@ int main (int argc, char *argv[]) try
     auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
                                                                  (feBasis, displacement, "Displacement");
     vtkWriter.addVertexData(vtkDisplacement);
-    vtkWriter.write(resultPath + "hencky_homotopy_" + std::to_string(i+1));
+    vtkWriter.write(resultPath + "finite-strain_homotopy_" + std::to_string(i+1));
 
   }
 
