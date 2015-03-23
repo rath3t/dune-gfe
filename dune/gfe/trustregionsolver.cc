@@ -60,6 +60,7 @@ setup(const typename BasisType::GridView::Grid& grid,
     QuadraticIPOptSolver<MatrixType, CorrectionType>* baseSolver = new QuadraticIPOptSolver<MatrixType,CorrectionType>;
     baseSolver->verbosity_ = NumProc::QUIET;
     baseSolver->tolerance_ = baseTolerance;
+    baseSolver->linearSolverType_ = "mumps";
 #else
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType, CorrectionType>* baseSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
