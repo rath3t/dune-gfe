@@ -35,20 +35,16 @@ public:
     const Basis0 basis0_;
     const Basis1 basis1_;
 
-    MixedLocalGeodesicFEStiffness<GridView,
-                                  typename Basis0::LocalFiniteElement,
-                                  TargetSpace0,
-                                  typename Basis1::LocalFiniteElement,
-                                  TargetSpace1>* localStiffness_;
+    MixedLocalGeodesicFEStiffness<Basis0, TargetSpace0,
+                                  Basis1, TargetSpace1>* localStiffness_;
 
 public:
 
     /** \brief Constructor for a given grid */
     MixedGFEAssembler(const Basis0& basis0,
                       const Basis1& basis1,
-                      MixedLocalGeodesicFEStiffness<GridView,
-                                               typename Basis0::LocalFiniteElement, TargetSpace0,
-                                               typename Basis0::LocalFiniteElement, TargetSpace1>* localStiffness)
+                      MixedLocalGeodesicFEStiffness<Basis0, TargetSpace0,
+                                                    Basis1, TargetSpace1>* localStiffness)
         : basis0_(basis0),
           basis1_(basis1),
           localStiffness_(localStiffness)
@@ -94,50 +90,57 @@ getMatrixPattern(Dune::MatrixIndexSet& nb00,
                  Dune::MatrixIndexSet& nb10,
                  Dune::MatrixIndexSet& nb11) const
 {
-    nb00.resize(basis0_.size(), basis0_.size());
-    nb01.resize(basis0_.size(), basis1_.size());
-    nb10.resize(basis1_.size(), basis0_.size());
-    nb11.resize(basis1_.size(), basis1_.size());
+    nb00.resize(basis0_.indexSet().size(), basis0_.indexSet().size());
+    nb01.resize(basis0_.indexSet().size(), basis1_.indexSet().size());
+    nb10.resize(basis1_.indexSet().size(), basis0_.indexSet().size());
+    nb11.resize(basis1_.indexSet().size(), basis1_.indexSet().size());
+
+    // A view on the FE basis on a single element
+    typename Basis0::LocalView localView0(&basis0_);
+    typename Basis1::LocalView localView1(&basis1_);
+    auto localIndexSet0 = basis0_.indexSet().localIndexSet();
+    auto localIndexSet1 = basis1_.indexSet().localIndexSet();
 
     // Grid view must be the same for both bases
-    ElementIterator it    = basis0_.getGridView().template begin<0,Dune::Interior_Partition>();
-    ElementIterator endit = basis0_.getGridView().template end<0,Dune::Interior_Partition>  ();
+    ElementIterator it    = basis0_.gridView().template begin<0,Dune::Interior_Partition>();
+    ElementIterator endit = basis0_.gridView().template end<0,Dune::Interior_Partition>  ();
 
     for (; it!=endit; ++it) {
 
-        const typename Basis0::LocalFiniteElement& lfe0 = basis0_.getLocalFiniteElement(*it);
-        const typename Basis1::LocalFiniteElement& lfe1 = basis1_.getLocalFiniteElement(*it);
+        // Bind the local FE basis view to the current element
+        localView0.bind(*it);
+        localView1.bind(*it);
+        localIndexSet0.bind(localView0);
+        localIndexSet1.bind(localView1);
 
-        for (size_t i=0; i<lfe0.localBasis().size(); i++) {
+        for (size_t i=0; i<localView0.size(); i++) {
 
-            int iIdx = basis0_.index(*it,i);
+            int iIdx = localIndexSet0.index(i)[0];
 
-            for (size_t j=0; j<lfe0.localBasis().size(); j++) {
-                int jIdx = basis0_.index(*it,j);
+            for (size_t j=0; j<localView0.size(); j++) {
+                int jIdx = localIndexSet0.index(j)[0];
                 nb00.add(iIdx, jIdx);
             }
 
-            for (size_t j=0; j<lfe1.localBasis().size(); j++) {
-                int jIdx = basis1_.index(*it,j);
+            for (size_t j=0; j<localView1.size(); j++) {
+                int jIdx = localIndexSet1.index(j)[0];
                 nb01.add(iIdx, jIdx);
-
             }
 
         }
 
-        for (size_t i=0; i<lfe1.localBasis().size(); i++) {
+        for (size_t i=0; i<localView1.size(); i++) {
 
-            int iIdx = basis1_.index(*it,i);
+            int iIdx = localIndexSet1.index(i)[0];
 
-            for (size_t j=0; j<lfe0.localBasis().size(); j++) {
-                int jIdx = basis0_.index(*it,j);
+            for (size_t j=0; j<localView0.size(); j++) {
+                int jIdx = localIndexSet0.index(j)[0];
                 nb10.add(iIdx, jIdx);
             }
 
-            for (size_t j=0; j<lfe1.localBasis().size(); j++) {
-                int jIdx = basis1_.index(*it,j);
+            for (size_t j=0; j<localView1.size(); j++) {
+                int jIdx = localIndexSet1.index(j)[0];
                 nb11.add(iIdx, jIdx);
-
             }
 
         }
@@ -184,70 +187,82 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
     gradient1.resize(configuration1.size());
     gradient1 = 0;
 
-    ElementIterator it    = basis0_.getGridView().template begin<0,Dune::Interior_Partition>();
-    ElementIterator endit = basis0_.getGridView().template end<0,Dune::Interior_Partition>  ();
+    // A view on the FE basis on a single element
+    typename Basis0::LocalView localView0(&basis0_);
+    typename Basis1::LocalView localView1(&basis1_);
+    auto localIndexSet0 = basis0_.indexSet().localIndexSet();
+    auto localIndexSet1 = basis1_.indexSet().localIndexSet();
+
+    ElementIterator it    = basis0_.gridView().template begin<0,Dune::Interior_Partition>();
+    ElementIterator endit = basis0_.gridView().template end<0,Dune::Interior_Partition>  ();
 
     for( ; it != endit; ++it ) {
 
-        const int nDofs0 = basis0_.getLocalFiniteElement(*it).localBasis().size();
-        const int nDofs1 = basis1_.getLocalFiniteElement(*it).localBasis().size();
+        // Bind the local FE basis view to the current element
+        localView0.bind(*it);
+        localView1.bind(*it);
+        localIndexSet0.bind(localView0);
+        localIndexSet1.bind(localView1);
+
+        const int nDofs0 = localView0.size();
+        const int nDofs1 = localView1.size();
 
         // Extract local solution
         std::vector<TargetSpace0> localConfiguration0(nDofs0);
         std::vector<TargetSpace1> localConfiguration1(nDofs1);
 
         for (int i=0; i<nDofs0; i++)
-            localConfiguration0[i] = configuration0[basis0_.index(*it,i)];
+            localConfiguration0[i] = configuration0[localIndexSet0.index(i)[0]];
 
         for (int i=0; i<nDofs1; i++)
-            localConfiguration1[i] = configuration1[basis1_.index(*it,i)];
+            localConfiguration1[i] = configuration1[localIndexSet1.index(i)[0]];
 
         std::vector<Dune::FieldVector<double,blocksize0> > localGradient0(nDofs0);
         std::vector<Dune::FieldVector<double,blocksize1> > localGradient1(nDofs1);
 
         // setup local matrix and gradient
         localStiffness_->assembleGradientAndHessian(*it,
-                                                    basis0_.getLocalFiniteElement(*it), localConfiguration0,
-                                                    basis1_.getLocalFiniteElement(*it), localConfiguration1,
+                                                    localView0.tree().finiteElement(), localConfiguration0,
+                                                    localView1.tree().finiteElement(), localConfiguration1,
                                                     localGradient0, localGradient1);
 
         // Add element matrix to global stiffness matrix
         for (int i=0; i<nDofs0; i++) {
 
-            int row = basis0_.index(*it,i);
+            int row = localIndexSet0.index(i)[0];
 
             for (int j=0; j<nDofs0; j++ ) {
-                int col = basis0_.index(*it,j);
+                int col = localIndexSet0.index(j)[0];
                 hessian00[row][col] += localStiffness_->A00_[i][j];
             }
 
             for (int j=0; j<nDofs1; j++ ) {
-                int col = basis1_.index(*it,j);
+                int col = localIndexSet1.index(j)[0];
                 hessian01[row][col] += localStiffness_->A01_[i][j];
             }
         }
 
         for (int i=0; i<nDofs1; i++) {
 
-            int row = basis1_.index(*it,i);
+            int row = localIndexSet1.index(i)[0];
 
             for (int j=0; j<nDofs0; j++ ) {
-                int col = basis0_.index(*it,j);
+                int col = localIndexSet0.index(j)[0];
                 hessian10[row][col] += localStiffness_->A10_[i][j];
             }
 
             for (int j=0; j<nDofs1; j++ ) {
-                int col = basis1_.index(*it,j);
+                int col = localIndexSet1.index(j)[0];
                 hessian11[row][col] += localStiffness_->A11_[i][j];
             }
         }
 
         // Add local gradient to global gradient
         for (int i=0; i<nDofs0; i++)
-            gradient0[basis0_.index(*it,i)] += localGradient0[i];
+            gradient0[localIndexSet0.index(i)[0]] += localGradient0[i];
 
         for (int i=0; i<nDofs1; i++)
-            gradient1[basis1_.index(*it,i)] += localGradient1[i];
+            gradient1[localIndexSet1.index(i)[0]] += localGradient1[i];
     }
 
 }
@@ -300,34 +315,46 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
 {
     double energy = 0;
 
-    if (configuration0.size()!=basis0_.size())
-        DUNE_THROW(Dune::Exception, "Configuration vector doesn't match the grid!");
+    if (configuration0.size()!=basis0_.indexSet().size())
+        DUNE_THROW(Dune::Exception, "Configuration vector 0 doesn't match the basis!");
 
-    if (configuration1.size()!=basis1_.size())
-        DUNE_THROW(Dune::Exception, "Configuration vector doesn't match the grid!");
+    if (configuration1.size()!=basis1_.indexSet().size())
+        DUNE_THROW(Dune::Exception, "Configuration vector 1 doesn't match the basis!");
 
-    ElementIterator it    = basis0_.getGridView().template begin<0,Dune::Interior_Partition>();
-    ElementIterator endIt = basis0_.getGridView().template end<0,Dune::Interior_Partition>();
+    // A view on the FE basis on a single element
+    typename Basis0::LocalView localView0(&basis0_);
+    typename Basis1::LocalView localView1(&basis1_);
+    auto localIndexSet0 = basis0_.indexSet().localIndexSet();
+    auto localIndexSet1 = basis1_.indexSet().localIndexSet();
+
+    ElementIterator it    = basis0_.gridView().template begin<0,Dune::Interior_Partition>();
+    ElementIterator endIt = basis0_.gridView().template end<0,Dune::Interior_Partition>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
 
+        // Bind the local FE basis view to the current element
+        localView0.bind(*it);
+        localView1.bind(*it);
+        localIndexSet0.bind(localView0);
+        localIndexSet1.bind(localView1);
+
         // Number of degrees of freedom on this element
-        size_t nDofs0 = basis0_.getLocalFiniteElement(*it).localBasis().size();
-        size_t nDofs1 = basis1_.getLocalFiniteElement(*it).localBasis().size();
+        size_t nDofs0 = localView0.size();
+        size_t nDofs1 = localView1.size();
 
         std::vector<TargetSpace0> localConfiguration0(nDofs0);
         std::vector<TargetSpace1> localConfiguration1(nDofs1);
 
         for (size_t i=0; i<nDofs0; i++)
-            localConfiguration0[i] = configuration0[basis0_.index(*it,i)];
+            localConfiguration0[i] = configuration0[localIndexSet0.index(i)[0]];
 
         for (size_t i=0; i<nDofs1; i++)
-            localConfiguration1[i] = configuration1[basis1_.index(*it,i)];
+            localConfiguration1[i] = configuration1[localIndexSet1.index(i)[0]];
 
         energy += localStiffness_->energy(*it,
-                                          basis0_.getLocalFiniteElement(*it), localConfiguration0,
-                                          basis1_.getLocalFiniteElement(*it), localConfiguration1);
+                                          localView0.tree().finiteElement(), localConfiguration0,
+                                          localView1.tree().finiteElement(), localConfiguration1);
 
     }
 

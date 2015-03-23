@@ -11,24 +11,31 @@
 
 
 
-template <class GridView>
-void RodAssembler<GridView,3>::
+template <class Basis>
+void RodAssembler<Basis,3>::
 assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
     using namespace Dune;
 
-    if (sol.size()!=this->basis_.size())
+    if (sol.size()!=this->basis_.indexSet().size())
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = this->basis_.getGridView().template begin<0>();
-    ElementIterator endIt = this->basis_.getGridView().template end<0>();
+    // A view on the FE basis on a single element
+    typename Basis::LocalView localView(&this->basis_);
+    auto localIndexSet = this->basis_.indexSet().localIndexSet();
+
+    ElementIterator it    = this->basis_.gridView().template begin<0>();
+    ElementIterator endIt = this->basis_.gridView().template end<0>();
 
     // Loop over all elements
     for (; it!=endIt; ++it) {
+
+        localView.bind(*it);
+        localIndexSet.bind(localView);
 
         // A 1d grid has two vertices
         static const int nDofs = 2;
@@ -37,19 +44,19 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
         std::vector<RigidBodyMotion<double,3> > localSolution(nDofs);
 
         for (int i=0; i<nDofs; i++)
-            localSolution[i] = sol[this->basis_.index(*it,i)];
+            localSolution[i] = sol[localIndexSet.index(i)[0]];
 
         // Assemble local gradient
         std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
 
         this->localStiffness_->assembleGradient(*it,
-                                                this->basis_.getLocalFiniteElement(*it),
+                                                localView.tree().finiteElement(),
                                                 localSolution,
                                                 localGradient);
 
         // Add to global gradient
         for (int i=0; i<nDofs; i++)
-            grad[this->basis_.index(*it,i)] += localGradient[i];
+            grad[localIndexSet.index(i)[0]] += localGradient[i];
 
     }
 

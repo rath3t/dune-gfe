@@ -18,15 +18,19 @@
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
-template<class GridView,
-         class LocalFiniteElement0, class TargetSpace0,
-         class LocalFiniteElement1, class TargetSpace1>
+template<class Basis0, class TargetSpace0,
+         class Basis1, class TargetSpace1>
 class MixedLocalGFEADOLCStiffness
-    : public MixedLocalGeodesicFEStiffness<GridView,
-                                           LocalFiniteElement0,TargetSpace0,
-                                           LocalFiniteElement1,TargetSpace1>
+    : public MixedLocalGeodesicFEStiffness<Basis0,TargetSpace0,
+                                           Basis1,TargetSpace1>
 {
+    static_assert(std::is_same<typename Basis0::GridView, typename Basis1::GridView>::value,
+                  "Basis0 and Basis1 must be designed on the same GridView!");
+
     // grid types
+    typedef typename Basis0::GridView GridView;
+    typedef typename Basis0::LocalView::Tree::FiniteElement LocalFiniteElement0;
+    typedef typename Basis1::LocalView::Tree::FiniteElement LocalFiniteElement1;
     typedef typename GridView::Grid::ctype DT;
     typedef typename TargetSpace0::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -48,9 +52,8 @@ public:
     enum { embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension };
     enum { embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension };
 
-    MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<GridView,
-                                                               LocalFiniteElement0, ATargetSpace0,
-                                                               LocalFiniteElement1, ATargetSpace1>* energy)
+    MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis0, ATargetSpace0,
+                                                                    Basis1, ATargetSpace1>* energy)
     : localEnergy_(energy)
     {}
 
@@ -82,14 +85,14 @@ public:
                                             std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                                             std::vector<typename TargetSpace1::TangentVector>& localGradient1);
 
-    const MixedLocalGeodesicFEStiffness<GridView, LocalFiniteElement0, ATargetSpace0, LocalFiniteElement1, ATargetSpace1>* localEnergy_;
+    const MixedLocalGeodesicFEStiffness<Basis0, ATargetSpace0, Basis1, ATargetSpace1>* localEnergy_;
 
 };
 
 
-template <class GridView, class LocalFiniteElement0, class TargetSpace0, class LocalFiniteElement1, class TargetSpace1>
-typename MixedLocalGFEADOLCStiffness<GridView, LocalFiniteElement0, TargetSpace0, LocalFiniteElement1, TargetSpace1>::RT
-MixedLocalGFEADOLCStiffness<GridView, LocalFiniteElement0, TargetSpace0, LocalFiniteElement1, TargetSpace1>::
+template <class Basis0, class TargetSpace0, class Basis1, class TargetSpace1>
+typename MixedLocalGFEADOLCStiffness<Basis0, TargetSpace0, Basis1, TargetSpace1>::RT
+MixedLocalGFEADOLCStiffness<Basis0, TargetSpace0, Basis1, TargetSpace1>::
 energy(const Entity& element,
        const LocalFiniteElement0& localFiniteElement0,
        const std::vector<TargetSpace0>& localConfiguration0,
@@ -198,8 +201,8 @@ assembleGradient(const Entity& element,
 //   To compute the Hessian we need to compute the gradient anyway, so we may
 //   as well return it.  This saves assembly time.
 // ///////////////////////////////////////////////////////////
-template <class GridType, class LocalFiniteElement0, class TargetSpace0, class LocalFiniteElement1, class TargetSpace1>
-void MixedLocalGFEADOLCStiffness<GridType, LocalFiniteElement0, TargetSpace0, LocalFiniteElement1, TargetSpace1>::
+template <class Basis0, class TargetSpace0, class Basis1, class TargetSpace1>
+void MixedLocalGFEADOLCStiffness<Basis0, TargetSpace0, Basis1, TargetSpace1>::
 assembleGradientAndHessian(const Entity& element,
                            const LocalFiniteElement0& localFiniteElement0,
                            const std::vector<TargetSpace0>& localConfiguration0,

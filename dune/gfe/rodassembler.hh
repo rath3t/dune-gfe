@@ -14,7 +14,7 @@
 
 /** \brief The FEM operator for an extensible, shearable rod in 3d
  */
-template <class GridView, int spaceDim>
+template <class Basis, int spaceDim>
 class RodAssembler
 {
     static_assert(spaceDim==2 || spaceDim==3,
@@ -23,12 +23,11 @@ class RodAssembler
 
 /** \brief The FEM operator for an extensible, shearable rod in 3d
  */
-template <class GridView>
-class RodAssembler<GridView,3> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,3> >
+template <class Basis>
+class RodAssembler<Basis,3> : public GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >
 {
+  typedef typename Basis::GridView GridView;
 
-    //typedef typename GridType::template Codim<0>::Entity EntityType;
-    //typedef typename GridType::template Codim<0>::EntityPointer EntityPointer;
     typedef typename GridView::template Codim<0>::Iterator ElementIterator;
 
         //! Dimension of the grid.  This needs to be one!
@@ -44,18 +43,18 @@ class RodAssembler<GridView,3> : public GeodesicFEAssembler<P1NodalBasis<GridVie
 
 public:
         //! ???
-    RodAssembler(const GridView &gridView,
+    RodAssembler(const Basis& basis,
                  RodLocalStiffness<GridView,double>* localStiffness)
-        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,3> >(gridView,localStiffness)
+        : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,localStiffness)
         {
-            std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(gridDim));
+            std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.indexSet().size());
 
-            typename GridView::template Codim<gridDim>::Iterator it    = gridView.template begin<gridDim>();
-            typename GridView::template Codim<gridDim>::Iterator endIt = gridView.template end<gridDim>();
+            auto it    = basis.gridView().template begin<gridDim>();
+            auto endIt = basis.gridView().template end<gridDim>();
 
             for (; it != endIt; ++it) {
 
-                int idx = gridView.indexSet().index(*it);
+                int idx = basis.gridView().indexSet().index(*it);
 
                 referenceConfiguration[idx].r[0] = 0;
                 referenceConfiguration[idx].r[1] = 0;
@@ -91,10 +90,11 @@ public:
 
 /** \brief The FEM operator for a 2D extensible, shearable rod
  */
-template <class GridView>
-class RodAssembler<GridView,2> : public GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,2> >
+template <class Basis>
+class RodAssembler<Basis,2> : public GeodesicFEAssembler<Basis, RigidBodyMotion<double,2> >
 {
 
+    typedef typename Basis::GridView GridView;
     typedef typename GridView::template Codim<0>::Entity EntityType;
     typedef typename GridView::template Codim<0>::Iterator ElementIterator;
 
@@ -118,7 +118,7 @@ public:
 
     //! ???
     RodAssembler(const GridView &gridView)
-        : GeodesicFEAssembler<P1NodalBasis<GridView>, RigidBodyMotion<double,2> >(gridView,NULL)
+        : GeodesicFEAssembler<Basis, RigidBodyMotion<double,2> >(gridView,NULL)
     {
         B = 1;
         A1 = 1;

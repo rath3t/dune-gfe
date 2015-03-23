@@ -7,17 +7,16 @@
 #include <dune/istl/io.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
+#include <dune/fufem/assemblers/basisinterpolationmatrixassembler.hh>
 
 // Using a monotone multigrid as the inner solver
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
-#if defined THIRD_ORDER || defined SECOND_ORDER
-#include <dune/gfe/pktop1mgtransfer.hh>
-#endif
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include "maxnormtrustregion.hh"
@@ -135,11 +134,16 @@ setup(const GridType& grid,
     mmgStep1->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType1>();
     mmgStep1->verbosity_         = Solver::FULL;
 
-#if 0
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
+    typedef DuneFunctionsBasis<Basis0> FufemBasis0;
+    FufemBasis0 basis0(grid.leafGridView());
 
+    typedef DuneFunctionsBasis<Basis1> FufemBasis1;
+    FufemBasis1 basis1(grid.leafGridView());
+
+#if 0
     BasisType basis(grid.leafGridView());
     OperatorAssembler<BasisType,BasisType> operatorAssembler(basis, basis);
 
@@ -189,47 +193,27 @@ setup(const GridType& grid,
     mmgStep0->mgTransfer_.resize(numLevels-1);
     mmgStep1->mgTransfer_.resize(numLevels-1);
 
-    if (assembler->basis0_.getLocalFiniteElement(*grid.leafGridView().template begin<0>()).localBasis().order() > 1)
+    if (basis0.getLocalFiniteElement(*grid.leafGridView().template begin<0>()).localBasis().order() > 1)
     {
       if (numLevels>1) {
+        typedef typename TruncatedCompressedMGTransfer<CorrectionType0>::TransferOperatorType TransferOperatorType;
         P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
 
-        PKtoP1MGTransfer<CorrectionType0>* topTransferOp0 = new PKtoP1MGTransfer<CorrectionType0>;
-        topTransferOp0->setup(assembler->basis0_,p1Basis);
-        #if 1
-        mmgStep0->mgTransfer_.back() = topTransferOp0;
-        #else
-        // If we are on more than 1 processors, join all local transfer matrices on rank 0,
-        // and construct a single global transfer operator there.
-        typedef GlobalUniqueIndex<typename GridType::LeafGridView, gridDim> LeafP1GUIndex;
-        LeafP1GUIndex p1Index(grid_->leafGridView());
+        TransferOperatorType pkToP1TransferMatrix;
+        assembleBasisInterpolationMatrix<TransferOperatorType,
+                                         P1NodalBasis<typename GridType::LeafGridView,double>,
+                                         FufemBasis0>(pkToP1TransferMatrix,p1Basis,assembler->basis0_);
 
-        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        MatrixCommunicator<GUIndex, TransferOperatorType, LeafP1GUIndex> matrixComm(*guIndex_, p1Index, 0);
+        mmgStep0->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType0>;
+        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
+        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType0>*>(mmgStep0->mgTransfer_.back())->setMatrix(topTransferOperator);
 
-        mmgStep->mgTransfer_.back() = new PKtoP1MGTransfer<CorrectionType>
-        (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(topTransferOp->getMatrix())));
-        #endif
-        for (int i=0; i<mmgStep0->mgTransfer_.size()-1; i++){
+        for (size_t i=0; i<mmgStep0->mgTransfer_.size()-1; i++){
           // Construct the local multigrid transfer matrix
           TruncatedCompressedMGTransfer<CorrectionType0>* newTransferOp0 = new TruncatedCompressedMGTransfer<CorrectionType0>;
           newTransferOp0->setup(*grid_,i+1,i+2);
 
-          #if 1
           mmgStep0->mgTransfer_[i] = newTransferOp0;
-          #else
-          // If we are on more than 1 processors, join all local transfer matrices on rank 0,
-          // and construct a single global transfer operator there.
-          typedef GlobalUniqueIndex<typename GridType::LevelGridView, gridDim> LevelGUIndex;
-          LevelGUIndex fineGUIndex(grid_->levelGridView(i+2));
-          LevelGUIndex coarseGUIndex(grid_->levelGridView(i+1));
-
-          typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-          MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
-
-          mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
-          (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix())));
-          #endif
         }
 
       }
@@ -244,35 +228,27 @@ setup(const GridType& grid,
         TruncatedCompressedMGTransfer<CorrectionType0>* newTransferOp0 = new TruncatedCompressedMGTransfer<CorrectionType0>;
         newTransferOp0->setup(*grid_,i,i+1);
 
-        #if 1
         mmgStep0->mgTransfer_[i] = newTransferOp0;
-        #else
-        // If we are on more than 1 processors, join all local transfer matrices on rank 0,
-        // and construct a single global transfer operator there.
-        typedef GlobalUniqueIndex<typename GridType::LevelGridView, gridDim> LevelGUIndex;
-        LevelGUIndex fineGUIndex(grid_->levelGridView(i+1));
-        LevelGUIndex coarseGUIndex(grid_->levelGridView(i));
-
-        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        MatrixCommunicator<LevelGUIndex, TransferOperatorType> matrixComm(fineGUIndex, coarseGUIndex, 0);
-
-        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>
-        (Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix())));
-        #endif
       }
 
     }
 
-    if (assembler->basis1_.getLocalFiniteElement(*grid.leafGridView().template begin<0>()).localBasis().order() > 1)
+    if (basis1.getLocalFiniteElement(*grid.leafGridView().template begin<0>()).localBasis().order() > 1)
     {
       if (numLevels>1) {
+        typedef typename TruncatedCompressedMGTransfer<CorrectionType1>::TransferOperatorType TransferOperatorType;
         P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
 
-        PKtoP1MGTransfer<CorrectionType1>* topTransferOp1 = new PKtoP1MGTransfer<CorrectionType1>;
-        topTransferOp1->setup(assembler->basis1_,p1Basis);
-        mmgStep1->mgTransfer_.back() = topTransferOp1;
+        TransferOperatorType pkToP1TransferMatrix;
+        assembleBasisInterpolationMatrix<TransferOperatorType,
+                                         P1NodalBasis<typename GridType::LeafGridView,double>,
+                                         FufemBasis1>(pkToP1TransferMatrix,p1Basis,assembler->basis1_);
 
-        for (int i=0; i<mmgStep1->mgTransfer_.size()-1; i++){
+        mmgStep0->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType1>;
+        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
+        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType1>*>(mmgStep1->mgTransfer_.back())->setMatrix(topTransferOperator);
+
+        for (size_t i=0; i<mmgStep1->mgTransfer_.size()-1; i++){
           // Construct the local multigrid transfer matrix
           TruncatedCompressedMGTransfer<CorrectionType1>* newTransferOp1 = new TruncatedCompressedMGTransfer<CorrectionType1>;
           newTransferOp1->setup(*grid_,i+1,i+2);
@@ -303,8 +279,8 @@ setup(const GridType& grid,
       #if 0
       hasObstacle0_.resize(guIndex_->nGlobalEntity(), true);
       #else
-      hasObstacle0_.resize(assembler->basis0_.size(), true);
-      hasObstacle1_.resize(assembler->basis1_.size(), true);
+      hasObstacle0_.resize(assembler->basis0_.indexSet().size(), true);
+      hasObstacle1_.resize(assembler->basis1_.indexSet().size(), true);
       #endif
       mmgStep0->hasObstacle_ = &hasObstacle0_;
       mmgStep1->hasObstacle_ = &hasObstacle1_;
@@ -323,15 +299,9 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
     Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
     int rank = grid_->comm().rank();
 
-    MonotoneMGStep<MatrixType00,CorrectionType0>* mgStep0 = nullptr;
-
-    // if the inner solver is a monotone multigrid set up a max-norm trust-region
-    if (dynamic_cast<LoopSolver<CorrectionType0>*>(innerSolver_.get()))
-        mgStep0 = dynamic_cast<MonotoneMGStep<MatrixType00,CorrectionType0>*>(dynamic_cast<LoopSolver<CorrectionType0>*>(innerSolver_.get())->iterationStep_);
-
     // \todo Use global index set instead of basis for parallel computations
-    MaxNormTrustRegion<blocksize0> trustRegion0(assembler_->basis0_.size(), initialTrustRegionRadius_);
-    MaxNormTrustRegion<blocksize1> trustRegion1(assembler_->basis1_.size(), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize0> trustRegion0(assembler_->basis0_.indexSet().size(), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize1> trustRegion1(assembler_->basis1_.indexSet().size(), initialTrustRegionRadius_);
 
     std::vector<BoxConstraint<field_type,blocksize0> > trustRegionObstacles0;
     std::vector<BoxConstraint<field_type,blocksize1> > trustRegionObstacles1;
@@ -607,10 +577,12 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         }
 
         // Output each iterate, to better understand what the algorithm does
+        DuneFunctionsBasis<Basis0> fufemBasis0(assembler_->basis0_);
+        DuneFunctionsBasis<Basis1> fufemBasis1(assembler_->basis1_);
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        CosseratVTKWriter<GridType>::template writeMixed<Basis0,Basis1>(assembler_->basis0_,x0_,
-                                                                        assembler_->basis1_,x1_,
+        CosseratVTKWriter<GridType>::template writeMixed<DuneFunctionsBasis<Basis0>, DuneFunctionsBasis<Basis1> >(fufemBasis0,x0_,
+                                                                        fufemBasis1,x1_,
                                                                         "mixed-cosserat_iterate_" + iAsAscii.str());
 
         if (rank==0)

@@ -4,16 +4,15 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 #include <dune/geometry/quadraturerules.hh>
-#include <dune/localfunctions/lagrange/p1.hh>
 
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
 #include "localgeodesicfestiffness.hh"
 #include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
 class RodLocalStiffness
-    : public LocalGeodesicFEStiffness<GridView, typename P1NodalBasis<GridView>::LocalFiniteElement, RigidBodyMotion<RT,3> >
+    : public LocalGeodesicFEStiffness<Dune::Functions::PQKNodalBasis<GridView,1>, RigidBodyMotion<RT,3> >
 {
     typedef RigidBodyMotion<RT,3> TargetSpace;
 
@@ -102,7 +101,7 @@ public:
                        const Dune::array<RigidBodyMotion<RT,3>, dim+1>& localSolution) const;
 
     virtual RT energy (const Entity& e,
-                       const typename P1NodalBasis<GridView>::LocalFiniteElement& localFiniteElement,
+                       const typename Dune::Functions::PQKNodalBasis<GridView,1>::LocalView::Tree::FiniteElement& localFiniteElement,
                        const std::vector<RigidBodyMotion<RT,3> >& localSolution) const
     {
         assert(localSolution.size()==2);

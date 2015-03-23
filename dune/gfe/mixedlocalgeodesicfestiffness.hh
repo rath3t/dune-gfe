@@ -7,12 +7,17 @@
 #include <dune/istl/matrix.hh>
 
 
-template<class GridView,
-         class DeformationLocalFiniteElement, class DeformationTargetSpace,
-         class OrientationLocalFiniteElement, class OrientationTargetSpace>
+template<class DeformationBasis, class DeformationTargetSpace,
+         class OrientationBasis, class OrientationTargetSpace>
 class MixedLocalGeodesicFEStiffness
 {
+    static_assert(std::is_same<typename DeformationBasis::GridView, typename OrientationBasis::GridView>::value,
+                  "DeformationBasis and OrientationBasis must be designed on the same GridView!");
+
     // grid types
+    typedef typename DeformationBasis::LocalView::Tree::FiniteElement DeformationLocalFiniteElement;
+    typedef typename OrientationBasis::LocalView::Tree::FiniteElement OrientationLocalFiniteElement;
+    typedef typename DeformationBasis::GridView GridView;
     typedef typename GridView::Grid::ctype DT;
     typedef typename DeformationTargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;

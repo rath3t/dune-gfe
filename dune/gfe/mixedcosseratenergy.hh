@@ -20,14 +20,16 @@
 //#define QUADRATIC_MEMBRANE_ENERGY
 
 
-template<class GridView, class DisplacementLocalFiniteElement, class OrientationLocalFiniteElement, int dim, class field_type=double>
+template<class DisplacementBasis, class OrientationBasis, int dim, class field_type=double>
 class MixedCosseratEnergy
-    : public MixedLocalGeodesicFEStiffness<GridView,
-                                           DisplacementLocalFiniteElement,RealTuple<field_type,dim>,
-                                           OrientationLocalFiniteElement,Rotation<field_type,dim> >
+    : public MixedLocalGeodesicFEStiffness<DisplacementBasis,RealTuple<field_type,dim>,
+                                           OrientationBasis,Rotation<field_type,dim> >
 {
     // grid types
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename DisplacementBasis::LocalView::Tree::FiniteElement DisplacementLocalFiniteElement;
+    typedef typename OrientationBasis::LocalView::Tree::FiniteElement OrientationLocalFiniteElement;
+    typedef typename DisplacementBasis::GridView GridView;
+    typedef typename GridView::ctype DT;
     typedef field_type RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -263,11 +265,11 @@ public:
     const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction_;
 };
 
-template <class GridView, class DeformationLocalFiniteElement, class OrientationLocalFiniteElement, int dim, class field_type>
-typename MixedCosseratEnergy<GridView,DeformationLocalFiniteElement,OrientationLocalFiniteElement,dim,field_type>::RT
-MixedCosseratEnergy<GridView,DeformationLocalFiniteElement,OrientationLocalFiniteElement,dim,field_type>::
+template <class DeformationBasis, class OrientationBasis, int dim, class field_type>
+typename MixedCosseratEnergy<DeformationBasis,OrientationBasis,dim,field_type>::RT
+MixedCosseratEnergy<DeformationBasis,OrientationBasis,dim,field_type>::
 energy(const Entity& element,
-       const DeformationLocalFiniteElement& deformationLocalFiniteElement,
+       const DisplacementLocalFiniteElement& deformationLocalFiniteElement,
        const std::vector<RealTuple<field_type,dim> >& localDeformationConfiguration,
        const OrientationLocalFiniteElement& orientationLocalFiniteElement,
        const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const
@@ -278,7 +280,7 @@ energy(const Entity& element,
 
     RT energy = 0;
 
-    typedef LocalGeodesicFEFunction<gridDim, DT, DeformationLocalFiniteElement, RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
+    typedef LocalGeodesicFEFunction<gridDim, DT, DisplacementLocalFiniteElement, RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
     LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
 
     typedef LocalGeodesicFEFunction<gridDim, DT, OrientationLocalFiniteElement, Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
@@ -363,20 +365,20 @@ energy(const Entity& element,
     if (not neumannFunction_)
         return energy;
 
-    for (typename Entity::LeafIntersectionIterator it = element.ileafbegin(); it != element.ileafend(); ++it) {
-
-        if (not neumannBoundary_ or not neumannBoundary_->contains(*it))
+    for (auto&& it : intersections(neumannBoundary_->gridView(),element) )
+    {
+        if (not neumannBoundary_ or not neumannBoundary_->contains(it))
             continue;
 
         const Dune::QuadratureRule<DT, gridDim-1>& quad
-            = Dune::QuadratureRules<DT, gridDim-1>::rule(it->type(), quadOrder);
+            = Dune::QuadratureRules<DT, gridDim-1>::rule(it.type(), quadOrder);
 
         for (size_t pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
-            const Dune::FieldVector<DT,gridDim>& quadPos = it->geometryInInside().global(quad[pt].position());
+            const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());
 
-            const DT integrationElement = it->geometry().integrationElement(quad[pt].position());
+            const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
 
             // The value of the local function
             RealTuple<field_type,dim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
@@ -387,7 +389,7 @@ energy(const Entity& element,
             if (dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_))
                 dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
             else
-                neumannFunction_->evaluate(it->geometry().global(quad[pt].position()), neumannValue);
+                neumannFunction_->evaluate(it.geometry().global(quad[pt].position()), neumannValue);
 
             // Only translational dofs are affected by the Neumann force
             for (size_t i=0; i<neumannValue.size(); i++)
@@ -400,5 +402,5 @@ energy(const Entity& element,
     return energy;
 }
 
-#endif   //#ifndef COSSERAT_ENERGY_LOCAL_STIFFNESS_HH
+#endif   //#ifndef DUNE_GFE_MIXEDCOSSERATENERGY_HH
 
