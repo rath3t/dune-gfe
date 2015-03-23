@@ -1,7 +1,5 @@
 #include <config.h>
 
-#define HAVE_CSTDDEF
-
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>

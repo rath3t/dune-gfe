@@ -1,8 +1,5 @@
 #include <config.h>
 
-// Hack to make IPOpt happy.  No idea why the build system doesn't properly handle this
-#define HAVE_CSTDDEF
-
 #define SECOND_ORDER
 
 #include <fenv.h>
