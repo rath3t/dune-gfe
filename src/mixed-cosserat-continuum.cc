@@ -13,7 +13,8 @@
 #include <adolc/drivers/drivers.h>    // use of "Easy to Use" drivers
 #include <adolc/taping.h>
 
-#include <dune/gfe/adolcnamespaceinjections.hh>
+#include <dune/fufem/utilities/adolcnamespaceinjections.hh>
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>

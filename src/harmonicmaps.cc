@@ -8,7 +8,7 @@
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
-#include <dune/gfe/adolcnamespaceinjections.hh>
+#include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>

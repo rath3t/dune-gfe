@@ -7,7 +7,7 @@
 #include <adolc/interfaces.h>    // use of "Easy to Use" drivers
 #include <adolc/taping.h>             // use of taping
 
-#include <dune/gfe/adolcnamespaceinjections.hh>
+#include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
