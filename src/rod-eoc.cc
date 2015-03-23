@@ -1,5 +1,7 @@
 #include <config.h>
 
+#define HAVE_CSTDDEF
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -7,6 +9,8 @@
 #include <dune/grid/onedgrid.hh>
 
 #include <dune/istl/io.hh>
+
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
@@ -54,6 +58,14 @@ void solve (const GridType& grid,
     const double E               = parameters.get<double>("E");
     const double nu              = parameters.get<double>("nu");
 
+    // Create a function space basis
+    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
+    FEBasis feBasis(grid.leafGridView());
+
+    // Transitional: the same basis as a dune-fufem object
+    typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
+    FufemFEBasis fufemFeBasis(feBasis);
+
     //   Create a local assembler
     RodLocalStiffness<OneDGrid::LeafGridView,double> localStiffness(grid.leafGridView(),
                                                                     A, J1, J2, E, nu);
@@ -87,9 +99,9 @@ void solve (const GridType& grid,
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
 
-    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafGridView(), &localStiffness);
+    RodAssembler<FEBasis,3> rodAssembler(feBasis, &localStiffness);
 
-    RiemannianTrustRegionSolver<GridType,RigidBodyMotion<double,3> > rodSolver;
+    RiemannianTrustRegionSolver<FEBasis,RigidBodyMotion<double,3> > rodSolver;
 #if 1
     rodSolver.setup(grid,
                     &rodAssembler,

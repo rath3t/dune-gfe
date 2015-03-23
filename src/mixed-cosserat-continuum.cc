@@ -25,11 +25,12 @@
 
 #include <dune/grid/io/file/gmshreader.hh>
 
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -246,13 +247,22 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-    typedef P3NodalBasis<GridView,double> DeformationFEBasis;
-    typedef P2NodalBasis<GridView,double> OrientationFEBasis;
+    typedef Dune::Functions::PQKNodalBasis<GridView,3> DeformationFEBasis;
+    typedef Dune::Functions::PQKNodalBasis<GridView,2> OrientationFEBasis;
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
 
-    std::cout << "Deformation: " << deformationFEBasis.size() << ",   orientation: " << orientationFEBasis.size() << std::endl;
+    // Construct fufem-style function space bases to ease the transition to dune-functions
+    typedef DuneFunctionsBasis<DeformationFEBasis> FufemDeformationFEBasis;
+    FufemDeformationFEBasis fufemDeformationFEBasis(deformationFEBasis);
+
+    typedef DuneFunctionsBasis<OrientationFEBasis> FufemOrientationFEBasis;
+    FufemOrientationFEBasis fufemOrientationFEBasis(orientationFEBasis);
+
+
+
+    std::cout << "Deformation: " << deformationFEBasis.indexSet().size() << ",   orientation: " << orientationFEBasis.indexSet().size() << std::endl;
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -294,20 +304,20 @@ int main (int argc, char *argv[]) try
       std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
 
-    BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,deformationFEBasis,deformationDirichletNodes);
+    BitSetVector<1> deformationDirichletNodes(deformationFEBasis.indexSet().size(), false);
+    constructBoundaryDofs(dirichletBoundary,fufemDeformationFEBasis,deformationDirichletNodes);
 
-    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
-    for (size_t i=0; i<deformationFEBasis.size(); i++)
+    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.indexSet().size(), false);
+    for (size_t i=0; i<deformationFEBasis.indexSet().size(); i++)
       if (deformationDirichletNodes[i][0])
         for (int j=0; j<3; j++)
           deformationDirichletDofs[i][j] = true;
 
-    BitSetVector<1> orientationDirichletNodes(orientationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,orientationFEBasis,orientationDirichletNodes);
+    BitSetVector<1> orientationDirichletNodes(orientationFEBasis.indexSet().size(), false);
+    constructBoundaryDofs(dirichletBoundary,fufemOrientationFEBasis,orientationDirichletNodes);
 
-    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
-    for (size_t i=0; i<orientationFEBasis.size(); i++)
+    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.indexSet().size(), false);
+    for (size_t i=0; i<orientationFEBasis.indexSet().size(); i++)
       if (orientationDirichletNodes[i][0])
         for (int j=0; j<3; j++)
           orientationDirichletDofs[i][j] = true;
@@ -316,18 +326,18 @@ int main (int argc, char *argv[]) try
     //   Initial iterate
     // //////////////////////////
 
-    DeformationSolutionType xDisp(deformationFEBasis.size());
+    DeformationSolutionType xDisp(deformationFEBasis.indexSet().size());
 
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
 
     std::vector<FieldVector<double,3> > v;
-    Functions::interpolate(deformationFEBasis, v, pythonInitialDeformation);
+    ::Functions::interpolate(fufemDeformationFEBasis, v, pythonInitialDeformation);
 
     for (size_t i=0; i<xDisp.size(); i++)
       xDisp[i] = v[i];
 
-    OrientationSolutionType xOrient(orientationFEBasis.size());
+    OrientationSolutionType xOrient(orientationFEBasis.indexSet().size());
 #if 0
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
@@ -343,8 +353,8 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
-    CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,xDisp,
-                                                                                   orientationFEBasis,xOrient,
+    CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,xDisp,
+                                                                                             fufemOrientationFEBasis,xOrient,
                                                                                    resultPath + "mixed-cosserat_homotopy_0");
 
     for (int i=0; i<numHomotopySteps; i++) {
@@ -372,17 +382,15 @@ int main (int argc, char *argv[]) try
         }
 
     // Assembler using ADOL-C
-    MixedCosseratEnergy<GridView,
-                        DeformationFEBasis::LocalFiniteElement,
-                        OrientationFEBasis::LocalFiniteElement,
+    MixedCosseratEnergy<DeformationFEBasis,
+                        OrientationFEBasis,
                         3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                      &neumannBoundary,
                                                                      neumannFunction.get());
 
-    MixedLocalGFEADOLCStiffness<GridView,
-                                DeformationFEBasis::LocalFiniteElement,
+    MixedLocalGFEADOLCStiffness<DeformationFEBasis,
                                 RealTuple<double,3>,
-                                OrientationFEBasis::LocalFiniteElement,
+                                OrientationFEBasis,
                                 Rotation<double,3> > localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
     MixedGFEAssembler<DeformationFEBasis,
@@ -439,10 +447,10 @@ int main (int argc, char *argv[]) try
         PythonFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> > orientationDirichletValues(main.get("orientationDirichletValues"));
 
         std::vector<FieldVector<double,3> > ddV;
-        Functions::interpolate(deformationFEBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
+        ::Functions::interpolate(fufemDeformationFEBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
 
         std::vector<FieldMatrix<double,3,3> > dOV;
-        Functions::interpolate(orientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
+        ::Functions::interpolate(fufemOrientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
 
         for (size_t j=0; j<xDisp.size(); j++)
           if (deformationDirichletNodes[j][0])
@@ -464,8 +472,8 @@ int main (int argc, char *argv[]) try
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,xDisp,
-                                                                                       orientationFEBasis,xOrient,
+        CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,xDisp,
+                                                                                       fufemOrientationFEBasis,xOrient,
                                                                                        resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
 
     }

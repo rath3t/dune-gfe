@@ -1,5 +1,7 @@
 #include <config.h>
 
+#define HAVE_CSTDDEF
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -45,9 +47,9 @@ void setTrustRegionObstacles(double trustRegionRadius,
                 (trueObstacles[j].lower(k) < -1e10)
                 ? std::min(-trustRegionRadius, trueObstacles[j].upper(k) - trustRegionRadius)
                 : trueObstacles[j].lower(k);
-                
+
             trustRegionObstacles[j].upper(k) =
-                (trueObstacles[j].upper(k) >  1e10) 
+                (trueObstacles[j].upper(k) >  1e10)
                 ? std::max(trustRegionRadius,trueObstacles[j].lower(k) + trustRegionRadius)
                 : trueObstacles[j].upper(k);
 
@@ -88,10 +90,10 @@ int main (int argc, char *argv[]) try
     const int baseIt           = parameterSet.get<int>("baseIt");
     const double tolerance     = parameterSet.get<double>("tolerance");
     const double baseTolerance = parameterSet.get<double>("baseTolerance");
-    
+
     // Problem settings
     const int numRodBaseElements = parameterSet.get<int>("numRodBaseElements");
-    
+
     // ///////////////////////////////////////
     //    Create the two grids
     // ///////////////////////////////////////
@@ -101,7 +103,7 @@ int main (int argc, char *argv[]) try
     grid.globalRefine(minLevel);
 
     std::vector<std::vector<BoxConstraint<double,3> > > trustRegionObstacles(minLevel+1);
-    std::vector<BitSetVector<1> > hasObstacle(minLevel+1);
+    std::vector<BitSetVector<3> > hasObstacle(minLevel+1);
     BitSetVector<blocksize> dirichletNodes;
 
     // ////////////////////////////////
@@ -123,7 +125,7 @@ int main (int argc, char *argv[]) try
     ProjectedBlockGSStep<MatrixType, CorrectionType> presmoother;
     ProjectedBlockGSStep<MatrixType, CorrectionType> postsmoother;
 
-    MonotoneMGStep<MatrixType, CorrectionType> multigridStep(1);
+    MonotoneMGStep<MatrixType, CorrectionType> multigridStep;
 
     multigridStep.setMGType(mu, nu1, nu2);
     multigridStep.ignoreNodes_       = &dirichletNodes;
@@ -163,16 +165,16 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////////////////////////////////
     //   Refinement Loop
     // /////////////////////////////////////////////////////////////////////
-    
+
     for (int toplevel=minLevel; toplevel<=maxLevel; toplevel++) {
-        
+
         std::cout << "####################################################" << std::endl;
         std::cout << "      Solving on level: " << toplevel << std::endl;
         std::cout << "####################################################" << std::endl;
-    
+
         dirichletNodes.resize( grid.size(1) );
         dirichletNodes.unsetAll();
-            
+
         dirichletNodes[0]     = true;
         dirichletNodes.back() = true;
 
@@ -183,41 +185,41 @@ int main (int argc, char *argv[]) try
 
         MatrixType hessianMatrix;
         RodAssembler<GridType::LeafGridView,2> rodAssembler(grid.leafGridView());
-        
+
         rodAssembler.setParameters(1, 350000, 350000);
-        
+
         MatrixIndexSet indices(grid.size(toplevel,1), grid.size(toplevel,1));
         rodAssembler.getNeighborsPerVertex(indices);
         indices.exportIdx(hessianMatrix);
-        
+
         rhs.resize(grid.size(toplevel,1));
         corr.resize(grid.size(toplevel,1));
-    
+
 
         // //////////////////////////////////////////////////////////
         //   Create obstacles
         // //////////////////////////////////////////////////////////
-        
+
         hasObstacle.resize(toplevel+1);
         for (int i=0; i<hasObstacle.size(); i++) {
             hasObstacle[i].resize(grid.size(i, 1));
             hasObstacle[i].setAll();
         }
-        
+
         std::vector<std::vector<BoxConstraint<double,3> > > trueObstacles(toplevel+1);
         trustRegionObstacles.resize(toplevel+1);
-        
+
         for (int i=0; i<toplevel+1; i++) {
             trueObstacles[i].resize(grid.size(i,1));
             trustRegionObstacles[i].resize(grid.size(i,1));
         }
-        
+
         for (int i=0; i<trueObstacles[toplevel].size(); i++) {
             trueObstacles[toplevel][i].clear();
             //trueObstacles[toplevel][i].val[0] =     - x[i][0];
             trueObstacles[toplevel][i].upper(0) = 0.1 - x[i].r[0];
         }
-        
+
 
         trustRegionObstacles.resize(toplevel+1);
         for (int i=0; i<=toplevel; i++)
@@ -248,17 +250,17 @@ int main (int argc, char *argv[]) try
         for (int i=0; i<maxNewtonSteps; i++) {
 
             std::cout << "-----------------------------------------------------------------------------" << std::endl;
-            std::cout << "      Trust-Region Step Number: " << i 
+            std::cout << "      Trust-Region Step Number: " << i
                       << ",     radius: " << trustRegionRadius
                       << ",     energy: " << rodAssembler.computeEnergy(x) << std::endl;
             std::cout << "-----------------------------------------------------------------------------" << std::endl;
 
             rhs = 0;
             corr = 0;
-            
+
             rodAssembler.assembleGradient(x, rhs);
             rodAssembler.assembleMatrix(x, hessianMatrix);
-            
+
             rhs *= -1;
 
             // Create trust-region obstacle on grid0.maxLevel()
@@ -292,18 +294,18 @@ int main (int argc, char *argv[]) try
              // ////////////////////////////////////////////////////
 
              SolutionType newIterate = x;
-             for (int j=0; j<newIterate.size(); j++) 
+             for (int j=0; j<newIterate.size(); j++)
                  newIterate[j] = RigidBodyMotion<double,2>::exp(newIterate[j], corr[j]);
 
              /** \todo Don't always recompute oldEnergy */
-             double oldEnergy = rodAssembler.computeEnergy(x); 
-             double energy    = rodAssembler.computeEnergy(newIterate); 
+             double oldEnergy = rodAssembler.computeEnergy(x);
+             double energy    = rodAssembler.computeEnergy(newIterate);
 
-             if (energy >= oldEnergy) 
+             if (energy >= oldEnergy)
                  DUNE_THROW(SolverError, "Richtung ist keine Abstiegsrichtung!");
-                 
+
              //  Add correction to the current solution
-             for (int j=0; j<x.size(); j++) 
+             for (int j=0; j<x.size(); j++)
                  x[j] = RigidBodyMotion<double,2>::exp(x[j], corr[j]);
 
              // Subtract correction from the current obstacle
@@ -311,31 +313,31 @@ int main (int argc, char *argv[]) try
                  trueObstacles[grid.maxLevel()][k] -= corr[k];
 
         }
-        
+
         // //////////////////////////////
         //   Output result
         // //////////////////////////////
-        
+
         // Write Lagrange multiplyers
         std::stringstream levelAsAscii;
         levelAsAscii << toplevel;
         std::string lagrangeFilename = "pressure/lagrange_" + levelAsAscii.str();
         std::ofstream lagrangeFile(lagrangeFilename.c_str());
-        
+
         CorrectionType lagrangeMultipliers;
         rodAssembler.assembleGradient(x, lagrangeMultipliers);
         lagrangeFile << lagrangeMultipliers << std::endl;
-        
+
         // Write result grid
         std::string solutionFilename = "solutions/rod_" + levelAsAscii.str() + ".result";
         writeRod(x, solutionFilename);
-        
+
         // ////////////////////////////////////////////////////////////////////////////
         //    Refine locally and transfer the current solution to the new leaf level
         // ////////////////////////////////////////////////////////////////////////////
-        
+
         GeometricEstimator<GridType> estimator;
-        
+
         estimator.estimate(grid, (toplevel<=minLevel) ? refineAll : refineCondition);
 
         std::cout << "  #### WARNING: function not transferred to the next level! #### " << std::endl;
