@@ -83,8 +83,6 @@ int main (int argc, char *argv[]) try
 
   // parse data file
   ParameterTree parameterSet;
-//     if (argc != 2)
-//       DUNE_THROW(Exception, "Usage: ./hencky-material <parameter file>");
 
   ParameterTreeParser::readINITree(argv[1], parameterSet);
 
@@ -138,7 +136,6 @@ int main (int argc, char *argv[]) try
   typedef GridType::LeafGridView GridView;
   GridView gridView = grid->leafGridView();
 
-//    typedef P1NodalBasis<GridView,double> FEBasis;
   typedef P1NodalBasis<GridView,double> FEBasis;
   FEBasis feBasis(gridView);
 
@@ -219,13 +216,10 @@ int main (int argc, char *argv[]) try
   {
     size_t idx = grid->leafGridView().indexSet().index(*it);
     displacement[idx] = x[idx] - it->geometry().corner(0);
-
-    //std::cout << "idx: " << idx << "   coordinate: " << it->geometry().corner(0) << std::endl;
   }
 
-  Dune::shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > > vtkDisplacement
-             = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
-                                (feBasis, displacement, "Displacement");
+  auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
+                                                               (feBasis, displacement, "Displacement");
   vtkWriter.addVertexData(vtkDisplacement);
   vtkWriter.write(resultPath + "hencky_homotopy_0");
 
@@ -330,9 +324,8 @@ int main (int argc, char *argv[]) try
     //   Output result
     /////////////////////////////////
 
-    Dune::shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > > vtkDisplacement
-           = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
-                                  (feBasis, displacement, "Displacement");
+    auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
+                                                                 (feBasis, displacement, "Displacement");
     vtkWriter.addVertexData(vtkDisplacement);
     vtkWriter.write(resultPath + "hencky_homotopy_" + std::to_string(i+1));
 
