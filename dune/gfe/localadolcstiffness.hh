@@ -45,8 +45,7 @@ public:
     /** \brief Compute the energy at the current configuration */
     virtual RT energy (const Entity& e,
                const LocalFiniteElement& localFiniteElement,
-               const VectorType& localConfiguration,
-               const std::vector<Dune::FieldVector<double,3> >& localPointLoads) const;
+               const VectorType& localConfiguration) const;
 
     /** \brief Assemble the local stiffness matrix at the current position
 
@@ -55,7 +54,6 @@ public:
     virtual void assembleGradientAndHessian(const Entity& e,
                          const LocalFiniteElement& localFiniteElement,
                          const VectorType& localConfiguration,
-                         const std::vector<Dune::FieldVector<double,3> >& localPointLoads,
                          VectorType& localGradient);
 
     const LocalFEStiffness<GridView, LocalFiniteElement, AVectorType>* localEnergy_;
@@ -68,8 +66,7 @@ typename LocalADOLCStiffness<GridView, LocalFiniteElement, VectorType>::RT
 LocalADOLCStiffness<GridView, LocalFiniteElement, VectorType>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
-       const VectorType& localSolution,
-       const std::vector<Dune::FieldVector<double,3> >& localPointLoads) const
+       const VectorType& localSolution) const
 {
     double pureEnergy;
 
@@ -83,7 +80,7 @@ energy(const Entity& element,
       for (size_t j=0; j<localSolution[i].size(); j++)
         localASolution[i][j] <<= localSolution[i][j];
 
-    energy = localEnergy_->energy(element,localFiniteElement,localASolution,localPointLoads);
+    energy = localEnergy_->energy(element,localFiniteElement,localASolution);
 
     energy >>= pureEnergy;
 
@@ -104,11 +101,10 @@ void LocalADOLCStiffness<GridType, LocalFiniteElement, VectorType>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const VectorType& localSolution,
-                const std::vector<Dune::FieldVector<double,3> >& localPointLoads,
                 VectorType& localGradient)
 {
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
-    energy(element, localFiniteElement, localSolution, localPointLoads);
+    energy(element, localFiniteElement, localSolution);
 
     /////////////////////////////////////////////////////////////////
     // Compute the energy gradient

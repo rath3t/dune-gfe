@@ -50,14 +50,12 @@ public:
      * anyway to compute the Riemannian Hessian.
      */
     virtual void assembleGradientAndHessian(const VectorType& sol,
-                                            const VectorType& pointLoads,
                                             Dune::BlockVector<Dune::FieldVector<double, blocksize> >& gradient,
                                             Dune::BCRSMatrix<MatrixBlock>& hessian,
                                             bool computeOccupationPattern=true) const;
 
     /** \brief Compute the energy of a deformation state */
-    virtual double computeEnergy(const VectorType& sol,
-                                 const VectorType& pointLoads) const;
+    virtual double computeEnergy(const VectorType& sol) const;
 
     //protected:
     void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
@@ -101,7 +99,6 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 template <class Basis, class VectorType>
 void FEAssembler<Basis,VectorType>::
 assembleGradientAndHessian(const VectorType& sol,
-                           const VectorType& pointLoads,
                            Dune::BlockVector<Dune::FieldVector<double, blocksize> >& gradient,
                            Dune::BCRSMatrix<MatrixBlock>& hessian,
                            bool computeOccupationPattern) const
@@ -130,15 +127,13 @@ assembleGradientAndHessian(const VectorType& sol,
         VectorType localSolution(numOfBaseFct);
         VectorType localPointLoads(numOfBaseFct);
 
-        for (int i=0; i<numOfBaseFct; i++) {
+        for (int i=0; i<numOfBaseFct; i++)
             localSolution[i]   = sol[basis_.index(*it,i)];
-            localPointLoads[i] = pointLoads[basis_.index(*it,i)];
-        }
 
         std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
 
         // setup local matrix and gradient
-        localStiffness_->assembleGradientAndHessian(*it, basis_.getLocalFiniteElement(*it), localSolution, localPointLoads, localGradient);
+        localStiffness_->assembleGradientAndHessian(*it, basis_.getLocalFiniteElement(*it), localSolution, localGradient);
 
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) {
@@ -164,12 +159,12 @@ assembleGradientAndHessian(const VectorType& sol,
 
 template <class Basis, class VectorType>
 double FEAssembler<Basis, VectorType>::
-computeEnergy(const VectorType& sol, const VectorType& pointLoads) const
+computeEnergy(const VectorType& sol) const
 {
     double energy = 0;
 
     if (sol.size()!=basis_.size())
-        DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
+        DUNE_THROW(Dune::Exception, "Solution vector doesn't match the basis!");
 
     ElementIterator it    = basis_.getGridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endIt = basis_.getGridView().template end<0,Dune::Interior_Partition>();
@@ -181,14 +176,11 @@ computeEnergy(const VectorType& sol, const VectorType& pointLoads) const
         size_t nDofs = basis_.getLocalFiniteElement(*it).localBasis().size();
 
         VectorType localSolution(nDofs);
-        VectorType localPointLoads(nDofs);
 
-        for (size_t i=0; i<nDofs; i++) {
+        for (size_t i=0; i<nDofs; i++)
             localSolution[i]   = sol[basis_.index(*it,i)];
-            localPointLoads[i] = pointLoads[basis_.index(*it,i)];
-        }
 
-        energy += localStiffness_->energy(*it, basis_.getLocalFiniteElement(*it), localSolution, localPointLoads);
+        energy += localStiffness_->energy(*it, basis_.getLocalFiniteElement(*it), localSolution);
 
     }
 

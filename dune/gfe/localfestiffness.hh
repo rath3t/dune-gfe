@@ -24,27 +24,16 @@ public:
     /** \brief Assemble the local stiffness matrix at the current position
 
     This default implementation used finite-difference approximations to compute the second derivatives
-
-    The formula for the Riemannian Hessian has been taken from Absil, Mahony, Sepulchre:
-    'Optimization algorithms on matrix manifolds', page 107.  There it says that
-    \f[
-        \langle Hess f(x)[\xi], \eta \rangle
-            = \frac 12 \frac{d^2}{dt^2} \Big(f(\exp_x(t(\xi + \eta))) - f(\exp_x(t\xi)) - f(\exp_x(t\eta))\Big)\Big|_{t=0}.
-    \f]
-    We compute that using a finite difference approximation.
-
     */
     virtual void assembleGradientAndHessian(const Entity& e,
                                  const LocalFiniteElement& localFiniteElement,
                                  const VectorType& localConfiguration,
-                                 const std::vector<Dune::FieldVector<double,3> >& localPointLoads,
                                  VectorType& localGradient);
 
     /** \brief Compute the energy at the current configuration */
     virtual RT energy (const Entity& e,
                        const LocalFiniteElement& localFiniteElement,
-                       const VectorType& localConfiguration,
-                       const std::vector<Dune::FieldVector<double,3> >& localPointLoads) const = 0;
+                       const VectorType& localConfiguration) const = 0;
 
     // assembled data
     Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> > A_;
@@ -60,7 +49,6 @@ void LocalFEStiffness<GridType, LocalFiniteElement, VectorType>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const VectorType& localConfiguration,
-                const std::vector<Dune::FieldVector<double,3> >& localPointLoads,
                 VectorType& localGradient)
 {
   DUNE_THROW(Dune::NotImplemented, "!");

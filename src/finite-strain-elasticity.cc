@@ -273,11 +273,6 @@ int main (int argc, char *argv[]) try
 
     FEAssembler<FEBasis,SolutionType> assembler(gridView, &localADOLCStiffness);
 
-    std::vector<FieldVector<double,3> > pointLoads(x.size());
-    std::fill(pointLoads.begin(), pointLoads.end(), 0);
-//     pointLoads[1372] = parameterSet.get<FieldVector<double,3> >("neumannValues");
-//     pointLoads[1372] *= 0.5;
-
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
@@ -294,8 +289,7 @@ int main (int argc, char *argv[]) try
                  mgTolerance,
                  mu, nu1, nu2,
                  baseIterations,
-                 baseTolerance,
-                 pointLoads
+                 baseTolerance
                 );
 
     solver.identity_ = identity;

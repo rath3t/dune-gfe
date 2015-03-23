@@ -37,8 +37,7 @@ setup(const typename BasisType::GridView::Grid& grid,
          int nu1,
          int nu2,
          int baseIterations,
-         double baseTolerance,
-         const SolutionType& pointLoads)
+         double baseTolerance)
 {
     grid_                     = &grid;
     assembler_                = assembler;
@@ -49,7 +48,6 @@ setup(const typename BasisType::GridView::Grid& grid,
     innerIterations_          = multigridIterations;
     innerTolerance_           = mgTolerance;
     ignoreNodes_              = &dirichletNodes;
-    pointLoads_               = pointLoads;
 
     int numLevels = grid_->maxLevel()+1;
 
@@ -206,7 +204,7 @@ void TrustRegionSolver<BasisType,VectorType>::solve()
     //   Trust-Region Solver
     // /////////////////////////////////////////////////////
 
-    double oldEnergy = assembler_->computeEnergy(x_, pointLoads_);
+    double oldEnergy = assembler_->computeEnergy(x_);
 
     bool recomputeGradientHessian = true;
     CorrectionType rhs;
@@ -228,7 +226,6 @@ void TrustRegionSolver<BasisType,VectorType>::solve()
         if (recomputeGradientHessian) {
 
             assembler_->assembleGradientAndHessian(x_,
-                                                   pointLoads_,
                                                    rhs,
                                                    *hessianMatrix_,
                                                    i==0    // assemble occupation pattern only for the first call
@@ -326,7 +323,7 @@ void TrustRegionSolver<BasisType,VectorType>::solve()
         for (size_t j=0; j<newIterate.size(); j++)
             newIterate[j] += corr[j];
 
-        double energy    = assembler_->computeEnergy(newIterate, pointLoads_);
+        double energy    = assembler_->computeEnergy(newIterate);
 
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>

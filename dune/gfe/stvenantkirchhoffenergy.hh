@@ -45,8 +45,7 @@ public:
     /** \brief Assemble the energy for a single element */
     field_type energy (const Entity& e,
                const LocalFiniteElement& localFiniteElement,
-               const std::vector<Dune::FieldVector<field_type,gridDim> >& localConfiguration,
-               const std::vector<Dune::FieldVector<double,gridDim> >& localPointLoads) const;
+               const std::vector<Dune::FieldVector<field_type,gridDim> >& localConfiguration) const;
 
     /** \brief Lame constants */
     double mu_, lambda_;
@@ -63,8 +62,7 @@ field_type
 StVenantKirchhoffEnergy<GridView,LocalFiniteElement,field_type>::
 energy(const Entity& element,
        const LocalFiniteElement& localFiniteElement,
-       const std::vector<Dune::FieldVector<field_type,gridDim> >& localConfiguration,
-       const std::vector<Dune::FieldVector<double,gridDim> >& localPointLoads) const
+       const std::vector<Dune::FieldVector<field_type,gridDim> >& localConfiguration) const
 {
     assert(element.type() == localFiniteElement.type());
     typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
@@ -145,10 +143,6 @@ energy(const Entity& element,
     //////////////////////////////////////////////////////////////////////////////
     //   Assemble boundary contributions
     //////////////////////////////////////////////////////////////////////////////
-
-    for (size_t i=0; i<localPointLoads.size(); i++)
-      for (size_t j=0; j<dim; j++)
-        energy -= localConfiguration[i][j] * localPointLoads[i][j];
 
     if (not neumannFunction_)
         return energy;
