@@ -138,7 +138,7 @@ int main (int argc, char *argv[]) try
     GridView gridView = grid->leafGridView();
 
 //    typedef P1NodalBasis<GridView,double> FEBasis;
-    typedef P2NodalBasis<GridView,double> FEBasis;
+    typedef P1NodalBasis<GridView,double> FEBasis;
     FEBasis feBasis(gridView);
 
     // /////////////////////////////////////////
@@ -207,12 +207,6 @@ int main (int argc, char *argv[]) try
 
     for (size_t i=0; i<x.size(); i++)
       x[i] = v[i];
-
-    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("identity") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonIdentity(Python::evaluate(lambda));
-
-    SolutionType identity;
-    Functions::interpolate(feBasis, identity, pythonIdentity);
 
     ////////////////////////////////////////////////////////
     //   Main homotopy loop
@@ -292,8 +286,6 @@ int main (int argc, char *argv[]) try
                  baseTolerance
                 );
 
-    solver.identity_ = identity;
-
         ////////////////////////////////////////////////////////
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
@@ -333,6 +325,9 @@ int main (int argc, char *argv[]) try
           displacement[idx] = x[idx] - it->geometry().corner(0);
         }
 
+        /////////////////////////////////
+        //   Output result
+        /////////////////////////////////
 
         Dune::shared_ptr<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > > vtkDisplacement
                = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
@@ -340,28 +335,6 @@ int main (int argc, char *argv[]) try
         vtkWriter.addVertexData(vtkDisplacement);
         vtkWriter.write(resultPath + "hencky_homotopy_" + std::to_string(i+1));
 
-    }
-
-    // //////////////////////////////
-    //   Output result
-    // //////////////////////////////
-
-    // finally: compute the average deformation of the Neumann boundary
-    // That is what we need for the locking tests
-    FieldVector<double,3> averageDef(0);
-    for (size_t i=0; i<x.size(); i++)
-        if (neumannNodes[i][0])
-        {
-            averageDef += x[i];
-            std::cout << "i: " << i << ",  pos: " << x[i] << std::endl;
-        }
-    averageDef /= neumannNodes.count();
-
-    if (mpiHelper.rank()==0)
-    {
-      std::cout << "Neumann value = " << parameterSet.get<std::string>("neumannValues") << std::endl;
-      std::cout << "Neumann value = " << parameterSet.get<FieldVector<double,dim> >("neumannValues") << "  "
-                << ",  average deflection: " << averageDef << std::endl;
     }
 
  } catch (Exception e) {

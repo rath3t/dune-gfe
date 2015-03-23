@@ -123,8 +123,6 @@ protected:
     /** \brief An L2-norm, really.  The H1SemiNorm class is badly named */
     std::shared_ptr<H1SemiNorm<CorrectionType> > l2Norm_;
 
-public:
-    VectorType identity_;
 };
 
 #include "trustregionsolver.cc"

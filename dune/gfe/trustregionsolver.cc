@@ -277,32 +277,7 @@ void TrustRegionSolver<BasisType,VectorType>::solve()
         if (mgStep)
             corr = mgStep->getSol();
 
-        //std::cout << "Correction: " << std::endl << corr_global << std::endl;
-
-        // Output correction for debugging
-        Dune::VTKWriter<typename GridType::LeafGridView> vtkWriter(grid_->leafGridView());
-
-        Dune::BlockVector<Dune::FieldVector<double,3> > displacement(x_.size());
-        for (size_t j=0; j<x_.size(); j++)
-          displacement[j] = x_[j] - identity_[j];
-
-        BasisType basis(grid_->leafGridView());
-        Dune::shared_ptr<VTKBasisGridFunction<BasisType,Dune::BlockVector<Dune::FieldVector<double,3> > > > vtkDisplacement
-               = Dune::make_shared<VTKBasisGridFunction<BasisType,Dune::BlockVector<Dune::FieldVector<double,3> > > >
-                                  (basis, displacement, "Displacement");
-
-        Dune::shared_ptr<VTKBasisGridFunction<BasisType,Dune::BlockVector<Dune::FieldVector<double,3> > > > vtkCorrection
-               = Dune::make_shared<VTKBasisGridFunction<BasisType,Dune::BlockVector<Dune::FieldVector<double,3> > > >
-                                  (basis, corr, "Correction");
-
-        Dune::shared_ptr<VTKBasisGridFunction<BasisType,Dune::BlockVector<Dune::FieldVector<double,3> > > > vtkGradient
-               = Dune::make_shared<VTKBasisGridFunction<BasisType,Dune::BlockVector<Dune::FieldVector<double,3> > > >
-                                  (basis, rhs, "Gradient");
-
-        vtkWriter.addVertexData(vtkDisplacement);
-        vtkWriter.addVertexData(vtkCorrection);
-        vtkWriter.addVertexData(vtkGradient);
-        vtkWriter.write("hencky_correction_" + std::to_string(i+1));
+        //std::cout << "Correction: " << std::endl << corr << std::endl;
 
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
