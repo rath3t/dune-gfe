@@ -193,11 +193,7 @@ int main (int argc, char *argv[]) try
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
   PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
 
-  std::vector<FieldVector<double,3> > v;
-  Functions::interpolate(feBasis, v, pythonInitialDeformation);
-
-  for (size_t i=0; i<x.size(); i++)
-    x[i] = v[i];
+  Functions::interpolate(feBasis, x, pythonInitialDeformation);
 
   ////////////////////////////////////////////////////////
   //   Main homotopy loop
@@ -206,7 +202,7 @@ int main (int argc, char *argv[]) try
   // Output initial iterate (of homotopy loop)
   VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
   BlockVector<FieldVector<double,3> > displacement(x.size());
-  for (auto it = grid->leafGridView().template begin<dim>(); it != grid->leafGridView().template end<dim>(); ++it)
+  for (auto it = grid->leafGridView().begin<dim>(); it != grid->leafGridView().end<dim>(); ++it)
   {
     size_t idx = grid->leafGridView().indexSet().index(*it);
     displacement[idx] = x[idx] - it->geometry().corner(0);
@@ -279,8 +275,10 @@ int main (int argc, char *argv[]) try
     //   Set Dirichlet values
     ////////////////////////////////////////////////////////
 
+    // The python class that implements the Dirichlet values
     Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("problem") + "-dirichlet-values");
 
+    // The member method 'DirichletValues' of that class
     Python::Callable C = dirichletValuesClass.get("DirichletValues");
 
     // Call a constructor.
@@ -289,12 +287,7 @@ int main (int argc, char *argv[]) try
     // Extract object member functions as Dune functions
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> >   dirichletValues(dirichletValuesPythonObject.get("dirichletValues"));
 
-    std::vector<FieldVector<double,3> > ddV;
-    Functions::interpolate(feBasis, ddV, dirichletValues, dirichletDofs);
-
-    for (size_t j=0; j<x.size(); j++)
-      if (dirichletNodes[j][0])
-        x[j] = ddV[j];
+    Functions::interpolate(feBasis, x, dirichletValues, dirichletDofs);
 
     // /////////////////////////////////////////////////////
     //   Solve!
@@ -308,7 +301,7 @@ int main (int argc, char *argv[]) try
     // Output result of each homotopy step
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
     BlockVector<FieldVector<double,3> > displacement(x.size());
-    for (auto it = grid->leafGridView().template begin<dim>(); it != grid->leafGridView().template end<dim>(); ++it)
+    for (auto it = grid->leafGridView().begin<dim>(); it != grid->leafGridView().end<dim>(); ++it)
     {
       size_t idx = grid->leafGridView().indexSet().index(*it);
       displacement[idx] = x[idx] - it->geometry().corner(0);
