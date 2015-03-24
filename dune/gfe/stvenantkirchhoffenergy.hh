@@ -4,13 +4,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/fufem/functions/virtualgridfunction.hh>
-#include <dune/fufem/boundarypatch.hh>
-
-#include <dune/gfe/localgeodesicfestiffness.hh>
 #include <dune/gfe/localfestiffness.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/realtuple.hh>
 
 namespace Dune {
 
@@ -31,11 +25,7 @@ public:
     /** \brief Constructor with a set of material parameters
      * \param parameters The material parameters
      */
-    StVenantKirchhoffEnergy(const Dune::ParameterTree& parameters,
-                            const BoundaryPatch<GridView>* neumannBoundary,
-                            const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction)
-    : neumannBoundary_(neumannBoundary),
-      neumannFunction_(neumannFunction)
+    StVenantKirchhoffEnergy(const Dune::ParameterTree& parameters)
     {
       // Lame constants
       mu_ = parameters.template get<double>("mu");
@@ -49,12 +39,6 @@ public:
 
     /** \brief Lame constants */
     double mu_, lambda_;
-
-    /** \brief The Neumann boundary */
-    const BoundaryPatch<GridView>* neumannBoundary_;
-
-    /** \brief The function implementing the Neumann data */
-    const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction_;
 };
 
 template <class GridView, class LocalFiniteElement, class field_type>
@@ -137,54 +121,6 @@ energy(const Entity& element,
           trESquared += ESquared[i][i];
 
         energy += weight * mu_ * trESquared + weight * 0.5 * lambda_ * trE * trE;
-
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-    //   Assemble boundary contributions
-    //////////////////////////////////////////////////////////////////////////////
-
-    if (not neumannFunction_)
-        return energy;
-
-    for (auto&& it : intersections(neumannBoundary_->gridView(),element) )
-    {
-        if (not neumannBoundary_ or not neumannBoundary_->contains(it))
-            continue;
-
-        const Dune::QuadratureRule<DT, gridDim-1>& quad
-            = Dune::QuadratureRules<DT, gridDim-1>::rule(it.type(), quadOrder);
-
-        for (size_t pt=0; pt<quad.size(); pt++) {
-
-            // Local position of the quadrature point
-            const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());
-
-            const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
-
-            // The value of the local function
-            //RealTuple<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
-            // get gradients of shape functions
-            std::vector<Dune::FieldVector<DT,1> > shapeFunctionValues;
-            localFiniteElement.localBasis().evaluateFunction(quadPos, shapeFunctionValues);
-            Dune::FieldVector<field_type,dim> value(0);
-            for (int i=0; i<localFiniteElement.size(); i++)
-              for (int j=0; j<dim; j++)
-                value[j] += shapeFunctionValues[i] * localConfiguration[i][j];
-
-            // Value of the Neumann data at the current position
-            Dune::FieldVector<double,3> neumannValue;
-
-            if (dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_))
-                dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
-            else
-                neumannFunction_->evaluate(it.geometry().global(quad[pt].position()), neumannValue);
-
-            // Only translational dofs are affected by the Neumann force
-            for (size_t i=0; i<neumannValue.size(); i++)
-                energy += (neumannValue[i] * value[i]) * quad[pt].weight() * integrationElement;
-
-        }
 
     }
 
