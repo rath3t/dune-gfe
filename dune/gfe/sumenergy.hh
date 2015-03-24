@@ -32,7 +32,7 @@ public:
    * \param parameters The material parameters
    */
   SumEnergy(std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,3> > > > a,
-                std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,3> > > > b)
+            std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,3> > > > b)
   : a_(a),
     b_(b)
   {}
