@@ -31,6 +31,8 @@
 
 #include <dune/gfe/localadolcstiffness.hh>
 #include <dune/gfe/stvenantkirchhoffenergy.hh>
+#include <dune/gfe/neumannenergy.hh>
+#include <dune/gfe/sumenergy.hh>
 #include <dune/gfe/feassembler.hh>
 #include <dune/gfe/trustregionsolver.hh>
 
@@ -239,16 +241,21 @@ int main (int argc, char *argv[]) try
     }
 
     // Assembler using ADOL-C
+    auto elasticEnergy = std::make_shared<StVenantKirchhoffEnergy<GridView,
+                                                                  FEBasis::LocalFiniteElement,
+                                                                  adouble> >(materialParameters);
 
-    StVenantKirchhoffEnergy<GridView,
-                            FEBasis::LocalFiniteElement,
-                            adouble> elasticEnergy(materialParameters,
-                                                  &neumannBoundary,
-                                                  neumannFunction.get());
+    auto neumannEnergy = std::make_shared<NeumannEnergy<GridView,
+                                                        FEBasis::LocalFiniteElement,
+                                                        adouble> >(&neumannBoundary,neumannFunction.get());
+
+    SumEnergy<GridView,
+              FEBasis::LocalFiniteElement,
+              adouble> totalEnergy(elasticEnergy, neumannEnergy);
 
     LocalADOLCStiffness<GridView,
                         FEBasis::LocalFiniteElement,
-                        SolutionType> localADOLCStiffness(&elasticEnergy);
+                        SolutionType> localADOLCStiffness(&totalEnergy);
 
     FEAssembler<FEBasis,SolutionType> assembler(gridView, &localADOLCStiffness);
 
