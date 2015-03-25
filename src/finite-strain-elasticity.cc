@@ -18,7 +18,7 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/pq2nodalbasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 
 #include <dune/fufem/boundarypatch.hh>
@@ -138,7 +138,7 @@ int main (int argc, char *argv[]) try
   GridView gridView = grid->leafGridView();
 
   // FE basis spanning the FE space that we are working in
-  typedef Dune::Functions::PQKNodalBasis<GridView,1> FEBasis;
+  typedef Dune::Functions::PQ2NodalBasis<GridView> FEBasis;
   FEBasis feBasis(gridView);
 
   // dune-fufem-style FE basis for the transition from dune-fufem to dune-functions
