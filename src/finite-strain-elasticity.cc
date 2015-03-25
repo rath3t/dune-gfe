@@ -20,9 +20,9 @@
 
 #include <dune/functions/functionspacebases/pq2nodalbasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
+#include <dune/functions/gridfunctions/discretescalarglobalbasisfunction.hh>
 
 #include <dune/fufem/boundarypatch.hh>
-#include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
@@ -215,11 +215,12 @@ int main (int argc, char *argv[]) try
   SolutionType displacement = x;
   displacement -= identity;
 
-  auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FufemFEBasis,BlockVector<FieldVector<double,3> > > >
-                                                               (fufemFEBasis, displacement, "Displacement");
+  Dune::Functions::DiscreteScalarGlobalBasisFunction<FEBasis,SolutionType> displacementFunction(feBasis,displacement);
+  auto localDisplacementFunction = localFunction(displacementFunction);
 
-  VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-  vtkWriter.addVertexData(vtkDisplacement);
+  //  We need to subsample, because VTK cannot natively display real second-order functions
+  SubsamplingVTKWriter<GridView> vtkWriter(gridView,2);
+  vtkWriter.addVertexData(localDisplacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, 3));
   vtkWriter.write(resultPath + "finite-strain_homotopy_0");
 
   for (int i=0; i<numHomotopySteps; i++)
@@ -320,13 +321,13 @@ int main (int argc, char *argv[]) try
     auto displacement = x;
     displacement -= identity;
 
-    auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FufemFEBasis,BlockVector<FieldVector<double,3> > > >
-                                                                 (fufemFEBasis, displacement, "Displacement");
+    Dune::Functions::DiscreteScalarGlobalBasisFunction<FEBasis,SolutionType> displacementFunction(feBasis,displacement);
+    auto localDisplacementFunction = localFunction(displacementFunction);
 
-    VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-    vtkWriter.addVertexData(vtkDisplacement);
+    //  We need to subsample, because VTK cannot natively display real second-order functions
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView,2);
+    vtkWriter.addVertexData(localDisplacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, 3));
     vtkWriter.write(resultPath + "finite-strain_homotopy_" + std::to_string(i+1));
-
   }
 
 } catch (Exception e) {
