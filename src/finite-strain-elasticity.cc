@@ -19,6 +19,7 @@
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/interpolate.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
@@ -79,7 +80,7 @@ int main (int argc, char *argv[]) try
         << std::endl << "sys.path.append('/home/sander/dune/dune-gfe/')"
         << std::endl;
 
-  typedef std::vector<FieldVector<double,dim> > SolutionType;
+  typedef BlockVector<FieldVector<double,dim> > SolutionType;
 
   // parse data file
   ParameterTree parameterSet;
@@ -208,16 +209,16 @@ int main (int argc, char *argv[]) try
   ////////////////////////////////////////////////////////
 
   // Output initial iterate (of homotopy loop)
-  VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-  BlockVector<FieldVector<double,3> > displacement(x.size());
-  for (auto it = grid->leafGridView().begin<dim>(); it != grid->leafGridView().end<dim>(); ++it)
-  {
-    size_t idx = grid->leafGridView().indexSet().index(*it);
-    displacement[idx] = x[idx] - it->geometry().corner(0);
-  }
+  SolutionType identity;
+  Dune::Functions::interpolate(feBasis, identity, [](FieldVector<double,dim> x){ return x; });
+
+  SolutionType displacement = x;
+  displacement -= identity;
 
   auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FufemFEBasis,BlockVector<FieldVector<double,3> > > >
                                                                (fufemFEBasis, displacement, "Displacement");
+
+  VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
   vtkWriter.addVertexData(vtkDisplacement);
   vtkWriter.write(resultPath + "finite-strain_homotopy_0");
 
@@ -311,21 +312,18 @@ int main (int argc, char *argv[]) try
 
     x = solver.getSol();
 
-    // Output result of each homotopy step
-    VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-    BlockVector<FieldVector<double,3> > displacement(x.size());
-    for (auto it = grid->leafGridView().begin<dim>(); it != grid->leafGridView().end<dim>(); ++it)
-    {
-      size_t idx = grid->leafGridView().indexSet().index(*it);
-      displacement[idx] = x[idx] - it->geometry().corner(0);
-    }
-
     /////////////////////////////////
     //   Output result
     /////////////////////////////////
 
+    // Compute the displacement
+    auto displacement = x;
+    displacement -= identity;
+
     auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FufemFEBasis,BlockVector<FieldVector<double,3> > > >
                                                                  (fufemFEBasis, displacement, "Displacement");
+
+    VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
     vtkWriter.addVertexData(vtkDisplacement);
     vtkWriter.write(resultPath + "finite-strain_homotopy_" + std::to_string(i+1));
 
