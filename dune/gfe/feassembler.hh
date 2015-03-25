@@ -130,7 +130,7 @@ assembleGradientAndHessian(const VectorType& sol,
         for (int i=0; i<numOfBaseFct; i++)
             localSolution[i]   = sol[basis_.index(*it,i)];
 
-        std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
+        VectorType localGradient(numOfBaseFct);
 
         // setup local matrix and gradient
         localStiffness_->assembleGradientAndHessian(*it, basis_.getLocalFiniteElement(*it), localSolution, localGradient);
