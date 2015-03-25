@@ -3,10 +3,14 @@
 
 #include <dune/istl/io.hh>
 
+#include <dune/functions/functionspacebases/pq1nodalbasis.hh>
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
+#include <dune/fufem/assemblers/basisinterpolationmatrixassembler.hh>
 
 // Using a monotone multigrid as the inner solver
 #include <dune/solvers/iterationsteps/trustregiongsstep.hh>
@@ -143,37 +147,51 @@ setup(const typename BasisType::GridView::Grid& grid,
     for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
         delete(mmgStep->mgTransfer_[k]);
 
-    mmgStep->mgTransfer_.resize(numLevels-1);
+    ////////////////////////////////////////////////////////////////////////
+    //  The P1 space (actually P1/Q1, depending on the grid) is special:
+    //  If we work in such a space, then the multigrid hierarchy of spaces
+    //  is constructed in the usual way.  For all other space, there is
+    //  an additional restriction operator on the top of the hierarchy, which
+    //  restricts the FE space to the P1/Q1 space on the same grid.
+    //  On the lower grid levels a hierarchy of P1/Q1 spaces is used again.
+    ////////////////////////////////////////////////////////////////////////
 
-#if defined THIRD_ORDER || defined SECOND_ORDER
-    if (numLevels>1) {
+    typedef BasisType Basis;
+    bool isP1Basis = std::is_same<Basis,DuneFunctionsBasis<Dune::Functions::PQ1NodalBasis<typename Basis::GridView> > >::value
+                  || std::is_same<Basis,DuneFunctionsBasis<Dune::Functions::PQKNodalBasis<typename Basis::GridView, 1> > >::value;
+
+    if (isP1Basis)
+      mmgStep->mgTransfer_.resize(numLevels-1);
+    else
+      mmgStep->mgTransfer_.resize(numLevels);
+
+    // Here we set up the restriction of the leaf grid space into the leaf grid P1/Q1 space
+    if (not isP1Basis)
+    {
+        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
         P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
 
-        PKtoP1MGTransfer<CorrectionType>* topTransferOp = new PKtoP1MGTransfer<CorrectionType>;
-        topTransferOp->setup(basis,p1Basis);
-
-        mmgStep->mgTransfer_.back() = topTransferOp;
-
-        for (int i=0; i<mmgStep->mgTransfer_.size()-1; i++){
-          // Construct the local multigrid transfer matrix
-          TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
-          newTransferOp->setup(*grid_,i+1,i+2);
-
-          mmgStep->mgTransfer_[i] = newTransferOp;
-        }
-
+        TransferOperatorType pkToP1TransferMatrix;
+        assembleBasisInterpolationMatrix<TransferOperatorType,
+                                         P1NodalBasis<typename GridType::LeafGridView,double>,
+                                         BasisType>(pkToP1TransferMatrix,p1Basis,basis);
+        mmgStep->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType>;
+        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
+        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
     }
 
-#else
-    for (size_t i=0; i<mmgStep->mgTransfer_.size(); i++){
+    // Now the P1/Q1 restriction operators for the remaining levels
+    for (int i=0; i<numLevels-1; i++) {
 
         // Construct the local multigrid transfer matrix
         TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
         newTransferOp->setup(*grid_,i,i+1);
 
-        mmgStep->mgTransfer_[i] = newTransferOp;;
+        typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
+        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
+        std::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(newTransferOp->getMatrix());
+        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
     }
-#endif
 
     // //////////////////////////////////////////////////////////
     //   Create obstacles
