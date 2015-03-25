@@ -18,12 +18,13 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -135,8 +136,13 @@ int main (int argc, char *argv[]) try
   typedef GridType::LeafGridView GridView;
   GridView gridView = grid->leafGridView();
 
-  typedef P1NodalBasis<GridView,double> FEBasis;
+  // FE basis spanning the FE space that we are working in
+  typedef Dune::Functions::PQKNodalBasis<GridView,1> FEBasis;
   FEBasis feBasis(gridView);
+
+  // dune-fufem-style FE basis for the transition from dune-fufem to dune-functions
+  typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
+  FufemFEBasis fufemFEBasis(feBasis);
 
   // /////////////////////////////////////////
   //   Read Dirichlet values
@@ -174,14 +180,14 @@ int main (int argc, char *argv[]) try
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
 
-  BitSetVector<1> dirichletNodes(feBasis.size(), false);
-  constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+  BitSetVector<1> dirichletNodes(feBasis.indexSet().size(), false);
+  constructBoundaryDofs(dirichletBoundary,fufemFEBasis,dirichletNodes);
 
-  BitSetVector<1> neumannNodes(feBasis.size(), false);
-  constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
+  BitSetVector<1> neumannNodes(feBasis.indexSet().size(), false);
+  constructBoundaryDofs(neumannBoundary,fufemFEBasis,neumannNodes);
 
-  BitSetVector<dim> dirichletDofs(feBasis.size(), false);
-  for (size_t i=0; i<feBasis.size(); i++)
+  BitSetVector<dim> dirichletDofs(feBasis.indexSet().size(), false);
+  for (size_t i=0; i<feBasis.indexSet().size(); i++)
     if (dirichletNodes[i][0])
       for (int j=0; j<dim; j++)
         dirichletDofs[i][j] = true;
@@ -190,12 +196,12 @@ int main (int argc, char *argv[]) try
   //   Initial iterate
   // //////////////////////////
 
-  SolutionType x(feBasis.size());
+  SolutionType x(feBasis.indexSet().size());
 
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
   PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
 
-  Functions::interpolate(feBasis, x, pythonInitialDeformation);
+  ::Functions::interpolate(fufemFEBasis, x, pythonInitialDeformation);
 
   ////////////////////////////////////////////////////////
   //   Main homotopy loop
@@ -210,8 +216,8 @@ int main (int argc, char *argv[]) try
     displacement[idx] = x[idx] - it->geometry().corner(0);
   }
 
-  auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
-                                                               (feBasis, displacement, "Displacement");
+  auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FufemFEBasis,BlockVector<FieldVector<double,3> > > >
+                                                               (fufemFEBasis, displacement, "Displacement");
   vtkWriter.addVertexData(vtkDisplacement);
   vtkWriter.write(resultPath + "finite-strain_homotopy_0");
 
@@ -242,28 +248,28 @@ int main (int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     auto elasticEnergy = std::make_shared<StVenantKirchhoffEnergy<GridView,
-                                                                  FEBasis::LocalFiniteElement,
+                                                                  FEBasis::LocalView::Tree::FiniteElement,
                                                                   adouble> >(materialParameters);
 
     auto neumannEnergy = std::make_shared<NeumannEnergy<GridView,
-                                                        FEBasis::LocalFiniteElement,
+                                                        FEBasis::LocalView::Tree::FiniteElement,
                                                         adouble> >(&neumannBoundary,neumannFunction.get());
 
     SumEnergy<GridView,
-              FEBasis::LocalFiniteElement,
+              FEBasis::LocalView::Tree::FiniteElement,
               adouble> totalEnergy(elasticEnergy, neumannEnergy);
 
     LocalADOLCStiffness<GridView,
-                        FEBasis::LocalFiniteElement,
+                        FEBasis::LocalView::Tree::FiniteElement,
                         SolutionType> localADOLCStiffness(&totalEnergy);
 
-    FEAssembler<FEBasis,SolutionType> assembler(gridView, &localADOLCStiffness);
+    FEAssembler<FufemFEBasis,SolutionType> assembler(fufemFEBasis, &localADOLCStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
-    TrustRegionSolver<FEBasis,SolutionType> solver;
+    TrustRegionSolver<FufemFEBasis,SolutionType> solver;
     solver.setup(*grid,
                  &assembler,
                  x,
@@ -294,7 +300,7 @@ int main (int argc, char *argv[]) try
     // Extract object member functions as Dune functions
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> >   dirichletValues(dirichletValuesPythonObject.get("dirichletValues"));
 
-    Functions::interpolate(feBasis, x, dirichletValues, dirichletDofs);
+    ::Functions::interpolate(fufemFEBasis, x, dirichletValues, dirichletDofs);
 
     // /////////////////////////////////////////////////////
     //   Solve!
@@ -318,8 +324,8 @@ int main (int argc, char *argv[]) try
     //   Output result
     /////////////////////////////////
 
-    auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FEBasis,BlockVector<FieldVector<double,3> > > >
-                                                                 (feBasis, displacement, "Displacement");
+    auto vtkDisplacement = Dune::make_shared<VTKBasisGridFunction<FufemFEBasis,BlockVector<FieldVector<double,3> > > >
+                                                                 (fufemFEBasis, displacement, "Displacement");
     vtkWriter.addVertexData(vtkDisplacement);
     vtkWriter.write(resultPath + "finite-strain_homotopy_" + std::to_string(i+1));
 
