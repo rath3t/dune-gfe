@@ -1,42 +1,92 @@
-.deps/
-Makefile
-Makefile.in
-aclocal.m4
-am
-*.tap
-*.o
 
-ipopt.out
+# /
+/Makefile
+/Makefile.in
+/compile
+/config.*
+/configure
+/aclocal.m4
+/dependencies.m4
+/autom4te.cache
+/depcomp
+/install-sh
+/missing
+/mkinstalldirs
+/libtool
+/ltmain.sh
+/semantic.cache
+/stamp-h1
+/html
+/.deps
+/.libs
+/am
+/dune-gfe.pc
+/build-cmake
+/dirneucoupling
+/finite-strain-elasticity
+/neudircoupling
+/rod-eoc
+/rodobstacle
+/harmonicmaps-eoc
 
-autom4te.cache/
-config.guess
-config.h
-config.h.in
-config.log
-config.lt
-config.status
-config.sub
-configure
-depcomp
-dependencies.m4
-doc/Makefile
-doc/Makefile.in
-doc/doxygen/Doxyfile
-doc/doxygen/Doxyfile.in
-dune-gfe.pc
-install-sh
-libtool
-ltmain.sh
-missing
+# /doc/
+/doc/Makefile.in
+/doc/Makefile
 
-cosserat-continuum
-harmonicmaps
-harmonicmaps-eoc
-rod3d
-rodobstacle
-rod-eoc
+# /doc/doxygen/
+/doc/doxygen/html
+/doc/doxygen/Makefile
+/doc/doxygen/Makefile.in
+/doc/doxygen/semantic.cache
+/doc/doxygen/Doxyfile.in
+/doc/doxygen/Doxyfile
+/doc/doxygen/doxygen-tag
+/doc/doxygen/doxygen.log
+/doc/doxygen/doxyerr.log
 
-stamp-h1
-test/.deps/
-test/adolctest
+# /dune/
+/dune/Makefile.in
+/dune/Makefile
 
+# /dune/gfe/
+/dune/gfe/Makefile.in
+/dune/gfe/Makefile
+
+# /dune/gfe/coupling/
+/dune/gfe/coupling/Makefile.in
+/dune/gfe/coupling/Makefile
+
+# /locking_testsuite/
+/locking_testsuite/*.log
+/locking_testsuite/ipopt.out
+
+# /m4/
+/m4/Makefile.in
+/m4/Makefile
+
+# /src/
+/src/Makefile.in
+/src/Makefile
+/src/.deps
+/src/# executable files
+/src/cosserat-continuum
+/src/harmonicmaps
+/src/rod3d
+
+# /test/
+/test/Makefile.in
+/test/Makefile
+/test/.deps
+/test/cosseratenergytest
+/test/frameinvariancetest
+/test/globalgfetestfunctionbasistest
+/test/localgeodesicfefunctiontest
+/test/localgeodesicfestiffnesstest
+/test/localgfetestfunctiontest
+/test/harmonicenergytest
+/test/averagedistanceassemblertest
+/test/nestednesstest
+/test/orthogonalmatrixtest
+/test/rodassemblertest
+/test/rotationtest
+/test/targetspacetest
