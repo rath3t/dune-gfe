@@ -68,7 +68,7 @@ public:
         localFiniteElement.localBasis().evaluateFunction(quadPos, shapeFunctionValues);
 
         Dune::FieldVector<field_type,dim> value(0);
-        for (int i=0; i<localFiniteElement.size(); i++)
+        for (size_t i=0; i<localFiniteElement.size(); i++)
           for (int j=0; j<dim; j++)
             value[j] += shapeFunctionValues[i] * localConfiguration[i][j];
 
