@@ -158,7 +158,7 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
     //    if (gridView_ != &boundary.gridView())
     //        DUNE_THROW(Dune::Exception, "The boundary patch has to match the grid view of the assembler!");
 
-    const typename GridView::Traits::IndexSet& indexSet = this->basis_.getGridView().indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
 
     if (sol.size()!=indexSet.size(gridDim))
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
