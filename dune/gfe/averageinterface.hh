@@ -718,7 +718,7 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
     using namespace Dune;
 
     typedef typename GridView::template Codim<0>::Entity EntityType;
-    typedef typename EntityType::LevelIntersectionIterator NeighborIterator;
+    typedef typename GridView::IntersectionIterator NeighborIterator;
 
     const GridView& gridView = interface.gridView();
     const typename GridView::IndexSet& indexSet = gridView.indexSet();
