@@ -190,7 +190,9 @@ void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
     RodLocalStiffness<GridView,double> rodLocalStiffness(gridView_, radius*radius*M_PI,
             std::pow(radius,4) * 0.25* M_PI, std::pow(radius,4) * 0.25* M_PI, E, nu);
 
-    RodAssembler<GridView,spaceDim> assembler(gridView_, &rodLocalStiffness);
+    typedef Dune::Functions::PQKNodalBasis<GridView,1> RodP1Basis;
+    RodP1Basis p1Basis(gridView_);
+    RodAssembler<RodP1Basis,spaceDim> assembler(p1Basis, &rodLocalStiffness);
 
     // Create initial iterate using the straight rod interpolation method
     create(rod, beginning.r, end.r);
@@ -203,7 +205,7 @@ void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
     rod.back() = end;
 
     // Trust--Region solver
-    RiemannianTrustRegionSolver<typename GridView::Grid, RigidBodyMotion<double,spaceDim> > rodSolver;
+    RiemannianTrustRegionSolver<RodP1Basis, RigidBodyMotion<double,spaceDim> > rodSolver;
     rodSolver.setup(gridView_.grid(), &assembler, rod,
             rodDirichletNodes,
             1e-10, 100, // TR tolerance and iterations
