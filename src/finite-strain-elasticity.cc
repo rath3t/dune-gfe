@@ -33,6 +33,9 @@
 
 #include <dune/gfe/localadolcstiffness.hh>
 #include <dune/gfe/stvenantkirchhoffenergy.hh>
+#include <dune/gfe/henckyenergy.hh>
+#include <dune/gfe/exphenckyenergy.hh>
+#include <dune/gfe/neohookeenergy.hh>
 #include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/sumenergy.hh>
 #include <dune/gfe/feassembler.hh>
@@ -249,9 +252,33 @@ int main (int argc, char *argv[]) try
     }
 
     // Assembler using ADOL-C
-    auto elasticEnergy = std::make_shared<StVenantKirchhoffEnergy<GridView,
-                                                                  FEBasis::LocalView::Tree::FiniteElement,
-                                                                  adouble> >(materialParameters);
+    std::cout << "Selected energy is: " << parameterSet.get<std::string>("energy") << std::endl;
+    std::shared_ptr<LocalFEStiffness<GridView,
+                                     FEBasis::LocalView::Tree::FiniteElement,
+                                     std::vector<Dune::FieldVector<adouble, 3> > > > elasticEnergy;
+
+    if (parameterSet.get<std::string>("energy") == "stvenantkirchhoff")
+      elasticEnergy = std::make_shared<StVenantKirchhoffEnergy<GridView,
+                                                               FEBasis::LocalView::Tree::FiniteElement,
+                                                               adouble> >(materialParameters);
+
+    if (parameterSet.get<std::string>("energy") == "neohooke")
+      elasticEnergy = std::make_shared<NeoHookeEnergy<GridView,
+                                                      FEBasis::LocalView::Tree::FiniteElement,
+                                                      adouble> >(materialParameters);
+
+    if (parameterSet.get<std::string>("energy") == "hencky")
+      elasticEnergy = std::make_shared<HenckyEnergy<GridView,
+                                                    FEBasis::LocalView::Tree::FiniteElement,
+                                                    adouble> >(materialParameters);
+
+    if (parameterSet.get<std::string>("energy") == "exphencky")
+      elasticEnergy = std::make_shared<ExpHenckyEnergy<GridView,
+                                                       FEBasis::LocalView::Tree::FiniteElement,
+                                                       adouble> >(materialParameters);
+
+    if(!elasticEnergy)
+      DUNE_THROW(Exception, "Error: Selected energy not available!");
 
     auto neumannEnergy = std::make_shared<NeumannEnergy<GridView,
                                                         FEBasis::LocalView::Tree::FiniteElement,
