@@ -56,8 +56,8 @@ energy(const Entity& element,
     field_type energy = 0;
 
     // store gradients of shape functions and base functions
-    std::vector<Dune::FieldMatrix<DT,1,gridDim> > referenceGradients(localFiniteElement.localBasis().size());
-    std::vector<Dune::FieldVector<DT,gridDim> > gradients(localFiniteElement.localBasis().size());
+    std::vector<Dune::FieldMatrix<DT,1,gridDim> > referenceGradients(localFiniteElement.size());
+    std::vector<Dune::FieldVector<DT,gridDim> > gradients(localFiniteElement.size());
 
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
                                                  : localFiniteElement.localBasis().order() * gridDim;
