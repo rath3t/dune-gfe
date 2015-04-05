@@ -32,6 +32,7 @@ public:  // for testing
       // Lame constants
       mu_ = parameters.template get<double>("mu");
       lambda_ = parameters.template get<double>("lambda");
+      kappa_  = (2.0 * mu_ + 3.0 * lambda_) / 3.0;
     }
 
     /** \brief Assemble the energy for a single element */
@@ -40,7 +41,7 @@ public:  // for testing
                const std::vector<Dune::FieldVector<field_type,gridDim> >& localConfiguration) const;
 
     /** \brief Lame constants */
-    double mu_, lambda_;
+    double mu_, lambda_, kappa_;
 };
 
 template <class GridView, class LocalFiniteElement, class field_type>
@@ -65,6 +66,7 @@ energy(const Entity& element,
     const Dune::QuadratureRule<DT, gridDim>& quad
         = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
+    field_type distortionEnergy = 0, dilatationEnergy = 0;
     for (size_t pt=0; pt<quad.size(); pt++) {
 
         // Local position of the quadrature point
@@ -89,40 +91,45 @@ energy(const Entity& element,
             derivative[j].axpy(localConfiguration[i][j], gradients[i]);
 
         /////////////////////////////////////////////////////////
-        // compute F^T F
+        // compute C = F^TF
         /////////////////////////////////////////////////////////
 
-        Dune::FieldMatrix<field_type,gridDim,gridDim> FTF(0);
+        Dune::FieldMatrix<field_type,gridDim,gridDim> C(0);
         for (int i=0; i<gridDim; i++)
           for (int j=0; j<gridDim; j++)
             for (int k=0; k<gridDim; k++)
-              FTF[i][j] += derivative[k][i] * derivative[k][j];
+              C[i][j] += derivative[k][i] * derivative[k][j];
 
         //////////////////////////////////////////////////////////
-        //  Eigenvalues of FTF
+        //  Eigenvalues of C = F^TF
         //////////////////////////////////////////////////////////
 
-        Dune::FieldVector<field_type,dim> lambda;
-        FMatrixHelp::eigenValues(FTF, lambda);
+        Dune::FieldVector<field_type,dim> sigmaSquared;
+        FMatrixHelp::eigenValues(C, sigmaSquared);
 
-        // logarithms of the eigenvalues
-        std::array<field_type,dim> ln;
-        for (int i=0; i<dim; i++)
-          ln[i] = std::log(lambda[i]);
+        // logarithms of the singular values of F, i.e., eigenvalues of U
+        std::array<field_type, dim> lnSigma;
+        for (int i = 0; i < dim; i++)
+          lnSigma[i] = 0.5 * log(sigmaSquared[i]);
+
+        field_type trLogU = 0;
+        for (int i = 0; i < dim; i++)
+          trLogU += lnSigma[i];
+
+        field_type normDevLogUSquared = 0;
+        for (int i = 0; i < dim; i++)
+        {
+          // the deviator shifts the spectrum by the trace
+          field_type lnDevSigma_i = lnSigma[i] - (1.0 / double(dim)) * trLogU;
+          normDevLogUSquared += lnDevSigma_i * lnDevSigma_i;
+        }
 
         // Add the local energy density
-        for (int i=0; i<dim; i++)
-          energy += weight * mu_ * ln[i]*ln[i];
-
-        field_type trace = 0;
-        for (int i=0; i<dim; i++)
-          trace += ln[i];
-
-        energy += weight * 0.5 * lambda_ * trace * trace;
-
+        distortionEnergy += weight * mu_ * normDevLogUSquared;
+        dilatationEnergy += weight * 0.5 * kappa_ * (trLogU * trLogU);
     }
 
-    return energy;
+    return distortionEnergy + dilatationEnergy;
 }
 
 }  // namespace Dune
