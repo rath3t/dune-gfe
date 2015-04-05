@@ -68,6 +68,8 @@
 /src/Makefile.in
 /src/Makefile
 /src/.deps
+/src/*.pyc
+
 /src/# executable files
 /src/cosserat-continuum
 /src/harmonicmaps
