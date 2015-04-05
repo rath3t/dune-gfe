@@ -22,12 +22,6 @@
 /am
 /dune-gfe.pc
 /build-cmake
-/dirneucoupling
-/finite-strain-elasticity
-/neudircoupling
-/rod-eoc
-/rodobstacle
-/harmonicmaps-eoc
 
 # /doc/
 /doc/Makefile.in
