@@ -204,7 +204,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
         // Extract local solution
         std::vector<TargetSpace> localSolution(nDofs);
 
-        for (int i=0; i<nDofs; i++)
+        for (size_t i=0; i<nDofs; i++)
             localSolution[i] = sol[localIndexSet.index(i)[0]];
 
         // Assemble local gradient
@@ -213,7 +213,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
         localStiffness_->assembleGradient(*it, localView.tree().finiteElement(), localSolution, localGradient);
 
         // Add to global gradient
-        for (int i=0; i<nDofs; i++)
+        for (size_t i=0; i<nDofs; i++)
             grad[localIndexSet.index(i)[0]] += localGradient[i];
 
     }
