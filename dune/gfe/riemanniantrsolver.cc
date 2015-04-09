@@ -121,7 +121,7 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
 
     typedef DuneFunctionsBasis<Basis> FufemBasis;
-    FufemBasis basis(grid.leafGridView());
+    FufemBasis basis(assembler_->basis_);
     OperatorAssembler<FufemBasis,FufemBasis> operatorAssembler(basis, basis);
 
     LaplaceAssembler<GridType, typename FufemBasis::LocalFiniteElement, typename FufemBasis::LocalFiniteElement> laplaceStiffness;
@@ -313,7 +313,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 #if HAVE_MPI
     MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
 #else
-    Basis basis(grid_->leafGridView());
+    const Basis& basis = assembler_->basis_;
     MaxNormTrustRegion<blocksize> trustRegion(basis.indexSet().size(), initialTrustRegionRadius_);
 #endif
     trustRegion.set(initialTrustRegionRadius_, scaling_);
