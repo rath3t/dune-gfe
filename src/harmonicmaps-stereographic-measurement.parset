@@ -56,7 +56,7 @@ baseTolerance = 1e-8
 energy = harmonic
 
 # Inverse stereographic projection
-initialIterate = "[2*x[0] / (x[0]*x[0]+x[1]*x[1]+1), 2*x[1] / (x[0]*x[0]+x[1]*x[1]+1), (x[0]*x[0]+x[1]*x[1]-1)/ (x[0]*x[0]+x[1]*x[1]+1)]"
+initialIterate = inverse-stereographic-projection
 
 ##########################################
 #   Discretization error measurements
