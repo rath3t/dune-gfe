@@ -1,5 +1,4 @@
 set(programs cosserat-continuum
-             finite-strain-elasticity
              harmonicmaps
              mixed-cosserat-continuum
              rod-eoc
