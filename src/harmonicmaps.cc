@@ -21,6 +21,7 @@
 #include <dune/functions/gridfunctions/discretescalarglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/pq1nodalbasis.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/bsplinebasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
@@ -41,6 +42,7 @@
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
+#include <dune/gfe/bsplineinterpolate.hh>
 
 // grid dimension
 const int dim = 2;
@@ -55,6 +57,8 @@ typedef UnitVector<double,3> TargetSpace;
 
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
+
+//#define LAGRANGE
 
 using namespace Dune;
 
@@ -85,8 +89,10 @@ int main (int argc, char *argv[]) try
 
     ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
-    // read solver settings
+    // read problem settings
     const int numLevels                   = parameterSet.get<int>("numLevels");
+    const int order                       = parameterSet.get<int>("order");
+    // read solver settings
     const double tolerance                = parameterSet.get<double>("tolerance");
     const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
@@ -106,13 +112,14 @@ int main (int argc, char *argv[]) try
 
     shared_ptr<GridType> grid;
     FieldVector<double,dim> lower(0), upper(1);
+    array<unsigned int,dim> elements;
 
     if (parameterSet.get<bool>("structuredGrid")) {
 
         lower = parameterSet.get<FieldVector<double,dim> >("lower");
         upper = parameterSet.get<FieldVector<double,dim> >("upper");
 
-        array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
+        elements = parameterSet.get<array<unsigned int,dim> >("elements");
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
     } else {
@@ -128,11 +135,15 @@ int main (int argc, char *argv[]) try
     //////////////////////////////////////////////////////////////////////////////////
     //  Construct the scalar function space basis corresponding to the GFE space
     //////////////////////////////////////////////////////////////////////////////////
-
-    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 3> FEBasis;
-
+#ifdef LAGRANGE
+    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
     FEBasis feBasis(grid->leafGridView());
-
+#else
+    typedef Dune::Functions::BSplineBasis<typename GridType::LeafGridView> FEBasis;
+    for (auto& i : elements)
+      i = i<<(numLevels-1);
+    FEBasis feBasis(grid->leafGridView(), lower, upper, elements, order);
+#endif
     typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
     FufemFEBasis fufemFeBasis(feBasis);
 
@@ -160,7 +171,11 @@ int main (int argc, char *argv[]) try
     auto pythonInitialIterate = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
     std::vector<TargetSpace::CoordinateType> v;
+#ifdef LAGRANGE
     ::Functions::interpolate(fufemFeBasis, v, *pythonInitialIterate);
+#else
+    Dune::Functions::interpolate(feBasis, v, *pythonInitialIterate, lower, upper, elements, order);
+#endif
 
     for (size_t i=0; i<x.size(); i++)
       x[i] = v[i];
