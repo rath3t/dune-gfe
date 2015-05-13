@@ -244,19 +244,16 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 
-    typedef BlockVector<FieldVector<double,3> > EmbeddedVectorType;
+    typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
     EmbeddedVectorType xEmbedded(x.size());
-    for (size_t i=0; i<x.size(); i++) {
-        xEmbedded[i][0] = x[i].globalCoordinates()[0];
-        xEmbedded[i][1] = x[i].globalCoordinates()[1];
-        xEmbedded[i][2] = x[i].globalCoordinates()[2];
-    }
+    for (size_t i=0; i<x.size(); i++)
+        xEmbedded[i] = x[i].globalCoordinates();
 
     Dune::Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(xEmbedded)> xFunction(feBasis,xEmbedded);
     auto localXFunction = localFunction(xFunction);
 
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-    vtkWriter.addVertexData(localXFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, 3));
+    vtkWriter.addVertexData(localXFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
     vtkWriter.write(resultPath + "_" + energy + "_result");
 
     /////////////////////////////////////////////////////////////////
