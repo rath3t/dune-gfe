@@ -3,6 +3,9 @@
 
 #include <dune/common/array.hh>
 #include <dune/common/fvector.hh>
+
+#include <dune/istl/scaledidmatrix.hh>
+
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/symmetricmatrix.hh>
 
@@ -35,6 +38,9 @@ public:
 
     /** \brief The global convexity radius of the Euclidean space */
     static constexpr double convexityRadius = std::numeric_limits<double>::infinity();
+
+    /** \brief The return type of the derivativeOfProjection method */
+    typedef Dune::ScaledIdentityMatrix<T, N> DerivativeOfProjection;
 
     /** \brief Default constructor */
     RealTuple()
@@ -156,6 +162,15 @@ public:
     /** \brief The Weingarten map */
     EmbeddedTangentVector weingarten(const EmbeddedTangentVector& z, const EmbeddedTangentVector& v) const {
         return EmbeddedTangentVector(0);
+    }
+
+    /** \brief Derivative of the projection from the embedding space onto the manifold
+     *
+     * For RealTuples this is simply the identity
+     */
+    static DerivativeOfProjection derivativeOfProjection(const Dune::FieldVector<T,N>& p)
+    {
+      return Dune::ScaledIdentityMatrix<T,N>(1.0);
     }
 
     /** \brief The global coordinates, if you really want them */
