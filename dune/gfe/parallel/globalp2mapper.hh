@@ -19,6 +19,8 @@
   #include <dune/common/parallel/mpihelper.hh>
 #endif
 
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+
 namespace Dune {
 
   template <class GridView>
