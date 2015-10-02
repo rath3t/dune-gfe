@@ -77,7 +77,7 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
     nb.resize(n, n);
 
     // A view on the FE basis on a single element
-    typename Basis::LocalView localView(&basis_);
+    auto localView = basis_.localView();
     auto localIndexSet = basisIndexSet_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
@@ -129,7 +129,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
     gradient = 0;
 
     // A view on the FE basis on a single element
-    typename Basis::LocalView localView(&basis_);
+    auto localView = basis_.localView();
     auto localIndexSet = basisIndexSet_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
@@ -186,7 +186,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
     grad = 0;
 
     // A view on the FE basis on a single element
-    typename Basis::LocalView localView(&basis_);
+    auto localView = basis_.localView();
     auto localIndexSet = basisIndexSet_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
@@ -231,7 +231,7 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
         DUNE_THROW(Dune::Exception, "Coefficient vector doesn't match the function space basis!");
 
     // A view on the FE basis on a single element
-    typename Basis::LocalView localView(&basis_);
+    auto localView = basis_.localView();
     auto localIndexSet = basisIndexSet_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();

@@ -149,9 +149,9 @@ int main (int argc, char *argv[]) try
     GridView gridView = grid->leafGridView();
 
 #ifdef SECOND_ORDER
-    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 2> FEBasis;
+    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 2> FEBasis;
 #else
-    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
+    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
 #endif
     FEBasis feBasis(gridView);
 
