@@ -36,7 +36,7 @@ Dune::FieldMatrix<K,m,n> operator- ( const Dune::FieldMatrix<K, m, n> &A, const 
 }
 
 
-//! calculates ret = A - B
+//! calculates ret = A/s
 template< class K, int m, int n>
 Dune::FieldMatrix<K,m,n> operator/ ( const Dune::FieldMatrix<K, m, n> &A, const K& s)
 {
