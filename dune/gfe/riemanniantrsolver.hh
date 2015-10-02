@@ -13,10 +13,6 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p3nodalbasis.hh>
-
 #include "geodesicfeassembler.hh"
 #include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalp1mapper.hh>
@@ -27,25 +23,25 @@ template <typename Basis>
 struct MapperFactory
 {};
 
-/** \brief Specialization for P1NodalBasis */
-template <typename GridView, typename field_type>
-struct MapperFactory<P1NodalBasis<GridView,field_type> >
+/** \brief Specialization for PQ1NodalBasis */
+template <typename GridView>
+struct MapperFactory<DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,1> > >
 {
     typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView, Dune::MCMGVertexLayout> LocalMapper;
 };
 
-/** \brief Specialization for P2NodalBasis */
-template <typename GridView, typename field_type>
-struct MapperFactory<P2NodalBasis<GridView,field_type> >
+/** \brief Specialization for PQ2NodalBasis */
+template <typename GridView>
+struct MapperFactory<DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,2> > >
 {
     typedef Dune::GlobalP2Mapper<GridView> GlobalMapper;
     typedef P2BasisMapper<GridView> LocalMapper;
 };
 
-/** \brief Specialization for P3NodalBasis */
-template <typename GridView, typename field_type>
-struct MapperFactory<P3NodalBasis<GridView,field_type> >
+/** \brief Specialization for PQ3NodalBasis */
+template <typename GridView>
+struct MapperFactory<DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,3> > >
 {
     // Error: we don't currently have a global P3 mapper
 };

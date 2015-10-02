@@ -5,7 +5,7 @@
 
 #include <dune/grid/common/mcmgmapper.hh>
 
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/functions/functionspacebases/pq1nodalbasis.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
@@ -201,7 +201,7 @@ setup(const GridType& grid,
     //  On the lower grid levels a hierarchy of P1/Q1 spaces is used again.
     ////////////////////////////////////////////////////////////////////////
 
-    bool isP1Basis = std::is_same<Basis,P1NodalBasis<typename Basis::GridView> >::value;
+    bool isP1Basis = std::is_same<Basis,DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename Basis::GridView,1> > >::value;
 
     if (isP1Basis)
       mmgStep->mgTransfer_.resize(numLevels-1);
@@ -212,11 +212,11 @@ setup(const GridType& grid,
     if (not isP1Basis)
     {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         P1NodalBasis<typename GridType::LeafGridView,double>,
+                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis>(pkToP1TransferMatrix,p1Basis,basis);
 #if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,

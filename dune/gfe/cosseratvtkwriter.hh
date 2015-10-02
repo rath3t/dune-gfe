@@ -5,8 +5,9 @@
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+
+#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/gfe/rigidbodymotion.hh>
@@ -350,7 +351,7 @@ public:
 
         std::vector<RealTuple<double,3> > displacementConfiguration = deformationConfiguration;
         typedef typename GridType::LeafGridView GridView;
-        typedef P2NodalBasis<GridView,double> P2DeformationBasis;
+        typedef DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,2> > P2DeformationBasis;
         P2DeformationBasis p2DeformationBasis(displacementBasis.getGridView());
 
         if (order == 3)
