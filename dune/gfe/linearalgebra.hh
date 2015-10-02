@@ -9,9 +9,9 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
 {
     typedef typename Dune::FieldMatrix< K, m, p > :: size_type size_type;
     Dune::FieldMatrix< K, m, p > ret;
-        
+
     for( size_type i = 0; i < m; ++i ) {
-        
+
         for( size_type j = 0; j < p; ++j ) {
             ret[ i ][ j ] = K( 0 );
             for( size_type k = 0; k < n; ++k )
@@ -27,7 +27,7 @@ Dune::FieldMatrix<K,m,n> operator- ( const Dune::FieldMatrix<K, m, n> &A, const 
 {
     typedef typename Dune::FieldMatrix<K,m,n> :: size_type size_type;
     Dune::FieldMatrix<K,m,n> ret;
-        
+
     for( size_type i = 0; i < m; ++i )
         for( size_type j = 0; j < n; ++j )
             ret[i][j] = A[i][j] - B[i][j];
@@ -42,7 +42,7 @@ Dune::FieldMatrix<K,m,n> operator/ ( const Dune::FieldMatrix<K, m, n> &A, const 
 {
     typedef typename Dune::FieldMatrix<K,m,n> :: size_type size_type;
     Dune::FieldMatrix<K,m,n> ret;
-        
+
     for( size_type i = 0; i < m; ++i )
         for( size_type j = 0; j < n; ++j )
             ret[i][j] = A[i][j] / s;
