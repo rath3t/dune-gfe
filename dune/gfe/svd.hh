@@ -22,14 +22,14 @@ T pythag(T a, T b)
     T absa,absb;
     absa=std::fabs(a);
     absb=std::fabs(b);
-    if (absa > absb) 
+    if (absa > absb)
         return absa*std::sqrt(1.0+SQR(absb/absa));
-    else 
+    else
         return (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb)));
 }
 
 
-/** 
+/**
     Given a matrix a[1..m][1..n], this routine computes its singular value decomposition, A =
     U W V^T . The matrix U replaces a on output. The diagonal matrix of singular values W is out-
     put as a vector w[1..n]. The matrix V (not the transpose V T ) is output as v[1..n][1..n].
@@ -51,15 +51,15 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
 
     //Householder reduction to bidiagonal form.
     g=scale=anorm=0.0;
-    
+
     for (i=1;i<=n;i++) {
-    
+
         l=i+1;
         rv1[i]=scale*g;
         g=s=scale=0.0;
-        
+
         if (i <= m) {
-            for (k=i;k<=m;k++) 
+            for (k=i;k<=m;k++)
                 scale += std::abs(a[k][i]);
             if (scale) {
                 for (k=i;k<=m;k++) {
@@ -71,25 +71,25 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
                 h=f*g-s;
                 a[i][i]=f-g;
                 for (j=l;j<=n;j++) {
-                    for (s=0.0,k=i;k<=m;k++) 
+                    for (s=0.0,k=i;k<=m;k++)
                         s += a[k][i]*a[k][j];
                     f=s/h;
-                    for (k=i;k<=m;k++) 
+                    for (k=i;k<=m;k++)
                         a[k][j] += f*a[k][i];
                 }
-                for (k=i;k<=m;k++) 
+                for (k=i;k<=m;k++)
                     a[k][i] *= scale;
             }
         }
-        
+
         w[i-1]=scale *g;
         g=s=scale=0.0;
-        
+
         if (i <= m && i != n) {
-        
+
             for (k=l;k<=n;k++) scale += fabs(a[i][k]);
             if (scale) {
-                
+
                 for (k=l;k<=n;k++) {
                     a[i][k] /= scale;
                     s += a[i][k]*a[i][k];
@@ -100,12 +100,12 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
                 a[i][l]=f-g;
                 for (k=l;k<=n;k++) rv1[k]=a[i][k]/h;
                 for (j=l;j<=m;j++) {
-                    for (s=0.0,k=l;k<=n;k++) 
+                    for (s=0.0,k=l;k<=n;k++)
                         s += a[j][k]*a[i][k];
-                    for (k=l;k<=n;k++) 
+                    for (k=l;k<=n;k++)
                         a[j][k] += s*rv1[k];
                 }
-                for (k=l;k<=n;k++) 
+                for (k=l;k<=n;k++)
                     a[i][k] *= scale;
             }
         }
@@ -172,7 +172,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
                 c=0.0;
                 s=1.0;
                 for (i=l;i<=k;i++) {
-                            
+
                     f=s*rv1[i];
                     rv1[i]=c*rv1[i];
                     if ((T)(fabs(f)+anorm) == anorm) break;
@@ -243,7 +243,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
                 }
                 f=c*g+s*y;
                 x=c*y-s*g;
-                
+
                 for (jj=1;jj<=m;jj++) {
                     y=a[jj][j];
                     z=a[jj][i];
