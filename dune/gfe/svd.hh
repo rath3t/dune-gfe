@@ -8,9 +8,6 @@
 
 #include <dune/common/fmatrix.hh>
 
-template <class T>
-T SQR(const T& a) {return a*a;}
-
 // template <class T>
 // int SIGN(const T& a, const T& b) {return 1;}
 #define SIGN(a,b)((b)>=0.0 ? fabs(a) : -fabs(a))
@@ -19,13 +16,12 @@ T SQR(const T& a) {return a*a;}
 template <class T>
 T pythag(T a, T b)
 {
-    T absa,absb;
-    absa=std::fabs(a);
-    absb=std::fabs(b);
+    T absa=std::fabs(a);
+    T absb=std::fabs(b);
     if (absa > absb)
-        return absa*std::sqrt(1.0+SQR(absb/absa));
+        return absa*std::sqrt(T(1.0)+(absb/absa)*(absb/absa));
     else
-        return (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb)));
+      return (absb == 0.0) ? T(0.0) : absb*sqrt(T(1.0)+(absa/absb)*(absa/absb));
 }
 
 
@@ -61,7 +57,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
         if (i <= m) {
             for (k=i;k<=m;k++)
                 scale += std::abs(a[k][i]);
-            if (scale) {
+            if (scale!=0) {
                 for (k=i;k<=m;k++) {
                     a[k][i] /= scale;
                     s += a[k][i]*a[k][i];
@@ -88,7 +84,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
         if (i <= m && i != n) {
 
             for (k=l;k<=n;k++) scale += fabs(a[i][k]);
-            if (scale) {
+            if (scale!=0) {
 
                 for (k=l;k<=n;k++) {
                     a[i][k] /= scale;
@@ -117,7 +113,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
     // Accumulation of right-hand transformations.
     for (i=n;i>=1;i--) {
         if (i < n) {
-            if (g) {
+            if (g!=0) {
                 // Double division to avoid possible underflow.
                 for (j=l;j<=n;j++)
                     v[j][i]=(a[i][j]/a[i][l])/g;
@@ -139,7 +135,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
         l=i+1;
         g=w[i-1];
         for (j=l;j<=n;j++) a[i][j]=0.0;
-        if (g) {
+        if (g!=0) {
             g=1.0/g;
             for (j=l;j<=n;j++) {
                 for (s=0.0,k=l;k<=m;k++) s += a[k][i]*a[k][j];
@@ -236,7 +232,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
                 z=pythag(f,h);
                 // Rotation can be arbitrary if z = 0.
                 w[j-1]=z;
-                if (z) {
+                if (z!=0) {
                     z=1.0/z;
                     c=f*z;
                     s=h*z;
