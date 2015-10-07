@@ -9,6 +9,7 @@ set(TESTS
   localgeodesicfefunctiontest
   localgeodesicfestiffnesstest
   localgfetestfunctiontest
+  localprojectedfefunctiontest
   nestednesstest
   nonconvexitytest
   nonconvexitytest_simple
