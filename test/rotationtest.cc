@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <iostream>
+#include <array>
 
 #include <dune/common/fmatrix.hh>
 
@@ -17,7 +18,7 @@ using namespace Dune;
 
 void testDDExp()
 {
-    array<FieldVector<double,3>, 125> v;
+    std::array<FieldVector<double,3>, 125> v;
     int ct = 0;
     double eps = 1e-4;
 
@@ -33,7 +34,7 @@ void testDDExp()
     for (size_t i=0; i<v.size(); i++) {
 
         // Compute FD approximation of second derivative of exp
-        Dune::array<Dune::FieldMatrix<double,3,3>, 4> fdDDExp;
+        std::array<Dune::FieldMatrix<double,3,3>, 4> fdDDExp;
 
         for (int j=0; j<3; j++) {
 
@@ -79,7 +80,7 @@ void testDDExp()
         }
 
         // Compute analytical second derivative of exp
-        Dune::array<Dune::FieldMatrix<double,3,3>, 4> ddExp;
+        std::array<Dune::FieldMatrix<double,3,3>, 4> ddExp;
         Rotation<double,3>::DDexp(v[i], ddExp);
 
         for (int m=0; m<4; m++)
@@ -96,7 +97,7 @@ void testDDExp()
 
 void testDerivativeOfInterpolatedPosition()
 {
-    array<Rotation<double,3>, 6> q;
+    std::array<Rotation<double,3>, 6> q;
 
     FieldVector<double,3>  xAxis(0);    xAxis[0] = 1;
     FieldVector<double,3>  yAxis(0);    yAxis[1] = 1;
@@ -119,7 +120,7 @@ void testDerivativeOfInterpolatedPosition()
 
                 double s = k/6.0;
 
-                array<Quaternion<double>,6> fdGrad;
+                std::array<Quaternion<double>,6> fdGrad;
 
                 // ///////////////////////////////////////////////////////////
                 //   First: test the interpolated position
@@ -139,7 +140,7 @@ void testDerivativeOfInterpolatedPosition()
                 }
 
                 // Compute analytical gradient
-                array<Quaternion<double>,6> grad;
+                std::array<Quaternion<double>,6> grad;
                 RodLocalStiffness<OneDGrid,double>::interpolationDerivative(q[i], q[j], s, grad);
 
                 for (int l=0; l<6; l++) {
