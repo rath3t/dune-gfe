@@ -40,7 +40,7 @@ auto
 evaluateDerivativeFD(const LocalFunction& f, const Dune::FieldVector<ctype, dim>& local)
 -> decltype(f.evaluateDerivative(local))
 {
-    double eps = 1e-6;
+    double eps = 1e-8;
     static const int embeddedDim = LocalFunction::TargetSpace::embeddedDim;
     Dune::FieldMatrix<ctype, embeddedDim, dim> result;
 
