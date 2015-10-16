@@ -964,6 +964,108 @@ public:
 
     }
 
+    /** \brief Derivative of the map from orthogonal matrices to unit quaternions
+
+    We tacitly assume that the matrix really is orthogonal */
+    static Tensor3<T,4,3,3> derivativeOfMatrixToQuaternion(const Dune::FieldMatrix<T,3,3>& m)
+    {
+      Tensor3<T,4,3,3> result;
+
+      Dune::FieldVector<T,3> p;
+
+        // The following equations for the derivation of a unit quaternion from a rotation
+        // matrix comes from 'E. Salamin, Application of Quaternions to Computation with
+        // Rotations, Technical Report, Stanford, 1974'
+
+        p[0] = (1 + m[0][0] - m[1][1] - m[2][2]) / 4;
+        p[1] = (1 - m[0][0] + m[1][1] - m[2][2]) / 4;
+        p[2] = (1 - m[0][0] - m[1][1] + m[2][2]) / 4;
+        p[3] = (1 + m[0][0] + m[1][1] + m[2][2]) / 4;
+
+        // avoid rounding problems
+        if (p[0] >= p[1] && p[0] >= p[2] && p[0] >= p[3])
+        {
+          result[0] = {{1,0,0},{0,-1,0},{0,0,-1}};
+          result[0] *= 1.0/(8.0*std::sqrt(p[0]));
+
+          T denom = 32 * std::pow(p[0],1.5);
+          T offDiag = 1.0/(4*std::sqrt(p[0]));
+
+          result[1] = { {-(m[0][1]+m[1][0]) / denom, offDiag,              0},
+                        {offDiag,                    (m[0][1]+m[1][0]) / denom, 0},
+                        {0,                          0,                         (m[0][1]+m[1][0]) / denom}};
+
+          result[2] = { {-(m[0][2]+m[2][0]) / denom, 0,                        offDiag},
+                        {0,                         (m[0][2]+m[2][0]) / denom, 0},
+                        {offDiag,                    0,                       (m[0][2]+m[2][0]) / denom}};
+
+          result[3] = { {-(m[2][1]-m[1][2]) / denom, 0,                         0},
+                        {0,                         (m[2][1]-m[1][2]) / denom, -offDiag},
+                        {0,                          offDiag,                   (m[2][1]-m[1][2]) / denom}};
+        }
+        else if (p[1] >= p[0] && p[1] >= p[2] && p[1] >= p[3])
+        {
+          result[1] = {{-1,0,0},{0,1,0},{0,0,-1}};
+          result[1] *= 1.0/(8.0*std::sqrt(p[1]));
+
+          T denom = 32 * std::pow(p[1],1.5);
+          T offDiag = 1.0/(4*std::sqrt(p[1]));
+
+          result[0] = { {(m[0][1]+m[1][0]) / denom, offDiag,                    0},
+                        {offDiag,                  -(m[0][1]+m[1][0]) / denom, 0},
+                        {0,                         0,                         (m[0][1]+m[1][0]) / denom}};
+
+          result[2] = { {(m[1][2]+m[2][1]) / denom, 0           ,              0},
+                        {0,                        -(m[1][2]+m[2][1]) / denom, offDiag},
+                        {0,                         offDiag,                   (m[1][2]+m[2][1]) / denom}};
+
+          result[3] = { {(m[0][2]-m[2][0]) / denom, 0,                         offDiag},
+                        {0,                        -(m[0][2]-m[2][0]) / denom, 0},
+                        {-offDiag,                  0,                         (m[0][2]-m[2][0]) / denom}};
+        }
+        else if (p[2] >= p[0] && p[2] >= p[1] && p[2] >= p[3])
+        {
+          result[2] = {{-1,0,0},{0,-1,0},{0,0,1}};
+          result[2] *= 1.0/(8.0*std::sqrt(p[2]));
+
+          T denom = 32 * std::pow(p[2],1.5);
+          T offDiag = 1.0/(4*std::sqrt(p[2]));
+
+          result[0] = { {(m[0][2]+m[2][0]) / denom, 0,                         offDiag},
+                        {0,                        (m[0][2]+m[2][0]) / denom, 0},
+                        {offDiag,                   0,                         -(m[0][2]+m[2][0]) / denom}};
+
+          result[1] = { {(m[1][2]+m[2][1]) / denom, 0           ,              0},
+                        {0,                        (m[1][2]+m[2][1]) / denom,  offDiag},
+                        {0,                         offDiag,                 -(m[1][2]+m[2][1]) / denom}};
+
+          result[3] = { {(m[1][0]-m[0][1]) / denom, -offDiag,                  0},
+                        {offDiag,                   (m[1][0]-m[0][1]) / denom, 0},
+                        {0,                          0,                        -(m[1][0]-m[0][1]) / denom}};
+        }
+        else
+        {
+          result[3] = {{1,0,0},{0,1,0},{0,0,1}};
+          result[3] *= 1.0/(8.0*std::sqrt(p[3]));
+
+          T denom = 32 * std::pow(p[3],1.5);
+          T offDiag = 1.0/(4*std::sqrt(p[3]));
+
+          result[0] = { {-(m[2][1]-m[1][2]) / denom, 0,                         0},
+                        {0,                         -(m[2][1]-m[1][2]) / denom, -offDiag},
+                        {0,                         offDiag,                   -(m[2][1]-m[1][2]) / denom}};
+
+          result[1] = { {-(m[0][2]-m[2][0]) / denom, 0,                         offDiag},
+                        {0,                         -(m[0][2]-m[2][0]) / denom, 0},
+                        {-offDiag,                  0,                         -(m[0][2]-m[2][0]) / denom}};
+
+          result[2] = { {-(m[1][0]-m[0][1]) / denom, -offDiag,                  0},
+                        {offDiag,                   -(m[1][0]-m[0][1]) / denom, 0},
+                        {0,                         0,                         -(m[1][0]-m[0][1]) / denom}};
+        }
+      return result;
+    }
+
     /** \brief Create three vectors which form an orthonormal basis of \mathbb{H} together
         with this one.
 

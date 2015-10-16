@@ -9,7 +9,6 @@
 #include <dune/grid/onedgrid.hh>
 
 #include <dune/gfe/rotation.hh>
-#include <dune/gfe/svd.hh>
 #warning Do not include rodlocalstiffness.hh
 #include <dune/gfe/rodlocalstiffness.hh>
 #include "valuefactory.hh"
@@ -304,6 +303,45 @@ void testRotation(Rotation<double,3> q)
 
     }
 
+    //////////////////////////////////////////////////////////////////////
+    //  Check whether the derivativeOfMatrixToQuaternion methods works
+    //////////////////////////////////////////////////////////////////////
+
+    Tensor3<double,4,3,3> derivative = Rotation<double,3>::derivativeOfMatrixToQuaternion(matrix);
+
+    const double eps = 1e-8;
+    Tensor3<double,4,3,3> derivativeFD;
+
+    for (size_t i=0; i<3; i++)
+    {
+      for (size_t j=0; j<3; j++)
+      {
+        auto forwardMatrix = matrix;
+        forwardMatrix[i][j] += eps;
+        auto backwardMatrix = matrix;
+        backwardMatrix[i][j] -= eps;
+
+        Rotation<double,3> forwardRotation, backwardRotation;
+        forwardRotation.set(forwardMatrix);
+        backwardRotation.set(backwardMatrix);
+
+        for (size_t k=0; k<4; k++)
+          derivativeFD[k][i][j] = (forwardRotation.globalCoordinates()[k] - backwardRotation.globalCoordinates()[k]) / (2*eps);
+
+      }
+    }
+
+    if ((derivative - derivativeFD).infinity_norm() > 1e-6)
+    {
+      std::cout << "At matrix:\n" << matrix << std::endl;
+
+      std::cout << "Derivative of matrix to quaternion map does not match its FD approximation" << std::endl;
+      std::cout << "Analytical derivative:" << std::endl;
+      std::cout << derivative << std::endl;
+      std::cout << "Finite difference approximation" << std::endl;
+      std::cout << derivativeFD << std::endl;
+      abort();
+    }
 }
 
 int main (int argc, char *argv[]) try
