@@ -101,7 +101,7 @@ public:
     }
 
     /** \brief Constructor from an array.  The array gets normalized! */
-    UnitVector(const Dune::array<T,N>& vector)
+    UnitVector(const std::array<T,N>& vector)
     {
         for (int i=0; i<N; i++)
             data_[i] = vector[i];

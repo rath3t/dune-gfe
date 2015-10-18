@@ -52,14 +52,14 @@ public:
     // /////////////////////////////////
 
     /** \brief Material constants */
-    Dune::array<double,3> K_;
-    Dune::array<double,3> A_;
+    std::array<double,3> K_;
+    std::array<double,3> A_;
 
     GridView gridView_;
 
     //! Constructor
     RodLocalStiffness (const GridView& gridView,
-                       const Dune::array<double,3>& K, const Dune::array<double,3>& A)
+                       const std::array<double,3>& K, const std::array<double,3>& A)
         : gridView_(gridView)
     {
         for (int i=0; i<3; i++) {
@@ -98,14 +98,14 @@ public:
 
     /** \brief Local element energy for a P1 element */
     virtual RT energy (const Entity& e,
-                       const Dune::array<RigidBodyMotion<RT,3>, dim+1>& localSolution) const;
+                       const std::array<RigidBodyMotion<RT,3>, dim+1>& localSolution) const;
 
     virtual RT energy (const Entity& e,
                        const typename Dune::Functions::PQkNodalBasis<GridView,1>::LocalView::Tree::FiniteElement& localFiniteElement,
                        const std::vector<RigidBodyMotion<RT,3> >& localSolution) const
     {
         assert(localSolution.size()==2);
-        Dune::array<RigidBodyMotion<RT,3>, 2> localSolutionArray = {localSolution[0], localSolution[1]};
+        std::array<RigidBodyMotion<RT,3>, 2> localSolutionArray = {localSolution[0], localSolution[1]};
         return energy(e,localSolutionArray);
     }
 
@@ -132,10 +132,10 @@ protected:
 
 public:
     static void interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
-                                        Dune::array<Quaternion<double>,6>& grad);
+                                        std::array<Quaternion<double>,6>& grad);
 
     static void interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
-                                                double intervalLength, Dune::array<Quaternion<double>,6>& grad);
+                                                double intervalLength, std::array<Quaternion<double>,6>& grad);
 
 protected:
     template <class T>
@@ -155,7 +155,7 @@ protected:
 template <class GridType, class RT>
 RT RodLocalStiffness<GridType, RT>::
 energy(const Entity& element,
-       const Dune::array<RigidBodyMotion<RT,3>, dim+1>& localSolution
+       const std::array<RigidBodyMotion<RT,3>, dim+1>& localSolution
        ) const
 {
     RT energy = 0;
@@ -223,7 +223,7 @@ energy(const Entity& element,
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
 interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
-                        Dune::array<Quaternion<double>,6>& grad)
+                        std::array<Quaternion<double>,6>& grad)
 {
     // Clear output array
     for (int i=0; i<6; i++)
@@ -308,7 +308,7 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
 interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
-                                double intervalLength, Dune::array<Quaternion<double>,6>& grad)
+                                double intervalLength, std::array<Quaternion<double>,6>& grad)
 {
     // Clear output array
     for (int i=0; i<6; i++)
@@ -325,7 +325,7 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
 
     Dune::FieldMatrix<RT,4,3> dExp_v = Rotation<RT,3>::Dexp(SkewMatrix<RT,3>(v));
 
-    Dune::array<Dune::FieldMatrix<RT,3,3>, 4> ddExp;
+    std::array<Dune::FieldMatrix<RT,3,3>, 4> ddExp;
     Rotation<RT,3>::DDexp(v, ddExp);
 
     Dune::FieldMatrix<RT,3,4> dExpInv = Rotation<RT,3>::DexpInv(q0Inv.mult(q1));

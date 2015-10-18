@@ -197,7 +197,7 @@ public:
     }
     
     /** \brief Constructor from an array.  The array gets normalized */
-    HyperbolicHalfspacePoint(const Dune::array<T,N>& vector)
+    HyperbolicHalfspacePoint(const std::array<T,N>& vector)
     {
         assert(vector.back()>0);
         for (int i=0; i<N; i++)

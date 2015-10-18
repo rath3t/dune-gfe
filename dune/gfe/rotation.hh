@@ -193,7 +193,7 @@ public:
         : Quaternion<T>(0,0,0,1)
     {}
 
-    explicit Rotation<T,3>(const Dune::array<T,4>& c)
+    explicit Rotation<T,3>(const std::array<T,4>& c)
     {
         for (int i=0; i<4; i++)
             (*this)[i] = c[i];
@@ -406,7 +406,7 @@ public:
     }
 
     static void DDexp(const Dune::FieldVector<T,3>& v,
-                      Dune::array<Dune::FieldMatrix<T,3,3>, 4>& result) {
+                      std::array<Dune::FieldMatrix<T,3,3>, 4>& result) {
 
         T norm = v.two_norm();
         if (norm<=1e-10) {
@@ -651,7 +651,7 @@ public:
      * Then the return value of this method is
      * \f[ A_{ijkl} = \frac{\partial^2 d_{i,j}}{\partial q_k \partial q_l} \f]
      */
-    static void getSecondDerivativesOfDirectors(Dune::array<Tensor3<T,3, 4, 4>, 3>& dd_dq_dq)
+    static void getSecondDerivativesOfDirectors(std::array<Tensor3<T,3, 4, 4>, 3>& dd_dq_dq)
     {
         for (int i=0; i<3; i++)
             dd_dq_dq[i] = T(0);

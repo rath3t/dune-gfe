@@ -51,7 +51,7 @@ public:
     /** \brief Constructor for a complex with one rod and one continuum */
     RodContinuumSteklovPoincareStep(const RodContinuumComplex<RodGridType,ContinuumGridType>& complex,
                                     const std::string& preconditioner,
-                                    const Dune::array<double,2>& alpha,
+                                    const std::array<double,2>& alpha,
                                     double richardsonDamping,
                                     RodAssembler<typename RodGridType::LeafGridView,3>* rodAssembler,
                                     RodLocalStiffness<typename RodGridType::LeafGridView,double>* rodLocalStiffness,
@@ -83,7 +83,7 @@ public:
     /** \brief Constructor for a general complex */
     RodContinuumSteklovPoincareStep(const RodContinuumComplex<RodGridType,ContinuumGridType>& complex,
                                     const std::string& preconditioner,
-                                    const Dune::array<double,2>& alpha,
+                                    const std::array<double,2>& alpha,
                                     double richardsonDamping,
                                     const std::map<std::string,RodAssembler<typename RodGridType::LeafGridView,3>*>& rodAssembler,
                                     const std::map<std::string,RodLocalStiffness<typename RodGridType::LeafGridView,double>*>& rodLocalStiffness,
@@ -195,7 +195,7 @@ protected:
     std::string preconditioner_;
     
     /** \brief Neumann-Neumann damping */
-    Dune::array<double,2> alpha_;
+    std::array<double,2> alpha_;
 
     /** \brief Damping factor for the Richardson iteration */
     double richardsonDamping_;

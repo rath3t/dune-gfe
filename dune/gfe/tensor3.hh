@@ -12,7 +12,7 @@
 */
 template <class T, int N1, int N2, int N3>
 class Tensor3
-    : public Dune::array<Dune::FieldMatrix<T,N2,N3>,N1>
+    : public std::array<Dune::FieldMatrix<T,N2,N3>,N1>
 {
     public:
 

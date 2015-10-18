@@ -104,7 +104,7 @@ public:
 private:
 
     // having the dynamic data type on the inside is kind of a stupid data layout
-    Dune::array<Dune::array<std::vector<T>, N2>, N1> data_;
+    std::array<std::array<std::vector<T>, N2>, N1> data_;
     
     // size of the third dimension
     size_t N3_;
