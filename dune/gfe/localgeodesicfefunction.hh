@@ -84,9 +84,6 @@ public:
     DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                       const TargetSpace& q) const;
 
-    /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
-    DerivativeType evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const;
-
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
     void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                  int coefficient,
@@ -295,34 +292,6 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
 
         for (int j=0; j<embeddedDim; j++)
             result[j][i] = x[j];
-
-    }
-
-    return result;
-}
-
-template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
-LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
-{
-    double eps = 1e-6;
-
-    Dune::FieldMatrix<ctype, embeddedDim, dim> result;
-
-    for (int i=0; i<dim; i++) {
-
-        Dune::FieldVector<ctype, dim> forward  = local;
-        Dune::FieldVector<ctype, dim> backward = local;
-
-        forward[i]  += eps;
-        backward[i] -= eps;
-
-        EmbeddedTangentVector fdDer = evaluate(forward).globalCoordinates() - evaluate(backward).globalCoordinates();
-        fdDer /= 2*eps;
-
-        for (int j=0; j<embeddedDim; j++)
-            result[j][i] = fdDer[j];
 
     }
 
@@ -692,28 +661,6 @@ public:
 
         // get orientation part
         Dune::FieldMatrix<field_type,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local,q.q);
-        for (int i=0; i<4; i++)
-            for (int j=0; j<dim; j++)
-                result[3+i][j] = qResult[i][j];
-
-        return result;
-    }
-
-    /** \brief For debugging: Evaluate the derivative of the function using a finite-difference approximation*/
-    DerivativeType evaluateDerivativeFD(const Dune::FieldVector<ctype, dim>& local) const
-    {
-        Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
-
-        // get translation part
-        std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
-        localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
-
-        for (size_t i=0; i<translationCoefficients_.size(); i++)
-            for (int j=0; j<3; j++)
-                result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
-
-        // get orientation part
-        Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivativeFD(local);
         for (int i=0; i<4; i++)
             for (int j=0; j<dim; j++)
                 result[3+i][j] = qResult[i][j];

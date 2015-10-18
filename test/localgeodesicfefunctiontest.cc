@@ -34,6 +34,34 @@ double diameter(const std::vector<TargetSpace>& v)
     return d;
 }
 
+template <int dim, class ctype, class LocalFunction>
+auto
+evaluateDerivativeFD(const LocalFunction& f, const Dune::FieldVector<ctype, dim>& local)
+-> decltype(f.evaluateDerivative(local))
+{
+    double eps = 1e-8;
+    //static const int embeddedDim = LocalFunction::TargetSpace::embeddedDim;
+    decltype(f.evaluateDerivative(local)) result;
+
+    for (int i=0; i<dim; i++) {
+
+        Dune::FieldVector<ctype, dim> forward  = local;
+        Dune::FieldVector<ctype, dim> backward = local;
+
+        forward[i]  += eps;
+        backward[i] -= eps;
+
+        auto fdDer = f.evaluate(forward).globalCoordinates() - f.evaluate(backward).globalCoordinates();
+        fdDer /= 2*eps;
+
+        for (size_t j=0; j<result.N(); j++)
+            result[j][i] = fdDer[j];
+
+    }
+
+    return result;
+}
+
 
 template <int domainDim>
 void testDerivativeTangentiality(const RealTuple<double,1>& x,
@@ -155,7 +183,7 @@ void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
         Dune::FieldMatrix<double, embeddedDim, domainDim> derivative = f.evaluateDerivative(quadPos);
 
         // evaluate fd approximation of derivative
-        Dune::FieldMatrix<double, embeddedDim, domainDim> fdDerivative = f.evaluateDerivativeFD(quadPos);
+        Dune::FieldMatrix<double, embeddedDim, domainDim> fdDerivative = evaluateDerivativeFD(f,quadPos);
 
         Dune::FieldMatrix<double, embeddedDim, domainDim> diff = derivative;
         diff -= fdDerivative;
