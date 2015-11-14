@@ -971,7 +971,7 @@ public:
     {
       Tensor3<T,4,3,3> result;
 
-      Dune::FieldVector<T,3> p;
+      Dune::FieldVector<T,4> p;
 
         // The following equations for the derivation of a unit quaternion from a rotation
         // matrix comes from 'E. Salamin, Application of Quaternions to Computation with
