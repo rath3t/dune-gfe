@@ -28,7 +28,6 @@ class GeodesicFEAssembler {
 
 public:
     const Basis basis_;
-    const typename Basis::IndexSet basisIndexSet_;
 
 protected:
 
@@ -40,7 +39,6 @@ public:
     GeodesicFEAssembler(const Basis& basis,
                         LocalGeodesicFEStiffness<Basis, TargetSpace>* localStiffness)
         : basis_(basis),
-          basisIndexSet_(basis_.indexSet()),
           localStiffness_(localStiffness)
     {}
 
@@ -72,13 +70,13 @@ template <class Basis, class TargetSpace>
 void GeodesicFEAssembler<Basis,TargetSpace>::
 getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
-    auto n = basisIndexSet_.size();
+    auto n = basis_.size();
 
     nb.resize(n, n);
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
-    auto localIndexSet = basisIndexSet_.localIndexSet();
+    auto localIndexSet = basis_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endit = basis_.gridView().template end<0,Dune::Interior_Partition>  ();
@@ -130,7 +128,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
-    auto localIndexSet = basisIndexSet_.localIndexSet();
+    auto localIndexSet = basis_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endit = basis_.gridView().template end<0,Dune::Interior_Partition>  ();
@@ -179,7 +177,7 @@ void GeodesicFEAssembler<Basis,TargetSpace>::
 assembleGradient(const std::vector<TargetSpace>& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
-    if (sol.size()!=basisIndexSet_.size())
+    if (sol.size()!=basis_.size())
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
     grad.resize(sol.size());
@@ -187,7 +185,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
-    auto localIndexSet = basisIndexSet_.localIndexSet();
+    auto localIndexSet = basis_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endIt = basis_.gridView().template end<0,Dune::Interior_Partition>();
@@ -227,12 +225,12 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
 {
     double energy = 0;
 
-    if (sol.size() != basisIndexSet_.size())
+    if (sol.size() != basis_.size())
         DUNE_THROW(Dune::Exception, "Coefficient vector doesn't match the function space basis!");
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
-    auto localIndexSet = basisIndexSet_.localIndexSet();
+    auto localIndexSet = basis_.localIndexSet();
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endIt = basis_.gridView().template end<0,Dune::Interior_Partition>();
