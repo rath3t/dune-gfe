@@ -125,10 +125,10 @@ protected:
     double innerTolerance_;
 
     /** \brief Hessian matrix */
-    std::auto_ptr<MatrixType00> hessianMatrix00_;
-    std::auto_ptr<MatrixType01> hessianMatrix01_;
-    std::auto_ptr<MatrixType10> hessianMatrix10_;
-    std::auto_ptr<MatrixType11> hessianMatrix11_;
+    std::unique_ptr<MatrixType00> hessianMatrix00_;
+    std::unique_ptr<MatrixType01> hessianMatrix01_;
+    std::unique_ptr<MatrixType10> hessianMatrix10_;
+    std::unique_ptr<MatrixType11> hessianMatrix11_;
 
     /** \brief The assembler for the material law */
     const MixedGFEAssembler<Basis0, TargetSpace0, Basis1, TargetSpace1>* assembler_;

@@ -175,10 +175,10 @@ setup(const GridType& grid,
 
     // \todo Why are the hessianMatrix objects class members at all, and not local to 'solve'?
 
-    hessianMatrix00_ = std::auto_ptr<MatrixType00>(new MatrixType00);
-    hessianMatrix01_ = std::auto_ptr<MatrixType01>(new MatrixType01);
-    hessianMatrix10_ = std::auto_ptr<MatrixType10>(new MatrixType10);
-    hessianMatrix11_ = std::auto_ptr<MatrixType11>(new MatrixType11);
+    hessianMatrix00_ = std::unique_ptr<MatrixType00>(new MatrixType00);
+    hessianMatrix01_ = std::unique_ptr<MatrixType01>(new MatrixType01);
+    hessianMatrix10_ = std::unique_ptr<MatrixType10>(new MatrixType10);
+    hessianMatrix11_ = std::unique_ptr<MatrixType11>(new MatrixType11);
 
     // ////////////////////////////////////
     //   Create the transfer operators
