@@ -96,8 +96,8 @@ getMatrixPattern(Dune::MatrixIndexSet& nb00,
     nb11.resize(basis1_.indexSet().size(), basis1_.indexSet().size());
 
     // A view on the FE basis on a single element
-    typename Basis0::LocalView localView0(&basis0_);
-    typename Basis1::LocalView localView1(&basis1_);
+    auto localView0 = basis0_.localView();
+    auto localView1 = basis1_.localView();
     auto localIndexSet0 = basis0_.indexSet().localIndexSet();
     auto localIndexSet1 = basis1_.indexSet().localIndexSet();
 
@@ -188,8 +188,8 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
     gradient1 = 0;
 
     // A view on the FE basis on a single element
-    typename Basis0::LocalView localView0(&basis0_);
-    typename Basis1::LocalView localView1(&basis1_);
+    auto localView0 = basis0_.localView();
+    auto localView1 = basis1_.localView();
     auto localIndexSet0 = basis0_.indexSet().localIndexSet();
     auto localIndexSet1 = basis1_.indexSet().localIndexSet();
 
@@ -322,8 +322,8 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
         DUNE_THROW(Dune::Exception, "Configuration vector 1 doesn't match the basis!");
 
     // A view on the FE basis on a single element
-    typename Basis0::LocalView localView0(&basis0_);
-    typename Basis1::LocalView localView1(&basis1_);
+    auto localView0 = basis0_.localView();
+    auto localView1 = basis1_.localView();
     auto localIndexSet0 = basis0_.indexSet().localIndexSet();
     auto localIndexSet1 = basis1_.indexSet().localIndexSet();
 
