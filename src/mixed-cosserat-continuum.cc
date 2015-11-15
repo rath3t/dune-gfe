@@ -18,7 +18,6 @@
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/onedgrid.hh>
-#include <dune/grid/geometrygrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/grid/io/file/gmshreader.hh>
@@ -45,112 +44,6 @@
 const int dim = 2;
 
 using namespace Dune;
-
-// Dirichlet boundary data for the shear/wrinkling example
-class WrinklingDirichletValues
-: public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
-{
-  FieldVector<double,2> upper_;
-  double homotopy_;
-public:
-  WrinklingDirichletValues(FieldVector<double,2> upper, double homotopy)
-  : upper_(upper), homotopy_(homotopy)
-  {}
-
-  void evaluate(const FieldVector<double,dim>& in, FieldVector<double,3>& out) const
-  {
-    out = 0;
-    for (int i=0; i<dim; i++)
-      out[i] = in[i];
-
-    //     if (out[1] > 1-1e-3)
-    if (out[1] > upper_[1]-1e-4)
-      out[0] += 0.003*homotopy_;
-  }
-};
-
-class WongPellegrinoDirichletValuesPythonWriter
-{
-  FieldVector<double,2> upper_;
-  double homotopy_;
-public:
-
-  WongPellegrinoDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
-  : upper_(upper), homotopy_(homotopy)
-  {}
-
-  void writeDeformation()
-  {
-    Python::runStream()
-        << std::endl << "def deformationDirichletValues(x):"
-        << std::endl << "    out = [x[0], x[1], 0]"
-        << std::endl << "    if x[1] > " << upper_[1]-1e-4 << ":"
-        << std::endl << "        out[0] += 0.003 * " << homotopy_
-        << std::endl << "    return out";
-  }
-
-  void writeOrientation()
-  {
-    Python::runStream()
-        << std::endl << "def orientationDirichletValues(x):"
-        << std::endl << "    rotation = [[1,0,0], [0, 1, 0], [0, 0, 1]]"
-        << std::endl << "    return rotation";
-  }
-
-};
-
-
-class TwistedStripDirichletValuesPythonWriter
-{
-  FieldVector<double,2> upper_;
-  double homotopy_;
-  double totalAngle_;
-public:
-
-  TwistedStripDirichletValuesPythonWriter(FieldVector<double,2> upper, double homotopy)
-  : upper_(upper), homotopy_(homotopy)
-  {
-    totalAngle_ = 6*M_PI;
-  }
-
-  void writeDeformation()
-  {
-    Python::runStream()
-        << std::endl << "def deformationDirichletValues(x):"
-        << std::endl << "    upper = [" << upper_[0] << ", " << upper_[1] << "]"
-        << std::endl << "    homotopy = " << homotopy_
-        << std::endl << "    angle = " << totalAngle_ << " * x[0]/upper[0]"
-        << std::endl << "    angle *= homotopy"
-
-        // center of rotation
-        << std::endl << "    center = [0, 0, 0]"
-        << std::endl << "    center[1] = upper[1]/2.0"
-
-        << std::endl << "    rotation = numpy.array([[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]])"
-
-        << std::endl << "    inEmbedded = [x[0]-center[0], x[1]-center[1], 0-center[2]]"
-
-        // Matrix-vector product
-        << std::endl << "    out = [rotation[0][0]*inEmbedded[0]+rotation[0][1]*inEmbedded[1], rotation[1][0]*inEmbedded[0]+rotation[1][1]*inEmbedded[1], rotation[2][0]*inEmbedded[0]+rotation[2][1]*inEmbedded[1]]"
-
-        << std::endl << "    out = [out[0]+center[0], out[1]+center[1], out[2]+center[2]]"
-        << std::endl << "    return out";
-  }
-
-  void writeOrientation()
-  {
-    Python::runStream()
-        << std::endl << "def orientationDirichletValues(x):"
-        << std::endl << "    upper = [" << upper_[0] << ", " << upper_[1] << "]"
-        << std::endl << "    angle = " << totalAngle_ << " * x[0]/upper[0];"
-        << std::endl << "    angle *= " << homotopy_
-
-        << std::endl << "    rotation = numpy.array([[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]])"
-        << std::endl << "    return rotation";
-  }
-
-};
-
 
 /** \brief A constant vector-valued function, for simple Neumann boundary values */
 struct NeumannFunction
@@ -183,13 +76,17 @@ int main (int argc, char *argv[]) try
     Python::run("import math");
 
     //feenableexcept(FE_INVALID);
+    Python::runStream()
+        << std::endl << "import sys"
+        << std::endl << "sys.path.append('/home/sander/dune/dune-gfe/src/')"
+        << std::endl;
 
     typedef std::vector<RealTuple<double,3> > DeformationSolutionType;
     typedef std::vector<Rotation<double,3> >  OrientationSolutionType;
 
     // parse data file
     ParameterTree parameterSet;
-    if (argc != 2)
+    if (argc < 2)
       DUNE_THROW(Exception, "Usage: ./mixed-cosserat-continuum <parameter file>");
 
     ParameterTreeParser::readINITree(argv[1], parameterSet);
@@ -245,8 +142,8 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-    typedef Dune::Functions::PQKNodalBasis<GridView,3> DeformationFEBasis;
-    typedef Dune::Functions::PQKNodalBasis<GridView,2> OrientationFEBasis;
+    typedef Dune::Functions::PQkNodalBasis<GridView,3> DeformationFEBasis;
+    typedef Dune::Functions::PQkNodalBasis<GridView,2> OrientationFEBasis;
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
@@ -423,26 +320,16 @@ int main (int argc, char *argv[]) try
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
 
-        if (parameterSet.get<std::string>("problem") == "twisted-strip")
-        {
-          TwistedStripDirichletValuesPythonWriter twistedStripDirichletValuesPythonWriter(upper, homotopyParameter);
-          twistedStripDirichletValuesPythonWriter.writeDeformation();
-          twistedStripDirichletValuesPythonWriter.writeOrientation();
+        Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("problem") + "-dirichlet-values");
 
-        } else if (parameterSet.get<std::string>("problem") == "wong-pellegrino")
-        {
-          WongPellegrinoDirichletValuesPythonWriter wongPellegrinoDirichletValuesPythonWriter(upper, homotopyParameter);
-          wongPellegrinoDirichletValuesPythonWriter.writeDeformation();
-          wongPellegrinoDirichletValuesPythonWriter.writeOrientation();
+        Python::Callable C = dirichletValuesClass.get("DirichletValues");
 
-        } else if (parameterSet.get<std::string>("problem") == "wriggers-L-shape")
-        {
+        // Call a constructor.
+        Python::Reference dirichletValuesPythonObject = C(homotopyParameter);
 
-        } else
-          DUNE_THROW(Exception, "Unknown problem type");
-
-        PythonFunction<FieldVector<double,dim>, FieldVector<double,3> >   deformationDirichletValues(main.get("deformationDirichletValues"));
-        PythonFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> > orientationDirichletValues(main.get("orientationDirichletValues"));
+        // Extract object member functions as Dune functions
+        PythonFunction<FieldVector<double,dim>, FieldVector<double,3> >   deformationDirichletValues(dirichletValuesPythonObject.get("deformation"));
+        PythonFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> > orientationDirichletValues(dirichletValuesPythonObject.get("orientation"));
 
         std::vector<FieldVector<double,3> > ddV;
         ::Functions::interpolate(fufemDeformationFEBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
