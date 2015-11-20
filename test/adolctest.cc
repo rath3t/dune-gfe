@@ -515,16 +515,13 @@ int main (int argc, char *argv[]) try
                                FDType> localGFEFDStiffness(&cosseratEnergyFDLocalStiffness);
 
     // Compute and compare matrices
-    auto it    = gridView.template begin<0>();
-    auto endit = gridView.template end<0>  ();
-
-    for( ; it != endit; ++it ) {
-
-        std::cout << "  ++++  element " << gridView.indexSet().index(*it) << " ++++" << std::endl;
+    for (const auto& element : Dune::elements(gridView))
+    {
+        std::cout << "  ++++  element " << gridView.indexSet().index(element) << " ++++" << std::endl;
 
         auto localView     = feBasis.localView();
         auto localIndexSet = feBasis.localIndexSet();
-        localView.bind(*it);
+        localView.bind(element);
         localIndexSet.bind(localView);
 
         const int numOfBaseFct = localView.size();
@@ -544,21 +541,21 @@ int main (int argc, char *argv[]) try
         Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localFDHessian;
 
         // Assemble Euclidean derivatives
-        localADOLCStiffness.assembleGradientAndHessian(*it,
+        localADOLCStiffness.assembleGradientAndHessian(element,
                                                        localView.tree().finiteElement(),
                                                           localSolution,
                                                           localADGradient,
                                                           localADHessian,
                                                           false);   // 'true' means 'vector mode'
 
-        localADOLCStiffness.assembleGradientAndHessian(*it,
+        localADOLCStiffness.assembleGradientAndHessian(element,
                                                        localView.tree().finiteElement(),
                                                           localSolution,
                                                           localADGradient,
                                                           localADVMHessian,
                                                           true);   // 'true' means 'vector mode'
 
-        localFDStiffness.assembleGradientAndHessian(*it,
+        localFDStiffness.assembleGradientAndHessian(element,
                                                     localView.tree().finiteElement(),
                                                     localSolution,
                                                     localFDGradient,
@@ -575,12 +572,12 @@ int main (int argc, char *argv[]) try
         Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianADHessian;
         Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianFDHessian;
 
-        localGFEADOLCStiffness.assembleGradientAndHessian(*it,
+        localGFEADOLCStiffness.assembleGradientAndHessian(element,
                                                           localView.tree().finiteElement(),
                                                           localSolution,
                                                           localRiemannianADGradient);
 
-        localGFEFDStiffness.assembleGradientAndHessian(*it,
+        localGFEFDStiffness.assembleGradientAndHessian(element,
                                                        localView.tree().finiteElement(),
                                                        localSolution,
                                                        localRiemannianFDGradient);
