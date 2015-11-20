@@ -1,5 +1,5 @@
-#ifndef LOCAL_GEODESIC_FE_STIFFNESS_HH
-#define LOCAL_GEODESIC_FE_STIFFNESS_HH
+#ifndef DUNE_GFE_LOCAL_GEODESIC_FE_STIFFNESS_HH
+#define DUNE_GFE_LOCAL_GEODESIC_FE_STIFFNESS_HH
 
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
