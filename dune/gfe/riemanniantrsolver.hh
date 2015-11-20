@@ -13,6 +13,8 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
+#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+
 #include "geodesicfeassembler.hh"
 #include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalp1mapper.hh>
