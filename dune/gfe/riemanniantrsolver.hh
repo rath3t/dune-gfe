@@ -100,7 +100,7 @@ public:
 
     void setScaling(const Dune::FieldVector<double,blocksize>& scaling)
     {
-      scaling_(scaling);
+      scaling_ = scaling;
     }
 
     void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
