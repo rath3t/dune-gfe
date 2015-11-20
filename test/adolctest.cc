@@ -22,7 +22,7 @@ typedef double FDType;
 #include <adolc/drivers/drivers.h>    // use of "Easy to Use" drivers
 #include <adolc/taping.h>
 
-#include <dune/fufem/adolcnamespaceinjections.hh>
+#include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 #include <dune/common/fmatrix.hh>
 
 #include <dune/geometry/quadraturerules.hh>
