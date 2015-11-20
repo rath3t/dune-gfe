@@ -393,8 +393,8 @@ void compareMatrices(const Matrix<FieldMatrix<double,N,N> >& matrixA, std::strin
 
     for (size_t j=0; j<matrixA.M(); j++ ) {
 
-      for (int ii=0; ii<matrixA[i][j].N(); ii++)
-        for (int jj=0; jj<matrixA[i][j].M(); jj++)
+      for (size_t ii=0; ii<matrixA[i][j].N(); ii++)
+        for (size_t jj=0; jj<matrixA[i][j].M(); jj++)
         {
           double valueA = matrixA[i][j][ii][jj];
           double valueB = matrixB[i][j][ii][jj];
