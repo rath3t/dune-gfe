@@ -4,9 +4,11 @@
 
 #include <fenv.h>
 
-#include <boost/multiprecision/mpfr.hpp>
-
 //#define MULTIPRECISION
+
+#ifdef MULTIPRECISION
+#include <boost/multiprecision/mpfr.hpp>
+#endif
 
 #ifdef MULTIPRECISION
 typedef boost::multiprecision::mpfr_float_50 FDType;
