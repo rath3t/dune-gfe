@@ -8,12 +8,15 @@
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
-template<class GridView, class LocalFiniteElement, class TargetSpace, class field_type=double>
+template<class Basis, class TargetSpace, class field_type=double>
 class LocalGeodesicFEFDStiffness
-    : public LocalGeodesicFEStiffness<GridView,LocalFiniteElement,TargetSpace>
+    : public LocalGeodesicFEStiffness<Basis,TargetSpace>
 {
     // grid types
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename Basis::GridView GridView;
+    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
+    typedef typename GridView::ctype DT;
+    typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
     typedef typename TargetSpace::template rebind<field_type>::other ATargetSpace;
@@ -29,12 +32,12 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* energy)
+    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
     /** \brief Compute the energy at the current configuration */
-    virtual double energy (const Entity& element,
+    virtual RT energy (const Entity& element,
                const LocalFiniteElement& localFiniteElement,
                const std::vector<TargetSpace>& localSolution) const
     {
@@ -49,18 +52,17 @@ public:
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::TangentVector>& gradient) const;
 
-    /** \brief Assemble the local stiffness matrix at the current position
+    /** \brief Assemble the local tangent matrix and gradient at the current position
 
-    This default implementation used finite-difference approximations to compute the second derivatives
+      This implementation uses finite-difference approximations
 
-    The formula for the Riemannian Hessian has been taken from Absil, Mahony, Sepulchre:
-    'Optimization algorithms on matrix manifolds', page 107.  There it says that
-    \f[
+      The formula for the Riemannian Hessian has been taken from Absil, Mahony, Sepulchre:
+      'Optimization algorithms on matrix manifolds', page 107.  There it says that
+      \f[
         \langle Hess f(x)[\xi], \eta \rangle
             = \frac 12 \frac{d^2}{dt^2} \Big(f(\exp_x(t(\xi + \eta))) - f(\exp_x(t\xi)) - f(\exp_x(t\eta))\Big)\Big|_{t=0}.
-    \f]
-    We compute that using a finite difference approximation.
-
+      \f]
+      We compute that using a finite difference approximation.
     */
     virtual void assembleGradientAndHessian(const Entity& e,
                                  const LocalFiniteElement& localFiniteElement,
@@ -68,12 +70,12 @@ public:
                                  std::vector<typename TargetSpace::TangentVector>& localGradient);
 
 
-    const LocalGeodesicFEStiffness<GridView, LocalFiniteElement, ATargetSpace>* localEnergy_;
+    const LocalGeodesicFEStiffness<Basis, ATargetSpace>* localEnergy_;
 
 };
 
-template <class GridView, class LocalFiniteElement, class TargetSpace, class field_type>
-void LocalGeodesicFEFDStiffness<GridView, LocalFiniteElement, TargetSpace, field_type>::
+template <class Basis, class TargetSpace, class field_type>
+void LocalGeodesicFEFDStiffness<Basis, TargetSpace, field_type>::
 assembleGradient(const Entity& element,
                  const LocalFiniteElement& localFiniteElement,
                  const std::vector<TargetSpace>& localSolution,
@@ -133,11 +135,13 @@ assembleGradient(const Entity& element,
 }
 
 
-// ///////////////////////////////////////////////////////////
-//   Compute gradient by finite-difference approximation
-// ///////////////////////////////////////////////////////////
-template <class GridType, class LocalFiniteElement, class TargetSpace, class field_type>
-void LocalGeodesicFEFDStiffness<GridType, LocalFiniteElement, TargetSpace, field_type>::
+/////////////////////////////////////////////////////////////////////////////////
+//   Compute gradient and Hessian together
+//   To compute the Hessian we need to compute the gradient anyway, so we may
+//   as well return it.  This saves assembly time.
+/////////////////////////////////////////////////////////////////////////////////
+template <class Basis, class TargetSpace, class field_type>
+void LocalGeodesicFEFDStiffness<Basis, TargetSpace, field_type>::
 assembleGradientAndHessian(const Entity& element,
                 const LocalFiniteElement& localFiniteElement,
                 const std::vector<TargetSpace>& localSolution,
