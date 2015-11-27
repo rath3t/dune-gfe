@@ -19,7 +19,7 @@
   #include <dune/common/parallel/mpihelper.hh>
 #endif
 
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
 namespace Dune {
 
@@ -45,58 +45,42 @@ namespace Dune {
       // total number of degrees of freedom
       size_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
 
+      auto localView = p2Mapper_.localView();
+      auto localIndexSet = p2Mapper_.localIndexSet();
+
       // Determine
-      for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+      for (const auto& element : elements(gridView))
       {
-        // Loop over all vertices
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
-        for (size_t i=0; i<it->subEntities(2); i++)
-#else
-        for (size_t i=0; i<it->template count<2>(); i++)
-#endif
+        localView.bind(element);
+        localIndexSet.bind(localView);
+
+        // Loop over all local degrees of freedom
+        for (size_t i=0; i<localIndexSet.size(); i++)
         {
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
-          int localIndex  = p2Mapper_.subIndex(*it, i, 2);
-          int globalIndex = globalVertexIndex.index(it->template subEntity<2>(i));
-#else
-          int localIndex  = p2Mapper_.map(*it, i, 2);
-          int globalIndex = globalVertexIndex.index(*it->template subEntity<2>(i));
-#endif
+          int codim = localView.tree().finiteElement().localCoefficients().localKey(i).codim();
+          int entity   = localView.tree().finiteElement().localCoefficients().localKey(i).subEntity();
 
-          localGlobalMap_[localIndex]  = globalIndex;
-        }
+          int localIndex  = localIndexSet.index(i);
+          int globalIndex;
+          switch (codim)
+          {
+            case 2:  // vertex dofs
+              globalIndex = globalVertexIndex.index(element.template subEntity<2>(entity));
+              break;
 
-        // Loop over all edges
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
-        for (size_t i=0; i<it->subEntities(1); i++)
-#else
-        for (size_t i=0; i<it->template count<1>(); i++)
-#endif
-        {
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
-          int localIndex  = p2Mapper_.subIndex(*it, i, 1);
-#else
-          int localIndex  = p2Mapper_.map(*it, i, 1);
-#endif
-          int globalIndex = globalEdgeIndex.index(*it->template subEntity<1>(i)) + globalVertexIndex.size(2);
+            case 1:  // edge dofs
+              globalIndex = globalEdgeIndex.index(element.template subEntity<1>(entity)) + globalVertexIndex.size(2);
+              break;
 
-          localGlobalMap_[localIndex]  = globalIndex;
-        }
-
-        // One element degree of freedom for quadrilaterals
-        if (not it->type().isQuadrilateral())
-          DUNE_THROW(Dune::NotImplemented, "for non-quadrilaterals");
-
-        if (it->type().isQuadrilateral())
-        {
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
-          int localIndex  = p2Mapper_.subIndex(*it, 0, 0);
-#else
-          int localIndex  = p2Mapper_.map(*it, 0, 0);
-#endif
-          int globalIndex = globalElementIndex.index(*it->template subEntity<0>(0))
+            case 0:  // element dofs
+              globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
                             + globalEdgeIndex.size(1)
                             + globalVertexIndex.size(2);
+              break;
+
+            default:
+              DUNE_THROW(Dune::Exception, "Impossible codimension!");
+          }
 
           localGlobalMap_[localIndex]  = globalIndex;
         }
@@ -118,11 +102,29 @@ namespace Dune {
     }
 
     template <class Entity>
-    bool contains(const Entity& entity, uint i, uint codim, Index& result) const
+    bool contains(const Entity& entity, uint subEntity, uint codim, Index& result) const
     {
+      auto localView = p2Mapper_.localView();
+      auto localIndexSet = p2Mapper_.localIndexSet();
+      localView.bind(entity);
+      localIndexSet.bind(localView);
+
       Index localIndex;
-      if (not p2Mapper_.contains(entity, i, codim,localIndex))
+      bool dofFound = false;
+      for (size_t i=0; i<localIndexSet.size(); i++)
+      {
+        if (localView.tree().finiteElement().localCoefficients().localKey(i).subEntity() == subEntity
+          and localView.tree().finiteElement().localCoefficients().localKey(i).codim() == codim)
+        {
+          dofFound = true;
+          localIndex = localIndexSet.index(i);
+          break;
+        }
+      }
+
+      if (not dofFound)
         return false;
+
       result = localGlobalMap_.find(localIndex)->second;
       return true;
     }
@@ -132,7 +134,7 @@ namespace Dune {
       return size_;
     }
 
-    P2BasisMapper<GridView> p2Mapper_;
+    Functions::PQkNodalBasis<GridView,2> p2Mapper_;
 
     IndexMap localGlobalMap_;
 
