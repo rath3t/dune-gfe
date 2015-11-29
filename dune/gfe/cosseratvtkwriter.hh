@@ -232,10 +232,17 @@ public:
 
         Dune::GFE::VTKFile vtkFile;
 
-        // Stupid: I can't directly get the number of Interior_Partition elements
-        size_t numElements = 0;
+        // Count the number of elements of the different types
+        std::map<Dune::GeometryType,std::size_t> numElements;
+        for (const auto t : gridView.indexSet().types(0))
+          numElements[t] = 0;
+
         for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
-          numElements++;
+          numElements[it.type()]++;
+
+        std::size_t totalNumElements = 0;
+        for (const auto nE : numElements)
+          totalNumElements += nE.second;
 
         // Enter vertex coordinates
         std::vector<Dune::FieldVector<double, 3> > points(configuration.size());
@@ -245,11 +252,24 @@ public:
         vtkFile.points_ = points;
 
         // Enter elements
+        std::size_t connectivitySize = 0;
+        for (const auto nE : numElements)
+        {
 #ifdef SECOND_ORDER
-        std::vector<int> connectivity(numElements*8);
+          if (nE.first.isQuadrilateral())
+            connectivitySize += 8 * nE.second;
+          else if (nE.first.isTriangle())
+            connectivitySize += 6 * nE.second;
 #else
-        std::vector<int> connectivity(numElements*4);
+          if (nE.first.isQuadrilateral())
+            connectivitySize += 4 * nE.second;
+          else if (nE.first.isTriangle())
+            connectivitySize += 3 * nE.second;
 #endif
+          else
+            DUNE_THROW(Dune::IOError, "Unsupported element type '" << nE.first << "' found!");
+        }
+        std::vector<int> connectivity(connectivitySize);
 
         size_t i=0;
         for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
@@ -273,11 +293,26 @@ public:
             connectivity[i++] = basis.index(*it,2);
 #endif
           }
+          if (it->type().isTriangle())
+          {
+#ifdef SECOND_ORDER
+            connectivity[i++] = basis.index(*it,0);
+            connectivity[i++] = basis.index(*it,2);
+            connectivity[i++] = basis.index(*it,5);
+            connectivity[i++] = basis.index(*it,1);
+            connectivity[i++] = basis.index(*it,4);
+            connectivity[i++] = basis.index(*it,3);
+#else  // first order
+            connectivity[i++] = basis.index(*it,0);
+            connectivity[i++] = basis.index(*it,1);
+            connectivity[i++] = basis.index(*it,2);
+#endif
+          }
         }
 
         vtkFile.cellConnectivity_ = connectivity;
 
-        std::vector<int> offsets(numElements);
+        std::vector<int> offsets(totalNumElements);
         i = 0;
         int offsetCounter = 0;
         for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
@@ -288,12 +323,18 @@ public:
 #else
             offsetCounter += 4;
 #endif
+          if (it->type().isTriangle())
+#ifdef SECOND_ORDER
+            offsetCounter += 6;
+#else
+            offsetCounter += 3;
+#endif
           offsets[i++] += offsetCounter;
         }
 
         vtkFile.cellOffsets_ = offsets;
 
-        std::vector<int> cellTypes(numElements);
+        std::vector<int> cellTypes(totalNumElements);
         i = 0;
         for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
         {
@@ -302,6 +343,12 @@ public:
             cellTypes[i++] = 23;
 #else
             cellTypes[i++] = 9;
+#endif
+          if (it->type().isTriangle())
+#ifdef SECOND_ORDER
+            cellTypes[i++] = 22;
+#else
+            cellTypes[i++] = 5;
 #endif
         }
         vtkFile.cellTypes_ = cellTypes;
