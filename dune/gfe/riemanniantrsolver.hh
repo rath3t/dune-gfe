@@ -13,29 +13,27 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
-
 #include "geodesicfeassembler.hh"
 #include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalp1mapper.hh>
 #include <dune/gfe/parallel/globalp2mapper.hh>
+#include <dune/gfe/parallel/p2mapper.hh>
 
 /** \brief Assign GlobalMapper and LocalMapper types to a dune-fufem FunctionSpaceBasis */
-template <typename Basis>
+template <typename GridView, typename Basis>
 struct MapperFactory
 {};
 
 /** \brief Specialization for PQ1NodalBasis */
 template <typename GridView>
-struct MapperFactory<DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,1> > >
+struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,1> >
 {
     typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView, Dune::MCMGVertexLayout> LocalMapper;
 };
 
-/** \brief Specialization for PQ2NodalBasis */
 template <typename GridView>
-struct MapperFactory<DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,2> > >
+struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,2> >
 {
     typedef Dune::GlobalP2Mapper<GridView> GlobalMapper;
     typedef P2BasisMapper<GridView> LocalMapper;
@@ -43,7 +41,7 @@ struct MapperFactory<DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,
 
 /** \brief Specialization for PQ3NodalBasis */
 template <typename GridView>
-struct MapperFactory<DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,3> > >
+struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,3> >
 {
     // Error: we don't currently have a global P3 mapper
 };
@@ -69,8 +67,8 @@ class RiemannianTrustRegionSolver
     typedef std::vector<TargetSpace>                                               SolutionType;
 
 #if HAVE_MPI
-    typedef typename MapperFactory<Basis>::GlobalMapper GlobalMapper;
-    typedef typename MapperFactory<Basis>::LocalMapper LocalMapper;
+    typedef typename MapperFactory<typename Basis::GridView,Basis>::GlobalMapper GlobalMapper;
+    typedef typename MapperFactory<typename Basis::GridView,Basis>::LocalMapper LocalMapper;
 #endif
 
 
