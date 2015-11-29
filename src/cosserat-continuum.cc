@@ -289,6 +289,8 @@ int main (int argc, char *argv[]) try
                  baseTolerance,
                  instrumented);
 
+        solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+
         ////////////////////////////////////////////////////////
         //   Set Dirichlet values
         ////////////////////////////////////////////////////////
