@@ -344,11 +344,11 @@ assembleGradientAndHessian(const Entity& element,
       for (int i=0; i<n; i++)
         tangent[i][j] = 0.0;
 
-    for (int j=0; j<nDofs0*blocksize0; j++)
+    for (size_t j=0; j<nDofs0*blocksize0; j++)
       for (int i=0; i<embeddedBlocksize0; i++)
         tangent[(j/blocksize0)*embeddedBlocksize0+i][j] = orthonormalFrame0[j/blocksize0][j%blocksize0][i];
 
-    for (int j=0; j<nDofs1*blocksize1; j++)
+    for (size_t j=0; j<nDofs1*blocksize1; j++)
       for (int i=0; i<embeddedBlocksize1; i++)
         tangent[nDofs0*embeddedBlocksize0 + (j/blocksize1)*embeddedBlocksize1+i][nDofs0*blocksize0 + j] = orthonormalFrame1[j/blocksize1][j%blocksize1][i];
 
