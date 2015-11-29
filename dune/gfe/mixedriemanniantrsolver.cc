@@ -76,7 +76,15 @@ setup(const GridType& grid,
     // ////////////////////////////////
     //   Create a multigrid solver
     // ////////////////////////////////
-
+#ifdef HAVE_IPOPT
+    // First create an IPOpt base solver
+    auto baseSolver0 = new QuadraticIPOptSolver<MatrixType00,CorrectionType0>;
+    baseSolver0->verbosity_ = NumProc::QUIET;
+    baseSolver0->tolerance_ = baseTolerance;
+    auto baseSolver1 = new QuadraticIPOptSolver<MatrixType11,CorrectionType1>;
+    baseSolver1->verbosity_ = NumProc::QUIET;
+    baseSolver1->tolerance_ = baseTolerance;
+#else
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType00, CorrectionType0>* baseSolverStep0 = new TrustRegionGSStep<MatrixType00, CorrectionType0>;
     TrustRegionGSStep<MatrixType11, CorrectionType1>* baseSolverStep1 = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
@@ -96,6 +104,7 @@ setup(const GridType& grid,
                                                                                    baseTolerance,
                                                                                    baseNorm1,
                                                                                    Solver::QUIET);
+#endif
 
     // Transfer all Dirichlet data to the master processor
 #if 0
