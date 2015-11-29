@@ -16,10 +16,6 @@
 #include <dune/solvers/solvers/loopsolver.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p2nodalbasis.hh>
-#include <dune/fufem/functionspacebases/p3nodalbasis.hh>
-
 #include <dune/gfe/mixedgfeassembler.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */

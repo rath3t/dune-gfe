@@ -6,7 +6,7 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
+#include <dune/functions/functionspacebases/pqknodalbasis.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
@@ -197,11 +197,11 @@ setup(const GridType& grid,
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType0>::TransferOperatorType TransferOperatorType;
-        P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         P1NodalBasis<typename GridType::LeafGridView,double>,
+                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis0>(pkToP1TransferMatrix,p1Basis,assembler->basis0_);
 
         mmgStep0->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType0>;
@@ -237,11 +237,11 @@ setup(const GridType& grid,
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType1>::TransferOperatorType TransferOperatorType;
-        P1NodalBasis<typename GridType::LeafGridView,double> p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         P1NodalBasis<typename GridType::LeafGridView,double>,
+                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis1>(pkToP1TransferMatrix,p1Basis,assembler->basis1_);
 
         mmgStep0->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType1>;
