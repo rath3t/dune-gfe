@@ -426,7 +426,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             std::cout << "Solve quadratic problem..." << std::endl;
             double oldEnergy = 0;
             Dune::Timer solutionTimer;
-            for (int ii=0; ii<200; ii++)
+            for (int ii=0; ii<innerIterations_; ii++)
             {
               residual0 = rhs_global0;
               stiffnessMatrix01.mmv(corr_global1, residual0);
