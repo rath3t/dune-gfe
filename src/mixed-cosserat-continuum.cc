@@ -195,6 +195,10 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
+    BitSetVector<1> neumannNodes(deformationFEBasis.indexSet().size(), false);
+    constructBoundaryDofs(neumannBoundary,fufemDeformationFEBasis,neumannNodes);
+
+
     if (mpiHelper.rank()==0)
       std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
@@ -352,7 +356,7 @@ int main (int argc, char *argv[]) try
         solver.setInitialIterate(xDisp,xOrient);
         solver.solve();
 
-        //x = solver.getSol();
+        std::tie(xDisp,xOrient) = solver.getSol();
 
         // Output result of each homotopy step
         std::stringstream iAsAscii;
@@ -361,6 +365,24 @@ int main (int argc, char *argv[]) try
                                                                                        fufemOrientationFEBasis,xOrient,
                                                                                        resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
 
+    }
+
+    // //////////////////////////////
+    //   Output result
+    // //////////////////////////////
+
+    // finally: compute the average deformation of the Neumann boundary
+    // That is what we need for the locking tests
+    FieldVector<double,3> averageDef(0);
+    for (size_t i=0; i<xDisp.size(); i++)
+        if (neumannNodes[i][0])
+            averageDef += xDisp[i].globalCoordinates();
+    averageDef /= neumannNodes.count();
+
+    if (mpiHelper.rank()==0)
+    {
+      std::cout << "Neumann values = " << parameterSet.get<FieldVector<double, 3> >("neumannValues") << "  "
+                << ",  average deflection: " << averageDef << std::endl;
     }
 
  } catch (Exception e) {
