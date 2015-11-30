@@ -95,7 +95,10 @@ public:
         x1_ = x1;
     }
 
-    //SolutionType getSol() const {return x_;}
+    std::tuple<SolutionType0,SolutionType1> getSol() const
+    {
+      return std::make_tuple(x0_,x1_);
+    }
 
 protected:
 #if 0
