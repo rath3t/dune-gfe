@@ -129,7 +129,7 @@ setup(const GridType& grid,
     mmgStep0->basesolver_        = baseSolver0;
     mmgStep0->setSmoother(presmoother0, postsmoother0);
     mmgStep0->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType0>();
-    mmgStep0->verbosity_         = Solver::FULL;
+    mmgStep0->verbosity_         = Solver::QUIET;
 
     TrustRegionGSStep<MatrixType11, CorrectionType1>* presmoother1  = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
     TrustRegionGSStep<MatrixType11, CorrectionType1>* postsmoother1 = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
@@ -141,7 +141,7 @@ setup(const GridType& grid,
     mmgStep1->basesolver_        = baseSolver1;
     mmgStep1->setSmoother(presmoother1, postsmoother1);
     mmgStep1->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType1>();
-    mmgStep1->verbosity_         = Solver::FULL;
+    mmgStep1->verbosity_         = Solver::QUIET;
 
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
@@ -428,7 +428,6 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             Dune::Timer solutionTimer;
             for (int ii=0; ii<200; ii++)
             {
-              std::cout << "Iteration " << ii << std::endl;
               residual0 = rhs_global0;
               stiffnessMatrix01.mmv(corr_global1, residual0);
               mmgStep0->setRhs(residual0);
@@ -449,9 +448,6 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
               stiffnessMatrix11.umv(corr_global1,tmp1);
 
               double energy = 0.5 * (tmp0*corr_global0 + tmp1*corr_global1) - (rhs_global0*corr_global0 + rhs_global1*corr_global1);
-
-
-              std::cout << "Energy: " << energy << std::endl;
 
               if (energy > oldEnergy)
                 //DUNE_THROW(Dune::Exception, "energy increase!");
