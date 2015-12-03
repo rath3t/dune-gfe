@@ -33,30 +33,14 @@ public:
     /** \brief Project the input matrix onto the tangent space at "this"
      * 
      * See Absil, Mahoney, Sepulche, Example 5.3.2 for the formula
-     * \f[ P_X \xi = (I - XX^T) \xi + X \operatorname{skew} (X^T \xi)  \f]
+     * \f[ P_X \xi = X \operatorname{skew} (X^T \xi)  \f]
+     *
      */
     Dune::FieldMatrix<T,N,N> projectOntoTangentSpace(const Dune::FieldMatrix<T,N,N>& matrix) const
     {
         // rename to get the same notation as Absil & Co
         const Dune::FieldMatrix<T,N,N>& X = data_;
         
-        // I - XX^T
-        Dune::FieldMatrix<T,N,N> IdMinusXXT;
-        
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++) {
-                IdMinusXXT[i][j] = (i==j);
-                for (int k=0; k<N; k++)
-                    IdMinusXXT[i][j] -= X[i][k] * X[j][k];
-            }
-            
-        // (I - XX^T) \xi
-        Dune::FieldMatrix<T,N,N> result(0);
-        for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                for (int k=0; k<N; k++)
-                    result[i][j] += IdMinusXXT[i][k] * matrix[k][j];
-                
         // X^T \xi
         Dune::FieldMatrix<T,N,N> XTxi(0);
         for (int i=0; i<N; i++)
@@ -71,15 +55,12 @@ public:
                 skewXTxi[i][j] = 0.5 * ( XTxi[i][j] - XTxi[j][i] );
                 
         // X skew (X^T \xi)
-        Dune::FieldMatrix<T,N,N> XskewXTxi(0);
+        Dune::FieldMatrix<T,N,N> result(0);
         for (int i=0; i<N; i++)
             for (int j=0; j<N; j++)
                 for (int k=0; k<N; k++)
-                    XskewXTxi[i][j] += X[i][k] * skewXTxi[k][j];
+                    result[i][j] += X[i][k] * skewXTxi[k][j];
                 
-        //
-        result += XskewXTxi;
-        
         return result;
     }
     
