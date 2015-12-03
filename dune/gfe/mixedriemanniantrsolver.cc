@@ -311,6 +311,8 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
     // \todo Use global index set instead of basis for parallel computations
     MaxNormTrustRegion<blocksize0> trustRegion0(assembler_->basis0_.indexSet().size(), initialTrustRegionRadius_);
     MaxNormTrustRegion<blocksize1> trustRegion1(assembler_->basis1_.indexSet().size(), initialTrustRegionRadius_);
+    trustRegion0.set(initialTrustRegionRadius_, std::get<0>(scaling_));
+    trustRegion1.set(initialTrustRegionRadius_, std::get<1>(scaling_));
 
     std::vector<BoxConstraint<field_type,blocksize0> > trustRegionObstacles0;
     std::vector<BoxConstraint<field_type,blocksize1> > trustRegionObstacles1;
