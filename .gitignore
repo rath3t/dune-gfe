@@ -1,36 +1,9 @@
 
-# /
-/Makefile
-/Makefile.in
-/compile
-/config.*
-/configure
-/aclocal.m4
-/dependencies.m4
-/autom4te.cache
-/depcomp
-/install-sh
-/missing
-/mkinstalldirs
-/libtool
-/ltmain.sh
-/semantic.cache
-/stamp-h1
-/html
-/.deps
-/.libs
-/am
 /dune-gfe.pc
 /build-cmake
 
-# /doc/
-/doc/Makefile.in
-/doc/Makefile
-
 # /doc/doxygen/
 /doc/doxygen/html
-/doc/doxygen/Makefile
-/doc/doxygen/Makefile.in
 /doc/doxygen/semantic.cache
 /doc/doxygen/Doxyfile.in
 /doc/doxygen/Doxyfile
@@ -38,30 +11,10 @@
 /doc/doxygen/doxygen.log
 /doc/doxygen/doxyerr.log
 
-# /dune/
-/dune/Makefile.in
-/dune/Makefile
-
-# /dune/gfe/
-/dune/gfe/Makefile.in
-/dune/gfe/Makefile
-
-# /dune/gfe/coupling/
-/dune/gfe/coupling/Makefile.in
-/dune/gfe/coupling/Makefile
-
 # /locking_testsuite/
 /locking_testsuite/*.log
 /locking_testsuite/ipopt.out
 
-# /m4/
-/m4/Makefile.in
-/m4/Makefile
-
-# /src/
-/src/Makefile.in
-/src/Makefile
-/src/.deps
 /src/*.pyc
 
 /src/# executable files
@@ -70,8 +23,6 @@
 /src/rod3d
 
 # /test/
-/test/Makefile.in
-/test/Makefile
 /test/.deps
 /test/cosseratenergytest
 /test/frameinvariancetest
