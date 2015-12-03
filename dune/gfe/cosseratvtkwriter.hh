@@ -7,6 +7,7 @@
 
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
+#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/functions/vtkbasisgridfunction.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
