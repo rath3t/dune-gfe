@@ -7,6 +7,7 @@
 
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
+#include <dune/istl/multitypeblockmatrix.hh>
 
 #include <dune/grid/utility/globalindexset.hh>
 
@@ -38,6 +39,8 @@ class MixedRiemannianTrustRegionSolver
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize0, blocksize1> > MatrixType01;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize1, blocksize0> > MatrixType10;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<field_type, blocksize1, blocksize1> > MatrixType11;
+    typedef Dune::MultiTypeBlockMatrix<Dune::MultiTypeBlockVector<MatrixType00,MatrixType01>,
+                                       Dune::MultiTypeBlockVector<MatrixType10,MatrixType11> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize0> >             CorrectionType0;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize1> >             CorrectionType1;
     typedef std::vector<TargetSpace0>                                                SolutionType0;
@@ -140,10 +143,7 @@ protected:
     double innerTolerance_;
 
     /** \brief Hessian matrix */
-    std::unique_ptr<MatrixType00> hessianMatrix00_;
-    std::unique_ptr<MatrixType01> hessianMatrix01_;
-    std::unique_ptr<MatrixType10> hessianMatrix10_;
-    std::unique_ptr<MatrixType11> hessianMatrix11_;
+    std::unique_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
     const MixedGFEAssembler<Basis0, TargetSpace0, Basis1, TargetSpace1>* assembler_;
