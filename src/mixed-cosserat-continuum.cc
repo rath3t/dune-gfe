@@ -142,8 +142,8 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-    typedef Dune::Functions::PQkNodalBasis<GridView,3> DeformationFEBasis;
-    typedef Dune::Functions::PQkNodalBasis<GridView,2> OrientationFEBasis;
+    typedef Dune::Functions::PQkNodalBasis<GridView,2> DeformationFEBasis;
+    typedef Dune::Functions::PQkNodalBasis<GridView,1> OrientationFEBasis;
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
