@@ -34,6 +34,7 @@ class CosseratEnergyLocalStiffness
 
     // some other sizes
     enum {gridDim=GridView::dimension};
+    enum {dimworld=GridView::dimensionworld};
 
 
     /** \brief Compute the symmetric part of a matrix A, i.e. \f$ \frac 12 (A + A^T) \f$ */
@@ -120,7 +121,7 @@ public:
      */
     CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters,
                                  const BoundaryPatch<GridView>* neumannBoundary,
-                                 const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction)
+                                 const Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> >* neumannFunction)
     : neumannBoundary_(neumannBoundary),
       neumannFunction_(neumannFunction)
     {
@@ -293,7 +294,7 @@ public:
     const BoundaryPatch<GridView>* neumannBoundary_;
 
     /** \brief The function implementing the Neumann data */
-    const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction_;
+    const Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> >* neumannFunction_;
 };
 
 template <class Basis, int dim, class field_type>

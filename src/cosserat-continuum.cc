@@ -43,6 +43,7 @@
 
 // grid dimension
 const int dim = 2;
+const int dimworld = 2;
 
 // Image space of the geodesic fe functions
 typedef RigidBodyMotion<double,3> TargetSpace;
@@ -54,7 +55,7 @@ using namespace Dune;
 
 /** \brief A constant vector-valued function, for simple Neumann boundary values */
 struct NeumannFunction
-    : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
+    : public Dune::VirtualFunction<FieldVector<double,dimworld>, FieldVector<double,3> >
 {
     NeumannFunction(const FieldVector<double,3> values,
                     double homotopyParameter)
@@ -62,7 +63,7 @@ struct NeumannFunction
       homotopyParameter_(homotopyParameter)
     {}
 
-    void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
+    void evaluate(const FieldVector<double, dimworld>& x, FieldVector<double,3>& out) const {
         out = 0;
         out.axpy(homotopyParameter_, values_);
     }
@@ -122,12 +123,12 @@ int main (int argc, char *argv[]) try
 
     shared_ptr<GridType> grid;
 
-    FieldVector<double,dim> lower(0), upper(1);
+    FieldVector<double,dimworld> lower(0), upper(1);
 
     if (parameterSet.get<bool>("structuredGrid")) {
 
-        lower = parameterSet.get<FieldVector<double,dim> >("lower");
-        upper = parameterSet.get<FieldVector<double,dim> >("upper");
+        lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
+        upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
         array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
@@ -175,11 +176,11 @@ int main (int argc, char *argv[]) try
     // Make Python function that computes which vertices are on the Dirichlet boundary,
     // based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+    PythonFunction<FieldVector<double,dimworld>, bool> pythonDirichletVertices(Python::evaluate(lambda));
 
     // Same for the Neumann boundary
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
+    PythonFunction<FieldVector<double,dimworld>, bool> pythonNeumannVertices(Python::evaluate(lambda));
 
     for (; vIt!=vEndIt; ++vIt) {
 
@@ -223,7 +224,7 @@ int main (int argc, char *argv[]) try
       GFE::CosseratVTKReader::read(x, parameterSet.get<std::string>("initialIterateFilename"));
     } else {
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
+    PythonFunction<FieldVector<double,dimworld>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
 
     std::vector<FieldVector<double,3> > v;
       ::Functions::interpolate(fufemFeBasis, v, pythonInitialDeformation);
@@ -305,8 +306,8 @@ int main (int argc, char *argv[]) try
         Python::Reference dirichletValuesPythonObject = C(homotopyParameter);
 
         // Extract object member functions as Dune functions
-        PythonFunction<FieldVector<double,dim>, FieldVector<double,3> >   deformationDirichletValues(dirichletValuesPythonObject.get("deformation"));
-        PythonFunction<FieldVector<double,dim>, FieldMatrix<double,3,3> > orientationDirichletValues(dirichletValuesPythonObject.get("orientation"));
+        PythonFunction<FieldVector<double,dimworld>, FieldVector<double,3> >   deformationDirichletValues(dirichletValuesPythonObject.get("deformation"));
+        PythonFunction<FieldVector<double,dimworld>, FieldMatrix<double,3,3> > orientationDirichletValues(dirichletValuesPythonObject.get("orientation"));
 
         std::vector<FieldVector<double,3> > ddV;
         ::Functions::interpolate(fufemFeBasis, ddV, deformationDirichletValues, dirichletDofs);
