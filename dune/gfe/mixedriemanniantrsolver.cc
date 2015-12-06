@@ -35,8 +35,7 @@ template <class GridType,
 void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,TargetSpace1>::
 setup(const GridType& grid,
       const MixedGFEAssembler<Basis0, TargetSpace0, Basis1, TargetSpace1>* assembler,
-         const SolutionType0& x0,
-         const SolutionType1& x1,
+         const SolutionType& x,
          const Dune::BitSetVector<blocksize0>& dirichletNodes0,
          const Dune::BitSetVector<blocksize1>& dirichletNodes1,
          double tolerance,
@@ -55,8 +54,7 @@ setup(const GridType& grid,
 
     grid_                     = &grid;
     assembler_                = assembler;
-    x0_                       = x0;
-    x1_                       = x1;
+    x_                        = x;
     tolerance_                = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
     initialTrustRegionRadius_ = initialTrustRegionRadius;
@@ -320,7 +318,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
 
     using namespace Dune::TypeTree::Indices;
 
-    double oldEnergy = assembler_->computeEnergy(x0_, x1_);
+    double oldEnergy = assembler_->computeEnergy(x_[_0], x_[_1]);
     oldEnergy = mpiHelper.getCollectiveCommunication().sum(oldEnergy);
 
     bool recomputeGradientHessian = true;
@@ -345,17 +343,17 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             std::cout << "----------------------------------------------------" << std::endl;
         }
 
-        CorrectionType0 corr0(x0_.size());
+        CorrectionType0 corr0(x_[_0].size());
         corr0 = 0;
-        CorrectionType1 corr1(x1_.size());
+        CorrectionType1 corr1(x_[_1].size());
         corr1 = 0;
 
         Dune::Timer assemblyTimer;
 
         if (recomputeGradientHessian) {
 
-            assembler_->assembleGradientAndHessian(x0_,
-                                                   x1_,
+            assembler_->assembleGradientAndHessian(x_[_0],
+                                                   x_[_1],
                                                    rhs0,
                                                    rhs1,
                                                    (*hessianMatrix_)[_0][_0],
@@ -481,15 +479,14 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         //   Check whether trust-region step can be accepted
         // ////////////////////////////////////////////////////
 
-        SolutionType0 newIterate0 = x0_;
-        for (size_t j=0; j<newIterate0.size(); j++)
-            newIterate0[j] = TargetSpace0::exp(newIterate0[j], corr0[j]);
+        SolutionType newIterate = x_;
+        for (size_t j=0; j<newIterate[_0].size(); j++)
+            newIterate[_0][j] = TargetSpace0::exp(newIterate[_0][j], corr0[j]);
 
-        SolutionType1 newIterate1 = x1_;
-        for (size_t j=0; j<newIterate1.size(); j++)
-            newIterate1[j] = TargetSpace1::exp(newIterate1[j], corr1[j]);
+        for (size_t j=0; j<newIterate[_1].size(); j++)
+            newIterate[_1][j] = TargetSpace1::exp(newIterate[_1][j], corr1[j]);
 
-        double energy    = assembler_->computeEnergy(newIterate0,newIterate1);
+        double energy    = assembler_->computeEnergy(newIterate[_0],newIterate[_1]);
         energy = mpiHelper.getCollectiveCommunication().sum(energy);
 
         // compute the model decrease
@@ -532,8 +529,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             if (this->verbosity_ != NumProc::QUIET and rank==0)
                 std::cout << i+1 << " trust-region steps were taken." << std::endl;
 
-            x0_ = newIterate0;
-            x1_ = newIterate1;
+            x_ = newIterate;
             break;
         }
 
@@ -543,8 +539,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         if ( (oldEnergy-energy) / modelDecrease > 0.9) {
             // very successful iteration
 
-            x0_ = newIterate0;
-            x1_ = newIterate1;
+            x_ = newIterate;
             trustRegion0.scale(2);
             trustRegion1.scale(2);
 
@@ -556,8 +551,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         } else if ( (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
-            x0_ = newIterate0;
-            x1_ = newIterate1;
+            x_ = newIterate;
 
             // current energy becomes 'oldEnergy' for the next iteration
             oldEnergy = energy;
@@ -581,8 +575,8 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         DuneFunctionsBasis<Basis1> fufemBasis1(assembler_->basis1_);
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        CosseratVTKWriter<GridType>::template writeMixed<DuneFunctionsBasis<Basis0>, DuneFunctionsBasis<Basis1> >(fufemBasis0,x0_,
-                                                                        fufemBasis1,x1_,
+        CosseratVTKWriter<GridType>::template writeMixed<DuneFunctionsBasis<Basis0>, DuneFunctionsBasis<Basis1> >(fufemBasis0,x_[_0],
+                                                                        fufemBasis1,x_[_1],
                                                                         "mixed-cosserat_iterate_" + iAsAscii.str());
 
         if (rank==0)

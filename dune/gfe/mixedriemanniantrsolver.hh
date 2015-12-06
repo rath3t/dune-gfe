@@ -11,6 +11,8 @@
 
 #include <dune/grid/utility/globalindexset.hh>
 
+#include <dune/functions/common/tuplevector.hh>
+
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -43,8 +45,7 @@ class MixedRiemannianTrustRegionSolver
                                        Dune::MultiTypeBlockVector<MatrixType10,MatrixType11> > MatrixType;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize0> >             CorrectionType0;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize1> >             CorrectionType1;
-    typedef std::vector<TargetSpace0>                                                SolutionType0;
-    typedef std::vector<TargetSpace1>                                                SolutionType1;
+    typedef Dune::Functions::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > SolutionType;
 
 #if 0
 #ifdef SECOND_ORDER
@@ -68,8 +69,7 @@ public:
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid,
                const MixedGFEAssembler<Basis0, TargetSpace0, Basis1, TargetSpace1>* assembler,
-               const SolutionType0& x0,
-               const SolutionType1& x1,
+               const SolutionType& x,
                const Dune::BitSetVector<blocksize0>& dirichletNodes0,
                const Dune::BitSetVector<blocksize1>& dirichletNodes1,
                double tolerance,
@@ -104,16 +104,14 @@ public:
 #endif
     void solve();
 
-    void setInitialIterate(const SolutionType0& x0,
-                           const SolutionType1& x1)
+    void setInitialIterate(const SolutionType& x)
     {
-        x0_ = x0;
-        x1_ = x1;
+        x_ = x;
     }
 
-    std::tuple<SolutionType0,SolutionType1> getSol() const
+    SolutionType getSol() const
     {
-      return std::make_tuple(x0_,x1_);
+      return x_;
     }
 
 protected:
@@ -124,8 +122,7 @@ protected:
     const GridType* grid_;
 
     /** \brief The solution vectors */
-    SolutionType0 x0_;
-    SolutionType1 x1_;
+    SolutionType x_;
 
     /** \brief The initial trust-region radius in the maximum-norm */
     double initialTrustRegionRadius_;

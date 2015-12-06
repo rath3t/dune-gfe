@@ -22,6 +22,7 @@
 
 #include <dune/grid/io/file/gmshreader.hh>
 
+#include <dune/functions/common/tuplevector.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
@@ -81,8 +82,9 @@ int main (int argc, char *argv[]) try
         << std::endl << "sys.path.append('/home/sander/dune/dune-gfe/problems/')"
         << std::endl;
 
-    typedef std::vector<RealTuple<double,3> > DeformationSolutionType;
-    typedef std::vector<Rotation<double,3> >  OrientationSolutionType;
+    using namespace Dune::TypeTree::Indices;
+    typedef Dune::Functions::TupleVector<std::vector<RealTuple<double,3> >,
+                                         std::vector<Rotation<double,3> > > SolutionType;
 
     // parse data file
     ParameterTree parameterSet;
@@ -225,7 +227,9 @@ int main (int argc, char *argv[]) try
     //   Initial iterate
     // //////////////////////////
 
-    DeformationSolutionType xDisp(deformationFEBasis.indexSet().size());
+    SolutionType x;
+
+    x[_0].resize(deformationFEBasis.indexSet().size());
 
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
@@ -233,10 +237,10 @@ int main (int argc, char *argv[]) try
     std::vector<FieldVector<double,3> > v;
     ::Functions::interpolate(fufemDeformationFEBasis, v, pythonInitialDeformation);
 
-    for (size_t i=0; i<xDisp.size(); i++)
-      xDisp[i] = v[i];
+    for (size_t i=0; i<x[_0].size(); i++)
+      x[_0][i] = v[i];
 
-    OrientationSolutionType xOrient(orientationFEBasis.indexSet().size());
+    x[_1].resize(orientationFEBasis.indexSet().size());
 #if 0
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
@@ -252,8 +256,8 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
-    CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,xDisp,
-                                                                                             fufemOrientationFEBasis,xOrient,
+    CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,x[_0],
+                                                                                             fufemOrientationFEBasis,x[_1],
                                                                                    resultPath + "mixed-cosserat_homotopy_0");
 
     for (int i=0; i<numHomotopySteps; i++) {
@@ -306,8 +310,7 @@ int main (int argc, char *argv[]) try
                                      OrientationFEBasis, Rotation<double,3> > solver;
     solver.setup(*grid,
                  &assembler,
-                 xDisp,
-                 xOrient,
+                 x,
                  deformationDirichletDofs,
                  orientationDirichletDofs,
                  tolerance,
@@ -343,28 +346,28 @@ int main (int argc, char *argv[]) try
         std::vector<FieldMatrix<double,3,3> > dOV;
         ::Functions::interpolate(fufemOrientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
 
-        for (size_t j=0; j<xDisp.size(); j++)
+        for (size_t j=0; j<x[_0].size(); j++)
           if (deformationDirichletNodes[j][0])
-            xDisp[j] = ddV[j];
+            x[_0][j] = ddV[j];
 
-        for (size_t j=0; j<xOrient.size(); j++)
+        for (size_t j=0; j<x[_1].size(); j++)
           if (orientationDirichletNodes[j][0])
-            xOrient[j].set(dOV[j]);
+            x[_1][j].set(dOV[j]);
 
         // /////////////////////////////////////////////////////
         //   Solve!
         // /////////////////////////////////////////////////////
 
-        solver.setInitialIterate(xDisp,xOrient);
+        solver.setInitialIterate(x);
         solver.solve();
 
-        std::tie(xDisp,xOrient) = solver.getSol();
+        x = solver.getSol();
 
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,xDisp,
-                                                                                       fufemOrientationFEBasis,xOrient,
+        CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,x[_0],
+                                                                                       fufemOrientationFEBasis,x[_1],
                                                                                        resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
 
     }
@@ -376,9 +379,9 @@ int main (int argc, char *argv[]) try
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
-    for (size_t i=0; i<xDisp.size(); i++)
+    for (size_t i=0; i<x[_0].size(); i++)
         if (neumannNodes[i][0])
-            averageDef += xDisp[i].globalCoordinates();
+            averageDef += x[_0][i].globalCoordinates();
     averageDef /= neumannNodes.count();
 
     if (mpiHelper.rank()==0)
