@@ -248,7 +248,7 @@ setup(const GridType& grid,
                                          DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis1>(pkToP1TransferMatrix,p1Basis,assembler->basis1_);
 
-        mmgStep0->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType1>;
+        mmgStep1->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType1>;
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
         dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType1>*>(mmgStep1->mgTransfer_.back())->setMatrix(topTransferOperator);
 
