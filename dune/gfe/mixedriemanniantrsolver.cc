@@ -322,11 +322,9 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
     oldEnergy = mpiHelper.getCollectiveCommunication().sum(oldEnergy);
 
     bool recomputeGradientHessian = true;
-    CorrectionType0 rhs0;
-    CorrectionType1 rhs1;
+    CorrectionType rhs;
     MatrixType stiffnessMatrix;
-    CorrectionType0 rhs_global0;
-    CorrectionType1 rhs_global1;
+    CorrectionType rhs_global;
 #if 0
     VectorCommunicator<GUIndex, CorrectionType> vectorComm(*guIndex_, 0);
     MatrixCommunicator<GUIndex, MatrixType> matrixComm(*guIndex_, 0);
@@ -343,10 +341,10 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             std::cout << "----------------------------------------------------" << std::endl;
         }
 
-        CorrectionType0 corr0(x_[_0].size());
-        corr0 = 0;
-        CorrectionType1 corr1(x_[_1].size());
-        corr1 = 0;
+        CorrectionType corr;
+        corr[_0].resize(x_[_0].size());
+        corr[_1].resize(x_[_1].size());
+        corr = 0;
 
         Dune::Timer assemblyTimer;
 
@@ -354,8 +352,8 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
 
             assembler_->assembleGradientAndHessian(x_[_0],
                                                    x_[_1],
-                                                   rhs0,
-                                                   rhs1,
+                                                   rhs[_0],
+                                                   rhs[_1],
                                                    (*hessianMatrix_)[_0][_0],
                                                    (*hessianMatrix_)[_0][_1],
                                                    (*hessianMatrix_)[_1][_0],
@@ -363,8 +361,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
                                                    i==0    // assemble occupation pattern only for the first call
                                                    );
 
-            rhs0 *= -1;        // The right hand side is the _negative_ gradient
-            rhs1 *= -1;
+            rhs *= -1;        // The right hand side is the _negative_ gradient
 
             if (this->verbosity_ == Solver::FULL)
               std::cout << "Assembly took " << assemblyTimer.elapsed() << " sec." << std::endl;
@@ -383,33 +380,31 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             rhs_global0 = vectorComm.reduceAdd(rhs0);
             rhs_global1 = vectorComm.reduceAdd(rhs1);
 #endif
-            rhs_global0 = rhs0;
-            rhs_global1 = rhs1;
+            rhs_global = rhs;
 
             recomputeGradientHessian = false;
 
         }
 
-        CorrectionType0 corr_global0(rhs_global0.size());
-        corr_global0 = 0;
-        CorrectionType1 corr_global1(rhs_global1.size());
-        corr_global1 = 0;
+        CorrectionType corr_global;
+        corr_global[_0].resize(rhs_global[_0].size());
+        corr_global[_1].resize(rhs_global[_1].size());
+        corr_global = 0;
 
         if (rank==0)
         {
             ///////////////////////////////
             //    Solve !
             ///////////////////////////////
-            CorrectionType0 residual0 = rhs_global0;
-            CorrectionType1 residual1 = rhs_global1;
+            CorrectionType residual = rhs_global;
 
-            mmgStep0->setProblem(stiffnessMatrix[_0][_0], corr_global0, residual0);
+            mmgStep0->setProblem(stiffnessMatrix[_0][_0], corr_global[_0], residual[_0]);
             trustRegionObstacles0 = trustRegion0.obstacles();
             mmgStep0->obstacles_ = &trustRegionObstacles0;
 
             mmgStep0->preprocess();
 
-            mmgStep1->setProblem(stiffnessMatrix[_1][_1], corr_global1, residual1);
+            mmgStep1->setProblem(stiffnessMatrix[_1][_1], corr_global[_1], residual[_1]);
             trustRegionObstacles1 = trustRegion1.obstacles();
             mmgStep1->obstacles_ = &trustRegionObstacles1;
 
@@ -421,26 +416,20 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             Dune::Timer solutionTimer;
             for (int ii=0; ii<innerIterations_; ii++)
             {
-              residual0 = rhs_global0;
-              stiffnessMatrix[_0][_1].mmv(corr_global1, residual0);
-              mmgStep0->setRhs(residual0);
+              residual[_0] = rhs_global[_0];
+              stiffnessMatrix[_0][_1].mmv(corr_global[_1], residual[_0]);
+              mmgStep0->setRhs(residual[_0]);
               mmgStep0->iterate();
 
-              residual1 = rhs_global1;
-              stiffnessMatrix[_1][_0].mmv(corr_global0, residual1);
-              mmgStep1->setRhs(residual1);
+              residual[_1] = rhs_global[_1];
+              stiffnessMatrix[_1][_0].mmv(corr_global[_0], residual[_1]);
+              mmgStep1->setRhs(residual[_1]);
               mmgStep1->iterate();
 
               // Compute energy
-              CorrectionType0 tmp0(corr_global0);
-              stiffnessMatrix[_0][_0].mv(corr_global0,tmp0);
-              stiffnessMatrix[_0][_1].umv(corr_global1,tmp0);
-
-              CorrectionType1 tmp1(corr_global1);
-              stiffnessMatrix[_1][_0].mv(corr_global0,tmp1);
-              stiffnessMatrix[_1][_1].umv(corr_global1,tmp1);
-
-              double energy = 0.5 * (tmp0*corr_global0 + tmp1*corr_global1) - (rhs_global0*corr_global0 + rhs_global1*corr_global1);
+              CorrectionType tmp(corr_global);
+              stiffnessMatrix.mv(corr_global,tmp);
+              double energy = 0.5 * (tmp*corr_global) - (rhs_global*corr_global);
 
               if (energy > oldEnergy)
                 //DUNE_THROW(Dune::Exception, "energy increase!");
@@ -460,13 +449,12 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
         //corr = vectorComm.scatter(corr_global);
-        corr0 = corr_global0;
-        corr1 = corr_global1;
+        corr = corr_global;
 
         if (this->verbosity_ == NumProc::FULL)
-            std::cout << "Infinity norm of the correction: " << std::max(corr0.infinity_norm(), corr1.infinity_norm()) << std::endl;
+            std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
-        if (corr_global0.infinity_norm() < tolerance_ and corr_global1.infinity_norm() < tolerance_) {
+        if (corr_global.infinity_norm() < tolerance_) {
             if (verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
@@ -481,10 +469,10 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
 
         SolutionType newIterate = x_;
         for (size_t j=0; j<newIterate[_0].size(); j++)
-            newIterate[_0][j] = TargetSpace0::exp(newIterate[_0][j], corr0[j]);
+            newIterate[_0][j] = TargetSpace0::exp(newIterate[_0][j], corr[_0][j]);
 
         for (size_t j=0; j<newIterate[_1].size(); j++)
-            newIterate[_1][j] = TargetSpace1::exp(newIterate[_1][j], corr1[j]);
+            newIterate[_1][j] = TargetSpace1::exp(newIterate[_1][j], corr[_1][j]);
 
         double energy    = assembler_->computeEnergy(newIterate[_0],newIterate[_1]);
         energy = mpiHelper.getCollectiveCommunication().sum(energy);
@@ -492,17 +480,9 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         // compute the model decrease
         // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
         // Note that rhs = -g
-        CorrectionType0 tmp0(corr0.size());
-        tmp0 = 0;
-        (*hessianMatrix_)[_0][_0].umv(corr0, tmp0);
-        (*hessianMatrix_)[_0][_1].umv(corr1, tmp0);
-
-        CorrectionType1 tmp1(corr1.size());
-        tmp1 = 0;
-        (*hessianMatrix_)[_1][_0].umv(corr0, tmp1);
-        (*hessianMatrix_)[_1][_1].umv(corr1, tmp1);
-
-        double modelDecrease = (rhs0*corr0+rhs1*corr1) - 0.5 * (corr0*tmp0+corr1*tmp1);
+        CorrectionType tmp(corr);
+        hessianMatrix_->mv(corr,tmp);
+        double modelDecrease = rhs*corr - 0.5 * (corr*tmp);
         modelDecrease = mpiHelper.getCollectiveCommunication().sum(modelDecrease);
 
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
