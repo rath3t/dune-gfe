@@ -91,7 +91,7 @@ public:  // for testing
      */
     static void computeDR(const RigidBodyMotion<field_type,3>& value,
                           const Dune::FieldMatrix<field_type,7,gridDim>& derivative,
-                          Tensor3<field_type,3,3,3>& DR)
+                          Tensor3<field_type,3,3,gridDim>& DR)
     {
         // The LocalGFEFunction class gives us the derivatives of the orientation variable,
         // but as a map into quaternion space.  To obtain matrix coordinates we use the
@@ -245,7 +245,7 @@ public:
         return result;
     }
 
-    RT curvatureEnergy(const Tensor3<field_type,3,3,3>& DR) const
+    RT curvatureEnergy(const Tensor3<field_type,3,3,gridDim>& DR) const
     {
 #ifdef DONT_USE_CURL
         return mu_ * std::pow(L_c_ * L_c_ * DR.frobenius_norm2(),q_/2.0);
@@ -254,18 +254,14 @@ public:
 #endif
     }
 
-    RT bendingEnergy(const Dune::FieldMatrix<field_type,dim,dim>& R, const Tensor3<field_type,3,3,3>& DR) const
+    RT bendingEnergy(const Dune::FieldMatrix<field_type,dim,dim>& R, const Tensor3<field_type,3,3,gridDim>& DR) const
     {
         // left-multiply the derivative of the third director (in DR[][2][]) with R^T
-        Dune::FieldMatrix<field_type,3,3> RT_DR3;
+        Dune::FieldMatrix<field_type,3,3> RT_DR3(0);
         for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++) {
-                RT_DR3[i][j] = 0;
+            for (int j=0; j<gridDim; j++)
                 for (int k=0; k<3; k++)
                     RT_DR3[i][j] += R[k][i] * DR[k][2][j];
-            }
-
-
 
         return mu_ * sym(RT_DR3).frobenius_norm2()
                + mu_c_ * skew(RT_DR3).frobenius_norm2()
@@ -355,7 +351,7 @@ energy(const Entity& element,
         //  Note: we need it in matrix coordinates
         //////////////////////////////////////////////////////////
 
-        Tensor3<field_type,3,3,3> DR;
+        Tensor3<field_type,3,3,gridDim> DR;
         computeDR(value, derivative, DR);
 
         // Add the local energy density
