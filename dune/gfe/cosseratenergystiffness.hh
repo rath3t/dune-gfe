@@ -305,7 +305,6 @@ energy(const Entity& element,
        const std::vector<RigidBodyMotion<field_type,dim> >& localSolution) const
 {
     assert(element.type() == localFiniteElement.type());
-    typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
 
     RT energy = 0;
 
@@ -315,8 +314,7 @@ energy(const Entity& element,
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
                                                  : localFiniteElement.localBasis().order() * gridDim;
 
-    const Dune::QuadratureRule<DT, gridDim>& quad
-        = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
+    const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
     for (size_t pt=0; pt<quad.size(); pt++) {
 
@@ -325,7 +323,7 @@ energy(const Entity& element,
 
         const DT integrationElement = element.geometry().integrationElement(quadPos);
 
-        const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+        const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
         DT weight = quad[pt].weight() * integrationElement;
 
