@@ -23,6 +23,12 @@ public:
     : data_(v)
     {}
     
+    /** \brief Constructor from a general matrix */
+    explicit SkewMatrix(const Dune::FieldMatrix<T,3,3>& m)
+    {
+      data_ = {m[2][1], m[0][2], m[1][0]};
+    }
+
     SkewMatrix<T,3>& operator*=(const T& a)
     {
         data_ *= a;
