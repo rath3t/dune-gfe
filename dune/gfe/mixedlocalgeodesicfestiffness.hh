@@ -7,18 +7,12 @@
 #include <dune/istl/matrix.hh>
 
 
-template<class DeformationBasis, class DeformationTargetSpace,
-         class OrientationBasis, class OrientationTargetSpace>
+template<class Basis, class DeformationTargetSpace, class OrientationTargetSpace>
 class MixedLocalGeodesicFEStiffness
 {
-    static_assert(std::is_same<typename DeformationBasis::GridView, typename OrientationBasis::GridView>::value,
-                  "DeformationBasis and OrientationBasis must be designed on the same GridView!");
-
     // grid types
-    typedef typename DeformationBasis::LocalView::Tree::FiniteElement DeformationLocalFiniteElement;
-    typedef typename OrientationBasis::LocalView::Tree::FiniteElement OrientationLocalFiniteElement;
-    typedef typename DeformationBasis::GridView GridView;
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename Basis::GridView GridView;
+    typedef typename GridView::ctype DT;
     typedef typename DeformationTargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -44,10 +38,8 @@ public:
     We compute that using a finite difference approximation.
 
     */
-    virtual void assembleGradientAndHessian(const Entity& e,
-                                            const DeformationLocalFiniteElement& displacementLocalFiniteElement,
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                             const std::vector<DeformationTargetSpace>& localDisplacementConfiguration,
-                                            const OrientationLocalFiniteElement& orientationLocalFiniteElement,
                                             const std::vector<OrientationTargetSpace>& localOrientationConfiguration,
                                             std::vector<typename DeformationTargetSpace::TangentVector>& localDeformationGradient,
                                             std::vector<typename OrientationTargetSpace::TangentVector>& localOrientationGradient)
@@ -56,10 +48,8 @@ public:
     }
 
     /** \brief Compute the energy at the current configuration */
-    virtual RT energy (const Entity& e,
-                       const DeformationLocalFiniteElement& deformationLocalFiniteElement,
+    virtual RT energy (const typename Basis::LocalView& localView,
                        const std::vector<DeformationTargetSpace>& localDeformationConfiguration,
-                       const OrientationLocalFiniteElement& orientationLocalFiniteElement,
                        const std::vector<OrientationTargetSpace>& localOrientationConfiguration) const = 0;
 #if 0
     /** \brief Assemble the element gradient of the energy functional

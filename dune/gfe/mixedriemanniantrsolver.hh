@@ -23,6 +23,7 @@
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType,
+          class Basis,
           class Basis0, class TargetSpace0,
           class Basis1, class TargetSpace1>
 class MixedRiemannianTrustRegionSolver
@@ -69,7 +70,9 @@ public:
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid,
-               const MixedGFEAssembler<Basis0, TargetSpace0, Basis1, TargetSpace1>* assembler,
+               const MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>* assembler,
+               const Basis0& basis0,
+               const Basis1& basis1,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize0>& dirichletNodes0,
                const Dune::BitSetVector<blocksize1>& dirichletNodes1,
@@ -144,7 +147,11 @@ protected:
     std::unique_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const MixedGFEAssembler<Basis0, TargetSpace0, Basis1, TargetSpace1>* assembler_;
+    const MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>* assembler_;
+
+    /** \brief TEMPORARY: The two separate matrices */
+    std::unique_ptr<Basis0> basis0_;
+    std::unique_ptr<Basis1> basis1_;
 
     /** \brief The solver for the quadratic inner problems */
     std::shared_ptr<Solver> innerSolver_;

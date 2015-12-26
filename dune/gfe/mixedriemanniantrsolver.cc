@@ -30,11 +30,14 @@
 #include <dune/gfe/cosseratvtkwriter.hh>
 
 template <class GridType,
+          class Basis,
           class Basis0, class TargetSpace0,
           class Basis1, class TargetSpace1>
-void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,TargetSpace1>::
+void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,TargetSpace1>::
 setup(const GridType& grid,
-      const MixedGFEAssembler<Basis0, TargetSpace0, Basis1, TargetSpace1>* assembler,
+      const MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>* assembler,
+      const Basis0& tmpBasis0,
+      const Basis1& tmpBasis1,
          const SolutionType& x,
          const Dune::BitSetVector<blocksize0>& dirichletNodes0,
          const Dune::BitSetVector<blocksize1>& dirichletNodes1,
@@ -54,6 +57,8 @@ setup(const GridType& grid,
 
     grid_                     = &grid;
     assembler_                = assembler;
+    basis0_                   = std::unique_ptr<Basis0>(new Basis0(tmpBasis0));
+    basis1_                   = std::unique_ptr<Basis1>(new Basis1(tmpBasis1));
     x_                        = x;
     tolerance_                = tolerance;
     maxTrustRegionSteps_      = maxTrustRegionSteps;
@@ -206,7 +211,7 @@ setup(const GridType& grid,
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
                                          DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
-                                         FufemBasis0>(pkToP1TransferMatrix,p1Basis,assembler->basis0_);
+                                         FufemBasis0>(pkToP1TransferMatrix,p1Basis,*basis0_);
 
         mmgStep0->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType0>;
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
@@ -246,7 +251,7 @@ setup(const GridType& grid,
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
                                          DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
-                                         FufemBasis1>(pkToP1TransferMatrix,p1Basis,assembler->basis1_);
+                                         FufemBasis1>(pkToP1TransferMatrix,p1Basis,*basis1_);
 
         mmgStep1->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType1>;
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
@@ -283,8 +288,8 @@ setup(const GridType& grid,
       #if 0
       hasObstacle0_.resize(guIndex_->nGlobalEntity(), true);
       #else
-      hasObstacle0_.resize(assembler->basis0_.indexSet().size(), true);
-      hasObstacle1_.resize(assembler->basis1_.indexSet().size(), true);
+      hasObstacle0_.resize(assembler->basis_.size({0}), true);
+      hasObstacle1_.resize(assembler->basis_.size({1}), true);
       #endif
       mmgStep0->hasObstacle_ = &hasObstacle0_;
       mmgStep1->hasObstacle_ = &hasObstacle1_;
@@ -294,9 +299,10 @@ setup(const GridType& grid,
 
 
 template <class GridType,
+          class Basis,
           class Basis0, class TargetSpace0,
           class Basis1, class TargetSpace1>
-void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,TargetSpace1>::solve()
+void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,TargetSpace1>::solve()
 {
     int argc = 0;
     char** argv;
@@ -304,8 +310,8 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
     int rank = grid_->comm().rank();
 
     // \todo Use global index set instead of basis for parallel computations
-    MaxNormTrustRegion<blocksize0> trustRegion0(assembler_->basis0_.indexSet().size(), initialTrustRegionRadius_);
-    MaxNormTrustRegion<blocksize1> trustRegion1(assembler_->basis1_.indexSet().size(), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize0> trustRegion0(assembler_->basis_.size({0}), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize1> trustRegion1(assembler_->basis_.size({1}), initialTrustRegionRadius_);
     trustRegion0.set(initialTrustRegionRadius_, std::get<0>(scaling_));
     trustRegion1.set(initialTrustRegionRadius_, std::get<1>(scaling_));
 
@@ -549,7 +555,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
             if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "Unsuccessful iteration!" << std::endl;
         }
-
+#if 0
         // Output each iterate, to better understand what the algorithm does
         DuneFunctionsBasis<Basis0> fufemBasis0(assembler_->basis0_);
         DuneFunctionsBasis<Basis1> fufemBasis1(assembler_->basis1_);
@@ -558,7 +564,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis0,TargetSpace0,Basis1,Target
         CosseratVTKWriter<GridType>::template writeMixed<DuneFunctionsBasis<Basis0>, DuneFunctionsBasis<Basis1> >(fufemBasis0,x_[_0],
                                                                         fufemBasis1,x_[_1],
                                                                         "mixed-cosserat_iterate_" + iAsAscii.str());
-
+#endif
         if (rank==0)
             std::cout << "iteration took " << totalTimer.elapsed() << " sec." << std::endl;
 

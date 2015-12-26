@@ -20,15 +20,14 @@
 //#define QUADRATIC_MEMBRANE_ENERGY
 
 
-template<class DisplacementBasis, class OrientationBasis, int dim, class field_type=double>
+template<class Basis, int dim, class field_type=double>
 class MixedCosseratEnergy
-    : public MixedLocalGeodesicFEStiffness<DisplacementBasis,RealTuple<field_type,dim>,
-                                           OrientationBasis,Rotation<field_type,dim> >
+    : public MixedLocalGeodesicFEStiffness<Basis,
+                                           RealTuple<field_type,dim>,
+                                           Rotation<field_type,dim> >
 {
     // grid types
-    typedef typename DisplacementBasis::LocalView::Tree::FiniteElement DisplacementLocalFiniteElement;
-    typedef typename OrientationBasis::LocalView::Tree::FiniteElement OrientationLocalFiniteElement;
-    typedef typename DisplacementBasis::GridView GridView;
+    typedef typename Basis::GridView GridView;
     typedef typename GridView::ctype DT;
     typedef field_type RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -146,10 +145,8 @@ public:
     }
 
     /** \brief Assemble the energy for a single element */
-    RT energy (const Entity& e,
-               const DisplacementLocalFiniteElement& displacementLocalFiniteElement,
+    RT energy (const typename Basis::LocalView& localView,
                const std::vector<RealTuple<field_type,dim> >& localDisplacementConfiguration,
-               const OrientationLocalFiniteElement& orientationLocalFiniteElement,
                const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const;
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
@@ -265,32 +262,33 @@ public:
     const Dune::VirtualFunction<Dune::FieldVector<double,gridDim>, Dune::FieldVector<double,3> >* neumannFunction_;
 };
 
-template <class DeformationBasis, class OrientationBasis, int dim, class field_type>
-typename MixedCosseratEnergy<DeformationBasis,OrientationBasis,dim,field_type>::RT
-MixedCosseratEnergy<DeformationBasis,OrientationBasis,dim,field_type>::
-energy(const Entity& element,
-       const DisplacementLocalFiniteElement& deformationLocalFiniteElement,
+template <class Basis, int dim, class field_type>
+typename MixedCosseratEnergy<Basis,dim,field_type>::RT
+MixedCosseratEnergy<Basis,dim,field_type>::
+energy(const typename Basis::LocalView& localView,
        const std::vector<RealTuple<field_type,dim> >& localDeformationConfiguration,
-       const OrientationLocalFiniteElement& orientationLocalFiniteElement,
        const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const
 {
-    assert(element.type() == deformationLocalFiniteElement.type());
-    assert(element.type() == orientationLocalFiniteElement.type());
     typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
+
+    auto element = localView.element();
 
     RT energy = 0;
 
-    typedef LocalGeodesicFEFunction<gridDim, DT, DisplacementLocalFiniteElement, RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
+    using namespace Dune::TypeTree::Indices;
+    const auto& deformationLocalFiniteElement = localView.tree().child(_0).finiteElement();
+    const auto& orientationLocalFiniteElement = localView.tree().child(_1).finiteElement();
+
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
     LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
 
-    typedef LocalGeodesicFEFunction<gridDim, DT, OrientationLocalFiniteElement, Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
     LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
 
     // \todo Implement smarter quadrature rule selection for more efficiency, i.e., less evaluations of the Rotation GFE function
     int quadOrder = deformationLocalFiniteElement.localBasis().order() * ((element.type().isSimplex()) ? 1 : gridDim);
 
-    const Dune::QuadratureRule<DT, gridDim>& quad
-        = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
+    const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
     for (size_t pt=0; pt<quad.size(); pt++) {
 

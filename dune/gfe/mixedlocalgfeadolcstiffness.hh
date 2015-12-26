@@ -18,20 +18,13 @@
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
-template<class Basis0, class TargetSpace0,
-         class Basis1, class TargetSpace1>
+template<class Basis, class TargetSpace0, class TargetSpace1>
 class MixedLocalGFEADOLCStiffness
-    : public MixedLocalGeodesicFEStiffness<Basis0,TargetSpace0,
-                                           Basis1,TargetSpace1>
+    : public MixedLocalGeodesicFEStiffness<Basis,TargetSpace0,TargetSpace1>
 {
-    static_assert(std::is_same<typename Basis0::GridView, typename Basis1::GridView>::value,
-                  "Basis0 and Basis1 must be designed on the same GridView!");
-
     // grid types
-    typedef typename Basis0::GridView GridView;
-    typedef typename Basis0::LocalView::Tree::FiniteElement LocalFiniteElement0;
-    typedef typename Basis1::LocalView::Tree::FiniteElement LocalFiniteElement1;
-    typedef typename GridView::Grid::ctype DT;
+    typedef typename Basis::GridView GridView;
+    typedef typename GridView::ctype DT;
     typedef typename TargetSpace0::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -52,16 +45,14 @@ public:
     enum { embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension };
     enum { embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension };
 
-    MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis0, ATargetSpace0,
-                                                                    Basis1, ATargetSpace1>* energy)
+    MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0,
+                                                                    ATargetSpace1>* energy)
     : localEnergy_(energy)
     {}
 
     /** \brief Compute the energy at the current configuration */
-    virtual RT energy (const Entity& e,
-                       const LocalFiniteElement0& localFiniteElement0,
+    virtual RT energy (const typename Basis::LocalView& localView,
                        const std::vector<TargetSpace0>& localConfiguration0,
-                       const LocalFiniteElement1& localFiniteElement1,
                        const std::vector<TargetSpace1>& localConfiguration1) const;
 #if 0
     /** \brief Assemble the element gradient of the energy functional
@@ -77,26 +68,22 @@ public:
 
     This uses the automatic differentiation toolbox ADOL_C.
     */
-    virtual void assembleGradientAndHessian(const Entity& e,
-                                            const LocalFiniteElement0& localFiniteElement0,
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                             const std::vector<TargetSpace0>& localConfiguration0,
-                                            const LocalFiniteElement1& localFiniteElement1,
                                             const std::vector<TargetSpace1>& localConfiguration1,
                                             std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                                             std::vector<typename TargetSpace1::TangentVector>& localGradient1);
 
-    const MixedLocalGeodesicFEStiffness<Basis0, ATargetSpace0, Basis1, ATargetSpace1>* localEnergy_;
+    const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0, ATargetSpace1>* localEnergy_;
 
 };
 
 
-template <class Basis0, class TargetSpace0, class Basis1, class TargetSpace1>
-typename MixedLocalGFEADOLCStiffness<Basis0, TargetSpace0, Basis1, TargetSpace1>::RT
-MixedLocalGFEADOLCStiffness<Basis0, TargetSpace0, Basis1, TargetSpace1>::
-energy(const Entity& element,
-       const LocalFiniteElement0& localFiniteElement0,
+template <class Basis, class TargetSpace0, class TargetSpace1>
+typename MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::RT
+MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
+energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace0>& localConfiguration0,
-       const LocalFiniteElement1& localFiniteElement1,
        const std::vector<TargetSpace1>& localConfiguration1) const
 {
     double pureEnergy;
@@ -134,9 +121,10 @@ energy(const Entity& element,
       localAConfiguration1[i] = aRaw1[i];  // may contain a projection onto M -- needs to be done in adouble
     }
 
-    energy = localEnergy_->energy(element,
-                                  localFiniteElement0,localAConfiguration0,
-                                  localFiniteElement1,localAConfiguration1);
+    using namespace Dune::TypeTree::Indices;
+    energy = localEnergy_->energy(localView,
+                                  localAConfiguration0,
+                                  localAConfiguration1);
 
     energy >>= pureEnergy;
 
@@ -201,18 +189,16 @@ assembleGradient(const Entity& element,
 //   To compute the Hessian we need to compute the gradient anyway, so we may
 //   as well return it.  This saves assembly time.
 // ///////////////////////////////////////////////////////////
-template <class Basis0, class TargetSpace0, class Basis1, class TargetSpace1>
-void MixedLocalGFEADOLCStiffness<Basis0, TargetSpace0, Basis1, TargetSpace1>::
-assembleGradientAndHessian(const Entity& element,
-                           const LocalFiniteElement0& localFiniteElement0,
+template <class Basis, class TargetSpace0, class TargetSpace1>
+void MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
+assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const std::vector<TargetSpace0>& localConfiguration0,
-                           const LocalFiniteElement1& localFiniteElement1,
                            const std::vector<TargetSpace1>& localConfiguration1,
                            std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                            std::vector<typename TargetSpace1::TangentVector>& localGradient1)
 {
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
-    energy(element, localFiniteElement0, localConfiguration0, localFiniteElement1, localConfiguration1);
+    energy(localView, localConfiguration0, localConfiguration1);
 
     /////////////////////////////////////////////////////////////////
     // Compute the gradient.  It is needed to transform the Hessian
@@ -517,9 +503,6 @@ assembleGradientAndHessian(const Entity& element,
       }
 
     }
-
-//     std::cout << "ADOL-C stiffness:\n";
-//     printmatrix(std::cout, this->A_, "foo", "--");
 }
 
 #endif

@@ -24,6 +24,7 @@
 
 #include <dune/functions/common/tuplevector.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/compositebasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
@@ -143,6 +144,16 @@ int main (int argc, char *argv[]) try
 
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
+
+    using namespace Dune::Functions::BasisBuilder;
+
+    auto compositeBasis = makeBasis(
+      gridView,
+      composite(
+          pq<2>(),
+          pq<1>()
+      )
+    );
 
     typedef Dune::Functions::PQkNodalBasis<GridView,2> DeformationFEBasis;
     typedef Dune::Functions::PQkNodalBasis<GridView,1> OrientationFEBasis;
@@ -285,31 +296,31 @@ int main (int argc, char *argv[]) try
         }
 
     // Assembler using ADOL-C
-    MixedCosseratEnergy<DeformationFEBasis,
-                        OrientationFEBasis,
+    MixedCosseratEnergy<decltype(compositeBasis),
                         3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                      &neumannBoundary,
                                                                      neumannFunction.get());
 
-    MixedLocalGFEADOLCStiffness<DeformationFEBasis,
+    MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
                                 RealTuple<double,3>,
-                                OrientationFEBasis,
                                 Rotation<double,3> > localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
-    MixedGFEAssembler<DeformationFEBasis,
+    MixedGFEAssembler<decltype(compositeBasis),
                       RealTuple<double,3>,
-                      OrientationFEBasis,
-                      Rotation<double,3> > assembler(deformationFEBasis, orientationFEBasis, &localGFEADOLCStiffness);
+                      Rotation<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
     MixedRiemannianTrustRegionSolver<GridType,
+                                     decltype(compositeBasis),
                                      DeformationFEBasis, RealTuple<double,3>,
                                      OrientationFEBasis, Rotation<double,3> > solver;
     solver.setup(*grid,
                  &assembler,
+                 deformationFEBasis,
+                 orientationFEBasis,
                  x,
                  deformationDirichletDofs,
                  orientationDirichletDofs,
