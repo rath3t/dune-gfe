@@ -5,6 +5,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrixindexset.hh>
 #include <dune/istl/matrix.hh>
+#include <dune/istl/multitypeblockmatrix.hh>
 
 #include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
 
@@ -25,10 +26,13 @@ class MixedGFEAssembler {
     enum { blocksize1 = TargetSpace1::TangentVector::dimension };
 
     //!
-    typedef Dune::FieldMatrix<double, blocksize0, blocksize0> MatrixBlock00;
-    typedef Dune::FieldMatrix<double, blocksize0, blocksize1> MatrixBlock01;
-    typedef Dune::FieldMatrix<double, blocksize1, blocksize0> MatrixBlock10;
-    typedef Dune::FieldMatrix<double, blocksize1, blocksize1> MatrixBlock11;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize0, blocksize0> > MatrixBlock00;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize0, blocksize1> > MatrixBlock01;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize1, blocksize0> > MatrixBlock10;
+    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize1, blocksize1> > MatrixBlock11;
+
+    typedef Dune::MultiTypeBlockMatrix<Dune::MultiTypeBlockVector<MatrixBlock00,MatrixBlock01>,
+                                       Dune::MultiTypeBlockVector<MatrixBlock10,MatrixBlock11> > MatrixType;
 
 protected:
 public:
@@ -56,10 +60,7 @@ public:
                                             const std::vector<TargetSpace1>& configuration1,
                                             Dune::BlockVector<Dune::FieldVector<double, blocksize0> >& gradient0,
                                             Dune::BlockVector<Dune::FieldVector<double, blocksize1> >& gradient1,
-                                            Dune::BCRSMatrix<MatrixBlock00>& hessian00,
-                                            Dune::BCRSMatrix<MatrixBlock01>& hessian01,
-                                            Dune::BCRSMatrix<MatrixBlock10>& hessian10,
-                                            Dune::BCRSMatrix<MatrixBlock11>& hessian11,
+                                            MatrixType& hessian,
                                             bool computeOccupationPattern=true) const;
 #if 0
     /** \brief Assemble the gradient */
@@ -137,10 +138,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
                            const std::vector<TargetSpace1>& configuration1,
                            Dune::BlockVector<Dune::FieldVector<double, blocksize0> >& gradient0,
                            Dune::BlockVector<Dune::FieldVector<double, blocksize1> >& gradient1,
-                           Dune::BCRSMatrix<MatrixBlock00>& hessian00,
-                           Dune::BCRSMatrix<MatrixBlock01>& hessian01,
-                           Dune::BCRSMatrix<MatrixBlock10>& hessian10,
-                           Dune::BCRSMatrix<MatrixBlock11>& hessian11,
+                           MatrixType& hessian,
                            bool computeOccupationPattern) const
 {
     if (computeOccupationPattern) {
@@ -152,17 +150,15 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
         getMatrixPattern(pattern00, pattern01, pattern10, pattern11);
 
-        pattern00.exportIdx(hessian00);
-        pattern01.exportIdx(hessian01);
-        pattern10.exportIdx(hessian10);
-        pattern11.exportIdx(hessian11);
+        using namespace Dune::TypeTree::Indices;
+        pattern00.exportIdx(hessian[_0][_0]);
+        pattern01.exportIdx(hessian[_0][_1]);
+        pattern10.exportIdx(hessian[_1][_0]);
+        pattern11.exportIdx(hessian[_1][_1]);
 
     }
 
-    hessian00 = 0;
-    hessian01 = 0;
-    hessian10 = 0;
-    hessian11 = 0;
+    hessian = 0;
 
     gradient0.resize(configuration0.size());
     gradient0 = 0;
@@ -213,16 +209,16 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
                 auto col = localIndexSet.index(j);
 
                 if (row[0]==0 and col[0]==0)
-                  hessian00[row[1]][col[1]] += localStiffness_->A00_[i][j];
+                  hessian[_0][_0][row[1]][col[1]] += localStiffness_->A00_[i][j];
 
                 if (row[0]==0 and col[0]==1)
-                  hessian01[row[1]][col[1]] += localStiffness_->A01_[i][j-nDofs0];
+                  hessian[_0][_1][row[1]][col[1]] += localStiffness_->A01_[i][j-nDofs0];
 
                 if (row[0]==1 and col[0]==0)
-                  hessian10[row[1]][col[1]] += localStiffness_->A10_[i-nDofs0][j];
+                  hessian[_1][_0][row[1]][col[1]] += localStiffness_->A10_[i-nDofs0][j];
 
                 if (row[0]==1 and col[0]==1)
-                  hessian11[row[1]][col[1]] += localStiffness_->A11_[i-nDofs0][j-nDofs0];
+                  hessian[_1][_1][row[1]][col[1]] += localStiffness_->A11_[i-nDofs0][j-nDofs0];
             }
 
             // Add local gradient to global gradient

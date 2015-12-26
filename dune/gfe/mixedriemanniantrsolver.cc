@@ -360,10 +360,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
                                                    x_[_1],
                                                    rhs[_0],
                                                    rhs[_1],
-                                                   (*hessianMatrix_)[_0][_0],
-                                                   (*hessianMatrix_)[_0][_1],
-                                                   (*hessianMatrix_)[_1][_0],
-                                                   (*hessianMatrix_)[_1][_1],
+                                                   *hessianMatrix_,
                                                    i==0    // assemble occupation pattern only for the first call
                                                    );
 
