@@ -13,7 +13,6 @@ class HarmonicEnergyLocalStiffness
 {
     // grid types
     typedef typename Basis::GridView GridView;
-    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -27,33 +26,32 @@ public:
     enum { blocksize = TargetSpace::TangentVector::dimension };
 
     /** \brief Assemble the energy for a single element */
-    RT energy (const Entity& e,
-               const LocalFiniteElement& localFiniteElement,
-               const std::vector<TargetSpace>& localSolution) const;
+    RT energy (const typename Basis::LocalView& localView,
+               const std::vector<TargetSpace>& localSolution) const override;
 
 };
 
 template <class Basis, class TargetSpace>
 typename HarmonicEnergyLocalStiffness<Basis, TargetSpace>::RT
 HarmonicEnergyLocalStiffness<Basis, TargetSpace>::
-energy(const Entity& element,
-       const LocalFiniteElement& localFiniteElement,
+energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
-    assert(element.type() == localFiniteElement.type());
     typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
 
     RT energy = 0;
-    typedef LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+
+    const auto& localFiniteElement = localView.tree().finiteElement();
+    typedef LocalGeodesicFEFunction<gridDim, double, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
     LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
-    int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
+    int quadOrder = (localFiniteElement.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
                                                  : localFiniteElement.localBasis().order() * 2 * gridDim;
 
-
+    const auto element = localView.element();
 
     const Dune::QuadratureRule<double, gridDim>& quad
-        = Dune::QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
+        = Dune::QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
 
     for (size_t pt=0; pt<quad.size(); pt++) {
 

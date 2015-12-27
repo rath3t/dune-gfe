@@ -23,7 +23,6 @@ class ChiralSkyrmionEnergy
   // various useful types
   typedef UnitVector<field_type,3> TargetSpace;
   typedef typename Basis::GridView GridView;
-  typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
   typedef typename GridView::ctype DT;
   typedef typename TargetSpace::ctype RT;
   typedef typename GridView::template Codim<0>::Entity Entity;
@@ -43,9 +42,8 @@ public:
   enum { blocksize = TargetSpace::TangentVector::dimension };
 
   /** \brief Assemble the energy for a single element */
-  RT energy (const Entity& e,
-             const LocalFiniteElement& localFiniteElement,
-             const std::vector<TargetSpace>& localConfiguration) const;
+  RT energy (const typename Basis::LocalView& localView,
+             const std::vector<TargetSpace>& localConfiguration) const override;
 
   field_type h_;
   field_type kappa_;
@@ -54,15 +52,16 @@ public:
 template <class Basis, class field_type>
 typename ChiralSkyrmionEnergy<Basis, field_type>::RT
 ChiralSkyrmionEnergy<Basis, field_type>::
-energy(const Entity& element,
-       const LocalFiniteElement& localFiniteElement,
+energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localConfiguration) const
 {
-  assert(element.type() == localFiniteElement.type());
   typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
 
   RT energy = 0;
-  typedef LocalGeodesicFEFunction<gridDim, double, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+
+  const auto element = localView.element();
+  const auto& localFiniteElement = localView.tree().finiteElement();
+  typedef LocalGeodesicFEFunction<gridDim, double, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
   LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localConfiguration);
 
   int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2

@@ -26,7 +26,6 @@ class CosseratEnergyLocalStiffness
 {
     // grid types
     typedef typename Basis::GridView GridView;
-    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename GridView::ctype DT;
     typedef RigidBodyMotion<field_type,dim> TargetSpace;
     typedef typename TargetSpace::ctype RT;
@@ -146,9 +145,8 @@ public:
     }
 
     /** \brief Assemble the energy for a single element */
-    RT energy (const Entity& e,
-               const LocalFiniteElement& localFiniteElement,
-               const std::vector<TargetSpace>& localSolution) const;
+    RT energy (const typename Basis::LocalView& localView,
+               const std::vector<TargetSpace>& localSolution) const override;
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the first equation of (4.4) in Neff's paper
@@ -296,15 +294,14 @@ public:
 template <class Basis, int dim, class field_type>
 typename CosseratEnergyLocalStiffness<Basis,dim,field_type>::RT
 CosseratEnergyLocalStiffness<Basis,dim,field_type>::
-energy(const Entity& element,
-       const typename Basis::LocalView::Tree::FiniteElement& localFiniteElement,
+energy(const typename Basis::LocalView& localView,
        const std::vector<RigidBodyMotion<field_type,dim> >& localSolution) const
 {
-    assert(element.type() == localFiniteElement.type());
-
     RT energy = 0;
 
-    typedef LocalGeodesicFEFunction<gridDim, DT, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
+    auto element = localView.element();
+    const auto& localFiniteElement = localView.tree().finiteElement();
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
     LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()

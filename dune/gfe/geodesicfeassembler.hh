@@ -149,7 +149,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
         std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
 
         // setup local matrix and gradient
-        localStiffness_->assembleGradientAndHessian(*it, localView.tree().finiteElement(), localSolution, localGradient);
+        localStiffness_->assembleGradientAndHessian(localView, localSolution, localGradient);
 
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) {
@@ -208,7 +208,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
         // Assemble local gradient
         std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
 
-        localStiffness_->assembleGradient(*it, localView.tree().finiteElement(), localSolution, localGradient);
+        localStiffness_->assembleGradient(localView, localSolution, localGradient);
 
         // Add to global gradient
         for (size_t i=0; i<nDofs; i++)
@@ -249,7 +249,7 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
         for (size_t i=0; i<nDofs; i++)
             localSolution[i] = sol[localIndexSet.index(i)[0]];
 
-        energy += localStiffness_->energy(*it, localView.tree().finiteElement(), localSolution);
+        energy += localStiffness_->energy(localView, localSolution);
 
     }
 

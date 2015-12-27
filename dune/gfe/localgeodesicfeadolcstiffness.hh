@@ -24,7 +24,6 @@ class LocalGeodesicFEADOLCStiffness
 {
     // grid types
     typedef typename Basis::GridView GridView;
-    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -47,16 +46,14 @@ public:
     {}
 
     /** \brief Compute the energy at the current configuration */
-    virtual RT energy (const Entity& e,
-               const LocalFiniteElement& localFiniteElement,
+    virtual RT energy (const typename Basis::LocalView& localView,
                const std::vector<TargetSpace>& localSolution) const;
 
     /** \brief Assemble the element gradient of the energy functional
 
     This uses the automatic differentiation toolbox ADOL_C.
     */
-    virtual void assembleGradient(const Entity& element,
-                          const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradient(const typename Basis::LocalView& localView,
                           const std::vector<TargetSpace>& solution,
                           std::vector<typename TargetSpace::TangentVector>& gradient) const;
 
@@ -64,8 +61,7 @@ public:
 
     This uses the automatic differentiation toolbox ADOL_C.
     */
-    virtual void assembleGradientAndHessian(const Entity& e,
-                         const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                          const std::vector<TargetSpace>& localSolution,
                          std::vector<typename TargetSpace::TangentVector>& localGradient);
 
@@ -77,8 +73,7 @@ public:
 template <class Basis, class TargetSpace>
 typename LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::RT
 LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
-energy(const Entity& element,
-       const LocalFiniteElement& localFiniteElement,
+energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
     double pureEnergy;
@@ -107,7 +102,7 @@ energy(const Entity& element,
       localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
     }
 
-    energy = localEnergy_->energy(element,localFiniteElement,localASolution);
+    energy = localEnergy_->energy(localView,localASolution);
 
     energy >>= pureEnergy;
 
@@ -126,13 +121,12 @@ energy(const Entity& element,
 
 template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
-assembleGradient(const Entity& element,
-                 const LocalFiniteElement& localFiniteElement,
+assembleGradient(const typename Basis::LocalView& localView,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
-    energy(element, localFiniteElement, localSolution);
+    energy(localView, localSolution);
 
     // Compute the actual gradient
     size_t nDofs = localSolution.size();
@@ -174,13 +168,12 @@ assembleGradient(const Entity& element,
 // ///////////////////////////////////////////////////////////
 template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
-assembleGradientAndHessian(const Entity& element,
-                const LocalFiniteElement& localFiniteElement,
+assembleGradientAndHessian(const typename Basis::LocalView& localView,
                 const std::vector<TargetSpace>& localSolution,
                 std::vector<typename TargetSpace::TangentVector>& localGradient)
 {
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
-    energy(element, localFiniteElement, localSolution);
+    energy(localView, localSolution);
 
     /////////////////////////////////////////////////////////////////
     // Compute the gradient.  It is needed to transform the Hessian

@@ -10,7 +10,6 @@ class LocalGeodesicFEStiffness
 {
     // grid types
     typedef typename Basis::GridView GridView;
-    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -39,21 +38,18 @@ public:
     We compute that using a finite difference approximation.
 
     */
-    virtual void assembleGradientAndHessian(const Entity& e,
-                                 const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                  const std::vector<TargetSpace>& localSolution,
                                  std::vector<typename TargetSpace::TangentVector>& localGradient);
 
     /** \brief Compute the energy at the current configuration */
-    virtual RT energy (const Entity& e,
-                       const LocalFiniteElement& localFiniteElement,
+    virtual RT energy (const typename Basis::LocalView& localView,
                        const std::vector<TargetSpace>& localSolution) const = 0;
 
     /** \brief Assemble the element gradient of the energy functional
 
     The default implementation in this class uses a finite difference approximation */
-    virtual void assembleGradient(const Entity& element,
-                                  const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradient(const typename Basis::LocalView& localView,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::TangentVector>& gradient) const;
 
@@ -65,8 +61,7 @@ public:
 
 template <class Basis, class TargetSpace>
 void LocalGeodesicFEStiffness<Basis, TargetSpace>::
-assembleGradient(const Entity& element,
-                 const LocalFiniteElement& localFiniteElement,
+assembleGradient(const typename Basis::LocalView& localView,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
@@ -79,8 +74,7 @@ assembleGradient(const Entity& element,
 // ///////////////////////////////////////////////////////////
 template <class Basis, class TargetSpace>
 void LocalGeodesicFEStiffness<Basis, TargetSpace>::
-assembleGradientAndHessian(const Entity& element,
-                const LocalFiniteElement& localFiniteElement,
+assembleGradientAndHessian(const typename Basis::LocalView& localView,
                 const std::vector<TargetSpace>& localSolution,
                 std::vector<typename TargetSpace::TangentVector>& localGradient)
 {
