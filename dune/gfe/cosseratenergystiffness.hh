@@ -9,6 +9,7 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include "localgeodesicfestiffness.hh"
+#include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
 #include "localgeodesicfefunction.hh"
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/tensor3.hh>
@@ -19,10 +20,44 @@
 
 //#define QUADRATIC_MEMBRANE_ENERGY
 
+/** \brief Get LocalFiniteElements from a localView, for different tree depths of the local view
+ *
+ * We instantiate the CosseratEnergyLocalStiffness class with two different kinds of Basis:
+ * A scalar one and a composite one that combines two scalar ones.  But code for accessing the
+ * finite elements in the basis tree only work for one kind of basis, not for the other.
+ * To allow both kinds of basis in a single class we need this trickery below.
+ */
+template <class Basis, std::size_t i>
+class LocalFiniteElementFactory
+{
+public:
+  static auto get(const typename Basis::LocalView& localView,
+           std::integral_constant<std::size_t, i> iType)
+    -> decltype(localView.tree().child(iType).finiteElement())
+  {
+    return localView.tree().child(iType).finiteElement();
+  }
+};
+
+/** \brief Specialize for scalar bases, here we cannot call tree().child() */
+template <class GridView, int order, std::size_t i>
+class LocalFiniteElementFactory<Dune::Functions::PQkNodalBasis<GridView,order>,i>
+{
+public:
+  static auto get(const typename Dune::Functions::PQkNodalBasis<GridView,order>::LocalView& localView,
+           std::integral_constant<std::size_t, i> iType)
+    -> decltype(localView.tree().finiteElement())
+  {
+    return localView.tree().finiteElement();
+  }
+};
 
 template<class Basis, int dim, class field_type=double>
 class CosseratEnergyLocalStiffness
-    : public LocalGeodesicFEStiffness<Basis,RigidBodyMotion<field_type,dim> >
+    : public LocalGeodesicFEStiffness<Basis,RigidBodyMotion<field_type,dim> >,
+      public MixedLocalGeodesicFEStiffness<Basis,
+                                           RealTuple<field_type,dim>,
+                                           Rotation<field_type,dim> >
 {
     // grid types
     typedef typename Basis::GridView GridView;
@@ -113,6 +148,36 @@ public:  // for testing
 
     }
 
+    /** \brief Compute the derivative of the rotation (with respect to x), but wrt matrix coordinates
+        \param value Value of the gfe function at a certain point
+        \param derivative First derivative of the gfe function wrt x at that point, in quaternion coordinates
+        \param DR First derivative of the gfe function wrt x at that point, in matrix coordinates
+     */
+    static void computeDR(const Rotation<field_type,3>& value,
+                          const Dune::FieldMatrix<field_type,4,gridDim>& derivative,
+                          Tensor3<field_type,3,3,gridDim>& DR)
+    {
+        // The LocalGFEFunction class gives us the derivatives of the orientation variable,
+        // but as a map into quaternion space.  To obtain matrix coordinates we use the
+        // chain rule, which means that we have to multiply the given derivative with
+        // the derivative of the embedding of the unit quaternion into the space of 3x3 matrices.
+        // This second derivative is almost given by the method getFirstDerivativesOfDirectors.
+        // However, since the directors of a given unit quaternion are the _columns_ of the
+        // corresponding orthogonal matrix, we need to invert the i and j indices
+        //
+        // So, if I am not mistaken, DR[i][j][k] contains \partial R_ij / \partial k
+        Tensor3<field_type,3 , 3, 4> dd_dq;
+        value.getFirstDerivativesOfDirectors(dd_dq);
+
+        DR = field_type(0);
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<gridDim; k++)
+                    for (int l=0; l<4; l++)
+                        DR[i][j][k] += dd_dq[j][i][l] * derivative[l][k];
+
+    }
+
 public:
 
     /** \brief Constructor with a set of material parameters
@@ -147,6 +212,11 @@ public:
     /** \brief Assemble the energy for a single element */
     RT energy (const typename Basis::LocalView& localView,
                const std::vector<TargetSpace>& localSolution) const override;
+
+    /** \brief Assemble the energy for a single element */
+    RT energy (const typename Basis::LocalView& localView,
+               const std::vector<RealTuple<field_type,dim> >& localDisplacementConfiguration,
+               const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const override;
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the first equation of (4.4) in Neff's paper
@@ -300,7 +370,9 @@ energy(const typename Basis::LocalView& localView,
     RT energy = 0;
 
     auto element = localView.element();
-    const auto& localFiniteElement = localView.tree().finiteElement();
+
+    using namespace Dune::TypeTree::Indices;
+    const auto& localFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
     typedef LocalGeodesicFEFunction<gridDim, DT, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
     LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
@@ -407,6 +479,141 @@ energy(const typename Basis::LocalView& localView,
             // Only translational dofs are affected by the Neumann force
             for (size_t i=0; i<neumannValue.size(); i++)
                 energy -= thickness_ * (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+
+        }
+
+    }
+
+    return energy;
+}
+
+template <class Basis, int dim, class field_type>
+typename CosseratEnergyLocalStiffness<Basis,dim,field_type>::RT
+CosseratEnergyLocalStiffness<Basis,dim,field_type>::
+energy(const typename Basis::LocalView& localView,
+       const std::vector<RealTuple<field_type,dim> >& localDeformationConfiguration,
+       const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const
+{
+    auto element = localView.element();
+
+    RT energy = 0;
+
+    using namespace Dune::TypeTree::Indices;
+    const auto& deformationLocalFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
+    const auto& orientationLocalFiniteElement = LocalFiniteElementFactory<Basis,1>::get(localView,_1);
+
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
+    LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
+
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
+    LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
+
+    // \todo Implement smarter quadrature rule selection for more efficiency, i.e., less evaluations of the Rotation GFE function
+    int quadOrder = deformationLocalFiniteElement.localBasis().order() * ((element.type().isSimplex()) ? 1 : gridDim);
+
+    const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
+
+    for (size_t pt=0; pt<quad.size(); pt++)
+    {
+        // Local position of the quadrature point
+        const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
+
+        const DT integrationElement = element.geometry().integrationElement(quadPos);
+
+        const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+
+        DT weight = quad[pt].weight() * integrationElement;
+
+        // The value of the local deformation
+        RealTuple<field_type,dim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
+        Rotation<field_type,dim>  orientationValue = localOrientationGFEFunction.evaluate(quadPos);
+
+        // The derivative of the local function defined on the reference element
+        typename LocalDeformationGFEFunctionType::DerivativeType deformationReferenceDerivative = localDeformationGFEFunction.evaluateDerivative(quadPos,deformationValue);
+        typename LocalOrientationGFEFunctionType::DerivativeType orientationReferenceDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,orientationValue);
+
+        // The derivative of the function defined on the actual element
+        typename LocalDeformationGFEFunctionType::DerivativeType deformationDerivative;
+        typename LocalOrientationGFEFunctionType::DerivativeType orientationDerivative;
+
+        for (size_t comp=0; comp<deformationReferenceDerivative.N(); comp++)
+            jacobianInverseTransposed.mv(deformationReferenceDerivative[comp], deformationDerivative[comp]);
+
+        for (size_t comp=0; comp<orientationReferenceDerivative.N(); comp++)
+            jacobianInverseTransposed.mv(orientationReferenceDerivative[comp], orientationDerivative[comp]);
+
+        /////////////////////////////////////////////////////////
+        // compute U, the Cosserat strain
+        /////////////////////////////////////////////////////////
+        static_assert(dim>=gridDim, "Codim of the grid must be nonnegative");
+
+        //
+        Dune::FieldMatrix<field_type,dim,dim> R;
+        orientationValue.matrix(R);
+
+        Dune::GFE::CosseratStrain<field_type,dim,gridDim> U(deformationDerivative,R);
+
+        //////////////////////////////////////////////////////////
+        //  Compute the derivative of the rotation
+        //  Note: we need it in matrix coordinates
+        //////////////////////////////////////////////////////////
+
+        Tensor3<field_type,3,3,gridDim> DR;
+        computeDR(orientationValue, orientationDerivative, DR);
+
+        // Add the local energy density
+        if (gridDim==2) {
+#ifdef QUADRATIC_MEMBRANE_ENERGY
+            //energy += weight * thickness_ * quadraticMembraneEnergy(U.matrix());
+            energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
+#else
+            energy += weight * thickness_ * nonquadraticMembraneEnergy(U);
+#endif
+            energy += weight * thickness_ * curvatureEnergy(DR);
+            energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
+        } else if (gridDim==3) {
+            energy += weight * quadraticMembraneEnergy(U);
+            energy += weight * curvatureEnergy(DR);
+        } else
+            DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
+
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //   Assemble boundary contributions
+    //////////////////////////////////////////////////////////////////////////////
+
+    if (not neumannFunction_)
+        return energy;
+
+    for (auto&& it : intersections(neumannBoundary_->gridView(),element) )
+    {
+        if (not neumannBoundary_ or not neumannBoundary_->contains(it))
+            continue;
+
+        const auto& quad = Dune::QuadratureRules<DT, gridDim-1>::rule(it.type(), quadOrder);
+
+        for (size_t pt=0; pt<quad.size(); pt++) {
+
+            // Local position of the quadrature point
+            const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());
+
+            const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
+
+            // The value of the local function
+            RealTuple<field_type,dim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
+
+            // Value of the Neumann data at the current position
+            Dune::FieldVector<double,3> neumannValue;
+
+            if (dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_))
+                dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
+            else
+                neumannFunction_->evaluate(it.geometry().global(quad[pt].position()), neumannValue);
+
+            // Only translational dofs are affected by the Neumann force
+            for (size_t i=0; i<neumannValue.size(); i++)
+                energy += thickness_ * (neumannValue[i] * deformationValue.globalCoordinates()[i]) * quad[pt].weight() * integrationElement;
 
         }
 

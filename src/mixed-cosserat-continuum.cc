@@ -37,7 +37,7 @@
 
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
-#include <dune/gfe/mixedcosseratenergy.hh>
+#include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/mixedgfeassembler.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
@@ -296,7 +296,7 @@ int main (int argc, char *argv[]) try
         }
 
     // Assembler using ADOL-C
-    MixedCosseratEnergy<decltype(compositeBasis),
+    CosseratEnergyLocalStiffness<decltype(compositeBasis),
                         3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                      &neumannBoundary,
                                                                      neumannFunction.get());
