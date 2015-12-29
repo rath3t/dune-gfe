@@ -9,7 +9,7 @@
 
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
+#include <dune/gfe/localquickanddirtyfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 
 #include <dune/gfe/tensor3.hh>
@@ -186,7 +186,7 @@ evaluate(const Dune::FieldVector<ctype, dim>& local) const
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
     // Create a reasonable initial iterate for the iterative solver
-    Dune::GFE::LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> localProjectedFEFunction(localFiniteElement_, coefficients_);
+    Dune::GFE::LocalQuickAndDirtyFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> localProjectedFEFunction(localFiniteElement_, coefficients_);
     TargetSpace initialIterate = localProjectedFEFunction.evaluate(local);
 
     // Iteratively solve the GFE minimization problem
