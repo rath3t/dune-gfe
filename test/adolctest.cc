@@ -57,7 +57,6 @@ class LocalADOLCStiffness
 {
     // grid types
     typedef typename Basis::GridView GridView;
-    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -77,16 +76,14 @@ public:
     {}
 
     /** \brief Compute the energy at the current configuration */
-    virtual RT energy (const Entity& e,
-               const LocalFiniteElement& localFiniteElement,
+    virtual RT energy (const typename Basis::LocalView& localView,
                const std::vector<TargetSpace>& localSolution) const;
 
     /** \brief Assemble the local stiffness matrix at the current position
 
     This uses the automatic differentiation toolbox ADOL_C.
     */
-    virtual void assembleGradientAndHessian(const Entity& e,
-                         const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                          const std::vector<TargetSpace>& localSolution,
                          std::vector<Dune::FieldVector<double, embeddedBlocksize> >& localGradient,
                          Dune::Matrix<Dune::FieldMatrix<RT,embeddedBlocksize,embeddedBlocksize> >& localHessian,
@@ -100,8 +97,7 @@ public:
 template <class Basis>
 typename LocalADOLCStiffness<Basis>::RT
 LocalADOLCStiffness<Basis>::
-energy(const Entity& element,
-       const LocalFiniteElement& localFiniteElement,
+energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
     double pureEnergy;
@@ -130,7 +126,7 @@ energy(const Entity& element,
       localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
     }
 
-    energy = localEnergy_->energy(element,localFiniteElement,localASolution);
+    energy = localEnergy_->energy(localView,localASolution);
 
     energy >>= pureEnergy;
 
@@ -147,15 +143,14 @@ energy(const Entity& element,
 // ///////////////////////////////////////////////////////////
 template <class Basis>
 void LocalADOLCStiffness<Basis>::
-assembleGradientAndHessian(const Entity& element,
-                const LocalFiniteElement& localFiniteElement,
+assembleGradientAndHessian(const typename Basis::LocalView& localView,
                 const std::vector<TargetSpace>& localSolution,
                 std::vector<Dune::FieldVector<double,embeddedBlocksize> >& localGradient,
                 Dune::Matrix<Dune::FieldMatrix<RT,embeddedBlocksize,embeddedBlocksize> >& localHessian,
                 bool vectorMode)
 {
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
-    energy(element, localFiniteElement, localSolution);
+    energy(localView, localSolution);
 
     /////////////////////////////////////////////////////////////////
     // Compute the gradient.
@@ -217,7 +212,6 @@ class LocalFDStiffness
 {
     // grid types
     typedef typename Basis::GridView GridView;
-    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename GridView::Grid::ctype DT;
     typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -236,8 +230,7 @@ public:
     : localEnergy_(energy)
     {}
 
-    virtual void assembleGradientAndHessian(const Entity& e,
-                                 const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                  const std::vector<TargetSpace>& localSolution,
                                  std::vector<Dune::FieldVector<double,embeddedBlocksize> >& localGradient,
                                  Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& localHessian);
@@ -250,8 +243,7 @@ public:
 // ///////////////////////////////////////////////////////////
 template <class Basis, class field_type>
 void LocalFDStiffness<Basis, field_type>::
-assembleGradientAndHessian(const Entity& element,
-                const LocalFiniteElement& localFiniteElement,
+assembleGradientAndHessian(const typename Basis::LocalView& localView,
                 const std::vector<TargetSpace>& localSolution,
                 std::vector<Dune::FieldVector<double, embeddedBlocksize> >& localGradient,
                 Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& localHessian)
@@ -288,7 +280,7 @@ assembleGradientAndHessian(const Entity& element,
 
     // Precompute negative energy at the current configuration
     // (negative because that is how we need it as part of the 2nd-order fd formula)
-    field_type centerValue   = -localEnergy_->energy(element, localFiniteElement, localASolution);
+    field_type centerValue   = -localEnergy_->energy(localView, localASolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
     std::vector<Dune::array<field_type,embeddedBlocksize> > forwardEnergy(nDofs);
@@ -307,8 +299,8 @@ assembleGradientAndHessian(const Entity& element,
             forwardSolution[i]  = ATargetSpace(localASolution[i].globalCoordinates() + epsXi);
             backwardSolution[i] = ATargetSpace(localASolution[i].globalCoordinates() + minusEpsXi);
 
-            forwardEnergy[i][i2]  = localEnergy_->energy(element, localFiniteElement, forwardSolution);
-            backwardEnergy[i][i2] = localEnergy_->energy(element, localFiniteElement, backwardSolution);
+            forwardEnergy[i][i2]  = localEnergy_->energy(localView, forwardSolution);
+            backwardEnergy[i][i2] = localEnergy_->energy(localView, backwardSolution);
 
         }
 
@@ -365,8 +357,8 @@ assembleGradientAndHessian(const Entity& element,
                         backwardSolutionXiEta[j] = ATargetSpace(localASolution[j].globalCoordinates() + minusEpsEta);
                     }
 
-                    field_type forwardValue  = localEnergy_->energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
-                    field_type backwardValue = localEnergy_->energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
+                    field_type forwardValue  = localEnergy_->energy(localView, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
+                    field_type backwardValue = localEnergy_->energy(localView, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
                     field_type foo = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
 #ifdef MULTIPRECISION
@@ -541,22 +533,19 @@ int main (int argc, char *argv[]) try
         Matrix<FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> > localFDHessian;
 
         // Assemble Euclidean derivatives
-        localADOLCStiffness.assembleGradientAndHessian(element,
-                                                       localView.tree().finiteElement(),
+        localADOLCStiffness.assembleGradientAndHessian(localView,
                                                           localSolution,
                                                           localADGradient,
                                                           localADHessian,
                                                           false);   // 'true' means 'vector mode'
 
-        localADOLCStiffness.assembleGradientAndHessian(element,
-                                                       localView.tree().finiteElement(),
+        localADOLCStiffness.assembleGradientAndHessian(localView,
                                                           localSolution,
                                                           localADGradient,
                                                           localADVMHessian,
                                                           true);   // 'true' means 'vector mode'
 
-        localFDStiffness.assembleGradientAndHessian(element,
-                                                    localView.tree().finiteElement(),
+        localFDStiffness.assembleGradientAndHessian(localView,
                                                     localSolution,
                                                     localFDGradient,
                                                     localFDHessian);
@@ -572,13 +561,11 @@ int main (int argc, char *argv[]) try
         Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianADHessian;
         Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianFDHessian;
 
-        localGFEADOLCStiffness.assembleGradientAndHessian(element,
-                                                          localView.tree().finiteElement(),
+        localGFEADOLCStiffness.assembleGradientAndHessian(localView,
                                                           localSolution,
                                                           localRiemannianADGradient);
 
-        localGFEFDStiffness.assembleGradientAndHessian(element,
-                                                       localView.tree().finiteElement(),
+        localGFEFDStiffness.assembleGradientAndHessian(localView,
                                                        localSolution,
                                                        localRiemannianFDGradient);
 
