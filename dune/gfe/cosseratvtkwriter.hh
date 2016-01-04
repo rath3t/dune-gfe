@@ -273,40 +273,40 @@ public:
         std::vector<int> connectivity(connectivitySize);
 
         size_t i=0;
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+        for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
-          if (it->type().isQuadrilateral())
+          if (element.type().isQuadrilateral())
           {
 #ifdef SECOND_ORDER
-            connectivity[i++] = basis.index(*it,0);
-            connectivity[i++] = basis.index(*it,2);
-            connectivity[i++] = basis.index(*it,8);
-            connectivity[i++] = basis.index(*it,6);
+            connectivity[i++] = basis.index(element,0);
+            connectivity[i++] = basis.index(element,2);
+            connectivity[i++] = basis.index(element,8);
+            connectivity[i++] = basis.index(element,6);
 
-            connectivity[i++] = basis.index(*it,1);
-            connectivity[i++] = basis.index(*it,5);
-            connectivity[i++] = basis.index(*it,7);
-            connectivity[i++] = basis.index(*it,3);
+            connectivity[i++] = basis.index(element,1);
+            connectivity[i++] = basis.index(element,5);
+            connectivity[i++] = basis.index(element,7);
+            connectivity[i++] = basis.index(element,3);
 #else  // first order
-            connectivity[i++] = basis.index(*it,0);
-            connectivity[i++] = basis.index(*it,1);
-            connectivity[i++] = basis.index(*it,3);
-            connectivity[i++] = basis.index(*it,2);
+            connectivity[i++] = basis.index(element,0);
+            connectivity[i++] = basis.index(element,1);
+            connectivity[i++] = basis.index(element,3);
+            connectivity[i++] = basis.index(element,2);
 #endif
           }
-          if (it->type().isTriangle())
+          if (element.type().isTriangle())
           {
 #ifdef SECOND_ORDER
-            connectivity[i++] = basis.index(*it,0);
-            connectivity[i++] = basis.index(*it,2);
-            connectivity[i++] = basis.index(*it,5);
-            connectivity[i++] = basis.index(*it,1);
-            connectivity[i++] = basis.index(*it,4);
-            connectivity[i++] = basis.index(*it,3);
+            connectivity[i++] = basis.index(element,0);
+            connectivity[i++] = basis.index(element,2);
+            connectivity[i++] = basis.index(element,5);
+            connectivity[i++] = basis.index(element,1);
+            connectivity[i++] = basis.index(element,4);
+            connectivity[i++] = basis.index(element,3);
 #else  // first order
-            connectivity[i++] = basis.index(*it,0);
-            connectivity[i++] = basis.index(*it,1);
-            connectivity[i++] = basis.index(*it,2);
+            connectivity[i++] = basis.index(element,0);
+            connectivity[i++] = basis.index(element,1);
+            connectivity[i++] = basis.index(element,2);
 #endif
           }
         }
@@ -316,15 +316,15 @@ public:
         std::vector<int> offsets(totalNumElements);
         i = 0;
         int offsetCounter = 0;
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+        for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
-          if (it->type().isQuadrilateral())
+          if (element.type().isQuadrilateral())
 #ifdef SECOND_ORDER
             offsetCounter += 8;
 #else
             offsetCounter += 4;
 #endif
-          if (it->type().isTriangle())
+          if (element.type().isTriangle())
 #ifdef SECOND_ORDER
             offsetCounter += 6;
 #else
@@ -337,15 +337,15 @@ public:
 
         std::vector<int> cellTypes(totalNumElements);
         i = 0;
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+        for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
-          if (it->type().isQuadrilateral())
+          if (element.type().isQuadrilateral())
 #ifdef SECOND_ORDER
             cellTypes[i++] = 23;
 #else
             cellTypes[i++] = 9;
 #endif
-          if (it->type().isTriangle())
+          if (element.type().isTriangle())
 #ifdef SECOND_ORDER
             cellTypes[i++] = 22;
 #else
@@ -452,7 +452,7 @@ public:
 
         // Stupid: I can't directly get the number of Interior_Partition elements
         size_t numElements = 0;
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
+        for (const auto& element : elements(gridView, Dune::Partitions::interior))
           numElements++;
 
         std::ofstream outFile(fullfilename);
@@ -475,20 +475,20 @@ public:
         outFile << "      <Cells>" << std::endl;
 
         outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (auto it = gridView.template begin<0, Dune::Interior_Partition>(); it != gridView.template end<0, Dune::Interior_Partition>(); ++it)
+        for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
           outFile << "          ";
-          if (it->type().isQuadrilateral())
+          if (element.type().isQuadrilateral())
           {
-            outFile << p2DeformationBasis.index(*it,0) << " ";
-            outFile << p2DeformationBasis.index(*it,2) << " ";
-            outFile << p2DeformationBasis.index(*it,8) << " ";
-            outFile << p2DeformationBasis.index(*it,6) << " ";
+            outFile << p2DeformationBasis.index(element,0) << " ";
+            outFile << p2DeformationBasis.index(element,2) << " ";
+            outFile << p2DeformationBasis.index(element,8) << " ";
+            outFile << p2DeformationBasis.index(element,6) << " ";
 
-            outFile << p2DeformationBasis.index(*it,1) << " ";
-            outFile << p2DeformationBasis.index(*it,5) << " ";
-            outFile << p2DeformationBasis.index(*it,7) << " ";
-            outFile << p2DeformationBasis.index(*it,3) << " ";
+            outFile << p2DeformationBasis.index(element,1) << " ";
+            outFile << p2DeformationBasis.index(element,5) << " ";
+            outFile << p2DeformationBasis.index(element,7) << " ";
+            outFile << p2DeformationBasis.index(element,3) << " ";
             outFile << std::endl;
           }
         }
@@ -496,20 +496,20 @@ public:
 
         outFile << "         <DataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
         size_t offsetCounter = 0;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        for (const auto& element : elements(gridView))
         {
           outFile << "          ";
-          if (it->type().isQuadrilateral())
+          if (element.type().isQuadrilateral())
             offsetCounter += 8;
           outFile << offsetCounter << std::endl;
         }
         outFile << "         </DataArray>" << std::endl;
 
         outFile << "         <DataArray type=\"UInt8\" Name=\"types\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-        for (auto it = gridView.template begin<0>(); it != gridView.template end<0>(); ++it)
+        for (const auto& element : elements(gridView))
         {
           outFile << "          ";
-          if (it->type().isQuadrilateral())
+          if (element.type().isQuadrilateral())
             outFile << "23" << std::endl;
         }
         outFile << "         </DataArray>" << std::endl;
