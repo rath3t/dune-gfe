@@ -267,8 +267,8 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
-    CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,x[_0],
-                                                                                             fufemOrientationFEBasis,x[_1],
+    CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
+                                                                                   orientationFEBasis,x[_1],
                                                                                    resultPath + "mixed-cosserat_homotopy_0");
 
     for (int i=0; i<numHomotopySteps; i++) {
@@ -377,8 +377,8 @@ int main (int argc, char *argv[]) try
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        CosseratVTKWriter<GridType>::writeMixed<FufemDeformationFEBasis,FufemOrientationFEBasis>(fufemDeformationFEBasis,x[_0],
-                                                                                       fufemOrientationFEBasis,x[_1],
+        CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
+                                                                                       orientationFEBasis,x[_1],
                                                                                        resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
 
     }

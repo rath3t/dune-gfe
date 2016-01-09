@@ -6,11 +6,9 @@
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/interpolate.hh>
+#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
-#include <dune/fufem/functionspacebases/p1nodalbasis.hh>
-#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
-#include <dune/fufem/functions/vtkbasisgridfunction.hh>
-#include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/vtkfile.hh>
 
@@ -79,9 +77,9 @@ class CosseratVTKWriter
         v1Embedded[i] = v1[i].globalCoordinates();
 
       // Interpolate
-      BasisGridFunction<Basis1, std::vector<Dune::FieldVector<double,7> > > function(basis1, v1Embedded);
+      auto function = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,7> >(basis1, Dune::TypeTree::hybridTreePath(), v1Embedded);
       std::vector<Dune::FieldVector<double,7> > v2Embedded;
-      Functions::interpolate(basis2, v2Embedded, function);
+      Dune::Functions::interpolate(basis2, Dune::TypeTree::hybridTreePath(), v2Embedded, function);
 
       // Copy back from R^7 into RigidBodyMotions
       v2.resize(v2Embedded.size());
@@ -99,9 +97,9 @@ class CosseratVTKWriter
         v1Embedded[i] = v1[i].globalCoordinates();
 
       // Interpolate
-      BasisGridFunction<Basis1, std::vector<Dune::FieldVector<double,3> > > function(basis1, v1Embedded);
+      auto function = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3> >(basis1, Dune::TypeTree::hybridTreePath(), v1Embedded);
       std::vector<Dune::FieldVector<double,3> > v2Embedded;
-      Functions::interpolate(basis2, v2Embedded, function);
+      Dune::Functions::interpolate(basis2, Dune::TypeTree::hybridTreePath(), v2Embedded, function);
 
       // Copy back from FieldVector to RealTuple
       v2.resize(v2Embedded.size());
@@ -166,18 +164,18 @@ public:
                       const std::string& filename)
     {
         assert(basis.size() == configuration.size());
-        auto gridView = basis.getGridView();
+        auto gridView = basis.gridView();
 #if defined THIRD_ORDER  // No special handling: downsample to first order
         typedef typename GridType::LeafGridView GridView;
 
-        const GridType& grid = basis.getGridView().grid();
+        const GridType& grid = gridView.grid();
 
         //////////////////////////////////////////////////////////////////////////////////
         //  Downsample the function onto a P1-space.  That's all we can visualize today.
         //////////////////////////////////////////////////////////////////////////////////
 
-        typedef P1NodalBasis<GridView,double> P1Basis;
-        P1Basis p1Basis(basis.getGridView());
+        typedef Dune::Functions::PQkNodalBasis<GridView,1> P1Basis;
+        P1Basis p1Basis(gridView);
 
         std::vector<RigidBodyMotion<double,3> > downsampledConfig;
 
@@ -194,7 +192,7 @@ public:
         // stupid, can't instantiate deformedGrid with a const grid
         DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
 
-        typedef P1NodalBasis<typename DeformedGridType::LeafGridView,double> DeformedP1Basis;
+        typedef Dune::Functions::PQkNodalBasis<typename DeformedGridType::LeafGridView,1> DeformedP1Basis;
         DeformedP1Basis deformedP1Basis(deformedGrid.leafGridView());
 
         Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
@@ -213,10 +211,9 @@ public:
             std::stringstream iAsAscii;
             iAsAscii << i;
 
-            Dune::shared_ptr<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> > vtkDirector
-               = Dune::make_shared<VTKBasisGridFunction<DeformedP1Basis,CoefficientType> >
-                                  (deformedP1Basis, directors[i], "director"+iAsAscii.str());
-            vtkWriter.addVertexData(vtkDirector);
+            auto vtkDirector = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3> >(deformedP1Basis, Dune::TypeTree::hybridTreePath(), directors[i]);
+            vtkWriter.addVertexData(vtkDirector,
+                                    Dune::VTK::FieldInfo("director"+iAsAscii.str(), Dune::VTK::FieldInfo::Type::vector, 3));
         }
 
         // For easier visualization of wrinkles: add z-coordinate as scalar field
@@ -272,41 +269,47 @@ public:
         }
         std::vector<int> connectivity(connectivitySize);
 
+        auto localView = basis.localView();
+        auto localIndexSet = basis.localIndexSet();
+
         size_t i=0;
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
+          localView.bind(element);
+          localIndexSet.bind(localView);
+
           if (element.type().isQuadrilateral())
           {
 #ifdef SECOND_ORDER
-            connectivity[i++] = basis.index(element,0);
-            connectivity[i++] = basis.index(element,2);
-            connectivity[i++] = basis.index(element,8);
-            connectivity[i++] = basis.index(element,6);
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(2);
+            connectivity[i++] = localIndexSet.index(8);
+            connectivity[i++] = localIndexSet.index(6);
 
-            connectivity[i++] = basis.index(element,1);
-            connectivity[i++] = basis.index(element,5);
-            connectivity[i++] = basis.index(element,7);
-            connectivity[i++] = basis.index(element,3);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(5);
+            connectivity[i++] = localIndexSet.index(7);
+            connectivity[i++] = localIndexSet.index(3);
 #else  // first order
-            connectivity[i++] = basis.index(element,0);
-            connectivity[i++] = basis.index(element,1);
-            connectivity[i++] = basis.index(element,3);
-            connectivity[i++] = basis.index(element,2);
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(3);
+            connectivity[i++] = localIndexSet.index(2);
 #endif
           }
           if (element.type().isTriangle())
           {
 #ifdef SECOND_ORDER
-            connectivity[i++] = basis.index(element,0);
-            connectivity[i++] = basis.index(element,2);
-            connectivity[i++] = basis.index(element,5);
-            connectivity[i++] = basis.index(element,1);
-            connectivity[i++] = basis.index(element,4);
-            connectivity[i++] = basis.index(element,3);
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(2);
+            connectivity[i++] = localIndexSet.index(5);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(4);
+            connectivity[i++] = localIndexSet.index(3);
 #else  // first order
-            connectivity[i++] = basis.index(element,0);
-            connectivity[i++] = basis.index(element,1);
-            connectivity[i++] = basis.index(element,2);
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(2);
 #endif
           }
         }
@@ -385,10 +388,12 @@ public:
     {
         assert(displacementBasis.size() == deformationConfiguration.size());
         assert(orientationBasis.size()  == orientationConfiguration.size());
-        auto gridView = displacementBasis.getGridView();
+        auto gridView = displacementBasis.gridView();
 
         // Determine order of the displacement basis
-        int order = displacementBasis.getLocalFiniteElement(*gridView.template begin<0>()).localBasis().order();
+        auto localView = displacementBasis.localView();
+        localView.bind(*gridView.template begin<0>());
+        int order = localView.tree().finiteElement().localBasis().order();
 
         // We only do P2 spaces at the moment
         if (order != 2 and order != 3)
@@ -399,8 +404,8 @@ public:
 
         std::vector<RealTuple<double,3> > displacementConfiguration = deformationConfiguration;
         typedef typename GridType::LeafGridView GridView;
-        typedef DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<GridView,2> > P2DeformationBasis;
-        P2DeformationBasis p2DeformationBasis(displacementBasis.getGridView());
+        typedef Dune::Functions::PQkNodalBasis<GridView,2> P2DeformationBasis;
+        P2DeformationBasis p2DeformationBasis(gridView);
 
         if (order == 3)
         {
@@ -475,20 +480,24 @@ public:
         outFile << "      <Cells>" << std::endl;
 
         outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+        auto localIndexSet = p2DeformationBasis.localIndexSet();
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
+          localView.bind(element);
+          localIndexSet.bind(localView);
+
           outFile << "          ";
           if (element.type().isQuadrilateral())
           {
-            outFile << p2DeformationBasis.index(element,0) << " ";
-            outFile << p2DeformationBasis.index(element,2) << " ";
-            outFile << p2DeformationBasis.index(element,8) << " ";
-            outFile << p2DeformationBasis.index(element,6) << " ";
+            outFile << localIndexSet.index(0) << " ";
+            outFile << localIndexSet.index(2) << " ";
+            outFile << localIndexSet.index(8) << " ";
+            outFile << localIndexSet.index(6) << " ";
 
-            outFile << p2DeformationBasis.index(element,1) << " ";
-            outFile << p2DeformationBasis.index(element,5) << " ";
-            outFile << p2DeformationBasis.index(element,7) << " ";
-            outFile << p2DeformationBasis.index(element,3) << " ";
+            outFile << localIndexSet.index(1) << " ";
+            outFile << localIndexSet.index(5) << " ";
+            outFile << localIndexSet.index(7) << " ";
+            outFile << localIndexSet.index(3) << " ";
             outFile << std::endl;
           }
         }
