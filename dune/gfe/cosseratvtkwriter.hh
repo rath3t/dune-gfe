@@ -165,7 +165,17 @@ public:
     {
         assert(basis.size() == configuration.size());
         auto gridView = basis.gridView();
-#if defined THIRD_ORDER  // No special handling: downsample to first order
+
+        // Determine order of the basis
+        // We check for the order of the first element, and assume it is the same for all others
+        auto localView = basis.localView();
+        localView.bind(*gridView.template begin<0>());
+        const int order = localView.tree().finiteElement().localBasis().order();
+        // order of the approximation of the VTK file -- can only be two or one
+        const auto vtkOrder = std::min(2,order);
+
+        if (order==3)  // No special handling: downsample to first order
+        {
         typedef typename GridType::LeafGridView GridView;
 
         const GridType& grid = gridView.grid();
@@ -226,8 +236,9 @@ public:
         // Write the file to disk
         vtkWriter.write(filename);
 
-#else // Write as P2 or as P1 space
-
+        }
+        else // Write as P2 or as P1 space
+        {
         Dune::GFE::VTKFile vtkFile;
 
         // Count the number of elements of the different types
@@ -253,17 +264,10 @@ public:
         std::size_t connectivitySize = 0;
         for (const auto nE : numElements)
         {
-#ifdef SECOND_ORDER
           if (nE.first.isQuadrilateral())
-            connectivitySize += 8 * nE.second;
+            connectivitySize += ((vtkOrder==2) ? 8 : 4) * nE.second;
           else if (nE.first.isTriangle())
-            connectivitySize += 6 * nE.second;
-#else
-          if (nE.first.isQuadrilateral())
-            connectivitySize += 4 * nE.second;
-          else if (nE.first.isTriangle())
-            connectivitySize += 3 * nE.second;
-#endif
+            connectivitySize += ((vtkOrder==2) ? 6 : 3) * nE.second;
           else
             DUNE_THROW(Dune::IOError, "Unsupported element type '" << nE.first << "' found!");
         }
@@ -280,7 +284,8 @@ public:
 
           if (element.type().isQuadrilateral())
           {
-#ifdef SECOND_ORDER
+            if (vtkOrder==2)
+            {
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(2);
             connectivity[i++] = localIndexSet.index(8);
@@ -290,27 +295,32 @@ public:
             connectivity[i++] = localIndexSet.index(5);
             connectivity[i++] = localIndexSet.index(7);
             connectivity[i++] = localIndexSet.index(3);
-#else  // first order
+            }
+            else  // first order
+            {
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(1);
             connectivity[i++] = localIndexSet.index(3);
             connectivity[i++] = localIndexSet.index(2);
-#endif
+            }
           }
           if (element.type().isTriangle())
           {
-#ifdef SECOND_ORDER
+            if (vtkOrder==2)
+            {
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(2);
             connectivity[i++] = localIndexSet.index(5);
             connectivity[i++] = localIndexSet.index(1);
             connectivity[i++] = localIndexSet.index(4);
             connectivity[i++] = localIndexSet.index(3);
-#else  // first order
+            }
+            else  // first order
+            {
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(1);
             connectivity[i++] = localIndexSet.index(2);
-#endif
+            }
           }
         }
 
@@ -322,17 +332,11 @@ public:
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
           if (element.type().isQuadrilateral())
-#ifdef SECOND_ORDER
-            offsetCounter += 8;
-#else
-            offsetCounter += 4;
-#endif
+            offsetCounter += (vtkOrder==2) ? 8 : 4;
+
           if (element.type().isTriangle())
-#ifdef SECOND_ORDER
-            offsetCounter += 6;
-#else
-            offsetCounter += 3;
-#endif
+            offsetCounter += (vtkOrder==2) ? 6 : 3;
+
           offsets[i++] += offsetCounter;
         }
 
@@ -343,17 +347,10 @@ public:
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
           if (element.type().isQuadrilateral())
-#ifdef SECOND_ORDER
-            cellTypes[i++] = 23;
-#else
-            cellTypes[i++] = 9;
-#endif
+            cellTypes[i++] = (vtkOrder==2) ? 23 : 9;
+
           if (element.type().isTriangle())
-#ifdef SECOND_ORDER
-            cellTypes[i++] = 22;
-#else
-            cellTypes[i++] = 5;
-#endif
+            cellTypes[i++] = (vtkOrder==2) ? 22 : 5;
         }
         vtkFile.cellTypes_ = cellTypes;
 
@@ -374,7 +371,7 @@ public:
 
         // Actually write the VTK file to disk
         vtkFile.write(filename);
-#endif
+        }
     }
 
     /** \brief Write a configuration given with respect to a scalar function space basis
