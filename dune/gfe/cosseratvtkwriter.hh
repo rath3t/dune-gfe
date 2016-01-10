@@ -1,7 +1,6 @@
 #ifndef COSSERAT_VTK_WRITER_HH
 #define COSSERAT_VTK_WRITER_HH
 
-#include <dune/grid/geometrygrid.hh>
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
@@ -19,53 +18,6 @@ class CosseratVTKWriter
 {
 
     static const int dim = GridType::dimension;
-
-    /** \brief Encapsulates the grid deformation for the GeometryGrid class */
-    template <class HostGridView>
-    class DeformationFunction
-        : public Dune :: DiscreteCoordFunction< double, 3, DeformationFunction<HostGridView> >
-    {
-        typedef DeformationFunction<HostGridView> This;
-        typedef Dune :: DiscreteCoordFunction< double, 3, This > Base;
-
-        static const int dim = HostGridView::dimension;
-
-    public:
-
-        DeformationFunction(const HostGridView& gridView,
-                            const std::vector<RigidBodyMotion<double,3> >& deformedPosition)
-            : gridView_(gridView),
-              deformedPosition_(deformedPosition)
-        {}
-
-        void evaluate (const typename HostGridView::template Codim<dim>::Entity& hostEntity, unsigned int corner,
-                       Dune::FieldVector<double,3> &y ) const
-        {
-
-            const typename HostGridView::IndexSet& indexSet = gridView_.indexSet();
-
-            int idx = indexSet.index(hostEntity);
-            y = deformedPosition_[idx].r;
-        }
-
-        void evaluate (const typename HostGridView::template Codim<0>::Entity& hostEntity, unsigned int corner,
-                       Dune::FieldVector<double,3> &y ) const
-        {
-
-            const typename HostGridView::IndexSet& indexSet = gridView_.indexSet();
-
-            int idx = indexSet.subIndex(hostEntity, corner,dim);
-
-            y = deformedPosition_[idx].r;
-        }
-
-    private:
-
-        HostGridView gridView_;
-
-        const std::vector<RigidBodyMotion<double,3> > deformedPosition_;
-
-    };
 
     template <typename Basis1, typename Basis2>
     static void downsample(const Basis1& basis1, const std::vector<RigidBodyMotion<double,3> >& v1,
@@ -174,71 +126,20 @@ public:
         // order of the approximation of the VTK file -- can only be two or one
         const auto vtkOrder = std::min(2,order);
 
-        if (order==3)  // No special handling: downsample to first order
+        //  Downsample 3rd-order functions onto a P2-space.  That's all VTK can visualize today.
+        if (order>=3)
         {
-        typedef typename GridType::LeafGridView GridView;
-
-        const GridType& grid = gridView.grid();
-
-        //////////////////////////////////////////////////////////////////////////////////
-        //  Downsample the function onto a P1-space.  That's all we can visualize today.
-        //////////////////////////////////////////////////////////////////////////////////
-
-        typedef Dune::Functions::PQkNodalBasis<GridView,1> P1Basis;
-        P1Basis p1Basis(gridView);
+          typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,2> P2Basis;
+          P2Basis p2Basis(gridView);
 
         std::vector<RigidBodyMotion<double,3> > downsampledConfig;
 
-        downsample(basis, configuration, p1Basis, downsampledConfig);
+          downsample(basis, configuration, p2Basis, downsampledConfig);
 
-        //////////////////////////////////////////////////////////////////////////////////
-        //  Deform the grid according to the position information in 'configuration'
-        //////////////////////////////////////////////////////////////////////////////////
-
-        typedef Dune::GeometryGrid<GridType,DeformationFunction<GridView> > DeformedGridType;
-
-        DeformationFunction<typename GridType::LeafGridView> deformationFunction(grid.leafGridView(), downsampledConfig);
-
-        // stupid, can't instantiate deformedGrid with a const grid
-        DeformedGridType deformedGrid(const_cast<GridType&>(grid), deformationFunction);
-
-        typedef Dune::Functions::PQkNodalBasis<typename DeformedGridType::LeafGridView,1> DeformedP1Basis;
-        DeformedP1Basis deformedP1Basis(deformedGrid.leafGridView());
-
-        Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
-
-        // Make three vector fields containing the directors
-        typedef std::vector<Dune::FieldVector<double,3> > CoefficientType;
-
-        std::vector<CoefficientType> directors(3);
-
-        for (int i=0; i<3; i++) {
-
-            directors[i].resize(downsampledConfig.size());
-            for (size_t j=0; j<downsampledConfig.size(); j++)
-                directors[i][j] = downsampledConfig[j].q.director(i);
-
-            std::stringstream iAsAscii;
-            iAsAscii << i;
-
-            auto vtkDirector = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3> >(deformedP1Basis, Dune::TypeTree::hybridTreePath(), directors[i]);
-            vtkWriter.addVertexData(vtkDirector,
-                                    Dune::VTK::FieldInfo("director"+iAsAscii.str(), Dune::VTK::FieldInfo::Type::vector, 3));
+          write(p2Basis, downsampledConfig, filename);
+          return;
         }
 
-        // For easier visualization of wrinkles: add z-coordinate as scalar field
-        std::vector<double> zCoord(downsampledConfig.size());
-        for (size_t i=0; i<zCoord.size(); i++)
-          zCoord[i] = downsampledConfig[i].r[2];
-
-        vtkWriter.addVertexData(zCoord, "zCoord");
-
-        // Write the file to disk
-        vtkWriter.write(filename);
-
-        }
-        else // Write as P2 or as P1 space
-        {
         Dune::GFE::VTKFile vtkFile;
 
         // Count the number of elements of the different types
@@ -273,7 +174,6 @@ public:
         }
         std::vector<int> connectivity(connectivitySize);
 
-        auto localView = basis.localView();
         auto localIndexSet = basis.localIndexSet();
 
         size_t i=0;
@@ -371,7 +271,6 @@ public:
 
         // Actually write the VTK file to disk
         vtkFile.write(filename);
-        }
     }
 
     /** \brief Write a configuration given with respect to a scalar function space basis
