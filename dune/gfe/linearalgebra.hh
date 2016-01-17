@@ -3,6 +3,7 @@
 
 #include <dune/common/fmatrix.hh>
 
+#if ADOLC_ADOUBLE_H
 template< int m, int n, int p >
 auto operator* ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldMatrix< adouble, n, p > &B)
   -> Dune::FieldMatrix<adouble, m, p>
@@ -56,6 +57,7 @@ auto operator* ( const Dune::FieldMatrix< double, m, n > &A, const Dune::FieldMa
     }
     return ret;
 }
+#endif
 
 //! calculates ret = A + B
 template< class K, int m, int n>
@@ -72,11 +74,11 @@ Dune::FieldMatrix<K,m,n> operator+ ( const Dune::FieldMatrix<K, m, n> &A, const 
 }
 
 //! calculates ret = A - B
-template <int m, int n>
-auto operator- ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldMatrix< double, m, n > &B)
-  -> Dune::FieldMatrix<adouble, m, n>
+template <class T, int m, int n>
+auto operator- ( const Dune::FieldMatrix< T, m, n > &A, const Dune::FieldMatrix< T, m, n > &B)
+  -> Dune::FieldMatrix<T, m, n>
 {
-    Dune::FieldMatrix<adouble,m,n> result;
+    Dune::FieldMatrix<T,m,n> result;
     typedef typename decltype(result)::size_type size_type;
 
     for( size_type i = 0; i < m; ++i )
@@ -86,9 +88,10 @@ auto operator- ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldM
     return result;
 }
 
+#if ADOLC_ADOUBLE_H
 //! calculates ret = A - B
 template <int m, int n>
-auto operator- ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldMatrix< adouble, m, n > &B)
+auto operator- ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldMatrix< double, m, n > &B)
   -> Dune::FieldMatrix<adouble, m, n>
 {
     Dune::FieldMatrix<adouble,m,n> result;
@@ -115,6 +118,7 @@ auto operator* ( const double& s, const Dune::FieldMatrix<adouble, m, n> &A)
 
     return ret;
 }
+#endif
 
 //! calculates ret = s*A
 template< int m, int n>
