@@ -8,7 +8,7 @@
 #include <dune/geometry/type.hh>
 
 #include <dune/gfe/rotation.hh>
-#include <dune/gfe/svd.hh>
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/linearalgebra.hh>
 
 namespace Dune {
@@ -206,19 +206,17 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
 
       static FieldMatrix<field_type,3,3> polarFactor(const FieldMatrix<field_type,3,3>& matrix)
       {
-        FieldVector<field_type,3> W;
-        FieldMatrix<field_type,3,3> V, VT;
+        // Use Higham's method
         auto polar = matrix;
+        for (size_t i=0; i<3; i++)
+        {
+          auto polarInvert = polar;
+          polarInvert.invert();
+          for (size_t j=0; j<polar.N(); j++)
+            for (size_t k=0; k<polar.M(); k++)
+              polar[j][k] = 0.5 * (polar[j][k] + polarInvert[k][j]);
+        }
 
-        // returns a decomposition U W VT, where U is returned in the first argument
-        svdcmp<field_type,3,3>(polar, W, V);
-
-        // \todo Merge this transposition with the following multiplication
-        for (int i=0; i<3; i++)
-          for (int j=0; j<3; j++)
-            VT[i][j] = V[j][i];
-
-        polar.rightmultiply(VT);
         return polar;
       }
 
@@ -231,61 +229,52 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
       {
         std::array<std::array<FieldMatrix<field_type,3,3>, 3>, 3> result;
 
-        /////////////////////////////////////////////////////////////////////////////////
-        //  Step I: Compute the singular value decomposition of A
-        /////////////////////////////////////////////////////////////////////////////////
-
-        FieldVector<field_type,3> sigma;
-        FieldMatrix<field_type,3,3> V, VT;
-        FieldMatrix<field_type,3,3> U = A;
-
-        // returns a decomposition U diag(sigma) VT, where U is returned in the first argument
-        svdcmp<field_type,3,3>(U, sigma, V);
-
-        // Compute VT from V (svdcmp returns the latter)
         for (int i=0; i<3; i++)
           for (int j=0; j<3; j++)
-            VT[i][j] = V[j][i];
+            for (int k=0; k<3; k++)
+              for (int l=0; l<3; l++)
+                result[i][j][k][l] = (i==k) and (j==l);
 
-        /////////////////////////////////////////////////////////////////////////////////
-        //  Step II: Compute the derivative direction X
-        /////////////////////////////////////////////////////////////////////////////////
+        auto polar = A;
 
-        for (int dir0=0; dir0<3; dir0++)
+        // Use Heron's method
+        const size_t maxIterations = 3;
+        for (size_t iteration=0; iteration<maxIterations; iteration++)
         {
-          for (int dir1=0; dir1<3; dir1++)
-          {
-            FieldMatrix<field_type,3,3> X(0);
-            X[dir0][dir1] = 1.0;
+          auto polarInvert = polar;
+          polarInvert.invert();
+          for (size_t i=0; i<polar.N(); i++)
+            for (size_t j=0; j<polar.M(); j++)
+              polar[i][j] = 0.5 * (polar[i][j] + polarInvert[j][i]);
 
-            /////////////////////////////////////////////////////////////////////////////////
-            //  Step ???: Markus' magic formula
-            /////////////////////////////////////////////////////////////////////////////////
+          decltype(result) dQT;
+          for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+              for (int k=0; k<3; k++)
+                for (int l=0; l<3; l++)
+                  dQT[i][j][k][l] = result[i][j][k][l];
 
-            FieldMatrix<field_type,3,3> UTXV = transpose(U)*X*V;
+          // Multiply from the right with Q^{-T}
+          decltype(result) tmp1, tmp2;
+          for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+              for (int k=0; k<3; k++)
+                for (int l=0; l<3; l++)
+                  tmp1[i][j][k][l] = tmp2[i][j][k][l] = 0.0;
 
-            FieldMatrix<field_type,3,3> center;
-            center[0][0] = 0.0;
-            center[0][1] = (UTXV[0][1] - UTXV[1][0]) / (sigma[0] + sigma[1]);
-            center[0][2] = (UTXV[0][2] - UTXV[2][0]) / (sigma[0] + sigma[2]);
+          for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+              for (int k=0; k<3; k++)
+                for (int l=0; l<3; l++)
+                  for (int m=0; m<3; m++)
+                    for (int o=0; o<3; o++)
+                      tmp2[i][j][k][l] += polarInvert[m][i] * dQT[o][m][k][l] * polarInvert[j][o];
 
-            center[1][0] = (UTXV[1][0] - UTXV[0][1]) / (sigma[1] + sigma[0]);
-            center[1][1] = 0.0;
-            center[1][2] = (UTXV[1][2] - UTXV[2][1]) / (sigma[1] + sigma[2]);
-
-            center[2][0] = (UTXV[2][0] - UTXV[0][2]) / (sigma[2] + sigma[0]);
-            center[2][1] = (UTXV[2][1] - UTXV[1][2]) / (sigma[2] + sigma[1]);
-            center[2][2] = 0.0;
-
-            // Compute U center VT
-            FieldMatrix<field_type,3,3> PAX = U*center*VT;
-
-            // Copy into result array
-            for (int i=0; i<3; i++)
-              for (int j=0; j<3; j++)
-                result[i][j][dir0][dir1] = PAX[i][j];
-
-          }
+          for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+              for (int k=0; k<3; k++)
+                for (int l=0; l<3; l++)
+                  result[i][j][k][l] = 0.5 * (result[i][j][k][l] - tmp2[i][j][k][l]);
         }
 
         return result;
@@ -428,6 +417,138 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
 
       /** \brief The coefficient vector */
       std::vector<TargetSpace> coefficients_;
+
+    };
+
+
+    /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold -- specialization for R^3 x SO(3)
+     *
+     * \tparam dim Dimension of the reference element
+     * \tparam ctype Type used for coordinates on the reference element
+     * \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
+     */
+    template <int dim, class ctype, class LocalFiniteElement, class field_type>
+    class LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<field_type,3> >
+    {
+    public:
+      typedef RigidBodyMotion<field_type,3> TargetSpace;
+    private:
+      typedef typename TargetSpace::ctype RT;
+
+      typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
+      static const int embeddedDim = EmbeddedTangentVector::dimension;
+
+      static const int spaceDim = TargetSpace::TangentVector::dimension;
+
+    public:
+
+      /** \brief The type used for derivatives */
+      typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
+
+      /** \brief Constructor
+       * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
+       * \param coefficients Values of the function at the Lagrange points
+       */
+      LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
+                               const std::vector<TargetSpace>& coefficients)
+      : localFiniteElement_(localFiniteElement),
+        translationCoefficients_(coefficients.size())
+      {
+        assert(localFiniteElement.localBasis().size() == coefficients.size());
+
+        for (size_t i=0; i<coefficients.size(); i++)
+            translationCoefficients_[i] = coefficients[i].r;
+
+        std::vector<Rotation<field_type,3> > orientationCoefficients(coefficients.size());
+        for (size_t i=0; i<coefficients.size(); i++)
+            orientationCoefficients[i] = coefficients[i].q;
+
+        orientationFunction_ = std::make_unique<LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
+      }
+
+      /** \brief The number of Lagrange points */
+      unsigned int size() const
+      {
+        return localFiniteElement_.size();
+      }
+
+      /** \brief The type of the reference element */
+      Dune::GeometryType type() const
+      {
+        return localFiniteElement_.type();
+      }
+
+      /** \brief Evaluate the function */
+      TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
+      {
+        RigidBodyMotion<field_type,3> result;
+
+        // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
+        std::vector<Dune::FieldVector<ctype,1> > w;
+        localFiniteElement_.localBasis().evaluateFunction(local,w);
+
+        result.r = 0;
+        for (size_t i=0; i<w.size(); i++)
+            result.r.axpy(w[i][0], translationCoefficients_[i]);
+
+        result.q = orientationFunction_->evaluate(local);
+
+        return result;
+      }
+
+      /** \brief Evaluate the derivative of the function */
+      DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+      {
+        // the function value at the point where we are evaluating the derivative
+        TargetSpace q = evaluate(local);
+
+        // Actually compute the derivative
+        return evaluateDerivative(local,q);
+      }
+
+      /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
+       *        \param local Local coordinates in the reference element where to evaluate the derivative
+       *        \param q Value of the local function at 'local'.  If you provide something wrong here the result will be wrong, too!
+       */
+      DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+                                        const TargetSpace& q) const
+      {
+        DerivativeType result(0);
+
+        // get translation part
+        std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
+        localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
+
+        for (size_t i=0; i<translationCoefficients_.size(); i++)
+            for (int j=0; j<3; j++)
+                result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
+
+        // get orientation part
+        Dune::FieldMatrix<field_type,4,dim> qResult = orientationFunction_->evaluateDerivative(local,q.q);
+
+        for (int i=0; i<4; i++)
+            for (int j=0; j<dim; j++)
+                result[3+i][j] = qResult[i][j];
+
+        return result;
+      }
+
+      /** \brief Get the i'th base coefficient. */
+      TargetSpace coefficient(int i) const
+      {
+        return TargetSpace(translationCoefficients_[i],orientationFunction_->coefficient(i));
+      }
+    private:
+
+      /** \brief The scalar local finite element, which provides the weighting factors
+       *        \todo We really only need the local basis
+       */
+      const LocalFiniteElement& localFiniteElement_;
+
+      std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
+
+      std::unique_ptr<LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type, 3> > > orientationFunction_;
+
 
     };
 
