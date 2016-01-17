@@ -14,7 +14,6 @@ class LocalGeodesicFEFDStiffness
 {
     // grid types
     typedef typename Basis::GridView GridView;
-    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
     typedef typename GridView::template Codim<0>::Entity Entity;
@@ -37,18 +36,16 @@ public:
     {}
 
     /** \brief Compute the energy at the current configuration */
-    virtual RT energy (const Entity& element,
-               const LocalFiniteElement& localFiniteElement,
+    virtual RT energy (const typename Basis::LocalView& localView,
                const std::vector<TargetSpace>& localSolution) const
     {
-      return localEnergy_->energy(element,localFiniteElement,localSolution);
+      return localEnergy_->energy(localView,localSolution);
     }
 
     /** \brief Assemble the element gradient of the energy functional
 
        The default implementation in this class uses a finite difference approximation */
-    virtual void assembleGradient(const Entity& element,
-                                  const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradient(const typename Basis::LocalView& localView,
                                   const std::vector<TargetSpace>& solution,
                                   std::vector<typename TargetSpace::TangentVector>& gradient) const;
 
@@ -64,8 +61,7 @@ public:
       \f]
       We compute that using a finite difference approximation.
     */
-    virtual void assembleGradientAndHessian(const Entity& e,
-                                 const LocalFiniteElement& localFiniteElement,
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                  const std::vector<TargetSpace>& localSolution,
                                  std::vector<typename TargetSpace::TangentVector>& localGradient);
 
@@ -76,8 +72,7 @@ public:
 
 template <class Basis, class TargetSpace, class field_type>
 void LocalGeodesicFEFDStiffness<Basis, TargetSpace, field_type>::
-assembleGradient(const Entity& element,
-                 const LocalFiniteElement& localFiniteElement,
+assembleGradient(const typename Basis::LocalView& localView,
                  const std::vector<TargetSpace>& localSolution,
                  std::vector<typename TargetSpace::TangentVector>& localGradient) const
 {
@@ -118,7 +113,7 @@ assembleGradient(const Entity& element,
             forwardSolution[i]  = ATargetSpace::exp(localASolution[i], forwardCorrection);
             backwardSolution[i] = ATargetSpace::exp(localASolution[i], backwardCorrection);
 
-            field_type foo = (localEnergy_->energy(element,localFiniteElement,forwardSolution) - localEnergy_->energy(element,localFiniteElement, backwardSolution)) / (2*eps);
+            field_type foo = (localEnergy_->energy(localView,forwardSolution) - localEnergy_->energy(localView, backwardSolution)) / (2*eps);
 #ifdef MULTIPRECISION
             localGradient[i][j] = foo.template convert_to<double>();
 #else
@@ -142,8 +137,7 @@ assembleGradient(const Entity& element,
 /////////////////////////////////////////////////////////////////////////////////
 template <class Basis, class TargetSpace, class field_type>
 void LocalGeodesicFEFDStiffness<Basis, TargetSpace, field_type>::
-assembleGradientAndHessian(const Entity& element,
-                const LocalFiniteElement& localFiniteElement,
+assembleGradientAndHessian(const typename Basis::LocalView& localView,
                 const std::vector<TargetSpace>& localSolution,
                 std::vector<typename TargetSpace::TangentVector>& localGradient)
 {
@@ -176,7 +170,7 @@ assembleGradientAndHessian(const Entity& element,
 
     // Precompute negative energy at the current configuration
     // (negative because that is how we need it as part of the 2nd-order fd formula)
-    field_type centerValue   = -localEnergy_->energy(element, localFiniteElement, localASolution);
+    field_type centerValue   = -localEnergy_->energy(localView, localASolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
     std::vector<Dune::array<field_type,blocksize> > forwardEnergy(nDofs);
@@ -196,8 +190,8 @@ assembleGradientAndHessian(const Entity& element,
             forwardSolution[i]  = ATargetSpace::exp(localASolution[i],epsXi);
             backwardSolution[i] = ATargetSpace::exp(localASolution[i],minusEpsXi);
 
-            forwardEnergy[i][i2]  = localEnergy_->energy(element, localFiniteElement, forwardSolution);
-            backwardEnergy[i][i2] = localEnergy_->energy(element, localFiniteElement, backwardSolution);
+            forwardEnergy[i][i2]  = localEnergy_->energy(localView, forwardSolution);
+            backwardEnergy[i][i2] = localEnergy_->energy(localView, backwardSolution);
 
         }
 
@@ -254,8 +248,8 @@ assembleGradientAndHessian(const Entity& element,
                         backwardSolutionXiEta[j] = ATargetSpace::exp(localASolution[j],minusEpsEta);
                     }
 
-                    field_type forwardValue  = localEnergy_->energy(element, localFiniteElement, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
-                    field_type backwardValue = localEnergy_->energy(element, localFiniteElement, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
+                    field_type forwardValue  = localEnergy_->energy(localView, forwardSolutionXiEta) - forwardEnergy[i][i2] - forwardEnergy[j][j2];
+                    field_type backwardValue = localEnergy_->energy(localView, backwardSolutionXiEta) - backwardEnergy[i][i2] - backwardEnergy[j][j2];
 
                     field_type foo = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
 #ifdef MULTIPRECISION
