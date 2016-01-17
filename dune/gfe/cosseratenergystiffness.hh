@@ -10,7 +10,11 @@
 
 #include "localgeodesicfestiffness.hh"
 #include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
+#ifdef PROJECTED_INTERPOLATION
+#include <dune/gfe/localprojectedfefunction.hh>
+#else
 #include "localgeodesicfefunction.hh"
+#endif
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/orthogonalmatrix.hh>
@@ -373,7 +377,11 @@ energy(const typename Basis::LocalView& localView,
 
     using namespace Dune::TypeTree::Indices;
     const auto& localFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
+#ifdef PROJECTED_INTERPOLATION
+    typedef Dune::GFE::LocalProjectedFEFunction<gridDim, DT, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
+#else
     typedef LocalGeodesicFEFunction<gridDim, DT, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
+#endif
     LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
     int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
@@ -502,10 +510,20 @@ energy(const typename Basis::LocalView& localView,
     const auto& deformationLocalFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
     const auto& orientationLocalFiniteElement = LocalFiniteElementFactory<Basis,1>::get(localView,_1);
 
-    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
+#ifdef PROJECTED_INTERPOLATION
+    typedef Dune::GFE::LocalProjectedFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> >
+    LocalDeformationGFEFunctionType;
+#else
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> >
+    LocalDeformationGFEFunctionType;
+#endif
     LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
 
+#ifdef PROJECTED_INTERPOLATION
+    typedef Dune::GFE::LocalProjectedFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
+#else
     typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
+#endif
     LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
 
     // \todo Implement smarter quadrature rule selection for more efficiency, i.e., less evaluations of the Rotation GFE function
