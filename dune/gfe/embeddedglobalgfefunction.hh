@@ -50,6 +50,12 @@ public:
     /** \brief Evaluate the function at local coordinates. */
     void evaluateLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local, typename TargetSpace::CoordinateType& out) const
     {
+        out = this->operator()(element,local);
+    }
+
+    /** \brief Evaluate the function at local coordinates. */
+    typename TargetSpace::CoordinateType operator()(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
+    {
         int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size();
 
         // Extract local coefficients
@@ -60,12 +66,18 @@ public:
 
         // create local gfe function
         LocalGFEFunction localGFE(basis_.getLocalFiniteElement(element),localCoeff);
-        out = localGFE.evaluate(local).globalCoordinates();
+        return localGFE.evaluate(local).globalCoordinates();
     }
 
     /** \brief Evaluate the derivative of the function at local coordinates. */
     void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local,
                                  Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
+    {
+        out = derivative(element,local);
+    }
+
+    /** \brief Evaluate the derivative of the function at local coordinates. */
+    Dune::FieldMatrix<ctype, embeddedDim, gridDim> derivative(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
     {
         int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size();
 
@@ -81,11 +93,13 @@ public:
         // use it to evaluate the derivative
         Dune::FieldMatrix<ctype, embeddedDim, gridDim> refJac = localGFE.evaluateDerivative(local);
 
-        out =0.0;
+        Dune::FieldMatrix<ctype, embeddedDim, gridDim> out =0.0;
         //transform the gradient
         const Dune::FieldMatrix<double,gridDim,gridDim>& jacInvTrans = element.geometry().jacobianInverseTransposed(local);
         for (size_t k=0; k< refJac.N(); k++)
             jacInvTrans.umv(refJac[k],out[k]);
+
+        return out;
     }
 
     /** \brief Export basis */
