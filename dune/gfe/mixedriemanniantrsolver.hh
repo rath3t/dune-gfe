@@ -49,14 +49,6 @@ class MixedRiemannianTrustRegionSolver
     typedef Dune::MultiTypeBlockVector<CorrectionType0, CorrectionType1> CorrectionType;
     typedef Dune::Functions::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > SolutionType;
 
-#if 0
-#ifdef SECOND_ORDER
-    typedef Dune::GlobalP2Mapper<typename GridType::LeafGridView> GUIndex;
-#else
-    typedef GlobalUniqueIndex<typename GridType::LeafGridView, gridDim> GUIndex;
-#endif
-#endif
-
 public:
 
     MixedRiemannianTrustRegionSolver()

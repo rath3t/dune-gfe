@@ -1,7 +1,5 @@
 #include <config.h>
 
-#define SECOND_ORDER
-
 #include <fenv.h>
 
 // Includes for the ADOL-C automatic differentiation library
@@ -44,6 +42,9 @@
 // grid dimension
 const int dim = 2;
 const int dimworld = 2;
+
+// Order of the approximation space
+const int order = 2;
 
 // Image space of the geodesic fe functions
 typedef RigidBodyMotion<double,3> TargetSpace;
@@ -149,13 +150,7 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-#ifdef THIRD_ORDER
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 3> FEBasis;
-#elif defined SECOND_ORDER
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 2> FEBasis;
-#else
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
-#endif
+    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, order> FEBasis;
     FEBasis feBasis(gridView);
 
     typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
