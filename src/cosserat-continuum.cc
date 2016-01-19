@@ -342,6 +342,16 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 
+    // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
+    // This data may be used by other applications measuring the discretization error
+    BlockVector<TargetSpace::CoordinateType> xEmbedded(x.size());
+    for (size_t i=0; i<x.size(); i++)
+      xEmbedded[i] = x[i].globalCoordinates();
+
+    std::ofstream outFile("cosserat-continuum-result-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
+    GenericVector::writeBinary(outFile, xEmbedded);
+    outFile.close();
+
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
