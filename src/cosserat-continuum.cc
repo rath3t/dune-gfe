@@ -15,10 +15,13 @@
 #include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/uggrid.hh>
-#include <dune/grid/onedgrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/grid/io/file/gmshreader.hh>
+
+#if HAVE_DUNE_FOAMGRID
+#include <dune/foamgrid/foamgrid.hh>
+#endif
 
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
@@ -120,7 +123,12 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
-    typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
+#if HAVE_DUNE_FOAMGRID
+    typedef std::conditional<dim==dimworld,UGGrid<dim>, FoamGrid<dim,dimworld> >::type GridType;
+#else
+    static_assert(dim==dimworld, "FoamGrid needs to be installed to allow problems with dim != dimworld.");
+    typedef UGGrid<dim> GridType;
+#endif
 
     shared_ptr<GridType> grid;
 
