@@ -37,6 +37,7 @@
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
+#include <dune/gfe/nonplanarcosseratshellenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/cosseratvtkreader.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
@@ -290,8 +291,11 @@ int main (int argc, char *argv[]) try
         }
 
     // Assembler using ADOL-C
-    CosseratEnergyLocalStiffness<FEBasis,
-                                 3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
+    using LocalEnergy = std::conditional<dim==dimworld,
+                                         CosseratEnergyLocalStiffness<FEBasis,3,adouble>,
+                                         NonplanarCosseratShellEnergy<FEBasis,3,adouble> >::type;
+
+    LocalEnergy cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                               &neumannBoundary,
                                                                               neumannFunction,
                                                                               volumeLoad);
