@@ -76,6 +76,25 @@ struct NeumannFunction
     double homotopyParameter_;
 };
 
+/** \brief A constant vector-valued function, for simple volume loads */
+struct VolumeLoad
+    : public Dune::VirtualFunction<FieldVector<double,dimworld>, FieldVector<double,3> >
+{
+    VolumeLoad(const FieldVector<double,3> values,
+               double homotopyParameter)
+    : values_(values),
+      homotopyParameter_(homotopyParameter)
+    {}
+
+    void evaluate(const FieldVector<double, dimworld>& x, FieldVector<double,3>& out) const {
+        out = 0;
+        out.axpy(homotopyParameter_, values_);
+    }
+
+    FieldVector<double,3> values_;
+    double homotopyParameter_;
+};
+
 
 int main (int argc, char *argv[]) try
 {
@@ -260,6 +279,10 @@ int main (int argc, char *argv[]) try
         neumannFunction = make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,3> >("neumannValues"),
                                                        homotopyParameter);
 
+        shared_ptr<VolumeLoad> volumeLoad;
+        if (parameterSet.hasKey("volumeLoad"))
+            volumeLoad = make_shared<VolumeLoad>(parameterSet.get<FieldVector<double,3> >("volumeLoad"),
+                                                                                          homotopyParameter);
 
         if (mpiHelper.rank() == 0) {
             std::cout << "Material parameters:" << std::endl;
@@ -270,7 +293,8 @@ int main (int argc, char *argv[]) try
     CosseratEnergyLocalStiffness<FEBasis,
                                  3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                               &neumannBoundary,
-                                                                              neumannFunction.get());
+                                                                              neumannFunction.get(),
+                                                                              volumeLoad);
     LocalGeodesicFEADOLCStiffness<FEBasis,
                                   TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
