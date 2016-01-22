@@ -297,7 +297,8 @@ int main (int argc, char *argv[]) try
     CosseratEnergyLocalStiffness<decltype(compositeBasis),
                         3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                      &neumannBoundary,
-                                                                     neumannFunction.get());
+                                                                     neumannFunction,
+                                                                     nullptr);
 
     MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
                                 RealTuple<double,3>,

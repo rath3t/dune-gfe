@@ -189,7 +189,7 @@ public:
      */
     CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters,
                                  const BoundaryPatch<GridView>* neumannBoundary,
-                                 const Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> >* neumannFunction,
+                                 const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > neumannFunction,
                                  const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > volumeLoad)
     : neumannBoundary_(neumannBoundary),
       neumannFunction_(neumannFunction)
@@ -363,7 +363,7 @@ public:
     const BoundaryPatch<GridView>* neumannBoundary_;
 
     /** \brief The function implementing the Neumann data */
-    const Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> >* neumannFunction_;
+    const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > neumannFunction_;
 
     /** \brief The function implementing a volume load */
     const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > volumeLoad_;
@@ -501,8 +501,8 @@ energy(const typename Basis::LocalView& localView,
             // Value of the Neumann data at the current position
             Dune::FieldVector<double,3> neumannValue;
 
-            if (dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_))
-                dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
+            if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(neumannFunction_))
+                std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
             else
                 neumannFunction_->evaluate(it.geometry().global(quad[pt].position()), neumannValue);
 
@@ -646,8 +646,8 @@ energy(const typename Basis::LocalView& localView,
             // Value of the Neumann data at the current position
             Dune::FieldVector<double,3> neumannValue;
 
-            if (dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_))
-                dynamic_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> >*>(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
+            if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(neumannFunction_))
+                std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
             else
                 neumannFunction_->evaluate(it.geometry().global(quad[pt].position()), neumannValue);
 

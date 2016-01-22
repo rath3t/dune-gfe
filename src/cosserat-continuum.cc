@@ -293,7 +293,7 @@ int main (int argc, char *argv[]) try
     CosseratEnergyLocalStiffness<FEBasis,
                                  3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                               &neumannBoundary,
-                                                                              neumannFunction.get(),
+                                                                              neumannFunction,
                                                                               volumeLoad);
     LocalGeodesicFEADOLCStiffness<FEBasis,
                                   TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
