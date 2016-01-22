@@ -208,8 +208,7 @@ public:
   }
 
   /** \brief Assemble the energy for a single element */
-  RT energy (const Entity& e,
-             const LocalFiniteElement& localFiniteElement,
+  RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const;
 
   RT W_m(const Dune::FieldMatrix<field_type,3,3>& S) const
@@ -262,14 +261,15 @@ public:
 template <class Basis, int dim, class field_type>
 typename NonplanarCosseratShellEnergy<Basis,dim,field_type>::RT
 NonplanarCosseratShellEnergy<Basis,dim,field_type>::
-energy(const Entity& element,
-       const typename Basis::LocalView::Tree::FiniteElement& localFiniteElement,
+energy(const typename Basis::LocalView& localView,
        const std::vector<RigidBodyMotion<field_type,dim> >& localSolution) const
 {
-  assert(element.type() == localFiniteElement.type());
-
   // The element geometry
+  auto element = localView.element();
   auto geometry = element.geometry();
+
+  // The set of shape functions on this element
+  const auto& localFiniteElement = localView.tree().finiteElement();
 
   ////////////////////////////////////////////////////////////////////////////////////
   //  Construct a linear (i.e., non-constant!) normal field on the surface
