@@ -336,8 +336,18 @@ energy(const typename Basis::LocalView& localView,
     // First fundamental form
     Dune::FieldMatrix<double,3,3> aCovariant;
 
-    aCovariant[0] = geometry.jacobianTransposed(quadPos)[0];
-    aCovariant[1] = geometry.jacobianTransposed(quadPos)[1];
+    // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
+    // of the element.  If dimworld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
+    auto jacobianTransposed = geometry.jacobianTransposed(quadPos);
+
+    for (int i=0; i<2; i++)
+    {
+      for (int j=0; j<dimworld; j++)
+        aCovariant[i][j] = jacobianTransposed[i][j];
+      for (int j=dimworld; j<3; i++)
+        aCovariant[i][j] = 0.0;
+    }
+
     aCovariant[2] = Arithmetic::crossProduct(aCovariant[0], aCovariant[1]);
     aCovariant[2] /= aCovariant[2].two_norm();
 
