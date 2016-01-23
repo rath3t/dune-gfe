@@ -40,6 +40,7 @@
 #include <dune/gfe/nonplanarcosseratshellenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/cosseratvtkreader.hh>
+#include <dune/gfe/vtkreader.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
@@ -165,7 +166,17 @@ int main (int argc, char *argv[]) try
     } else {
         std::string path                = parameterSet.get<std::string>("path");
         std::string gridFile            = parameterSet.get<std::string>("gridFile");
-        grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+
+        // Guess the grid file format by looking at the file name suffix
+        auto dotPos = gridFile.rfind('.');
+        if (dotPos == std::string::npos)
+          DUNE_THROW(IOError, "Could not determine grid input file format");
+        std::string suffix = gridFile.substr(dotPos, gridFile.length()-dotPos);
+
+        if (suffix == ".msh")
+            grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+        else if (suffix == ".vtu" or suffix == ".vtp")
+            grid = VTKReader<GridType>::read(path + "/" + gridFile);
     }
 
     grid->globalRefine(numLevels-1);
