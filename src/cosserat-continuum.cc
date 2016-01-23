@@ -202,9 +202,6 @@ int main (int argc, char *argv[]) try
     BitSetVector<1> dirichletVertices(gridView.size(dim), false);
     BitSetVector<1> neumannVertices(gridView.size(dim), false);
 
-    GridType::Codim<dim>::LeafIterator vIt    = gridView.begin<dim>();
-    GridType::Codim<dim>::LeafIterator vEndIt = gridView.end<dim>();
-
     const GridView::IndexSet& indexSet = gridView.indexSet();
 
     // Make Python function that computes which vertices are on the Dirichlet boundary,
@@ -216,16 +213,15 @@ int main (int argc, char *argv[]) try
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
     PythonFunction<FieldVector<double,dimworld>, bool> pythonNeumannVertices(Python::evaluate(lambda));
 
-    for (; vIt!=vEndIt; ++vIt) {
-
+    for (auto&& vertex : vertices(gridView))
+    {
         bool isDirichlet;
-        pythonDirichletVertices.evaluate(vIt->geometry().corner(0), isDirichlet);
-        dirichletVertices[indexSet.index(*vIt)] = isDirichlet;
+        pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
+        dirichletVertices[indexSet.index(vertex)] = isDirichlet;
 
         bool isNeumann;
-        pythonNeumannVertices.evaluate(vIt->geometry().corner(0), isNeumann);
-        neumannVertices[indexSet.index(*vIt)] = isNeumann;
-
+        pythonNeumannVertices.evaluate(vertex.geometry().corner(0), isNeumann);
+        neumannVertices[indexSet.index(vertex)] = isNeumann;
     }
 
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
