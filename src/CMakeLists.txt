@@ -1,4 +1,5 @@
-set(programs cosserat-continuum
+set(programs compute-disc-error
+             cosserat-continuum
              harmonicmaps
              mixed-cosserat-continuum
              rod-eoc
