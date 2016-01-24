@@ -1,8 +1,6 @@
 #ifndef DUNE_GFE_MIXEDLOCALGEODESICFESTIFFNESS_HH
 #define DUNE_GFE_MIXEDLOCALGEODESICFESTIFFNESS_HH
 
-#include "omp.h"
-
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 
