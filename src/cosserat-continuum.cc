@@ -298,16 +298,27 @@ int main (int argc, char *argv[]) try
         }
 
     // Assembler using ADOL-C
-    using LocalEnergy = std::conditional<dim==dimworld,
-                                         CosseratEnergyLocalStiffness<FEBasis,3,adouble>,
-                                         NonplanarCosseratShellEnergy<FEBasis,3,adouble> >::type;
+    using LocalEnergyBase = LocalGeodesicFEStiffness<FEBasis,RigidBodyMotion<adouble,3> >;
 
-    LocalEnergy cosseratEnergyADOLCLocalStiffness(materialParameters,
-                                                                              &neumannBoundary,
-                                                                              neumannFunction,
-                                                                              volumeLoad);
+    std::shared_ptr<LocalEnergyBase> cosseratEnergyADOLCLocalStiffness;
+
+    if (dim==dimworld)
+    {
+      cosseratEnergyADOLCLocalStiffness = std::make_shared<CosseratEnergyLocalStiffness<FEBasis,3,adouble> >(materialParameters,
+                                                                                                             &neumannBoundary,
+                                                                                                             neumannFunction,
+                                                                                                             volumeLoad);
+    }
+    else
+    {
+      cosseratEnergyADOLCLocalStiffness = std::make_shared<NonplanarCosseratShellEnergy<FEBasis,3,adouble> >(materialParameters,
+                                                                                                             &neumannBoundary,
+                                                                                                             neumannFunction,
+                                                                                                             volumeLoad);
+    }
+
     LocalGeodesicFEADOLCStiffness<FEBasis,
-                                  TargetSpace> localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
+                                  TargetSpace> localGFEADOLCStiffness(cosseratEnergyADOLCLocalStiffness.get());
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, &localGFEADOLCStiffness);
 
