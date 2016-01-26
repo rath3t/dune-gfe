@@ -11,15 +11,11 @@ set(TESTS
   localgfetestfunctiontest
   localprojectedfefunctiontest
   nestednesstest
-  nonconvexitytest
-  nonconvexitytest_simple
   orthogonalmatrixtest
   rodassemblertest
   rotationtest
   svdtest
   targetspacetest
-  true-adolctest
-  vtkreadertest
 )
 
 add_directory_test_target(_test_target)
