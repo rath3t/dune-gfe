@@ -51,10 +51,9 @@ void measureEOC(const GridView gridView,
 
   typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
   FEBasis feBasis(gridView);
-  FEBasis referenceFEBasis(referenceGridView);
 
   //////////////////////////////////////////////////////////////////////////////////
-  //  Read the data whose error is to be measured, and the reference data
+  //  Read the data whose error is to be measured
   //////////////////////////////////////////////////////////////////////////////////
 
   // Input data
@@ -71,26 +70,15 @@ void measureEOC(const GridView gridView,
   for (size_t i=0; i<x.size(); i++)
     x[i] = TargetSpace(embeddedX[i]);
 
-  // Reference configuration
-  EmbeddedVectorType embeddedReferenceX(referenceFEBasis.size());
-  inFile.open(parameterSet.get<std::string>("referenceData"), std::ios_base::binary);
-  if (not inFile)
-    DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("referenceData") << " could not be opened.");
-  GenericVector::readBinary(inFile, embeddedReferenceX);
-
-  SolutionType referenceX(embeddedReferenceX.size());
-  for (size_t i=0; i<referenceX.size(); i++)
-    referenceX[i] = TargetSpace(embeddedReferenceX[i]);
-
-  //CosseratVTKWriter<typename GridView::Grid>::template write<FEBasis>(feBasis,x, "cosserat_infile_" + std::to_string(gridView.grid().maxLevel()+1));
-
-
   /////////////////////////////////////////////////////////////////
   //   Measure the discretization error
   /////////////////////////////////////////////////////////////////
-#if 0
+
   if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
   {
+    using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
+    FufemFEBasis fufemFEBasis(feBasis);
+
     // Read reference solution and its derivative into a PythonFunction
     typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
 
@@ -98,33 +86,44 @@ void measureEOC(const GridView gridView,
     auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
     // The numerical solution, as a grid function
-    GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(feBasis, x);
+    GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(fufemFEBasis, x);
 
     // QuadratureRule for the integral of the L^2 error
     QuadratureRuleKey quadKey(dim,6);
 
     // Compute the embedded L^2 error
-    double l2Error = DiscretizationError<GridType::LeafGridView>::computeL2Error(&numericalSolution,
-                                                                                 referenceSolution.get(),
-                                                                                 quadKey);
+    double l2Error = DiscretizationError<GridView>::computeL2Error(&numericalSolution,
+                                                                   referenceSolution.get(),
+                                                                   quadKey);
 
     // Compute the embedded H^1 error
-    double h1Error = DiscretizationError<GridType::LeafGridView>::computeH1HalfNormDifferenceSquared(grid->leafGridView(),
-                                                                                                     &numericalSolution,
-                                                                                                     referenceSolution.get(),
-                                                                                                     quadKey);
+    double h1Error = DiscretizationError<GridView>::computeH1HalfNormDifferenceSquared(gridView,
+                                                                                       &numericalSolution,
+                                                                                       referenceSolution.get(),
+                                                                                       quadKey);
 
-    std::cout << "elements: " << grid->leafGridView().size(0)
+    std::cout << "elements: " << gridView.size(0)
               << "      "
               << "L^2 error: " << l2Error
               << "      ";
     std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
   }
-#endif
 
   if (parameterSet.get<std::string>("discretizationErrorMode")=="discrete")
   {
-    std::cout << "FOO" << std::endl;
+    FEBasis referenceFEBasis(referenceGridView);
+
+    // Reference configuration
+    EmbeddedVectorType embeddedReferenceX(referenceFEBasis.size());
+    inFile.open(parameterSet.get<std::string>("referenceData"), std::ios_base::binary);
+    if (not inFile)
+      DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("referenceData") << " could not be opened.");
+    GenericVector::readBinary(inFile, embeddedReferenceX);
+
+    SolutionType referenceX(embeddedReferenceX.size());
+    for (size_t i=0; i<referenceX.size(); i++)
+      referenceX[i] = TargetSpace(embeddedReferenceX[i]);
+
     using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
     FufemFEBasis fufemReferenceFEBasis(referenceFEBasis);
     FufemFEBasis fufemFEBasis(feBasis);
