@@ -43,6 +43,7 @@
 #include <dune/gfe/vtkreader.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/vertexnormals.hh>
 
 // grid dimension
 const int dim = 2;
@@ -311,7 +312,9 @@ int main (int argc, char *argv[]) try
     }
     else
     {
+      std::vector<UnitVector<double,3> > vertexNormals = computeVertexNormals(gridView);
       cosseratEnergyADOLCLocalStiffness = std::make_shared<NonplanarCosseratShellEnergy<FEBasis,3,adouble> >(materialParameters,
+                                                                                                             std::move(vertexNormals),
                                                                                                              &neumannBoundary,
                                                                                                              neumannFunction,
                                                                                                              volumeLoad);

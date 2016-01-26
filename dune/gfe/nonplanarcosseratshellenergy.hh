@@ -181,10 +181,12 @@ public:
    * \param parameters The material parameters
    */
   NonplanarCosseratShellEnergy(const Dune::ParameterTree& parameters,
+                               const std::vector<UnitVector<double,3> >& vertexNormals,
                                const BoundaryPatch<GridView>* neumannBoundary,
                                const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > neumannFunction,
                                const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > volumeLoad)
-  : neumannBoundary_(neumannBoundary),
+  : vertexNormals_(vertexNormals),
+    neumannBoundary_(neumannBoundary),
     neumannFunction_(neumannFunction),
     volumeLoad_(volumeLoad)
   {
@@ -248,6 +250,9 @@ public:
   /** \brief Curvature parameters */
   double b1_, b2_, b3_;
 
+  /** \brief The normal vectors at the grid vertices.  This are used to compute the reference surface curvature. */
+  std::vector<UnitVector<double,3> > vertexNormals_;
+
   /** \brief The Neumann boundary */
   const BoundaryPatch<GridView>* neumannBoundary_;
 
@@ -274,14 +279,12 @@ energy(const typename Basis::LocalView& localView,
   ////////////////////////////////////////////////////////////////////////////////////
   //  Construct a linear (i.e., non-constant!) normal field on the surface
   ////////////////////////////////////////////////////////////////////////////////////
+  auto gridView = localView.globalBasis().gridView();
 
+  assert(vertexNormals_.size() == gridView.indexSet().size(gridDim));
   std::vector<UnitVector<double,3> > cornerNormals(element.subEntities(gridDim));
   for (size_t i=0; i<cornerNormals.size(); i++)
-  {
-    // TODO: WARNING WARNING WARNING:  Shape is hard-coded here!
-    // The sphere:
-    cornerNormals[i] = geometry.corner(i) / geometry.corner(i).two_norm();
-  }
+    cornerNormals[i] = vertexNormals_[gridView.indexSet().subIndex(element,i,2)];
 
   typedef typename Dune::PQkLocalFiniteElementCache<DT, double, gridDim, 1> P1FiniteElementCache;
   typedef typename P1FiniteElementCache::FiniteElementType P1LocalFiniteElement;
