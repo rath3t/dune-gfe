@@ -1,0 +1,12 @@
+---
+image: duneci/dune-fufem:2.4
+
+dune-fufem--gcc:
+  script:
+  - dunecontrol --current all
+  - dunecontrol --current make test
+
+dune-fufem--clang:
+  script:
+  - CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=/usr/bin/clang++" dunecontrol --current all
+  - dunecontrol --current make test
