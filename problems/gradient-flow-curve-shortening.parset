@@ -1,0 +1,55 @@
+#############################################
+#  Grid parameters
+#############################################
+
+structuredGrid = true
+lower = 0
+upper =  1
+elements = 1
+
+# Number of grid levels
+numLevels = 1
+
+#############################################
+#  Solver parameters
+#############################################
+
+# Tolerance of the trust region solver
+tolerance = 1e-12
+
+# Max number of steps of the trust region solver
+maxTrustRegionSteps = 0
+
+# Initial trust-region radius
+initialTrustRegionRadius = 1
+
+# Number of multigrid iterations per trust-region step
+numIt = 200
+
+# Number of presmoothing steps
+nu1 = 3
+
+# Number of postsmoothing steps
+nu2 = 3
+
+# Number of coarse grid corrections
+mu = 1
+
+# Number of base solver iterations
+baseIt = 100
+
+# Tolerance of the multigrid solver
+mgTolerance = 1e-10
+
+# Tolerance of the base grid solver
+baseTolerance = 1e-8
+
+############################
+#   Problem specifications
+############################
+
+# Type of energy we are minimizing
+energy = harmonic
+
+# Inverse stereographic projection
+initialIterate = initial-curve

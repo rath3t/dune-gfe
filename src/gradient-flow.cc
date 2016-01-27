@@ -152,10 +152,10 @@ int main (int argc, char *argv[]) try
   ////////////////////////////
 
   // Read initial iterate into a PythonFunction
-  typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
+  typedef PythonFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
 
   Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
-  auto pythonInitialIterate = module.get("fdf").toC<std::shared_ptr<FBase>>();
+  auto pythonInitialIterate = module.get("f").toC<std::shared_ptr<FBase>>();
 
   std::vector<TargetSpace::CoordinateType> v;
   ::Functions::interpolate(fufemFeBasis, v, *pythonInitialIterate);
@@ -218,7 +218,6 @@ int main (int argc, char *argv[]) try
   auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,
                                                                                                  TypeTree::hybridTreePath(),
                                                                                                  xEmbedded);
-
 
   SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
   vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
