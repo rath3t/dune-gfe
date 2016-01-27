@@ -70,7 +70,7 @@ int main (int argc, char *argv[]) try
   //feenableexcept(FE_INVALID);
   Python::runStream()
       << std::endl << "import sys"
-      << std::endl << "sys.path.append('.')"
+      << std::endl << "sys.path.append('../../problems/')"
       << std::endl;
 
   typedef std::vector<TargetSpace> SolutionType;
