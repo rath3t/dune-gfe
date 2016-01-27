@@ -41,7 +41,7 @@
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 
 // grid dimension
-const int dim = 2;
+const int dim = 1;
 
 // Image space of the geodesic fe functions
 // typedef Rotation<double,2> TargetSpace;
