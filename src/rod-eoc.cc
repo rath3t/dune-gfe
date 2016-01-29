@@ -57,7 +57,7 @@ void solve (const GridType& grid,
     const double nu              = parameters.get<double>("nu");
 
     // Create a function space basis
-    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
+    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
     FEBasis feBasis(grid.leafGridView());
 
     // Transitional: the same basis as a dune-fufem object
