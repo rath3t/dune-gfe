@@ -19,7 +19,6 @@
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/functions/gridfunctions/discretescalarglobalbasisfunction.hh>
-#include <dune/functions/functionspacebases/pq1nodalbasis.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 #include <dune/functions/functionspacebases/bsplinebasis.hh>
 
@@ -58,7 +57,7 @@ typedef UnitVector<double,3> TargetSpace;
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
 
-//#define LAGRANGE
+#define LAGRANGE
 
 using namespace Dune;
 
@@ -91,7 +90,9 @@ int main (int argc, char *argv[]) try
 
     // read problem settings
     const int numLevels                   = parameterSet.get<int>("numLevels");
+#ifndef LAGRANGE
     const int order                       = parameterSet.get<int>("order");
+#endif
     // read solver settings
     const double tolerance                = parameterSet.get<double>("tolerance");
     const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
@@ -136,7 +137,7 @@ int main (int argc, char *argv[]) try
     //  Construct the scalar function space basis corresponding to the GFE space
     //////////////////////////////////////////////////////////////////////////////////
 #ifdef LAGRANGE
-    typedef Dune::Functions::PQKNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
+    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
     FEBasis feBasis(grid->leafGridView());
 #else
     typedef Dune::Functions::BSplineBasis<typename GridType::LeafGridView> FEBasis;
