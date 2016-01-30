@@ -26,6 +26,15 @@ class UnitVector
         return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
     }
 
+    /** \brief Compute arccos^2 without using the (at 1) nondifferentiable function acos x close to 1 */
+    static T arcCosSquared(const T& x) {
+        const T eps = 1e-4;
+        if (x > 1-eps) {  // acos is not differentiable, use the series expansion instead
+            return -2 * (x-1) + 1.0/3 * (x-1)*(x-1) - 4.0/45 * (x-1)*(x-1)*(x-1);
+        } else
+            return Dune::Power<2>::eval(std::acos(x));
+    }
+
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
     static T derivativeOfArcCosSquared(const T& x) {
         const T eps = 1e-4;
@@ -176,6 +185,23 @@ public:
 
          return std::acos(x);
     }
+
+#if ADOLC_ADOUBLE_H
+    /** \brief Squared length of the great arc connecting the two points */
+     static adouble distanceSquared(const UnitVector<double,N>& a, const UnitVector<adouble,N>& b)
+     {
+         // Not nice: we are in a class for unit vectors, but the class is actually
+         // supposed to handle perturbations of unit vectors as well.  Therefore
+         // we normalize here.
+         adouble x = a.data_ * b.data_ / (a.data_.two_norm()*b.data_.two_norm());
+
+         // paranoia:  if the argument is just eps larger than 1 acos returns NaN
+         x = std::min(x,1.0);
+
+         // Special implementation that remains AD-differentiable near x==1
+         return arcCosSquared(x);
+    }
+#endif
 
     /** \brief Compute the gradient of the squared distance function keeping the first argument fixed
 
