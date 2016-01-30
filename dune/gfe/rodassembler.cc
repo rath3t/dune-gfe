@@ -25,7 +25,7 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
     grad = 0;
 
     // A view on the FE basis on a single element
-    typename Basis::LocalView localView(&this->basis_);
+    auto localView = this->basis_.localView();
     auto localIndexSet = this->basis_.indexSet().localIndexSet();
 
     ElementIterator it    = this->basis_.gridView().template begin<0>();
@@ -49,8 +49,7 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
         // Assemble local gradient
         std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
 
-        this->localStiffness_->assembleGradient(*it,
-                                                localView.tree().finiteElement(),
+        this->localStiffness_->assembleGradient(localView,
                                                 localSolution,
                                                 localGradient);
 

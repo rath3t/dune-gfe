@@ -15,6 +15,7 @@ class RodLocalStiffness
     : public LocalGeodesicFEStiffness<Dune::Functions::PQkNodalBasis<GridView,1>, RigidBodyMotion<RT,3> >
 {
     typedef RigidBodyMotion<RT,3> TargetSpace;
+    typedef Dune::Functions::PQkNodalBasis<GridView,1> Basis;
 
     // grid types
     typedef typename GridView::Grid::ctype DT;
@@ -100,13 +101,12 @@ public:
     virtual RT energy (const Entity& e,
                        const std::array<RigidBodyMotion<RT,3>, dim+1>& localSolution) const;
 
-    virtual RT energy (const Entity& e,
-                       const typename Dune::Functions::PQkNodalBasis<GridView,1>::LocalView::Tree::FiniteElement& localFiniteElement,
+    virtual RT energy (const typename Basis::LocalView& localView,
                        const std::vector<RigidBodyMotion<RT,3> >& localSolution) const
     {
         assert(localSolution.size()==2);
         std::array<RigidBodyMotion<RT,3>, 2> localSolutionArray = {localSolution[0], localSolution[1]};
-        return energy(e,localSolutionArray);
+        return energy(localView.element(),localSolutionArray);
     }
 
     /** \brief Assemble the element gradient of the energy functional */
