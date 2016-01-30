@@ -3,8 +3,8 @@ set(programs compute-disc-error
              gradient-flow
              harmonicmaps
              mixed-cosserat-continuum
-             rod-eoc
-             rodobstacle)
+             rod-eoc)
+#            rodobstacle)
 
 foreach(_program ${programs})
   add_executable(${_program} ${_program}.cc)
