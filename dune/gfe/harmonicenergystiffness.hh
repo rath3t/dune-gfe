@@ -15,15 +15,11 @@ class HarmonicEnergyLocalStiffness
     typedef typename Basis::GridView GridView;
     typedef typename GridView::ctype DT;
     typedef typename TargetSpace::ctype RT;
-    typedef typename GridView::template Codim<0>::Entity Entity;
 
     // some other sizes
     enum {gridDim=GridView::dimension};
 
 public:
-
-    //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::dimension };
 
     /** \brief Assemble the energy for a single element */
     RT energy (const typename Basis::LocalView& localView,
@@ -37,8 +33,6 @@ HarmonicEnergyLocalStiffness<Basis, TargetSpace>::
 energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
-    typedef typename GridView::template Codim<0>::Entity::Geometry Geometry;
-
     RT energy = 0;
 
     const auto& localFiniteElement = localView.tree().finiteElement();
@@ -50,8 +44,7 @@ energy(const typename Basis::LocalView& localView,
 
     const auto element = localView.element();
 
-    const Dune::QuadratureRule<double, gridDim>& quad
-        = Dune::QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
+    const auto& quad = Dune::QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
 
     for (size_t pt=0; pt<quad.size(); pt++) {
 
@@ -60,12 +53,12 @@ energy(const typename Basis::LocalView& localView,
 
         const double integrationElement = element.geometry().integrationElement(quadPos);
 
-        const typename Geometry::JacobianInverseTransposed& jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+        const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        auto referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
 
         // The derivative of the function defined on the actual element
         typename LocalGFEFunctionType::DerivativeType derivative(0);
