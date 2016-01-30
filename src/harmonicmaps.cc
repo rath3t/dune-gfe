@@ -257,6 +257,11 @@ int main (int argc, char *argv[]) try
     vtkWriter.addVertexData(localXFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
     vtkWriter.write(resultPath + "_" + energy + "_result");
 
+    // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
+    std::ofstream outFile("harmonicmaps-result-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
+    GenericVector::writeBinary(outFile, xEmbedded);
+    outFile.close();
+
     /////////////////////////////////////////////////////////////////
     //   Measure the discretization error, if requested
     /////////////////////////////////////////////////////////////////
