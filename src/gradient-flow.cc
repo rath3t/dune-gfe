@@ -31,14 +31,15 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
-#include <dune/gfe/realtuple.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/harmonicenergystiffness.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/globalgeodesicfefunction.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
+#include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/l2distancesquaredenergy.hh>
+#include <dune/gfe/weightedsumenergy.hh>
 
 // grid dimension
 const int dim = 1;
@@ -85,6 +86,8 @@ int main (int argc, char *argv[]) try
 
   // read problem settings
   const int numLevels                   = parameterSet.get<int>("numLevels");
+  const double timeStepSize             = parameterSet.get<double>("timeStepSize");
+  const int numTimeSteps                = parameterSet.get<int>("numTimeSteps");
 
   // read solver settings
   const double tolerance                = parameterSet.get<double>("tolerance");
@@ -171,10 +174,18 @@ int main (int argc, char *argv[]) try
 
   // Assembler using ADOL-C
   typedef TargetSpace::rebind<adouble>::other ATargetSpace;
-  std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > localEnergy;
-  localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, ATargetSpace>);
 
-  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy.get());
+  auto l2DistanceSquaredEnergy = std::make_shared<L2DistanceSquaredEnergy<FEBasis, ATargetSpace> >();
+
+  std::vector<std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > > addends(2);
+  addends[0] = std::make_shared<HarmonicEnergyLocalStiffness<FEBasis, ATargetSpace> >();
+  addends[1] = l2DistanceSquaredEnergy;
+
+  std::vector<double> weights = {1.0, 1.0/(2*timeStepSize)};
+
+  auto sumEnergy = std::make_shared< WeightedSumEnergy<FEBasis, ATargetSpace> >(addends, weights);
+
+  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy.get());
 
   GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, &localGFEADOLCStiffness);
 
@@ -198,30 +209,40 @@ int main (int argc, char *argv[]) try
                false);   // instrumentation
 
   ///////////////////////////////////////////////////////
-  //   Solve!
+  //   Time loop
   ///////////////////////////////////////////////////////
 
-  solver.setInitialIterate(x);
-  solver.solve();
+  auto previousTimeStep = x;
 
-  x = solver.getSol();
+  for (int i=0; i<numTimeSteps; i++)
+  {
+    auto previousTimeStepFct = std::make_shared<GlobalGeodesicFEFunction<FufemFEBasis,TargetSpace> >(fufemFeBasis,previousTimeStep);
+    l2DistanceSquaredEnergy->origin_ = previousTimeStepFct;
 
-  ////////////////////////////////
-  //   Output result
-  ////////////////////////////////
+    solver.setInitialIterate(x);
+    solver.solve();
 
-  typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
-  EmbeddedVectorType xEmbedded(x.size());
-  for (size_t i=0; i<x.size(); i++)
-    xEmbedded[i] = x[i].globalCoordinates();
+    x = solver.getSol();
 
-  auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,
-                                                                                                 TypeTree::hybridTreePath(),
-                                                                                                 xEmbedded);
+    previousTimeStep = x;
 
-  SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
-  vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
-  vtkWriter.write("gradientflow_result");
+    ////////////////////////////////
+    //   Output result
+    ////////////////////////////////
+
+    typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
+    EmbeddedVectorType xEmbedded(x.size());
+    for (size_t i=0; i<x.size(); i++)
+      xEmbedded[i] = x[i].globalCoordinates();
+
+    auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,
+                                                                                                   TypeTree::hybridTreePath(),
+                                                                                                   xEmbedded);
+
+    SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
+    vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
+    vtkWriter.write("gradientflow_result_" + std::to_string(i));
+  }
 
   return 0;
 }
