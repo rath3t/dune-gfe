@@ -41,7 +41,6 @@
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
-#include <dune/gfe/bsplineinterpolate.hh>
 
 // grid dimension
 const int dim = 2;
