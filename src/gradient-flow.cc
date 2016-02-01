@@ -67,6 +67,9 @@ using namespace Dune;
 
 int main (int argc, char *argv[]) try
 {
+  // initialize MPI; this is needed even though we may never use it
+  MPIHelper::instance(argc, argv);
+
   // Start Python interpreter
   Python::start();
   Python::Reference main = Python::import("__main__");
