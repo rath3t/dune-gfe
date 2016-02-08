@@ -13,6 +13,8 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
+#include <dune/gfe/periodic1dpq1nodalbasis.hh>
+
 #include "geodesicfeassembler.hh"
 #include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalp1mapper.hh>
@@ -27,6 +29,15 @@ struct MapperFactory
 /** \brief Specialization for PQ1NodalBasis */
 template <typename GridView>
 struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,1> >
+{
+    typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
+    typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView, Dune::MCMGVertexLayout> LocalMapper;
+};
+
+// This case is not going to actually work, but I need the specialization to make
+// the sequential code compile.
+template <typename GridView>
+struct MapperFactory<GridView, Dune::Functions::Periodic1DPQ1NodalBasis<GridView> >
 {
     typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView, Dune::MCMGVertexLayout> LocalMapper;
