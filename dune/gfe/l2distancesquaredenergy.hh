@@ -57,8 +57,25 @@ public:
       UnitVector<double,3> originValue;
       origin_->evaluateLocal(element,quadPos, originValue);
 
+      // The derivative of the 'origin' function
+      // First: as function defined on the reference element
+      typename VirtualGridViewFunction<GridView,UnitVector<double,3> >::DerivativeType originReferenceDerivative;
+      origin_->evaluateDerivativeLocal(element,quadPos,originReferenceDerivative);
+
+      // The derivative of the function defined on the actual element
+      typename VirtualGridViewFunction<GridView,UnitVector<double,3> >::DerivativeType originDerivative(0);
+
+      auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+
+      for (size_t comp=0; comp<originReferenceDerivative.N(); comp++)
+        jacobianInverseTransposed.umv(originReferenceDerivative[comp], originDerivative[comp]);
+
+      double weightFactor = originDerivative.frobenius_norm();
+      // un-comment the following line to switch off the weight factor
+      //weightFactor = 1.0;
+
       // Add the local energy density
-      energy += weight * TargetSpace::distanceSquared(originValue, value);
+      energy += weight * weightFactor * TargetSpace::distanceSquared(originValue, value);
 
     }
 
