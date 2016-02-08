@@ -231,6 +231,27 @@ int main (int argc, char *argv[]) try
                false);   // instrumentation
 
   ///////////////////////////////////////////////////////
+  //   Write initial iterate
+  ///////////////////////////////////////////////////////
+
+  typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
+  EmbeddedVectorType xEmbedded(x.size());
+  for (size_t i=0; i<x.size(); i++)
+    xEmbedded[i] = x[i].globalCoordinates();
+
+  auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,
+                                                                                                 TypeTree::hybridTreePath(),
+                                                                                                 xEmbedded);
+
+  SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
+#if DUNE_VERSION_NEWER(DUNE_FUNCTIONS, 2, 5)
+  vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
+#else
+  vtkWriter.addVertexData(vtkFunction(xFunction), VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
+#endif
+  vtkWriter.write("gradientflow_result_0");
+
+  ///////////////////////////////////////////////////////
   //   Time loop
   ///////////////////////////////////////////////////////
 
@@ -267,7 +288,7 @@ int main (int argc, char *argv[]) try
 #else
     vtkWriter.addVertexData(vtkFunction(xFunction), VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
 #endif
-    vtkWriter.write("gradientflow_result_" + std::to_string(i));
+    vtkWriter.write("gradientflow_result_" + std::to_string(i+1));
   }
 
   return 0;
