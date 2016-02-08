@@ -19,7 +19,9 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
+#if ! DUNE_VERSION_NEWER(DUNE_FUNCTIONS, 2, 5)
 #include <dune/functions/common/vtkadapter.hh>
+#endif
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
@@ -33,9 +35,7 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#if DUNE_VERSION_NEWER(DUNE_FUNCTIONS, 2, 5)
 #include <dune/gfe/unitvector.hh>
-#endif
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
