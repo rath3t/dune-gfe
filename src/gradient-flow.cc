@@ -151,11 +151,25 @@ int main (int argc, char *argv[]) try
   typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
   FufemFEBasis fufemFeBasis(feBasis);
 
-  BitSetVector<1> allNodes(grid->size(dim));
-  allNodes.setAll();
-  BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), allNodes);
+  BitSetVector<1> dirichletVertices(grid->leafGridView().size(dim), false);
 
-  BitSetVector<blocksize> dirichletNodes;
+  const auto& indexSet = grid->leafGridView().indexSet();
+
+  // Make Python function that computes which vertices are on the Dirichlet boundary,
+  // based on the vertex positions.
+  std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
+  PythonFunction<FieldVector<double,dimworld>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+
+  for (auto&& vertex : vertices(grid->leafGridView()))
+  {
+    bool isDirichlet;
+    pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
+    dirichletVertices[indexSet.index(vertex)] = isDirichlet;
+  }
+
+  BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), dirichletVertices);
+
+  BitSetVector<blocksize> dirichletNodes(feBasis.indexSet().size(), false);
   constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
 
   ////////////////////////////

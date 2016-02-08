@@ -54,6 +54,9 @@ energy = harmonic
 # Inverse stereographic projection
 initialIterate = initial-curve
 
+# Function of position returning '1' for each Dirichlet vertex
+dirichletVerticesPredicate = "x[0] < 0.0001 or x[0]>0.999"
+
 # Number of time steps
 numTimeSteps = 50
 
