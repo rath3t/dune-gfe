@@ -44,6 +44,7 @@
 #include <dune/gfe/harmonicenergystiffness.hh>
 #include <dune/gfe/l2distancesquaredenergy.hh>
 #include <dune/gfe/weightedsumenergy.hh>
+#include <dune/gfe/periodic1dpq1nodalbasis.hh>
 
 // grid dimension
 const int dim = 1;
@@ -142,6 +143,7 @@ int main (int argc, char *argv[]) try
   //////////////////////////////////////////////////////////////////////////////////
 
   typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, order> FEBasis;
+  //typedef Dune::Functions::Periodic1DPQ1NodalBasis<typename GridType::LeafGridView> FEBasis;
   FEBasis feBasis(grid->leafGridView());
 
   ///////////////////////////////////////////
