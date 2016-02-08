@@ -47,6 +47,7 @@
 
 // grid dimension
 const int dim = 1;
+const int dimworld = dim;
 
 // Image space of the geodesic fe functions
 // typedef Rotation<double,2> TargetSpace;
@@ -115,13 +116,13 @@ int main (int argc, char *argv[]) try
   typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
 
   std::shared_ptr<GridType> grid;
-  FieldVector<double,dim> lower(0), upper(1);
+  FieldVector<double,dimworld> lower(0), upper(1);
   std::array<unsigned int,dim> elements;
 
   if (parameterSet.get<bool>("structuredGrid"))
   {
-    lower = parameterSet.get<FieldVector<double,dim> >("lower");
-    upper = parameterSet.get<FieldVector<double,dim> >("upper");
+    lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
+    upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
     elements = parameterSet.get<array<unsigned int,dim> >("elements");
     grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
@@ -162,7 +163,7 @@ int main (int argc, char *argv[]) try
   ////////////////////////////
 
   // Read initial iterate into a PythonFunction
-  typedef PythonFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
+  typedef PythonFunction<FieldVector<double, dimworld>, TargetSpace::CoordinateType> FBase;
 
   Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
   auto pythonInitialIterate = module.get("f").toC<std::shared_ptr<FBase>>();
