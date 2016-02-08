@@ -8,6 +8,14 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 
+template <class dctype, int DimDomain, class rctype, int DimRange>
+struct DerivativeTypefier<Dune::FieldVector<dctype, DimDomain>, UnitVector<rctype,DimRange> >
+{
+  typedef Dune::FieldMatrix<rctype, DimRange, DimDomain> DerivativeType;
+};
+
+
+
 /** \brief Global geodesic finite element function.
  *
  *  \tparam B  - The global basis type.
