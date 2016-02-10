@@ -14,6 +14,12 @@ struct DerivativeTypefier<Dune::FieldVector<dctype, DimDomain>, UnitVector<rctyp
   typedef Dune::FieldMatrix<rctype, DimRange, DimDomain> DerivativeType;
 };
 
+template <class dctype, int DimDomain, class rctype, int DimRange>
+struct DerivativeTypefier<Dune::FieldVector<dctype, DimDomain>, RealTuple<rctype,DimRange> >
+{
+  typedef Dune::FieldMatrix<rctype, DimRange, DimDomain> DerivativeType;
+};
+
 
 
 /** \brief Global geodesic finite element function.
