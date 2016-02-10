@@ -23,7 +23,7 @@ class L2DistanceSquaredEnergy
 public:
 
   // This is the function that we are computing the L2-distance to
-  std::shared_ptr<VirtualGridViewFunction<GridView,UnitVector<double,3> > > origin_;
+  std::shared_ptr<VirtualGridViewFunction<GridView,typename TargetSpace::template rebind<double>::other > > origin_;
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
@@ -54,16 +54,16 @@ public:
 
       // The function value
       auto value = localGeodesicFEFunction.evaluate(quadPos);
-      UnitVector<double,3> originValue;
+      typename TargetSpace::template rebind<double>::other originValue;
       origin_->evaluateLocal(element,quadPos, originValue);
 
       // The derivative of the 'origin' function
       // First: as function defined on the reference element
-      typename VirtualGridViewFunction<GridView,UnitVector<double,3> >::DerivativeType originReferenceDerivative;
+      typename VirtualGridViewFunction<GridView,typename TargetSpace::template rebind<double>::other>::DerivativeType originReferenceDerivative;
       origin_->evaluateDerivativeLocal(element,quadPos,originReferenceDerivative);
 
       // The derivative of the function defined on the actual element
-      typename VirtualGridViewFunction<GridView,UnitVector<double,3> >::DerivativeType originDerivative(0);
+      typename VirtualGridViewFunction<GridView,typename TargetSpace::template rebind<double>::other >::DerivativeType originDerivative(0);
 
       auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
