@@ -94,6 +94,19 @@ public:
         return (a.data_ - b.data_).two_norm();
     }
 
+#if ADOLC_ADOUBLE_H
+    /** \brief Geodesic distance squared between two points
+
+    Simply the Euclidean distance squared */
+    static adouble distanceSquared(const RealTuple<double,N>& a, const RealTuple<adouble,N>& b) {
+      adouble result(0.0);
+      for (int i=0; i<N; i++)
+        result += (a.globalCoordinates()[i] - b.globalCoordinates()[i]) * (a.globalCoordinates()[i] - b.globalCoordinates()[i]);
+      return result;
+    }
+#endif
+
+
     /** \brief Compute the gradient of the squared distance function keeping the first argument fixed
 
     Unlike the distance itself the squared distance is differentiable at zero
