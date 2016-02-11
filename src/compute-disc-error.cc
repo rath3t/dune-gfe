@@ -39,9 +39,105 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 using namespace Dune;
 
 template <class GridView, int order>
-void measureEOC(const GridView gridView,
-                const GridView referenceGridView,
-                const ParameterTree& parameterSet)
+void measureDiscreteEOC(const GridView gridView,
+                        const GridView referenceGridView,
+                        const ParameterTree& parameterSet)
+{
+  typedef std::vector<TargetSpace> SolutionType;
+
+  //////////////////////////////////////////////////////////////////////////////////
+  //  Construct the scalar function space bases corresponding to the GFE space
+  //////////////////////////////////////////////////////////////////////////////////
+
+  typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
+  FEBasis feBasis(gridView);
+  FEBasis referenceFEBasis(referenceGridView);
+
+  using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
+  FufemFEBasis fufemReferenceFEBasis(referenceFEBasis);
+  FufemFEBasis fufemFEBasis(feBasis);
+
+  //////////////////////////////////////////////////////////////////////////////////
+  //  Read the data whose error is to be measured
+  //////////////////////////////////////////////////////////////////////////////////
+
+  // Input data
+  typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
+
+  EmbeddedVectorType embeddedX(feBasis.size());
+  std::ifstream inFile(parameterSet.get<std::string>("simulationData"), std::ios_base::binary);
+  if (not inFile)
+    DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("simulationData") << " could not be opened.");
+  GenericVector::readBinary(inFile, embeddedX);
+  inFile.close();
+
+  SolutionType x(embeddedX.size());
+  for (size_t i=0; i<x.size(); i++)
+    x[i] = TargetSpace(embeddedX[i]);
+
+  // The numerical solution, as a grid function
+  GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(fufemFEBasis, x);
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Read the reference configuration
+  ///////////////////////////////////////////////////////////////////////////
+  EmbeddedVectorType embeddedReferenceX(referenceFEBasis.size());
+  inFile.open(parameterSet.get<std::string>("referenceData"), std::ios_base::binary);
+  if (not inFile)
+    DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("referenceData") << " could not be opened.");
+  GenericVector::readBinary(inFile, embeddedReferenceX);
+
+  SolutionType referenceX(embeddedReferenceX.size());
+  for (size_t i=0; i<referenceX.size(); i++)
+    referenceX[i] = TargetSpace(embeddedReferenceX[i]);
+
+  // The reference solution, as a grid function
+  GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> referenceSolution(fufemReferenceFEBasis, referenceX);
+
+  /////////////////////////////////////////////////////////////////
+  //   Measure the discretization error
+  /////////////////////////////////////////////////////////////////
+
+  double l2ErrorSquared = 0;
+  double h1ErrorSquared = 0;
+
+  HierarchicSearch<typename GridView::Grid,typename GridView::IndexSet> hierarchicSearch(gridView.grid(), gridView.indexSet());
+
+  for (const auto& rElement : elements(referenceGridView))
+  {
+    const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
+
+    for (const auto& qp : quadRule)
+    {
+      auto integrationElement = rElement.geometry().integrationElement(qp.position());
+
+      auto globalPos = rElement.geometry().global(qp.position());
+
+      auto element = hierarchicSearch.findEntity(globalPos);
+      auto localPos = element.geometry().local(globalPos);
+
+      auto diff = referenceSolution(rElement, qp.position()) - numericalSolution(element, localPos);
+
+      l2ErrorSquared += integrationElement * qp.weight() * diff.two_norm2();
+
+      auto derDiff = referenceSolution.derivative(rElement, qp.position()) - numericalSolution.derivative(element, localPos);
+
+      h1ErrorSquared += integrationElement * qp.weight() * derDiff.frobenius_norm2();
+
+    }
+  }
+
+  std::cout << "levels: " << gridView.grid().maxLevel()+1
+            << "      "
+            << "L^2 error: " << std::sqrt(l2ErrorSquared)
+            << "      "
+            << "H^1 error: " << std::sqrt(l2ErrorSquared + h1ErrorSquared)
+            << std::endl;
+}
+
+template <class GridView, int order>
+void measureAnalyticalEOC(const GridView gridView,
+                          const ParameterTree& parameterSet)
 {
   typedef std::vector<TargetSpace> SolutionType;
 
@@ -74,104 +170,37 @@ void measureEOC(const GridView gridView,
   //   Measure the discretization error
   /////////////////////////////////////////////////////////////////
 
-  if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
-  {
-    using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
-    FufemFEBasis fufemFEBasis(feBasis);
+  using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
+  FufemFEBasis fufemFEBasis(feBasis);
 
-    // Read reference solution and its derivative into a PythonFunction
-    typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
+  // Read reference solution and its derivative into a PythonFunction
+  typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
 
-    Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
-    auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
+  Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
+  auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
-    // The numerical solution, as a grid function
-    GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(fufemFEBasis, x);
+  // The numerical solution, as a grid function
+  GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(fufemFEBasis, x);
 
-    // QuadratureRule for the integral of the L^2 error
-    QuadratureRuleKey quadKey(dim,6);
+  // QuadratureRule for the integral of the L^2 error
+  QuadratureRuleKey quadKey(dim,6);
 
-    // Compute the embedded L^2 error
-    double l2Error = DiscretizationError<GridView>::computeL2Error(&numericalSolution,
-                                                                   referenceSolution.get(),
-                                                                   quadKey);
+  // Compute the embedded L^2 error
+  double l2Error = DiscretizationError<GridView>::computeL2Error(&numericalSolution,
+                                                                 referenceSolution.get(),
+                                                                 quadKey);
 
-    // Compute the embedded H^1 error
-    double h1Error = DiscretizationError<GridView>::computeH1HalfNormDifferenceSquared(gridView,
-                                                                                       &numericalSolution,
-                                                                                       referenceSolution.get(),
-                                                                                       quadKey);
+  // Compute the embedded H^1 error
+  double h1Error = DiscretizationError<GridView>::computeH1HalfNormDifferenceSquared(gridView,
+                                                                                     &numericalSolution,
+                                                                                     referenceSolution.get(),
+                                                                                     quadKey);
 
-    std::cout << "elements: " << gridView.size(0)
-              << "      "
-              << "L^2 error: " << l2Error
-              << "      ";
-    std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
-  }
-
-  if (parameterSet.get<std::string>("discretizationErrorMode")=="discrete")
-  {
-    FEBasis referenceFEBasis(referenceGridView);
-
-    // Reference configuration
-    EmbeddedVectorType embeddedReferenceX(referenceFEBasis.size());
-    inFile.open(parameterSet.get<std::string>("referenceData"), std::ios_base::binary);
-    if (not inFile)
-      DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("referenceData") << " could not be opened.");
-    GenericVector::readBinary(inFile, embeddedReferenceX);
-
-    SolutionType referenceX(embeddedReferenceX.size());
-    for (size_t i=0; i<referenceX.size(); i++)
-      referenceX[i] = TargetSpace(embeddedReferenceX[i]);
-
-    using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
-    FufemFEBasis fufemReferenceFEBasis(referenceFEBasis);
-    FufemFEBasis fufemFEBasis(feBasis);
-
-    // The numerical solution, as a grid function
-    GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> referenceSolution(fufemReferenceFEBasis, referenceX);
-
-    // The numerical solution, as a grid function
-    GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(fufemFEBasis, x);
-
-    double l2ErrorSquared = 0;
-    double h1ErrorSquared = 0;
-
-    HierarchicSearch<typename GridView::Grid,typename GridView::IndexSet> hierarchicSearch(gridView.grid(), gridView.indexSet());
-
-    std::cout << "l2: " << l2ErrorSquared << std::endl;
-    for (const auto& rElement : elements(referenceGridView))
-    {
-      const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
-
-      for (const auto& qp : quadRule)
-      {
-        auto integrationElement = rElement.geometry().integrationElement(qp.position());
-
-        auto globalPos = rElement.geometry().global(qp.position());
-
-        auto element = hierarchicSearch.findEntity(globalPos);
-        auto localPos = element.geometry().local(globalPos);
-
-        auto diff = referenceSolution(rElement, qp.position()) - numericalSolution(element, localPos);
-
-        l2ErrorSquared += integrationElement * qp.weight() * diff.two_norm2();
-
-        auto derDiff = referenceSolution.derivative(rElement, qp.position()) - numericalSolution.derivative(element, localPos);
-
-        h1ErrorSquared += integrationElement * qp.weight() * derDiff.frobenius_norm2();
-
-      }
-    }
-    std::cout << "l2: " << l2ErrorSquared << std::endl;
-
-    std::cout << "levels: " << gridView.grid().maxLevel()+1
-              << "      "
-              << "L^2 error: " << std::sqrt(l2ErrorSquared)
-              << "      "
-              << "H^1 error: " << std::sqrt(l2ErrorSquared + h1ErrorSquared)
-              << std::endl;
-  }
+  std::cout << "elements: " << gridView.size(0)
+            << "      "
+            << "L^2 error: " << l2Error
+            << "      ";
+  std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
 }
 
 
@@ -231,24 +260,52 @@ int main (int argc, char *argv[]) try
   referenceGrid->globalRefine(parameterSet.get<int>("numReferenceLevels")-1);
 
   // Do the actual measurement
+
   const int order = parameterSet.get<int>("order");
-  switch (order)
+
+  if (parameterSet.get<std::string>("discretizationErrorMode")=="discrete")
   {
-    case 1:
-    measureEOC<GridType::LeafGridView,1>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
-    break;
+    switch (order)
+    {
+      case 1:
+      measureDiscreteEOC<GridType::LeafGridView,1>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
+      break;
 
-    case 2:
-    measureEOC<GridType::LeafGridView,2>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
-    break;
+      case 2:
+      measureDiscreteEOC<GridType::LeafGridView,2>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
+      break;
 
-    case 3:
-    measureEOC<GridType::LeafGridView,3>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
-    break;
+      case 3:
+      measureDiscreteEOC<GridType::LeafGridView,3>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
+      break;
 
-    default:
-      DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
+      default:
+        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
+    }
   }
+
+  if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
+  {
+    switch (order)
+    {
+      case 1:
+      measureAnalyticalEOC<GridType::LeafGridView,1>(grid->leafGridView(), parameterSet);
+      break;
+
+      case 2:
+      measureAnalyticalEOC<GridType::LeafGridView,2>(grid->leafGridView(), parameterSet);
+      break;
+
+      case 3:
+      measureAnalyticalEOC<GridType::LeafGridView,3>(grid->leafGridView(), parameterSet);
+      break;
+
+      default:
+        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
+    }
+  }
+
+
 
   return 0;
 }
