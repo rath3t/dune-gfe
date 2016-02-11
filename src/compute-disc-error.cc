@@ -26,16 +26,9 @@
 const int dim = 2;
 const int dimworld = 2;
 
-// Image space of the geodesic fe functions
-const int targetDim = 3;
-// typedef Rotation<double,targetDim> TargetSpace;
-// typedef UnitVector<double,targetDim> TargetSpace;
-// typedef RealTuple<double,targetDim> TargetSpace;
-using TargetSpace = RigidBodyMotion<double,targetDim>;
-
 using namespace Dune;
 
-template <class GridView, int order>
+template <class GridView, int order, class TargetSpace>
 void measureDiscreteEOC(const GridView gridView,
                         const GridView referenceGridView,
                         const ParameterTree& parameterSet)
@@ -59,7 +52,7 @@ void measureDiscreteEOC(const GridView gridView,
   //////////////////////////////////////////////////////////////////////////////////
 
   // Input data
-  typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
+  typedef BlockVector<typename TargetSpace::CoordinateType> EmbeddedVectorType;
 
   EmbeddedVectorType embeddedX(feBasis.size());
   std::ifstream inFile(parameterSet.get<std::string>("simulationData"), std::ios_base::binary);
@@ -132,7 +125,7 @@ void measureDiscreteEOC(const GridView gridView,
             << std::endl;
 }
 
-template <class GridView, int order>
+template <class GridView, int order, class TargetSpace>
 void measureAnalyticalEOC(const GridView gridView,
                           const ParameterTree& parameterSet)
 {
@@ -150,7 +143,7 @@ void measureAnalyticalEOC(const GridView gridView,
   //////////////////////////////////////////////////////////////////////////////////
 
   // Input data
-  typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
+  typedef BlockVector<typename TargetSpace::CoordinateType> EmbeddedVectorType;
 
   EmbeddedVectorType embeddedX(feBasis.size());
   std::ifstream inFile(parameterSet.get<std::string>("simulationData"), std::ios_base::binary);
@@ -171,7 +164,7 @@ void measureAnalyticalEOC(const GridView gridView,
   FufemFEBasis fufemFEBasis(feBasis);
 
   // Read reference solution and its derivative into a PythonFunction
-  typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
+  typedef VirtualDifferentiableFunction<FieldVector<double, dim>, typename TargetSpace::CoordinateType> FBase;
 
   Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
   auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
@@ -200,9 +193,65 @@ void measureAnalyticalEOC(const GridView gridView,
   std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
 }
 
+template <class GridType, class TargetSpace>
+void measureEOC(const std::shared_ptr<GridType> grid,
+                const std::shared_ptr<GridType> referenceGrid,
+                const ParameterTree& parameterSet)
+{
+  const int order = parameterSet.get<int>("order");
+
+  if (parameterSet.get<std::string>("discretizationErrorMode")=="discrete")
+  {
+    switch (order)
+    {
+      case 1:
+      measureDiscreteEOC<typename GridType::LeafGridView,1,TargetSpace>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
+      break;
+
+      case 2:
+      measureDiscreteEOC<typename GridType::LeafGridView,2,TargetSpace>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
+      break;
+
+      case 3:
+      measureDiscreteEOC<typename GridType::LeafGridView,3,TargetSpace>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
+      break;
+
+      default:
+        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
+    }
+  }
+
+  if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
+  {
+    switch (order)
+    {
+      case 1:
+      measureAnalyticalEOC<typename GridType::LeafGridView,1,TargetSpace>(grid->leafGridView(), parameterSet);
+      break;
+
+      case 2:
+      measureAnalyticalEOC<typename GridType::LeafGridView,2,TargetSpace>(grid->leafGridView(), parameterSet);
+      break;
+
+      case 3:
+      measureAnalyticalEOC<typename GridType::LeafGridView,3,TargetSpace>(grid->leafGridView(), parameterSet);
+      break;
+
+      default:
+        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
+    }
+  }
+}
 
 int main (int argc, char *argv[]) try
 {
+  // Image space of the geodesic fe functions
+  const int targetDim = 3;
+  // typedef Rotation<double,targetDim> TargetSpace;
+  // typedef UnitVector<double,targetDim> TargetSpace;
+  // typedef RealTuple<double,targetDim> TargetSpace;
+  using TargetSpace = RigidBodyMotion<double,targetDim>;
+
   // Start Python interpreter
   Python::start();
   Python::Reference main = Python::import("__main__");
@@ -258,51 +307,9 @@ int main (int argc, char *argv[]) try
 
   // Do the actual measurement
 
-  const int order = parameterSet.get<int>("order");
-
-  if (parameterSet.get<std::string>("discretizationErrorMode")=="discrete")
-  {
-    switch (order)
-    {
-      case 1:
-      measureDiscreteEOC<GridType::LeafGridView,1>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
-      break;
-
-      case 2:
-      measureDiscreteEOC<GridType::LeafGridView,2>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
-      break;
-
-      case 3:
-      measureDiscreteEOC<GridType::LeafGridView,3>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
-      break;
-
-      default:
-        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
-    }
-  }
-
-  if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
-  {
-    switch (order)
-    {
-      case 1:
-      measureAnalyticalEOC<GridType::LeafGridView,1>(grid->leafGridView(), parameterSet);
-      break;
-
-      case 2:
-      measureAnalyticalEOC<GridType::LeafGridView,2>(grid->leafGridView(), parameterSet);
-      break;
-
-      case 3:
-      measureAnalyticalEOC<GridType::LeafGridView,3>(grid->leafGridView(), parameterSet);
-      break;
-
-      default:
-        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
-    }
-  }
-
-
+  measureEOC<GridType,TargetSpace>(grid,
+                          referenceGrid,
+                          parameterSet);
 
   return 0;
 }
