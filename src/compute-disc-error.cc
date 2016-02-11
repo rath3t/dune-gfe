@@ -33,9 +33,6 @@ const int targetDim = 3;
 // typedef RealTuple<double,targetDim> TargetSpace;
 using TargetSpace = RigidBodyMotion<double,targetDim>;
 
-// Tangent vector of the image space
-const int blocksize = TargetSpace::TangentVector::dimension;
-
 using namespace Dune;
 
 template <class GridView, int order>
