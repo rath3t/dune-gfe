@@ -59,6 +59,9 @@ void measureDiscreteEOC(const GridView gridView,
   if (not inFile)
     DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("simulationData") << " could not be opened.");
   GenericVector::readBinary(inFile, embeddedX);
+  inFile.peek();   // try to advance beyond the end of the file
+  if (not inFile.eof())
+    DUNE_THROW(IOError, "File '" << parameterSet.get<std::string>("simulationData") << "' does not have the correct size!");
   inFile.close();
 
   SolutionType x(embeddedX.size());
@@ -76,6 +79,9 @@ void measureDiscreteEOC(const GridView gridView,
   if (not inFile)
     DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("referenceData") << " could not be opened.");
   GenericVector::readBinary(inFile, embeddedReferenceX);
+  inFile.peek();   // try to advance beyond the end of the file
+  if (not inFile.eof())
+    DUNE_THROW(IOError, "File '" << parameterSet.get<std::string>("referenceData") << "' does not have the correct size!");
 
   SolutionType referenceX(embeddedReferenceX.size());
   for (size_t i=0; i<referenceX.size(); i++)
@@ -150,6 +156,9 @@ void measureAnalyticalEOC(const GridView gridView,
   if (not inFile)
     DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("simulationData") << " could not be opened.");
   GenericVector::readBinary(inFile, embeddedX);
+  inFile.peek();   // try to advance beyond the end of the file
+  if (not inFile.eof())
+    DUNE_THROW(IOError, "File '" << parameterSet.get<std::string>("simulationData") << "' does not have the correct size!");
   inFile.close();
 
   SolutionType x(embeddedX.size());
@@ -245,13 +254,6 @@ void measureEOC(const std::shared_ptr<GridType> grid,
 
 int main (int argc, char *argv[]) try
 {
-  // Image space of the geodesic fe functions
-  const int targetDim = 3;
-  // typedef Rotation<double,targetDim> TargetSpace;
-  // typedef UnitVector<double,targetDim> TargetSpace;
-  // typedef RealTuple<double,targetDim> TargetSpace;
-  using TargetSpace = RigidBodyMotion<double,targetDim>;
-
   // Start Python interpreter
   Python::start();
   Python::Reference main = Python::import("__main__");
@@ -306,10 +308,108 @@ int main (int argc, char *argv[]) try
   referenceGrid->globalRefine(parameterSet.get<int>("numReferenceLevels")-1);
 
   // Do the actual measurement
+  const int targetDim = parameterSet.get<int>("targetDim");
+  const std::string targetSpace = parameterSet.get<std::string>("targetSpace");
 
-  measureEOC<GridType,TargetSpace>(grid,
-                          referenceGrid,
-                          parameterSet);
+  switch (targetDim)
+  {
+    case 1:
+      if (targetSpace=="RealTuple")
+      {
+        measureEOC<GridType,RealTuple<double,1> >(grid,
+                                                  referenceGrid,
+                                                  parameterSet);
+      } else if (targetSpace=="UnitVector")
+      {
+        measureEOC<GridType,UnitVector<double,1> >(grid,
+                                                   referenceGrid,
+                                                   parameterSet);
+      } else
+        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+      break;
+
+    case 2:
+      if (targetSpace=="RealTuple")
+      {
+        measureEOC<GridType,RealTuple<double,2> >(grid,
+                                                  referenceGrid,
+                                                  parameterSet);
+      } else if (targetSpace=="UnitVector")
+      {
+        measureEOC<GridType,UnitVector<double,2> >(grid,
+                                                   referenceGrid,
+                                                   parameterSet);
+#if 0
+      } else if (targetSpace=="Rotation")
+      {
+        measureEOC<GridType,Rotation<double,2> >(grid,
+                                                 referenceGrid,
+                                                 parameterSet);
+      } else if (targetSpace=="RigidBodyMotion")
+      {
+        measureEOC<GridType,RigidBodyMotion<double,2> >(grid,
+                                                        referenceGrid,
+                                                        parameterSet);
+#endif
+      } else
+        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+      break;
+
+    case 3:
+      if (targetSpace=="RealTuple")
+      {
+        measureEOC<GridType,RealTuple<double,3> >(grid,
+                                                  referenceGrid,
+                                                  parameterSet);
+      } else if (targetSpace=="UnitVector")
+      {
+        measureEOC<GridType,UnitVector<double,3> >(grid,
+                                                   referenceGrid,
+                                                   parameterSet);
+      } else if (targetSpace=="Rotation")
+      {
+        measureEOC<GridType,Rotation<double,3> >(grid,
+                                                 referenceGrid,
+                                                 parameterSet);
+      } else if (targetSpace=="RigidBodyMotion")
+      {
+        measureEOC<GridType,RigidBodyMotion<double,3> >(grid,
+                                                        referenceGrid,
+                                                        parameterSet);
+      } else
+        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+      break;
+
+    case 4:
+      if (targetSpace=="RealTuple")
+      {
+        measureEOC<GridType,RealTuple<double,4> >(grid,
+                                                  referenceGrid,
+                                                  parameterSet);
+      } else if (targetSpace=="UnitVector")
+      {
+        measureEOC<GridType,UnitVector<double,4> >(grid,
+                                                   referenceGrid,
+                                                   parameterSet);
+#if 0
+      } else if (targetSpace=="Rotation")
+      {
+        measureEOC<GridType,Rotation<double,4> >(grid,
+                                                 referenceGrid,
+                                                 parameterSet);
+      } else if (targetSpace=="RigidBodyMotion")
+      {
+        measureEOC<GridType,RigidBodyMotion<double,4> >(grid,
+                                                        referenceGrid,
+                                                        parameterSet);
+#endif
+      } else
+        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+      break;
+
+    default:
+      DUNE_THROW(NotImplemented, "Target dimension '" << targetDim << "' is not implemented");
+  }
 
   return 0;
 }
