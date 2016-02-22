@@ -94,10 +94,65 @@ void measureDiscreteEOC(const GridView gridView,
   //   Measure the discretization error
   /////////////////////////////////////////////////////////////////
 
+  HierarchicSearch<typename GridView::Grid,typename GridView::IndexSet> hierarchicSearch(gridView.grid(), gridView.indexSet());
+
+  if (std::is_same<TargetSpace,RigidBodyMotion<double,3> >::value)
+  {
+    double deformationL2ErrorSquared = 0;
+    double orientationL2ErrorSquared = 0;
+    double deformationH1ErrorSquared = 0;
+    double orientationH1ErrorSquared = 0;
+
+    for (const auto& rElement : elements(referenceGridView))
+    {
+      const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
+
+      for (const auto& qp : quadRule)
+      {
+        auto integrationElement = rElement.geometry().integrationElement(qp.position());
+
+        auto globalPos = rElement.geometry().global(qp.position());
+
+        auto element = hierarchicSearch.findEntity(globalPos);
+        auto localPos = element.geometry().local(globalPos);
+
+        auto diff = referenceSolution(rElement, qp.position()) - numericalSolution(element, localPos);
+        assert(diff.size()==7);
+
+        for (int i=0; i<3; i++)
+          deformationL2ErrorSquared += integrationElement * qp.weight() * diff[i] * diff[i];
+
+        for (int i=3; i<7; i++)
+          orientationL2ErrorSquared += integrationElement * qp.weight() * diff[i] * diff[i];
+
+        auto derDiff = referenceSolution.derivative(rElement, qp.position()) - numericalSolution.derivative(element, localPos);
+
+        std::cout << "size: " << derDiff.N() << ", " << derDiff.M() << std::endl;
+
+        for (int i=0; i<3; i++)
+          deformationH1ErrorSquared += integrationElement * qp.weight() * derDiff[i].two_norm2();
+
+        for (int i=3; i<7; i++)
+          orientationH1ErrorSquared += integrationElement * qp.weight() * derDiff[i].two_norm2();
+
+      }
+    }
+
+    std::cout << "levels: " << gridView.grid().maxLevel()+1
+              << "      "
+              << "L^2 error deformation: " << std::sqrt(deformationL2ErrorSquared)
+              << "      "
+              << "L^2 error orientation: " << std::sqrt(orientationL2ErrorSquared)
+              << "      "
+              << "H^1 error deformation: " << std::sqrt(deformationH1ErrorSquared)
+              << "      "
+              << "H^1 error orientation: " << std::sqrt(orientationH1ErrorSquared)
+              << std::endl;
+  }
+  else
+  {
   double l2ErrorSquared = 0;
   double h1ErrorSquared = 0;
-
-  HierarchicSearch<typename GridView::Grid,typename GridView::IndexSet> hierarchicSearch(gridView.grid(), gridView.indexSet());
 
   for (const auto& rElement : elements(referenceGridView))
   {
@@ -129,6 +184,7 @@ void measureDiscreteEOC(const GridView gridView,
             << "      "
             << "H^1 error: " << std::sqrt(l2ErrorSquared + h1ErrorSquared)
             << std::endl;
+  }
 }
 
 template <class GridView, int order, class TargetSpace>
