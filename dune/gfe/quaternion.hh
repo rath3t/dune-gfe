@@ -162,4 +162,15 @@ public:
 
 };
 
+namespace Dune
+{
+  /** \brief Specizalization needed to allow certain forms of matrix--quaternion multiplications */
+  template< class T >
+  struct FieldTraits< Quaternion<T> >
+  {
+    typedef typename FieldTraits<T>::field_type field_type;
+    typedef typename FieldTraits<T>::real_type real_type;
+  };
+}
+
 #endif
