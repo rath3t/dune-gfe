@@ -274,7 +274,7 @@ int main (int argc, char *argv[]) try
       auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
       // The numerical solution, as a grid function
-      GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(feBasis, x);
+      GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
 
       // QuadratureRule for the integral of the L^2 error
       QuadratureRuleKey quadKey(dim,6);

@@ -24,7 +24,7 @@ class EmbeddedGlobalGFEFunction
 public:
     typedef B Basis;
 
-    typedef typename Basis::LocalFiniteElement LocalFiniteElement;
+    typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
     typedef typename Basis::GridView GridView;
     typedef typename GridView::template Codim<0>::Entity Element;
     typedef typename GridView::Grid::ctype  ctype;
@@ -41,7 +41,7 @@ public:
 
     //! Create global function by a global basis and the corresponding coefficient vector
     EmbeddedGlobalGFEFunction(const Basis& basis, const std::vector<TargetSpace>& coefficients) :
-        VirtualGridViewFunction<typename B::GridView, typename TargetSpace::CoordinateType>(basis.getGridView()),
+        VirtualGridViewFunction<typename B::GridView, typename TargetSpace::CoordinateType>(basis.gridView()),
         basis_(basis),
         coefficients_(coefficients)
     {}
@@ -56,16 +56,21 @@ public:
     /** \brief Evaluate the function at local coordinates. */
     typename TargetSpace::CoordinateType operator()(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
     {
-        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size();
+        auto localView = basis_.localView();
+        auto localIndexSet = basis_.localIndexSet();
+        localView.bind(element);
+        localIndexSet.bind(localView);
+
+        auto numOfBaseFct = localIndexSet.size();
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
 
-        for (int i=0; i<numOfBaseFct; i++)
-            localCoeff[i] = coefficients_[basis_.index(element,i)];
+        for (size_t i=0; i<numOfBaseFct; i++)
+            localCoeff[i] = coefficients_[localIndexSet.index(i)];
 
         // create local gfe function
-        LocalGFEFunction localGFE(basis_.getLocalFiniteElement(element),localCoeff);
+        LocalGFEFunction localGFE(localView.tree().finiteElement(),localCoeff);
         return localGFE.evaluate(local).globalCoordinates();
     }
 
@@ -79,16 +84,21 @@ public:
     /** \brief Evaluate the derivative of the function at local coordinates. */
     Dune::FieldMatrix<ctype, embeddedDim, gridDim> derivative(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
     {
-        int numOfBaseFct = basis_.getLocalFiniteElement(element).localBasis().size();
+        auto localView = basis_.localView();
+        auto localIndexSet = basis_.localIndexSet();
+        localView.bind(element);
+        localIndexSet.bind(localView);
+
+        int numOfBaseFct = localIndexSet.size();
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
 
         for (int i=0; i<numOfBaseFct; i++)
-            localCoeff[i] = coefficients_[basis_.index(element,i)];
+            localCoeff[i] = coefficients_[localIndexSet.index(i)];
 
         // create local gfe function
-        LocalGFEFunction localGFE(basis_.getLocalFiniteElement(element),localCoeff);
+        LocalGFEFunction localGFE(localView.tree().finiteElement(),localCoeff);
 
         // use it to evaluate the derivative
         Dune::FieldMatrix<ctype, embeddedDim, gridDim> refJac = localGFE.evaluateDerivative(local);

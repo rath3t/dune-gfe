@@ -9,10 +9,6 @@
 
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
-#include <dune/fufem/boundarypatch.hh>
-#include <dune/fufem/functiontools/basisinterpolator.hh>
-#include <dune/fufem/functiontools/boundarydofs.hh>
-#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
 
@@ -43,10 +39,6 @@ void measureDiscreteEOC(const GridView gridView,
   FEBasis feBasis(gridView);
   FEBasis referenceFEBasis(referenceGridView);
 
-  using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
-  FufemFEBasis fufemReferenceFEBasis(referenceFEBasis);
-  FufemFEBasis fufemFEBasis(feBasis);
-
   //////////////////////////////////////////////////////////////////////////////////
   //  Read the data whose error is to be measured
   //////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +61,7 @@ void measureDiscreteEOC(const GridView gridView,
     x[i] = TargetSpace(embeddedX[i]);
 
   // The numerical solution, as a grid function
-  GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(fufemFEBasis, x);
+  GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
 
   ///////////////////////////////////////////////////////////////////////////
   // Read the reference configuration
@@ -88,7 +80,7 @@ void measureDiscreteEOC(const GridView gridView,
     referenceX[i] = TargetSpace(embeddedReferenceX[i]);
 
   // The reference solution, as a grid function
-  GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> referenceSolution(fufemReferenceFEBasis, referenceX);
+  GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> referenceSolution(referenceFEBasis, referenceX);
 
   /////////////////////////////////////////////////////////////////
   //   Measure the discretization error
@@ -225,9 +217,6 @@ void measureAnalyticalEOC(const GridView gridView,
   //   Measure the discretization error
   /////////////////////////////////////////////////////////////////
 
-  using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
-  FufemFEBasis fufemFEBasis(feBasis);
-
   // Read reference solution and its derivative into a PythonFunction
   typedef VirtualDifferentiableFunction<FieldVector<double, dim>, typename TargetSpace::CoordinateType> FBase;
 
@@ -235,7 +224,7 @@ void measureAnalyticalEOC(const GridView gridView,
   auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
   // The numerical solution, as a grid function
-  GFE::EmbeddedGlobalGFEFunction<FufemFEBasis, TargetSpace> numericalSolution(fufemFEBasis, x);
+  GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
 
   // QuadratureRule for the integral of the L^2 error
   QuadratureRuleKey quadKey(dim,6);
