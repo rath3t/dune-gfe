@@ -38,7 +38,7 @@ public:
     Dune::GeometryType triangle;
     triangle.makeTriangle();
 
-    for (int i=0; i<vtkFile.cellConnectivity_.size(); i+=3)
+    for (size_t i=0; i<vtkFile.cellConnectivity_.size(); i+=3)
     {
       factory.insertElement(triangle, {vtkFile.cellConnectivity_[i],
                                        vtkFile.cellConnectivity_[i+1],
