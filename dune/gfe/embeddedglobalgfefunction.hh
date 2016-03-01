@@ -53,6 +53,18 @@ public:
         out = this->operator()(element,local);
     }
 
+    /** \brief Global evaluation */
+    typename TargetSpace::CoordinateType operator()(const Dune::FieldVector<ctype,gridDim>& global) const
+    {
+      HierarchicSearch<typename GridView::Grid,typename GridView::IndexSet> hierarchicSearch(basis_.gridView().grid(),
+                                                                                             basis_.gridView().indexSet());
+
+      auto element = hierarchicSearch.findEntity(global);
+      auto localPos = element.geometry().local(global);
+
+      return this->operator()(element,localPos);
+    }
+
     /** \brief Evaluate the function at local coordinates. */
     typename TargetSpace::CoordinateType operator()(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
     {
