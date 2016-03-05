@@ -201,7 +201,7 @@ setup(const GridType& grid,
     //  On the lower grid levels a hierarchy of P1/Q1 spaces is used again.
     ////////////////////////////////////////////////////////////////////////
 
-    bool isP1Basis = std::is_same<Basis,DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename Basis::GridView,1> > >::value;
+    bool isP1Basis = std::is_same<Basis,Dune::Functions::PQkNodalBasis<typename Basis::GridView,1> >::value;
 
     if (isP1Basis)
       mmgStep->mgTransfer_.resize(numLevels-1);
