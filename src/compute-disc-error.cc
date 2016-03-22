@@ -119,8 +119,6 @@ void measureDiscreteEOC(const GridView gridView,
 
         auto derDiff = referenceSolution.derivative(rElement, qp.position()) - numericalSolution.derivative(element, localPos);
 
-        std::cout << "size: " << derDiff.N() << ", " << derDiff.M() << std::endl;
-
         for (int i=0; i<3; i++)
           deformationH1ErrorSquared += integrationElement * qp.weight() * derDiff[i].two_norm2();
 
