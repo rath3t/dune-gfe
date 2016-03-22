@@ -261,43 +261,7 @@ int main (int argc, char *argv[]) try
     GenericVector::writeBinary(outFile, xEmbedded);
     outFile.close();
 
-    /////////////////////////////////////////////////////////////////
-    //   Measure the discretization error, if requested
-    /////////////////////////////////////////////////////////////////
-
-    if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
-    {
-      // Read reference solution and its derivative into a PythonFunction
-      typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
-
-      Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
-      auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
-
-      // The numerical solution, as a grid function
-      GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
-
-      // QuadratureRule for the integral of the L^2 error
-      QuadratureRuleKey quadKey(dim,6);
-
-      // Compute the embedded L^2 error
-      double l2Error = DiscretizationError<GridType::LeafGridView>::computeL2Error(&numericalSolution,
-                                                                                   referenceSolution.get(),
-                                                                                   quadKey);
-
-      // Compute the embedded H^1 error
-      double h1Error = DiscretizationError<GridType::LeafGridView>::computeH1HalfNormDifferenceSquared(grid->leafGridView(),
-                                                                                                       &numericalSolution,
-                                                                                                       referenceSolution.get(),
-                                                                                                       quadKey);
-
-      std::cout << "levels: " << numLevels
-                << "      "
-                << "L^2 error: " << l2Error
-                << "      ";
-      std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
-
-    }
-
+    return 0;
  } catch (Exception e) {
 
     std::cout << e << std::endl;
