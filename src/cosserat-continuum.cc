@@ -248,7 +248,7 @@ int main (int argc, char *argv[]) try
     //   Initial iterate
     // //////////////////////////
 
-    SolutionType x(feBasis.indexSet().size());
+    SolutionType x(feBasis.size());
 
     if (parameterSet.hasKey("startFromFile"))
     {
