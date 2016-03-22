@@ -18,7 +18,7 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
-#include <dune/functions/gridfunctions/discretescalarglobalbasisfunction.hh>
+#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 #include <dune/functions/functionspacebases/bsplinebasis.hh>
 
@@ -249,7 +249,7 @@ int main (int argc, char *argv[]) try
     for (size_t i=0; i<x.size(); i++)
         xEmbedded[i] = x[i].globalCoordinates();
 
-    Dune::Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(xEmbedded)> xFunction(feBasis,xEmbedded);
+    auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
     auto localXFunction = localFunction(xFunction);
 
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
