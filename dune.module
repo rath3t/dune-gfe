@@ -5,7 +5,7 @@
 #Name of the module
 Module:dune-gfe
 Version: svn
-Maintainer: sander@igpm.rwth-aachen.de
+Maintainer: oliver.sander@tu-dresden.de
 #depending on
 Depends: dune-grid dune-istl dune-localfunctions dune-functions dune-solvers dune-fufem
 Suggests: dune-foamgrid
