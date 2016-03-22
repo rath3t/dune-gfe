@@ -44,6 +44,7 @@
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/vertexnormals.hh>
+#include <dune/gfe/embeddedglobalgfefunction.hh>
 
 // grid dimension
 const int dim = 2;
@@ -252,7 +253,34 @@ int main (int argc, char *argv[]) try
 
     if (parameterSet.hasKey("startFromFile"))
     {
-      GFE::CosseratVTKReader::read(x, parameterSet.get<std::string>("initialIterateFilename"));
+      std::shared_ptr<GridType> initialIterateGrid;
+      if (parameterSet.get<bool>("structuredGrid"))
+      {
+        std::array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
+        initialIterateGrid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+      }
+      else
+      {
+        std::string path                       = parameterSet.get<std::string>("path");
+        std::string initialIterateGridFilename = parameterSet.get<std::string>("initialIterateGridFilename");
+
+        initialIterateGrid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + initialIterateGridFilename));
+      }
+
+      SolutionType initialIterate;
+      GFE::CosseratVTKReader::read(initialIterate, parameterSet.get<std::string>("initialIterateFilename"));
+
+      typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 2> InitialBasis;
+      InitialBasis initialBasis(initialIterateGrid->leafGridView());
+
+      GFE::EmbeddedGlobalGFEFunction<InitialBasis,TargetSpace> initialFunction(initialBasis,initialIterate);
+
+      std::vector<FieldVector<double,7> > v;
+      Dune::Functions::interpolate(feBasis,v,initialFunction);
+
+      for (size_t i=0; i<x.size(); i++)
+        x[i] = TargetSpace(v[i]);
+
     } else {
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dimworld>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
