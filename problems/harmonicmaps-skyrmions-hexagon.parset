@@ -1,0 +1,65 @@
+#############################################
+#  Grid parameters
+#############################################
+
+structuredGrid = false
+path = /home/sander/data/liquidcrystals
+gridFile = hexagon.msh
+
+# Number of grid levels
+numLevels = 5
+
+order = 1
+
+#############################################
+#  Solver parameters
+#############################################
+
+# Tolerance of the trust region solver
+tolerance = 1e-12
+
+# Max number of steps of the trust region solver
+maxTrustRegionSteps = 100
+
+# Initial trust-region radius
+initialTrustRegionRadius = 1
+
+# Number of multigrid iterations per trust-region step
+numIt = 200
+
+# Number of presmoothing steps
+nu1 = 3
+
+# Number of postsmoothing steps
+nu2 = 3
+
+# Number of coarse grid corrections
+mu = 1
+
+# Number of base solver iterations
+baseIt = 100
+
+# Tolerance of the multigrid solver
+mgTolerance = 1e-10
+
+# Tolerance of the base grid solver
+baseTolerance = 1e-8
+
+############################
+#   Problem specifications
+############################
+
+# Type of energy we are minimizing
+energy = chiral_skyrmion
+
+[energyParameters]
+
+h = 3
+kappa = 1
+
+[]
+
+# Inverse stereographic projection
+initialIterate = inverse-stereographic-projection
+
+dirichletValues = [0, 0, 1]
