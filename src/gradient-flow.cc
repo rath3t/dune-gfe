@@ -19,9 +19,6 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
-#if ! DUNE_VERSION_NEWER(DUNE_FUNCTIONS, 2, 5)
-#include <dune/functions/common/vtkadapter.hh>
-#endif
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
@@ -246,11 +243,7 @@ int main (int argc, char *argv[]) try
                                                                                                  xEmbedded);
 
   SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
-#if DUNE_VERSION_NEWER(DUNE_FUNCTIONS, 2, 5)
   vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
-#else
-  vtkWriter.addVertexData(vtkFunction(xFunction), VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
-#endif
   vtkWriter.write("gradientflow_result_0");
 
   // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
@@ -290,11 +283,7 @@ int main (int argc, char *argv[]) try
                                                                                                    xEmbedded);
 
     SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
-#if DUNE_VERSION_NEWER(DUNE_FUNCTIONS, 2, 5)
     vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
-#else
-    vtkWriter.addVertexData(vtkFunction(xFunction), VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
-#endif
     vtkWriter.write("gradientflow_result_" + std::to_string(i+1));
 
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
