@@ -4,6 +4,8 @@
 #include <vector>
 #include <fstream>
 
+#define HAVE_TINYXML2 1
+
 #if HAVE_TINYXML2
 // For VTK file reading
 #include <tinyxml2.h>
@@ -173,7 +175,7 @@ namespace Dune {
         char** argv = nullptr;
         Dune::MPIHelper& mpiHelper = Dune::MPIHelper::instance(argc,argv);
 
-        std::string fullfilename = filename + ".vtu";
+        std::string fullfilename = filename;// + ".vtu";
 
         // Prepend rank and communicator size to the filename, if there are more than one process
         if (mpiHelper.size() > 1)
@@ -183,18 +185,28 @@ namespace Dune {
         DUNE_THROW(Dune::NotImplemented, "You need TinyXML2 for vtk file reading!");
 #else
         tinyxml2::XMLDocument doc;
-        if (int error = doc.LoadFile(fullfilename.c_str()) != tinyxml2::XML_SUCCESS)
+        if (doc.LoadFile(fullfilename.c_str()) != tinyxml2::XML_SUCCESS)
         {
-          std::cout << "Error: " << error << std::endl;
           DUNE_THROW(Dune::IOError, "Couldn't open the file '" << fullfilename << "'");
         }
 
         // Get number of cells and number of points
-        tinyxml2::XMLElement* pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "UnstructuredGrid" )->FirstChildElement( "Piece" );
-
         int numberOfCells;
         int numberOfPoints;
-        pieceElement->QueryIntAttribute( "NumberOfCells", &numberOfCells );
+        // First try whether this is a vtu file
+        tinyxml2::XMLElement* pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "UnstructuredGrid" )->FirstChildElement( "Piece" );
+        if (pieceElement)
+        {
+          pieceElement->QueryIntAttribute( "NumberOfCells", &numberOfCells );
+        }
+        else // No vtu file?  So let's try vtp
+          if ((pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "PolyData" )->FirstChildElement( "Piece" )) )
+        {
+          pieceElement->QueryIntAttribute( "NumberOfPolys", &numberOfCells );
+        }
+        else
+          DUNE_THROW(Dune::IOError, "Unsupported file type found");
+
         pieceElement->QueryIntAttribute( "NumberOfPoints", &numberOfPoints );
 
         //////////////////////////////////
@@ -217,8 +229,10 @@ namespace Dune {
         //  Read cells
         ///////////////////////////////////
         tinyxml2::XMLElement* cellsElement = pieceElement->FirstChildElement( "Cells" )->FirstChildElement( "DataArray" );
+        if (not cellsElement)
+          cellsElement = pieceElement->FirstChildElement( "Polys" )->FirstChildElement( "DataArray" );
 
-        for (int i=0; i<3; i++)
+        while (cellsElement != nullptr)
         {
           int inInt;
           if (cellsElement->Attribute("Name", "connectivity"))
@@ -249,7 +263,7 @@ namespace Dune {
 
         tinyxml2::XMLElement* pointDataElement = pieceElement->FirstChildElement( "PointData" )->FirstChildElement( "DataArray" );
 
-        for (int i=0; i<4; i++)
+        while (pointDataElement)
         {
           size_t j=0;
           std::stringstream directorStream(pointDataElement->GetText());
