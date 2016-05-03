@@ -1,0 +1,23 @@
+#############################################
+#  Grid parameters
+#############################################
+
+structuredGrid = false
+
+path = /home/sander/data/liquidcrystals
+gridFile = hexagon.msh
+
+targetDim = 3
+targetSpace = UnitVector
+
+#numLevels = 1
+#numReferenceLevels = 2
+
+#order = 2
+
+#simulationData = cosserat-continuum-result-1.data
+
+#referenceData = cosserat-continuum-result-2.data
+
+discretizationErrorMode = discrete
+
