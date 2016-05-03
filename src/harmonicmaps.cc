@@ -56,6 +56,8 @@ typedef UnitVector<double,3> TargetSpace;
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
 
+const int order = 1;
+
 #define LAGRANGE
 
 using namespace Dune;
@@ -136,7 +138,7 @@ int main (int argc, char *argv[]) try
     //  Construct the scalar function space basis corresponding to the GFE space
     //////////////////////////////////////////////////////////////////////////////////
 #ifdef LAGRANGE
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
+    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, order> FEBasis;
     FEBasis feBasis(grid->leafGridView());
 #else
     typedef Dune::Functions::BSplineBasis<typename GridType::LeafGridView> FEBasis;
@@ -257,7 +259,7 @@ int main (int argc, char *argv[]) try
     vtkWriter.write(resultPath + "_" + energy + "_result");
 
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
-    std::ofstream outFile("harmonicmaps-result-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
+    std::ofstream outFile("harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
     GenericVector::writeBinary(outFile, xEmbedded);
     outFile.close();
 
