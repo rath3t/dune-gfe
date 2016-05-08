@@ -253,12 +253,14 @@ int main (int argc, char *argv[]) try
 
     auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
 
+    std::string baseName = "harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels);
+
     SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),order-1);
     vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
-    vtkWriter.write(resultPath + "_" + energy + "_result");
+    vtkWriter.write(resultPath + baseName);
 
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
-    std::ofstream outFile("harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
+    std::ofstream outFile(baseName + ".data", std::ios_base::binary);
     GenericVector::writeBinary(outFile, xEmbedded);
     outFile.close();
 
