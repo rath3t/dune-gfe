@@ -254,7 +254,7 @@ int main (int argc, char *argv[]) try
     auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
 
     VTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView());
-    vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
+    vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
     vtkWriter.write(resultPath + "_" + energy + "_result");
 
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
