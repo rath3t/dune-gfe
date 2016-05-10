@@ -35,6 +35,8 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
 #include <dune/gfe/chiralskyrmionenergy.hh>
@@ -189,20 +191,23 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the Harmonic Energy Functional
     // ////////////////////////////////////////////////////////////
 
-    // Assembler using ADOL-C
     typedef TargetSpace::rebind<adouble>::other ATargetSpace;
+    typedef LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
+    //typedef GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
+
+    // Assembler using ADOL-C
     std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > localEnergy;
 
     std::string energy = parameterSet.get<std::string>("energy");
     if (energy == "harmonic")
     {
 
-      localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, ATargetSpace>);
+      localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, LocalInterpolationRule, ATargetSpace>);
 
     } else if (energy == "chiral_skyrmion")
     {
 
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, adouble>(parameterSet.sub("energyParameters")));
+      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, LocalInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
 
     } else
       DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");

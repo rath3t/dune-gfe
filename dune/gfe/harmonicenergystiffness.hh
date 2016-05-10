@@ -5,9 +5,8 @@
 #include <dune/geometry/quadraturerules.hh>
 
 #include "localgeodesicfestiffness.hh"
-#include "localgeodesicfefunction.hh"
 
-template<class Basis, class TargetSpace>
+template<class Basis, class LocalInterpolationRule, class TargetSpace>
 class HarmonicEnergyLocalStiffness
     : public LocalGeodesicFEStiffness<Basis,TargetSpace>
 {
@@ -27,17 +26,16 @@ public:
 
 };
 
-template <class Basis, class TargetSpace>
-typename HarmonicEnergyLocalStiffness<Basis, TargetSpace>::RT
-HarmonicEnergyLocalStiffness<Basis, TargetSpace>::
+template <class Basis, class LocalInterpolationRule, class TargetSpace>
+typename HarmonicEnergyLocalStiffness<Basis, LocalInterpolationRule, TargetSpace>::RT
+HarmonicEnergyLocalStiffness<Basis, LocalInterpolationRule, TargetSpace>::
 energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
     RT energy = 0;
 
     const auto& localFiniteElement = localView.tree().finiteElement();
-    typedef LocalGeodesicFEFunction<gridDim, double, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
-    LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
+    LocalInterpolationRule localInterpolationRule(localFiniteElement,localSolution);
 
     int quadOrder = (localFiniteElement.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
                                                  : localFiniteElement.localBasis().order() * 2 * gridDim;
@@ -58,10 +56,10 @@ energy(const typename Basis::LocalView& localView,
         double weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
-        auto referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos);
+        auto referenceDerivative = localInterpolationRule.evaluateDerivative(quadPos);
 
         // The derivative of the function defined on the actual element
-        typename LocalGFEFunctionType::DerivativeType derivative(0);
+        typename LocalInterpolationRule::DerivativeType derivative(0);
 
         for (size_t comp=0; comp<referenceDerivative.N(); comp++)
             jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);

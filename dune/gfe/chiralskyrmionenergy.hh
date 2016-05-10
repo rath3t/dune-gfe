@@ -5,7 +5,6 @@
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/gfe/localgeodesicfestiffness.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
 
 namespace Dune {
 
@@ -16,7 +15,7 @@ namespace GFE {
  * The energy is discussed in:
  * - Christof Melcher, "Chiral skyrmions in the plane", Proc. of the Royal Society, online DOI DOI: 10.1098/rspa.2014.0394
  */
-template<class Basis, class field_type>
+template<class Basis, class LocalInterpolationRule, class field_type>
 class ChiralSkyrmionEnergy
 : public LocalGeodesicFEStiffness<Basis,UnitVector<field_type,3> >
 {
@@ -49,9 +48,9 @@ public:
   field_type kappa_;
 };
 
-template <class Basis, class field_type>
-typename ChiralSkyrmionEnergy<Basis, field_type>::RT
-ChiralSkyrmionEnergy<Basis, field_type>::
+template <class Basis, class LocalInterpolationRule, class field_type>
+typename ChiralSkyrmionEnergy<Basis, LocalInterpolationRule, field_type>::RT
+ChiralSkyrmionEnergy<Basis, LocalInterpolationRule, field_type>::
 energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localConfiguration) const
 {
@@ -61,8 +60,7 @@ energy(const typename Basis::LocalView& localView,
 
   const auto element = localView.element();
   const auto& localFiniteElement = localView.tree().finiteElement();
-  typedef LocalGeodesicFEFunction<gridDim, double, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
-  LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localConfiguration);
+  LocalInterpolationRule localInterpolationRule(localFiniteElement,localConfiguration);
 
   int quadOrder = (element.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
                                                : localFiniteElement.localBasis().order() * 2 * gridDim;
@@ -84,13 +82,13 @@ energy(const typename Basis::LocalView& localView,
     double weight = quad[pt].weight() * integrationElement;
 
     // The value of the function
-    auto value = localGeodesicFEFunction.evaluate(quadPos);
+    auto value = localInterpolationRule.evaluate(quadPos);
 
     // The derivative of the local function defined on the reference element
-    typename LocalGFEFunctionType::DerivativeType referenceDerivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
+    typename LocalInterpolationRule::DerivativeType referenceDerivative = localInterpolationRule.evaluateDerivative(quadPos,value);
 
     // The derivative of the function defined on the actual element
-    typename LocalGFEFunctionType::DerivativeType derivative(0);
+    typename LocalInterpolationRule::DerivativeType derivative(0);
 
     for (size_t comp=0; comp<referenceDerivative.N(); comp++)
       jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
