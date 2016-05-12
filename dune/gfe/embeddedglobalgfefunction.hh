@@ -110,11 +110,11 @@ public:
         LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
 
         // use it to evaluate the derivative
-        Dune::FieldMatrix<ctype, embeddedDim, gridDim> refJac = localInterpolationRule.evaluateDerivative(local);
+        auto refJac = localInterpolationRule.evaluateDerivative(local);
 
-        Dune::FieldMatrix<ctype, embeddedDim, gridDim> out =0.0;
+        decltype(refJac) out =0.0;
         //transform the gradient
-        const Dune::FieldMatrix<double,gridDim,gridDim>& jacInvTrans = element.geometry().jacobianInverseTransposed(local);
+        const auto jacInvTrans = element.geometry().jacobianInverseTransposed(local);
         for (size_t k=0; k< refJac.N(); k++)
             jacInvTrans.umv(refJac[k],out[k]);
 
