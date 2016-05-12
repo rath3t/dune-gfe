@@ -15,8 +15,9 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
-#include <dune/gfe/cosseratvtkwriter.hh>
 
 // grid dimension
 const int dim = 2;
@@ -38,6 +39,10 @@ void measureDiscreteEOC(const GridView gridView,
   typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
   FEBasis feBasis(gridView);
   FEBasis referenceFEBasis(referenceGridView);
+
+  typedef LocalGeodesicFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  //typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////////
   //  Read the data whose error is to be measured
@@ -61,7 +66,7 @@ void measureDiscreteEOC(const GridView gridView,
     x[i] = TargetSpace(embeddedX[i]);
 
   // The numerical solution, as a grid function
-  GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
+  GFE::EmbeddedGlobalGFEFunction<FEBasis, LocalInterpolationRule, TargetSpace> numericalSolution(feBasis, x);
 
   ///////////////////////////////////////////////////////////////////////////
   // Read the reference configuration
@@ -80,7 +85,7 @@ void measureDiscreteEOC(const GridView gridView,
     referenceX[i] = TargetSpace(embeddedReferenceX[i]);
 
   // The reference solution, as a grid function
-  GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> referenceSolution(referenceFEBasis, referenceX);
+  GFE::EmbeddedGlobalGFEFunction<FEBasis, LocalInterpolationRule, TargetSpace> referenceSolution(referenceFEBasis, referenceX);
 
   /////////////////////////////////////////////////////////////////
   //   Measure the discretization error
@@ -190,6 +195,10 @@ void measureAnalyticalEOC(const GridView gridView,
   typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
   FEBasis feBasis(gridView);
 
+  typedef LocalGeodesicFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  //typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
+
   //////////////////////////////////////////////////////////////////////////////////
   //  Read the data whose error is to be measured
   //////////////////////////////////////////////////////////////////////////////////
@@ -222,7 +231,7 @@ void measureAnalyticalEOC(const GridView gridView,
   auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
   // The numerical solution, as a grid function
-  GFE::EmbeddedGlobalGFEFunction<FEBasis, TargetSpace> numericalSolution(feBasis, x);
+  GFE::EmbeddedGlobalGFEFunction<FEBasis, LocalInterpolationRule, TargetSpace> numericalSolution(feBasis, x);
 
   // QuadratureRule for the integral of the L^2 error
   QuadratureRuleKey quadKey(dim,6);

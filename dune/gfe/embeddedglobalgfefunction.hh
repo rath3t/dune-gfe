@@ -6,8 +6,6 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
-
 namespace Dune {
 
   namespace GFE {
@@ -17,7 +15,7 @@ namespace Dune {
  *  \tparam B  - The global basis type.
  *  \tparam TargetSpace - The manifold that this functions takes its values in.
  */
-template<class B, class TargetSpace>
+template<class B, class LocalInterpolationRule, class TargetSpace>
 class EmbeddedGlobalGFEFunction
 : public VirtualGridViewFunction<typename B::GridView, typename TargetSpace::CoordinateType>
 {
@@ -29,7 +27,6 @@ public:
     typedef typename GridView::template Codim<0>::Entity Element;
     typedef typename GridView::Grid::ctype  ctype;
 
-    typedef LocalGeodesicFEFunction<GridView::dimension, ctype, LocalFiniteElement, TargetSpace> LocalGFEFunction;
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
 
     //! Dimension of the grid.
@@ -82,8 +79,8 @@ public:
             localCoeff[i] = coefficients_[localIndexSet.index(i)];
 
         // create local gfe function
-        LocalGFEFunction localGFE(localView.tree().finiteElement(),localCoeff);
-        return localGFE.evaluate(local).globalCoordinates();
+        LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
+        return localInterpolationRule.evaluate(local).globalCoordinates();
     }
 
     /** \brief Evaluate the derivative of the function at local coordinates. */
@@ -110,10 +107,10 @@ public:
             localCoeff[i] = coefficients_[localIndexSet.index(i)];
 
         // create local gfe function
-        LocalGFEFunction localGFE(localView.tree().finiteElement(),localCoeff);
+        LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
 
         // use it to evaluate the derivative
-        Dune::FieldMatrix<ctype, embeddedDim, gridDim> refJac = localGFE.evaluateDerivative(local);
+        Dune::FieldMatrix<ctype, embeddedDim, gridDim> refJac = localInterpolationRule.evaluateDerivative(local);
 
         Dune::FieldMatrix<ctype, embeddedDim, gridDim> out =0.0;
         //transform the gradient
