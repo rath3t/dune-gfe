@@ -106,11 +106,13 @@ void interpolate(const LocalFEFunctionType& localGeodesicFEFunction,
   {
     FieldMatrix<double,3,3> derivative;
     localGeodesicFEFunction.evaluateDerivativeOfValueWRTCoefficient(v.geometry().corner(0),
-                                                                    partialDerivative,  // derive wrt value at first triangle corner
+                                                                    partialDerivative,  // select the Lagrange node
                                                                     derivative);
 
-    variation0[gridView.indexSet().index(v)] = derivative[1];
-    variation1[gridView.indexSet().index(v)] = derivative[2];
+    Dune::FieldMatrix<double,2,3> basis = localGeodesicFEFunction.coefficient(partialDerivative).orthonormalFrame();
+
+    derivative.mtv(basis[0], variation0[gridView.indexSet().index(v)]);
+    derivative.mtv(basis[1], variation1[gridView.indexSet().index(v)]);
   }
 
   // sample a checkerboard pattern for nicer pictures
@@ -191,10 +193,10 @@ int main(int argc, char* argv[]) try
   coefficients.resize(6);
 
   coefficients[0] = TargetSpace(FieldVector<double,3>({1,0,0}));
-  coefficients[1] = TargetSpace(FieldVector<double,3>({0.5,0.5,0}));
+  coefficients[1] = TargetSpace(FieldVector<double,3>({0.5,0.5,0.15}));
   coefficients[2] = TargetSpace(FieldVector<double,3>({0,1,0}));
-  coefficients[3] = TargetSpace(FieldVector<double,3>({0.5,0,0.5}));
-  coefficients[4] = TargetSpace(FieldVector<double,3>({0,0.5,0.5}));
+  coefficients[3] = TargetSpace(FieldVector<double,3>({0.5,0.15,0.5}));
+  coefficients[4] = TargetSpace(FieldVector<double,3>({0.15,0.5,0.5}));
   coefficients[5] = TargetSpace(FieldVector<double,3>({0,0,1}));
 
   typedef LocalGeodesicFEFunction<dim, double, P2LocalFiniteElement<double,double,dim>, TargetSpace> P2LocalGFEFunctionType;
