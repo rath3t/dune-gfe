@@ -101,7 +101,7 @@ energy(const typename Basis::LocalView& localView,
     energy += weight * 0.5 * derivative.frobenius_norm2();
 
     //////////////////////////////////////////////////////////////
-    //  Dzyaloshinkii-Moriya interaction term
+    //  Dzyaloshinskii-Moriya interaction term
     //////////////////////////////////////////////////////////////
 
     // derivative[a][b] contains the partial derivative of m_a in the direction x_b
