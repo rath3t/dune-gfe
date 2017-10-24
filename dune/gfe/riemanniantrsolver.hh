@@ -177,7 +177,7 @@ protected:
     const Dune::BitSetVector<blocksize>* ignoreNodes_;
 
     /** \brief The norm used to measure multigrid convergence */
-    H1SemiNorm<CorrectionType>* h1SemiNorm_;
+    std::shared_ptr<H1SemiNorm<CorrectionType> > h1SemiNorm_;
 
     /** \brief An L2-norm, really.  The H1SemiNorm class is badly named */
     std::shared_ptr<H1SemiNorm<CorrectionType> > l2Norm_;

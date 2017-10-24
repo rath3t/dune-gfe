@@ -75,9 +75,9 @@ setup(const GridType& grid,
 
 #ifdef HAVE_IPOPT
     // First create an IPOpt base solver
-    QuadraticIPOptSolver<MatrixType, CorrectionType>* baseSolver = new QuadraticIPOptSolver<MatrixType,CorrectionType>;
-    baseSolver->verbosity_ = NumProc::QUIET;
-    baseSolver->tolerance_ = baseTolerance;
+    auto  baseSolver = std::make_shared<QuadraticIPOptSolver<MatrixType,CorrectionType> >();
+    baseSolver->setVerbosity(NumProc::QUIET);
+    baseSolver->setTolerance(baseTolerance);
 #else
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType, CorrectionType>* baseSolverStep = new TrustRegionGSStep<MatrixType, CorrectionType>;
@@ -103,18 +103,17 @@ setup(const GridType& grid,
     globalDirichletNodes = new Dune::BitSetVector<blocksize>(dirichletNodes);
 #endif
 
-    // Make pre and postsmoothers
-    TrustRegionGSStep<MatrixType, CorrectionType>* presmoother  = new TrustRegionGSStep<MatrixType, CorrectionType>;
-    TrustRegionGSStep<MatrixType, CorrectionType>* postsmoother = new TrustRegionGSStep<MatrixType, CorrectionType>;
+    // Make smoother (will be used for pre- and postsmoothing
+    auto smoother  = std::make_shared<TrustRegionGSStep<MatrixType, CorrectionType> >();
 
-    MonotoneMGStep<MatrixType, CorrectionType>* mmgStep = new MonotoneMGStep<MatrixType, CorrectionType>;
+    auto mmgStep = std::make_shared<MonotoneMGStep<MatrixType, CorrectionType> >();
 
     mmgStep->setMGType(mu, nu1, nu2);
     mmgStep->ignoreNodes_ = globalDirichletNodes;
-    mmgStep->basesolver_        = baseSolver;
-    mmgStep->setSmoother(presmoother, postsmoother);
-    mmgStep->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType>();
-    mmgStep->verbosity_         = Solver::QUIET;
+    mmgStep->setBaseSolver(baseSolver);
+    mmgStep->setSmoother(smoother);
+    mmgStep->setObstacleRestrictor(std::make_shared<MandelObstacleRestrictor<CorrectionType> >());
+    mmgStep->setVerbosity(Solver::QUIET);
 
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
@@ -130,8 +129,6 @@ setup(const GridType& grid,
 
     operatorAssembler.assemble(laplaceStiffness, localA);
 
-    if (h1SemiNorm_)
-        delete h1SemiNorm_;
 #if HAVE_MPI
     LocalMapper localMapper(grid_->leafGridView());
 
@@ -146,13 +143,13 @@ setup(const GridType& grid,
 #else
     ScalarMatrixType* A = new ScalarMatrixType(localA);
 #endif
-    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
+    h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(*A);
 
-    innerSolver_ = std::shared_ptr<LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(mmgStep,
-                                                                                                   innerIterations_,
-                                                                                                   innerTolerance_,
-                                                                                                   h1SemiNorm_,
-                                                                                                 Solver::QUIET));
+    innerSolver_ = std::make_shared<::LoopSolver<CorrectionType> >(mmgStep,
+                                                                   innerIterations_,
+                                                                   innerTolerance_,
+                                                                   h1SemiNorm_,
+                                                                   Solver::QUIET);
 
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a mass matrix to create a norm that's equivalent to the L2-norm
@@ -188,9 +185,6 @@ setup(const GridType& grid,
     // ////////////////////////////////////
     //   Create the transfer operators
     // ////////////////////////////////////
-
-    for (size_t k=0; k<mmgStep->mgTransfer_.size(); k++)
-        delete(mmgStep->mgTransfer_[k]);
 
     ////////////////////////////////////////////////////////////////////////
     //  The P1 space (actually P1/Q1, depending on the grid) is special:
@@ -235,13 +229,13 @@ setup(const GridType& grid,
                            LeafP1LocalMapper,
                            GlobalLeafP1Mapper> matrixComm(*globalMapper_, p1Index, grid_->leafGridView(), grid_->leafGridView(), localMapper, leafP1LocalMapper, 0);
 
-        mmgStep->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType>;
-        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(matrixComm.reduceCopy(pkToP1TransferMatrix));
+        mmgStep->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType> >();
+        std::shared_ptr<TransferOperatorType> topTransferOperator = std::make_shared<TransferOperatorType>(matrixComm.reduceCopy(pkToP1TransferMatrix));
 #else
-        mmgStep->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType>;
-        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
+        mmgStep->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType> >();
+        std::shared_ptr<TransferOperatorType> topTransferOperator = std::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
 #endif
-        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
+        std::dynamic_pointer_cast<TruncatedCompressedMGTransfer<CorrectionType> >(mmgStep->mgTransfer_.back())->setMatrix(topTransferOperator);
     }
 
     // Now the P1/Q1 restriction operators for the remaining levels
@@ -270,14 +264,14 @@ setup(const GridType& grid,
                            LevelLocalMapper,
                            LevelLocalMapper> matrixComm(fineGUIndex, coarseGUIndex, grid_->levelGridView(i+1), grid_->levelGridView(i), fineLevelLocalMapper, coarseLevelLocalMapper, 0);
 
-        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
+        mmgStep->mgTransfer_[i] = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType> >();
         std::shared_ptr<TransferOperatorType> transferOperatorMatrix = std::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
 
 #else
         mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
         std::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(newTransferOp->getMatrix());
 #endif
-        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType>*>(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
+        std::dynamic_pointer_cast<TruncatedCompressedMGTransfer<CorrectionType> >(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
     }
 
     // //////////////////////////////////////////////////////////
@@ -291,7 +285,7 @@ setup(const GridType& grid,
 #else
         hasObstacle_.resize(basis.size(), true);
 #endif
-        mmgStep->hasObstacle_ = &hasObstacle_;
+        mmgStep->setHasObstacles(hasObstacle_);
     }
 
 }
@@ -302,11 +296,12 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 {
     int rank = grid_->comm().rank();
 
-    MonotoneMGStep<MatrixType,CorrectionType>* mgStep = NULL;
+    std::shared_ptr<MonotoneMGStep<MatrixType,CorrectionType> > mgStep;
 
     // if the inner solver is a monotone multigrid set up a max-norm trust-region
     if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
-        mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())->iterationStep_);
+        auto loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
+        mgStep = std::dynamic_pointer_cast<MonotoneMGStep<MatrixType,CorrectionType> >(loopSolver->iterationStep_);
 
     }
 
@@ -426,7 +421,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             mgStep->setProblem(stiffnessMatrix, corr_global, rhs_global);
 
             trustRegionObstacles = trustRegion.obstacles();
-            mgStep->obstacles_ = &trustRegionObstacles;
+            mgStep->setObstacles(trustRegionObstacles);
 
             innerSolver_->preprocess();
 
