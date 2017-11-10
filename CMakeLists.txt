@@ -19,7 +19,6 @@ include(DuneMacros)
 dune_project()
 
 add_subdirectory("src")
-add_subdirectory("m4")
 add_subdirectory("dune")
 add_subdirectory("doc")
 add_subdirectory("cmake/modules")
