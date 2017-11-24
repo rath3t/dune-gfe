@@ -605,7 +605,7 @@ public:
             // Make sure we do the right thing if a and b are not in the same sheet
             // of the double covering of the unit quaternions over SO(3)
             if (dist>=M_PI) {
-                dist -= M_PI;
+                dist = 2*M_PI - dist;
                 diff *= -1;
             }
 
