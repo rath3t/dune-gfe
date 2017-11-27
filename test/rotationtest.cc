@@ -344,6 +344,26 @@ void testRotation(Rotation<double,3> q)
     }
 }
 
+//! test interpolation between two rotations
+bool testInterpolation(const Rotation<double, 3>& a, const Rotation<double, 3>& b) {
+
+    // Compute difference on T_a SO(3)
+    Rotation<double, 3> newB = Rotation<double, 3>::interpolate(a, b, 1.0);
+
+    // Compare matrix representation
+    FieldMatrix<double, 3, 3> matB;
+    b.matrix(matB);
+
+    FieldMatrix<double, 3, 3> matNewB;
+    newB.matrix(matNewB);
+
+    matNewB -= matB;
+    if (matNewB.infinity_norm() > 1e-14)
+        std::cout << " Interpolation failed with difference " << matNewB.infinity_norm()  << std::endl;
+
+    return (matNewB.infinity_norm() < 1e-14);
+}
+
 int main (int argc, char *argv[]) try
 {
     std::vector<Rotation<double,3> > testPoints;
@@ -355,6 +375,11 @@ int main (int argc, char *argv[]) try
     for (int i=0; i<nTestPoints; i++)
         testRotation(testPoints[i]);
 
+    bool passed(true);
+    // Test interpolating between pairs of rotations
+    for (int i=0; i<nTestPoints-1; i++)
+        passed = passed and testInterpolation(testPoints[i], testPoints[i+1]);
+
     // //////////////////////////////////////////////
     //   Test second derivative of exp
     // //////////////////////////////////////////////
@@ -364,6 +389,8 @@ int main (int argc, char *argv[]) try
     //   Test derivative of interpolated position
     // //////////////////////////////////////////////
     testDerivativeOfInterpolatedPosition();
+
+    return not passed;
 
  } catch (Exception e) {
 
