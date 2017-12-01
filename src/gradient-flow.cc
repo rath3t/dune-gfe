@@ -7,6 +7,8 @@
 #include <adolc/adouble.h>
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
+#include <array>
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -122,7 +124,7 @@ int main (int argc, char *argv[]) try
     lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
     upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
-    elements = parameterSet.get<array<unsigned int,dim> >("elements");
+    elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
     grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
   }
   else

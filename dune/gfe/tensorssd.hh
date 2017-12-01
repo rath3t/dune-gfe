@@ -5,7 +5,8 @@
     \brief A third-rank tensor with two static (SS) and one dynamic (D) dimension
     */
 
-#include <dune/common/array.hh>
+#include <array>
+
 #include <dune/common/fmatrix.hh>
     
 /** \brief A third-rank tensor with two static (SS) and one dynamic (D) dimension

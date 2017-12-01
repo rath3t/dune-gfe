@@ -2,9 +2,9 @@
 
 #include <fenv.h>
 #include <iostream>
+#include <array>
 
 #include <dune/common/fvector.hh>
-#include <dune/common/array.hh>
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
 #include <dune/gfe/rotation.hh>
@@ -53,11 +53,11 @@ void test()
         FieldVector<double,domainDim> stupidTestPoint(0);
         
         // test whether evaluation of the shape functions works
-        std::vector<array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
+        std::vector<std::array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
         testFunctionSet.localBasis().evaluateFunction(stupidTestPoint, values);
 
         // test whether evaluation of the shape function derivatives works
-        std::vector<array<FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, domainDim>, TargetSpace::TangentVector::dimension> > derivatives;
+        std::vector<std::array<FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, domainDim>, TargetSpace::TangentVector::dimension> > derivatives;
         testFunctionSet.localBasis().evaluateJacobian(stupidTestPoint, derivatives);
 
     }

@@ -1,10 +1,10 @@
 #include <config.h>
 
 #include <fenv.h>
+#include <array>
 #include <iostream>
 
 #include <dune/common/fvector.hh>
-#include <dune/common/array.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 
@@ -50,7 +50,7 @@ void test()
         const typename GlobalBasis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);     
     
         FieldVector<double,1> stupidTestPoint(0);
-        std::vector<Dune::array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
+        std::vector<std::array<typename TargetSpace::EmbeddedTangentVector, TargetSpace::TangentVector::dimension> > values;
         lfe.localBasis().evaluateFunction(stupidTestPoint, values);
         for(size_t i=0;i<values.size();i++) {
             std::cout<<values[i]<<std::endl;

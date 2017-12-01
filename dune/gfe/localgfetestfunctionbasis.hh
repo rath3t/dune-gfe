@@ -1,10 +1,10 @@
 #ifndef LOCAL_GFE_TEST_FUNCTION_HH
 #define LOCAL_GFE_TEST_FUNCTION_HH
 
+#include <array>
 #include <vector>
 
 #include <dune/common/fvector.hh>
-#include <dune/common/array.hh>
 #include <dune/geometry/type.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>

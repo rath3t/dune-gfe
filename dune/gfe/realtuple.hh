@@ -1,7 +1,6 @@
 #ifndef REAL_TUPLE_HH
 #define REAL_TUPLE_HH
 
-#include <dune/common/array.hh>
 #include <dune/common/fvector.hh>
 
 #include <dune/istl/scaledidmatrix.hh>

@@ -1,5 +1,7 @@
 #include <config.h>
 
+#include <array>
+
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 
@@ -344,7 +346,7 @@ int main (int argc, char *argv[]) try
     lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
     upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
-    array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
+    auto elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
     grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
     referenceGrid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
   }

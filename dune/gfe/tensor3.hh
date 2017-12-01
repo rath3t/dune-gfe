@@ -5,7 +5,7 @@
     \brief A third-rank tensor
     */
 
-#include <dune/common/array.hh>
+#include <array>
 #include <dune/common/fmatrix.hh>
 
 /** \brief A third-rank tensor

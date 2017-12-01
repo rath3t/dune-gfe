@@ -1,12 +1,12 @@
 #ifndef GLOBAL_GEODESIC_FINITE_ELEMENT_TEST_FUNCTION_HH
 #define GLOBAL_GEODESIC_FINITE_ELEMENT_TEST_FUNCTION_HH
 
+#include <array>
 #include <vector>
 #include <dune/istl/bvector.hh>
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
-#include <dune/common/array.hh>
 
 
 /** \brief Global geodesic finite element test function. 
@@ -69,7 +69,7 @@ void GlobalGFETestFunction<Basis,TargetSpace,CoefficientType>::evaluateLocal(con
                                                              EmbeddedTangentVector& out) const
 {
     // values of the test basis functions 
-    std::vector<Dune::array<EmbeddedTangentVector, tangentDim> > values;
+    std::vector<std::array<EmbeddedTangentVector, tangentDim> > values;
 
     // create local gfe test function
     basis_.getLocalFiniteElement(element).localBasis().evaluateFunction(local, values);
@@ -91,7 +91,7 @@ void GlobalGFETestFunction<Basis,TargetSpace,CoefficientType>::evaluateDerivativ
                                             Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
 {
     // jacobians of the test basis function  - a lot of dims here...
-    std::vector<Dune::array<Dune::FieldMatrix<ctype, embeddedDim, gridDim>, tangentDim> > refJacobians,jacobians; 
+    std::vector<std::array<Dune::FieldMatrix<ctype, embeddedDim, gridDim>, tangentDim> > refJacobians,jacobians;
 
     // evaluate local gfe test function basis
     basis_.getLocalFiniteElement(element).localBasis().evaluateJacobian(local, refJacobians);
