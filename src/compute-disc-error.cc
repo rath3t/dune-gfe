@@ -11,6 +11,8 @@
 
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
+#include <dune/matrix-vector/genericvectortools.hh>
+
 #include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
 
@@ -57,7 +59,7 @@ void measureDiscreteEOC(const GridView gridView,
   std::ifstream inFile(parameterSet.get<std::string>("simulationData"), std::ios_base::binary);
   if (not inFile)
     DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("simulationData") << " could not be opened.");
-  GenericVector::readBinary(inFile, embeddedX);
+  MatrixVector::Generic::readBinary(inFile, embeddedX);
   inFile.peek();   // try to advance beyond the end of the file
   if (not inFile.eof())
     DUNE_THROW(IOError, "File '" << parameterSet.get<std::string>("simulationData") << "' does not have the correct size!");
@@ -77,7 +79,7 @@ void measureDiscreteEOC(const GridView gridView,
   inFile.open(parameterSet.get<std::string>("referenceData"), std::ios_base::binary);
   if (not inFile)
     DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("referenceData") << " could not be opened.");
-  GenericVector::readBinary(inFile, embeddedReferenceX);
+  MatrixVector::Generic::readBinary(inFile, embeddedReferenceX);
   inFile.peek();   // try to advance beyond the end of the file
   if (not inFile.eof())
     DUNE_THROW(IOError, "File '" << parameterSet.get<std::string>("referenceData") << "' does not have the correct size!");
@@ -212,7 +214,7 @@ void measureAnalyticalEOC(const GridView gridView,
   std::ifstream inFile(parameterSet.get<std::string>("simulationData"), std::ios_base::binary);
   if (not inFile)
     DUNE_THROW(IOError, "File " << parameterSet.get<std::string>("simulationData") << " could not be opened.");
-  GenericVector::readBinary(inFile, embeddedX);
+  MatrixVector::Generic::readBinary(inFile, embeddedX);
   inFile.peek();   // try to advance beyond the end of the file
   if (not inFile.eof())
     DUNE_THROW(IOError, "File '" << parameterSet.get<std::string>("simulationData") << "' does not have the correct size!");
