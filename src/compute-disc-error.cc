@@ -44,8 +44,8 @@ void measureDiscreteEOC(const GridView gridView,
   FEBasis feBasis(gridView);
   FEBasis referenceFEBasis(referenceGridView);
 
-  typedef LocalGeodesicFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
-  //typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  //typedef LocalGeodesicFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
   std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////////
