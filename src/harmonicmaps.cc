@@ -144,14 +144,17 @@ int main (int argc, char *argv[]) try
     //////////////////////////////////////////////////////////////////////////////////
     //  Construct the scalar function space basis corresponding to the GFE space
     //////////////////////////////////////////////////////////////////////////////////
+
+    using GridView = GridType::LeafGridView;
+    GridView gridView = grid->leafGridView();
 #ifdef LAGRANGE
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, order> FEBasis;
-    FEBasis feBasis(grid->leafGridView());
+    typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
+    FEBasis feBasis(gridView);
 #else
-    typedef Dune::Functions::BSplineBasis<typename GridType::LeafGridView> FEBasis;
+    typedef Dune::Functions::BSplineBasis<GridView> FEBasis;
     for (auto& i : elements)
       i = i<<(numLevels-1);
-    FEBasis feBasis(grid->leafGridView(), lower, upper, elements, order);
+    FEBasis feBasis(gridView, lower, upper, elements, order);
 #endif
     typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
     FufemFEBasis fufemFeBasis(feBasis);
@@ -164,7 +167,7 @@ int main (int argc, char *argv[]) try
 
     BitSetVector<1> allNodes(grid->size(dim));
     allNodes.setAll();
-    BoundaryPatch<typename GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), allNodes);
+    BoundaryPatch<GridView> dirichletBoundary(gridView, allNodes);
 
     BitSetVector<blocksize> dirichletNodes;
     constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
@@ -265,7 +268,7 @@ int main (int argc, char *argv[]) try
 
     std::string baseName = "harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels);
 
-    SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),order-1);
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView,order-1);
     vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
     vtkWriter.write(resultPath + baseName);
 
