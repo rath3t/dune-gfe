@@ -310,6 +310,8 @@ void measureEOC(const std::shared_ptr<GridType> grid,
 
 int main (int argc, char *argv[]) try
 {
+  MPIHelper::instance(argc, argv);
+
   // Start Python interpreter
   Python::start();
   Python::Reference main = Python::import("__main__");
