@@ -23,6 +23,7 @@
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 #include <dune/functions/functionspacebases/bsplinebasis.hh>
+#include <dune/functions/functionspacebases/interpolate.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
