@@ -268,8 +268,8 @@ setup(const GridType& grid,
         std::shared_ptr<TransferOperatorType> transferOperatorMatrix = std::make_shared<TransferOperatorType>(matrixComm.reduceCopy(newTransferOp->getMatrix()));
 
 #else
-        mmgStep->mgTransfer_[i] = new TruncatedCompressedMGTransfer<CorrectionType>;
-        std::shared_ptr<TransferOperatorType> transferOperatorMatrix = Dune::make_shared<TransferOperatorType>(newTransferOp->getMatrix());
+        mmgStep->mgTransfer_[i] = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType> >();
+        std::shared_ptr<TransferOperatorType> transferOperatorMatrix = std::make_shared<TransferOperatorType>(newTransferOp->getMatrix());
 #endif
         std::dynamic_pointer_cast<TruncatedCompressedMGTransfer<CorrectionType> >(mmgStep->mgTransfer_[i])->setMatrix(transferOperatorMatrix);
     }
@@ -309,7 +309,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
 #else
     const Basis& basis = assembler_->basis_;
-    MaxNormTrustRegion<blocksize> trustRegion(basis.indexSet().size(), initialTrustRegionRadius_);
+    MaxNormTrustRegion<blocksize> trustRegion(basis.size(), initialTrustRegionRadius_);
 #endif
     trustRegion.set(initialTrustRegionRadius_, scaling_);
 

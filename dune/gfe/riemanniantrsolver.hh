@@ -31,7 +31,7 @@ template <typename GridView>
 struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,1> >
 {
     typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
-    typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView, Dune::MCMGVertexLayout> LocalMapper;
+    typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
 };
 
 // This case is not going to actually work, but I need the specialization to make
@@ -40,7 +40,7 @@ template <typename GridView>
 struct MapperFactory<GridView, Dune::Functions::Periodic1DPQ1NodalBasis<GridView> >
 {
     typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
-    typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView, Dune::MCMGVertexLayout> LocalMapper;
+    typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
 };
 
 template <typename GridView>
