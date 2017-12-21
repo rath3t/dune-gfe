@@ -4,10 +4,10 @@
 
 structuredGrid = false
 path = /home/sander/data/shells/wriggers_L_shape/
-gridFile = wriggers-L-shape_99.msh
+gridFile = wriggers-L-shape_99_mm.msh
 
 # Number of grid levels
-numLevels = 1
+numLevels = 2
 
 #############################################
 #  Solver parameters
@@ -17,13 +17,15 @@ numLevels = 1
 numHomotopySteps = 1
 
 # Tolerance of the trust region solver
-tolerance = 1e-6
+tolerance = 1e-8
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 500
+maxTrustRegionSteps = 1000
+
+trustRegionScaling = 1 1 1 0.01 0.01 0.01
 
 # Initial trust-region radius
-initialTrustRegionRadius = 0.1
+initialTrustRegionRadius = 1
 
 # Number of multigrid iterations per trust-region step
 numIt = 200
@@ -38,7 +40,7 @@ nu2 = 3
 mu = 1
 
 # Number of base solver iterations
-baseIt = 100
+baseIt = 1
 
 # Tolerance of the multigrid solver
 mgTolerance = 1e-7
@@ -58,13 +60,13 @@ instrumented = 0
 [materialParameters]
 
 # shell thickness
-thickness = 0.6e-3
+thickness = 0.6
 
 # Lame parameters
 # corresponds to E = 71240 N/mm^2, nu=0.31
 # However, we use units N/m^2
-mu = 2.7191e+10
-lambda = 4.4364e+10
+mu = 2.7191e+4
+lambda = 4.4364e+4
 
 # Cosserat couple modulus
 mu_c = 0
@@ -76,7 +78,7 @@ L_c = 0.6e-3
 q = 2
 
 # Shear correction factor
-kappa = 0.01
+kappa = 1
 
 []
 
@@ -88,15 +90,19 @@ problem = wriggers-l-shape
 
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
-dirichletVerticesPredicate = "x[0] < 0.001"
+dirichletVerticesPredicate = "x[0] < 1"
 
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
-neumannVerticesPredicate = "x[1] < -0.239"
+neumannVerticesPredicate = "x[1] < -239"
 
 ###  Neumann values, if needed
-#neumannValues =  -2e7 0 0
+neumannValues =  0.09 0 0
 
 # Initial deformation
-#initialDeformation = "[x[0], x[1], -0.3*x[0]*(0.24+x[1])]"
-initialDeformation = "[x[0], x[1], 0 if (x[0] < 0.225 or x[1] <-0.015) else 4*(x[0]-0.225)*(x[1]+0.015)]"
+#initialDeformation = "[x[0], x[1], 0 if (x[0] < 225 or x[1] < -15) else 0.001*(x[0]-225)*(x[1]+15)]"
+##initialDeformation = "[x[0], x[1], 0]"
+
+startFromFile = yes
+initialIterateGridFilename = wriggers-L-shape_99_mm.msh
+initialIterateFilename = initial-wriggers-l-shape.vtu
