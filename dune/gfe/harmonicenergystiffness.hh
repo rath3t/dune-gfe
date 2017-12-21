@@ -38,7 +38,7 @@ energy(const typename Basis::LocalView& localView,
     LocalInterpolationRule localInterpolationRule(localFiniteElement,localSolution);
 
     int quadOrder = (localFiniteElement.type().isSimplex()) ? (localFiniteElement.localBasis().order()-1) * 2
-                                                 : localFiniteElement.localBasis().order() * 2 * gridDim;
+                                                 : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
 
     const auto element = localView.element();
 
