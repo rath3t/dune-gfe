@@ -24,7 +24,7 @@ namespace Dune {
   template <class GridView>
   class GlobalP1Mapper
   {
-    typedef MultipleCodimMultipleGeomTypeMapper<GridView, MCMGVertexLayout> P1BasisMapper;
+    typedef MultipleCodimMultipleGeomTypeMapper<GridView> P1BasisMapper;
 
   public:
 
@@ -34,7 +34,7 @@ namespace Dune {
     typedef std::map<Index,Index>    IndexMap;
 
     GlobalP1Mapper(const GridView& gridView)
-    : p1Mapper_(gridView)
+    : p1Mapper_(gridView,mcmgVertexLayout())
     {
       const int dim = GridView::dimension;
 
