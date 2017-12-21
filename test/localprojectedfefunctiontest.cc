@@ -247,39 +247,34 @@ int main()
 
     std::cout << std::setw(15) << std::setprecision(12);
 
-    GeometryType element;
-
     ////////////////////////////////////////////////////////////////
     //  Test functions on 1d elements
     ////////////////////////////////////////////////////////////////
-    element.makeSimplex(1);
 
-    test<RealTuple<double,1>,1>(element);
-    test<UnitVector<double,2>,1>(element);
-    test<UnitVector<double,3>,1>(element);
-    test<Rotation<double,3>,1>(element);
-    test<RigidBodyMotion<double,3>,1>(element);
+    test<RealTuple<double,1>,1>(GeometryTypes::line);
+    test<UnitVector<double,2>,1>(GeometryTypes::line);
+    test<UnitVector<double,3>,1>(GeometryTypes::line);
+    test<Rotation<double,3>,1>(GeometryTypes::line);
+    test<RigidBodyMotion<double,3>,1>(GeometryTypes::line);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d simplex elements
     ////////////////////////////////////////////////////////////////
-    element.makeSimplex(2);
 
-    test<RealTuple<double,1>,2>(element);
-    test<UnitVector<double,2>,2>(element);
-    test<UnitVector<double,3>,2>(element);
-    test<Rotation<double,3>,2>(element);
-    test<RigidBodyMotion<double,3>,2>(element);
+    test<RealTuple<double,1>,2>(GeometryTypes::triangle);
+    test<UnitVector<double,2>,2>(GeometryTypes::triangle);
+    test<UnitVector<double,3>,2>(GeometryTypes::triangle);
+    test<Rotation<double,3>,2>(GeometryTypes::triangle);
+    test<RigidBodyMotion<double,3>,2>(GeometryTypes::triangle);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d quadrilateral elements
     ////////////////////////////////////////////////////////////////
-    element.makeCube(2);
 
-    test<RealTuple<double,1>,2>(element);
-    test<UnitVector<double,2>,2>(element);
-    test<UnitVector<double,3>,2>(element);
-    test<Rotation<double,3>,2>(element);
-    test<RigidBodyMotion<double,3>,2>(element);
+    test<RealTuple<double,1>,2>(GeometryTypes::quadrilateral);
+    test<UnitVector<double,2>,2>(GeometryTypes::quadrilateral);
+    test<UnitVector<double,3>,2>(GeometryTypes::quadrilateral);
+    test<Rotation<double,3>,2>(GeometryTypes::quadrilateral);
+    test<RigidBodyMotion<double,3>,2>(GeometryTypes::quadrilateral);
 
 }
