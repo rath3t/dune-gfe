@@ -211,10 +211,10 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
 
       /**
        * \param A The argument of the projection
-       * \param value The image of the projection
+       * \param polar The image of the projection, i.e., the polar factor of A
        */
-      static std::array<std::array<FieldMatrix<field_type,3,3>, 3>, 3> derivativeOfProjection(const FieldMatrix<field_type,3,3> A,
-                                                                       Rotation<field_type,3> value)
+      static std::array<std::array<FieldMatrix<field_type,3,3>, 3>, 3> derivativeOfProjection(const FieldMatrix<field_type,3,3>& A,
+                                                                       FieldMatrix<field_type,3,3>& polar)
       {
         std::array<std::array<FieldMatrix<field_type,3,3>, 3>, 3> result;
 
@@ -224,7 +224,7 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
               for (int l=0; l<3; l++)
                 result[i][j][k][l] = (i==k) and (j==l);
 
-        auto polar = A;
+        polar = A;
 
         // Use Heron's method
         const size_t maxIterations = 3;
@@ -236,20 +236,16 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
             for (size_t j=0; j<polar.M(); j++)
               polar[i][j] = 0.5 * (polar[i][j] + polarInvert[j][i]);
 
-          decltype(result) dQT;
-          for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++)
-              for (int k=0; k<3; k++)
-                for (int l=0; l<3; l++)
-                  dQT[i][j][k][l] = result[i][j][k][l];
+          // Alternative name to align the code better with a description in a math text
+          const auto& dQT = result;
 
           // Multiply from the right with Q^{-T}
-          decltype(result) tmp1, tmp2;
+          decltype(result) tmp2;
           for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
               for (int k=0; k<3; k++)
                 for (int l=0; l<3; l++)
-                  tmp1[i][j][k][l] = tmp2[i][j][k][l] = 0.0;
+                  tmp2[i][j][k][l] = 0.0;
 
           for (int i=0; i<3; i++)
             for (int j=0; j<3; j++)
@@ -357,8 +353,6 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
         for (size_t i=0; i<coefficients_.size(); i++)
           interpolatedMatrix.axpy(w[i][0], coefficientsAsMatrix[i]);
 
-        auto polarFactor = this->polarFactor(interpolatedMatrix);
-
         Tensor3<RT,dim,3,3> derivative(0);
 
         for (size_t dir=0; dir<dim; dir++)
@@ -367,7 +361,8 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
               for (size_t k=0; k<coefficients_.size(); k++)
                 derivative[dir][i][j] += wDer[k][0][dir] * coefficientsAsMatrix[k][i][j];
 
-        auto derivativeOfProjection = this->derivativeOfProjection(interpolatedMatrix,q);
+        FieldMatrix<field_type,3,3> polarFactor;
+        auto derivativeOfProjection = this->derivativeOfProjection(interpolatedMatrix,polarFactor);
 
         Tensor3<field_type,dim,3,3> intermediateResult(0);
 
