@@ -5,12 +5,12 @@ set -e
 runComputation(){
 
 numLevels=$1
-mu_c=$2
-kappa=$3
+deformationOrder=$2
+rotationOrder=$3
 
 #RESULTPATH=`pwd`/richards_surfacewater_results_${leakage}_${richardsonDamping}/
 #LOGFILE=${RESULTPATH}/"richards_${mu_c}_${numLevels}.log"
-LOGFILE="./cosserat_continuum_${mu_c}_${numLevels}_${kappa}.log"
+LOGFILE="./cosserat_continuum_${deformationOrder}_${rotationOrder}_${numLevels}.log"
 
 #echo $RESULTPATH
 
@@ -21,50 +21,35 @@ LOGFILE="./cosserat_continuum_${mu_c}_${numLevels}_${kappa}.log"
 #rm $RESULTPATH/*
 
 #################################################
-#  Make directories for the iterates
-#################################################
-# for i in $(eval echo "{0..$LASTTIMESTEP}"); do
-#     ITERATESDIRNAME=${RESULTPATH}/iterates_$i
-#     if ! test -d ${ITERATESDIRNAME}; then
-#         mkdir ${ITERATESDIRNAME}
-#     fi
-# done
-
-#################################################
 #  run the actual simulation
 #################################################
 
-../cosserat-continuum -numLevels ${numLevels} -materialParameters.mu_c ${mu_c} -materialParameters.kappa ${kappa} | tee ${LOGFILE}
-
-
-#################################################
-#  Delete the directories for the iterates.
-#  If we let the stay they eat up to much memory
-#################################################
+../build-cmake/src/cosserat-continuum-${deformationOrder}-${rotationOrder} cosserat-continuum-cantilever.parset -numLevels ${numLevels} | tee ${LOGFILE}
 
 }
 
 
-MAXPROCS=4
+MAXPROCS=1
 
 
-for numLevels in 1 2 3 4 5; do
+for numLevels in 1 2 3 4; do
 
-    #for mu_c in 3.8462e+05 0; do
-    mu_c=0
+  for order in 3; do
 
-    for kappa in 1 0.1 0.01; do     
- 
     # Do one simulation run
-      runComputation $numLevels $mu_c $kappa &
+    #runComputation $numLevels $order $order
 
-      # Never have more than MAXPROCS processes
-      NPROC=$(($NPROC+1))  
-      if [ "$NPROC" -ge "$MAXPROCS" ]; then  
-          wait  
-          NPROC=0  
-      fi  
-      
-    done
+    #runComputation $numLevels 2 1
+
+    runComputation $numLevels 3 2
+
+    # Never have more than MAXPROCS processes
+    NPROC=$(($NPROC+1))
+    if [ "$NPROC" -ge "$MAXPROCS" ]; then
+      wait
+      NPROC=0
+    fi
+
+done
 
 done
