@@ -193,17 +193,6 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
 
       static const int spaceDim = TargetSpace::TangentVector::dimension;
 
-      static FieldMatrix<field_type,3,3> transpose(const FieldMatrix<field_type,3,3>& matrix)
-      {
-        FieldMatrix<field_type,3,3> result;
-
-        for (int i=0; i<3; i++)
-          for (int j=0; j<3; j++)
-            result[i][j] = matrix[j][i];
-
-        return result;
-      }
-
       static FieldMatrix<field_type,3,3> polarFactor(const FieldMatrix<field_type,3,3>& matrix)
       {
         // Use Higham's method
