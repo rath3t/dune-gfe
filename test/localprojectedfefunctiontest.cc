@@ -258,7 +258,7 @@ int main()
     test<UnitVector<double,2>,1>(element);
     test<UnitVector<double,3>,1>(element);
     test<Rotation<double,3>,1>(element);
-//    test<RigidBodyMotion<double,3>,1>(element);
+    test<RigidBodyMotion<double,3>,1>(element);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d simplex elements
@@ -269,7 +269,7 @@ int main()
     test<UnitVector<double,2>,2>(element);
     test<UnitVector<double,3>,2>(element);
     test<Rotation<double,3>,2>(element);
-//    test<RigidBodyMotion<double,3>,2>(element);
+    test<RigidBodyMotion<double,3>,2>(element);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d quadrilateral elements
@@ -280,6 +280,6 @@ int main()
     test<UnitVector<double,2>,2>(element);
     test<UnitVector<double,3>,2>(element);
     test<Rotation<double,3>,2>(element);
-//    test<RigidBodyMotion<double,3>,2>(element);
+    test<RigidBodyMotion<double,3>,2>(element);
 
 }
