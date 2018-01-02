@@ -170,12 +170,25 @@ int main (int argc, char *argv[])
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
+    BitSetVector<1> dirichletVertices(gridView.size(dim), false);
+    const GridView::IndexSet& indexSet = gridView.indexSet();
 
-    BitSetVector<1> allNodes(grid->size(dim));
-    allNodes.setAll();
-    BoundaryPatch<GridView> dirichletBoundary(gridView, allNodes);
+    // Make Python function that computes which vertices are on the Dirichlet boundary,
+    // based on the vertex positions.
+    std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
+    PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
 
-    BitSetVector<blocksize> dirichletNodes;
+    for (auto&& vertex : vertices(gridView))
+    {
+      //bool isDirichlet;
+      bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
+      pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
+      dirichletVertices[indexSet.index(vertex)] = isDirichlet;
+    }
+
+    BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
+
+    BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
 
     typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
     FufemFEBasis fufemFeBasis(feBasis);
