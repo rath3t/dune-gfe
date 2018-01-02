@@ -212,6 +212,7 @@ int main (int argc, char *argv[]) try
     typedef TargetSpace::rebind<adouble>::other ATargetSpace;
     typedef LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
     //typedef GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
+    std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
 
     // Assembler using ADOL-C
     std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > localEnergy;
