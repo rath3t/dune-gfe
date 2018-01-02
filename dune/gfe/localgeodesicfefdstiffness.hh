@@ -173,8 +173,8 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     field_type centerValue   = -localEnergy_->energy(localView, localASolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
-    std::vector<Dune::array<field_type,blocksize> > forwardEnergy(nDofs);
-    std::vector<Dune::array<field_type,blocksize> > backwardEnergy(nDofs);
+    std::vector<std::array<field_type,blocksize> > forwardEnergy(nDofs);
+    std::vector<std::array<field_type,blocksize> > backwardEnergy(nDofs);
 
     //#pragma omp parallel for schedule (dynamic)
     for (size_t i=0; i<localSolution.size(); i++) {
