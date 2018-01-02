@@ -228,7 +228,7 @@ public:
      */
     RT quadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
     {
-        Dune::FieldMatrix<field_type,3,3> UMinus1 = U;
+        Dune::FieldMatrix<field_type,3,3> UMinus1 = U.matrix();
         for (int i=0; i<dim; i++)
             UMinus1[i][i] -= 1;
 
