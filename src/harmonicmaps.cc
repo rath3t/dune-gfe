@@ -156,10 +156,7 @@ int main (int argc, char *argv[]) try
       i = i<<(numLevels-1);
     FEBasis feBasis(gridView, lower, upper, elements, order);
 #endif
-    typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
-    FufemFEBasis fufemFeBasis(feBasis);
-
-    SolutionType x(fufemFeBasis.size());
+    SolutionType x(feBasis.size());
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -170,6 +167,10 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<GridView> dirichletBoundary(gridView, allNodes);
 
     BitSetVector<blocksize> dirichletNodes;
+
+    typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
+    FufemFEBasis fufemFeBasis(feBasis);
+
     constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
 
     // //////////////////////////
