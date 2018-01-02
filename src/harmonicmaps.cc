@@ -77,7 +77,7 @@ const int order = 1;
 using namespace Dune;
 
 
-int main (int argc, char *argv[]) try
+int main (int argc, char *argv[])
 {
     MPIHelper::instance(argc, argv);
 
@@ -289,8 +289,4 @@ int main (int argc, char *argv[]) try
     outFile.close();
 
     return 0;
- } catch (Exception e) {
-
-    std::cout << e << std::endl;
-
  }
