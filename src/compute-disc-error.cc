@@ -45,7 +45,11 @@ void measureDiscreteEOC(const GridView gridView,
   FEBasis referenceFEBasis(referenceGridView);
 
   //typedef LocalGeodesicFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  //if (parameterSet["interpolationMethod"] != "geodesic")
+  //  DUNE_THROW(Exception, "Inconsistent choice of interpolation method");
   typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  if (parameterSet["interpolationMethod"] != "projected")
+    DUNE_THROW(Exception, "Inconsistent choice of interpolation method");
   std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////////
@@ -199,10 +203,6 @@ void measureAnalyticalEOC(const GridView gridView,
   typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
   FEBasis feBasis(gridView);
 
-  typedef LocalGeodesicFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
-  //typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
-  std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
-
   //////////////////////////////////////////////////////////////////////////////////
   //  Read the data whose error is to be measured
   //////////////////////////////////////////////////////////////////////////////////
@@ -235,19 +235,29 @@ void measureAnalyticalEOC(const GridView gridView,
   auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
 
   // The numerical solution, as a grid function
-  GFE::EmbeddedGlobalGFEFunction<FEBasis, LocalInterpolationRule, TargetSpace> numericalSolution(feBasis, x);
+  std::unique_ptr<VirtualGridViewFunction<GridView, typename TargetSpace::CoordinateType> > numericalSolution;
+
+  if (parameterSet["interpolationMethod"] == "geodesic")
+    numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
+                                                                        LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+                                                                        TargetSpace> > (feBasis, x);
+
+  if (parameterSet["interpolationMethod"] == "projected")
+    numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
+                                                                        GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+                                                                        TargetSpace> > (feBasis, x);
 
   // QuadratureRule for the integral of the L^2 error
   QuadratureRuleKey quadKey(dim,6);
 
   // Compute the embedded L^2 error
-  double l2Error = DiscretizationError<GridView>::computeL2Error(&numericalSolution,
+  double l2Error = DiscretizationError<GridView>::computeL2Error(numericalSolution.get(),
                                                                  referenceSolution.get(),
                                                                  quadKey);
 
   // Compute the embedded H^1 error
   double h1Error = DiscretizationError<GridView>::computeH1HalfNormDifferenceSquared(gridView,
-                                                                                     &numericalSolution,
+                                                                                     numericalSolution.get(),
                                                                                      referenceSolution.get(),
                                                                                      quadKey);
 
