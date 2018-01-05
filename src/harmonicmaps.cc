@@ -38,7 +38,6 @@ namespace Dune {
 #include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
-#include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
