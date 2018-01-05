@@ -35,7 +35,6 @@ namespace Dune {
 #include <dune/functions/functionspacebases/interpolate.hh>
 
 #include <dune/fufem/boundarypatch.hh>
-#include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/dunepython.hh>
@@ -205,16 +204,14 @@ int main (int argc, char *argv[])
     // //////////////////////////
 
     // Read initial iterate into a PythonFunction
-    typedef VirtualDifferentiableFunction<FieldVector<double, dim>, TargetSpace::CoordinateType> FBase;
-
     Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
-    auto pythonInitialIterate = module.get("fdf").toC<std::shared_ptr<FBase>>();
+    auto pythonInitialIterate = Python::makeFunction<TargetSpace::CoordinateType(const FieldVector<double,dim>&)>(module.get("f"));
 
     std::vector<TargetSpace::CoordinateType> v;
 #ifdef LAGRANGE
-    ::Functions::interpolate(fufemFeBasis, v, *pythonInitialIterate);
+    Dune::Functions::interpolate(feBasis, v, pythonInitialIterate);
 #else
-    Dune::Functions::interpolate(feBasis, v, *pythonInitialIterate, lower, upper, elements, order);
+    Dune::Functions::interpolate(feBasis, v, pythonInitialIterate, lower, upper, elements, order);
 #endif
 
     for (size_t i=0; i<x.size(); i++)
