@@ -132,13 +132,19 @@ int main (int argc, char *argv[])
     FieldVector<double,dim> lower(0), upper(1);
     std::array<unsigned int,dim> elements;
 
-    if (parameterSet.get<bool>("structuredGrid")) {
+    std::string structuredGridType = parameterSet["structuredGrid"];
+    if (structuredGridType != "false" ) {
 
         lower = parameterSet.get<FieldVector<double,dim> >("lower");
         upper = parameterSet.get<FieldVector<double,dim> >("upper");
 
         elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
-        grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+        if (structuredGridType == "simplex")
+            grid = StructuredGridFactory<GridType>::createSimplexGrid(lower, upper, elements);
+        else if (structuredGridType == "cube")
+            grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+        else
+          DUNE_THROW(Exception, "Unknown structured grid type '" << structuredGridType << "' found!");
 
     } else {
 
