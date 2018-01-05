@@ -185,7 +185,7 @@ void measureDiscreteEOC(const GridView gridView,
             << "      "
             << "L^2 error: " << std::sqrt(l2ErrorSquared)
             << "      "
-            << "H^1 error: " << std::sqrt(l2ErrorSquared + h1ErrorSquared)
+            << "h^1 error: " << std::sqrt(h1ErrorSquared)
             << std::endl;
   }
 }
@@ -265,7 +265,7 @@ void measureAnalyticalEOC(const GridView gridView,
             << "      "
             << "L^2 error: " << l2Error
             << "      ";
-  std::cout << "H^1 error: " << std::sqrt(l2Error*l2Error + h1Error) << std::endl;
+  std::cout << "h^1 error: " << std::sqrt(h1Error) << std::endl;
 }
 
 template <class GridType, class TargetSpace>
