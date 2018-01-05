@@ -6,6 +6,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
 
+#include <dune/fufem/functions/virtualgridfunction.hh>
+
 namespace Dune {
 
   namespace GFE {
