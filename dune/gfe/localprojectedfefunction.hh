@@ -159,7 +159,7 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
           for (size_t k=0; k<coefficients_.size(); k++)
             derivative[i][j] += wDer[k][0][j] * coefficients_[k].globalCoordinates()[i];
 
-      typename TargetSpace::DerivativeOfProjection derivativeOfProjection = TargetSpace::derivativeOfProjection(embeddedInterpolation);
+      auto derivativeOfProjection = TargetSpace::derivativeOfProjection(embeddedInterpolation);
 
       typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType result;
 
