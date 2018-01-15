@@ -122,7 +122,7 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
       for (size_t i=0; i<coefficients_.size(); i++)
         c.axpy(w[i][0], coefficients_[i].globalCoordinates());
 
-      return TargetSpace(c);
+      return TargetSpace::projectOnto(c);
     }
 
     template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>

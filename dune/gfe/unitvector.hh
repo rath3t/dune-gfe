@@ -403,6 +403,13 @@ public:
         return result;
     }
 
+    static UnitVector<T,N> projectOnto(const CoordinateType& p)
+    {
+      UnitVector<T,N> result(p);
+      result.data_ /= result.data_.two_norm();
+      return result;
+    }
+
     static DerivativeOfProjection derivativeOfProjection(const Dune::FieldVector<T,N>& p)
     {
       Dune::FieldMatrix<T,N,N> result;

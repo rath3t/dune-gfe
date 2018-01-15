@@ -176,6 +176,15 @@ public:
         return EmbeddedTangentVector(0);
     }
 
+    /** \brief Projection from the embedding space onto the manifold
+     *
+     * For RealTuples this is simply the identity map
+     */
+    static RealTuple<T,N> projectOnto(const CoordinateType& p)
+    {
+      return RealTuple<T,N>(p);
+    }
+
     /** \brief Derivative of the projection from the embedding space onto the manifold
      *
      * For RealTuples this is simply the identity
