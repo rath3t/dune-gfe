@@ -233,7 +233,7 @@ public:
       return *this;
     }
 
-    /** \brief Assigment from RigidBodyMotion with different type -- used for automatic differentiation with ADOL-C */
+    /** \brief Assigment from Rotation with different type -- used for automatic differentiation with ADOL-C */
     template <class T2>
     Rotation& operator <<= (const Rotation<T2,3>& other) {
         for (int i=0; i<4; i++)
