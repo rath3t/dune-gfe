@@ -177,16 +177,22 @@ def f(x):
 
     alpha = 2*math.pi*x[0]
     beta  = 2*math.pi*x[1]
+    gamma = 2*math.pi*x[2]
 
     rotationX = [[1, 0, 0],
                  [0, cos(alpha), -sin(alpha)],
                  [0, sin(alpha),  cos(alpha)]]
 
-    rotationZ = [[cos(beta), -sin(beta), 0],
-                 [sin(beta),  cos(beta), 0],
+    rotationY = [[cos(beta), 0, -sin(beta)],
+                 [0,          1, 0],
+                 [sin(beta), 0,  cos(beta)]]
+
+    rotationZ = [[cos(gamma), -sin(gamma), 0],
+                 [sin(gamma),  cos(gamma), 0],
                  [0, 0, 1]]
 
-    m = mult(rotationX,rotationZ)
+    m = mult(rotationX,rotationY)
+    m = mult(m,rotationZ)
 
     return matrixToQuaternion(m)
 
@@ -194,6 +200,7 @@ def df(x):
 
     alpha = 2*math.pi*x[0]
     beta  = 2*math.pi*x[1]
+    gamma = 2*math.pi*x[2]
 
     rotationX = [[1, 0, 0],
                  [0, cos(alpha), -sin(alpha)],
@@ -203,30 +210,47 @@ def df(x):
                  [0, -2*math.pi*sin(alpha), -2*math.pi*cos(alpha)],
                  [0,  2*math.pi*cos(alpha), -2*math.pi*sin(alpha)]]
 
-    rotationZ = [[cos(beta), -sin(beta), 0],
-                 [sin(beta),  cos(beta), 0],
+    rotationY = [[cos(beta), 0, -sin(beta)],
+                 [0,          1, 0],
+                 [sin(beta), 0,  cos(beta)]]
+
+    derRotY   = [[-2*math.pi*sin(beta), 0, -2*math.pi*cos(beta)],
+                 [0,          0, 0],
+                 [ 2*math.pi*cos(beta), 0, -2*math.pi*sin(beta)]]
+
+    rotationZ = [[cos(gamma), -sin(gamma), 0],
+                 [sin(gamma),  cos(gamma), 0],
                  [0, 0, 1]]
 
-    derRotZ   = [[-2*math.pi*sin(beta), -2*math.pi*cos(beta), 0],
-                 [ 2*math.pi*cos(beta), -2*math.pi*sin(beta), 0],
+    derRotZ   = [[-2*math.pi*sin(gamma), -2*math.pi*cos(gamma), 0],
+                 [ 2*math.pi*cos(gamma), -2*math.pi*sin(gamma), 0],
                  [0, 0, 0]]
+
+    # The derivative in matrix space
+    derX0 = mult(derRotX,rotationY)
+    derX0 = mult(derX0,rotationZ)
+
+    derX1 = mult(rotationX,derRotY)
+    derX1 = mult(derX1,rotationZ)
+
+    derX2 = mult(rotationX,rotationY)
+    derX2 = mult(derX2,derRotZ)
 
     # The function value as matrix
     # CAREFUL! We are reimplementing method 'f' here -- the two implementations need to match!
-    value = mult(rotationX,rotationZ)
-
-    derX0 = mult(derRotX,rotationZ)
-    derX1 = mult(rotationX,derRotZ)
+    value = mult(rotationX,rotationY)
+    value = mult(value,rotationZ)
 
     derOfMatrixToQuaternion = derivativeOfMatrixToQuaternion(value)
 
-    result = [[0,0],[0,0],[0,0],[0,0]]
+    result = [[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
 
     for i in range(0,4):
         for j in range(0,3):
             for k in range(0,3):
                 result[i][0] += derOfMatrixToQuaternion[i][j][k] * derX0[j][k]
                 result[i][1] += derOfMatrixToQuaternion[i][j][k] * derX1[j][k]
+                result[i][2] += derOfMatrixToQuaternion[i][j][k] * derX2[j][k]
 
     return result
 
