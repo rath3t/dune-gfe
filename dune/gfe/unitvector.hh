@@ -3,6 +3,7 @@
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
+#include <dune/common/power.hh>
 
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/symmetricmatrix.hh>
