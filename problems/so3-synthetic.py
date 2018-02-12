@@ -177,7 +177,11 @@ def f(x):
 
     alpha = 2*math.pi*x[0]
     beta  = 2*math.pi*x[1]
-    gamma = 2*math.pi*x[2]
+    # Dependency on third coordinate only if it exists
+    if len(x)==3:
+        gamma = 2*math.pi*x[2]
+    else:
+        gamma = 0
 
     rotationX = [[1, 0, 0],
                  [0, cos(alpha), -sin(alpha)],
@@ -200,7 +204,11 @@ def df(x):
 
     alpha = 2*math.pi*x[0]
     beta  = 2*math.pi*x[1]
-    gamma = 2*math.pi*x[2]
+    # Dependency on third coordinate only if it exists
+    if len(x)==3:
+        gamma = 2*math.pi*x[2]
+    else:
+        gamma = 0
 
     rotationX = [[1, 0, 0],
                  [0, cos(alpha), -sin(alpha)],
@@ -222,9 +230,15 @@ def df(x):
                  [sin(gamma),  cos(gamma), 0],
                  [0, 0, 1]]
 
-    derRotZ   = [[-2*math.pi*sin(gamma), -2*math.pi*cos(gamma), 0],
-                 [ 2*math.pi*cos(gamma), -2*math.pi*sin(gamma), 0],
-                 [0, 0, 0]]
+    # Dependency on third coordinate only if it exists
+    if len(x)==3:
+        derRotZ   = [[-2*math.pi*sin(gamma), -2*math.pi*cos(gamma), 0],
+                     [ 2*math.pi*cos(gamma), -2*math.pi*sin(gamma), 0],
+                     [0, 0, 0]]
+    else:
+        derRotZ   = [[0, 0, 0],
+                     [0, 0, 0],
+                     [0, 0, 0]]
 
     # The derivative in matrix space
     derX0 = mult(derRotX,rotationY)
@@ -243,14 +257,19 @@ def df(x):
 
     derOfMatrixToQuaternion = derivativeOfMatrixToQuaternion(value)
 
-    result = [[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
+    if (len(x)==3):
+        result = [[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
+    else:
+        result = [[0,0],[0,0],[0,0],[0,0]]
+
 
     for i in range(0,4):
         for j in range(0,3):
             for k in range(0,3):
                 result[i][0] += derOfMatrixToQuaternion[i][j][k] * derX0[j][k]
                 result[i][1] += derOfMatrixToQuaternion[i][j][k] * derX1[j][k]
-                result[i][2] += derOfMatrixToQuaternion[i][j][k] * derX2[j][k]
+                if (len(x)==3):
+                    result[i][2] += derOfMatrixToQuaternion[i][j][k] * derX2[j][k]
 
     return result
 
