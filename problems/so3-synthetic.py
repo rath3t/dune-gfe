@@ -173,13 +173,16 @@ def mult(m1,m2):
 
     return m
 
+# Scale the domain by this factor
+scale = 0.2 * math.pi
+
 def f(x):
 
-    alpha = 2*math.pi*x[0]
-    beta  = 2*math.pi*x[1]
+    alpha = scale*x[0]
+    beta  = scale*x[1]
     # Dependency on third coordinate only if it exists
     if len(x)==3:
-        gamma = 2*math.pi*x[2]
+        gamma = scale*x[2]
     else:
         gamma = 0
 
@@ -202,11 +205,11 @@ def f(x):
 
 def df(x):
 
-    alpha = 2*math.pi*x[0]
-    beta  = 2*math.pi*x[1]
+    alpha = scale*x[0]
+    beta  = scale*x[1]
     # Dependency on third coordinate only if it exists
     if len(x)==3:
-        gamma = 2*math.pi*x[2]
+        gamma = scale*x[2]
     else:
         gamma = 0
 
@@ -215,16 +218,16 @@ def df(x):
                  [0, sin(alpha),  cos(alpha)]]
 
     derRotX   = [[0, 0, 0],
-                 [0, -2*math.pi*sin(alpha), -2*math.pi*cos(alpha)],
-                 [0,  2*math.pi*cos(alpha), -2*math.pi*sin(alpha)]]
+                 [0, -scale*sin(alpha), -scale*cos(alpha)],
+                 [0,  scale*cos(alpha), -scale*sin(alpha)]]
 
     rotationY = [[cos(beta), 0, -sin(beta)],
                  [0,          1, 0],
                  [sin(beta), 0,  cos(beta)]]
 
-    derRotY   = [[-2*math.pi*sin(beta), 0, -2*math.pi*cos(beta)],
+    derRotY   = [[-scale*sin(beta), 0, -scale*cos(beta)],
                  [0,          0, 0],
-                 [ 2*math.pi*cos(beta), 0, -2*math.pi*sin(beta)]]
+                 [ scale*cos(beta), 0, -scale*sin(beta)]]
 
     rotationZ = [[cos(gamma), -sin(gamma), 0],
                  [sin(gamma),  cos(gamma), 0],
@@ -232,8 +235,8 @@ def df(x):
 
     # Dependency on third coordinate only if it exists
     if len(x)==3:
-        derRotZ   = [[-2*math.pi*sin(gamma), -2*math.pi*cos(gamma), 0],
-                     [ 2*math.pi*cos(gamma), -2*math.pi*sin(gamma), 0],
+        derRotZ   = [[-scale*sin(gamma), -scale*cos(gamma), 0],
+                     [ scale*cos(gamma), -scale*sin(gamma), 0],
                      [0, 0, 0]]
     else:
         derRotZ   = [[0, 0, 0],
