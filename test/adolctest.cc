@@ -487,12 +487,12 @@ int main (int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     CosseratEnergyLocalStiffness<FEBasis,
-                                 3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters, nullptr, nullptr);
+                                 3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters, nullptr, nullptr, nullptr);
 
     LocalADOLCStiffness<FEBasis> localADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
 
     CosseratEnergyLocalStiffness<FEBasis,
-                                 3,FDType> cosseratEnergyFDLocalStiffness(materialParameters, nullptr, nullptr);
+                                 3,FDType> cosseratEnergyFDLocalStiffness(materialParameters, nullptr, nullptr, nullptr);
 
     LocalFDStiffness<FEBasis,FDType> localFDStiffness(&cosseratEnergyFDLocalStiffness);
 
