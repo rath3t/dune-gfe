@@ -4,6 +4,8 @@
 
 #include <fenv.h>
 
+#include <array>
+
 //#define MULTIPRECISION
 
 #ifdef MULTIPRECISION
@@ -283,8 +285,8 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     field_type centerValue   = -localEnergy_->energy(localView, localASolution);
 
     // Precompute energy infinitesimal corrections in the directions of the local basis vectors
-    std::vector<Dune::array<field_type,embeddedBlocksize> > forwardEnergy(nDofs);
-    std::vector<Dune::array<field_type,embeddedBlocksize> > backwardEnergy(nDofs);
+    std::vector<std::array<field_type,embeddedBlocksize> > forwardEnergy(nDofs);
+    std::vector<std::array<field_type,embeddedBlocksize> > backwardEnergy(nDofs);
 
     for (size_t i=0; i<localSolution.size(); i++) {
         for (size_t i2=0; i2<embeddedBlocksize; i2++) {
@@ -394,7 +396,7 @@ void compareMatrices(const Matrix<FieldMatrix<double,N,N> >& matrixA, std::strin
           double absDifference = valueA - valueB;
           double relDifference = std::abs(absDifference) / std::abs(valueA);
           maxAbsDifference = std::max(maxAbsDifference, std::abs(absDifference));
-          if (not isinf(relDifference))
+          if (not std::isinf(relDifference))
             maxRelDifference = std::max(maxRelDifference, relDifference);
 
           if (relDifference > 1)
@@ -421,7 +423,7 @@ int main (int argc, char *argv[]) try
 
     FieldVector<double,dim> upper = {{0.38, 0.128}};
 
-    array<int,dim> elements = {{15, 5}};
+    std::array<int,dim> elements = {{5, 5}};
     GridType grid(upper, elements);
 
     typedef GridType::LeafGridView GridView;

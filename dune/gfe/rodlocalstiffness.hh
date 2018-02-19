@@ -1,6 +1,8 @@
 #ifndef ROD_LOCAL_STIFFNESS_HH
 #define ROD_LOCAL_STIFFNESS_HH
 
+#include <array>
+
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 #include <dune/geometry/quadraturerules.hh>
@@ -583,7 +585,7 @@ assembleGradient(const Entity& element,
         q.getFirstDerivativesOfDirectors(dd_dq);
 
         // First derivatives of the position
-        array<Quaternion<double>,6> dq_dwij;
+        std::array<Quaternion<double>,6> dq_dwij;
         interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
 
         // /////////////////////////////////////////////
@@ -654,10 +656,10 @@ assembleGradient(const Entity& element,
         FieldVector<double,blocksize> referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
 
         // First derivatives of the position
-        array<Quaternion<double>,6> dq_dwij;
+        std::array<Quaternion<double>,6> dq_dwij;
         interpolationDerivative(solution[0].q, solution[1].q, quadPos, dq_dwij);
 
-        array<Quaternion<double>,6> dq_ds_dwij;
+        std::array<Quaternion<double>,6> dq_ds_dwij;
         interpolationVelocityDerivative(solution[0].q, solution[1].q, quadPos[0]*intervalLength, intervalLength,
                                         dq_ds_dwij);
 
