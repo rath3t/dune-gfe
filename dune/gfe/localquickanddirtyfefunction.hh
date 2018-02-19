@@ -74,17 +74,7 @@ namespace Dune {
 
       /** \brief Evaluate the function */
       TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
-#if 0
-      /** \brief Evaluate the derivative of the function */
-      DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
 
-      /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
-       *        \param local Local coordinates in the reference element where to evaluate the derivative
-       *        \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
-       */
-      DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
-                                        const TargetSpace& q) const;
-#endif
       /** \brief Get the i'th base coefficient. */
       TargetSpace coefficient(int i) const
       {
@@ -116,56 +106,6 @@ namespace Dune {
 
       return TargetSpace(c);
     }
-#if 0
-    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-    typename LocalQuickAndDirtyFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
-    LocalQuickAndDirtyFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-    evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
-    {
-      // the function value at the point where we are evaluating the derivative
-      TargetSpace q = evaluate(local);
-
-      // Actually compute the derivative
-      return evaluateDerivative(local,q);
-    }
-
-    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-    typename LocalQuickAndDirtyFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
-    LocalQuickAndDirtyFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-    evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
-    {
-      // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-      std::vector<Dune::FieldVector<ctype,1> > w;
-      localFiniteElement_.localBasis().evaluateFunction(local,w);
-
-      std::vector<Dune::FieldMatrix<ctype,1,dim> > wDer;
-      localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
-
-      typename TargetSpace::CoordinateType embeddedInterpolation(0);
-      for (size_t i=0; i<coefficients_.size(); i++)
-        embeddedInterpolation.axpy(w[i][0], coefficients_[i].globalCoordinates());
-
-      Dune::FieldMatrix<RT,embeddedDim,dim> derivative(0);
-      for (size_t i=0; i<embeddedDim; i++)
-        for (size_t j=0; j<dim; j++)
-          for (size_t k=0; k<coefficients_.size(); k++)
-            derivative[i][j] += wDer[k][0][j] * coefficients_[k].globalCoordinates()[i];
-
-      auto derivativeOfProjection = TargetSpace::derivativeOfProjection(embeddedInterpolation);
-
-      typename LocalQuickAndDirtyFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType result;
-
-      for (size_t i=0; i<result.N(); i++)
-        for (size_t j=0; j<result.M(); j++)
-        {
-          result[i][j] = 0;
-          for (size_t k=0; k<derivativeOfProjection.M(); k++)
-            result[i][j] += derivativeOfProjection[i][k]*derivative[k][j];
-        }
-
-      return result;
-    }
-#endif
   }   // namespace GFE
 
 }   // namespace Dune
