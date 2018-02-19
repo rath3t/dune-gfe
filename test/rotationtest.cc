@@ -98,9 +98,9 @@ void testDerivativeOfInterpolatedPosition()
 {
     std::array<Rotation<double,3>, 6> q;
 
-    FieldVector<double,3>  xAxis(0);    xAxis[0] = 1;
-    FieldVector<double,3>  yAxis(0);    yAxis[1] = 1;
-    FieldVector<double,3>  zAxis(0);    zAxis[2] = 1;
+    FieldVector<double,3>  xAxis = {1,0,0};
+    FieldVector<double,3>  yAxis = {0,1,0};
+    FieldVector<double,3>  zAxis = {0,0,1};
 
     q[0] = Rotation<double,3>(xAxis, 0);
     q[1] = Rotation<double,3>(xAxis, M_PI/2);
@@ -156,9 +156,8 @@ void testDerivativeOfInterpolatedPosition()
                 //   Second: test the interpolated velocity vector
                 // ///////////////////////////////////////////////////////////
 
-                for (int l=1; l<7; l++) {
-
-                    double intervalLength = l/(double(3));
+                for (const double intervalLength : {1.0/3, 2.0/3, 3.0/3, 4.0/3, 5.0/3, 6.0/3, 7.0/3})
+                {
                     Dune::FieldVector<double,3> variation;
                     
                     for (int m=0; m<3; m++) {
