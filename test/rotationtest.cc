@@ -181,6 +181,10 @@ void testDerivativeOfInterpolatedPosition()
                         
                     }
                     
+                    // Scale the finite difference gradient with the interval length
+                    for (auto& parDer : fdGrad)
+                        parDer /= intervalLength;
+
                     // Compute analytical velocity vector gradient
                     RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s, intervalLength, grad);
                     
