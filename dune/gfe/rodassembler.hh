@@ -47,7 +47,7 @@ public:
                  RodLocalStiffness<GridView,double>* localStiffness)
         : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,localStiffness)
         {
-            std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.indexSet().size());
+            std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.size());
 
             auto it    = basis.gridView().template begin<gridDim>();
             auto endIt = basis.gridView().template end<gridDim>();

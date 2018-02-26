@@ -18,7 +18,7 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
 {
     using namespace Dune;
 
-    if (sol.size()!=this->basis_.indexSet().size())
+    if (sol.size()!=this->basis_.size())
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
     grad.resize(sol.size());
@@ -26,7 +26,7 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
 
     // A view on the FE basis on a single element
     auto localView = this->basis_.localView();
-    auto localIndexSet = this->basis_.indexSet().localIndexSet();
+    auto localIndexSet = this->basis_.localIndexSet();
 
     ElementIterator it    = this->basis_.gridView().template begin<0>();
     ElementIterator endIt = this->basis_.gridView().template end<0>();

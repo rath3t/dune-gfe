@@ -170,7 +170,7 @@ int main (int argc, char *argv[]) try
 
 
 
-    std::cout << "Deformation: " << deformationFEBasis.indexSet().size() << ",   orientation: " << orientationFEBasis.indexSet().size() << std::endl;
+    std::cout << "Deformation: " << deformationFEBasis.size() << ",   orientation: " << orientationFEBasis.size() << std::endl;
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -208,7 +208,7 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
-    BitSetVector<1> neumannNodes(deformationFEBasis.indexSet().size(), false);
+    BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
     constructBoundaryDofs(neumannBoundary,fufemDeformationFEBasis,neumannNodes);
 
 
@@ -216,20 +216,20 @@ int main (int argc, char *argv[]) try
       std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
 
-    BitSetVector<1> deformationDirichletNodes(deformationFEBasis.indexSet().size(), false);
+    BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
     constructBoundaryDofs(dirichletBoundary,fufemDeformationFEBasis,deformationDirichletNodes);
 
-    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.indexSet().size(), false);
-    for (size_t i=0; i<deformationFEBasis.indexSet().size(); i++)
+    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
+    for (size_t i=0; i<deformationFEBasis.size(); i++)
       if (deformationDirichletNodes[i][0])
         for (int j=0; j<3; j++)
           deformationDirichletDofs[i][j] = true;
 
-    BitSetVector<1> orientationDirichletNodes(orientationFEBasis.indexSet().size(), false);
+    BitSetVector<1> orientationDirichletNodes(orientationFEBasis.size(), false);
     constructBoundaryDofs(dirichletBoundary,fufemOrientationFEBasis,orientationDirichletNodes);
 
-    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.indexSet().size(), false);
-    for (size_t i=0; i<orientationFEBasis.indexSet().size(); i++)
+    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
+    for (size_t i=0; i<orientationFEBasis.size(); i++)
       if (orientationDirichletNodes[i][0])
         for (int j=0; j<3; j++)
           orientationDirichletDofs[i][j] = true;
@@ -240,7 +240,7 @@ int main (int argc, char *argv[]) try
 
     SolutionType x;
 
-    x[_0].resize(deformationFEBasis.indexSet().size());
+    x[_0].resize(deformationFEBasis.size());
 
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
@@ -251,7 +251,7 @@ int main (int argc, char *argv[]) try
     for (size_t i=0; i<x[_0].size(); i++)
       x[_0][i] = v[i];
 
-    x[_1].resize(orientationFEBasis.indexSet().size());
+    x[_1].resize(orientationFEBasis.size());
 #if 0
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));

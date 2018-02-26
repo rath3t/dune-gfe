@@ -170,7 +170,7 @@ int main (int argc, char *argv[]) try
 
   BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), dirichletVertices);
 
-  BitSetVector<blocksize> dirichletNodes(feBasis.indexSet().size(), false);
+  BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
   constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
 
   ////////////////////////////
@@ -186,7 +186,7 @@ int main (int argc, char *argv[]) try
   std::vector<TargetSpace::CoordinateType> v;
   ::Functions::interpolate(fufemFeBasis, v, *pythonInitialIterate);
 
-  SolutionType x(feBasis.indexSet().size());
+  SolutionType x(feBasis.size());
 
   for (size_t i=0; i<x.size(); i++)
     x[i] = v[i];
