@@ -62,7 +62,7 @@ public:
     auto rodEnergy()
     {
       // TODO: Does not work for other stiffness implementations
-      auto localFDStiffness = dynamic_cast<LocalGeodesicFEFDStiffness<Basis, RigidBodyMotion<double,3> >*>(this->localStiffness_);
+      auto localFDStiffness = std::dynamic_pointer_cast<LocalGeodesicFEFDStiffness<Basis, RigidBodyMotion<double,3> > >(this->localStiffness_);
       return const_cast<RodLocalStiffness<GridView,double>*>(dynamic_cast<const RodLocalStiffness<GridView,double>*>(localFDStiffness->localEnergy_));
     }
 

@@ -8,6 +8,7 @@
 
 #include "localgeodesicfestiffness.hh"
 
+#include <dune/solvers/common/wrapownshare.hh>
 
 /** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces
  */
@@ -15,6 +16,7 @@ template <class Basis, class TargetSpace>
 class GeodesicFEAssembler {
 
     typedef typename Basis::GridView GridView;
+    using LocalStiffness = LocalGeodesicFEStiffness<Basis, TargetSpace>;
 
     //! Dimension of the grid.
     enum { gridDim = GridView::dimension };
@@ -25,21 +27,50 @@ class GeodesicFEAssembler {
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
 
-public:
-    const Basis basis_;
 
 protected:
 
-    LocalGeodesicFEStiffness<Basis,TargetSpace>* localStiffness_;
+    //! The global basis
+    const Basis basis_;
+
+    //! The local stiffness operator
+    std::shared_ptr<LocalStiffness> localStiffness_;
 
 public:
 
     /** \brief Constructor for a given grid */
-    GeodesicFEAssembler(const Basis& basis,
-                        LocalGeodesicFEStiffness<Basis, TargetSpace>* localStiffness)
-        : basis_(basis),
-          localStiffness_(localStiffness)
+    GeodesicFEAssembler(const Basis& basis)
+        : basis_(basis)
     {}
+
+    /** \brief Constructor for a given grid */
+    template <class LocalStiffnessT>
+    GeodesicFEAssembler(const Basis& basis,
+                        LocalStiffnessT&& localStiffness)
+        : basis_(basis),
+          localStiffness_(Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness)))
+    {}
+
+    /** \brief Set the local stiffness assembler. This can be a temporary, l-value or shared pointer. */
+    template <class LocalStiffnessT>
+    void setLocalStiffness(LocalStiffnessT&& localStiffness) {
+        localStiffness_ = Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness));
+    }
+
+    /** \brief Get the local stiffness operator. */
+    const LocalStiffness& getLocalStiffness() const {
+        return *localStiffness_;
+    }
+
+    /** \brief Get the local stiffness operator. */
+    LocalStiffness& getLocalStiffness() {
+        return *localStiffness_;
+    }
+
+    /** \brief Get the basis. */
+    const Basis& getBasis() const {
+        return basis_;
+    }
 
     /** \brief Assemble the tangent stiffness matrix and the functional gradient together
      *

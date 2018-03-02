@@ -98,7 +98,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
 
             double weight = quad[pt].weight() * element.geometry().integrationElement(quadPos);
 
-            FieldVector<double,blocksize> localStrain = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->getStrain(localSolution, element, quad[pt].position());
+            FieldVector<double,blocksize> localStrain = std::dynamic_pointer_cast<RodLocalStiffness<GridView, double> >(this->localStiffness_)->getStrain(localSolution, element, quad[pt].position());
 
             // Sum it all up
             strain[elementIdx].axpy(weight, localStrain);
