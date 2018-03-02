@@ -41,7 +41,7 @@ class RodAssembler<Basis,3> : public GeodesicFEAssembler<Basis, RigidBodyMotion<
 public:
         //! ???
     RodAssembler(const Basis& basis,
-                 LocalGeodesicFEStiffness<Basis, RigidBodyMotion<double,3> >* localStiffness)
+                 LocalGeodesicFEStiffness<Basis, RigidBodyMotion<double,3> >& localStiffness)
     : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,localStiffness)
         {
             std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.size());

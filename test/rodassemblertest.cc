@@ -553,7 +553,7 @@ int main (int argc, char *argv[]) try
 
     LocalGeodesicFEFDStiffness<Basis,RigidBodyMotion<double,3> > localFDStiffness(&localStiffness);
 
-    RodAssembler<Basis,3> rodAssembler(basis, &localFDStiffness);
+    RodAssembler<Basis,3> rodAssembler(basis, localFDStiffness);
 
     std::cout << "Energy: " << rodAssembler.computeEnergy(x) << std::endl;
 

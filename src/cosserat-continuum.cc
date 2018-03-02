@@ -462,7 +462,7 @@ int main (int argc, char *argv[]) try
     LocalGeodesicFEADOLCStiffness<FEBasis,
                                   TargetSpace> localGFEADOLCStiffness(localCosseratEnergy.get());
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, &localGFEADOLCStiffness);
+    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, localGFEADOLCStiffness);
 #endif
 
     // /////////////////////////////////////////////////
