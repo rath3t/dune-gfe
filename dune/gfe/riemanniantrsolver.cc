@@ -105,7 +105,7 @@ setup(const GridType& grid,
     mmgStep->ignoreNodes_ = globalDirichletNodes;
     mmgStep->setBaseSolver(std::move(baseSolver));
     mmgStep->setSmoother(smoother);
-    mmgStep->setObstacleRestrictor(std::make_shared<MandelObstacleRestrictor<CorrectionType> >());
+    mmgStep->setObstacleRestrictor(MandelObstacleRestrictor<CorrectionType>{});
     mmgStep->setVerbosity(Solver::QUIET);
 
     // //////////////////////////////////////////////////////////////////////////////////////
