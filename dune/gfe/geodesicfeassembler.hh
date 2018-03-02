@@ -15,6 +15,7 @@
 template <class Basis, class TargetSpace>
 class GeodesicFEAssembler {
 
+    using field_type = typename TargetSpace::field_type;
     typedef typename Basis::GridView GridView;
     using LocalStiffness = LocalGeodesicFEStiffness<Basis, TargetSpace>;
 
@@ -78,7 +79,7 @@ public:
      * anyway to compute the Riemannian Hessian.
      */
     virtual void assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
-                                            Dune::BlockVector<Dune::FieldVector<double, blocksize> >& gradient,
+                                            Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >& gradient,
                                             Dune::BCRSMatrix<MatrixBlock>& hessian,
                                             bool computeOccupationPattern=true) const;
 
@@ -134,7 +135,7 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 template <class Basis, class TargetSpace>
 void GeodesicFEAssembler<Basis,TargetSpace>::
 assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
-                           Dune::BlockVector<Dune::FieldVector<double, blocksize> >& gradient,
+                           Dune::BlockVector<Dune::FieldVector<field_type, blocksize> > &gradient,
                            Dune::BCRSMatrix<MatrixBlock>& hessian,
                            bool computeOccupationPattern) const
 {
