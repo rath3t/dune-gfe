@@ -186,8 +186,8 @@ void testDerivativeOfInterpolatedPosition()
                         parDer /= intervalLength;
 
                     // Compute analytical velocity vector gradient
-                    RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s, intervalLength, grad);
-                    
+                    RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s*intervalLength, intervalLength, grad);
+
                     for (int m=0; m<6; m++) {
                         Quaternion<double> diff = fdGrad[m];
                         diff -= grad[m];
