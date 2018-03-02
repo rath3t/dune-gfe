@@ -40,14 +40,14 @@ void testDDExp()
             for (int k=0; k<3; k++) {
 
                 if (j==k) {
-                    
+
                     SkewMatrix<double,3> forward(v[i]);
                     forward.axial()[j] += eps;
                     Rotation<double,3> forwardQ  = Rotation<double,3>::exp(forward);
-                    
+
                     SkewMatrix<double,3> center(v[i]);
                     Rotation<double,3> centerQ   = Rotation<double,3>::exp(center);
-                    
+
                     SkewMatrix<double,3> backward(v[i]);
                     backward.axial()[j] -= eps;
                     Rotation<double,3> backwardQ = Rotation<double,3>::exp(backward);
@@ -86,8 +86,8 @@ void testDDExp()
             for (int j=0; j<3; j++)
                 for (int k=0; k<3; k++)
                     if ( std::abs(fdDDExp[m][j][k] - ddExp[m][j][k]) > eps) {
-                        std::cout << "Error at v = " << v[i] 
-                                  << "[" << m << ", " << j << ", " << k << "] " 
+                        std::cout << "Error at v = " << v[i]
+                                  << "[" << m << ", " << j << ", " << k << "] "
                                   << "    fd: " << fdDDExp[m][j][k]
                                   << "    analytical: " << ddExp[m][j][k] << std::endl;
                     }
@@ -146,7 +146,7 @@ void testDerivativeOfInterpolatedPosition()
                     Quaternion<double> diff = fdGrad[l];
                     diff -= grad[l];
                     if (diff.two_norm() > 1e-6) {
-                        std::cout << "Error in position " << l << ":  fd: " << fdGrad[l] 
+                        std::cout << "Error in position " << l << ":  fd: " << fdGrad[l]
                                   << "    analytical: " << grad[l] << std::endl;
                     }
 
@@ -159,44 +159,44 @@ void testDerivativeOfInterpolatedPosition()
                 for (const double intervalLength : {1.0/3, 2.0/3, 3.0/3, 4.0/3, 5.0/3, 6.0/3, 7.0/3})
                 {
                     Dune::FieldVector<double,3> variation;
-                    
+
                     for (int m=0; m<3; m++) {
                         variation = 0;
                         variation[m] = eps;
-                        fdGrad[m] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
+                        fdGrad[m] =  Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))),
                                                                                q[j], s);
                         variation = 0;
                         variation[m] = -eps;
-                        fdGrad[m] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), 
+                        fdGrad[m] -= Rotation<double,3>::interpolateDerivative(q[i].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))),
                                                                                q[j], s);
                         fdGrad[m] /= 2*eps;
-                        
+
                         variation = 0;
                         variation[m] = eps;
                         fdGrad[3+m] =  Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
-                        variation = 0;   
+                        variation = 0;
                         variation[m] = -eps;
                         fdGrad[3+m] -= Rotation<double,3>::interpolateDerivative(q[i], q[j].mult(Rotation<double,3>::exp(SkewMatrix<double,3>(variation))), s);
                         fdGrad[3+m] /= 2*eps;
-                        
+
                     }
-                    
+
                     // Scale the finite difference gradient with the interval length
                     for (auto& parDer : fdGrad)
                         parDer /= intervalLength;
 
                     // Compute analytical velocity vector gradient
-                    RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s, intervalLength, grad);
-                    
+                    RodLocalStiffness<OneDGrid,double>::interpolationVelocityDerivative(q[i], q[j], s*intervalLength, intervalLength, grad);
+
                     for (int m=0; m<6; m++) {
                         Quaternion<double> diff = fdGrad[m];
                         diff -= grad[m];
                         if (diff.two_norm() > 1e-6) {
-                            std::cout << "Error in velocity " << m 
+                            std::cout << "Error in velocity " << m
                                       << ":  s = " << s << " of (" << intervalLength << ")"
                                       << "   fd: " << fdGrad[m] << "    analytical: " << grad[m] << std::endl;
                         }
-                        
+
                     }
 
                 }
@@ -371,9 +371,9 @@ int main (int argc, char *argv[]) try
 {
     std::vector<Rotation<double,3> > testPoints;
     ValueFactory<Rotation<double,3> >::get(testPoints);
-    
+
     int nTestPoints = testPoints.size();
-    
+
     // Test each element in the list
     for (int i=0; i<nTestPoints; i++)
         testRotation(testPoints[i]);
