@@ -17,6 +17,7 @@
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/solvers/loopsolver.hh>
 #include "maxnormtrustregion.hh"
 
 #include <dune/solvers/norms/twonorm.hh>
@@ -295,7 +296,6 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
         auto loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
         mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(&loopSolver->getIterationStep());
-
     }
 
 #if HAVE_MPI
