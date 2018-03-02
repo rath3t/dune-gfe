@@ -102,7 +102,7 @@ setup(const GridType& grid,
     auto mmgStep = std::make_shared<MonotoneMGStep<MatrixType, CorrectionType> >();
 
     mmgStep->setMGType(mu, nu1, nu2);
-    mmgStep->ignoreNodes_ = globalDirichletNodes;
+    mmgStep->setIgnore(*globalDirichletNodes);
     mmgStep->setBaseSolver(std::move(baseSolver));
     mmgStep->setSmoother(smoother);
     mmgStep->setObstacleRestrictor(MandelObstacleRestrictor<CorrectionType>{});
