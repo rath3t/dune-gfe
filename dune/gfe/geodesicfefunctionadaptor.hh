@@ -19,9 +19,6 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
 
     assert(x.size() == grid.size(dim));
 
-    typedef typename GridType::template Codim<0>::LeafIterator ElementIterator;
-    typedef typename GridType::template Codim<dim>::LeafIterator VertexIterator;
-
     // /////////////////////////////////////////////////////
     //   Save leaf p1 data in a map
     // /////////////////////////////////////////////////////
@@ -31,11 +28,8 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
 
     std::map<typename GridType::Traits::LocalIdSet::IdType, TargetSpace> dofMap;
 
-    VertexIterator vIt    = grid.template leafbegin<dim>();
-    VertexIterator vEndIt = grid.template leafend<dim>();
-
-    for (; vIt!=vEndIt; ++vIt)
-        dofMap.insert(std::make_pair(idSet.id(*vIt), x[indexSet.index(*vIt)]));
+    for (const auto& vertex : vertices(grid.leafGridView()))
+        dofMap.insert(std::make_pair(idSet.id(vertex), x[indexSet.index(vertex)]));
 
 
 
@@ -53,46 +47,36 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
     P1NodalBasis<typename GridType::LeafGridView> p1Basis(grid.leafGridView());
     x.resize(grid.size(dim));
 
-    ElementIterator eIt    = grid.template leafbegin<0>();
-    ElementIterator eEndIt = grid.template leafend<0>();
-
-    for (; eIt!=eEndIt; ++eIt) {
-
+    for (const auto& element : elements(grid.leafGridView()))
+    {
         // Set up a local gfe function on the father element
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
-        size_t nFatherDofs = eIt->father()->subEntities(dim);
-#else
-        size_t nFatherDofs = eIt->father()->template count<dim>();
-#endif
+        size_t nFatherDofs = element.father().subEntities(dim);
         std::vector<TargetSpace> coefficients(nFatherDofs);
 
         for (int i=0; i<nFatherDofs; i++)
-            coefficients[i] = dofMap.find(idSet.subId(*eIt->father(),i,dim))->second;
+            coefficients[i] = dofMap.find(idSet.subId(element.father(),i,dim))->second;
 
         typedef typename P1NodalBasis<typename GridType::LeafGridView>::LocalFiniteElement LocalFiniteElement;
-        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fatherFunction(p1Basis.getLocalFiniteElement(*eIt),
+        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fatherFunction(p1Basis.getLocalFiniteElement(element),
                                                                                           coefficients);
 
         // The embedding of this element into the father geometry
-        const typename GridType::template Codim<0>::LocalGeometry& geometryInFather = eIt->geometryInFather();
+        const auto& geometryInFather = element.geometryInFather();
 
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
-        size_t nDofs = eIt->subEntities(dim);
-#else
-        size_t nDofs = eIt->template count<dim>();
-#endif
+        size_t nDofs = element.subEntities(dim);
+
         for (int i=0; i<nDofs; i++) {
 
-            if (dofMap.find(idSet.subId(*eIt,i,dim)) != dofMap.end()) {
+            if (dofMap.find(idSet.subId(element,i,dim)) != dofMap.end()) {
 
                 // If the vertex exists on the coarser level we take the value from there.
                 // That should be faster and more accurate than interpolating
-                x[indexSet.subIndex(*eIt,i,dim)] = dofMap[idSet.subId(*eIt,i,dim)];
+                x[indexSet.subIndex(element,i,dim)] = dofMap[idSet.subId(element,i,dim)];
 
             } else {
 
                 // Interpolate
-                x[indexSet.subIndex(*eIt,i,dim)] = fatherFunction.evaluate(geometryInFather.corner(i));
+                x[indexSet.subIndex(element,i,dim)] = fatherFunction.evaluate(geometryInFather.corner(i));
 
             }
 
