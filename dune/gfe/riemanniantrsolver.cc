@@ -5,7 +5,6 @@
 
 #include <dune/grid/common/mcmgmapper.hh>
 
-#include <dune/functions/functionspacebases/pq1nodalbasis.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
