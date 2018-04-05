@@ -1,5 +1,5 @@
 ---
-image: duneci/dune-fufem:2.4
+image: duneci/dune:2.6
 
 dune-fufem--gcc:
   script:
