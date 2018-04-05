@@ -3,6 +3,8 @@ image: duneci/dune:2.6
 
 before_script:
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
+  - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-matrix-vector.git
+  - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-fufem.git
 
 dune-fufem--gcc:
   script: duneci-standard-test
