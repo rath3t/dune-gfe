@@ -5,11 +5,7 @@ before_script:
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
 
 dune-fufem--gcc:
-  script:
-  - dunecontrol --current all
-  - dunecontrol --current make test
+  script: duneci-standard-test
 
 dune-fufem--clang:
-  script:
-  - CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=/usr/bin/clang++" dunecontrol --current all
-  - dunecontrol --current make test
+  script: duneci-standard-test --opts=/duneci/opts.clang
