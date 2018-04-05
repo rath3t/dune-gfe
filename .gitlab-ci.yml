@@ -1,6 +1,9 @@
 ---
 image: duneci/dune:2.6
 
+before_script:
+  - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
+
 dune-fufem--gcc:
   script:
   - dunecontrol --current all
