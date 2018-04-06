@@ -294,7 +294,7 @@ int main (int argc, char *argv[])
 
     std::string baseName = "harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels);
 
-    SubsamplingVTKWriter<GridView> vtkWriter(gridView,order-1);
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView,Dune::refinementLevels(order-1));
     vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
     vtkWriter.write(resultPath + baseName);
 
