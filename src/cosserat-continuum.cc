@@ -162,7 +162,7 @@ int main (int argc, char *argv[]) try
         lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
         upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
-        array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
+        std::array<unsigned int,dim> elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
     } else {
@@ -256,7 +256,7 @@ int main (int argc, char *argv[]) try
       std::shared_ptr<GridType> initialIterateGrid;
       if (parameterSet.get<bool>("structuredGrid"))
       {
-        std::array<unsigned int,dim> elements = parameterSet.get<array<unsigned int,dim> >("elements");
+        std::array<unsigned int,dim> elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
         initialIterateGrid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
       }
       else
