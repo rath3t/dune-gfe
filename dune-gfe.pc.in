@@ -9,6 +9,7 @@ DEPENDENCIES=@REQUIRES@
 Name: @PACKAGE_NAME@
 Version: @VERSION@
 Description: Dune dune-gfe module, contains the implementation of geodesic finite elements
-Requires: ${DEPENDENCIES}
-Libs:
+URL:
+Requires: dune-grid dune-uggrid dune-istl dune-localfunctions dune-functions dune-solvers dune-fufem
+Libs: -L${libdir}
 Cflags: -I${includedir}
