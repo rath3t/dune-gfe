@@ -233,14 +233,14 @@ int main (int argc, char *argv[]) try
       std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
 
-    BitSetVector<1> dirichletNodes(feBasis.indexSet().size(), false);
+    BitSetVector<1> dirichletNodes(feBasis.size(), false);
     constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
 
-    BitSetVector<1> neumannNodes(feBasis.indexSet().size(), false);
+    BitSetVector<1> neumannNodes(feBasis.size(), false);
     constructBoundaryDofs(neumannBoundary,fufemFeBasis,neumannNodes);
 
-    BitSetVector<blocksize> dirichletDofs(feBasis.indexSet().size(), false);
-    for (size_t i=0; i<feBasis.indexSet().size(); i++)
+    BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
+    for (size_t i=0; i<feBasis.size(); i++)
       if (dirichletNodes[i][0])
         for (int j=0; j<5; j++)
           dirichletDofs[i][j] = true;
