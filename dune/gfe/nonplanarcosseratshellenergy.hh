@@ -5,6 +5,8 @@
 #include <dune/common/parametertree.hh>
 #include <dune/geometry/quadraturerules.hh>
 
+#include <dune/matrix-vector/crossproduct.hh>
+
 #include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
@@ -351,7 +353,7 @@ energy(const typename Basis::LocalView& localView,
         aCovariant[i][j] = 0.0;
     }
 
-    aCovariant[2] = Arithmetic::crossProduct(aCovariant[0], aCovariant[1]);
+    aCovariant[2] = Dune::MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
     aCovariant[2] /= aCovariant[2].two_norm();
 
     auto aContravariant = aCovariant;
