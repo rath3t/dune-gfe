@@ -35,12 +35,9 @@ public:
       factory.insertVertex(pos);
     }
 
-    Dune::GeometryType triangle;
-    triangle.makeTriangle();
-
     for (size_t i=0; i<vtkFile.cellConnectivity_.size(); i+=3)
     {
-      factory.insertElement(triangle, {vtkFile.cellConnectivity_[i],
+      factory.insertElement(Dune::GeometryTypes::triangle, {vtkFile.cellConnectivity_[i],
                                        vtkFile.cellConnectivity_[i+1],
                                        vtkFile.cellConnectivity_[i+2]});
 
