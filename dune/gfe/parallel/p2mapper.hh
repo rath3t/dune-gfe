@@ -35,13 +35,11 @@ public:
     localView.bind(entity);
     localIndexSet.bind(localView);
 
-    Index localIndex;
     for (size_t i=0; i<localIndexSet.size(); i++)
     {
       if (localView.tree().finiteElement().localCoefficients().localKey(i).subEntity() == subEntity
           and localView.tree().finiteElement().localCoefficients().localKey(i).codim() == codim)
       {
-        localIndex = i;
         result = localIndexSet.index(i)[0];
         return true;
       }
