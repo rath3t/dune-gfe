@@ -27,7 +27,7 @@ std::vector<UnitVector<typename GridView::ctype,3> > computeVertexNormals(const 
 
   for (const auto& element : elements(gridView))
   {
-    for (int i=0; i<element.subEntities(2); i++)
+    for (std::size_t i=0; i<element.subEntities(2); i++)
     {
       auto cornerPos = Dune::ReferenceElements<double,2>::general(element.type()).position(i,2);
       auto tangent = element.geometry().jacobianTransposed(cornerPos);
