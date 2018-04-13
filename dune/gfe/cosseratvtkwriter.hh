@@ -147,8 +147,8 @@ public:
         for (const auto t : gridView.indexSet().types(0))
           numElements[t] = 0;
 
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
-          numElements[it.type()]++;
+        for (auto&& t : elements(gridView, Dune::Partitions::interior))
+          numElements[t.type()]++;
 
         std::size_t totalNumElements = 0;
         for (const auto nE : numElements)
