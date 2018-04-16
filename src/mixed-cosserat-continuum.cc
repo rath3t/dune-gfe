@@ -24,6 +24,7 @@ namespace Dune {
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
+#include <dune/common/tuplevector.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/onedgrid.hh>
@@ -31,7 +32,6 @@ namespace Dune {
 
 #include <dune/grid/io/file/gmshreader.hh>
 
-#include <dune/functions/common/tuplevector.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 #include <dune/functions/functionspacebases/compositebasis.hh>
 
@@ -93,7 +93,7 @@ int main (int argc, char *argv[]) try
         << std::endl;
 
     using namespace Dune::TypeTree::Indices;
-    typedef Dune::Functions::TupleVector<std::vector<RealTuple<double,3> >,
+    typedef Dune::TupleVector<std::vector<RealTuple<double,3> >,
                                          std::vector<Rotation<double,3> > > SolutionType;
 
     // parse data file
