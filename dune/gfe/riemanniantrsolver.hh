@@ -32,6 +32,10 @@ struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,1> >
 {
     typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
+    static LocalMapper createLocalMapper(const GridView& gridView)
+    {
+      return LocalMapper(gridView, Dune::mcmgVertexLayout());
+    }
 };
 
 // This case is not going to actually work, but I need the specialization to make
@@ -48,6 +52,10 @@ struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,2> >
 {
     typedef Dune::GlobalP2Mapper<GridView> GlobalMapper;
     typedef P2BasisMapper<GridView> LocalMapper;
+    static LocalMapper createLocalMapper(const GridView& gridView)
+    {
+      return LocalMapper(gridView);
+    }
 };
 
 /** \brief Specialization for PQ3NodalBasis */

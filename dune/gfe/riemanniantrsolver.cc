@@ -129,7 +129,7 @@ setup(const GridType& grid,
     operatorAssembler.assemble(laplaceStiffness, localA);
 
 #if HAVE_MPI
-    LocalMapper localMapper(grid_->leafGridView());
+    LocalMapper localMapper = MapperFactory<typename Basis::GridView,Basis>::createLocalMapper(grid_->leafGridView());
 
     MatrixCommunicator<GlobalMapper,
                        typename GridType::LeafGridView,
@@ -217,8 +217,8 @@ setup(const GridType& grid,
         typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GlobalLeafP1Mapper;
         GlobalLeafP1Mapper p1Index(grid_->leafGridView());
 
-        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LeafP1LocalMapper;
-        LeafP1LocalMapper leafP1LocalMapper(grid_->leafGridView());
+        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView> LeafP1LocalMapper;
+        LeafP1LocalMapper leafP1LocalMapper(grid_->leafGridView(), Dune::mcmgVertexLayout());
 
         MatrixCommunicator<GlobalMapper,
                            typename GridType::LeafGridView,
@@ -250,9 +250,9 @@ setup(const GridType& grid,
         GlobalLevelP1Mapper fineGUIndex(grid_->levelGridView(i+1));
         GlobalLevelP1Mapper coarseGUIndex(grid_->levelGridView(i));
 
-        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView, Dune::MCMGVertexLayout> LevelLocalMapper;
-        LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+1));
-        LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i));
+        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView> LevelLocalMapper;
+        LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+1), Dune::mcmgVertexLayout());
+        LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i), Dune::mcmgVertexLayout());
 #endif
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
 #if HAVE_MPI
@@ -347,7 +347,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                      0);
 
-    LocalMapper localMapper(grid_->leafGridView());
+    LocalMapper localMapper = MapperFactory<typename Basis::GridView,Basis>::createLocalMapper(grid_->leafGridView());
     MatrixCommunicator<GlobalMapper,
                        typename GridType::LeafGridView,
                        typename GridType::LeafGridView,
