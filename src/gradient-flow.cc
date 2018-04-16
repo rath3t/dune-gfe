@@ -210,7 +210,8 @@ int main (int argc, char *argv[]) try
   auto l2DistanceSquaredEnergy = std::make_shared<L2DistanceSquaredEnergy<FEBasis, ATargetSpace> >();
 
   std::vector<std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > > addends(2);
-  addends[0] = std::make_shared<HarmonicEnergyLocalStiffness<FEBasis, ATargetSpace> >();
+  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  addends[0] = std::make_shared<HarmonicEnergyLocalStiffness<FEBasis, GeodesicInterpolationRule, ATargetSpace> >();
   addends[1] = l2DistanceSquaredEnergy;
 
   std::vector<double> weights = {1.0, 1.0/(2*timeStepSize)};
