@@ -253,7 +253,7 @@ int main (int argc, char *argv[]) try
                                                                                                  TypeTree::hybridTreePath(),
                                                                                                  xEmbedded);
 
-  SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
+  SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),refinementLevels(0));
   vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
   vtkWriter.write("gradientflow_result_0");
 
@@ -293,7 +293,7 @@ int main (int argc, char *argv[]) try
                                                                                                    TypeTree::hybridTreePath(),
                                                                                                    xEmbedded);
 
-    SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
+    SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),refinementLevels(0));
     vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
     vtkWriter.write("gradientflow_result_" + std::to_string(i+1));
 
