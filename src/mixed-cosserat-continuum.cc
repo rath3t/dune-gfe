@@ -299,10 +299,10 @@ int main (int argc, char *argv[]) try
                                                        homotopyParameter);
 
 
-        if (mpiHelper.rank() == 0) {
-            std::cout << "Material parameters:" << std::endl;
-            materialParameters.report();
-        }
+    if (mpiHelper.rank() == 0) {
+        std::cout << "Material parameters:" << std::endl;
+        materialParameters.report();
+    }
 
     // Assembler using ADOL-C
     CosseratEnergyLocalStiffness<decltype(compositeBasis),

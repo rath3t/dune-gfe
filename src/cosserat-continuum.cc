@@ -325,15 +325,15 @@ int main (int argc, char *argv[]) try
         neumannFunction = make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,3> >("neumannValues"),
                                                        homotopyParameter);
 
-        shared_ptr<VolumeLoad> volumeLoad;
-        if (parameterSet.hasKey("volumeLoad"))
-            volumeLoad = make_shared<VolumeLoad>(parameterSet.get<FieldVector<double,3> >("volumeLoad"),
+    shared_ptr<VolumeLoad> volumeLoad;
+    if (parameterSet.hasKey("volumeLoad"))
+        volumeLoad = make_shared<VolumeLoad>(parameterSet.get<FieldVector<double,3> >("volumeLoad"),
                                                                                           homotopyParameter);
 
-        if (mpiHelper.rank() == 0) {
-            std::cout << "Material parameters:" << std::endl;
-            materialParameters.report();
-        }
+    if (mpiHelper.rank() == 0) {
+        std::cout << "Material parameters:" << std::endl;
+        materialParameters.report();
+    }
 
     // Assembler using ADOL-C
     using LocalEnergyBase = LocalGeodesicFEStiffness<FEBasis,RigidBodyMotion<adouble,3> >;
