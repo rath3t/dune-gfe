@@ -10,6 +10,15 @@
 
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
+#include <dune/common/typetraits.hh>
+namespace Dune {
+  template <>
+  struct IsNumber<adouble>
+  {
+    constexpr static bool value = true;
+  };
+}
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>

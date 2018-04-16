@@ -25,6 +25,17 @@ typedef double FDType;
 #include <adolc/taping.h>
 
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
+
+#include <dune/common/typetraits.hh>
+// This specialization is needed (in particular) to make copying of FieldMatrices work.
+namespace Dune {
+  template <>
+  struct IsNumber<adouble>
+  {
+    constexpr static bool value = true;
+  };
+}
+
 #include <dune/common/fmatrix.hh>
 
 #include <dune/geometry/quadraturerules.hh>

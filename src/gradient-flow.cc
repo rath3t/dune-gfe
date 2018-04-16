@@ -7,6 +7,15 @@
 #include <adolc/adouble.h>
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
+#include <dune/common/typetraits.hh>
+namespace Dune {
+  template <>
+  struct IsNumber<adouble>
+  {
+    constexpr static bool value = true;
+  };
+}
+
 #include <array>
 
 #include <dune/common/bitsetvector.hh>
