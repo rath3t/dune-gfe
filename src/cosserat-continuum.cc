@@ -438,7 +438,7 @@ int main (int argc, char *argv[]) try
       xEmbedded[i] = x[i].globalCoordinates();
 
     std::ofstream outFile("cosserat-continuum-result-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
-    GenericVector::writeBinary(outFile, xEmbedded);
+    MatrixVector::Generic::writeBinary(outFile, xEmbedded);
     outFile.close();
 
     // finally: compute the average deformation of the Neumann boundary

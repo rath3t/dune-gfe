@@ -259,7 +259,7 @@ int main (int argc, char *argv[]) try
 
   // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
   std::ofstream outFile("gradientflow_result_0.data", std::ios_base::binary);
-  GenericVector::writeBinary(outFile, xEmbedded);
+  MatrixVector::Generic::writeBinary(outFile, xEmbedded);
   outFile.close();
 
   ///////////////////////////////////////////////////////
@@ -299,7 +299,7 @@ int main (int argc, char *argv[]) try
 
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     std::ofstream outFile("gradientflow_result_" + std::to_string(i+1) + ".data", std::ios_base::binary);
-    GenericVector::writeBinary(outFile, xEmbedded);
+    MatrixVector::Generic::writeBinary(outFile, xEmbedded);
     outFile.close();
 
   }
