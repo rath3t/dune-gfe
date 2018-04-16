@@ -65,7 +65,7 @@ setup(const GridType& grid,
     //////////////////////////////////////////////////////////////////
 
 #if HAVE_MPI
-    globalMapper_ = std::unique_ptr<GlobalMapper>(new GlobalMapper(grid_->leafGridView()));
+    globalMapper_ = std::make_unique<GlobalMapper>(grid_->leafGridView());
 #endif
 
     // ////////////////////////////////
