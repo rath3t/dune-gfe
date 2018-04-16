@@ -282,7 +282,12 @@ int main (int argc, char *argv[]) try
       typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 2> InitialBasis;
       InitialBasis initialBasis(initialIterateGrid->leafGridView());
 
-      GFE::EmbeddedGlobalGFEFunction<InitialBasis,TargetSpace> initialFunction(initialBasis,initialIterate);
+#ifdef PROJECTED_INTERPOLATION
+      using LocalInterpolationRule  = LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+#else
+      using LocalInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+#endif
+      GFE::EmbeddedGlobalGFEFunction<InitialBasis,LocalInterpolationRule,TargetSpace> initialFunction(initialBasis,initialIterate);
 
       std::vector<FieldVector<double,7> > v;
       Dune::Functions::interpolate(feBasis,v,initialFunction);
