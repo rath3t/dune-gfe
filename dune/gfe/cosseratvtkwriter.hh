@@ -352,9 +352,8 @@ public:
         /////////////////////////////////////////////////////////////////////////////////
 
         // Stupid: I can't directly get the number of Interior_Partition elements
-        size_t numElements = 0;
-        for (const auto& element : elements(gridView, Dune::Partitions::interior))
-          numElements++;
+        size_t numElements = std::distance(gridView.template begin<0, Dune::Interior_Partition>(),
+                                           gridView.template end<0, Dune::Interior_Partition>());
 
         std::ofstream outFile(fullfilename);
 
