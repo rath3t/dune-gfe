@@ -166,4 +166,4 @@ namespace Dune {
   };
 
 }
-#endif /* GLOBALUNIQUEINDEX_HH_ */
+#endif   // DUNE_GFE_PARALLEL_GLOBALP2MAPPER_HH
