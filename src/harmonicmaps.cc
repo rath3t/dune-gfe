@@ -23,11 +23,16 @@ namespace Dune {
 #include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/uggrid.hh>
-#include <dune/grid/onedgrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
+
+#if HAVE_DUNE_FOAMGRID
+#include <dune/foamgrid/foamgrid.hh>
+#else
+#include <dune/grid/onedgrid.hh>
+#endif
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
@@ -56,6 +61,7 @@ namespace Dune {
 
 // grid dimension
 const int dim = 2;
+const int dimworld = 2;
 
 // Image space of the geodesic fe functions
 // typedef Rotation<double,2> TargetSpace;
@@ -124,17 +130,22 @@ int main (int argc, char *argv[])
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
-    typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
+#if HAVE_DUNE_FOAMGRID
+    typedef std::conditional<dim==1 or dim!=dimworld,FoamGrid<dim,dimworld>,UGGrid<dim> >::type GridType;
+#else
+    static_assert(dim!=dimworld, "You need to have dune-foamgrid installed for dim != dimworld!");
+    typedef std::conditional<dim==1,OneDGrid<dim>,UGGrid<dim> >::type GridType;
+#endif
 
     shared_ptr<GridType> grid;
-    FieldVector<double,dim> lower(0), upper(1);
+    FieldVector<double,dimworld> lower(0), upper(1);
     std::array<unsigned int,dim> elements;
 
     std::string structuredGridType = parameterSet["structuredGrid"];
     if (structuredGridType != "false" ) {
 
-        lower = parameterSet.get<FieldVector<double,dim> >("lower");
-        upper = parameterSet.get<FieldVector<double,dim> >("upper");
+        lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
+        upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
         elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
         if (structuredGridType == "simplex")
@@ -180,7 +191,7 @@ int main (int argc, char *argv[])
     // Make Python function that computes which vertices are on the Dirichlet boundary,
     // based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+    PythonFunction<FieldVector<double,dimworld>, bool> pythonDirichletVertices(Python::evaluate(lambda));
 
     for (auto&& vertex : vertices(gridView))
     {
@@ -205,7 +216,7 @@ int main (int argc, char *argv[])
 
     // Read initial iterate into a PythonFunction
     Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
-    auto pythonInitialIterate = Python::makeFunction<TargetSpace::CoordinateType(const FieldVector<double,dim>&)>(module.get("f"));
+    auto pythonInitialIterate = Python::makeFunction<TargetSpace::CoordinateType(const FieldVector<double,dimworld>&)>(module.get("f"));
 
     std::vector<TargetSpace::CoordinateType> v;
 #ifdef LAGRANGE
