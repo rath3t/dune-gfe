@@ -49,11 +49,11 @@ energy(const typename Basis::LocalView& localView,
         // Local position of the quadrature point
         const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
 
-        const double integrationElement = element.geometry().integrationElement(quadPos);
+        const auto integrationElement = element.geometry().integrationElement(quadPos);
 
         const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
-        double weight = quad[pt].weight() * integrationElement;
+        auto weight = quad[pt].weight() * integrationElement;
 
         // The derivative of the local function defined on the reference element
         auto referenceDerivative = localInterpolationRule.evaluateDerivative(quadPos);
