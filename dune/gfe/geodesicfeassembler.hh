@@ -76,7 +76,9 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = basis_.localIndexSet();
+#endif
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endit = basis_.gridView().template end<0,Dune::Interior_Partition>  ();
@@ -85,7 +87,9 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 
         // Bind the local FE basis view to the current element
         localView.bind(*it);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         const auto& lfe = localView.tree().finiteElement();
 
@@ -93,8 +97,13 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 
             for (size_t j=0; j<lfe.size(); j++) {
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
                 auto iIdx = localIndexSet.index(i)[0];
                 auto jIdx = localIndexSet.index(j)[0];
+#else
+                auto iIdx = localView.index(i);
+                auto jIdx = localView.index(j);
+#endif
 
                 nb.add(iIdx, jIdx);
 
@@ -128,7 +137,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = basis_.localIndexSet();
+#endif
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endit = basis_.gridView().template end<0,Dune::Interior_Partition>  ();
@@ -136,7 +147,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
     for( ; it != endit; ++it ) {
 
         localView.bind(*it);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         const int numOfBaseFct = localView.tree().size();
 
@@ -144,7 +157,11 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
         std::vector<TargetSpace> localSolution(numOfBaseFct);
 
         for (int i=0; i<numOfBaseFct; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             localSolution[i] = sol[localIndexSet.index(i)[0]];
+#else
+            localSolution[i] = sol[localView.index(i)];
+#endif
 
         std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
 
@@ -154,11 +171,19 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) {
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             auto row = localIndexSet.index(i)[0];
+#else
+            auto row = localView.index(i);
+#endif
 
             for (int j=0; j<numOfBaseFct; j++ ) {
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
                 auto col = localIndexSet.index(j)[0];
+#else
+                auto col = localView.index(j);
+#endif
                 hessian[row][col] += localStiffness_->A_[i][j];
 
             }
@@ -166,7 +191,11 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
 
         // Add local gradient to global gradient
         for (int i=0; i<numOfBaseFct; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             gradient[localIndexSet.index(i)[0]] += localGradient[i];
+#else
+            gradient[localView.index(i)] += localGradient[i];
+#endif
 
     }
 
@@ -185,7 +214,9 @@ assembleGradient(const std::vector<TargetSpace>& sol,
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = basis_.localIndexSet();
+#endif
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endIt = basis_.gridView().template end<0,Dune::Interior_Partition>();
@@ -194,7 +225,9 @@ assembleGradient(const std::vector<TargetSpace>& sol,
     for (; it!=endIt; ++it) {
 
         localView.bind(*it);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         // A 1d grid has two vertices
         const auto nDofs = localView.tree().size();
@@ -203,7 +236,11 @@ assembleGradient(const std::vector<TargetSpace>& sol,
         std::vector<TargetSpace> localSolution(nDofs);
 
         for (size_t i=0; i<nDofs; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             localSolution[i] = sol[localIndexSet.index(i)[0]];
+#else
+            localSolution[i] = sol[localView.index(i)];
+#endif
 
         // Assemble local gradient
         std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
@@ -212,8 +249,11 @@ assembleGradient(const std::vector<TargetSpace>& sol,
 
         // Add to global gradient
         for (size_t i=0; i<nDofs; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             grad[localIndexSet.index(i)[0]] += localGradient[i];
-
+#else
+            grad[localView.index(i)[0]] += localGradient[i];
+#endif
     }
 
 }
@@ -230,7 +270,9 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = basis_.localIndexSet();
+#endif
 
     ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
     ElementIterator endIt = basis_.gridView().template end<0,Dune::Interior_Partition>();
@@ -239,7 +281,9 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
     for (; it!=endIt; ++it) {
 
         localView.bind(*it);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         // Number of degrees of freedom on this element
         size_t nDofs = localView.tree().size();
@@ -247,7 +291,11 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
         std::vector<TargetSpace> localSolution(nDofs);
 
         for (size_t i=0; i<nDofs; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             localSolution[i] = sol[localIndexSet.index(i)[0]];
+#else
+            localSolution[i] = sol[localView.index(i)[0]];
+#endif
 
         energy += localStiffness_->energy(localView, localSolution);
 

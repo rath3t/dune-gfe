@@ -26,7 +26,9 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
 
     // A view on the FE basis on a single element
     auto localView = this->basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = this->basis_.localIndexSet();
+#endif
 
     ElementIterator it    = this->basis_.gridView().template begin<0>();
     ElementIterator endIt = this->basis_.gridView().template end<0>();
@@ -35,7 +37,9 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
     for (; it!=endIt; ++it) {
 
         localView.bind(*it);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         // A 1d grid has two vertices
         static const int nDofs = 2;
@@ -44,7 +48,11 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
         std::vector<RigidBodyMotion<double,3> > localSolution(nDofs);
 
         for (int i=0; i<nDofs; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             localSolution[i] = sol[localIndexSet.index(i)[0]];
+#else
+            localSolution[i] = sol[localView.index(i)];
+#endif
 
         // Assemble local gradient
         std::vector<FieldVector<double,blocksize> > localGradient(nDofs);
@@ -55,7 +63,11 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
 
         // Add to global gradient
         for (int i=0; i<nDofs; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             grad[localIndexSet.index(i)[0]] += localGradient[i];
+#else
+            grad[localView.index(i)] += localGradient[i];
+#endif
 
     }
 

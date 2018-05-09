@@ -95,13 +95,16 @@ getMatrixPattern(Dune::MatrixIndexSet& nb00,
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = basis_.localIndexSet();
+#endif
 
     // Loop over grid elements
     for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
     {
         // Bind the local FE basis view to the current element
         localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
 
         // Add element stiffness matrix onto the global stiffness matrix
@@ -114,6 +117,18 @@ getMatrixPattern(Dune::MatrixIndexSet& nb00,
           {
             // The global index of the j-th local degree of freedom of the element 'e'
             auto col = localIndexSet.index(j);
+#else
+        // Add element stiffness matrix onto the global stiffness matrix
+        for (size_t i=0; i<localView.size(); i++)
+        {
+          // The global index of the i-th local degree of freedom of the element 'e'
+          auto row = localView.index(i);
+
+          for (size_t j=0; j<localView.size(); j++ )
+          {
+            // The global index of the j-th local degree of freedom of the element 'e'
+            auto col = localView.index(j);
+#endif
 
             if (row[0]==0 and col[0]==0)
               nb00.add(row[1],col[1]);
@@ -167,13 +182,17 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = basis_.localIndexSet();
+#endif
 
     for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
     {
         // Bind the local FE basis view to the current element
         localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         using namespace Dune::TypeTree::Indices;
         const int nDofs0 = localView.tree().child(_0).finiteElement().size();
@@ -185,10 +204,17 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
         for (int i=0; i<nDofs0+nDofs1; i++)
         {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           if (localIndexSet.index(i)[0] == 0)
             localConfiguration0[i] = configuration0[localIndexSet.index(i)[1]];
           else
             localConfiguration1[i-nDofs0] = configuration1[localIndexSet.index(i)[1]];
+#else
+          if (localView.index(i)[0] == 0)
+            localConfiguration0[i] = configuration0[localView.index(i)[1]];
+          else
+            localConfiguration1[i-nDofs0] = configuration1[localView.index(i)[1]];
+#endif
         }
 
         std::vector<Dune::FieldVector<double,blocksize0> > localGradient0(nDofs0);
@@ -202,11 +228,19 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
         // Add element matrix to global stiffness matrix
         for (int i=0; i<nDofs0+nDofs1; i++)
         {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             auto row = localIndexSet.index(i);
+#else
+            auto row = localView.index(i);
+#endif
 
             for (int j=0; j<nDofs0+nDofs1; j++ )
             {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
                 auto col = localIndexSet.index(j);
+#else
+                auto col = localView.index(j);
+#endif
 
                 if (row[0]==0 and col[0]==0)
                   hessian[_0][_0][row[1]][col[1]] += localStiffness_->A00_[i][j];
@@ -222,10 +256,17 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
             }
 
             // Add local gradient to global gradient
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             if (localIndexSet.index(i)[0] == 0)
               gradient0[localIndexSet.index(i)[1]] += localGradient0[i];
             else
               gradient1[localIndexSet.index(i)[1]] += localGradient1[i-nDofs0];
+#else
+            if (localView.index(i)[0] == 0)
+              gradient0[localView.index(i)[1]] += localGradient0[i];
+            else
+              gradient1[localView.index(i)[1]] += localGradient1[i-nDofs0];
+#endif
         }
 
     }
@@ -287,14 +328,18 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
 
     // A view on the FE basis on a single element
     auto localView = basis_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
     auto localIndexSet = basis_.localIndexSet();
+#endif
 
     // Loop over all elements
     for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
     {
         // Bind the local FE basis view to the current element
         localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         // Number of degrees of freedom on this element
         using namespace Dune::TypeTree::Indices;
@@ -306,10 +351,17 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
 
         for (int i=0; i<nDofs0+nDofs1; i++)
         {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           if (localIndexSet.index(i)[0] == 0)
             localConfiguration0[i] = configuration0[localIndexSet.index(i)[1]];
           else
             localConfiguration1[i-nDofs0] = configuration1[localIndexSet.index(i)[1]];
+#else
+          if (localView.index(i)[0] == 0)
+            localConfiguration0[i] = configuration0[localView.index(i)[1]];
+          else
+            localConfiguration1[i-nDofs0] = configuration1[localView.index(i)[1]];
+#endif
         }
 
         energy += localStiffness_->energy(localView,

@@ -46,21 +46,33 @@ namespace Dune {
       size_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
 
       auto localView = p2Mapper_.localView();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
       auto localIndexSet = p2Mapper_.localIndexSet();
+#endif
 
       // Determine
       for (const auto& element : elements(gridView))
       {
         localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
+#endif
 
         // Loop over all local degrees of freedom
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         for (size_t i=0; i<localIndexSet.size(); i++)
+#else
+        for (size_t i=0; i<localView.size(); i++)
+#endif
         {
           int codim = localView.tree().finiteElement().localCoefficients().localKey(i).codim();
           int entity   = localView.tree().finiteElement().localCoefficients().localKey(i).subEntity();
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           int localIndex  = localIndexSet.index(i);
+#else
+          auto localIndex  = localView.index(i);
+#endif
           int globalIndex;
           switch (codim)
           {
@@ -105,19 +117,29 @@ namespace Dune {
     bool contains(const Entity& entity, uint subEntity, uint codim, Index& result) const
     {
       auto localView = p2Mapper_.localView();
-      auto localIndexSet = p2Mapper_.localIndexSet();
       localView.bind(entity);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+      auto localIndexSet = p2Mapper_.localIndexSet();
       localIndexSet.bind(localView);
+#endif
 
       Index localIndex;
       bool dofFound = false;
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
       for (size_t i=0; i<localIndexSet.size(); i++)
+#else
+      for (size_t i=0; i<localView.size(); i++)
+#endif
       {
         if (localView.tree().finiteElement().localCoefficients().localKey(i).subEntity() == subEntity
           and localView.tree().finiteElement().localCoefficients().localKey(i).codim() == codim)
         {
           dofFound = true;
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           localIndex = localIndexSet.index(i);
+#else
+          localIndex = localView.index(i);
+#endif
           break;
         }
       }
