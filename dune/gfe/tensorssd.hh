@@ -8,7 +8,8 @@
 #include <array>
 
 #include <dune/common/fmatrix.hh>
-    
+#include <dune/istl/matrix.hh>
+
 /** \brief A third-rank tensor with two static (SS) and one dynamic (D) dimension
  * 
  * \tparam T Type of the entries
