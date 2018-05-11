@@ -465,7 +465,7 @@ getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
         // multiply with jacobian inverse
         Dune::FieldVector<double,1> tmp(0);
         inv.umv(shapeGrad[dof][0], tmp);
-        shapeGrad[dof] = tmp;
+        shapeGrad[dof][0] = tmp;
 
     }
 
