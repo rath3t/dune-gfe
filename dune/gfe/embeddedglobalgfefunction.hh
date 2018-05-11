@@ -118,7 +118,7 @@ public:
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
 
-        for (int i=0; i<numOfBaseFct; i++)
+        for (decltype(numOfBaseFct) i=0; i<numOfBaseFct; i++)
 #if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             localCoeff[i] = coefficients_[localIndexSet.index(i)];
 #else
