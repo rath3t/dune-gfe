@@ -63,13 +63,10 @@ public:
     //! Constructor
     RodLocalStiffness (const GridView& gridView,
                        const std::array<double,3>& K, const std::array<double,3>& A)
-        : gridView_(gridView)
-    {
-        for (int i=0; i<3; i++) {
-            K_[i] = K[i];
-            A_[i] = A[i];
-        }
-    }
+        : K_(K),
+          A_(A),
+          gridView_(gridView)
+    {}
 
     /** \brief Constructor setting shape constants and material parameters
         \param A The rod section area
