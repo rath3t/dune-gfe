@@ -152,6 +152,70 @@ void measureDiscreteEOC(const GridView gridView,
               << "H^1 error orientation: " << std::sqrt(orientationH1ErrorSquared)
               << std::endl;
   }
+
+  if constexpr (std::is_same<TargetSpace,Rotation<double,3> >::value)
+  {
+    double l2ErrorSquared = 0;
+    double h1ErrorSquared = 0;
+
+    for (const auto& rElement : elements(referenceGridView))
+    {
+      const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
+
+      for (const auto& qp : quadRule)
+      {
+        auto integrationElement = rElement.geometry().integrationElement(qp.position());
+
+        auto globalPos = rElement.geometry().global(qp.position());
+
+        auto element = hierarchicSearch.findEntity(globalPos);
+        auto localPos = element.geometry().local(globalPos);
+
+        FieldMatrix<double,3,3> referenceValue, numericalValue;
+        auto refValue = referenceSolution(rElement, qp.position());
+        Rotation<double,3> referenceRotation(refValue);
+        referenceRotation.matrix(referenceValue);
+
+        auto numValue = numericalSolution(element, localPos);
+        Rotation<double,3> numericalRotation(numValue);
+        numericalRotation.matrix(numericalValue);
+
+        auto diff = referenceValue - numericalValue;
+
+        l2ErrorSquared += integrationElement * qp.weight() * diff.frobenius_norm2();
+
+        auto referenceDerQuat = referenceSolution.derivative(rElement, qp.position());
+        auto numericalDerQuat = numericalSolution.derivative(element, localPos);
+
+        // Transform to matrix coordinates
+        Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(refValue);
+        Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = Rotation<double,3>::derivativeOfQuaternionToMatrix(numValue);
+
+        Tensor3<double,3,3,dim> refDerivative(0);
+        Tensor3<double,3,3,dim> numDerivative(0);
+
+        for (int i=0; i<3; i++)
+          for (int j=0; j<3; j++)
+            for (int k=0; k<dim; k++)
+              for (int l=0; l<4; l++)
+              {
+                refDerivative[i][j][k] = derivativeQuaternionToMatrixRef[i][j][l] * referenceDerQuat[l][k];
+                numDerivative[i][j][k] = derivativeQuaternionToMatrixNum[i][j][l] * numericalDerQuat[l][k];
+              }
+
+        auto derDiff = refDerivative - numDerivative;  // compute the difference
+        h1ErrorSquared += derDiff.frobenius_norm2() * qp.weight() * integrationElement;
+
+      }
+    }
+
+    std::cout << "levels: " << gridView.grid().maxLevel()+1
+              << "      "
+              << "L^2 error: " << std::sqrt(l2ErrorSquared)
+              << "      "
+              << "h^1 error: " << std::sqrt(h1ErrorSquared)
+              << std::endl;
+  }
   else
   {
   double l2ErrorSquared = 0;
@@ -250,22 +314,116 @@ void measureAnalyticalEOC(const GridView gridView,
   // QuadratureRule for the integral of the L^2 error
   QuadratureRuleKey quadKey(dim,6);
 
-  // Compute the embedded L^2 error
-  double l2Error = DiscretizationError<GridView>::computeL2Error(numericalSolution.get(),
-                                                                 referenceSolution.get(),
-                                                                 quadKey);
+  // Compute errors in the L2 norm and the h1 seminorm.
+  // SO(3)-valued maps need special treatment, because they are stored as quaternions,
+  // but the errors need to be computed in matrix space.
+  if constexpr (std::is_same<TargetSpace,Rotation<double,3> >::value)
+  {
+    constexpr int blocksize = TargetSpace::CoordinateType::dimension;
 
-  // Compute the embedded H^1 error
-  double h1Error = DiscretizationError<GridView>::computeH1HalfNormDifferenceSquared(gridView,
-                                                                                     numericalSolution.get(),
-                                                                                     referenceSolution.get(),
-                                                                                     quadKey);
+    // The error to be computed
+    double l2ErrorSquared = 0;
+    double h1ErrorSquared = 0;
 
-  std::cout << "elements: " << gridView.size(0)
-            << "      "
-            << "L^2 error: " << l2Error
-            << "      ";
-  std::cout << "h^1 error: " << std::sqrt(h1Error) << std::endl;
+    for (auto&& element : elements(gridView))
+    {
+      // Get quadrature formula
+      quadKey.setGeometryType(element.type());
+      const auto& quad = QuadratureRuleCache<double, dim>::rule(quadKey);
+
+      for (auto quadPoint : quad)
+      {
+        auto quadPos = quadPoint.position();
+        const auto integrationElement = element.geometry().integrationElement(quadPos);
+        const auto weight = quadPoint.weight();
+
+        // Evaluate function a
+        FieldVector<double,blocksize> numValue;
+        numericalSolution.get()->evaluateLocal(element, quadPos,numValue);
+
+        // Evaluate function b.  If it is a grid function use that to speed up the evaluation
+        FieldVector<double,blocksize> refValue;
+        if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution))
+            std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution)->evaluateLocal(element,
+                                                                                                                          quadPos,
+                                                                                                                          refValue
+                                                                                                                         );
+        else
+          referenceSolution->evaluate(element.geometry().global(quadPos), refValue);
+
+        // Get error in matrix space
+        Rotation<double,3> numRotation(numValue);
+        FieldMatrix<double,3,3> numValueMatrix;
+        numRotation.matrix(numValueMatrix);
+
+        Rotation<double,3> refRotation(refValue);
+        FieldMatrix<double,3,3> refValueMatrix;
+        refRotation.matrix(refValueMatrix);
+
+        // Evaluate derivatives in quaternion space
+        FieldMatrix<double,blocksize,dim> num_di;
+        FieldMatrix<double,blocksize,dim> ref_di;
+
+        if (dynamic_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >*>(numericalSolution.get()))
+          dynamic_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >*>(numericalSolution.get())->evaluateDerivativeLocal(element,
+                                                                                                                                quadPos,
+                                                                                                                                num_di);
+        else
+          numericalSolution->evaluateDerivative(element.geometry().global(quadPos), num_di);
+
+        if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution))
+        std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution)->evaluateDerivativeLocal(element,
+                                                                                                                                quadPos,
+                                                                                                                                ref_di);
+        else
+          referenceSolution->evaluateDerivative(element.geometry().global(quadPos), ref_di);
+
+        // Transform into matrix space
+        Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = Rotation<double,3>::derivativeOfQuaternionToMatrix(numValue);
+        Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(refValue);
+
+        Tensor3<double,3,3,dim> numDerivative(0);
+        Tensor3<double,3,3,dim> refDerivative(0);
+
+        for (int i=0; i<3; i++)
+          for (int j=0; j<3; j++)
+            for (int k=0; k<dim; k++)
+              for (int l=0; l<blocksize; l++)
+              {
+                numDerivative[i][j][k] = derivativeQuaternionToMatrixNum[i][j][l] * num_di[l][k];
+                refDerivative[i][j][k] = derivativeQuaternionToMatrixRef[i][j][l] * ref_di[l][k];
+              }
+
+        // integrate error
+        l2ErrorSquared += (numValueMatrix - refValueMatrix).frobenius_norm2() * weight * integrationElement;
+        auto diff = numDerivative - refDerivative;
+        h1ErrorSquared += diff.frobenius_norm2() * weight * integrationElement;
+      }
+    }
+
+    std::cout << "elements: " << gridView.size(0)
+              << "      "
+              << "L^2 error: " << std::sqrt(l2ErrorSquared)
+              << "      ";
+    std::cout << "h^1 error: " << std::sqrt(h1ErrorSquared) << std::endl;
+  }
+  else
+  {
+    auto l2Error = DiscretizationError<GridView>::computeL2Error(numericalSolution.get(),
+                                                            referenceSolution.get(),
+                                                            quadKey);
+
+    auto h1Error = DiscretizationError<GridView>::computeH1HalfNormDifferenceSquared(gridView,
+                                                                                numericalSolution.get(),
+                                                                                referenceSolution.get(),
+                                                                                quadKey);
+
+    std::cout << "elements: " << gridView.size(0)
+              << "      "
+              << "L^2 error: " << l2Error
+              << "      ";
+    std::cout << "h^1 error: " << std::sqrt(h1Error) << std::endl;
+  }
 }
 
 template <class GridType, class TargetSpace>
