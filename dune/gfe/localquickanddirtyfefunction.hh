@@ -100,11 +100,54 @@ namespace Dune {
       std::vector<Dune::FieldVector<ctype,1> > w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
 
-      typename TargetSpace::CoordinateType c(0);
-      for (size_t i=0; i<coefficients_.size(); i++)
-        c.axpy(w[i][0], coefficients_[i].globalCoordinates());
+      // Special-casing for the Rotations.  This is quite a challenge:
+      //
+      // Projection-based interpolation in the
+      // unit quaternions is not a good idea, here, because you may end up on the
+      // wrong sheet of the covering of SO(3) by the unit quaternions.  The minimization
+      // solver for the weighted distance functional may then actually converge
+      // to the wrong local minimizer -- the interpolating functions wraps "the wrong way"
+      // around SO(3).
+      //
+      // Projection-based interpolation in SO(3) is not a good idea, because it is about as
+      // expensive as the geodesic interpolation itself.  That's not good if all we want
+      // is an initial iterate.
+      //
+      // Averaging in R^{3x3} followed by QR decomposition is not a good idea either:
+      // The averaging can give you singular matrices quite quickly (try two matrices that
+      // differ by a rotation of pi/2).  Then, the QR factorization of the identity may
+      // not be the identity (but differ in sign)!  I tried that with the implementation
+      // from Numerical recipies.
+      //
+      // What do we do instead?  We start from the coefficient that produces the lowest
+      // value of the objective functional.
+      if constexpr (std::is_same<TargetSpace,Rotation<double,3> >::value)
+      {
+        AverageDistanceAssembler averageDistance(coefficients_,w);
 
-      return TargetSpace(c);
+        auto minDistance = averageDistance.value(coefficients_[0]);
+        std::size_t minCoefficient = 0;
+
+        for (std::size_t i=1; i<coefficients_.size(); i++)
+        {
+          auto distance = averageDistance.value(coefficients_[i]);
+          if (distance < minDistance)
+          {
+            minDistance = distance;
+            minCoefficient = i;
+          }
+        }
+
+        return coefficients_[minCoefficient];
+      }
+      else
+      {
+        typename TargetSpace::CoordinateType c(0);
+        for (size_t i=0; i<coefficients_.size(); i++)
+          c.axpy(w[i][0], coefficients_[i].globalCoordinates());
+
+        return TargetSpace(c);
+      }
     }
   }   // namespace GFE
 
