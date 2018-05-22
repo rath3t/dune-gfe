@@ -134,7 +134,7 @@ int main (int argc, char *argv[])
     typedef std::conditional<dim==1 or dim!=dimworld,FoamGrid<dim,dimworld>,UGGrid<dim> >::type GridType;
 #else
     static_assert(dim==dimworld, "You need to have dune-foamgrid installed for dim != dimworld!");
-    typedef std::conditional<dim==1,OneDGrid<dim>,UGGrid<dim> >::type GridType;
+    typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
 #endif
 
     shared_ptr<GridType> grid;
