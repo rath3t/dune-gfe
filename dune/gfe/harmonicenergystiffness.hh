@@ -58,16 +58,16 @@ energy(const typename Basis::LocalView& localView,
         // The derivative of the local function defined on the reference element
         auto referenceDerivative = localInterpolationRule.evaluateDerivative(quadPos);
 
-        // The derivative of the function defined on the actual element
-        typename LocalInterpolationRule::DerivativeType derivative(0);
-
-        for (size_t comp=0; comp<referenceDerivative.N(); comp++)
-            jacobianInverseTransposed.umv(referenceDerivative[comp], derivative[comp]);
-
-        // Add the local energy density
-        // The Frobenius norm is the correct norm here if the metric of TargetSpace is the identity.
-        // (And if the metric of the domain space is the identity, which it always is here.)
-        energy += weight * derivative.frobenius_norm2();
+        // Compute the Frobenius norm squared of the derivative.  This is the correct term
+        // if both domain and target space use the metric inherited from an embedding.
+        for (size_t i=0; i<jacobianInverseTransposed.N(); i++)
+          for (int j=0; j<TargetSpace::embeddedDim; j++)
+          {
+            RT entry = 0;
+            for (size_t k=0; k<jacobianInverseTransposed.M(); k++)
+              entry += jacobianInverseTransposed[i][k] * referenceDerivative[j][k];
+            energy += weight * entry * entry;
+          }
 
     }
 
