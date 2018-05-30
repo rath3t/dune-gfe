@@ -23,10 +23,7 @@ public:
 
   enum {blocklevel = 0};
 
-    /** \brief Default constructor
-     *
-     *  Tensor is initialized containing zeros if no argument is given.
-     *  \param eye if true tensor is initialized as identity
+    /** \brief Default constructor, creates uninitialized matrix
      */
     SymmetricMatrix()
     {}
@@ -47,7 +44,7 @@ public:
      *  \param i line index
      *  \param j column index
      * \note You need to know what you are doing:  You can only access the lower
-     * left triangular submatrix using this methods.  It requires i<=j.
+     * left triangular submatrix using this methods.  It requires i>=j.
      */
     T& operator() (int i, int j)
     {
@@ -59,7 +56,7 @@ public:
      *  \param i line index
      *  \param j column index
      * \note You need to know what you are doing:  You can only access the lower
-     * left triangular submatrix using this methods.  It requires i<=j.
+     * left triangular submatrix using this methods.  It requires i>=j.
      */
     const T& operator() (int i, int j) const
     {
