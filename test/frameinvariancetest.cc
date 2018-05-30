@@ -23,8 +23,6 @@ using std::string;
 int main (int argc, char *argv[]) try
 {
     // Some types that I need
-    typedef BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > MatrixType;
-    typedef BlockVector<FieldVector<double, blocksize> >           CorrectionType;
     typedef std::vector<RigidBodyMotion<double,3> >                SolutionType;
 
     // Problem settings
@@ -35,8 +33,10 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////
     typedef OneDGrid GridType;
     GridType grid(numRodBaseElements, 0, 1);
+    using GridView = GridType::LeafGridView;
+    GridView gridView = grid.leafGridView();
 
-    SolutionType x(grid.size(1));
+    SolutionType x(gridView.size(1));
 
     // //////////////////////////
     //   Initial solution
@@ -57,10 +57,7 @@ int main (int argc, char *argv[]) try
     //   Create a second, rotated copy of the configuration
     // /////////////////////////////////////////////////////////////////////
 
-    FieldVector<double,3> displacement;
-    displacement[0] = 0;
-    displacement[1] = 0;
-    displacement[2] = 0;
+    FieldVector<double,3> displacement {0, 0, 0};
 
     FieldVector<double,3> axis(0);  axis[0]=1;
     Rotation<double,3> rotation(axis,M_PI/2);
@@ -88,20 +85,20 @@ int main (int argc, char *argv[]) try
     writeRod(x,"rod");
     writeRod(rotatedX, "rotated");
 
-    RodLocalStiffness<GridType::LeafGridView,double> assembler(grid.leafGridView(),
+    RodLocalStiffness<GridView,double> assembler(gridView,
                                                                1,1,1,1e6,0.3);
 
     for (int i=1; i<2; i++) {
 
         double p = double(i)/2;
 
-        assembler.getStrain(x,*grid.lbegin<0>(0), p);
-        assembler.getStrain(rotatedX,*grid.lbegin<0>(0), p);
+        assembler.getStrain(x,*gridView.begin<0>(), p);
+        assembler.getStrain(rotatedX,*gridView.begin<0>(), p);
 
     }
 
  } catch (Exception e) {
 
-    std::cout << e << std::endl;
+    std::cout << e.what() << std::endl;
 
  }
