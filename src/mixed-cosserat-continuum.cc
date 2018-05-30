@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <fenv.h>
+#include <array>
 
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
@@ -8,19 +9,11 @@
 #include <adolc/drivers/drivers.h>    // use of "Easy to Use" drivers
 #include <adolc/taping.h>
 
+#include <dune/fufem/adolc.hh>
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
 
 #include <dune/common/typetraits.hh>
-namespace Dune {
-  template <>
-  struct IsNumber<adouble>
-  {
-    constexpr static bool value = true;
-  };
-}
-#include <array>
-
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
