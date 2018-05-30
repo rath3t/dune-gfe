@@ -295,7 +295,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 {
     int rank = grid_->comm().rank();
 
-    MonotoneMGStep<MatrixType,CorrectionType>* mgStep;  // Non-shared pointer -- the innerSolver keeps the ownership
+    MonotoneMGStep<MatrixType,CorrectionType>* mgStep = nullptr;  // Non-shared pointer -- the innerSolver keeps the ownership
 
     // if the inner solver is a monotone multigrid set up a max-norm trust-region
     if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
