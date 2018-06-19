@@ -14,7 +14,7 @@
 // Include Dune header files
 #include <dune/common/version.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 namespace Dune {
 
@@ -151,7 +151,7 @@ namespace Dune {
       return size_;
     }
 
-    Functions::PQkNodalBasis<GridView,2> p2Mapper_;
+    Functions::LagrangeBasis<GridView,2> p2Mapper_;
 
     IndexMap localGlobalMap_;
 
