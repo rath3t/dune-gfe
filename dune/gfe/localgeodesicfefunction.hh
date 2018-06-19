@@ -111,7 +111,7 @@ public:
     }
 private:
 
-    static Dune::FieldMatrix<RT,embeddedDim,embeddedDim> pseudoInverse(const Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& dFdq,
+    static Dune::SymmetricMatrix<RT,embeddedDim> pseudoInverse(const Dune::SymmetricMatrix<RT,embeddedDim>& dFdq,
                                                                            const TargetSpace& q)
     {
         const int shortDim = TargetSpace::TangentVector::dimension;
@@ -120,25 +120,25 @@ private:
         Dune::FieldMatrix<RT,shortDim,embeddedDim> O = q.orthonormalFrame();
 
         // compute A = O dFDq O^T
+        // TODO A really is symmetric, too
         Dune::FieldMatrix<RT,shortDim,shortDim> A;
         for (int i=0; i<shortDim; i++)
             for (int j=0; j<shortDim; j++) {
                 A[i][j] = 0;
                 for (int k=0; k<embeddedDim; k++)
                     for (int l=0; l<embeddedDim; l++)
-                        A[i][j] += O[i][k]*dFdq[k][l]*O[j][l];
+                        A[i][j] += O[i][k] * ((k>=l) ? dFdq(k,l) : dFdq(l,k)) *O[j][l];
             }
 
         A.invert();
 
-        Dune::FieldMatrix<RT,embeddedDim,embeddedDim> result;
+        Dune::SymmetricMatrix<RT,embeddedDim> result;
+        result = 0.0;
         for (int i=0; i<embeddedDim; i++)
-            for (int j=0; j<embeddedDim; j++) {
-                result[i][j] = 0;
+            for (int j=0; j<=i; j++)
                 for (int k=0; k<shortDim; k++)
                     for (int l=0; l<shortDim; l++)
-                        result[i][j] += O[k][i]*A[k][l]*O[l][j];
-            }
+                        result(i,j) += O[k][i]*A[k][l]*O[l][j];
 
         return result;
     }
@@ -310,7 +310,7 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdq(0);
+    Dune::SymmetricMatrix<RT,embeddedDim> dFdq;
     assembler.assembleEmbeddedHessian(q,dFdq);
 
     const int shortDim = TargetSpace::TangentVector::dimension;
@@ -325,7 +325,7 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
             A[i][j] = 0;
             for (int k=0; k<embeddedDim; k++)
                 for (int l=0; l<embeddedDim; l++)
-                    A[i][j] += O[i][k]*dFdq[k][l]*O[j][l];
+                    A[i][j] += O[i][k] * ((k>=l) ? dFdq(k,l) : dFdq(l,k)) * O[j][l];
         }
 
     //
@@ -418,7 +418,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
     /** \todo Use a symmetric matrix here */
-    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdq(0);
+    Dune::SymmetricMatrix<RT,embeddedDim> dFdq;
     assembler.assembleEmbeddedHessian(q,dFdq);
 
 
@@ -433,7 +433,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     // dFDq is not invertible, if the target space is embedded into a higher-dimensional
     // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
     // best way, though.
-    Dune::FieldMatrix<RT,embeddedDim,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq,q);
+    Dune::SymmetricMatrix<RT,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq,q);
 
     //
     Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> dvDqF
@@ -485,7 +485,8 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
         for (int j=0; j<embeddedDim; j++)
             for (int k=0; k<dim; k++)
                 for (int l=0; l<embeddedDim; l++)
-                    result[i][j][k] += dFdqPseudoInv[j][l] * foo[i][l][k];
+                    // TODO Smarter implementation of the product with a symmetric matrix
+                    result[i][j][k] += ((j>=l) ? dFdqPseudoInv(j,l) : dFdqPseudoInv(l,j)) * foo[i][l][k];
 
 }
 
