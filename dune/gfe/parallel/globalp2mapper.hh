@@ -155,7 +155,6 @@ namespace Dune {
 
     IndexMap localGlobalMap_;
 
-    size_t nOwnedLocalEntity_;
     size_t size_;
 
   };
