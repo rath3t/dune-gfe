@@ -14,11 +14,6 @@
 // Include Dune header files
 #include <dune/common/version.hh>
 
-/** include parallel capability */
-#if HAVE_MPI
-  #include <dune/common/parallel/mpihelper.hh>
-#endif
-
 #include <dune/functions/functionspacebases/pqknodalbasis.hh>
 
 namespace Dune {
