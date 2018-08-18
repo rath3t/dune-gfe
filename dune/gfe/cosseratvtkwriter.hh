@@ -4,7 +4,7 @@
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
@@ -129,7 +129,7 @@ public:
         //  Downsample 3rd-order functions onto a P2-space.  That's all VTK can visualize today.
         if (order>=3)
         {
-          typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,2> P2Basis;
+          typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,2> P2Basis;
           P2Basis p2Basis(gridView);
 
         std::vector<RigidBodyMotion<double,3> > downsampledConfig;
@@ -338,7 +338,7 @@ public:
 
         std::vector<RealTuple<double,3> > displacementConfiguration = deformationConfiguration;
         typedef typename GridType::LeafGridView GridView;
-        typedef Dune::Functions::PQkNodalBasis<GridView,2> P2DeformationBasis;
+        typedef Dune::Functions::LagrangeBasis<GridView,2> P2DeformationBasis;
         P2DeformationBasis p2DeformationBasis(gridView);
 
         if (order == 3)

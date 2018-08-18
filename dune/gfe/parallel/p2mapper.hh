@@ -6,7 +6,7 @@
 #include <dune/geometry/type.hh>
 #include <dune/common/typetraits.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 /** \brief Mimic a dune-grid mapper for a P2 space, using the dune-functions dof ordering of such a space
  */
@@ -16,7 +16,7 @@ class P2BasisMapper
   typedef typename GridView::Grid::template Codim<0>::Entity Element;
 public:
 
-  typedef typename Dune::Functions::PQkNodalBasis<GridView,2>::MultiIndex::value_type Index;
+  typedef typename Dune::Functions::LagrangeBasis<GridView,2>::MultiIndex::value_type Index;
 
   P2BasisMapper(const GridView& gridView)
   : p2Basis_(gridView)
@@ -58,7 +58,7 @@ public:
     return false;
   }
 
-  Dune::Functions::PQkNodalBasis<GridView,2> p2Basis_;
+  Dune::Functions::LagrangeBasis<GridView,2> p2Basis_;
 };
 
 #endif

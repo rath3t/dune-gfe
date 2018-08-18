@@ -194,7 +194,7 @@ setup(const GridType& grid,
     //  On the lower grid levels a hierarchy of P1/Q1 spaces is used again.
     ////////////////////////////////////////////////////////////////////////
 
-    bool isP1Basis = std::is_same<Basis,Dune::Functions::PQkNodalBasis<typename Basis::GridView,1> >::value;
+    bool isP1Basis = std::is_same<Basis,Dune::Functions::LagrangeBasis<typename Basis::GridView,1> >::value;
 
     if (isP1Basis)
       mmgStep->mgTransfer_.resize(numLevels-1);
@@ -205,11 +205,11 @@ setup(const GridType& grid,
     if (not isP1Basis)
     {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
+                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis>(pkToP1TransferMatrix,p1Basis,basis);
 #if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
