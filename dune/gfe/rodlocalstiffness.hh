@@ -7,17 +7,17 @@
 #include <dune/istl/matrix.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include "localgeodesicfestiffness.hh"
 #include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
 class RodLocalStiffness
-    : public LocalGeodesicFEStiffness<Dune::Functions::PQkNodalBasis<GridView,1>, RigidBodyMotion<RT,3> >
+    : public LocalGeodesicFEStiffness<Dune::Functions::LagrangeBasis<GridView,1>, RigidBodyMotion<RT,3> >
 {
     typedef RigidBodyMotion<RT,3> TargetSpace;
-    typedef Dune::Functions::PQkNodalBasis<GridView,1> Basis;
+    typedef Dune::Functions::LagrangeBasis<GridView,1> Basis;
 
     // grid types
     typedef typename GridView::Grid::ctype DT;
