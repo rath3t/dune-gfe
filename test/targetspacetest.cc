@@ -384,7 +384,7 @@ int main() try
 //
 //     test<HyperbolicHalfspacePoint<double,2> >();
 
-} catch (Exception e) {
+} catch (Exception& e) {
 
     std::cout << e << std::endl;
 

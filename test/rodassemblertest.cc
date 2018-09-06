@@ -571,7 +571,7 @@ int main (int argc, char *argv[]) try
     hessianFDCheck(x, hessianMatrix, rodAssembler);
         
     // //////////////////////////////
- } catch (Exception e) {
+ } catch (Exception& e) {
 
     std::cout << e << std::endl;
 

@@ -404,7 +404,7 @@ int main (int argc, char *argv[]) try
                 << ",  average deflection: " << averageDef << std::endl;
     }
 
- } catch (Exception e) {
+ } catch (Exception& e) {
 
     std::cout << e << std::endl;
 
