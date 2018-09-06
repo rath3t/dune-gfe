@@ -6,6 +6,7 @@
 #include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/uggrid.hh>
+#include <dune/grid/common/mcmgmapper.hh>
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
@@ -21,6 +22,7 @@
 
 #include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
+#include <dune/fufem/makesphere.hh>
 
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
@@ -34,6 +36,116 @@ const int dim = 2;
 const int dimworld = 2;
 
 using namespace Dune;
+
+/** \brief Check whether given local coordinates are contained in the reference element
+    \todo This method exists in the Dune grid interface!  But we need the eps.
+*/
+static bool checkInside(const Dune::GeometryType& type,
+                        const Dune::FieldVector<double, dim> &loc,
+                        double eps)
+{
+  switch (type.dim())
+  {
+    case 0: // vertex
+      return false;
+
+    case 1: // line
+      return -eps <= loc[0] && loc[0] <= 1+eps;
+
+    case 2:
+
+      if (type.isSimplex()) {
+        return -eps <= loc[0] && -eps <= loc[1] && (loc[0]+loc[1])<=1+eps;
+      } else if (type.isCube()) {
+        return -eps <= loc[0] && loc[0] <= 1+eps
+            && -eps <= loc[1] && loc[1] <= 1+eps;
+      } else
+        DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
+
+    case 3:
+      if (type.isSimplex()) {
+        return -eps <= loc[0] && -eps <= loc[1] && -eps <= loc[2]
+              && (loc[0]+loc[1]+loc[2]) <= 1+eps;
+      } else if (type.isPyramid()) {
+        return -eps <= loc[0] && -eps <= loc[1] && -eps <= loc[2]
+              && (loc[0]+loc[2]) <= 1+eps
+              && (loc[1]+loc[2]) <= 1+eps;
+      } else if (type.isPrism()) {
+        return -eps <= loc[0] && -eps <= loc[1]
+              && (loc[0]+loc[1])<= 1+eps
+              && -eps <= loc[2] && loc[2] <= 1+eps;
+      } else if (type.isCube()) {
+        return -eps <= loc[0] && loc[0] <= 1+eps
+            && -eps <= loc[1] && loc[1] <= 1+eps
+            && -eps <= loc[2] && loc[2] <= 1+eps;
+      }else
+        DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
+
+    default:
+      DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
+  }
+
+}
+
+/** \param element An element of the source grid
+ */
+template <class GridType>
+auto findSupportingElement(const GridType& sourceGrid,
+                           const GridType& targetGrid,
+                           typename GridType::template Codim<0>::Entity element,
+                           FieldVector<double,dim> pos)
+{
+  while (element.level() != 0)
+  {
+    pos = element.geometryInFather().global(pos);
+    element = element.father();
+
+    assert(checkInside(element.type(), pos, 1e-7));
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  //   Find the corresponding coarse grid element on the adaptive grid.
+  //   This is a linear algorithm, but we expect the coarse grid to be small.
+  //////////////////////////////////////////////////////////////////////
+  LevelMultipleCodimMultipleGeomTypeMapper<GridType> sourceP0Mapper (sourceGrid, 0, mcmgElementLayout());
+  LevelMultipleCodimMultipleGeomTypeMapper<GridType> targetP0Mapper(targetGrid, 0, mcmgElementLayout());
+  const auto coarseIndex = sourceP0Mapper.index(element);
+
+  auto targetLevelView = targetGrid.levelGridView(0);
+
+  for (auto&& targetElement : elements(targetLevelView))
+    if (targetP0Mapper.index(targetElement) == coarseIndex)
+    {
+      element = std::move(targetElement);
+      break;
+    }
+
+  //////////////////////////////////////////////////////////////////////////
+  //   Find a corresponding point (not necessarily vertex) on the leaf level
+  //   of the adaptive grid.
+  //////////////////////////////////////////////////////////////////////////
+
+  while (!element.isLeaf())
+  {
+    FieldVector<double,dim> childPos;
+    assert(checkInside(element.type(), pos, 1e-7));
+
+    auto hIt    = element.hbegin(element.level()+1);
+    auto hEndIt = element.hend(element.level()+1);
+
+    for (; hIt!=hEndIt; ++hIt)
+    {
+      childPos = hIt->geometryInFather().local(pos);
+      if (checkInside(hIt->type(), childPos, 1e-7))
+        break;
+    }
+
+    element = *hIt;
+    pos     = childPos;
+  }
+
+  return std::tie(element, pos);
+}
 
 template <class GridView, int order, class TargetSpace>
 void measureDiscreteEOC(const GridView gridView,
@@ -235,10 +347,13 @@ void measureDiscreteEOC(const GridView gridView,
     {
       auto integrationElement = rElement.geometry().integrationElement(qp.position());
 
-      auto globalPos = rElement.geometry().global(qp.position());
-
-      auto element = hierarchicSearch.findEntity(globalPos);
-      auto localPos = element.geometry().local(globalPos);
+      // Given a point with local coordinates qp.position() on element rElement of the reference grid
+      // find the element and local coordinates on the grid of the numerical simulation
+      auto supportingElement = findSupportingElement(referenceGridView.grid(),
+                                                     gridView.grid(),
+                                                     rElement, qp.position());
+      auto element  = std::get<0>(supportingElement);
+      auto localPos = std::get<1>(supportingElement);
 
       auto diff = referenceSolution(rElement, qp.position()) - numericalSolution(element, localPos);
 
@@ -529,7 +644,16 @@ int main (int argc, char *argv[]) try
   FieldVector<double,dimworld> lower(0), upper(1);
 
   std::string structuredGridType = parameterSet["structuredGrid"];
-  if (structuredGridType != "false" )
+  if (structuredGridType == "sphere")
+  {
+    if constexpr (dimworld==3)
+    {
+      grid          = makeSphereOnOctahedron<GridType>({0,0,0},1);
+      referenceGrid = makeSphereOnOctahedron<GridType>({0,0,0},1);
+    } else
+      DUNE_THROW(Exception, "Dimworld must be 3 to create a sphere grid!");
+  }
+  else if (structuredGridType == "simplex" || structuredGridType == "cube")
   {
     lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
     upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
