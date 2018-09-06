@@ -40,15 +40,12 @@ void test()
     PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
     typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
     
-    GeometryType simplex;
-    simplex.makeSimplex(domainDim);
-
     for (int i=0; i<numIndices; i++, ++index) {
         
         for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
-        LocalGfeTestFunctionFiniteElement<LocalFiniteElement,TargetSpace> testFunctionSet(feCache.get(simplex),coefficients);
+        LocalGfeTestFunctionFiniteElement<LocalFiniteElement,TargetSpace> testFunctionSet(feCache.get(GeometryTypes::simplex(domainDim)),coefficients);
         
         FieldVector<double,domainDim> stupidTestPoint(0);
         

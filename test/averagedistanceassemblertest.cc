@@ -66,7 +66,7 @@ void testWeightSet(const std::vector<TargetSpace>& corners,
     int quadOrder = 3;
     
     const Dune::QuadratureRule<double, dim>& quad 
-        = Dune::QuadratureRules<double, dim>::rule(GeometryType(GeometryType::simplex,dim), quadOrder);
+        = Dune::QuadratureRules<double, dim>::rule(GeometryTypes::simplex(dim), quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
