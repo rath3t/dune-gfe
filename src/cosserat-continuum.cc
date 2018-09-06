@@ -25,7 +25,7 @@
 #include <dune/foamgrid/foamgrid.hh>
 #endif
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
@@ -193,7 +193,7 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, order> FEBasis;
+    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, order> FEBasis;
     FEBasis feBasis(gridView);
 
     typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
@@ -272,7 +272,7 @@ int main (int argc, char *argv[]) try
       SolutionType initialIterate;
       GFE::CosseratVTKReader::read(initialIterate, parameterSet.get<std::string>("initialIterateFilename"));
 
-      typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 2> InitialBasis;
+      typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, 2> InitialBasis;
       InitialBasis initialBasis(initialIterateGrid->leafGridView());
 
 #ifdef PROJECTED_INTERPOLATION

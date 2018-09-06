@@ -25,7 +25,7 @@
 
 #include <dune/grid/io/file/gmshreader.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/compositebasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
@@ -152,13 +152,13 @@ int main (int argc, char *argv[]) try
     auto compositeBasis = makeBasis(
       gridView,
       composite(
-          pq<2>(),
-          pq<1>()
+          lagrange<2>(),
+          lagrange<1>()
       )
     );
 
-    typedef Dune::Functions::PQkNodalBasis<GridView,2> DeformationFEBasis;
-    typedef Dune::Functions::PQkNodalBasis<GridView,1> OrientationFEBasis;
+    typedef Dune::Functions::LagrangeBasis<GridView,2> DeformationFEBasis;
+    typedef Dune::Functions::LagrangeBasis<GridView,1> OrientationFEBasis;
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);

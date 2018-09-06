@@ -7,7 +7,7 @@
 #include <dune/localfunctions/lagrange/p1.hh>
 #include <dune/localfunctions/lagrange/p2.hh>
 
-#include <dune/functions/functionspacebases/pq1nodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/gridfunctions/discretescalarglobalbasisfunction.hh>
 
 #include <dune/gfe/unitvector.hh>
@@ -143,7 +143,7 @@ void interpolate(const LocalFEFunctionType& localGeodesicFEFunction,
   // stupid, can't instantiate deformedGrid with a const grid
   DeformedGridType deformedGrid(const_cast<GridType&>(*grid), deformationFunction);
 
-  typedef Functions::PQ1NodalBasis<typename DeformedGridType::LeafGridView > FEBasis;
+  typedef Functions::LagrangeBasis<typename DeformedGridType::LeafGridView, 1> FEBasis;
   FEBasis feBasis(deformedGrid.leafGridView());
 
   Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(variation0)> variation0Function(feBasis,variation0);

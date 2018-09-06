@@ -24,7 +24,7 @@
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
@@ -143,7 +143,7 @@ int main (int argc, char *argv[]) try
   //  Construct the scalar function space basis corresponding to the GFE space
   //////////////////////////////////////////////////////////////////////////////////
 
-  typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, order> FEBasis;
+  typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, order> FEBasis;
   //typedef Dune::Functions::Periodic1DPQ1NodalBasis<typename GridType::LeafGridView> FEBasis;
   FEBasis feBasis(grid->leafGridView());
 

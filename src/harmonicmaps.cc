@@ -28,7 +28,7 @@
 #endif
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/bsplinebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 
@@ -165,7 +165,7 @@ int main (int argc, char *argv[])
     using GridView = GridType::LeafGridView;
     GridView gridView = grid->leafGridView();
 #ifdef LAGRANGE
-    typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
+    typedef Dune::Functions::LagrangeBasis<GridView, order> FEBasis;
     FEBasis feBasis(gridView);
 #else
     typedef Dune::Functions::BSplineBasis<GridView> FEBasis;

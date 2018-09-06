@@ -6,7 +6,7 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
@@ -200,11 +200,11 @@ setup(const GridType& grid,
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType0>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
+                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis0>(pkToP1TransferMatrix,p1Basis,*basis0_);
 
         mmgStep0->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType0>>();
@@ -240,11 +240,11 @@ setup(const GridType& grid,
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType1>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
+                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis1>(pkToP1TransferMatrix,p1Basis,*basis1_);
 
         mmgStep1->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType1>>();

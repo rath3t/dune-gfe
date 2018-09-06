@@ -44,7 +44,7 @@ namespace Dune {
 
 #include <dune/istl/io.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 
 
@@ -440,7 +440,7 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid.leafGridView();
 
-    typedef Functions::PQkNodalBasis<GridView,2> FEBasis;
+    typedef Functions::LagrangeBasis<GridView,1> FEBasis;
     FEBasis feBasis(gridView);
 
     // /////////////////////////////////////////

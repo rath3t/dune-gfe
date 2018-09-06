@@ -9,7 +9,7 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/matrix-vector/genericvectortools.hh>
 
@@ -40,7 +40,7 @@ void measureDiscreteEOC(const GridView gridView,
   //  Construct the scalar function space bases corresponding to the GFE space
   //////////////////////////////////////////////////////////////////////////////////
 
-  typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
+  typedef Dune::Functions::LagrangeBasis<GridView, order> FEBasis;
   FEBasis feBasis(gridView);
   FEBasis referenceFEBasis(referenceGridView);
 
@@ -264,7 +264,7 @@ void measureAnalyticalEOC(const GridView gridView,
   //  Construct the scalar function space bases corresponding to the GFE space
   //////////////////////////////////////////////////////////////////////////////////
 
-  typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
+  typedef Dune::Functions::LagrangeBasis<GridView, order> FEBasis;
   FEBasis feBasis(gridView);
 
   //////////////////////////////////////////////////////////////////////////////////
