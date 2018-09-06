@@ -9,6 +9,12 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
+#if HAVE_DUNE_FOAMGRID
+#include <dune/foamgrid/foamgrid.hh>
+#else
+#include <dune/grid/onedgrid.hh>
+#endif
+
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/matrix-vector/genericvectortools.hh>
@@ -361,8 +367,8 @@ void measureAnalyticalEOC(const GridView gridView,
         refRotation.matrix(refValueMatrix);
 
         // Evaluate derivatives in quaternion space
-        FieldMatrix<double,blocksize,dim> num_di;
-        FieldMatrix<double,blocksize,dim> ref_di;
+        FieldMatrix<double,blocksize,dimworld> num_di;
+        FieldMatrix<double,blocksize,dimworld> ref_di;
 
         if (dynamic_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >*>(numericalSolution.get()))
           dynamic_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >*>(numericalSolution.get())->evaluateDerivativeLocal(element,
@@ -509,7 +515,12 @@ int main (int argc, char *argv[]) try
   /////////////////////////////////////////
   //    Create the grids
   /////////////////////////////////////////
-  typedef UGGrid<dim> GridType;
+#if HAVE_DUNE_FOAMGRID
+    typedef std::conditional<dim==1 or dim!=dimworld,FoamGrid<dim,dimworld>,UGGrid<dim> >::type GridType;
+#else
+    static_assert(dim==dimworld, "You need to have dune-foamgrid installed for dim != dimworld!");
+    typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
+#endif
 
   const int numLevels = parameterSet.get<int>("numLevels");
 
