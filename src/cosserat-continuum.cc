@@ -447,7 +447,7 @@ int main (int argc, char *argv[]) try
             averageDef += x[i].r;
     averageDef /= neumannNodes.count();
 
-    if (mpiHelper.rank()==0)
+    if (mpiHelper.rank()==0 and parameterSet.hasKey("neumannValues"))
     {
       std::cout << "Neumann values = " << parameterSet.get<FieldVector<double, 3> >("neumannValues") << "  "
                 << ",  average deflection: " << averageDef << std::endl;
