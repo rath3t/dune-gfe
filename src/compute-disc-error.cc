@@ -452,6 +452,7 @@ void measureEOC(const std::shared_ptr<GridType> grid,
       default:
         DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
     }
+    return;  // Success
   }
 
   if (parameterSet.get<std::string>("discretizationErrorMode")=="analytical")
@@ -473,7 +474,10 @@ void measureEOC(const std::shared_ptr<GridType> grid,
       default:
         DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
     }
+    return;  // Success
   }
+
+  DUNE_THROW(NotImplemented, "Unknown discretization error mode encountered!");
 }
 
 int main (int argc, char *argv[]) try
