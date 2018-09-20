@@ -621,7 +621,7 @@ public:
     /** \brief Evaluate the derivative of the function */
     DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
-        Dune::FieldMatrix<ctype, embeddedDim, dim> result(0);
+        DerivativeType result(0);
 
         // get translation part
         std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
@@ -632,7 +632,7 @@ public:
                 result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
 
         // get orientation part
-        Dune::FieldMatrix<ctype,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local);
+        Dune::FieldMatrix<field_type,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local);
         for (int i=0; i<4; i++)
             for (int j=0; j<dim; j++)
                 result[3+i][j] = qResult[i][j];
