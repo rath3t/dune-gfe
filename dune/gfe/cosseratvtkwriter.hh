@@ -1,6 +1,8 @@
 #ifndef COSSERAT_VTK_WRITER_HH
 #define COSSERAT_VTK_WRITER_HH
 
+#include <dune/common/version.hh>
+
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
@@ -169,6 +171,8 @@ public:
             connectivitySize += ((vtkOrder==2) ? 8 : 4) * nE.second;
           else if (nE.first.isTriangle())
             connectivitySize += ((vtkOrder==2) ? 6 : 3) * nE.second;
+          else if (nE.first.isHexahedron())
+            connectivitySize += ((vtkOrder==2) ? 20 : 8) * nE.second;
           else
             DUNE_THROW(Dune::IOError, "Unsupported element type '" << nE.first << "' found!");
         }
@@ -260,6 +264,69 @@ public:
 #endif
             }
           }
+          if (element.type().isHexahedron())
+          {
+            if (vtkOrder==2)
+            {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(2);
+            connectivity[i++] = localIndexSet.index(5);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(4);
+            connectivity[i++] = localIndexSet.index(3);
+#else
+            // Corner dofs
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(2);
+            connectivity[i++] = localView.index(8);
+            connectivity[i++] = localView.index(6);
+
+            connectivity[i++] = localView.index(18);
+            connectivity[i++] = localView.index(20);
+            connectivity[i++] = localView.index(26);
+            connectivity[i++] = localView.index(24);
+
+            // Edge dofs
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(5);
+            connectivity[i++] = localView.index(7);
+            connectivity[i++] = localView.index(3);
+
+            connectivity[i++] = localView.index(19);
+            connectivity[i++] = localView.index(23);
+            connectivity[i++] = localView.index(25);
+            connectivity[i++] = localView.index(21);
+
+            connectivity[i++] = localView.index(9);
+            connectivity[i++] = localView.index(11);
+            connectivity[i++] = localView.index(17);
+            connectivity[i++] = localView.index(15);
+#endif
+            }
+            else  // first order
+            {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(3);
+            connectivity[i++] = localIndexSet.index(2);
+            connectivity[i++] = localIndexSet.index(4);
+            connectivity[i++] = localIndexSet.index(5);
+            connectivity[i++] = localIndexSet.index(7);
+            connectivity[i++] = localIndexSet.index(6);
+#else
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(3);
+            connectivity[i++] = localView.index(2);
+            connectivity[i++] = localView.index(4);
+            connectivity[i++] = localView.index(5);
+            connectivity[i++] = localView.index(7);
+            connectivity[i++] = localView.index(6);
+#endif
+            }
+          }
         }
 
         vtkFile.cellConnectivity_ = connectivity;
@@ -275,6 +342,9 @@ public:
           if (element.type().isTriangle())
             offsetCounter += (vtkOrder==2) ? 6 : 3;
 
+          if (element.type().isHexahedron())
+            offsetCounter += (vtkOrder==2) ? 20 : 8;
+
           offsets[i++] += offsetCounter;
         }
 
@@ -289,6 +359,9 @@ public:
 
           if (element.type().isTriangle())
             cellTypes[i++] = (vtkOrder==2) ? 22 : 5;
+
+          if (element.type().isHexahedron())
+            cellTypes[i++] = (vtkOrder==2) ? 25 : 12;
         }
         vtkFile.cellTypes_ = cellTypes;
 
