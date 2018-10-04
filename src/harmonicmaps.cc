@@ -29,6 +29,7 @@
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/bsplinebasis.hh>
+#include <dune/functions/functionspacebases/powerbasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 
 #include <dune/fufem/boundarypatch.hh>
@@ -211,10 +212,19 @@ int main (int argc, char *argv[])
     auto pythonInitialIterate = Python::makeFunction<TargetSpace::CoordinateType(const FieldVector<double,dimworld>&)>(module.get("f"));
 
     std::vector<TargetSpace::CoordinateType> v;
+    using namespace Functions::BasisFactory;
+
+      auto powerBasis = makeBasis(
+        gridView,
+        power<TargetSpace::CoordinateType::dimension>(
+          lagrange<order>(),
+          blockedInterleaved()
+      ));
+
 #ifdef LAGRANGE
-    Dune::Functions::interpolate(feBasis, v, pythonInitialIterate);
+    Dune::Functions::interpolate(powerBasis, v, pythonInitialIterate);
 #else
-    Dune::Functions::interpolate(feBasis, v, pythonInitialIterate, lower, upper, elements, order);
+    Dune::Functions::interpolate(powerBasis, v, pythonInitialIterate, lower, upper, elements, order);
 #endif
 
     for (size_t i=0; i<x.size(); i++)
