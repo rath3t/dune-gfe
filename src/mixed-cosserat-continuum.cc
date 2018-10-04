@@ -9,7 +9,6 @@
 #include <adolc/drivers/drivers.h>    // use of "Easy to Use" drivers
 #include <adolc/taping.h>
 
-#include <dune/fufem/adolc.hh>
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
 

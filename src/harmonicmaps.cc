@@ -6,7 +6,6 @@
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
-#include <dune/fufem/adolc.hh>
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
 #include <dune/common/typetraits.hh>
