@@ -317,8 +317,8 @@ void measureDiscreteEOC(const GridView gridView,
             for (int k=0; k<dim; k++)
               for (int l=0; l<4; l++)
               {
-                refDerivative[i][j][k] = derivativeQuaternionToMatrixRef[i][j][l] * referenceDerQuat[l][k];
-                numDerivative[i][j][k] = derivativeQuaternionToMatrixNum[i][j][l] * numericalDerQuat[l][k];
+                refDerivative[i][j][k] += derivativeQuaternionToMatrixRef[i][j][l] * referenceDerQuat[l][k];
+                numDerivative[i][j][k] += derivativeQuaternionToMatrixNum[i][j][l] * numericalDerQuat[l][k];
               }
 
         auto derDiff = refDerivative - numDerivative;  // compute the difference
@@ -511,8 +511,8 @@ void measureAnalyticalEOC(const GridView gridView,
             for (int k=0; k<dim; k++)
               for (int l=0; l<blocksize; l++)
               {
-                numDerivative[i][j][k] = derivativeQuaternionToMatrixNum[i][j][l] * num_di[l][k];
-                refDerivative[i][j][k] = derivativeQuaternionToMatrixRef[i][j][l] * ref_di[l][k];
+                numDerivative[i][j][k] += derivativeQuaternionToMatrixNum[i][j][l] * num_di[l][k];
+                refDerivative[i][j][k] += derivativeQuaternionToMatrixRef[i][j][l] * ref_di[l][k];
               }
 
         // integrate error
