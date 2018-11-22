@@ -33,6 +33,9 @@ namespace Dune {
     {
       static_assert(GridView::dimension==2, "Only implemented for two-dimensional grids");
 
+      if (gridView.size(GeometryTypes::triangle)>1)
+        DUNE_THROW(NotImplemented, "GlobalP2Mapper only works for quad grids!");
+
       GlobalIndexSet<GridView> globalVertexIndex(gridView,2);
       GlobalIndexSet<GridView> globalEdgeIndex(gridView,1);
       GlobalIndexSet<GridView> globalElementIndex(gridView,0);
