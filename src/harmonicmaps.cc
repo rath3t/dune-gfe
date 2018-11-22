@@ -73,6 +73,47 @@ const int order = 1;
 
 using namespace Dune;
 
+template <typename Writer, typename Basis, typename SolutionType>
+void fillVTKWriter(Writer& vtkWriter, const Basis& feBasis, const SolutionType& x, std::string filename)
+{
+  typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
+  EmbeddedVectorType xEmbedded(x.size());
+  for (size_t i=0; i<x.size(); i++)
+    xEmbedded[i] = x[i].globalCoordinates();
+
+  if constexpr (std::is_same<TargetSpace, Rotation<double,3> >::value)
+  {
+    std::array<BlockVector<FieldVector<double,3> >,3> director;
+    for (int i=0; i<3; i++)
+      director[i].resize(x.size());
+
+    for (size_t i=0; i<x.size(); i++)
+    {
+      FieldMatrix<double,3,3> m;
+      x[i].matrix(m);
+      director[0][i] = {m[0][0], m[1][0], m[2][0]};
+      director[1][i] = {m[0][1], m[1][1], m[2][1]};
+      director[2][i] = {m[0][2], m[1][2], m[2][2]};
+    }
+
+    auto dFunction0 = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(feBasis,director[0]);
+    auto dFunction1 = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(feBasis,director[1]);
+    auto dFunction2 = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(feBasis,director[2]);
+
+    vtkWriter.addVertexData(dFunction0, VTK::FieldInfo("director0", VTK::FieldInfo::Type::vector, 3));
+    vtkWriter.addVertexData(dFunction1, VTK::FieldInfo("director1", VTK::FieldInfo::Type::vector, 3));
+    vtkWriter.addVertexData(dFunction2, VTK::FieldInfo("director2", VTK::FieldInfo::Type::vector, 3));
+  }
+  else
+  {
+    auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
+
+    vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
+  }
+
+  vtkWriter.write(filename);
+}
+
 
 int main (int argc, char *argv[])
 {
@@ -295,20 +336,16 @@ int main (int argc, char *argv[])
     //   Output result
     // //////////////////////////////
 
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView,Dune::refinementLevels(order-1));
+    std::string baseName = "harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels);
+    fillVTKWriter(vtkWriter, feBasis, x, resultPath + baseName);
+
+    // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
     EmbeddedVectorType xEmbedded(x.size());
     for (size_t i=0; i<x.size(); i++)
-        xEmbedded[i] = x[i].globalCoordinates();
+      xEmbedded[i] = x[i].globalCoordinates();
 
-    auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
-
-    std::string baseName = "harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels);
-
-    SubsamplingVTKWriter<GridView> vtkWriter(gridView,Dune::refinementLevels(order-1));
-    vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
-    vtkWriter.write(resultPath + baseName);
-
-    // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     std::ofstream outFile(baseName + ".data", std::ios_base::binary);
     MatrixVector::Generic::writeBinary(outFile, xEmbedded);
     outFile.close();
