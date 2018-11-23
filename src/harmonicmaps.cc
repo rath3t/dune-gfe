@@ -279,9 +279,8 @@ int main (int argc, char *argv[])
     // ////////////////////////////////////////////////////////////
 
     typedef TargetSpace::rebind<adouble>::other ATargetSpace;
-    typedef LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
-    //typedef GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
-    std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+    using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
     // Assembler using ADOL-C
     std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > localEnergy;
@@ -289,8 +288,12 @@ int main (int argc, char *argv[])
     std::string energy = parameterSet.get<std::string>("energy");
     if (energy == "harmonic")
     {
-
-      localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, LocalInterpolationRule, ATargetSpace>);
+        if (parameterSet["interpolationMethod"] == "geodesic")
+            localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, GeodesicInterpolationRule, ATargetSpace>);
+        else if (parameterSet["interpolationMethod"] == "projected")
+            localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, ProjectedInterpolationRule, ATargetSpace>);
+        else
+            DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
     } else if (energy == "chiral_skyrmion")
     {
