@@ -444,7 +444,7 @@ void measureAnalyticalEOC(const GridView gridView,
   /////////////////////////////////////////////////////////////////
 
   // Read reference solution and its derivative into a PythonFunction
-  typedef VirtualDifferentiableFunction<FieldVector<double, dim>, typename TargetSpace::CoordinateType> FBase;
+  typedef VirtualDifferentiableFunction<FieldVector<double, dimworld>, typename TargetSpace::CoordinateType> FBase;
 
   Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
   auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
