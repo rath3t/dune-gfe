@@ -239,23 +239,54 @@ void measureDiscreteEOC(const GridView gridView,
         auto element = hierarchicSearch.findEntity(globalPos);
         auto localPos = element.geometry().local(globalPos);
 
-        auto diff = referenceSolution(rElement, qp.position()) - numericalSolution(element, localPos);
+        auto refValue = referenceSolution(rElement, qp.position());
+        auto numValue = numericalSolution(element, localPos);
+        auto diff = refValue - numValue;
         assert(diff.size()==7);
 
+        // Compute error of the displacement degrees of freedom
         for (int i=0; i<3; i++)
           deformationL2ErrorSquared += integrationElement * qp.weight() * diff[i] * diff[i];
-
-        for (int i=3; i<7; i++)
-          orientationL2ErrorSquared += integrationElement * qp.weight() * diff[i] * diff[i];
 
         auto derDiff = referenceSolution.derivative(rElement, qp.position()) - numericalSolution.derivative(element, localPos);
 
         for (int i=0; i<3; i++)
           deformationH1ErrorSquared += integrationElement * qp.weight() * derDiff[i].two_norm2();
 
-        for (int i=3; i<7; i++)
-          orientationH1ErrorSquared += integrationElement * qp.weight() * derDiff[i].two_norm2();
+        // Compute error of the orientation degrees of freedom
+        // We need to transform from quaternion coordinates to matrix coordinates first.
+        FieldMatrix<double,3,3> referenceValue, numericalValue;
+        Rotation<double,3> referenceRotation(std::array<double,4>{refValue[3], refValue[4], refValue[5], refValue[6]});
+        referenceRotation.matrix(referenceValue);
 
+        Rotation<double,3> numericalRotation(std::array<double,4>{numValue[3], numValue[4], numValue[5], numValue[6]});
+        numericalRotation.matrix(numericalValue);
+
+        auto orientationDiff = referenceValue - numericalValue;
+
+        orientationL2ErrorSquared += integrationElement * qp.weight() * orientationDiff.frobenius_norm2();
+
+        auto referenceDerQuat = referenceSolution.derivative(rElement, qp.position());
+        auto numericalDerQuat = numericalSolution.derivative(element, localPos);
+
+        // Transform to matrix coordinates
+        Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(FieldVector<double,4>{refValue[3], refValue[4], refValue[5], refValue[6]});
+        Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = Rotation<double,3>::derivativeOfQuaternionToMatrix(FieldVector<double,4>{numValue[3], numValue[4], numValue[5], numValue[6]});
+
+        Tensor3<double,3,3,dim> refDerivative(0);
+        Tensor3<double,3,3,dim> numDerivative(0);
+
+        for (int i=0; i<3; i++)
+          for (int j=0; j<3; j++)
+            for (int k=0; k<dim; k++)
+              for (int l=0; l<4; l++)
+              {
+                refDerivative[i][j][k] += derivativeQuaternionToMatrixRef[i][j][l] * referenceDerQuat[3+l][k];
+                numDerivative[i][j][k] += derivativeQuaternionToMatrixNum[i][j][l] * numericalDerQuat[3+l][k];
+              }
+
+        auto derOrientationDiff = refDerivative - numDerivative;  // compute the difference
+        orientationH1ErrorSquared += derOrientationDiff.frobenius_norm2() * qp.weight() * integrationElement;
       }
     }
 
@@ -270,8 +301,7 @@ void measureDiscreteEOC(const GridView gridView,
               << "H^1 error orientation: " << std::sqrt(orientationH1ErrorSquared)
               << std::endl;
   }
-
-  if constexpr (std::is_same<TargetSpace,Rotation<double,3> >::value)
+  else if constexpr (std::is_same<TargetSpace,Rotation<double,3> >::value)
   {
     double l2ErrorSquared = 0;
     double h1ErrorSquared = 0;
@@ -364,7 +394,6 @@ void measureDiscreteEOC(const GridView gridView,
       h1ErrorSquared += integrationElement * qp.weight() * derDiff.frobenius_norm2();
 
     }
-  }
 
   std::cout << "levels: " << gridView.grid().maxLevel()+1
             << "      "
@@ -372,6 +401,7 @@ void measureDiscreteEOC(const GridView gridView,
             << "      "
             << "h^1 error: " << std::sqrt(h1ErrorSquared)
             << std::endl;
+  }
   }
 }
 
