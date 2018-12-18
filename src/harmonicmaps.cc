@@ -299,8 +299,17 @@ int main (int argc, char *argv[])
 
     } else if (energy == "chiral_skyrmion")
     {
-
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, LocalInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
+//       // Doesn't work: we are not inside of a template
+//       if constexpr (std::is_same<TargetSpace, UnitVector<double,3> >::value)
+//       {
+        if (parameterSet["interpolationMethod"] == "geodesic")
+            localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, GeodesicInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
+        else if (parameterSet["interpolationMethod"] == "projected")
+            localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, ProjectedInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
+        else
+            DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
+//       } else
+//         DUNE_THROW(Exception, "Build program with TargetSpace = UnitVector<3> for the ChiralSkyrmion energy!");
 
     } else
       DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");
