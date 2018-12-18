@@ -586,6 +586,8 @@ void measureEOC(const std::shared_ptr<GridType> grid,
 
   if (parameterSet.get<std::string>("discretizationErrorMode")=="discrete")
   {
+    referenceGrid->globalRefine(parameterSet.get<int>("numReferenceLevels")-1);
+
     switch (order)
     {
       case 1:
@@ -690,10 +692,14 @@ int main (int argc, char *argv[]) try
 
     auto elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
     if (structuredGridType == "simplex")
-      grid = StructuredGridFactory<GridType>::createSimplexGrid(lower, upper, elements);
-    else if (structuredGridType == "cube")
-      grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
-    else
+    {
+      grid          = StructuredGridFactory<GridType>::createSimplexGrid(lower, upper, elements);
+      referenceGrid = StructuredGridFactory<GridType>::createSimplexGrid(lower, upper, elements);
+    } else if (structuredGridType == "cube")
+    {
+      grid          = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+      referenceGrid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
+    } else
       DUNE_THROW(Exception, "Unknown structured grid type '" << structuredGridType << "' found!");
   }
   else
@@ -705,7 +711,6 @@ int main (int argc, char *argv[]) try
   }
 
   grid->globalRefine(numLevels-1);
-  referenceGrid->globalRefine(parameterSet.get<int>("numReferenceLevels")-1);
 
   // Do the actual measurement
   const int targetDim = parameterSet.get<int>("targetDim");
