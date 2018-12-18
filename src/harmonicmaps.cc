@@ -43,6 +43,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
@@ -59,6 +60,7 @@ const int dimworld = 2;
 // Image space of the geodesic fe functions
 // typedef Rotation<double,2> TargetSpace;
 // typedef Rotation<double,3> TargetSpace;
+// typedef RigidBodyMotion<double,3> TargetSpace;
 // typedef UnitVector<double,2> TargetSpace;
 typedef UnitVector<double,3> TargetSpace;
 // typedef UnitVector<double,4> TargetSpace;
