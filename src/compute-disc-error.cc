@@ -706,7 +706,7 @@ int main (int argc, char *argv[]) try
   {
     std::string path                = parameterSet.get<std::string>("path");
     std::string gridFile            = parameterSet.get<std::string>("gridFile");
-    grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+    grid          = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
     referenceGrid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
   }
 
