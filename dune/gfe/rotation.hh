@@ -1148,6 +1148,30 @@ public:
         return result;
     }
 
+    /** \brief Project a vector in R^4 onto the unit quaternions
+     *
+     * \warning This is NOT the standard projection from R^{3 \times 3} onto SO(3)!
+     */
+    static Rotation<T,3> projectOnto(const CoordinateType& p)
+    {
+      Rotation<T,3> result(p);
+      result /= result.two_norm();
+      return result;
+    }
+
+    /** \brief Derivative of the projection of a vector in R^4 onto the unit quaternions
+     *
+     * \warning This is NOT the standard projection from R^{3 \times 3} onto SO(3)!
+     */
+    static auto derivativeOfProjection(const Dune::FieldVector<T,4>& p)
+    {
+      Dune::FieldMatrix<T,4,4> result;
+      for (int i=0; i<4; i++)
+        for (int j=0; j<4; j++)
+          result[i][j] = ( (i==j) - p[i]*p[j] / p.two_norm2() ) / p.two_norm();
+      return result;
+    }
+
     /** \brief The global coordinates, if you really want them */
     const CoordinateType& globalCoordinates() const {
         return *this;
