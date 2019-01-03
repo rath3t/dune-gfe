@@ -105,15 +105,19 @@ void fillVTKWriter(Writer& vtkWriter, const Basis& feBasis, const SolutionType& 
     vtkWriter.addVertexData(dFunction0, VTK::FieldInfo("director0", VTK::FieldInfo::Type::vector, 3));
     vtkWriter.addVertexData(dFunction1, VTK::FieldInfo("director1", VTK::FieldInfo::Type::vector, 3));
     vtkWriter.addVertexData(dFunction2, VTK::FieldInfo("director2", VTK::FieldInfo::Type::vector, 3));
+
+    // Needs to be in this scope; otherwise the stack-allocated dFunction?-objects will get
+    // destructed before 'write' is called.
+    vtkWriter.write(filename);
   }
   else
   {
     auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
 
     vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
-  }
 
-  vtkWriter.write(filename);
+    vtkWriter.write(filename);
+  }
 }
 
 
