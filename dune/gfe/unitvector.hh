@@ -413,10 +413,13 @@ public:
 
     static DerivativeOfProjection derivativeOfProjection(const Dune::FieldVector<T,N>& p)
     {
+      auto normSquared = p.two_norm2();
+      auto norm = std::sqrt(normSquared);
+
       Dune::FieldMatrix<T,N,N> result;
       for (int i=0; i<N; i++)
         for (int j=0; j<N; j++)
-          result[i][j] = ( (i==j) - p[i]*p[j] / p.two_norm2() ) / p.two_norm();
+          result[i][j] = ( (i==j) - p[i]*p[j] / normSquared ) / norm;
       return result;
     }
 
