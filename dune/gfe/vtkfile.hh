@@ -12,6 +12,7 @@
 #endif
 
 #include <dune/common/fvector.hh>
+#include <dune/common/version.hh>
 
 // For parallel infrastructure stuff:
 #include <dune/grid/io/file/vtk.hh>
@@ -55,19 +56,34 @@ namespace Dune {
           writer.beginMain();
 
           writer.beginPointData();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           writer.addArray<float>("director0", 3);
           writer.addArray<float>("director1", 3);
           writer.addArray<float>("director2", 3);
           writer.addArray<float>("zCoord", 1);
+#else
+          writer.addArray("director0", 3, VTK::Precision::float32);
+          writer.addArray("director1", 3, VTK::Precision::float32);
+          writer.addArray("director2", 3, VTK::Precision::float32);
+          writer.addArray("zCoord", 1, VTK::Precision::float32);
+#endif
           writer.endPointData();
 
           writer.beginCellData();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           writer.addArray<float>("mycelldata", 1);
+#else
+          writer.addArray("mycelldata", 1, VTK::Precision::float32);
+#endif
           writer.endCellData();
 
           // dump point coordinates
           writer.beginPoints();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           writer.addArray<float>("Coordinates", 3);
+#else
+          writer.addArray("Coordinates", 3, VTK::Precision::float32);
+#endif
           writer.endPoints();
 
           for (int i=0; i<mpiHelper.size(); i++)
@@ -88,7 +104,11 @@ namespace Dune {
         // Write vertex coordinates
         outFile << "      <Points>" << std::endl;
         {  // extra parenthesis to control destruction of the pointsWriter object
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           Dune::VTK::AsciiDataArrayWriter<float> pointsWriter(outFile, "Coordinates", 3, Dune::Indent(4));
+#else
+          Dune::VTK::AsciiDataArrayWriter pointsWriter(outFile, "Coordinates", 3, Dune::Indent(4), VTK::Precision::float32);
+#endif
           for (size_t i=0; i<points_.size(); i++)
             for (int j=0; j<3; j++)
               pointsWriter.write(points_[i][j]);
@@ -98,19 +118,31 @@ namespace Dune {
         // Write elements
         outFile << "      <Cells>" << std::endl;
         {  // extra parenthesis to control destruction of the cellConnectivityWriter object
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           Dune::VTK::AsciiDataArrayWriter<int> cellConnectivityWriter(outFile, "connectivity", 1, Dune::Indent(4));
+#else
+          Dune::VTK::AsciiDataArrayWriter cellConnectivityWriter(outFile, "connectivity", 1, Dune::Indent(4), VTK::Precision::int32);
+#endif
           for (size_t i=0; i<cellConnectivity_.size(); i++)
             cellConnectivityWriter.write(cellConnectivity_[i]);
         }
 
         {  // extra parenthesis to control destruction of the writer object
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           Dune::VTK::AsciiDataArrayWriter<int> cellOffsetsWriter(outFile, "offsets", 1, Dune::Indent(4));
+#else
+          Dune::VTK::AsciiDataArrayWriter cellOffsetsWriter(outFile, "offsets", 1, Dune::Indent(4), VTK::Precision::int32);
+#endif
           for (size_t i=0; i<cellOffsets_.size(); i++)
             cellOffsetsWriter.write(cellOffsets_[i]);
         }
 
         {  // extra parenthesis to control destruction of the writer object
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           Dune::VTK::AsciiDataArrayWriter<unsigned int> cellTypesWriter(outFile, "types", 1, Dune::Indent(4));
+#else
+          Dune::VTK::AsciiDataArrayWriter cellTypesWriter(outFile, "types", 1, Dune::Indent(4), VTK::Precision::uint32);
+#endif
           for (size_t i=0; i<cellTypes_.size(); i++)
             cellTypesWriter.write(cellTypes_[i]);
         }
@@ -124,7 +156,11 @@ namespace Dune {
 
         // Z coordinate for better visualization of wrinkles
         {  // extra parenthesis to control destruction of the writer object
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           Dune::VTK::AsciiDataArrayWriter<float> zCoordWriter(outFile, "zCoord", 1, Dune::Indent(4));
+#else
+          Dune::VTK::AsciiDataArrayWriter zCoordWriter(outFile, "zCoord", 1, Dune::Indent(4), VTK::Precision::float32);
+#endif
           for (size_t i=0; i<zCoord_.size(); i++)
             zCoordWriter.write(zCoord_[i]);
         }
@@ -132,7 +168,11 @@ namespace Dune {
         // The three director fields
         for (size_t i=0; i<3; i++)
         {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           Dune::VTK::AsciiDataArrayWriter<float> directorWriter(outFile, "director" + std::to_string(i), 3, Dune::Indent(4));
+#else
+          Dune::VTK::AsciiDataArrayWriter directorWriter(outFile, "director" + std::to_string(i), 3, Dune::Indent(4), VTK::Precision::float32);
+#endif
           for (size_t j=0; j<directors_[i].size(); j++)
             for (int k=0; k<3; k++)
               directorWriter.write(directors_[i][j][k]);
@@ -148,7 +188,11 @@ namespace Dune {
         {
           outFile << "      <CellData>" << std::endl;
           {  // extra parenthesis to control destruction of the writer object
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             Dune::VTK::AsciiDataArrayWriter<float> cellDataWriter(outFile, "mycelldata", 1, Dune::Indent(4));
+#else
+            Dune::VTK::AsciiDataArrayWriter cellDataWriter(outFile, "mycelldata", 1, Dune::Indent(4), VTK::Precision::float32);
+#endif
             for (size_t i=0; i<cellData_.size(); i++)
               cellDataWriter.write(cellData_[i]);
           }
