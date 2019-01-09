@@ -394,6 +394,7 @@ void measureDiscreteEOC(const GridView gridView,
       h1ErrorSquared += integrationElement * qp.weight() * derDiff.frobenius_norm2();
 
     }
+  }
 
   std::cout << "levels: " << gridView.grid().maxLevel()+1
             << "      "
@@ -401,7 +402,6 @@ void measureDiscreteEOC(const GridView gridView,
             << "      "
             << "h^1 error: " << std::sqrt(h1ErrorSquared)
             << std::endl;
-  }
   }
 }
 
