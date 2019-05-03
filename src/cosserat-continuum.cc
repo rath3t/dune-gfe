@@ -237,10 +237,10 @@ int main (int argc, char *argv[]) try
 
 
     BitSetVector<1> dirichletNodes(feBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
+    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
 
     BitSetVector<1> neumannNodes(feBasis.size(), false);
-    constructBoundaryDofs(neumannBoundary,fufemFeBasis,neumannNodes);
+    constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
 
     BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
     for (size_t i=0; i<feBasis.size(); i++)
