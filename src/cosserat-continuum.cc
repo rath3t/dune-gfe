@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <fenv.h>
+#include <array>
 
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
@@ -164,7 +165,7 @@ int main (int argc, char *argv[]) try
         lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
         upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
-        std::array<unsigned int,dim> elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
+        auto elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
     } else {
@@ -453,9 +454,7 @@ int main (int argc, char *argv[]) try
                 << ",  average deflection: " << averageDef << std::endl;
     }
 
-    // //////////////////////////////
- } catch (Exception& e) {
-
-    std::cout << e << std::endl;
-
- }
+} catch (Exception& e)
+{
+    std::cout << e.what() << std::endl;
+}
