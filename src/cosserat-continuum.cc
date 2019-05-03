@@ -158,7 +158,8 @@ int main (int argc, char *argv[]) try
 
     FieldVector<double,dimworld> lower(0), upper(1);
 
-    if (parameterSet.get<bool>("structuredGrid")) {
+    std::string structuredGridType = parameterSet["structuredGrid"];
+    if (structuredGridType == "cube") {
 
         lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
         upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
