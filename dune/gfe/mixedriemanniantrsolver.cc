@@ -122,8 +122,8 @@ setup(const GridType& grid,
 
 
     // Make pre and postsmoothers
-    TrustRegionGSStep<MatrixType00, CorrectionType0>* presmoother0  = new TrustRegionGSStep<MatrixType00, CorrectionType0>;
-    TrustRegionGSStep<MatrixType00, CorrectionType0>* postsmoother0 = new TrustRegionGSStep<MatrixType00, CorrectionType0>;
+    auto presmoother0  = std::make_shared<TrustRegionGSStep<MatrixType00, CorrectionType0> >();
+    auto postsmoother0 = std::make_shared<TrustRegionGSStep<MatrixType00, CorrectionType0> >();
 
     mmgStep0 = new MonotoneMGStep<MatrixType00, CorrectionType0>;
 
@@ -134,8 +134,8 @@ setup(const GridType& grid,
     mmgStep0->setObstacleRestrictor(std::make_shared<MandelObstacleRestrictor<CorrectionType0>>());
     mmgStep0->setVerbosity(Solver::QUIET);
 
-    TrustRegionGSStep<MatrixType11, CorrectionType1>* presmoother1  = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
-    TrustRegionGSStep<MatrixType11, CorrectionType1>* postsmoother1 = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
+    auto presmoother1  = std::make_shared<TrustRegionGSStep<MatrixType11, CorrectionType1> >();
+    auto postsmoother1 = std::make_shared<TrustRegionGSStep<MatrixType11, CorrectionType1> >();
 
     mmgStep1 = new MonotoneMGStep<MatrixType11, CorrectionType1>;
 
