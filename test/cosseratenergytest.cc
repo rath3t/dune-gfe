@@ -6,7 +6,7 @@
 #include <dune/geometry/type.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/fufem/functions/constantfunction.hh>
 
@@ -119,7 +119,7 @@ void testDerivativeOfRotationMatrix(const std::vector<TargetSpace>& corners)
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, domainDim> derivative = f.evaluateDerivative(quadPos);
 
         Tensor3<double,3,3,domainDim> DR;
-        typedef Dune::Functions::PQkNodalBasis<typename UGGrid<domainDim>::LeafGridView,1> FEBasis;
+        typedef Dune::Functions::LagrangeBasis<typename UGGrid<domainDim>::LeafGridView,1> FEBasis;
         CosseratEnergyLocalStiffness<FEBasis,3>::computeDR(f.evaluate(quadPos),derivative, DR);
 
         // evaluate fd approximation of derivative
@@ -157,7 +157,7 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
     materialParameters["q"] = "2.5";
     materialParameters["kappa"] = "0.1";
 
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> FEBasis;
+    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> FEBasis;
     FEBasis feBasis(grid->leafGridView());
 
     CosseratEnergyLocalStiffness<FEBasis,3> assembler(materialParameters,
@@ -349,7 +349,7 @@ int main(int argc, char** argv)
     //  Create a local assembler object
     ////////////////////////////////////////////////////////////////////////////
 
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> Basis;
+    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> Basis;
     Basis basis(grid->leafGridView());
 
     std::cout << " --- Testing derivative of rotation matrix, domain dimension: " << domainDim << " ---" << std::endl;

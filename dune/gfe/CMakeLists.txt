@@ -1,3 +1,2 @@
 #install headers
-install(FILES gfe.hh DESTINATION include/dune/gfe)
-
+install(FILES gfe.hh DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/gfe)

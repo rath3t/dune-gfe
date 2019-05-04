@@ -45,10 +45,10 @@ public:
 
 /** \brief Specialize for scalar bases, here we cannot call tree().child() */
 template <class GridView, int order, std::size_t i>
-class LocalFiniteElementFactory<Dune::Functions::PQkNodalBasis<GridView,order>,i>
+class LocalFiniteElementFactory<Dune::Functions::LagrangeBasis<GridView,order>,i>
 {
 public:
-  static auto get(const typename Dune::Functions::PQkNodalBasis<GridView,order>::LocalView& localView,
+  static auto get(const typename Dune::Functions::LagrangeBasis<GridView,order>::LocalView& localView,
            std::integral_constant<std::size_t, i> iType)
     -> decltype(localView.tree().finiteElement())
   {

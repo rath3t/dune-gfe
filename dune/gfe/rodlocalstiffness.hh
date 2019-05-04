@@ -7,17 +7,17 @@
 #include <dune/istl/matrix.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include "localgeodesicfestiffness.hh"
 #include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
 class RodLocalStiffness
-    : public LocalGeodesicFEStiffness<Dune::Functions::PQkNodalBasis<GridView,1>, RigidBodyMotion<RT,3> >
+    : public LocalGeodesicFEStiffness<Dune::Functions::LagrangeBasis<GridView,1>, RigidBodyMotion<RT,3> >
 {
     typedef RigidBodyMotion<RT,3> TargetSpace;
-    typedef Dune::Functions::PQkNodalBasis<GridView,1> Basis;
+    typedef Dune::Functions::LagrangeBasis<GridView,1> Basis;
 
     // grid types
     typedef typename GridView::Grid::ctype DT;
@@ -63,13 +63,10 @@ public:
     //! Constructor
     RodLocalStiffness (const GridView& gridView,
                        const std::array<double,3>& K, const std::array<double,3>& A)
-        : gridView_(gridView)
-    {
-        for (int i=0; i<3; i++) {
-            K_[i] = K[i];
-            A_[i] = A[i];
-        }
-    }
+        : K_(K),
+          A_(A),
+          gridView_(gridView)
+    {}
 
     /** \brief Constructor setting shape constants and material parameters
         \param A The rod section area
@@ -465,7 +462,7 @@ getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
         // multiply with jacobian inverse
         Dune::FieldVector<double,1> tmp(0);
         inv.umv(shapeGrad[dof][0], tmp);
-        shapeGrad[dof] = tmp;
+        shapeGrad[dof][0] = tmp;
 
     }
 

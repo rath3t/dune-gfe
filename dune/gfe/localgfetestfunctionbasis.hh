@@ -109,7 +109,7 @@ public :
     //! The local basis traits
     typedef Dune::LocalBasisTraits<ctype, dim, Dune::FieldVector<ctype,dim>, 
         typename EmbeddedTangentVector::value_type, embeddedDim, std::array<EmbeddedTangentVector,spaceDim>, 
-        std::array<Dune::FieldMatrix<ctype, embeddedDim, dim>,spaceDim>,1> Traits;
+        std::array<Dune::FieldMatrix<ctype, embeddedDim, dim>,spaceDim>> Traits;
        
     /** \brief Constructor 
      */

@@ -5,7 +5,6 @@
 
 #include <dune/grid/common/mcmgmapper.hh>
 
-#include <dune/functions/functionspacebases/pq1nodalbasis.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
@@ -66,7 +65,7 @@ setup(const GridType& grid,
     //////////////////////////////////////////////////////////////////
 
 #if HAVE_MPI
-    globalMapper_ = std::unique_ptr<GlobalMapper>(new GlobalMapper(grid_->leafGridView()));
+    globalMapper_ = std::make_unique<GlobalMapper>(grid_->leafGridView());
 #endif
 
     // ////////////////////////////////
@@ -130,7 +129,7 @@ setup(const GridType& grid,
     operatorAssembler.assemble(laplaceStiffness, localA);
 
 #if HAVE_MPI
-    LocalMapper localMapper(grid_->leafGridView());
+    LocalMapper localMapper = MapperFactory<typename Basis::GridView,Basis>::createLocalMapper(grid_->leafGridView());
 
     MatrixCommunicator<GlobalMapper,
                        typename GridType::LeafGridView,
@@ -195,7 +194,7 @@ setup(const GridType& grid,
     //  On the lower grid levels a hierarchy of P1/Q1 spaces is used again.
     ////////////////////////////////////////////////////////////////////////
 
-    bool isP1Basis = std::is_same<Basis,Dune::Functions::PQkNodalBasis<typename Basis::GridView,1> >::value;
+    bool isP1Basis = std::is_same<Basis,Dune::Functions::LagrangeBasis<typename Basis::GridView,1> >::value;
 
     if (isP1Basis)
       mmgStep->mgTransfer_.resize(numLevels-1);
@@ -206,11 +205,11 @@ setup(const GridType& grid,
     if (not isP1Basis)
     {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
+                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis>(pkToP1TransferMatrix,p1Basis,basis);
 #if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
@@ -218,8 +217,8 @@ setup(const GridType& grid,
         typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GlobalLeafP1Mapper;
         GlobalLeafP1Mapper p1Index(grid_->leafGridView());
 
-        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView, Dune::MCMGVertexLayout> LeafP1LocalMapper;
-        LeafP1LocalMapper leafP1LocalMapper(grid_->leafGridView());
+        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView> LeafP1LocalMapper;
+        LeafP1LocalMapper leafP1LocalMapper(grid_->leafGridView(), Dune::mcmgVertexLayout());
 
         MatrixCommunicator<GlobalMapper,
                            typename GridType::LeafGridView,
@@ -251,9 +250,9 @@ setup(const GridType& grid,
         GlobalLevelP1Mapper fineGUIndex(grid_->levelGridView(i+1));
         GlobalLevelP1Mapper coarseGUIndex(grid_->levelGridView(i));
 
-        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView, Dune::MCMGVertexLayout> LevelLocalMapper;
-        LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+1));
-        LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i));
+        typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView> LevelLocalMapper;
+        LevelLocalMapper fineLevelLocalMapper(grid_->levelGridView(i+1), Dune::mcmgVertexLayout());
+        LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i), Dune::mcmgVertexLayout());
 #endif
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
 #if HAVE_MPI
@@ -296,12 +295,12 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 {
     int rank = grid_->comm().rank();
 
-    std::shared_ptr<MonotoneMGStep<MatrixType,CorrectionType> > mgStep;
+    MonotoneMGStep<MatrixType,CorrectionType>* mgStep = nullptr;  // Non-shared pointer -- the innerSolver keeps the ownership
 
     // if the inner solver is a monotone multigrid set up a max-norm trust-region
     if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
         auto loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
-        mgStep = std::dynamic_pointer_cast<MonotoneMGStep<MatrixType,CorrectionType> >(loopSolver->iterationStep_);
+        mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(&loopSolver->getIterationStep());
 
     }
 
@@ -348,7 +347,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                      0);
 
-    LocalMapper localMapper(grid_->leafGridView());
+    LocalMapper localMapper = MapperFactory<typename Basis::GridView,Basis>::createLocalMapper(grid_->leafGridView());
     MatrixCommunicator<GlobalMapper,
                        typename GridType::LeafGridView,
                        typename GridType::LeafGridView,

@@ -2,10 +2,11 @@
 
 #include <dune/grid/uggrid.hh>
 
-#include <dune/localfunctions/lagrange/pqkfactory.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"
@@ -16,17 +17,19 @@ typedef UnitVector<double,3> TargetSpace;
 
 using namespace Dune;
 
-template <class GridType>
-void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficients) {
+template <class Basis>
+void testEnergy(const Basis& basis, const std::vector<TargetSpace>& coefficients)
+{
+    using GridView = typename Basis::GridView;
+    GridView gridView = basis.gridView();
 
-    PQkLocalFiniteElementCache<double,double,GridType::dimension,1> feCache;
-    typedef typename PQkLocalFiniteElementCache<double,double,GridType::dimension,1>::FiniteElementType LocalFiniteElement;
-    
-    //LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, typename Basis::LocalView::Tree::FiniteElement, TargetSpace>;
 
-    
-    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,TargetSpace> assembler;
+    HarmonicEnergyLocalStiffness<Basis,GeodesicInterpolationRule,TargetSpace> assembler;
     std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
+
+    auto localView = basis.localView();
+    localView.bind(*gridView.template begin<0>());
 
     for (int i=0; i<10; i++) {
 
@@ -40,68 +43,13 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
             rotatedCoefficients[j] = tmp;
         }
 
-        std::cout << "energy: " << assembler.energy(*grid->template leafbegin<0>(), 
-                                                    feCache.get(grid->template leafbegin<0>()->type()),
+        std::cout << "energy: " << assembler.energy(localView,
                                                     rotatedCoefficients) << std::endl;
 
-        std::vector<typename TargetSpace::EmbeddedTangentVector> rotatedGradient;
-        assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
-                                           feCache.get(grid->template leafbegin<0>()->type()),
-                                   rotatedCoefficients,
-                                   rotatedGradient);
-
-        for (size_t j=0; j<coefficients.size(); j++) {
-            FieldVector<double,3> tmp;
-            matrix.mtv(rotatedGradient[j], tmp);
-            std::cout << "gradient: " << tmp << std::endl;
-        }
-
     }
 
 }
 
-template <class GridType>
-void testGradientOfEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficients)
-{
-    PQkLocalFiniteElementCache<double,double,GridType::dimension,1> feCache;
-    typedef typename PQkLocalFiniteElementCache<double,double,GridType::dimension,1>::FiniteElementType LocalFiniteElement;
-    
-    //LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
-    HarmonicEnergyLocalStiffness<typename GridType::LeafGridView,LocalFiniteElement,TargetSpace> assembler;
-
-    std::vector<typename TargetSpace::EmbeddedTangentVector> gradient;
-    assembler.assembleEmbeddedGradient(*grid->template leafbegin<0>(),
-                                       feCache.get(grid->template leafbegin<0>()->type()),
-                                       coefficients,
-                                       gradient);
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-    //  Assemble finite difference approximation of the gradient
-    ////////////////////////////////////////////////////////////////////////////////////////
-
-    std::vector<typename TargetSpace::EmbeddedTangentVector> fdGradient;
-    assembler.assembleEmbeddedFDGradient(*grid->template leafbegin<0>(),
-                                         feCache.get(grid->template leafbegin<0>()->type()),
-                                       coefficients,
-                                       fdGradient);
-
-    double diff = 0;
-    for (size_t i=0; i<fdGradient.size(); i++)
-        diff = std::max(diff, (gradient[i] - fdGradient[i]).infinity_norm());
-    
-    if (diff > 1e-6) {
-        
-        std::cout << "gradient: " << std::endl;
-        for (size_t i=0; i<gradient.size(); i++)
-            std::cout << gradient[i] << std::endl;
-    
-        std::cout << "fd gradient: " << std::endl;
-        for (size_t i=0; i<fdGradient.size(); i++)
-            std::cout << fdGradient[i] << std::endl;
-
-    }
-    
-}
 
 template <int domainDim>
 void testUnitVector3d()
@@ -126,10 +74,15 @@ void testUnitVector3d()
     std::vector<unsigned int> v(domainDim+1);
     for (int i=0; i<domainDim+1; i++)
         v[i] = i;
-    factory.insertElement(GeometryType(GeometryType::simplex,dim), v);
+    factory.insertElement(GeometryTypes::simplex(dim), v);
 
-    const GridType* grid = factory.createGrid();
-    
+    auto grid = std::unique_ptr<const GridType>(factory.createGrid());
+    using GridView = typename GridType::LeafGridView;
+    auto gridView = grid->leafGridView();
+
+    // A function space basis
+    using Basis = Functions::LagrangeBasis<GridView,1>;
+    Basis basis(gridView);
 
     // //////////////////////////////////////////////////////////
     //  Test whether the energy is invariant under isometries
@@ -149,8 +102,7 @@ void testUnitVector3d()
         for (int j=0; j<dim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
-        testEnergy<GridType>(grid, coefficients);
-        testGradientOfEnergy(grid, coefficients);
+        testEnergy<Basis>(basis, coefficients);
         
     }
 

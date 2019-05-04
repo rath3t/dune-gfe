@@ -1,11 +1,11 @@
-
-#dune module information file#
-##############################
+################################
+# Dune module information file #
+################################
 
 #Name of the module
-Module:dune-gfe
+Module: dune-gfe
 Version: svn
 Maintainer: oliver.sander@tu-dresden.de
 #depending on
-Depends: dune-grid dune-istl dune-localfunctions dune-functions dune-solvers dune-fufem
+Depends: dune-grid dune-uggrid dune-istl dune-localfunctions dune-functions dune-solvers dune-fufem
 Suggests: dune-foamgrid

@@ -342,39 +342,34 @@ int main()
 
     std::cout << std::setw(15) << std::setprecision(12);
     
-    GeometryType element;
-
     ////////////////////////////////////////////////////////////////
     //  Test functions on 1d elements
     ////////////////////////////////////////////////////////////////
-    element.makeSimplex(1);
     
-    test<RealTuple<double,1>,1>(element);
-    test<UnitVector<double,2>,1>(element);
-    test<UnitVector<double,3>,1>(element);
-    test<Rotation<double,3>,1>(element);
-    test<RigidBodyMotion<double,3>,1>(element);
+    test<RealTuple<double,1>,1>(GeometryTypes::simplex(1));
+    test<UnitVector<double,2>,1>(GeometryTypes::simplex(1));
+    test<UnitVector<double,3>,1>(GeometryTypes::simplex(1));
+    test<Rotation<double,3>,1>(GeometryTypes::simplex(1));
+    test<RigidBodyMotion<double,3>,1>(GeometryTypes::simplex(1));
     
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d simplex elements
     ////////////////////////////////////////////////////////////////
-    element.makeSimplex(2);
 
-    test<RealTuple<double,1>,2>(element);
-    test<UnitVector<double,2>,2>(element);
-    test<UnitVector<double,3>,2>(element);
-    test<Rotation<double,3>,2>(element);
-    test<RigidBodyMotion<double,3>,2>(element);
+    test<RealTuple<double,1>,2>(GeometryTypes::simplex(2));
+    test<UnitVector<double,2>,2>(GeometryTypes::simplex(2));
+    test<UnitVector<double,3>,2>(GeometryTypes::simplex(2));
+    test<Rotation<double,3>,2>(GeometryTypes::simplex(2));
+    test<RigidBodyMotion<double,3>,2>(GeometryTypes::simplex(2));
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d quadrilateral elements
     ////////////////////////////////////////////////////////////////
-    element.makeCube(2);
 
-    test<RealTuple<double,1>,2>(element);
-    test<UnitVector<double,2>,2>(element);
-    test<UnitVector<double,3>,2>(element);
-    test<Rotation<double,3>,2>(element);
-    test<RigidBodyMotion<double,3>,2>(element);
+    test<RealTuple<double,1>,2>(GeometryTypes::cube(2));
+    test<UnitVector<double,2>,2>(GeometryTypes::cube(2));
+    test<UnitVector<double,3>,2>(GeometryTypes::cube(2));
+    test<Rotation<double,3>,2>(GeometryTypes::cube(2));
+    test<RigidBodyMotion<double,3>,2>(GeometryTypes::cube(2));
 
 }

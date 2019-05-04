@@ -1,17 +1,7 @@
 #ifndef TARGET_SPACE_RIEMANNIAN_TRUST_REGION_SOLVER_HH
 #define TARGET_SPACE_RIEMANNIAN_TRUST_REGION_SOLVER_HH
 
-
-//#define USE_GAUSS_SEIDEL_SOLVER
-
-#include <dune/istl/matrix.hh>
-
-#include <dune/solvers/common/boxconstraint.hh>
-#ifdef USE_GAUSS_SEIDEL_SOLVER
-#include <dune/solvers/solvers/loopsolver.hh>
-#include <dune/solvers/iterationsteps/trustregiongsstep.hh>
-#endif
-#include <dune/solvers/norms/energynorm.hh>
+#include <dune/solvers/common/numproc.hh>
 
 #include <dune/gfe/symmetricmatrix.hh>
 
@@ -28,31 +18,16 @@ class TargetSpaceRiemannianTRSolver
     // Centralize the field type here
     typedef typename TargetSpace::ctype field_type;
 
-    // Some types that I need
-    // The types have the dynamic outer type because the dune-solvers solvers expect
-    // this sort of type.
-#ifdef USE_GAUSS_SEIDEL_SOLVER
-    typedef Dune::Matrix<Dune::FieldMatrix<field_type, blocksize, blocksize> > MatrixType;
-    typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >       CorrectionType;
-#else
-    typedef Dune::Matrix<Dune::SymmetricMatrix<field_type, embeddedBlocksize> > MatrixType;
-    typedef Dune::BlockVector<Dune::FieldVector<field_type, embeddedBlocksize> >       CorrectionType;
-#endif
+    typedef Dune::SymmetricMatrix<field_type, embeddedBlocksize> MatrixType;
+    typedef Dune::FieldVector<field_type, embeddedBlocksize>     CorrectionType;
 
 public:
-
-    TargetSpaceRiemannianTRSolver()
-    //        : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL)
-    {}
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const AverageDistanceAssembler<TargetSpace>* assembler,
                const TargetSpace& x,
                double tolerance,
-               int maxTrustRegionSteps,
-               double initialTrustRegionRadius,
-               int innerIterations,
-               double innerTolerance);
+               int maxNewtonSteps);
 
     void solve();
 
@@ -70,32 +45,13 @@ protected:
     /** \brief Tolerance of the solver */
     double tolerance_;
 
-    /** \brief The initial trust-region radius in the maximum-norm */
-    double initialTrustRegionRadius_;
-
-    /** \brief Maximum number of trust-region steps */
-    size_t maxTrustRegionSteps_;
-
-    /** \brief Maximum number of multigrid iterations */
-    int innerIterations_;
-
-    /** \brief Error tolerance of the multigrid QP solver */
-    double innerTolerance_;
+    /** \brief Maximum number of Newton steps */
+    size_t maxNewtonSteps_;
 
     /** \brief The assembler for the average-distance functional */
     const AverageDistanceAssembler<TargetSpace>* assembler_;
 
-#ifdef USE_GAUSS_SEIDEL_SOLVER
-    /** \brief The solver for the quadratic inner problems */
-    std::auto_ptr< ::LoopSolver<CorrectionType> > innerSolver_;
-
-    /** \brief The iteration step for the quadratic inner problems */
-    std::auto_ptr<TrustRegionGSStep<MatrixType, CorrectionType> > innerSolverStep_;
-
-    /** \brief Norm for the quadratic inner problems */
-    std::auto_ptr<EnergyNorm<MatrixType, CorrectionType> > energyNorm_;
-#endif
-    /** \brief Specify a minimal number of iterations the trust-region solver has to do
+    /** \brief Specify a minimal number of iterations the Newton solver has to do
      *
      * This is needed when working with automatic differentiation.    While a very low
      * number of iterations may be enough to precisely compute the value of a

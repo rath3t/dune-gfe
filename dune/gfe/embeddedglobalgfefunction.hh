@@ -68,17 +68,25 @@ public:
     typename TargetSpace::CoordinateType operator()(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
     {
         auto localView = basis_.localView();
-        auto localIndexSet = basis_.localIndexSet();
         localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+        auto localIndexSet = basis_.localIndexSet();
         localIndexSet.bind(localView);
 
         auto numOfBaseFct = localIndexSet.size();
+#else
+        auto numOfBaseFct = localView.size();
+#endif
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
 
         for (size_t i=0; i<numOfBaseFct; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             localCoeff[i] = coefficients_[localIndexSet.index(i)];
+#else
+            localCoeff[i] = coefficients_[localView.index(i)];
+#endif
 
         // create local gfe function
         LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
@@ -96,17 +104,26 @@ public:
     Dune::FieldMatrix<ctype, embeddedDim, gridDim> derivative(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
     {
         auto localView = basis_.localView();
-        auto localIndexSet = basis_.localIndexSet();
         localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+        auto localIndexSet = basis_.localIndexSet();
         localIndexSet.bind(localView);
 
         int numOfBaseFct = localIndexSet.size();
+#else
+        auto numOfBaseFct = localView.size();
+#endif
+
 
         // Extract local coefficients
         std::vector<TargetSpace> localCoeff(numOfBaseFct);
 
-        for (int i=0; i<numOfBaseFct; i++)
+        for (decltype(numOfBaseFct) i=0; i<numOfBaseFct; i++)
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             localCoeff[i] = coefficients_[localIndexSet.index(i)];
+#else
+            localCoeff[i] = coefficients_[localView.index(i)];
+#endif
 
         // create local gfe function
         LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);

@@ -5,6 +5,8 @@
 #include <dune/common/parametertree.hh>
 #include <dune/geometry/quadraturerules.hh>
 
+#include <dune/matrix-vector/crossproduct.hh>
+
 #include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
@@ -277,7 +279,7 @@ energy(const typename Basis::LocalView& localView,
   const auto& localFiniteElement = localView.tree().finiteElement();
 
   ////////////////////////////////////////////////////////////////////////////////////
-  //  Construct a linear (i.e., non-constant!) normal field on the surface
+  //  Construct a linear (i.e., non-constant!) normal field on each element
   ////////////////////////////////////////////////////////////////////////////////////
   auto gridView = localView.globalBasis().gridView();
 
@@ -311,8 +313,6 @@ energy(const typename Basis::LocalView& localView,
     const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
 
     const DT integrationElement = geometry.integrationElement(quadPos);
-
-    DT weight = quad[pt].weight() * integrationElement;
 
     // The value of the local function
     RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
@@ -351,7 +351,7 @@ energy(const typename Basis::LocalView& localView,
         aCovariant[i][j] = 0.0;
     }
 
-    aCovariant[2] = Arithmetic::crossProduct(aCovariant[0], aCovariant[1]);
+    aCovariant[2] = Dune::MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
     aCovariant[2] /= aCovariant[2].two_norm();
 
     auto aContravariant = aCovariant;
@@ -428,15 +428,18 @@ energy(const typename Basis::LocalView& localView,
     //////////////////////////////////////////////////////////
 
     // Add the membrane energy density
-    energy += weight * (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_m(Ee)
-            + weight * (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_m(Ee*b + c*Ke)
-            + weight * Dune::Power<3>::eval(thickness_) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
-            + weight * Dune::Power<5>::eval(thickness_) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
+    auto energyDensity = (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_m(Ee)
+                       + (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_m(Ee*b + c*Ke)
+                       + Dune::Power<3>::eval(thickness_) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
+                       + Dune::Power<5>::eval(thickness_) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
 
     // Add the bending energy density
-    energy += weight * (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_curv(Ke)
-            + weight * (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_curv(Ke*b)
-            + weight * Dune::Power<5>::eval(thickness_) / 80.0 * W_curv(Ke*b*b);
+    energyDensity += (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_curv(Ke)
+                   + (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_curv(Ke*b)
+                   + Dune::Power<5>::eval(thickness_) / 80.0 * W_curv(Ke*b*b);
+
+    // Add energy density
+    energy += quad[pt].weight() * integrationElement * energyDensity;
 
     ///////////////////////////////////////////////////////////
     // Volume load contribution

@@ -7,11 +7,9 @@
 
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
-#include <dune/typetree/leafnode.hh>
-
 #include <dune/functions/functionspacebases/nodes.hh>
-#include <dune/functions/functionspacebases/defaultglobalbasis.hh>
 #include <dune/functions/functionspacebases/flatmultiindex.hh>
+#include <dune/functions/functionspacebases/defaultglobalbasis.hh>
 
 
 namespace Dune {
@@ -20,48 +18,46 @@ namespace Functions {
 // *****************************************************************************
 // This is the reusable part of the basis. It contains
 //
-//   PQ1NodeFactory
+//   PQ1PreBasis
 //   PQ1NodeIndexSet
 //   PQ1Node
 //
-// The factory allows to create the others and is the owner of possible shared
+// The pre-basis allows to create the others and is the owner of possible shared
 // state. These three components do _not_ depend on the global basis or index
 // set and can be used without a global basis.
 // *****************************************************************************
 
-template<typename GV, typename ST, typename TP>
+template<typename GV>
 class Periodic1DPQ1Node;
 
-template<typename GV, class MI, class TP, class ST>
+template<typename GV, class MI>
 class Periodic1DPQ1NodeIndexSet;
 
-template<typename GV, class MI, class ST>
-class Periodic1DPQ1NodeFactory;
-
-template<typename GV, class MI, class ST>
-class Periodic1DPQ1NodeFactory
+template<typename GV, class MI>
+class Periodic1DPQ1PreBasis
 {
   static const int dim = GV::dimension;
 
 public:
 
-  /** \brief The grid view that the FE space is defined on */
+  //! The grid view that the FE basis is defined on
   using GridView = GV;
-  using size_type = ST;
 
-  template<class TP>
-  using Node = Periodic1DPQ1Node<GV, size_type, TP>;
+  //! Type used for indices and size information
+  using size_type = std::size_t;
 
-  template<class TP>
-  using IndexSet = Periodic1DPQ1NodeIndexSet<GV, MI, TP, ST>;
+  using Node = Periodic1DPQ1Node<GV>;
+
+  using IndexSet = Periodic1DPQ1NodeIndexSet<GV, MI>;
 
   /** \brief Type used for global numbering of the basis vectors */
   using MultiIndex = MI;
 
-  using SizePrefix = Dune::ReservedVector<size_type, 2>;
+  //! Type used for prefixes handed to the size() method
+  using SizePrefix = Dune::ReservedVector<size_type, 1>;
 
-  /** \brief Constructor for a given grid view object */
-  Periodic1DPQ1NodeFactory(const GridView& gv) :
+  //! Constructor for a given grid view object
+  Periodic1DPQ1PreBasis(const GridView& gv) :
     gridView_(gv)
   {}
 
@@ -75,16 +71,20 @@ public:
     return gridView_;
   }
 
-  template<class TP>
-  Node<TP> node(const TP& tp) const
+  //! Update the stored grid view, to be called if the grid has changed
+  void update (const GridView& gv)
   {
-    return Node<TP>{tp};
+    gridView_ = gv;
   }
 
-  template<class TP>
-  IndexSet<TP> indexSet() const
+  Node makeNode() const
   {
-    return IndexSet<TP>{*this};
+    return Node{};
+  }
+
+  IndexSet makeIndexSet() const
+  {
+    return IndexSet{*this};
   }
 
   size_type size() const
@@ -102,7 +102,7 @@ public:
     DUNE_THROW(RangeError, "Method size() can only be called for prefixes of length up to one");
   }
 
-  /** \todo This method has been added to the interface without prior discussion. */
+  //! Get the total dimension of the space spanned by this basis
   size_type dimension() const
   {
     return size()-1;
@@ -119,25 +119,22 @@ public:
 
 
 
-template<typename GV, typename ST, typename TP>
+template<typename GV>
 class Periodic1DPQ1Node :
-  public LeafBasisNode<ST, TP>
+  public LeafBasisNode
 {
   static const int dim = GV::dimension;
   static const int maxSize = StaticPower<2,GV::dimension>::power;
 
-  using Base = LeafBasisNode<ST,TP>;
   using FiniteElementCache = typename Dune::PQkLocalFiniteElementCache<typename GV::ctype, double, dim, 1>;
 
 public:
 
-  using size_type = ST;
-  using TreePath = TP;
+  using size_type = std::size_t;
   using Element = typename GV::template Codim<0>::Entity;
   using FiniteElement = typename FiniteElementCache::FiniteElementType;
 
-  Periodic1DPQ1Node(const TreePath& treePath) :
-    Base(treePath),
+  Periodic1DPQ1Node() :
     finiteElement_(nullptr),
     element_(nullptr)
   {}
@@ -174,24 +171,25 @@ protected:
 
 
 
-template<typename GV, class MI, class TP, class ST>
+template<typename GV, class MI>
 class Periodic1DPQ1NodeIndexSet
 {
   enum {dim = GV::dimension};
 
 public:
 
-  using size_type = ST;
+  using size_type = std::size_t;
 
   /** \brief Type used for global numbering of the basis vectors */
   using MultiIndex = MI;
 
-  using NodeFactory = Periodic1DPQ1NodeFactory<GV, MI, ST>;
+  using PreBasis = Periodic1DPQ1PreBasis<GV, MI>;
 
-  using Node = typename NodeFactory::template Node<TP>;
+  using Node = Periodic1DPQ1Node<GV>;
 
-  Periodic1DPQ1NodeIndexSet(const NodeFactory& nodeFactory) :
-    nodeFactory_(&nodeFactory)
+  Periodic1DPQ1NodeIndexSet(const PreBasis& preBasis) :
+    preBasis_(&preBasis),
+    node_(nullptr)
   {}
 
   /** \brief Bind the view to a grid element
@@ -215,6 +213,7 @@ public:
    */
   size_type size() const
   {
+    assert(node_ != nullptr);
     return node_->finiteElement().size();
   }
 
@@ -222,7 +221,7 @@ public:
   MultiIndex index(size_type i) const
   {
     Dune::LocalKey localKey = node_->finiteElement().localCoefficients().localKey(i);
-    const auto& gridIndexSet = nodeFactory_->gridView().indexSet();
+    const auto& gridIndexSet = preBasis_->gridView().indexSet();
     const auto& element = node_->element();
 
     //return {{ gridIndexSet.subIndex(element,localKey.subEntity(),dim) }};
@@ -237,18 +236,18 @@ public:
   }
 
 protected:
-  const NodeFactory* nodeFactory_;
+  const PreBasis* preBasis_;
 
   const Node* node_;
 };
 
 /** \brief Nodal basis of a scalar first-order Lagrangian finite element space
+ *   on a one-dimensional domain with periodic boundary conditions
  *
  * \tparam GV The GridView that the space is defined on
- * \tparam ST The type used for local indices; global indices are FlatMultiIndex<ST>
  */
-template<typename GV, class ST = std::size_t>
-using Periodic1DPQ1NodalBasis = DefaultGlobalBasis<Periodic1DPQ1NodeFactory<GV, FlatMultiIndex<ST>, ST> >;
+template<typename GV>
+using Periodic1DPQ1NodalBasis = DefaultGlobalBasis<Periodic1DPQ1PreBasis<GV, FlatMultiIndex<std::size_t> > >;
 
 } // end namespace Functions
 } // end namespace Dune

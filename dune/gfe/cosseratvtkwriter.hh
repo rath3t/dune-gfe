@@ -1,10 +1,12 @@
 #ifndef COSSERAT_VTK_WRITER_HH
 #define COSSERAT_VTK_WRITER_HH
 
+#include <dune/common/version.hh>
+
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
@@ -129,7 +131,7 @@ public:
         //  Downsample 3rd-order functions onto a P2-space.  That's all VTK can visualize today.
         if (order>=3)
         {
-          typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,2> P2Basis;
+          typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,2> P2Basis;
           P2Basis p2Basis(gridView);
 
         std::vector<RigidBodyMotion<double,3> > downsampledConfig;
@@ -147,8 +149,8 @@ public:
         for (const auto t : gridView.indexSet().types(0))
           numElements[t] = 0;
 
-        for (auto it = gridView.template begin<0,Dune::Interior_Partition>(); it != gridView.template end<0,Dune::Interior_Partition>(); ++it)
-          numElements[it.type()]++;
+        for (auto&& t : elements(gridView, Dune::Partitions::interior))
+          numElements[t.type()]++;
 
         std::size_t totalNumElements = 0;
         for (const auto nE : numElements)
@@ -169,23 +171,30 @@ public:
             connectivitySize += ((vtkOrder==2) ? 8 : 4) * nE.second;
           else if (nE.first.isTriangle())
             connectivitySize += ((vtkOrder==2) ? 6 : 3) * nE.second;
+          else if (nE.first.isHexahedron())
+            connectivitySize += ((vtkOrder==2) ? 20 : 8) * nE.second;
           else
             DUNE_THROW(Dune::IOError, "Unsupported element type '" << nE.first << "' found!");
         }
         std::vector<int> connectivity(connectivitySize);
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         auto localIndexSet = basis.localIndexSet();
+#endif
 
         size_t i=0;
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
           localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           localIndexSet.bind(localView);
+#endif
 
           if (element.type().isQuadrilateral())
           {
             if (vtkOrder==2)
             {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(2);
             connectivity[i++] = localIndexSet.index(8);
@@ -195,31 +204,127 @@ public:
             connectivity[i++] = localIndexSet.index(5);
             connectivity[i++] = localIndexSet.index(7);
             connectivity[i++] = localIndexSet.index(3);
+#else
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(2);
+            connectivity[i++] = localView.index(8);
+            connectivity[i++] = localView.index(6);
+
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(5);
+            connectivity[i++] = localView.index(7);
+            connectivity[i++] = localView.index(3);
+#endif
             }
             else  // first order
             {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(1);
             connectivity[i++] = localIndexSet.index(3);
             connectivity[i++] = localIndexSet.index(2);
+#else
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(3);
+            connectivity[i++] = localView.index(2);
+#endif
             }
           }
           if (element.type().isTriangle())
           {
             if (vtkOrder==2)
             {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(2);
             connectivity[i++] = localIndexSet.index(5);
             connectivity[i++] = localIndexSet.index(1);
             connectivity[i++] = localIndexSet.index(4);
             connectivity[i++] = localIndexSet.index(3);
+#else
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(2);
+            connectivity[i++] = localView.index(5);
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(4);
+            connectivity[i++] = localView.index(3);
+#endif
             }
             else  // first order
             {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             connectivity[i++] = localIndexSet.index(0);
             connectivity[i++] = localIndexSet.index(1);
             connectivity[i++] = localIndexSet.index(2);
+#else
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(2);
+#endif
+            }
+          }
+          if (element.type().isHexahedron())
+          {
+            if (vtkOrder==2)
+            {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(2);
+            connectivity[i++] = localIndexSet.index(5);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(4);
+            connectivity[i++] = localIndexSet.index(3);
+#else
+            // Corner dofs
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(2);
+            connectivity[i++] = localView.index(8);
+            connectivity[i++] = localView.index(6);
+
+            connectivity[i++] = localView.index(18);
+            connectivity[i++] = localView.index(20);
+            connectivity[i++] = localView.index(26);
+            connectivity[i++] = localView.index(24);
+
+            // Edge dofs
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(5);
+            connectivity[i++] = localView.index(7);
+            connectivity[i++] = localView.index(3);
+
+            connectivity[i++] = localView.index(19);
+            connectivity[i++] = localView.index(23);
+            connectivity[i++] = localView.index(25);
+            connectivity[i++] = localView.index(21);
+
+            connectivity[i++] = localView.index(9);
+            connectivity[i++] = localView.index(11);
+            connectivity[i++] = localView.index(17);
+            connectivity[i++] = localView.index(15);
+#endif
+            }
+            else  // first order
+            {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+            connectivity[i++] = localIndexSet.index(0);
+            connectivity[i++] = localIndexSet.index(1);
+            connectivity[i++] = localIndexSet.index(3);
+            connectivity[i++] = localIndexSet.index(2);
+            connectivity[i++] = localIndexSet.index(4);
+            connectivity[i++] = localIndexSet.index(5);
+            connectivity[i++] = localIndexSet.index(7);
+            connectivity[i++] = localIndexSet.index(6);
+#else
+            connectivity[i++] = localView.index(0);
+            connectivity[i++] = localView.index(1);
+            connectivity[i++] = localView.index(3);
+            connectivity[i++] = localView.index(2);
+            connectivity[i++] = localView.index(4);
+            connectivity[i++] = localView.index(5);
+            connectivity[i++] = localView.index(7);
+            connectivity[i++] = localView.index(6);
+#endif
             }
           }
         }
@@ -237,6 +342,9 @@ public:
           if (element.type().isTriangle())
             offsetCounter += (vtkOrder==2) ? 6 : 3;
 
+          if (element.type().isHexahedron())
+            offsetCounter += (vtkOrder==2) ? 20 : 8;
+
           offsets[i++] += offsetCounter;
         }
 
@@ -251,6 +359,9 @@ public:
 
           if (element.type().isTriangle())
             cellTypes[i++] = (vtkOrder==2) ? 22 : 5;
+
+          if (element.type().isHexahedron())
+            cellTypes[i++] = (vtkOrder==2) ? 25 : 12;
         }
         vtkFile.cellTypes_ = cellTypes;
 
@@ -300,7 +411,7 @@ public:
 
         std::vector<RealTuple<double,3> > displacementConfiguration = deformationConfiguration;
         typedef typename GridType::LeafGridView GridView;
-        typedef Dune::Functions::PQkNodalBasis<GridView,2> P2DeformationBasis;
+        typedef Dune::Functions::LagrangeBasis<GridView,2> P2DeformationBasis;
         P2DeformationBasis p2DeformationBasis(gridView);
 
         if (order == 3)
@@ -337,7 +448,11 @@ public:
 
           // dump point coordinates
           writer.beginPoints();
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           writer.addArray<float>("Coordinates", 3);
+#else
+          writer.addArray("Coordinates", 3, Dune::VTK::Precision::float32);
+#endif
           writer.endPoints();
 
           for (int i=0; i<gridView.comm().size(); i++)
@@ -352,9 +467,8 @@ public:
         /////////////////////////////////////////////////////////////////////////////////
 
         // Stupid: I can't directly get the number of Interior_Partition elements
-        size_t numElements = 0;
-        for (const auto& element : elements(gridView, Dune::Partitions::interior))
-          numElements++;
+        size_t numElements = std::distance(gridView.template begin<0, Dune::Interior_Partition>(),
+                                           gridView.template end<0, Dune::Interior_Partition>());
 
         std::ofstream outFile(fullfilename);
 
@@ -376,15 +490,20 @@ public:
         outFile << "      <Cells>" << std::endl;
 
         outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         auto localIndexSet = p2DeformationBasis.localIndexSet();
+#endif
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
           localView.bind(element);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
           localIndexSet.bind(localView);
+#endif
 
           outFile << "          ";
           if (element.type().isQuadrilateral())
           {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
             outFile << localIndexSet.index(0) << " ";
             outFile << localIndexSet.index(2) << " ";
             outFile << localIndexSet.index(8) << " ";
@@ -394,6 +513,17 @@ public:
             outFile << localIndexSet.index(5) << " ";
             outFile << localIndexSet.index(7) << " ";
             outFile << localIndexSet.index(3) << " ";
+#else
+            outFile << localView.index(0) << " ";
+            outFile << localView.index(2) << " ";
+            outFile << localView.index(8) << " ";
+            outFile << localView.index(6) << " ";
+
+            outFile << localView.index(1) << " ";
+            outFile << localView.index(5) << " ";
+            outFile << localView.index(7) << " ";
+            outFile << localView.index(3) << " ";
+#endif
             outFile << std::endl;
           }
         }

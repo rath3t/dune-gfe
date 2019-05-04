@@ -6,7 +6,7 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
@@ -81,12 +81,12 @@ setup(const GridType& grid,
     // ////////////////////////////////
 #ifdef HAVE_IPOPT
     // First create an IPOpt base solver
-    auto baseSolver0 = new QuadraticIPOptSolver<MatrixType00,CorrectionType0>;
-    baseSolver0->verbosity_ = NumProc::QUIET;
-    baseSolver0->tolerance_ = baseTolerance;
-    auto baseSolver1 = new QuadraticIPOptSolver<MatrixType11,CorrectionType1>;
-    baseSolver1->verbosity_ = NumProc::QUIET;
-    baseSolver1->tolerance_ = baseTolerance;
+    auto baseSolver0 = std::make_shared<QuadraticIPOptSolver<MatrixType00,CorrectionType0>>();
+    baseSolver0->setVerbosity(NumProc::QUIET);
+    baseSolver0->setTolerance(baseTolerance);
+    auto baseSolver1 = std::make_shared<QuadraticIPOptSolver<MatrixType11,CorrectionType1>>();
+    baseSolver1->setVerbosity(NumProc::QUIET);
+    baseSolver1->setTolerance(baseTolerance);
 #else
     // First create a Gauss-seidel base solver
     TrustRegionGSStep<MatrixType00, CorrectionType0>* baseSolverStep0 = new TrustRegionGSStep<MatrixType00, CorrectionType0>;
@@ -122,29 +122,29 @@ setup(const GridType& grid,
 
 
     // Make pre and postsmoothers
-    TrustRegionGSStep<MatrixType00, CorrectionType0>* presmoother0  = new TrustRegionGSStep<MatrixType00, CorrectionType0>;
-    TrustRegionGSStep<MatrixType00, CorrectionType0>* postsmoother0 = new TrustRegionGSStep<MatrixType00, CorrectionType0>;
+    auto presmoother0  = std::make_shared<TrustRegionGSStep<MatrixType00, CorrectionType0> >();
+    auto postsmoother0 = std::make_shared<TrustRegionGSStep<MatrixType00, CorrectionType0> >();
 
     mmgStep0 = new MonotoneMGStep<MatrixType00, CorrectionType0>;
 
     mmgStep0->setMGType(mu, nu1, nu2);
     mmgStep0->ignoreNodes_ = globalDirichletNodes0;
-    mmgStep0->basesolver_        = baseSolver0;
+    mmgStep0->setBaseSolver(baseSolver0);
     mmgStep0->setSmoother(presmoother0, postsmoother0);
-    mmgStep0->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType0>();
-    mmgStep0->verbosity_         = Solver::QUIET;
+    mmgStep0->setObstacleRestrictor(std::make_shared<MandelObstacleRestrictor<CorrectionType0>>());
+    mmgStep0->setVerbosity(Solver::QUIET);
 
-    TrustRegionGSStep<MatrixType11, CorrectionType1>* presmoother1  = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
-    TrustRegionGSStep<MatrixType11, CorrectionType1>* postsmoother1 = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
+    auto presmoother1  = std::make_shared<TrustRegionGSStep<MatrixType11, CorrectionType1> >();
+    auto postsmoother1 = std::make_shared<TrustRegionGSStep<MatrixType11, CorrectionType1> >();
 
     mmgStep1 = new MonotoneMGStep<MatrixType11, CorrectionType1>;
 
     mmgStep1->setMGType(mu, nu1, nu2);
     mmgStep1->ignoreNodes_ = globalDirichletNodes1;
-    mmgStep1->basesolver_        = baseSolver1;
+    mmgStep1->setBaseSolver(baseSolver1);
     mmgStep1->setSmoother(presmoother1, postsmoother1);
-    mmgStep1->obstacleRestrictor_= new MandelObstacleRestrictor<CorrectionType1>();
-    mmgStep1->verbosity_         = Solver::QUIET;
+    mmgStep1->setObstacleRestrictor(std::make_shared<MandelObstacleRestrictor<CorrectionType1>>());
+    mmgStep1->setVerbosity(Solver::QUIET);
 
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
@@ -193,12 +193,6 @@ setup(const GridType& grid,
     //   Create the transfer operators
     // ////////////////////////////////////
 
-    for (size_t k=0; k<mmgStep0->mgTransfer_.size(); k++)
-        delete(mmgStep0->mgTransfer_[k]);
-
-    for (size_t k=0; k<mmgStep1->mgTransfer_.size(); k++)
-        delete(mmgStep1->mgTransfer_[k]);
-
     mmgStep0->mgTransfer_.resize(numLevels-1);
     mmgStep1->mgTransfer_.resize(numLevels-1);
 
@@ -206,20 +200,20 @@ setup(const GridType& grid,
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType0>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
+                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis0>(pkToP1TransferMatrix,p1Basis,*basis0_);
 
-        mmgStep0->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType0>;
+        mmgStep0->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType0>>();
         Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
-        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType0>*>(mmgStep0->mgTransfer_.back())->setMatrix(topTransferOperator);
+        std::dynamic_pointer_cast<TruncatedCompressedMGTransfer<CorrectionType0>>(mmgStep0->mgTransfer_.back())->setMatrix(topTransferOperator);
 
         for (size_t i=0; i<mmgStep0->mgTransfer_.size()-1; i++){
           // Construct the local multigrid transfer matrix
-          TruncatedCompressedMGTransfer<CorrectionType0>* newTransferOp0 = new TruncatedCompressedMGTransfer<CorrectionType0>;
+          auto newTransferOp0 = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType0>>();
           newTransferOp0->setup(*grid_,i+1,i+2);
 
           mmgStep0->mgTransfer_[i] = newTransferOp0;
@@ -234,7 +228,7 @@ setup(const GridType& grid,
       for (size_t i=0; i<mmgStep0->mgTransfer_.size(); i++){
 
         // Construct the local multigrid transfer matrix
-        TruncatedCompressedMGTransfer<CorrectionType0>* newTransferOp0 = new TruncatedCompressedMGTransfer<CorrectionType0>;
+        auto newTransferOp0 = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType0>>();
         newTransferOp0->setup(*grid_,i,i+1);
 
         mmgStep0->mgTransfer_[i] = newTransferOp0;
@@ -246,20 +240,20 @@ setup(const GridType& grid,
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType1>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView,1> >,
+                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
                                          FufemBasis1>(pkToP1TransferMatrix,p1Basis,*basis1_);
 
-        mmgStep1->mgTransfer_.back() = new TruncatedCompressedMGTransfer<CorrectionType1>;
-        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
-        dynamic_cast<TruncatedCompressedMGTransfer<CorrectionType1>*>(mmgStep1->mgTransfer_.back())->setMatrix(topTransferOperator);
+        mmgStep1->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType1>>();
+        std::shared_ptr<TransferOperatorType> topTransferOperator = std::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
+        std::dynamic_pointer_cast<TruncatedCompressedMGTransfer<CorrectionType1>>(mmgStep1->mgTransfer_.back())->setMatrix(topTransferOperator);
 
         for (size_t i=0; i<mmgStep1->mgTransfer_.size()-1; i++){
           // Construct the local multigrid transfer matrix
-          TruncatedCompressedMGTransfer<CorrectionType1>* newTransferOp1 = new TruncatedCompressedMGTransfer<CorrectionType1>;
+          auto newTransferOp1 = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType1>>();
           newTransferOp1->setup(*grid_,i+1,i+2);
           mmgStep1->mgTransfer_[i] = newTransferOp1;
         }
@@ -273,7 +267,7 @@ setup(const GridType& grid,
       for (size_t i=0; i<mmgStep1->mgTransfer_.size(); i++){
 
         // Construct the local multigrid transfer matrix
-        TruncatedCompressedMGTransfer<CorrectionType1>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType1>;
+        auto newTransferOp = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType1>>();
         newTransferOp->setup(*grid_,i,i+1);
         mmgStep1->mgTransfer_[i] = newTransferOp;
       }
@@ -291,8 +285,8 @@ setup(const GridType& grid,
       hasObstacle0_.resize(assembler->basis_.size({0}), true);
       hasObstacle1_.resize(assembler->basis_.size({1}), true);
       #endif
-      mmgStep0->hasObstacle_ = &hasObstacle0_;
-      mmgStep1->hasObstacle_ = &hasObstacle1_;
+      mmgStep0->setHasObstacles(hasObstacle0_);
+      mmgStep1->setHasObstacles(hasObstacle1_);
     }
 
   }
@@ -403,13 +397,13 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
             mmgStep0->setProblem(stiffnessMatrix[_0][_0], corr_global[_0], residual[_0]);
             trustRegionObstacles0 = trustRegion0.obstacles();
-            mmgStep0->obstacles_ = &trustRegionObstacles0;
+            mmgStep0->setObstacles(trustRegionObstacles0);
 
             mmgStep0->preprocess();
 
             mmgStep1->setProblem(stiffnessMatrix[_1][_1], corr_global[_1], residual[_1]);
             trustRegionObstacles1 = trustRegion1.obstacles();
-            mmgStep1->obstacles_ = &trustRegionObstacles1;
+            mmgStep1->setObstacles(trustRegionObstacles1);
 
             mmgStep1->preprocess();
 

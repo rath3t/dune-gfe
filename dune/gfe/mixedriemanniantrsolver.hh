@@ -11,7 +11,7 @@
 
 #include <dune/grid/utility/globalindexset.hh>
 
-#include <dune/functions/common/tuplevector.hh>
+#include <dune/common/tuplevector.hh>
 
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
@@ -47,7 +47,7 @@ class MixedRiemannianTrustRegionSolver
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize0> >             CorrectionType0;
     typedef Dune::BlockVector<Dune::FieldVector<field_type, blocksize1> >             CorrectionType1;
     typedef Dune::MultiTypeBlockVector<CorrectionType0, CorrectionType1> CorrectionType;
-    typedef Dune::Functions::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > SolutionType;
+    typedef Dune::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > SolutionType;
 
 public:
 

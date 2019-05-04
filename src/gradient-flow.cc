@@ -2,13 +2,14 @@
 // vi: set et ts=4 sw=2 sts=2:
 #include <config.h>
 
+#include <array>
+
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
-#include <array>
-
+#include <dune/common/typetraits.hh>
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -22,7 +23,7 @@
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/basisinterpolator.hh>
@@ -141,7 +142,7 @@ int main (int argc, char *argv[]) try
   //  Construct the scalar function space basis corresponding to the GFE space
   //////////////////////////////////////////////////////////////////////////////////
 
-  typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, order> FEBasis;
+  typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, order> FEBasis;
   //typedef Dune::Functions::Periodic1DPQ1NodalBasis<typename GridType::LeafGridView> FEBasis;
   FEBasis feBasis(grid->leafGridView());
 
@@ -201,7 +202,8 @@ int main (int argc, char *argv[]) try
   auto l2DistanceSquaredEnergy = std::make_shared<L2DistanceSquaredEnergy<FEBasis, ATargetSpace> >();
 
   std::vector<std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > > addends(2);
-  addends[0] = std::make_shared<HarmonicEnergyLocalStiffness<FEBasis, ATargetSpace> >();
+  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  addends[0] = std::make_shared<HarmonicEnergyLocalStiffness<FEBasis, GeodesicInterpolationRule, ATargetSpace> >();
   addends[1] = l2DistanceSquaredEnergy;
 
   std::vector<double> weights = {1.0, 1.0/(2*timeStepSize)};
@@ -244,13 +246,13 @@ int main (int argc, char *argv[]) try
                                                                                                  TypeTree::hybridTreePath(),
                                                                                                  xEmbedded);
 
-  SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
+  SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),refinementLevels(0));
   vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
   vtkWriter.write("gradientflow_result_0");
 
   // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
   std::ofstream outFile("gradientflow_result_0.data", std::ios_base::binary);
-  GenericVector::writeBinary(outFile, xEmbedded);
+  MatrixVector::Generic::writeBinary(outFile, xEmbedded);
   outFile.close();
 
   ///////////////////////////////////////////////////////
@@ -284,21 +286,21 @@ int main (int argc, char *argv[]) try
                                                                                                    TypeTree::hybridTreePath(),
                                                                                                    xEmbedded);
 
-    SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),0);
+    SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),refinementLevels(0));
     vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::scalar, xEmbedded[0].size()));
     vtkWriter.write("gradientflow_result_" + std::to_string(i+1));
 
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     std::ofstream outFile("gradientflow_result_" + std::to_string(i+1) + ".data", std::ios_base::binary);
-    GenericVector::writeBinary(outFile, xEmbedded);
+    MatrixVector::Generic::writeBinary(outFile, xEmbedded);
     outFile.close();
 
   }
 
   return 0;
 }
-catch (Exception e)
+catch (Exception& e)
 {
-  std::cout << e << std::endl;
+  std::cout << e.what() << std::endl;
   return 1;
 }

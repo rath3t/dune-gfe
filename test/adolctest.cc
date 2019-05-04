@@ -25,6 +25,17 @@ typedef double FDType;
 #include <adolc/taping.h>
 
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
+
+#include <dune/common/typetraits.hh>
+// This specialization is needed (in particular) to make copying of FieldMatrices work.
+namespace Dune {
+  template <>
+  struct IsNumber<adouble>
+  {
+    constexpr static bool value = true;
+  };
+}
+
 #include <dune/common/fmatrix.hh>
 
 #include <dune/geometry/quadraturerules.hh>
@@ -33,7 +44,7 @@ typedef double FDType;
 
 #include <dune/istl/io.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 
 
@@ -429,7 +440,7 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid.leafGridView();
 
-    typedef Functions::PQkNodalBasis<GridView,2> FEBasis;
+    typedef Functions::LagrangeBasis<GridView,1> FEBasis;
     FEBasis feBasis(gridView);
 
     // /////////////////////////////////////////
@@ -577,7 +588,7 @@ int main (int argc, char *argv[]) try
     }
 
     // //////////////////////////////
- } catch (Exception e) {
+ } catch (Exception& e) {
 
     std::cout << e << std::endl;
 

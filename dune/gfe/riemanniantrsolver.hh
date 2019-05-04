@@ -8,6 +8,8 @@
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
 
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
+
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -26,12 +28,16 @@ template <typename GridView, typename Basis>
 struct MapperFactory
 {};
 
-/** \brief Specialization for PQ1NodalBasis */
+/** \brief Specialization for LagrangeBasis<1> */
 template <typename GridView>
-struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,1> >
+struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,1> >
 {
     typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
+    static LocalMapper createLocalMapper(const GridView& gridView)
+    {
+      return LocalMapper(gridView, Dune::mcmgVertexLayout());
+    }
 };
 
 // This case is not going to actually work, but I need the specialization to make
@@ -44,15 +50,19 @@ struct MapperFactory<GridView, Dune::Functions::Periodic1DPQ1NodalBasis<GridView
 };
 
 template <typename GridView>
-struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,2> >
+struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,2> >
 {
     typedef Dune::GlobalP2Mapper<GridView> GlobalMapper;
     typedef P2BasisMapper<GridView> LocalMapper;
+    static LocalMapper createLocalMapper(const GridView& gridView)
+    {
+      return LocalMapper(gridView);
+    }
 };
 
-/** \brief Specialization for PQ3NodalBasis */
+/** \brief Specialization for LagrangeBasis<3> */
 template <typename GridView>
-struct MapperFactory<GridView, Dune::Functions::PQkNodalBasis<GridView,3> >
+struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,3> >
 {
     // Error: we don't currently have a global P3 mapper
 };

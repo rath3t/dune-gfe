@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <fenv.h>
+#include <array>
 
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
@@ -8,30 +9,27 @@
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
 #include <dune/common/typetraits.hh>
-namespace Dune {
-  template <>
-  struct IsNumber<adouble>
-  {
-    constexpr static bool value = true;
-  };
-}
-
-#include <array>
 
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 
 #include <dune/grid/uggrid.hh>
-#include <dune/grid/onedgrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
+#if HAVE_DUNE_FOAMGRID
+#include <dune/foamgrid/foamgrid.hh>
+#else
+#include <dune/grid/onedgrid.hh>
+#endif
+
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/bsplinebasis.hh>
+#include <dune/functions/functionspacebases/powerbasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 
 #include <dune/fufem/boundarypatch.hh>
@@ -45,6 +43,7 @@ namespace Dune {
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
+#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
@@ -56,10 +55,12 @@ namespace Dune {
 
 // grid dimension
 const int dim = 2;
+const int dimworld = 2;
 
 // Image space of the geodesic fe functions
 // typedef Rotation<double,2> TargetSpace;
 // typedef Rotation<double,3> TargetSpace;
+// typedef RigidBodyMotion<double,3> TargetSpace;
 // typedef UnitVector<double,2> TargetSpace;
 typedef UnitVector<double,3> TargetSpace;
 // typedef UnitVector<double,4> TargetSpace;
@@ -73,6 +74,51 @@ const int order = 1;
 #define LAGRANGE
 
 using namespace Dune;
+
+template <typename Writer, typename Basis, typename SolutionType>
+void fillVTKWriter(Writer& vtkWriter, const Basis& feBasis, const SolutionType& x, std::string filename)
+{
+  typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
+  EmbeddedVectorType xEmbedded(x.size());
+  for (size_t i=0; i<x.size(); i++)
+    xEmbedded[i] = x[i].globalCoordinates();
+
+  if constexpr (std::is_same<TargetSpace, Rotation<double,3> >::value)
+  {
+    std::array<BlockVector<FieldVector<double,3> >,3> director;
+    for (int i=0; i<3; i++)
+      director[i].resize(x.size());
+
+    for (size_t i=0; i<x.size(); i++)
+    {
+      FieldMatrix<double,3,3> m;
+      x[i].matrix(m);
+      director[0][i] = {m[0][0], m[1][0], m[2][0]};
+      director[1][i] = {m[0][1], m[1][1], m[2][1]};
+      director[2][i] = {m[0][2], m[1][2], m[2][2]};
+    }
+
+    auto dFunction0 = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(feBasis,director[0]);
+    auto dFunction1 = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(feBasis,director[1]);
+    auto dFunction2 = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(feBasis,director[2]);
+
+    vtkWriter.addVertexData(dFunction0, VTK::FieldInfo("director0", VTK::FieldInfo::Type::vector, 3));
+    vtkWriter.addVertexData(dFunction1, VTK::FieldInfo("director1", VTK::FieldInfo::Type::vector, 3));
+    vtkWriter.addVertexData(dFunction2, VTK::FieldInfo("director2", VTK::FieldInfo::Type::vector, 3));
+
+    // Needs to be in this scope; otherwise the stack-allocated dFunction?-objects will get
+    // destructed before 'write' is called.
+    vtkWriter.write(filename);
+  }
+  else
+  {
+    auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
+
+    vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
+
+    vtkWriter.write(filename);
+  }
+}
 
 
 int main (int argc, char *argv[])
@@ -124,17 +170,22 @@ int main (int argc, char *argv[])
     // ///////////////////////////////////////
     //    Create the grid
     // ///////////////////////////////////////
+#if HAVE_DUNE_FOAMGRID
+    typedef std::conditional<dim==1 or dim!=dimworld,FoamGrid<dim,dimworld>,UGGrid<dim> >::type GridType;
+#else
+    static_assert(dim==dimworld, "You need to have dune-foamgrid installed for dim != dimworld!");
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
+#endif
 
     shared_ptr<GridType> grid;
-    FieldVector<double,dim> lower(0), upper(1);
+    FieldVector<double,dimworld> lower(0), upper(1);
     std::array<unsigned int,dim> elements;
 
     std::string structuredGridType = parameterSet["structuredGrid"];
     if (structuredGridType != "false" ) {
 
-        lower = parameterSet.get<FieldVector<double,dim> >("lower");
-        upper = parameterSet.get<FieldVector<double,dim> >("upper");
+        lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
+        upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
 
         elements = parameterSet.get<std::array<unsigned int,dim> >("elements");
         if (structuredGridType == "simplex")
@@ -161,7 +212,7 @@ int main (int argc, char *argv[])
     using GridView = GridType::LeafGridView;
     GridView gridView = grid->leafGridView();
 #ifdef LAGRANGE
-    typedef Dune::Functions::PQkNodalBasis<GridView, order> FEBasis;
+    typedef Dune::Functions::LagrangeBasis<GridView, order> FEBasis;
     FEBasis feBasis(gridView);
 #else
     typedef Dune::Functions::BSplineBasis<GridView> FEBasis;
@@ -180,7 +231,7 @@ int main (int argc, char *argv[])
     // Make Python function that computes which vertices are on the Dirichlet boundary,
     // based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+    PythonFunction<FieldVector<double,dimworld>, bool> pythonDirichletVertices(Python::evaluate(lambda));
 
     for (auto&& vertex : vertices(gridView))
     {
@@ -205,13 +256,22 @@ int main (int argc, char *argv[])
 
     // Read initial iterate into a PythonFunction
     Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
-    auto pythonInitialIterate = Python::makeFunction<TargetSpace::CoordinateType(const FieldVector<double,dim>&)>(module.get("f"));
+    auto pythonInitialIterate = Python::makeFunction<TargetSpace::CoordinateType(const FieldVector<double,dimworld>&)>(module.get("f"));
 
     std::vector<TargetSpace::CoordinateType> v;
+    using namespace Functions::BasisFactory;
+
+      auto powerBasis = makeBasis(
+        gridView,
+        power<TargetSpace::CoordinateType::dimension>(
+          lagrange<order>(),
+          blockedInterleaved()
+      ));
+
 #ifdef LAGRANGE
-    Dune::Functions::interpolate(feBasis, v, pythonInitialIterate);
+    Dune::Functions::interpolate(powerBasis, v, pythonInitialIterate);
 #else
-    Dune::Functions::interpolate(feBasis, v, pythonInitialIterate, lower, upper, elements, order);
+    Dune::Functions::interpolate(powerBasis, v, pythonInitialIterate, lower, upper, elements, order);
 #endif
 
     for (size_t i=0; i<x.size(); i++)
@@ -225,9 +285,8 @@ int main (int argc, char *argv[])
     // ////////////////////////////////////////////////////////////
 
     typedef TargetSpace::rebind<adouble>::other ATargetSpace;
-    typedef LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
-    //typedef GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace> LocalInterpolationRule;
-    std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+    using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
     // Assembler using ADOL-C
     std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > localEnergy;
@@ -235,13 +294,26 @@ int main (int argc, char *argv[])
     std::string energy = parameterSet.get<std::string>("energy");
     if (energy == "harmonic")
     {
-
-      localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, LocalInterpolationRule, ATargetSpace>);
+        if (parameterSet["interpolationMethod"] == "geodesic")
+            localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, GeodesicInterpolationRule, ATargetSpace>);
+        else if (parameterSet["interpolationMethod"] == "projected")
+            localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, ProjectedInterpolationRule, ATargetSpace>);
+        else
+            DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
     } else if (energy == "chiral_skyrmion")
     {
-
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, LocalInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
+//       // Doesn't work: we are not inside of a template
+//       if constexpr (std::is_same<TargetSpace, UnitVector<double,3> >::value)
+//       {
+        if (parameterSet["interpolationMethod"] == "geodesic")
+            localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, GeodesicInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
+        else if (parameterSet["interpolationMethod"] == "projected")
+            localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, ProjectedInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
+        else
+            DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
+//       } else
+//         DUNE_THROW(Exception, "Build program with TargetSpace = UnitVector<3> for the ChiralSkyrmion energy!");
 
     } else
       DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");
@@ -273,9 +345,6 @@ int main (int argc, char *argv[])
     //   Solve!
     // /////////////////////////////////////////////////////
 
-    std::cout << "Energy: " << assembler.computeEnergy(x) << std::endl;
-    //exit(0);
-
     solver.setInitialIterate(x);
     solver.solve();
 
@@ -285,20 +354,16 @@ int main (int argc, char *argv[])
     //   Output result
     // //////////////////////////////
 
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView,Dune::refinementLevels(order-1));
+    std::string baseName = "harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels);
+    fillVTKWriter(vtkWriter, feBasis, x, resultPath + baseName);
+
+    // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     typedef BlockVector<TargetSpace::CoordinateType> EmbeddedVectorType;
     EmbeddedVectorType xEmbedded(x.size());
     for (size_t i=0; i<x.size(); i++)
-        xEmbedded[i] = x[i].globalCoordinates();
+      xEmbedded[i] = x[i].globalCoordinates();
 
-    auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,TypeTree::hybridTreePath(),xEmbedded);
-
-    std::string baseName = "harmonicmaps-result-" + std::to_string(order) + "-" + std::to_string(numLevels);
-
-    SubsamplingVTKWriter<GridView> vtkWriter(gridView,order-1);
-    vtkWriter.addVertexData(xFunction, VTK::FieldInfo("orientation", VTK::FieldInfo::Type::vector, xEmbedded[0].size()));
-    vtkWriter.write(resultPath + baseName);
-
-    // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     std::ofstream outFile(baseName + ".data", std::ios_base::binary);
     MatrixVector::Generic::writeBinary(outFile, xEmbedded);
     outFile.close();

@@ -9,6 +9,8 @@
 #include <dune/istl/solvers.hh>
 #include <dune/istl/preconditioners.hh>
 
+#include dune/matrix-vector/crossproduct.hh>
+
 #include <dune/fufem/dgindexset.hh>
 #include <dune/fufem/arithmetic.hh>
 #include <dune/fufem/surfmassmatrix.hh>
@@ -500,7 +502,7 @@ void computeTotalForceAndTorque(const BoundaryPatch<GridView>& interface,
             neumannFunction.evaluateLocal(*it->inside(), quadPos, value);
 
             totalForce.axpy(quad[ip].weight() * integrationElement, value);
-            totalTorque.axpy(quad[ip].weight() * integrationElement, Arithmetic::crossProduct(worldPos-center,value));
+            totalTorque.axpy(quad[ip].weight() * integrationElement, MatrixVector::crossProduct(worldPos-center,value));
 
         }
 

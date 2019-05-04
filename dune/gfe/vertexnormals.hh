@@ -9,6 +9,8 @@
 
 #include <dune/geometry/referenceelements.hh>
 
+#include <dune/matrix-vector/crossproduct.hh>
+
 #include <dune/gfe/unitvector.hh>
 
 /** \brief Compute averaged vertex normals for a 2d-in-3d grid
@@ -25,11 +27,11 @@ std::vector<UnitVector<typename GridView::ctype,3> > computeVertexNormals(const 
 
   for (const auto& element : elements(gridView))
   {
-    for (int i=0; i<element.subEntities(2); i++)
+    for (std::size_t i=0; i<element.subEntities(2); i++)
     {
       auto cornerPos = Dune::ReferenceElements<double,2>::general(element.type()).position(i,2);
       auto tangent = element.geometry().jacobianTransposed(cornerPos);
-      auto cornerNormal = Arithmetic::crossProduct(tangent[0], tangent[1]);
+      auto cornerNormal = Dune::MatrixVector::crossProduct(tangent[0], tangent[1]);
       cornerNormal /= cornerNormal.two_norm();
 
       unscaledNormals[indexSet.subIndex(element,i,2)] += cornerNormal;
