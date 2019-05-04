@@ -15,6 +15,7 @@
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
+#include <dune/common/tuplevector.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
@@ -26,6 +27,8 @@
 #endif
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
+#include <dune/functions/functionspacebases/compositebasis.hh>
+#include <dune/functions/functionspacebases/powerbasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
@@ -38,6 +41,7 @@
 
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/nonplanarcosseratshellenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
@@ -47,19 +51,30 @@
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/vertexnormals.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
+#include <dune/gfe/mixedgfeassembler.hh>
+#include <dune/gfe/mixedriemanniantrsolver.hh>
 
 // grid dimension
 const int dim = 2;
 const int dimworld = 2;
 
-// Order of the approximation space
-const int order = 2;
+//#define MIXED_SPACE
+
+// Order of the approximation space for the displacement
+const int displacementOrder = 2;
+
+// Order of the approximation space for the microrotations
+const int rotationOrder = 2;
+
+#ifndef MIXED_SPACE
+static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
 
 // Image space of the geodesic fe functions
 typedef RigidBodyMotion<double,3> TargetSpace;
 
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
+#endif
 
 using namespace Dune;
 
@@ -118,7 +133,13 @@ int main (int argc, char *argv[]) try
         << std::endl << "sys.path.append('/home/sander/dune/dune-gfe/problems/')"
         << std::endl;
 
+    using namespace TypeTree::Indices;
+#ifdef MIXED_SPACE
+    using SolutionType = TupleVector<std::vector<RealTuple<double,3> >,
+                                     std::vector<Rotation<double,3> > >;
+#else
     typedef std::vector<TargetSpace> SolutionType;
+#endif
 
     // parse data file
     ParameterTree parameterSet;
@@ -194,11 +215,35 @@ int main (int argc, char *argv[]) try
     typedef GridType::LeafGridView GridView;
     GridView gridView = grid->leafGridView();
 
-    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, order> FEBasis;
+    using namespace Dune::Functions::BasisFactory;
+#ifdef MIXED_SPACE
+    auto compositeBasis = makeBasis(
+      gridView,
+      composite(
+          lagrange<displacementOrder>(),
+          lagrange<rotationOrder>()
+      )
+    );
+
+    typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
+    typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
+
+    DeformationFEBasis deformationFEBasis(gridView);
+    OrientationFEBasis orientationFEBasis(gridView);
+
+    // Construct fufem-style function space bases to ease the transition to dune-functions
+    typedef DuneFunctionsBasis<DeformationFEBasis> FufemDeformationFEBasis;
+    FufemDeformationFEBasis fufemDeformationFEBasis(deformationFEBasis);
+
+    typedef DuneFunctionsBasis<OrientationFEBasis> FufemOrientationFEBasis;
+    FufemOrientationFEBasis fufemOrientationFEBasis(orientationFEBasis);
+#else
+    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, displacementOrder> FEBasis;
     FEBasis feBasis(gridView);
 
     typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
     FufemFEBasis fufemFeBasis(feBasis);
+#endif
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -235,7 +280,28 @@ int main (int argc, char *argv[]) try
     if (mpiHelper.rank()==0)
       std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
+#ifdef MIXED_SPACE
+    BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
+    constructBoundaryDofs(dirichletBoundary,fufemDeformationFEBasis,deformationDirichletNodes);
 
+    BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
+    constructBoundaryDofs(neumannBoundary,fufemDeformationFEBasis,neumannNodes);
+
+    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
+    for (size_t i=0; i<deformationFEBasis.size(); i++)
+      if (deformationDirichletNodes[i][0])
+        for (int j=0; j<3; j++)
+          deformationDirichletDofs[i][j] = true;
+
+    BitSetVector<1> orientationDirichletNodes(orientationFEBasis.size(), false);
+    constructBoundaryDofs(dirichletBoundary,fufemOrientationFEBasis,orientationDirichletNodes);
+
+    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
+    for (size_t i=0; i<orientationFEBasis.size(); i++)
+      if (orientationDirichletNodes[i][0])
+        for (int j=0; j<3; j++)
+          orientationDirichletDofs[i][j] = true;
+#else
     BitSetVector<1> dirichletNodes(feBasis.size(), false);
     constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
 
@@ -247,11 +313,38 @@ int main (int argc, char *argv[]) try
       if (dirichletNodes[i][0])
         for (int j=0; j<5; j++)
           dirichletDofs[i][j] = true;
+#endif
 
     // //////////////////////////
     //   Initial iterate
     // //////////////////////////
 
+#ifdef MIXED_SPACE
+    SolutionType x;
+
+    x[_0].resize(deformationFEBasis.size());
+
+    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
+    PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
+
+    std::vector<FieldVector<double,3> > v;
+    ::Functions::interpolate(fufemDeformationFEBasis, v, pythonInitialDeformation);
+
+    for (size_t i=0; i<x[_0].size(); i++)
+      x[_0][i] = v[i];
+
+    x[_1].resize(orientationFEBasis.size());
+#if 0
+    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
+    PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
+
+    std::vector<FieldVector<double,3> > v;
+    Functions::interpolate(feBasis, v, pythonInitialDeformation);
+
+    for (size_t i=0; i<x.size(); i++)
+      xDisp[i] = v[i];
+#endif
+#else
     SolutionType x(feBasis.size());
 
     if (parameterSet.hasKey("startFromFile"))
@@ -285,6 +378,7 @@ int main (int argc, char *argv[]) try
 
       std::vector<FieldVector<double,7> > v;
       Dune::Functions::interpolate(feBasis,v,initialFunction);
+      DUNE_THROW(NotImplemented, "Replace scalar basis by power basis!");
 
       for (size_t i=0; i<x.size(); i++)
         x[i] = TargetSpace(v[i]);
@@ -299,13 +393,20 @@ int main (int argc, char *argv[]) try
     for (size_t i=0; i<x.size(); i++)
       x[i].r = v[i];
     }
+#endif
 
     ////////////////////////////////////////////////////////
     //   Main homotopy loop
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
+#ifdef MIXED_SPACE
+    CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
+                                                                                   orientationFEBasis,x[_1],
+                                                                                   resultPath + "mixed-cosserat_homotopy_0");
+#else
     CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_0");
+#endif
 
     for (int i=0; i<numHomotopySteps; i++) {
 
@@ -335,6 +436,21 @@ int main (int argc, char *argv[]) try
     }
 
     // Assembler using ADOL-C
+#ifdef MIXED_SPACE
+    CosseratEnergyLocalStiffness<decltype(compositeBasis),
+                        3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
+                                                                     &neumannBoundary,
+                                                                     neumannFunction,
+                                                                     nullptr);
+
+    MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
+                                RealTuple<double,3>,
+                                Rotation<double,3> > localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
+
+    MixedGFEAssembler<decltype(compositeBasis),
+                      RealTuple<double,3>,
+                      Rotation<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
+#else
     using LocalEnergyBase = LocalGeodesicFEStiffness<FEBasis,RigidBodyMotion<adouble,3> >;
 
     std::shared_ptr<LocalEnergyBase> cosseratEnergyADOLCLocalStiffness;
@@ -360,16 +476,33 @@ int main (int argc, char *argv[]) try
                                   TargetSpace> localGFEADOLCStiffness(cosseratEnergyADOLCLocalStiffness.get());
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, &localGFEADOLCStiffness);
+#endif
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
 
+#ifdef MIXED_SPACE
+    MixedRiemannianTrustRegionSolver<GridType,
+                                     decltype(compositeBasis),
+                                     DeformationFEBasis, RealTuple<double,3>,
+                                     OrientationFEBasis, Rotation<double,3> > solver;
+#else
     RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
+#endif
     solver.setup(*grid,
                  &assembler,
+#ifdef MIXED_SPACE
+                 deformationFEBasis,
+                 orientationFEBasis,
+#endif
                  x,
+#ifdef MIXED_SPACE
+                 deformationDirichletDofs,
+                 orientationDirichletDofs,
+#else
                  dirichletDofs,
+#endif
                  tolerance,
                  maxTrustRegionSteps,
                  initialTrustRegionRadius,
@@ -398,9 +531,21 @@ int main (int argc, char *argv[]) try
         PythonFunction<FieldVector<double,dimworld>, FieldMatrix<double,3,3> > orientationDirichletValues(dirichletValuesPythonObject.get("orientation"));
 
         std::vector<FieldVector<double,3> > ddV;
-        ::Functions::interpolate(fufemFeBasis, ddV, deformationDirichletValues, dirichletDofs);
-
         std::vector<FieldMatrix<double,3,3> > dOV;
+
+#ifdef MIXED_SPACE
+        ::Functions::interpolate(fufemDeformationFEBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
+        ::Functions::interpolate(fufemOrientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
+
+        for (size_t j=0; j<x[_0].size(); j++)
+          if (deformationDirichletNodes[j][0])
+            x[_0][j] = ddV[j];
+
+        for (size_t j=0; j<x[_1].size(); j++)
+          if (orientationDirichletNodes[j][0])
+            x[_1][j].set(dOV[j]);
+#else
+        ::Functions::interpolate(fufemFeBasis, ddV, deformationDirichletValues, dirichletDofs);
         ::Functions::interpolate(fufemFeBasis, dOV, orientationDirichletValues, dirichletDofs);
 
         for (size_t j=0; j<x.size(); j++)
@@ -409,6 +554,7 @@ int main (int argc, char *argv[]) try
             x[j].r = ddV[j];
             x[j].q.set(dOV[j]);
           }
+#endif
 
         // /////////////////////////////////////////////////////
         //   Solve!
@@ -422,7 +568,13 @@ int main (int argc, char *argv[]) try
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
+#ifdef MIXED_SPACE
+        CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
+                                                                                       orientationFEBasis,x[_1],
+                                                                                       resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
+#else
         CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_" + iAsAscii.str());
+#endif
 
     }
 
@@ -430,6 +582,7 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 
+#ifndef MIXED_SPACE
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     // This data may be used by other applications measuring the discretization error
     BlockVector<TargetSpace::CoordinateType> xEmbedded(x.size());
@@ -439,13 +592,20 @@ int main (int argc, char *argv[]) try
     std::ofstream outFile("cosserat-continuum-result-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
     MatrixVector::Generic::writeBinary(outFile, xEmbedded);
     outFile.close();
+#endif
 
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
+#ifdef MIXED_SPACE
+    for (size_t i=0; i<x[_0].size(); i++)
+        if (neumannNodes[i][0])
+            averageDef += x[_0][i].globalCoordinates();
+#else
     for (size_t i=0; i<x.size(); i++)
         if (neumannNodes[i][0])
             averageDef += x[i].r;
+#endif
     averageDef /= neumannNodes.count();
 
     if (mpiHelper.rank()==0 and parameterSet.hasKey("neumannValues"))

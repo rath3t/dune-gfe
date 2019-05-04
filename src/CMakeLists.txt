@@ -2,7 +2,6 @@ set(programs compute-disc-error
              cosserat-continuum
              gradient-flow
              harmonicmaps
-             mixed-cosserat-continuum
              rod-eoc)
 #            rodobstacle)
 
