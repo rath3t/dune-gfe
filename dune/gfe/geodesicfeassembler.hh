@@ -15,7 +15,6 @@ template <class Basis, class TargetSpace>
 class GeodesicFEAssembler {
 
     typedef typename Basis::GridView GridView;
-    typedef typename GridView::template Codim<0>::template Partition<Dune::Interior_Partition>::Iterator ElementIterator;
 
     //! Dimension of the grid.
     enum { gridDim = GridView::dimension };
@@ -80,13 +79,10 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
     auto localIndexSet = basis_.localIndexSet();
 #endif
 
-    ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
-    ElementIterator endit = basis_.gridView().template end<0,Dune::Interior_Partition>  ();
-
-    for (; it!=endit; ++it) {
-
+    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+    {
         // Bind the local FE basis view to the current element
-        localView.bind(*it);
+        localView.bind(element);
 #if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
 #endif
@@ -141,12 +137,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
     auto localIndexSet = basis_.localIndexSet();
 #endif
 
-    ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
-    ElementIterator endit = basis_.gridView().template end<0,Dune::Interior_Partition>  ();
-
-    for( ; it != endit; ++it ) {
-
-        localView.bind(*it);
+    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+    {
+        localView.bind(element);
 #if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
 #endif
@@ -218,13 +211,10 @@ assembleGradient(const std::vector<TargetSpace>& sol,
     auto localIndexSet = basis_.localIndexSet();
 #endif
 
-    ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
-    ElementIterator endIt = basis_.gridView().template end<0,Dune::Interior_Partition>();
-
     // Loop over all elements
-    for (; it!=endIt; ++it) {
-
-        localView.bind(*it);
+    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+    {
+        localView.bind(element);
 #if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
 #endif
@@ -274,13 +264,10 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
     auto localIndexSet = basis_.localIndexSet();
 #endif
 
-    ElementIterator it    = basis_.gridView().template begin<0,Dune::Interior_Partition>();
-    ElementIterator endIt = basis_.gridView().template end<0,Dune::Interior_Partition>();
-
     // Loop over all elements
-    for (; it!=endIt; ++it) {
-
-        localView.bind(*it);
+    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+    {
+        localView.bind(element);
 #if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
 #endif
