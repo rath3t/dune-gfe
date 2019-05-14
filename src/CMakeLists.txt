@@ -1,5 +1,6 @@
 set(programs compute-disc-error
              cosserat-continuum
+             film-on-substrate
              gradient-flow
              harmonicmaps
              rod-eoc)
