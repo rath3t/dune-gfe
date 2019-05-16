@@ -28,7 +28,6 @@
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
-#include <dune/functions/functionspacebases/bsplinebasis.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 
@@ -70,8 +69,6 @@ typedef UnitVector<double,3> TargetSpace;
 const int blocksize = TargetSpace::TangentVector::dimension;
 
 const int order = 1;
-
-#define LAGRANGE
 
 using namespace Dune;
 
@@ -151,9 +148,7 @@ int main (int argc, char *argv[])
 
     // read problem settings
     const int numLevels                   = parameterSet.get<int>("numLevels");
-#ifndef LAGRANGE
-    const int order                       = parameterSet.get<int>("order");
-#endif
+
     // read solver settings
     const double tolerance                = parameterSet.get<double>("tolerance");
     const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
@@ -211,15 +206,9 @@ int main (int argc, char *argv[])
 
     using GridView = GridType::LeafGridView;
     GridView gridView = grid->leafGridView();
-#ifdef LAGRANGE
+
     typedef Dune::Functions::LagrangeBasis<GridView, order> FEBasis;
     FEBasis feBasis(gridView);
-#else
-    typedef Dune::Functions::BSplineBasis<GridView> FEBasis;
-    for (auto& i : elements)
-      i = i<<(numLevels-1);
-    FEBasis feBasis(gridView, lower, upper, elements, order);
-#endif
     SolutionType x(feBasis.size());
 
     // /////////////////////////////////////////
@@ -268,11 +257,7 @@ int main (int argc, char *argv[])
           blockedInterleaved()
       ));
 
-#ifdef LAGRANGE
     Dune::Functions::interpolate(powerBasis, v, pythonInitialIterate);
-#else
-    Dune::Functions::interpolate(powerBasis, v, pythonInitialIterate, lower, upper, elements, order);
-#endif
 
     for (size_t i=0; i<x.size(); i++)
       x[i] = v[i];
