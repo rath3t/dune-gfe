@@ -347,7 +347,7 @@ energy(const typename Basis::LocalView& localView,
     {
       for (int j=0; j<dimworld; j++)
         aCovariant[i][j] = jacobianTransposed[i][j];
-      for (int j=dimworld; j<3; i++)
+      for (int j=dimworld; j<3; j++)
         aCovariant[i][j] = 0.0;
     }
 
