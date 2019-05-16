@@ -17,6 +17,7 @@
 #include <dune/solvers/transferoperators/truncatedcompressedmgtransfer.hh>
 #include <dune/solvers/transferoperators/mandelobsrestrictor.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
+#include <dune/solvers/solvers/loopsolver.hh>
 #include "maxnormtrustregion.hh"
 
 #include <dune/solvers/norms/twonorm.hh>
@@ -74,21 +75,15 @@ setup(const GridType& grid,
 
 #ifdef HAVE_IPOPT
     // First create an IPOpt base solver
-    auto  baseSolver = std::make_shared<QuadraticIPOptSolver<MatrixType,CorrectionType> >();
-    baseSolver->setVerbosity(NumProc::QUIET);
-    baseSolver->setTolerance(baseTolerance);
+    QuadraticIPOptSolver<MatrixType,CorrectionType> baseSolver;
+    baseSolver.setSolverParameter(baseTolerance, 100, NumProc::QUIET);
 #else
-    // First create a Gauss-seidel base solver
-    auto baseSolverStep = std::make_shared<TrustRegionGSStep<MatrixType, CorrectionType> >();
-
     // Hack: the two-norm may not scale all that well, but it is fast!
-    auto baseNorm = std::make_shared<TwoNorm<CorrectionType> >();
-
-    auto baseSolver = std::make_shared<::LoopSolver<CorrectionType> >(baseSolverStep,
-                                                                            baseIterations,
-                                                                            baseTolerance,
-                                                                            baseNorm,
-                                                                            Solver::QUIET);
+    ::LoopSolver<CorrectionType> baseSolver(TrustRegionGSStep<MatrixType, CorrectionType>{},
+                                                        baseIterations,
+                                                        baseTolerance,
+                                                        TwoNorm<CorrectionType>{},
+                                                        Solver::QUIET);
 #endif
 #if HAVE_MPI
     // Transfer all Dirichlet data to the master processor
@@ -108,10 +103,10 @@ setup(const GridType& grid,
     auto mmgStep = std::make_shared<MonotoneMGStep<MatrixType, CorrectionType> >();
 
     mmgStep->setMGType(mu, nu1, nu2);
-    mmgStep->ignoreNodes_ = globalDirichletNodes;
-    mmgStep->setBaseSolver(baseSolver);
+    mmgStep->setIgnore(*globalDirichletNodes);
+    mmgStep->setBaseSolver(std::move(baseSolver));
     mmgStep->setSmoother(smoother);
-    mmgStep->setObstacleRestrictor(std::make_shared<MandelObstacleRestrictor<CorrectionType> >());
+    mmgStep->setObstacleRestrictor(MandelObstacleRestrictor<CorrectionType>{});
     mmgStep->setVerbosity(Solver::QUIET);
 
     // //////////////////////////////////////////////////////////////////////////////////////
@@ -301,7 +296,6 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
         auto loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
         mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(&loopSolver->getIterationStep());
-
     }
 
 #if HAVE_MPI
