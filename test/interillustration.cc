@@ -8,7 +8,7 @@
 #include <dune/localfunctions/lagrange/p2.hh>
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
-#include <dune/functions/gridfunctions/discretescalarglobalbasisfunction.hh>
+#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
@@ -79,11 +79,9 @@ void interpolate(const LocalFEFunctionType& localGeodesicFEFunction,
   factory.insertVertex({1,0});
   factory.insertVertex({0,1});
 
-  GeometryType triangle;
-  triangle.makeTriangle();
-  factory.insertElement(triangle, {0,1,2});
+  factory.insertElement(GeometryTypes::triangle, {0,1,2});
 
-  shared_ptr<GridType> grid = shared_ptr<GridType>(factory.createGrid());
+  shared_ptr<GridType> grid = factory.createGrid();
 
   grid->globalRefine(3);
 
@@ -146,16 +144,14 @@ void interpolate(const LocalFEFunctionType& localGeodesicFEFunction,
   typedef Functions::LagrangeBasis<typename DeformedGridType::LeafGridView, 1> FEBasis;
   FEBasis feBasis(deformedGrid.leafGridView());
 
-  Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(variation0)> variation0Function(feBasis,variation0);
-  Functions::DiscreteScalarGlobalBasisFunction<decltype(feBasis),decltype(variation1)> variation1Function(feBasis,variation1);
-  auto localVariation0Function = localFunction(variation0Function);
-  auto localVariation1Function = localFunction(variation1Function);
+  auto variation0Function = Functions::makeDiscreteGlobalBasisFunction<typename TargetSpace::EmbeddedTangentVector>(feBasis, variation0);
+  auto variation1Function = Functions::makeDiscreteGlobalBasisFunction<typename TargetSpace::EmbeddedTangentVector>(feBasis, variation1);
 
   Dune::VTKWriter<typename DeformedGridType::LeafGridView> vtkWriter(deformedGrid.leafGridView());
   vtkWriter.addCellData(colors, "colors");
 
-  vtkWriter.addVertexData(localVariation0Function, VTK::FieldInfo("variation 0", VTK::FieldInfo::Type::scalar, variation0[0].size()));
-  vtkWriter.addVertexData(localVariation1Function, VTK::FieldInfo("variation 1", VTK::FieldInfo::Type::scalar, variation1[0].size()));
+  vtkWriter.addVertexData(variation0Function, VTK::FieldInfo("variation 0", VTK::FieldInfo::Type::scalar, variation0[0].size()));
+  vtkWriter.addVertexData(variation1Function, VTK::FieldInfo("variation 1", VTK::FieldInfo::Type::scalar, variation1[0].size()));
 
   vtkWriter.write("sphere-patch-" + nameSuffix);
 }
@@ -211,8 +207,8 @@ int main(int argc, char* argv[]) try
   //interpolate<TargetSpace,LocalProjectedFEFunctionType>(coefficients, "projected");
   //interpolate<TargetSpace,LocalTangentFEFunctionType>(coefficients, "tangent");
 
-} catch (Exception e) {
+} catch (Exception& e) {
 
-    std::cout << e << std::endl;
+    std::cout << e.what() << std::endl;
 
 }
