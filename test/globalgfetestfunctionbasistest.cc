@@ -78,7 +78,7 @@ int main() try
     test<Rotation<double,3>, 1>();
     //test<Rotation<double,3>, 2>();
 
-} catch (Exception e) {
-    std::cout << e << std::endl;
+} catch (Exception& e) {
+    std::cout << e.what() << std::endl;
 }
 
