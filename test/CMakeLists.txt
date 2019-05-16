@@ -5,7 +5,6 @@ set(TESTS
   frameinvariancetest
   globalgfetestfunctionbasistest
   harmonicenergytest
-  interillustration
   localgeodesicfefunctiontest
   localgeodesicfestiffnesstest
   localgfetestfunctiontest
