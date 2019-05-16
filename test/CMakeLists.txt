@@ -10,7 +10,6 @@ set(TESTS
   localgeodesicfestiffnesstest
   localgfetestfunctiontest
   localprojectedfefunctiontest
-  nestednesstest
   orthogonalmatrixtest
   rodassemblertest
   rotationtest
