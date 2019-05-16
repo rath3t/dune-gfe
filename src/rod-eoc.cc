@@ -8,7 +8,7 @@
 
 #include <dune/istl/io.hh>
 
-#include <dune/functions/functionspacebases/pqknodalbasis.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/fufem/functionspacebases/p1nodalbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
@@ -57,7 +57,7 @@ void solve (const GridType& grid,
     const double nu              = parameters.get<double>("nu");
 
     // Create a function space basis
-    typedef Dune::Functions::PQkNodalBasis<typename GridType::LeafGridView, 1> FEBasis;
+    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, 1> FEBasis;
     FEBasis feBasis(grid.leafGridView());
 
     // Transitional: the same basis as a dune-fufem object
