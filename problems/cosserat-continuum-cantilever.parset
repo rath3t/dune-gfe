@@ -2,7 +2,7 @@
 #  Grid parameters
 #############################################
 
-structuredGrid = true
+structuredGrid = cube
 
 # bounding box
 lower = 0 0
