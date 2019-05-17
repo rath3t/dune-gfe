@@ -1,0 +1,123 @@
+#############################################
+#  Grid parameters
+#############################################
+
+structuredGrid = true
+
+# bounding box
+lower = 0 0 0
+upper = 10 10 0.5
+
+elements = 10 10 5
+
+# Number of grid levels
+numLevels = 2
+
+#############################################
+#  Solver parameters
+#############################################
+
+# Number of homotopy steps for the Dirichlet boundary conditions
+numHomotopySteps = 1
+
+# Tolerance of the trust region solver
+tolerance = 1e-3
+
+# Max number of steps of the trust region solver
+maxTrustRegionSteps = 20
+
+trustRegionScaling = 1 1 1 0.01 0.01 0.01
+
+# Initial trust-region radius
+initialTrustRegionRadius = 3.125
+
+# Number of multigrid iterations per trust-region step
+numIt = 400
+
+# Number of presmoothing steps
+nu1 = 3
+
+# Number of postsmoothing steps
+nu2 = 3
+
+# Number of coarse grid corrections
+mu = 1
+
+# Number of base solver iterations
+baseIt = 1
+
+# Tolerance of the multigrid solver
+mgTolerance = 1e-5
+
+# Tolerance of the base grid solver
+baseTolerance = 1e-8
+
+# Measure convergence
+instrumented = 0
+
+############################
+#   Material parameters
+############################
+
+energy = stvenantkirchhoff
+
+## For the Wriggers L-shape example
+[materialParameters]
+
+# shell thickness
+thickness = 0.6
+
+# Lame parameters
+# corresponds to E = 71240 N/mm^2, nu=0.31
+# However, we use units N/m^2
+mu = 2.7191e+4
+lambda = 4.4364e+4
+
+#Lame parameters for the cosserat material
+mu_cosserat = 2.7191e+4
+lambda_cosserat = 4.4364e+4
+
+# Cosserat couple modulus
+mu_c = 0
+
+# Length scale parameter
+L_c = 0.6
+
+# Curvature exponent
+q = 2
+
+# Shear correction factor
+kappa = 1
+
+b1 = 1
+b2 = 1
+b3 = 1
+
+[]
+
+#############################################
+#  Boundary values
+#############################################
+
+problem = cantilever
+
+###  Python predicate specifying all Dirichlet grid vertices
+# x is the vertex coordinate
+dirichletVerticesPredicate = "x[0] < 0.01"
+
+###  Python predicate specifying all Neumann grid vertices
+# x is the vertex coordinate
+surfaceShellVerticesPredicate = "x[2] > 0.49"
+
+###  Python predicate specifying all Neumann grid vertices
+# x is the vertex coordinate
+neumannVerticesPredicate = "x[0] > 9.99"
+
+##  Neumann values
+neumannValues = 1e5 0 0 
+
+# Initial deformation
+initialDeformation = "x"
+
+#startFromFile = yes
+#initialIterateFilename = initial_iterate.vtu
