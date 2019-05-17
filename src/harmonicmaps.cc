@@ -33,7 +33,6 @@
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
-#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -234,10 +233,8 @@ int main (int argc, char *argv[])
 
     BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
 
-    typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
-    FufemFEBasis fufemFeBasis(feBasis);
+    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
 
-    constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
 
     // //////////////////////////
     //   Initial iterate
