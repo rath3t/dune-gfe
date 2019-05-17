@@ -27,16 +27,16 @@ void infinitesimalVariation(RigidBodyMotion<double,3>& c, double eps, int i)
     }
 }
 
-template <class GridType>
+template <class FEBasis>
 void strainFD(const std::vector<RigidBodyMotion<double,3> >& x, 
               double pos,
               std::array<FieldMatrix<double,2,6>, 6>& fdStrainDerivatives,
-              const RodAssembler<GridType,3>& assembler) 
+              const RodAssembler<FEBasis,3>& assembler)
 {
     assert(x.size()==2);
     double eps = 1e-8;
 
-    typename GridType::template Codim<0>::EntityPointer element = assembler.grid_->template leafbegin<0>();
+    auto element = assembler.basis_.gridView_.template begin<0>();
 
     // ///////////////////////////////////////////////////////////
     //   Compute gradient by finite-difference approximation
@@ -72,17 +72,17 @@ void strainFD(const std::vector<RigidBodyMotion<double,3> >& x,
 }
 
 
-template <class GridType>
+template <class FEBasis>
 void strain2ndOrderFD(const std::vector<RigidBodyMotion<double,3> >& x, 
                       double pos,
                       std::array<Matrix<FieldMatrix<double,6,6> >, 3>& translationDer,
                       std::array<Matrix<FieldMatrix<double,3,3> >, 3>& rotationDer,
-                      const RodAssembler<GridType,3>& assembler) 
+                      const RodAssembler<FEBasis,3>& assembler)
 {
     assert(x.size()==2);
     double eps = 1e-3;
 
-    typename GridType::template Codim<0>::EntityPointer element = assembler.grid_->template leafbegin<0>();
+    auto element = assembler.basis_.gridView_.template begin<0>();
 
     for (int m=0; m<3; m++) {
         
@@ -502,7 +502,10 @@ int main (int argc, char *argv[]) try
     typedef OneDGrid GridType;
     GridType grid(1, 0, 1);
 
-    SolutionType x(grid.size(1));
+    using GridView = GridType::LeafGridView;
+    GridView gridView = grid.leafGridView();
+
+    SolutionType x(gridView.size(1));
 
     // //////////////////////////
     //   Initial solution
@@ -541,11 +544,15 @@ int main (int argc, char *argv[]) try
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
-    RodLocalStiffness<GridType::LeafGridView,double> localStiffness(grid.leafGridView(),
+
+    using Basis = Functions::LagrangeBasis<GridView,1>;
+    Basis basis(gridView);
+
+    RodLocalStiffness<GridView,double> localStiffness(gridView,
                                                                     0.01, 0.0001, 0.0001, 2.5e5, 0.3);
 
 
-    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafGridView(), &localStiffness);
+    RodAssembler<Basis,3> rodAssembler(basis, &localStiffness);
 
     std::cout << "Energy: " << rodAssembler.computeEnergy(x) << std::endl;
 
@@ -566,8 +573,7 @@ int main (int argc, char *argv[]) try
     rodAssembler.getNeighborsPerVertex(indices);
     indices.exportIdx(hessianMatrix);
 
-    rodAssembler.assembleGradient(x, rhs);
-    rodAssembler.assembleMatrix(x, hessianMatrix);
+    rodAssembler.assembleGradientAndHessian(x, rhs, hessianMatrix);
     
     gradientFDCheck(x, rhs, rodAssembler);
     hessianFDCheck(x, hessianMatrix, rodAssembler);
@@ -575,6 +581,6 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
  } catch (Exception& e) {
 
-    std::cout << e << std::endl;
+    std::cout << e.what() << std::endl;
 
  }
