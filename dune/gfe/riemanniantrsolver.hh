@@ -19,20 +19,21 @@
 
 #include "geodesicfeassembler.hh"
 #include <dune/grid/utility/globalindexset.hh>
+#include <dune/gfe/parallel/globalmapper.hh>
 #include <dune/gfe/parallel/globalp1mapper.hh>
 #include <dune/gfe/parallel/globalp2mapper.hh>
 #include <dune/gfe/parallel/p2mapper.hh>
 
 /** \brief Assign GlobalMapper and LocalMapper types to a dune-fufem FunctionSpaceBasis */
-template <typename GridView, typename Basis>
+template <typename Basis>
 struct MapperFactory
 {};
 
 /** \brief Specialization for LagrangeBasis<1> */
 template <typename GridView>
-struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,1> >
+struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,1> >
 {
-    typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
+    typedef Dune::GlobalP1Mapper<Dune::Functions::LagrangeBasis<GridView,1>> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
     static LocalMapper createLocalMapper(const GridView& gridView)
     {
@@ -43,16 +44,16 @@ struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,1> >
 // This case is not going to actually work, but I need the specialization to make
 // the sequential code compile.
 template <typename GridView>
-struct MapperFactory<GridView, Dune::Functions::Periodic1DPQ1NodalBasis<GridView> >
+struct MapperFactory<Dune::Functions::Periodic1DPQ1NodalBasis<GridView> >
 {
-    typedef Dune::GlobalP1Mapper<GridView> GlobalMapper;
+    typedef Dune::GlobalP1Mapper<Dune::Functions::Periodic1DPQ1NodalBasis<GridView>> GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
 };
 
 template <typename GridView>
-struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,2> >
+struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,2> >
 {
-    typedef Dune::GlobalP2Mapper<GridView> GlobalMapper;
+    typedef Dune::GlobalP2Mapper<Dune::Functions::LagrangeBasis<GridView,2>> GlobalMapper;
     typedef P2BasisMapper<GridView> LocalMapper;
     static LocalMapper createLocalMapper(const GridView& gridView)
     {
@@ -62,7 +63,7 @@ struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,2> >
 
 /** \brief Specialization for LagrangeBasis<3> */
 template <typename GridView>
-struct MapperFactory<GridView, Dune::Functions::LagrangeBasis<GridView,3> >
+struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,3> >
 {
     // Error: we don't currently have a global P3 mapper
 };
@@ -88,8 +89,8 @@ class RiemannianTrustRegionSolver
     typedef std::vector<TargetSpace>                                               SolutionType;
 
 #if HAVE_MPI
-    typedef typename MapperFactory<typename Basis::GridView,Basis>::GlobalMapper GlobalMapper;
-    typedef typename MapperFactory<typename Basis::GridView,Basis>::LocalMapper LocalMapper;
+    typedef typename MapperFactory<Basis>::GlobalMapper GlobalMapper;
+    typedef typename MapperFactory<Basis>::LocalMapper LocalMapper;
 #endif
 
     /** \brief Records information about the last run of the RiemannianTrustRegionSolver
