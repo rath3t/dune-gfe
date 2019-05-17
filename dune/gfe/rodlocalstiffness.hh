@@ -510,7 +510,7 @@ template <class GridType, class RT>
 Dune::FieldVector<RT, 6> RodLocalStiffness<GridType, RT>::
 getStress(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
               const Entity& element,
-                        const Dune::FieldVector<DT, 1>& pos) const
+                        const Dune::FieldVector<double, 1>& pos) const
 {
     const auto& indexSet = gridView_.indexSet();
     std::vector<TargetSpace> localRefConf = {referenceConfiguration_[indexSet.subIndex(element, 0, 1)],
