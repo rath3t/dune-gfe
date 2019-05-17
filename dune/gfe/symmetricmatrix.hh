@@ -2,6 +2,7 @@
 #define DUNE_GFE_SYMMETRICMATRIX_HH
 
 #include <dune/common/fvector.hh>
+#include <dune/common/fmatrix.hh>
 
 namespace Dune {
 
@@ -77,6 +78,17 @@ public:
     void axpy(const T& a, const SymmetricMatrix<T,N>& other)
     {
       data_.axpy(a,other.data_);
+    }
+
+        /** \brief Return the FieldMatrix representation of the symmetric tensor.*/
+    Dune::FieldMatrix<T,N,N> matrix() const
+    {
+      Dune::FieldMatrix<T,N,N> mat;
+      for (int i=0; i<N; i++)
+        for (int j=0; j<=i; j++)
+          mat[j][i] = mat[i][j] = this->operator()(i,j);
+
+      return mat;
     }
 
 private:

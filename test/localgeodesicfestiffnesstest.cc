@@ -151,10 +151,10 @@ void testHessian()
         embeddedHessian = 0;
         
         embeddedHessian[0][0] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[1],
-                                                                                                coefficients[0]);
+                                                                                                coefficients[0]).matrix();
 
         embeddedHessian[1][1] = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients[0],
-                                                                                                coefficients[1]);
+                                                                                                coefficients[1]).matrix();
 
         embeddedHessian[0][1] = TargetSpace::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(coefficients[0],
                                                                                                         coefficients[1]);
