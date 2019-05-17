@@ -67,7 +67,7 @@ energy(const Entity& element,
 
 
 template <int domainDim>
-GridType* makeTestGrid()
+std::unique_ptr<GridType> makeTestGrid()
 {
     // ////////////////////////////////////////////////////////
     //   Make a test grid consisting of a single simplex
@@ -103,7 +103,7 @@ GridType* makeTestGrid()
 template <class TargetSpace, int domainDim>
 void testHessian()
 {
-    const GridType* grid = makeTestGrid<domainDim>();
+    std::unique_ptr<const GridType> grid = makeTestGrid<domainDim>();
 
     const int spaceDim = TargetSpace::TangentVector::dimension;
     const int embeddedSpaceDim = TargetSpace::EmbeddedTangentVector::dimension;
