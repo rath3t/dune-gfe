@@ -90,11 +90,9 @@ setup(const GridType& grid,
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
                                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                                      0);
-    Dune::BitSetVector<blocksize>* globalDirichletNodes = NULL;
-    globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.reduceCopy(dirichletNodes));
+    auto globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.reduceCopy(dirichletNodes));
 #else
-    Dune::BitSetVector<blocksize>* globalDirichletNodes = NULL;
-    globalDirichletNodes = new Dune::BitSetVector<blocksize>(dirichletNodes);
+    auto globalDirichletNodes = new Dune::BitSetVector<blocksize>(dirichletNodes);
 #endif
 
     // Make smoother (will be used for pre- and postsmoothing
@@ -133,11 +131,11 @@ setup(const GridType& grid,
                        LocalMapper,
                        LocalMapper> matrixComm(*globalMapper_, grid_->leafGridView(), localMapper, localMapper, 0);
 
-    ScalarMatrixType* A = new ScalarMatrixType(matrixComm.reduceAdd(localA));
+    auto A = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localA));
 #else
-    ScalarMatrixType* A = new ScalarMatrixType(localA);
+    auto A = std::make_shared<ScalarMatrixType>(localA);
 #endif
-    h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(*A);
+    h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
 
     innerSolver_ = std::make_shared<::LoopSolver<CorrectionType> >(mmgStep,
                                                                    innerIterations_,
@@ -156,11 +154,11 @@ setup(const GridType& grid,
     operatorAssembler.assemble(massStiffness, localMassMatrix);
 
 #if HAVE_MPI
-    ScalarMatrixType* massMatrix = new ScalarMatrixType(matrixComm.reduceAdd(localMassMatrix));
+    auto massMatrix = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localMassMatrix));
 #else
-    ScalarMatrixType* massMatrix = new ScalarMatrixType(localMassMatrix);
+    auto massMatrix = std::make_shared<ScalarMatrixType>(localMassMatrix);
 #endif
-    l2Norm_ = std::make_shared<H1SemiNorm<CorrectionType> >(*massMatrix);
+    l2Norm_ = std::make_shared<H1SemiNorm<CorrectionType> >(massMatrix);
 
     // Write all intermediate solutions, if requested
     if (instrumented_
@@ -171,7 +169,7 @@ setup(const GridType& grid,
     //    Create Hessian matrix and its occupation structure
     // ////////////////////////////////////////////////////////////
 
-    hessianMatrix_ = std::unique_ptr<MatrixType>(new MatrixType);
+    hessianMatrix_ = std::make_unique<MatrixType>();
     Dune::MatrixIndexSet indices(grid_->size(1), grid_->size(1));
     assembler_->getNeighborsPerVertex(indices);
     indices.exportIdx(*hessianMatrix_);
