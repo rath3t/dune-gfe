@@ -77,10 +77,10 @@ energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
     double pureEnergy;
-
+    int rank = localView.globalBasis().gridView().comm().rank();
     std::vector<ATargetSpace> localASolution(localSolution.size());
 
-    trace_on(1);
+    trace_on(rank);
 
     adouble energy = 0;
 
@@ -106,10 +106,10 @@ energy(const typename Basis::LocalView& localView,
 
     energy >>= pureEnergy;
 
-    trace_off();
+    trace_off(rank);
 #if 0
     size_t tape_stats[STAT_SIZE];
-    tapestats(1,tape_stats);             // reading of tape statistics
+    tapestats(rank,tape_stats);             // reading of tape statistics
     cout<<"maxlive "<<tape_stats[NUM_MAX_LIVES]<<"\n";
     cout<<"tay_stack_size "<<tape_stats[TAY_STACK_SIZE]<<"\n";
     cout<<"total number of operations "<<tape_stats[NUM_OPERATIONS]<<"\n";
@@ -128,6 +128,8 @@ assembleGradient(const typename Basis::LocalView& localView,
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
     energy(localView, localSolution);
 
+    int rank = localView.globalBasis().gridView().comm().rank();
+
     // Compute the actual gradient
     size_t nDofs = localSolution.size();
     size_t nDoubles = nDofs*embeddedBlocksize;
@@ -137,9 +139,9 @@ assembleGradient(const typename Basis::LocalView& localView,
         for (size_t j=0; j<embeddedBlocksize; j++)
             xp[idx++] = localSolution[i].globalCoordinates()[j];
 
-  // Compute gradient
+    // Compute gradient
     std::vector<double> g(nDoubles);
-    gradient(1,nDoubles,xp.data(),g.data());                  // gradient evaluation
+    gradient(rank,nDoubles,xp.data(),g.data());                  // gradient evaluation
 
     // Copy into Dune type
     std::vector<typename TargetSpace::EmbeddedTangentVector> localEmbeddedGradient(localSolution.size());
@@ -175,6 +177,8 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
     energy(localView, localSolution);
 
+    int rank = localView.globalBasis().gridView().comm().rank();
+
     /////////////////////////////////////////////////////////////////
     // Compute the gradient.  It is needed to transform the Hessian
     // into the correct coordinates.
@@ -191,7 +195,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
   // Compute gradient
     std::vector<double> g(nDoubles);
-    gradient(1,nDoubles,xp.data(),g.data());                  // gradient evaluation
+    gradient(rank,nDoubles,xp.data(),g.data());                  // gradient evaluation
 
     // Copy into Dune type
     std::vector<typename TargetSpace::EmbeddedTangentVector> localEmbeddedGradient(localSolution.size());
@@ -255,7 +259,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
           v[i*embeddedBlocksize + k] = orthonormalFrame[i][ii][k];
 
         int rc= 3;
-        MINDEC(rc, hess_vec(1, nDoubles, xp.data(), v.data(), w.data()));
+        MINDEC(rc, hess_vec(rank, nDoubles, xp.data(), v.data(), w.data()));
         if (rc < 0)
           DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
 
@@ -284,8 +288,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       for (int i=0; i<embeddedBlocksize; i++)
         tangent[(j/blocksize)*embeddedBlocksize+i][j] = orthonormalFrame[j/blocksize][j%blocksize][i];
     }
-
-    hess_mat(1,nDoubles,nDirections,xp.data(),tangent,rawHessian);
+    hess_mat(rank,nDoubles,nDirections,xp.data(),tangent,rawHessian);
 
     // Copy Hessian into Dune data type
     for(size_t i=0; i<nDoubles; i++)
