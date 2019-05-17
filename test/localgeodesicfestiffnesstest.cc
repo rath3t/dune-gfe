@@ -87,7 +87,7 @@ std::unique_ptr<GridType> makeTestGrid()
     std::vector<unsigned int> v(domainDim+1);
     for (int i=0; i<domainDim+1; i++)
         v[i] = i;
-    factory.insertElement(GeometryType(GeometryType::simplex,domainDim), v);
+    factory.insertElement(GeometryTypes::simplex(domainDim), v);
 
     return factory.createGrid();
 }
