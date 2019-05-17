@@ -50,7 +50,7 @@ void testPoint(const std::vector<TargetSpace>& corners,
         }
 
     std::cout << "WARNING: no approximation of the Hessian available, not testing" << std::endl;
-    return;
+    exit(1);
 
     FieldMatrix<double, TargetSpace::TangentVector::dimension, TargetSpace::TangentVector::dimension> diff = hessian;
     diff -= hessianApproximation;
