@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <dune/common/version.hh>
+
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/onedgrid.hh>
 
@@ -65,7 +67,11 @@ energy(const typename Basis::LocalView& localView,
 
 
 template <int domainDim>
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+GridType* makeTestGrid()
+#else
 std::unique_ptr<GridType> makeTestGrid()
+#endif
 {
     // ////////////////////////////////////////////////////////
     //   Make a test grid consisting of a single simplex
@@ -101,7 +107,11 @@ std::unique_ptr<GridType> makeTestGrid()
 template <class TargetSpace, int domainDim>
 void testHessian()
 {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+    const GridType* grid = makeTestGrid<domainDim>();
+#else
     std::unique_ptr<const GridType> grid = makeTestGrid<domainDim>();
+#endif
 
     const int spaceDim = TargetSpace::TangentVector::dimension;
     const int embeddedSpaceDim = TargetSpace::EmbeddedTangentVector::dimension;
