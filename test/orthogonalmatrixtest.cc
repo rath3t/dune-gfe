@@ -97,9 +97,9 @@ int main() try
     test<double,2>();
     test<double,3>();
     
-} catch (Exception e) {
+} catch (Exception& e) {
 
-    std::cout << e << std::endl;
+    std::cout << e.what() << std::endl;
 
 }
 
