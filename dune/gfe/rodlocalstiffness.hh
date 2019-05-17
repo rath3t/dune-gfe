@@ -117,6 +117,10 @@ public:
                                            const Entity& element,
                                            const Dune::FieldVector<double,1>& pos) const;
 
+    Dune::FieldVector<RT, 6> getStress(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
+                                           const Entity& element,
+                                           const Dune::FieldVector<double,1>& pos) const;
+
 protected:
 
     void getLocalReferenceConfiguration(const Entity& element,
@@ -502,6 +506,28 @@ getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
 
     return strain;
 }
+template <class GridType, class RT>
+Dune::FieldVector<RT, 6> RodLocalStiffness<GridType, RT>::
+getStress(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
+              const Entity& element,
+                        const Dune::FieldVector<DT, 1>& pos) const
+{
+    const auto& indexSet = gridView_.indexSet();
+    std::vector<TargetSpace> localRefConf = {referenceConfiguration_[indexSet.subIndex(element, 0, 1)],
+                                             referenceConfiguration_[indexSet.subIndex(element, 1, 1)]};
+
+    auto&& strain = getStrain(localSolution, element, pos);
+    auto&& referenceStrain = getStrain(localRefConf, element, pos);
+
+    Dune::FieldVector<RT, 6> stress;
+    for (int i=0; i < dim; i++)
+        stress[i] = (strain[i] - referenceStrain[i]) * A_[i];
+
+    for (int i=0; i < dim; i++)
+        stress[i+3] = (strain[i+3] - referenceStrain[i+3]) * K_[i];
+    return stress;
+}
+
 
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
