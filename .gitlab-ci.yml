@@ -3,6 +3,7 @@ before_script:
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-matrix-vector.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-fufem.git
+  - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-elasticity.git
 
 dune-fufem--gcc:
   image: duneci/dune:2.6-debian-10-gcc-7-14
