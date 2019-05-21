@@ -6,7 +6,7 @@ before_script:
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-elasticity.git
 
 dune-fufem--gcc:
-  image: duneci/dune:2.6-debian-10-gcc-7-14
+  image: duneci/dune:2.6-debian-10-gcc-8-17
   script: duneci-standard-test
 
 dune-fufem--clang:
