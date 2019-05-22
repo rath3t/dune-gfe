@@ -8,7 +8,7 @@
 namespace Dune {
 
 namespace GFE {
-template<class Basis, class TargetSpace, class field_type=double, class GradientRT=double>
+template<class Basis, class TargetSpace, class field_type=double>
 class SumCosseratEnergy
 : public LocalGeodesicFEStiffness<Basis, TargetSpace>
 {
@@ -27,7 +27,7 @@ public:
    * \param elasticEnergy The elastic energy
    * \param cosseratEnergy The cosserat energy
    */
-  SumCosseratEnergy(std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > , std::vector<GradientRT> > > elasticEnergy,
+  SumCosseratEnergy(std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
             std::shared_ptr<LocalGeodesicFEStiffness<Basis, TargetSpace>> cosseratEnergy)
 
   : elasticEnergy_(elasticEnergy),
@@ -49,7 +49,7 @@ public:
 
 private:
 
-  std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> >, std::vector<GradientRT> > > elasticEnergy_;
+  std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
 
   std::shared_ptr<LocalGeodesicFEStiffness<Basis, TargetSpace> > cosseratEnergy_;
 };

@@ -61,7 +61,6 @@ const int order = 1;
 
 //differentiation method
 typedef adouble ValueType;
-typedef adouble GradientValueType;
 
 using namespace Dune;
 
@@ -339,43 +338,42 @@ int main (int argc, char *argv[]) try
     std::cout << "Selected energy is: " << parameterSet.get<std::string>("energy") << std::endl;
     std::shared_ptr<LocalFEStiffness<GridView,
                                      FEBasis::LocalView::Tree::FiniteElement,
-                                     std::vector<Dune::FieldVector<ValueType, dim>>,
-                                     std::vector<GradientValueType> > > elasticEnergy;
+                                     std::vector<Dune::FieldVector<ValueType, dim>> > > elasticEnergy;
 
     if (parameterSet.get<std::string>("energy") == "stvenantkirchhoff")
       elasticEnergy = std::make_shared<StVenantKirchhoffEnergy<GridView,
                                                                FEBasis::LocalView::Tree::FiniteElement,
-                                                               ValueType, GradientValueType> >(materialParameters);
+                                                               ValueType> >(materialParameters);
     if (parameterSet.get<std::string>("energy") == "mooneyrivlin")
       elasticEnergy = std::make_shared<MooneyRivlinEnergy<GridView,
                                                                FEBasis::LocalView::Tree::FiniteElement,
-                                                               ValueType, GradientValueType> >(materialParameters);
+                                                               ValueType> >(materialParameters);
 
     if (parameterSet.get<std::string>("energy") == "neohooke")
       elasticEnergy = std::make_shared<NeoHookeEnergy<GridView,
                                                       FEBasis::LocalView::Tree::FiniteElement,
-                                                      ValueType, GradientValueType> >(materialParameters);
+                                                      ValueType> >(materialParameters);
 
     if (parameterSet.get<std::string>("energy") == "hencky")
       elasticEnergy = std::make_shared<HenckyEnergy<GridView,
                                                     FEBasis::LocalView::Tree::FiniteElement,
-                                                    ValueType, GradientValueType> >(materialParameters);
+                                                    ValueType> >(materialParameters);
 
     if (parameterSet.get<std::string>("energy") == "exphencky")
       elasticEnergy = std::make_shared<ExpHenckyEnergy<GridView,
                                                        FEBasis::LocalView::Tree::FiniteElement,
-                                                       ValueType, GradientValueType> >(materialParameters);
+                                                       ValueType> >(materialParameters);
 
     if(!elasticEnergy)
       DUNE_THROW(Exception, "Error: Selected energy not available!");
 
     auto neumannEnergy = std::make_shared<NeumannEnergy<GridView,
                                                         FEBasis::LocalView::Tree::FiniteElement,
-                                                        ValueType, GradientValueType> >(&neumannBoundary,neumannFunction.get());
+                                                        ValueType> >(&neumannBoundary,neumannFunction.get());
 
     auto elasticAndNeumann = std::make_shared<SumEnergy<GridView,
           FEBasis::LocalView::Tree::FiniteElement,
-          ValueType, GradientValueType>>(elasticEnergy, neumannEnergy);
+          ValueType>>(elasticEnergy, neumannEnergy);
 
 
     using LocalEnergyBase = LocalGeodesicFEStiffness<FEBasis,RigidBodyMotion<adouble, dim> >;
@@ -390,7 +388,7 @@ int main (int argc, char *argv[]) try
     surfaceCosseratEnergy = std::make_shared<SurfaceCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble, adouble>>(materialParameters, std::move(vertexNormals), &surfaceShellBoundary);
 
     std::shared_ptr<LocalEnergyBase> totalEnergy;
-    totalEnergy = std::make_shared<GFE::SumCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble, adouble>> (elasticAndNeumann, surfaceCosseratEnergy);
+    totalEnergy = std::make_shared<GFE::SumCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble>> (elasticAndNeumann, surfaceCosseratEnergy);
 
 
     LocalGeodesicFEADOLCStiffness<FEBasis,
