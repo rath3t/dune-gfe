@@ -1,4 +1,7 @@
 ---
+variables:
+  DUNECI_CMAKE_FLAGS: "-DDUNE_PYTHON_FORCE_PYTHON3=TRUE"
+
 before_script:
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-matrix-vector.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
