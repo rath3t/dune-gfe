@@ -336,6 +336,8 @@ void testEnergyGradient(Basis basis)
 
 int main(int argc, char** argv)
 {
+    MPIHelper::instance(argc, argv);
+
     const int domainDim = 2;
 
     // ////////////////////////////////////////////////////////

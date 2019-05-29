@@ -111,5 +111,7 @@ void testUnitVector3d()
 
 int main(int argc, char** argv)
 {
+    MPIHelper::instance(argc, argv);
+
     testUnitVector3d<2>();
 }
