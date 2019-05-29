@@ -7,6 +7,10 @@
 
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+#include <dune/typetree/leafnode.hh>
+#endif
+
 #include <dune/functions/functionspacebases/nodes.hh>
 #include <dune/functions/functionspacebases/flatmultiindex.hh>
 #include <dune/functions/functionspacebases/defaultglobalbasis.hh>
@@ -27,14 +31,27 @@ namespace Functions {
 // set and can be used without a global basis.
 // *****************************************************************************
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+template<typename GV, typename ST, typename TP>
+#else
 template<typename GV>
+#endif
 class Periodic1DPQ1Node;
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+template<typename GV, class MI, class TP, class ST>
+#else
 template<typename GV, class MI>
+#endif
 class Periodic1DPQ1NodeIndexSet;
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+template<typename GV, class MI, class ST>
+class Periodic1DPQ1NodeFactory
+#else
 template<typename GV, class MI>
 class Periodic1DPQ1PreBasis
+#endif
 {
   static const int dim = GV::dimension;
 
@@ -42,22 +59,39 @@ public:
 
   //! The grid view that the FE basis is defined on
   using GridView = GV;
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  using size_type = ST;
 
+  template<class TP>
+  using Node = Periodic1DPQ1Node<GV, size_type, TP>;
+
+  template<class TP>
+  using IndexSet = Periodic1DPQ1NodeIndexSet<GV, MI, TP, ST>;
+#else
   //! Type used for indices and size information
   using size_type = std::size_t;
 
   using Node = Periodic1DPQ1Node<GV>;
 
   using IndexSet = Periodic1DPQ1NodeIndexSet<GV, MI>;
+#endif
 
   /** \brief Type used for global numbering of the basis vectors */
   using MultiIndex = MI;
 
   //! Type used for prefixes handed to the size() method
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  using SizePrefix = Dune::ReservedVector<size_type, 2>;
+#else
   using SizePrefix = Dune::ReservedVector<size_type, 1>;
+#endif
 
   //! Constructor for a given grid view object
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  Periodic1DPQ1NodeFactory(const GridView& gv) :
+#else
   Periodic1DPQ1PreBasis(const GridView& gv) :
+#endif
     gridView_(gv)
   {}
 
@@ -77,6 +111,19 @@ public:
     gridView_ = gv;
   }
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  template<class TP>
+  Node<TP> node(const TP& tp) const
+  {
+    return Node<TP>{tp};
+  }
+
+  template<class TP>
+  IndexSet<TP> indexSet() const
+  {
+    return IndexSet<TP>{*this};
+  }
+#else
   Node makeNode() const
   {
     return Node{};
@@ -86,6 +133,7 @@ public:
   {
     return IndexSet{*this};
   }
+#endif
 
   size_type size() const
   {
@@ -119,22 +167,41 @@ public:
 
 
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+template<typename GV, typename ST, typename TP>
+class Periodic1DPQ1Node :
+  public LeafBasisNode<ST, TP>
+#else
 template<typename GV>
 class Periodic1DPQ1Node :
   public LeafBasisNode
+#endif
 {
   static const int dim = GV::dimension;
   static const int maxSize = StaticPower<2,GV::dimension>::power;
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  using Base = LeafBasisNode<ST,TP>;
+#endif
   using FiniteElementCache = typename Dune::PQkLocalFiniteElementCache<typename GV::ctype, double, dim, 1>;
 
 public:
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  using size_type = ST;
+  using TreePath = TP;
+#else
   using size_type = std::size_t;
+#endif
   using Element = typename GV::template Codim<0>::Entity;
   using FiniteElement = typename FiniteElementCache::FiniteElementType;
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  Periodic1DPQ1Node(const TreePath& treePath) :
+    Base(treePath),
+#else
   Periodic1DPQ1Node() :
+#endif
     finiteElement_(nullptr),
     element_(nullptr)
   {}
@@ -171,25 +238,45 @@ protected:
 
 
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+template<typename GV, class MI, class TP, class ST>
+#else
 template<typename GV, class MI>
+#endif
 class Periodic1DPQ1NodeIndexSet
 {
   enum {dim = GV::dimension};
 
 public:
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  using size_type = ST;
+#else
   using size_type = std::size_t;
+#endif
 
   /** \brief Type used for global numbering of the basis vectors */
   using MultiIndex = MI;
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  using NodeFactory = Periodic1DPQ1NodeFactory<GV, MI, ST>;
+
+  using Node = typename NodeFactory::template Node<TP>;
+#else
   using PreBasis = Periodic1DPQ1PreBasis<GV, MI>;
 
   using Node = Periodic1DPQ1Node<GV>;
+#endif
 
+
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  Periodic1DPQ1NodeIndexSet(const NodeFactory& nodeFactory) :
+    nodeFactory_(&nodeFactory)
+#else
   Periodic1DPQ1NodeIndexSet(const PreBasis& preBasis) :
     preBasis_(&preBasis),
     node_(nullptr)
+#endif
   {}
 
   /** \brief Bind the view to a grid element
@@ -221,7 +308,11 @@ public:
   MultiIndex index(size_type i) const
   {
     Dune::LocalKey localKey = node_->finiteElement().localCoefficients().localKey(i);
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+    const auto& gridIndexSet = nodeFactory_->gridView().indexSet();
+#else
     const auto& gridIndexSet = preBasis_->gridView().indexSet();
+#endif
     const auto& element = node_->element();
 
     //return {{ gridIndexSet.subIndex(element,localKey.subEntity(),dim) }};
@@ -236,7 +327,11 @@ public:
   }
 
 protected:
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+  const NodeFactory* nodeFactory_;
+#else
   const PreBasis* preBasis_;
+#endif
 
   const Node* node_;
 };
@@ -246,8 +341,13 @@ protected:
  *
  * \tparam GV The GridView that the space is defined on
  */
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+template<typename GV, class ST = std::size_t>
+using Periodic1DPQ1NodalBasis = DefaultGlobalBasis<Periodic1DPQ1NodeFactory<GV, FlatMultiIndex<ST>, ST> >;
+#else
 template<typename GV>
 using Periodic1DPQ1NodalBasis = DefaultGlobalBasis<Periodic1DPQ1PreBasis<GV, FlatMultiIndex<std::size_t> > >;
+#endif
 
 } // end namespace Functions
 } // end namespace Dune
