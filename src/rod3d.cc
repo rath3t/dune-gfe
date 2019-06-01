@@ -68,7 +68,13 @@ int main (int argc, char *argv[]) try
 
     grid.globalRefine(numLevels-1);
 
-    SolutionType x(grid.size(grid.maxLevel(),1));
+    using GridView = GridType::LeafGridView;
+    GridView gridView = grid.leafGridView();
+
+    using FEBasis = Functions::LagrangeBasis<GridView,1>;
+    FEBasis feBasis(gridView);
+
+    SolutionType x(feBasis.size());
 
     // //////////////////////////
     //   Initial solution
@@ -109,7 +115,7 @@ int main (int argc, char *argv[]) try
     std::cout << "director 1:  " << x[x.size()-1].q.director(1) << std::endl;
     std::cout << "director 2:  " << x[x.size()-1].q.director(2) << std::endl;
 
-    BitSetVector<blocksize> dirichletNodes(grid.size(1));
+    BitSetVector<blocksize> dirichletNodes(feBasis.size());
     dirichletNodes.unsetAll();
         
     dirichletNodes[0] = true;
@@ -119,13 +125,13 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
 
-    RodLocalStiffness<GridType::LeafGridView,double> localStiffness(grid.leafGridView(),
-                                                                    A, J1, J2, E, nu);
+    RodLocalStiffness<GridView,double> localStiffness(gridView,
+                                                      A, J1, J2, E, nu);
 
-    RodAssembler<GridType::LeafGridView,3> rodAssembler(grid.leafGridView(), &localStiffness);
+    RodAssembler<FEBasis,3> rodAssembler(gridView, &localStiffness);
 
-    RiemannianTrustRegionSolver<GridType,RigidBodyMotion<double,3> > rodSolver;
-#if 1
+    RiemannianTrustRegionSolver<FEBasis,RigidBodyMotion<double,3> > rodSolver;
+
     rodSolver.setup(grid, 
                     &rodAssembler,
                     x,
@@ -139,18 +145,6 @@ int main (int argc, char *argv[]) try
                     baseIterations,
                     baseTolerance,
                     instrumented);
-#else
-    rodSolver.setupTCG(grid, 
-                       &rodAssembler,
-                       x,
-                       dirichletNodes,
-                       tolerance,
-                       maxTrustRegionSteps,
-                       initialTrustRegionRadius,
-                       multigridIterations,
-                       mgTolerance,
-                       instrumented);
-#endif
 
     // /////////////////////////////////////////////////////
     //   Solve!

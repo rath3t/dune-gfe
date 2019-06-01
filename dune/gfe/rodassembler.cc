@@ -81,7 +81,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
 {
     using namespace Dune;
 
-    const typename GridView::Traits::IndexSet& indexSet = this->basis_.getGridView().indexSet();
+    const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
 
     if (sol.size()!=this->basis_.size())
         DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
@@ -90,13 +90,10 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
     strain.resize(indexSet.size(0));
     strain = 0;
 
-    ElementIterator it    = this->basis_.getGridView().template begin<0>();
-    ElementIterator endIt = this->basis_.getGridView().template end<0>();
-
     // Loop over all elements
-    for (; it!=endIt; ++it) {
-
-        int elementIdx = indexSet.index(*it);
+    for (const auto& element : elements(this->basis_.gridView()))
+    {
+        int elementIdx = indexSet.index(element);
 
         // Extract local solution on this element
         Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
@@ -105,20 +102,20 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
         std::vector<RigidBodyMotion<double,3> > localSolution(2);
 
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.subIndex(*it,i,gridDim)];
+            localSolution[i] = sol[indexSet.subIndex(element,i,gridDim)];
 
         // Get quadrature rule
         const int polOrd = 2;
-        const QuadratureRule<double, gridDim>& quad = QuadratureRules<double, gridDim>::rule(it->type(), polOrd);
+        const auto& quad = QuadratureRules<double, gridDim>::rule(element.type(), polOrd);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
             const FieldVector<double,gridDim>& quadPos = quad[pt].position();
 
-            double weight = quad[pt].weight() * it->geometry().integrationElement(quadPos);
+            double weight = quad[pt].weight() * element.geometry().integrationElement(quadPos);
 
-            FieldVector<double,blocksize> localStrain = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->getStrain(localSolution, *it, quad[pt].position());
+            FieldVector<double,blocksize> localStrain = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->getStrain(localSolution, element, quad[pt].position());
 
             // Sum it all up
             strain[elementIdx].axpy(weight, localStrain);
@@ -131,7 +128,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
         // /////////////////////////////////////////////////////////////////////////
         // we know the element is a line, therefore the integration element is the volume
         FieldVector<double,1> dummyPos(0.5);
-        strain[elementIdx] /= it->geometry().integrationElement(dummyPos);
+        strain[elementIdx] /= element.geometry().integrationElement(dummyPos);
 
     }
 
@@ -248,32 +245,29 @@ assembleMatrix(const std::vector<RigidBodyMotion<double,2> >& sol,
 
     matrix = 0;
 
-    ElementIterator it    = this->basis_.getGridView().template begin<0>();
-    ElementIterator endit = this->basis_.getGridView().template end<0>  ();
-
     Dune::Matrix<MatrixBlock> mat;
 
-    for( ; it != endit; ++it ) {
-
+    for (const auto& element : Dune::elements(this->basis_.gridView()))
+    {
         const int numOfBaseFct = 2;
 
         // Extract local solution
         std::vector<RigidBodyMotion<double,2> > localSolution(numOfBaseFct);
 
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[this->basis_.index(*it,i)];
+            localSolution[i] = sol[this->basis_.index(element,i)];
 
         // setup matrix
-        getLocalMatrix( *it, localSolution, mat);
+        getLocalMatrix(element, localSolution, mat);
 
         // Add element matrix to global stiffness matrix
         for(int i=0; i<numOfBaseFct; i++) {
 
-            int row = this->basis_.index(*it,i);
+            int row = this->basis_.index(element,i);
 
             for (int j=0; j<numOfBaseFct; j++ ) {
 
-                int col = this->basis_.index(*it,j);
+                int col = this->basis_.index(element,j);
                 matrix[row][col] += mat[i][j];
 
             }
@@ -447,12 +441,9 @@ assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
     grad.resize(sol.size());
     grad = 0;
 
-    ElementIterator it    = this->basis_.getGridView().template begin<0>();
-    ElementIterator endIt = this->basis_.getGridView().template end<0>();
-
     // Loop over all elements
-    for (; it!=endIt; ++it) {
-
+    for (const auto& element : Dune::elements(this->basis_gridView()))
+    {
         // Extract local solution on this element
         Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
         const int numOfBaseFct = localFiniteElement.localBasis().size();
@@ -460,18 +451,18 @@ assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
         RigidBodyMotion<double,2> localSolution[numOfBaseFct];
 
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[this->basis_.index(*it,i)];
+            localSolution[i] = sol[this->basis_.index(element,i)];
 
         // Get quadrature rule
-        const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), 2);
+        const auto& quad = Dune::QuadratureRules<double, gridDim>::rule(element.type(), 2);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
             const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
 
-            const Dune::FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
-            const double integrationElement = it->geometry().integrationElement(quadPos);
+            const Dune::FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(quadPos);
+            const double integrationElement = element.geometry().integrationElement(quadPos);
 
             double weight = quad[pt].weight() * integrationElement;
 
@@ -510,7 +501,7 @@ assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
 
             for (int dof=0; dof<numOfBaseFct; dof++) {
 
-                int globalDof = this->basis_.index(*it,dof);
+                int globalDof = this->basis_.index(element,dof);
 
                 //printf("globalDof: %d   partA1: %g   partA3: %g\n", globalDof, partA1, partA3);
 
@@ -544,12 +535,9 @@ computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const
     if (sol.size()!=this->basis_.size())
         DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
-    ElementIterator it    = this->basis_.getGridView().template begin<0>();
-    ElementIterator endIt = this->basis_.getGridView().template end<0>();
-
     // Loop over all elements
-    for (; it!=endIt; ++it) {
-
+    for (const auto& element : Dune::elements(this->basis_gridView()))
+    {
         // Extract local solution on this element
         Dune::P1LocalFiniteElement<double,double,gridDim> localFiniteElement;
 
@@ -558,18 +546,18 @@ computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const
         std::vector<RigidBodyMotion<double,2> > localSolution(numOfBaseFct);
 
         for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[this->basis_.index(*it,i)];
+            localSolution[i] = sol[this->basis_.index(element,i)];
 
         // Get quadrature rule
-        const Dune::QuadratureRule<double, gridDim>& quad = Dune::QuadratureRules<double, gridDim>::rule(it->type(), 2);
+        const auto& quad = Dune::QuadratureRules<double, gridDim>::rule(element.type(), 2);
 
         for (int pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
             const Dune::FieldVector<double,gridDim>& quadPos = quad[pt].position();
 
-            const Dune::FieldMatrix<double,1,1>& inv = it->geometry().jacobianInverseTransposed(quadPos);
-            const double integrationElement = it->geometry().integrationElement(quadPos);
+            const Dune::FieldMatrix<double,1,1>& inv = element.geometry().jacobianInverseTransposed(quadPos);
+            const double integrationElement = element.geometry().integrationElement(quadPos);
 
             double weight = quad[pt].weight() * integrationElement;
 
