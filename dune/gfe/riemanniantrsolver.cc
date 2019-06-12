@@ -78,12 +78,17 @@ setup(const GridType& grid,
     QuadraticIPOptSolver<MatrixType,CorrectionType> baseSolver;
     baseSolver.setSolverParameter(baseTolerance, 100, NumProc::QUIET);
 #else
+    // First create a Gauss-seidel base solver
+    auto baseSolverStep = std::make_shared<TrustRegionGSStep<MatrixType, CorrectionType>>();
+
     // Hack: the two-norm may not scale all that well, but it is fast!
-    ::LoopSolver<CorrectionType> baseSolver(TrustRegionGSStep<MatrixType, CorrectionType>{},
-                                                        baseIterations,
-                                                        baseTolerance,
-                                                        TwoNorm<CorrectionType>{},
-                                                        Solver::QUIET);
+    auto baseNorm = std::make_shared<TwoNorm<CorrectionType>>();
+
+    auto baseSolver = std::make_shared<::LoopSolver<CorrectionType>>(baseSolverStep,
+                                                                            baseIterations,
+                                                                            baseTolerance,
+                                                                            baseNorm,
+                                                                            Solver::QUIET);
 #endif
 #if HAVE_MPI
     // Transfer all Dirichlet data to the master processor
