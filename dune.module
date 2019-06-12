@@ -8,4 +8,4 @@ Version: svn
 Maintainer: oliver.sander@tu-dresden.de
 #depending on
 Depends: dune-grid dune-uggrid dune-istl dune-localfunctions dune-functions dune-solvers dune-fufem dune-elasticity
-Suggests: dune-foamgrid
+Suggests: dune-foamgrid dune-parmg
