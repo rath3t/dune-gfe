@@ -108,7 +108,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
         const int polOrd = 2;
         const auto& quad = QuadratureRules<double, gridDim>::rule(element.type(), polOrd);
 
-        for (int pt=0; pt<quad.size(); pt++) {
+        for (std::size_t pt=0; pt<quad.size(); pt++) {
 
             // Local position of the quadrature point
             const FieldVector<double,gridDim>& quadPos = quad[pt].position();
