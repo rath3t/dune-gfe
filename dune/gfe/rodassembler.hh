@@ -68,8 +68,8 @@ public:
         {   return  dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_;
         }
 
-        void assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
-                              Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
+  virtual void assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
+                                Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const override;
 
         void getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
                        Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
@@ -137,11 +137,11 @@ public:
     void assembleMatrix(const std::vector<RigidBodyMotion<double,2> >& sol,
                         Dune::BCRSMatrix<MatrixBlock>& matrix);
 
-    void assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
-                          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
+    virtual void assembleGradient(const std::vector<RigidBodyMotion<double,2> >& sol,
+                          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const override;
 
     /** \brief Compute the energy of a deformation state */
-    double computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const;
+    virtual double computeEnergy(const std::vector<RigidBodyMotion<double,2> >& sol) const override;
 
 protected:
 

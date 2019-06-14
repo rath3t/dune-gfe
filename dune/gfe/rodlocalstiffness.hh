@@ -101,7 +101,7 @@ public:
                        const std::array<RigidBodyMotion<RT,3>, dim+1>& localSolution) const;
 
     virtual RT energy (const typename Basis::LocalView& localView,
-                       const std::vector<RigidBodyMotion<RT,3> >& localSolution) const
+                       const std::vector<RigidBodyMotion<RT,3> >& localSolution) const override
     {
         assert(localSolution.size()==2);
         std::array<RigidBodyMotion<RT,3>, 2> localSolutionArray = {localSolution[0], localSolution[1]};
