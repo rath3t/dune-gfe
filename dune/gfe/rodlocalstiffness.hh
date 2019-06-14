@@ -109,9 +109,9 @@ public:
     }
 
     /** \brief Assemble the element gradient of the energy functional */
-    void assembleGradient(const Entity& element,
+    void assembleGradient(const typename Basis::LocalView& localView,
                           const std::vector<RigidBodyMotion<RT,3> >& solution,
-                          std::vector<Dune::FieldVector<double,6> >& gradient) const;
+                          std::vector<Dune::FieldVector<double,6> >& gradient) const override;
 
     Dune::FieldVector<double, 6> getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
                                            const Entity& element,
@@ -531,11 +531,12 @@ getStress(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
 
 template <class GridType, class RT>
 void RodLocalStiffness<GridType, RT>::
-assembleGradient(const Entity& element,
+assembleGradient(const typename Basis::LocalView& localView,
                  const std::vector<RigidBodyMotion<RT,3> >& solution,
                  std::vector<Dune::FieldVector<double,6> >& gradient) const
 {
     using namespace Dune;
+    const auto& element = localView.element();
 
     std::vector<RigidBodyMotion<RT,3> > localReferenceConfiguration;
     getLocalReferenceConfiguration(element, localReferenceConfiguration);
@@ -581,7 +582,7 @@ assembleGradient(const Entity& element,
             // multiply with jacobian inverse
             FieldVector<double,1> tmp(0);
             inv.umv(shapeGrad[dof][0], tmp);
-            shapeGrad[dof] = tmp;
+            shapeGrad[dof][0] = tmp;
 
         }
 
