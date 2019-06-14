@@ -28,8 +28,9 @@ class RodAssembler<Basis,3> : public GeodesicFEAssembler<Basis, RigidBodyMotion<
 {
   typedef typename Basis::GridView GridView;
 
-        //! Dimension of the grid.  This needs to be one!
-        enum { gridDim = GridView::dimension };
+  //! Dimension of the grid.
+  enum { gridDim = GridView::dimension };
+  static_assert(gridDim==1, "RodAssembler can only be used with one-dimensional grids!");
 
         enum { elementOrder = 1};
 
@@ -95,8 +96,9 @@ class RodAssembler<Basis,2> : public GeodesicFEAssembler<Basis, RigidBodyMotion<
     typedef typename Basis::GridView GridView;
     typedef typename GridView::template Codim<0>::Entity EntityType;
 
-    //! Dimension of the grid.  This needs to be one!
-    enum { gridDim = GridView::dimension };
+  //! Dimension of the grid.
+  enum { gridDim = GridView::dimension };
+  static_assert(gridDim==1, "RodAssembler can only be used with one-dimensional grids!");
 
     enum { elementOrder = 1};
 
