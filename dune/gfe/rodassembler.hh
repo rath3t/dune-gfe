@@ -37,9 +37,6 @@ class RodAssembler<Basis,3> : public GeodesicFEAssembler<Basis, RigidBodyMotion<
         //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
         enum { blocksize = 6 };
 
-        //!
-        typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
-
 public:
         //! ???
     RodAssembler(const Basis& basis,
