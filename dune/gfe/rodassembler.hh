@@ -45,16 +45,13 @@ public:
         {
             std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.size());
 
-            auto it    = basis.gridView().template begin<gridDim>();
-            auto endIt = basis.gridView().template end<gridDim>();
-
-            for (; it != endIt; ++it) {
-
-                int idx = basis.gridView().indexSet().index(*it);
+    for (const auto vertex : Dune::vertices(basis.gridView()))
+    {
+      auto idx = basis.gridView().indexSet().index(vertex);
 
                 referenceConfiguration[idx].r[0] = 0;
                 referenceConfiguration[idx].r[1] = 0;
-                referenceConfiguration[idx].r[2] = it->geometry().corner(0)[0];
+      referenceConfiguration[idx].r[2] = vertex.geometry().corner(0)[0];
                 referenceConfiguration[idx].q = Rotation<double,3>::identity();
             }
 
