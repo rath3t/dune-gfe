@@ -173,6 +173,8 @@ public:
             connectivitySize += ((vtkOrder==2) ? 6 : 3) * nE.second;
           else if (nE.first.isHexahedron())
             connectivitySize += ((vtkOrder==2) ? 20 : 8) * nE.second;
+          else if (nE.first.isLine())
+            connectivitySize += ((vtkOrder==2) ? 3 : 2) * nE.second;
           else
             DUNE_THROW(Dune::IOError, "Unsupported element type '" << nE.first << "' found!");
         }
@@ -324,6 +326,32 @@ public:
             connectivity[i++] = localView.index(5);
             connectivity[i++] = localView.index(7);
             connectivity[i++] = localView.index(6);
+#endif
+            }
+          }
+
+          if (element.type().isLine())
+          {
+            if (vtkOrder==2)
+            {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+              connectivity[i++] = localIndexSet.index(0);
+              connectivity[i++] = localIndexSet.index(2);
+              connectivity[i++] = localIndexSet.index(1);
+#else
+              connectivity[i++] = localView.index(0);
+              connectivity[i++] = localView.index(2);
+              connectivity[i++] = localView.index(1);
+#endif
+            }
+            else  // first order
+            {
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
+              connectivity[i++] = localIndexSet.index(0);
+              connectivity[i++] = localIndexSet.index(1);
+#else
+              connectivity[i++] = localView.index(0);
+              connectivity[i++] = localView.index(1);
 #endif
             }
           }

@@ -12,9 +12,9 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
+#include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/geodesicdifference.hh>
-#include <dune/gfe/rodwriter.hh>
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/rodassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
@@ -160,7 +160,8 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
-    writeRod(x, resultPath + "rod3d.result");
+    CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "rod3d-result");
+
     BlockVector<FieldVector<double, 6> > strain(x.size()-1);
     rodAssembler.getStrain(x,strain);
 
