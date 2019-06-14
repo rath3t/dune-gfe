@@ -40,7 +40,7 @@ int main (int argc, char *argv[]) try
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");
     const double tolerance        = parameterSet.get<double>("tolerance");
-    const int maxTrustRegionSteps   = parameterSet.get<int>("maxNewtonSteps");
+    const int maxTrustRegionSteps   = parameterSet.get<int>("maxTrustRegionSteps");
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
     const int multigridIterations   = parameterSet.get<int>("numIt");
     const int nu1              = parameterSet.get<int>("nu1");
