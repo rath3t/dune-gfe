@@ -30,13 +30,10 @@ assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
     auto localIndexSet = this->basis_.localIndexSet();
 #endif
 
-    ElementIterator it    = this->basis_.gridView().template begin<0>();
-    ElementIterator endIt = this->basis_.gridView().template end<0>();
-
     // Loop over all elements
-    for (; it!=endIt; ++it) {
-
-        localView.bind(*it);
+    for (const auto& element : Dune::elements(this->basis_.gridView()))
+    {
+        localView.bind(element);
 #if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
         localIndexSet.bind(localView);
 #endif

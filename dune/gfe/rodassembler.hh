@@ -28,8 +28,6 @@ class RodAssembler<Basis,3> : public GeodesicFEAssembler<Basis, RigidBodyMotion<
 {
   typedef typename Basis::GridView GridView;
 
-    typedef typename GridView::template Codim<0>::Iterator ElementIterator;
-
         //! Dimension of the grid.  This needs to be one!
         enum { gridDim = GridView::dimension };
 
