@@ -3,8 +3,7 @@ set(programs compute-disc-error
              film-on-substrate
              gradient-flow
              harmonicmaps
-             rod3d
-             rod-eoc)
+             rod3d)
 #            rodobstacle)
 
 foreach(_program ${programs})
