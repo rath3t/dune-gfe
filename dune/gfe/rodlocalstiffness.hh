@@ -96,17 +96,9 @@ public:
         referenceConfiguration_ = referenceConfiguration;
     }
 
-    /** \brief Local element energy for a P1 element */
-    virtual RT energy (const Entity& e,
-                       const std::array<RigidBodyMotion<RT,3>, dim+1>& localSolution) const;
-
+    /** \brief Compute local element energy */
     virtual RT energy (const typename Basis::LocalView& localView,
-                       const std::vector<RigidBodyMotion<RT,3> >& localSolution) const override
-    {
-        assert(localSolution.size()==2);
-        std::array<RigidBodyMotion<RT,3>, 2> localSolutionArray = {localSolution[0], localSolution[1]};
-        return energy(localView.element(),localSolutionArray);
-    }
+                       const std::vector<RigidBodyMotion<RT,3> >& localSolution) const override;
 
     /** \brief Assemble the element gradient of the energy functional */
     void assembleGradient(const typename Basis::LocalView& localView,
@@ -157,10 +149,12 @@ protected:
 
 template <class GridType, class RT>
 RT RodLocalStiffness<GridType, RT>::
-energy(const Entity& element,
-       const std::array<RigidBodyMotion<RT,3>, dim+1>& localSolution
-       ) const
+energy(const typename Basis::LocalView& localView,
+       const std::vector<RigidBodyMotion<RT,3> >& localSolution) const
 {
+    assert(localSolution.size()==2);
+    const auto& element = localView.element();
+
     RT energy = 0;
 
     std::vector<RigidBodyMotion<RT,3> > localReferenceConfiguration;
