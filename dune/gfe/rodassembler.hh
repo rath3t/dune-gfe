@@ -115,7 +115,7 @@ public:
 
     //! ???
     RodAssembler(const GridView &gridView)
-        : GeodesicFEAssembler<Basis, RigidBodyMotion<double,2> >(gridView,NULL)
+        : GeodesicFEAssembler<Basis, RigidBodyMotion<double,2> >(gridView,nullptr)
     {
         B = 1;
         A1 = 1;
