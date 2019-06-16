@@ -12,6 +12,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 
+#include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfestiffness.hh>
 
 #define ADOLC_VECTOR_MODE
@@ -41,7 +42,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEADOLCStiffness(const LocalGeodesicFEStiffness<Basis, ATargetSpace>* energy)
+    LocalGeodesicFEADOLCStiffness(const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -65,7 +66,7 @@ public:
                          const std::vector<TargetSpace>& localSolution,
                          std::vector<typename TargetSpace::TangentVector>& localGradient);
 
-    const LocalGeodesicFEStiffness<Basis, ATargetSpace>* localEnergy_;
+    const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
 
 };
 
