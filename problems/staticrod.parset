@@ -1,14 +1,31 @@
-# Number of uniform grid refinement steps
-maxLevel = 4
+#############################################
+#  Grid parameters
+#############################################
+
+# Number of grid levels
+numLevels = 4
+
+# Number of elements of the rod grid
+numRodBaseElements = 5
+
+#############################################
+#  Solver parameters
+#############################################
 
 # Initial load increment
 loadIncrement = 0.01
 
-# Max number of steps of the Newton solver
-maxNewtonSteps = 30
+# Tolerance of the trust region solver
+tolerance = 1e-6
 
-# Number of multigrid iterations per time step
-numIt = 100
+# Max number of steps of the trust region solver
+maxTrustRegionSteps = 100
+
+# Initial trust-region radius
+initialTrustRegionRadius = 1
+
+# Number of multigrid iterations per trust-region step
+numIt = 200
 
 # Number of presmoothing steps
 nu1 = 3
@@ -22,15 +39,30 @@ mu = 1
 # Number of base solver iterations
 baseIt = 100
 
-# Tolerance of the solver
-tolerance = 1e-10
+# Tolerance of the multigrid solver
+mgTolerance = 1e-10
 
 # Tolerance of the base grid solver
-baseTolerance = -1
+baseTolerance = 1e-8
+
+instrumented = no
 
 ############################
 #   Problem specifications
 ############################
 
-# Number of elements of the rod grid
-numRodBaseElements = 5
+A = 1
+J1 = 1
+J2 = 1
+E = 2.5e5
+nu = 0.3
+
+dirichletValueX = 1
+dirichletValueY = 0
+dirichletValueZ = 0
+
+dirichletAxisX = 1
+dirichletAxisY = 0
+dirichletAxisZ = 0
+
+dirichletAngle = 0
