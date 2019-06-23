@@ -8,6 +8,7 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
+#include <dune/gfe/localgeodesicfefdstiffness.hh>
 #include "rigidbodymotion.hh"
 #include "rodlocalstiffness.hh"
 #include "geodesicfeassembler.hh"
@@ -41,8 +42,11 @@ public:
         //! ???
     RodAssembler(const Basis& basis,
                  RodLocalStiffness<GridView,double>* localStiffness)
-        : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,localStiffness)
+        : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,nullptr)
+        , rodEnergy_(localStiffness)
         {
+            this->localStiffness_ = new LocalGeodesicFEFDStiffness<Basis,RigidBodyMotion<double,3>, double>(localStiffness);
+
             std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.size());
 
     for (const auto vertex : Dune::vertices(basis.gridView()))
@@ -55,11 +59,12 @@ public:
                 referenceConfiguration[idx].q = Rotation<double,3>::identity();
             }
 
-            dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->setReferenceConfiguration(referenceConfiguration);
+    rodEnergy_->setReferenceConfiguration(referenceConfiguration);
         }
 
         std::vector<RigidBodyMotion<double,3> > getRefConfig()
-        {   return  dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_;
+    {
+      return rodEnergy_->referenceConfiguration_;
         }
 
   virtual void assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
@@ -78,6 +83,7 @@ public:
         Dune::FieldVector<double,6> getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
                                                       const std::vector<RigidBodyMotion<double,3> >& sol) const;
 
+    RodLocalStiffness<GridView,double>* rodEnergy_;
     }; // end class
 
 

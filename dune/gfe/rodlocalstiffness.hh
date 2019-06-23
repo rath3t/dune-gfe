@@ -9,12 +9,12 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
-#include "localgeodesicfestiffness.hh"
+#include <dune/gfe/localfirstordermodel.hh>
 #include "rigidbodymotion.hh"
 
 template<class GridView, class RT>
 class RodLocalStiffness
-    : public LocalGeodesicFEStiffness<Dune::Functions::LagrangeBasis<GridView,1>, RigidBodyMotion<RT,3> >
+: public Dune::GFE::LocalFirstOrderModel<Dune::Functions::LagrangeBasis<GridView,1>, RigidBodyMotion<RT,3> >
 {
     typedef RigidBodyMotion<RT,3> TargetSpace;
     typedef Dune::Functions::LagrangeBasis<GridView,1> Basis;
