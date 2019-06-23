@@ -4,11 +4,11 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 
-#include <dune/gfe/localenergy.hh>
+#include <dune/gfe/localfirstordermodel.hh>
 
 template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness
-: public Dune::GFE::LocalEnergy<Basis,TargetSpace>
+: public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
 {
     // grid types
     typedef typename Basis::GridView GridView;
