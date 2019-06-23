@@ -6,7 +6,7 @@
 
 #include <dune/gfe/localgeodesicfestiffness.hh>
 
-/** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
+/** \brief Assembles energy gradient and Hessian with finite difference approximations
  */
 template<class Basis, class TargetSpace, class field_type=double>
 class LocalGeodesicFEFDStiffness
