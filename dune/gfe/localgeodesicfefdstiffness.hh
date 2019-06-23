@@ -31,7 +31,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalGeodesicFEFDStiffness(const LocalGeodesicFEStiffness<Basis, ATargetSpace>* energy)
+    LocalGeodesicFEFDStiffness(const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -66,7 +66,7 @@ public:
                                  std::vector<typename TargetSpace::TangentVector>& localGradient) override;
 
 
-    const LocalGeodesicFEStiffness<Basis, ATargetSpace>* localEnergy_;
+    const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
 
 };
 
