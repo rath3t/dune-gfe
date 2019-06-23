@@ -37,7 +37,7 @@ public:
 
     /** \brief Compute the energy at the current configuration */
     virtual RT energy (const typename Basis::LocalView& localView,
-               const std::vector<TargetSpace>& localSolution) const
+               const std::vector<TargetSpace>& localSolution) const override
     {
       return localEnergy_->energy(localView,localSolution);
     }
@@ -47,7 +47,7 @@ public:
        The default implementation in this class uses a finite difference approximation */
     virtual void assembleGradient(const typename Basis::LocalView& localView,
                                   const std::vector<TargetSpace>& solution,
-                                  std::vector<typename TargetSpace::TangentVector>& gradient) const;
+                                  std::vector<typename TargetSpace::TangentVector>& gradient) const override;
 
     /** \brief Assemble the local tangent matrix and gradient at the current position
 
@@ -63,7 +63,7 @@ public:
     */
     virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                  const std::vector<TargetSpace>& localSolution,
-                                 std::vector<typename TargetSpace::TangentVector>& localGradient);
+                                 std::vector<typename TargetSpace::TangentVector>& localGradient) override;
 
 
     const LocalGeodesicFEStiffness<Basis, ATargetSpace>* localEnergy_;
