@@ -647,7 +647,7 @@ assembleGradient(const typename Basis::LocalView& localView,
     // Get quadrature rule
     const QuadratureRule<double, 1>& bendingQuad = QuadratureRules<double, 1>::rule(element.type(), bendingQuadOrder);
 
-    for (int pt=0; pt<bendingQuad.size(); pt++) {
+    for (std::size_t pt=0; pt<bendingQuad.size(); pt++) {
 
         // Local position of the quadrature point
         const FieldVector<double,1>& quadPos = bendingQuad[pt].position();
