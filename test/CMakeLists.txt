@@ -6,7 +6,6 @@ set(TESTS
   globalgfetestfunctionbasistest
   harmonicenergytest
   localgeodesicfefunctiontest
-  localgeodesicfestiffnesstest
   localgfetestfunctiontest
   localprojectedfefunctiontest
   orthogonalmatrixtest
