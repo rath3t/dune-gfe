@@ -81,20 +81,15 @@ public:
     void assembleHessian(const TargetSpace& x,
                          Dune::FieldMatrix<ctype,size,size>& matrix) const
     {
-        Dune::FieldMatrix<ctype,embeddedSize,embeddedSize> embeddedHessian;
+        Dune::SymmetricMatrix<ctype,embeddedSize> embeddedHessian;
         assembleEmbeddedHessian(x,embeddedHessian);
 
         Dune::FieldMatrix<ctype,size,embeddedSize> frame = x.orthonormalFrame();
 
         // this is frame * embeddedHessian * frame^T
         for (int i=0; i<size; i++)
-            for (int j=0; j<size; j++) {
-                matrix[i][j] = 0;
-                for (int k=0; k<embeddedSize; k++)
-                    for (int l=0; l<embeddedSize; l++)
-                        matrix[i][j] += frame[i][k]*embeddedHessian[k][l]*frame[j][l];
-            }
-
+            for (int j=0; j<size; j++)
+                matrix[i][j] = embeddedHessian.energyScalarProduct(frame[i], frame[j]);
     }
 
     const std::vector<TargetSpace> coefficients_;
