@@ -155,5 +155,5 @@ int main()
 {
     testRealTuples();
     testUnitVectors();
-    //testRotations();
+    testRotations();
 }
