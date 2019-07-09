@@ -1,32 +1,29 @@
 #include <config.h>
 
-//#define DUNE_EXPRESSIONTEMPLATES
 #include <dune/grid/onedgrid.hh>
 
-#include <dune/istl/io.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/gfe/quaternion.hh>
 
 #include <dune/gfe/rodassembler.hh>
 
 #include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/rodwriter.hh>
 
 // Number of degrees of freedom: 
 // 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod
 const int blocksize = 6;
 
 using namespace Dune;
-using std::string;
 
 
 int main (int argc, char *argv[]) try
 {
     // Some types that I need
-    typedef std::vector<RigidBodyMotion<double,3> >                SolutionType;
+    typedef std::vector<RigidBodyMotion<double,3> > SolutionType;
 
     // Problem settings
-    const int numRodBaseElements = 1;
+    const int numRodBaseElements = 100;
     
     // ///////////////////////////////////////
     //    Create the grid
@@ -36,16 +33,21 @@ int main (int argc, char *argv[]) try
     using GridView = GridType::LeafGridView;
     GridView gridView = grid.leafGridView();
 
-    SolutionType x(gridView.size(1));
+    using FEBasis = Functions::LagrangeBasis<GridView,1>;
+    FEBasis feBasis(gridView);
+
+    SolutionType x(feBasis.size());
 
     // //////////////////////////
     //   Initial solution
     // //////////////////////////
 
-    for (size_t i=0; i<x.size(); i++) {
-        x[i].r[0] = 0;    // x
-        x[i].r[1] = 0;
-        x[i].r[2] = double(i)/(x.size()-1);                 // z
+    for (size_t i=0; i<x.size(); i++)
+    {
+        double s = double(i)/(x.size()-1);
+        x[i].r[0] = 0.1*std::cos(2*M_PI*s);
+        x[i].r[1] = 0.1*std::sin(2*M_PI*s);
+        x[i].r[2] = s;
         x[i].q = Rotation<double,3>::identity();
         //x[i].q = Quaternion<double>(zAxis, (double(i)*M_PI)/(2*(x.size()-1)) );
     }
@@ -57,45 +59,28 @@ int main (int argc, char *argv[]) try
     //   Create a second, rotated copy of the configuration
     // /////////////////////////////////////////////////////////////////////
 
-    FieldVector<double,3> displacement {0, 0, 0};
+    FieldVector<double,3> displacement {0, 1, 0};
 
-    FieldVector<double,3> axis(0);  axis[0]=1;
+    FieldVector<double,3> axis = {1,0,0};
     Rotation<double,3> rotation(axis,M_PI/2);
-//     std::cout << "Rotation:" << std::endl;
-//     std::cout << "director 0:  " << rotation.director(0) << std::endl;
-//     std::cout << "director 1:  " << rotation.director(1) << std::endl;
-//     std::cout << "director 2:  " << rotation.director(2) << std::endl;
 
     SolutionType rotatedX = x;
 
-    for (size_t i=0; i<rotatedX.size(); i++) {
-
+    for (size_t i=0; i<rotatedX.size(); i++)
+    {
         rotatedX[i].r = rotation.rotate(x[i].r);
         rotatedX[i].r += displacement;
 
         rotatedX[i].q = rotation.mult(x[i].q);
-
-//         std::cout << "Vertex " << i << ": (" << rotatedX[i].r << ")" << std::endl;
-// //         std::cout << "Right boundary orientation:" << std::endl;
-//         std::cout << "director 0:  " << rotatedX[i].q.director(0) << std::endl;
-//         std::cout << "director 1:  " << rotatedX[i].q.director(1) << std::endl;
-//         std::cout << "director 2:  " << rotatedX[i].q.director(2) << std::endl;
     }
 
-    writeRod(x,"rod");
-    writeRod(rotatedX, "rotated");
+    RodLocalStiffness<GridView,double> localStiffness(gridView,
+                                                      1,1,1,1e6,0.3);
 
-    RodLocalStiffness<GridView,double> assembler(gridView,
-                                                               1,1,1,1e6,0.3);
+    RodAssembler<FEBasis,3> assembler(feBasis, &localStiffness);
 
-    for (int i=1; i<2; i++) {
-
-        double p = double(i)/2;
-
-        assembler.getStrain(x,*gridView.begin<0>(), p);
-        assembler.getStrain(rotatedX,*gridView.begin<0>(), p);
-
-    }
+    if (std::abs(assembler.computeEnergy(x) - assembler.computeEnergy(rotatedX)) > 1e-6)
+        DUNE_THROW(Dune::Exception, "Rod energy not invariant under rigid body motions!");
 
  } catch (Exception& e) {
 
