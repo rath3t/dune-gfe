@@ -65,8 +65,7 @@ void testWeightSet(const std::vector<TargetSpace>& corners,
     // A quadrature rule as a set of test points
     int quadOrder = 3;
     
-    const Dune::QuadratureRule<double, dim>& quad 
-        = Dune::QuadratureRules<double, dim>::rule(GeometryTypes::simplex(dim), quadOrder);
+    const auto& quad = QuadratureRules<double, dim>::rule(GeometryTypes::simplex(dim), quadOrder);
     
     for (size_t pt=0; pt<quad.size(); pt++) {
         
@@ -109,13 +108,9 @@ void testUnitVectors()
 
     std::vector<TargetSpace> corners(dim+1);
 
-    FieldVector<double,3> input;
-    input[0] = 1;  input[1] = 0;  input[2] = 0;
-    corners[0] = input;
-    input[0] = 0;  input[1] = 1;  input[2] = 0;
-    corners[1] = input;
-    input[0] = 0;  input[1] = 0;  input[2] = 1;
-    corners[2] = input;
+    corners[0] = {1,0,0};
+    corners[1] = {0,1,0};
+    corners[2] = {0,0,1};
 
     TargetSpace argument = corners[0];
     testWeightSet(corners, argument);
@@ -129,18 +124,10 @@ void testRotations()
 {
     typedef Rotation<double,3> TargetSpace;
 
-    FieldVector<double,3> xAxis(0);
-    xAxis[0] = 1;
-    FieldVector<double,3> yAxis(0);
-    yAxis[1] = 1;
-    FieldVector<double,3> zAxis(0);
-    zAxis[2] = 1;
-
-
     std::vector<TargetSpace> corners(dim+1);
-    corners[0] = Rotation<double,3>(xAxis,0.1);
-    corners[1] = Rotation<double,3>(yAxis,0.1);
-    corners[2] = Rotation<double,3>(zAxis,0.1);
+    corners[0] = Rotation<double,3>({1,0,0}, 0.1);
+    corners[1] = Rotation<double,3>({0,1,0}, 0.1);
+    corners[2] = Rotation<double,3>({0,0,1}, 0.1);
 
     TargetSpace argument = corners[0];
     testWeightSet(corners, argument);
