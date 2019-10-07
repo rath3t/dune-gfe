@@ -22,8 +22,6 @@ public:
    */
   typedef T field_type;
 
-  enum {blocklevel = 0};
-
     /** \brief Default constructor, creates uninitialized matrix
      */
     SymmetricMatrix()
