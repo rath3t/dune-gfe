@@ -10,7 +10,7 @@
 #include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
-#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/unitvector.hh>
@@ -20,7 +20,7 @@
 
 template<class Basis, int dim, class field_type=double>
 class NonplanarCosseratShellEnergy
-  : public LocalGeodesicFEStiffness<Basis,RigidBodyMotion<field_type,dim> >
+  : public Dune::GFE::LocalEnergy<Basis,RigidBodyMotion<field_type,dim> >
 {
   // grid types
   typedef typename Basis::GridView GridView;

@@ -336,7 +336,7 @@ int main (int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     std::cout << "Selected energy is: " << parameterSet.get<std::string>("energy") << std::endl;
-    std::shared_ptr<LocalFEStiffness<GridView,
+    std::shared_ptr<Elasticity::LocalEnergy<GridView,
                                      FEBasis::LocalView::Tree::FiniteElement,
                                      std::vector<Dune::FieldVector<ValueType, dim>> > > elasticEnergy;
 
@@ -376,7 +376,7 @@ int main (int argc, char *argv[]) try
           ValueType>>(elasticEnergy, neumannEnergy);
 
 
-    using LocalEnergyBase = LocalGeodesicFEStiffness<FEBasis,RigidBodyMotion<adouble, dim> >;
+    using LocalEnergyBase = GFE::LocalEnergy<FEBasis,RigidBodyMotion<adouble, dim> >;
 
     std::shared_ptr<LocalEnergyBase> surfaceCosseratEnergy;
     std::vector<UnitVector<double,3> > vertexNormals(gridView.size(3));

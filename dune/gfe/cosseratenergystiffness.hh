@@ -8,7 +8,7 @@
 #include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
-#include "localgeodesicfestiffness.hh"
+#include <dune/gfe/localenergy.hh>
 #include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
 #ifdef PROJECTED_INTERPOLATION
 #include <dune/gfe/localprojectedfefunction.hh>
@@ -58,7 +58,7 @@ public:
 
 template<class Basis, int dim, class field_type=double>
 class CosseratEnergyLocalStiffness
-    : public LocalGeodesicFEStiffness<Basis,RigidBodyMotion<field_type,dim> >,
+    : public Dune::GFE::LocalEnergy<Basis,RigidBodyMotion<field_type,dim> >,
       public MixedLocalGeodesicFEStiffness<Basis,
                                            RealTuple<field_type,dim>,
                                            Rotation<field_type,dim> >

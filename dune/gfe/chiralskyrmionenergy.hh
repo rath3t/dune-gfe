@@ -4,7 +4,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/localenergy.hh>
 
 namespace Dune {
 
@@ -17,7 +17,7 @@ namespace GFE {
  */
 template<class Basis, class LocalInterpolationRule, class field_type>
 class ChiralSkyrmionEnergy
-: public LocalGeodesicFEStiffness<Basis,UnitVector<field_type,3> >
+: public GFE::LocalEnergy<Basis,UnitVector<field_type,3> >
 {
   // various useful types
   typedef UnitVector<field_type,3> TargetSpace;

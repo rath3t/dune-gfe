@@ -5,12 +5,12 @@
 
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 
 template<class Basis, class TargetSpace>
 class L2DistanceSquaredEnergy
-  : public LocalGeodesicFEStiffness<Basis,TargetSpace>
+  : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
 {
   // grid types
   typedef typename Basis::GridView GridView;

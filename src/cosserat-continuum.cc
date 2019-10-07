@@ -452,29 +452,27 @@ int main (int argc, char *argv[]) try
                       RealTuple<double,3>,
                       Rotation<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
 #else
-    using LocalEnergyBase = LocalGeodesicFEStiffness<FEBasis,RigidBodyMotion<adouble,3> >;
-
-    std::shared_ptr<LocalEnergyBase> cosseratEnergyADOLCLocalStiffness;
+    std::shared_ptr<GFE::LocalEnergy<FEBasis,RigidBodyMotion<adouble,3> > > localCosseratEnergy;
 
     if (dim==dimworld)
     {
-      cosseratEnergyADOLCLocalStiffness = std::make_shared<CosseratEnergyLocalStiffness<FEBasis,3,adouble> >(materialParameters,
-                                                                                                             &neumannBoundary,
-                                                                                                             neumannFunction,
-                                                                                                             volumeLoad);
+      localCosseratEnergy = std::make_shared<CosseratEnergyLocalStiffness<FEBasis,3,adouble> >(materialParameters,
+                                                                                               &neumannBoundary,
+                                                                                               neumannFunction,
+                                                                                               volumeLoad);
     }
     else
     {
       std::vector<UnitVector<double,3> > vertexNormals = computeVertexNormals(gridView);
-      cosseratEnergyADOLCLocalStiffness = std::make_shared<NonplanarCosseratShellEnergy<FEBasis,3,adouble> >(materialParameters,
-                                                                                                             std::move(vertexNormals),
-                                                                                                             &neumannBoundary,
-                                                                                                             neumannFunction,
-                                                                                                             volumeLoad);
+      localCosseratEnergy = std::make_shared<NonplanarCosseratShellEnergy<FEBasis,3,adouble> >(materialParameters,
+                                                                                               std::move(vertexNormals),
+                                                                                               &neumannBoundary,
+                                                                                               neumannFunction,
+                                                                                               volumeLoad);
     }
 
     LocalGeodesicFEADOLCStiffness<FEBasis,
-                                  TargetSpace> localGFEADOLCStiffness(cosseratEnergyADOLCLocalStiffness.get());
+                                  TargetSpace> localGFEADOLCStiffness(localCosseratEnergy.get());
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, &localGFEADOLCStiffness);
 #endif

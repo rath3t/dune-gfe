@@ -6,12 +6,12 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 
 template<class Basis, class TargetSpace>
 class WeightedSumEnergy
-  : public LocalGeodesicFEStiffness<Basis,TargetSpace>
+  : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
 {
   // grid types
   typedef typename Basis::GridView GridView;
@@ -23,11 +23,11 @@ class WeightedSumEnergy
 
 public:
 
-  std::vector<std::shared_ptr<LocalGeodesicFEStiffness<Basis,TargetSpace> > > addends_;
+  std::vector<std::shared_ptr<Dune::GFE::LocalEnergy<Basis,TargetSpace> > > addends_;
 
   std::vector<double> weights_;
 
-  WeightedSumEnergy(std::vector<std::shared_ptr<LocalGeodesicFEStiffness<Basis,TargetSpace> > > addends,
+  WeightedSumEnergy(std::vector<std::shared_ptr<Dune::GFE::LocalEnergy<Basis,TargetSpace> > > addends,
                     std::vector<double> weights)
   : addends_(addends),
     weights_(weights)

@@ -272,7 +272,7 @@ int main (int argc, char *argv[])
     using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
     // Assembler using ADOL-C
-    std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,ATargetSpace> > localEnergy;
+    std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy;
 
     std::string energy = parameterSet.get<std::string>("energy");
     if (energy == "harmonic")

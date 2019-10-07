@@ -3,14 +3,14 @@
 
 #include <dune/elasticity/assemblers/localfestiffness.hh>
 
-#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/localenergy.hh>
 
 namespace Dune {
 
 namespace GFE {
 template<class Basis, class TargetSpace, class field_type=double>
 class SumCosseratEnergy
-: public LocalGeodesicFEStiffness<Basis, TargetSpace>
+: public GFE::LocalEnergy<Basis, TargetSpace>
 {
  // grid types
   typedef typename Basis::GridView GridView;
@@ -27,8 +27,8 @@ public:
    * \param elasticEnergy The elastic energy
    * \param cosseratEnergy The cosserat energy
    */
-  SumCosseratEnergy(std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
-            std::shared_ptr<LocalGeodesicFEStiffness<Basis, TargetSpace>> cosseratEnergy)
+  SumCosseratEnergy(std::shared_ptr<Elasticity::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
+            std::shared_ptr<GFE::LocalEnergy<Basis, TargetSpace>> cosseratEnergy)
 
   : elasticEnergy_(elasticEnergy),
     cosseratEnergy_(cosseratEnergy)
@@ -49,9 +49,9 @@ public:
 
 private:
 
-  std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
+  std::shared_ptr<Elasticity::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
 
-  std::shared_ptr<LocalGeodesicFEStiffness<Basis, TargetSpace> > cosseratEnergy_;
+  std::shared_ptr<GFE::LocalEnergy<Basis, TargetSpace> > cosseratEnergy_;
 };
 
 }  // namespace GFE

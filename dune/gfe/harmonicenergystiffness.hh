@@ -4,11 +4,11 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include "localgeodesicfestiffness.hh"
+#include <dune/gfe/localenergy.hh>
 
 template<class Basis, class LocalInterpolationRule, class TargetSpace>
 class HarmonicEnergyLocalStiffness
-    : public LocalGeodesicFEStiffness<Basis,TargetSpace>
+    : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
 {
     // grid types
     typedef typename Basis::GridView GridView;

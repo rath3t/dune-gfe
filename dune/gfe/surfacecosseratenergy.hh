@@ -7,6 +7,7 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/cosseratstrain.hh>
+#include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
@@ -42,7 +43,7 @@ public:
 
 template<class Basis, class TargetSpace, class field_type=double, class GradientRT=double>
 class SurfaceCosseratEnergy
-: public LocalGeodesicFEStiffness<Basis,TargetSpace>
+: public Dune::GFE::LocalEnergy<Basis,TargetSpace>
 {
  // grid types
   typedef typename Basis::GridView GridView;
