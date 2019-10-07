@@ -1,5 +1,5 @@
-#ifndef HARMONIC_ENERGY_LOCAL_STIFFNESS_HH
-#define HARMONIC_ENERGY_LOCAL_STIFFNESS_HH
+#ifndef DUNE_GFE_HARMONICENERGY_HH
+#define DUNE_GFE_HARMONICENERGY_HH
 
 #include <dune/common/fmatrix.hh>
 #include <dune/geometry/quadraturerules.hh>
