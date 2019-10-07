@@ -4,6 +4,7 @@
 #include <dune/common/fmatrix.hh>
 
 #if ADOLC_ADOUBLE_H
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
 template< int m, int n, int p >
 auto operator* ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldMatrix< adouble, n, p > &B)
   -> Dune::FieldMatrix<adouble, m, p>
@@ -58,7 +59,9 @@ auto operator* ( const Dune::FieldMatrix< double, m, n > &A, const Dune::FieldMa
     return ret;
 }
 #endif
+#endif
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
 //! calculates ret = A + B
 template< class K, int m, int n>
 Dune::FieldMatrix<K,m,n> operator+ ( const Dune::FieldMatrix<K, m, n> &A, const Dune::FieldMatrix<K,m,n> &B)
@@ -87,8 +90,10 @@ auto operator- ( const Dune::FieldMatrix< T, m, n > &A, const Dune::FieldMatrix<
 
     return result;
 }
+#endif
 
 #if ADOLC_ADOUBLE_H
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
 //! calculates ret = A - B
 template <int m, int n>
 auto operator- ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldMatrix< double, m, n > &B)
@@ -103,6 +108,7 @@ auto operator- ( const Dune::FieldMatrix< adouble, m, n > &A, const Dune::FieldM
 
     return result;
 }
+#endif
 
 //! calculates ret = s*A
 template< int m, int n>
@@ -120,6 +126,7 @@ auto operator* ( const double& s, const Dune::FieldMatrix<adouble, m, n> &A)
 }
 #endif
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
 //! calculates ret = s*A
 template< int m, int n>
 auto operator* ( const double& s, const Dune::FieldMatrix<double, m, n> &A)
@@ -134,6 +141,7 @@ auto operator* ( const double& s, const Dune::FieldMatrix<double, m, n> &A)
 
     return ret;
 }
+#endif
 
 //! calculates ret = A/s
 template< class K, int m, int n>
@@ -149,6 +157,7 @@ Dune::FieldMatrix<K,m,n> operator/ ( const Dune::FieldMatrix<K, m, n> &A, const 
     return ret;
 }
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
 //! calculates ret = A/s
 template< class K, int m>
 Dune::FieldVector<K,m> operator/ ( const Dune::FieldVector<K, m> &A, const K& s)
@@ -161,5 +170,6 @@ Dune::FieldVector<K,m> operator/ ( const Dune::FieldVector<K, m> &A, const K& s)
 
     return result;
 }
+#endif
 
 #endif

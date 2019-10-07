@@ -13,6 +13,7 @@
 
 namespace Dune {
 
+#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
 template< class K, int m, int n, int p >
 Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, const Dune::FieldMatrix< K, n, p > &B)
 {
@@ -29,6 +30,7 @@ Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, 
     }
     return ret;
 }
+#endif
   namespace GFE {
 
     /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold
