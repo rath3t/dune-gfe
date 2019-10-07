@@ -45,7 +45,7 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/harmonicenergy.hh>
 #include <dune/gfe/chiralskyrmionenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>

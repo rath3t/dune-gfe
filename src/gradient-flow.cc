@@ -41,7 +41,7 @@
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/globalgeodesicfefunction.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
-#include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/harmonicenergy.hh>
 #include <dune/gfe/l2distancesquaredenergy.hh>
 #include <dune/gfe/weightedsumenergy.hh>
 #include <dune/gfe/periodic1dpq1nodalbasis.hh>
