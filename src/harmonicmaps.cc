@@ -278,9 +278,9 @@ int main (int argc, char *argv[])
     if (energy == "harmonic")
     {
         if (parameterSet["interpolationMethod"] == "geodesic")
-            localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, GeodesicInterpolationRule, ATargetSpace>);
+            localEnergy.reset(new HarmonicEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace>);
         else if (parameterSet["interpolationMethod"] == "projected")
-            localEnergy.reset(new HarmonicEnergyLocalStiffness<FEBasis, ProjectedInterpolationRule, ATargetSpace>);
+            localEnergy.reset(new HarmonicEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace>);
         else
             DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 

@@ -7,7 +7,7 @@
 #include <dune/gfe/localenergy.hh>
 
 template<class Basis, class LocalInterpolationRule, class TargetSpace>
-class HarmonicEnergyLocalStiffness
+class HarmonicEnergy
     : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
 {
     // grid types
@@ -27,8 +27,8 @@ public:
 };
 
 template <class Basis, class LocalInterpolationRule, class TargetSpace>
-typename HarmonicEnergyLocalStiffness<Basis, LocalInterpolationRule, TargetSpace>::RT
-HarmonicEnergyLocalStiffness<Basis, LocalInterpolationRule, TargetSpace>::
+typename HarmonicEnergy<Basis, LocalInterpolationRule, TargetSpace>::RT
+HarmonicEnergy<Basis, LocalInterpolationRule, TargetSpace>::
 energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
