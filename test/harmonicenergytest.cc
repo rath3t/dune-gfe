@@ -5,7 +5,7 @@
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/gfe/unitvector.hh>
-#include <dune/gfe/harmonicenergystiffness.hh>
+#include <dune/gfe/harmonicenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 
 #include "multiindex.hh"
@@ -25,7 +25,7 @@ void testEnergy(const Basis& basis, const std::vector<TargetSpace>& coefficients
 
     using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, typename Basis::LocalView::Tree::FiniteElement, TargetSpace>;
 
-    HarmonicEnergyLocalStiffness<Basis,GeodesicInterpolationRule,TargetSpace> assembler;
+    HarmonicEnergy<Basis,GeodesicInterpolationRule,TargetSpace> assembler;
     std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
 
     auto localView = basis.localView();
