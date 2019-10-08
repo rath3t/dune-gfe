@@ -73,7 +73,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalADOLCStiffness(const LocalGeodesicFEStiffness<Basis, ATargetSpace>* energy)
+    LocalADOLCStiffness(const GFE::LocalEnergy<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -91,7 +91,7 @@ public:
                          Dune::Matrix<Dune::FieldMatrix<RT,embeddedBlocksize,embeddedBlocksize> >& localHessian,
                          bool vectorMode);
 
-    const LocalGeodesicFEStiffness<Basis, ATargetSpace>* localEnergy_;
+    const GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
 
 };
 
@@ -228,7 +228,7 @@ public:
     //! Dimension of the embedding space
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
 
-    LocalFDStiffness(const LocalGeodesicFEStiffness<Basis, ATargetSpace>* energy)
+    LocalFDStiffness(const GFE::LocalEnergy<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
     {}
 
@@ -237,7 +237,7 @@ public:
                                  std::vector<Dune::FieldVector<double,embeddedBlocksize> >& localGradient,
                                  Dune::Matrix<Dune::FieldMatrix<double,embeddedBlocksize,embeddedBlocksize> >& localHessian);
 
-    const LocalGeodesicFEStiffness<Basis, ATargetSpace>* localEnergy_;
+    const GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
 };
 
 // ///////////////////////////////////////////////////////////
