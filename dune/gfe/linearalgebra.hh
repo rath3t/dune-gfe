@@ -142,7 +142,6 @@ auto operator* ( const double& s, const Dune::FieldMatrix<double, m, n> &A)
 
     return ret;
 }
-#endif
 
 //! calculates ret = A/s
 template< class K, int m, int n>
@@ -158,7 +157,6 @@ Dune::FieldMatrix<K,m,n> operator/ ( const Dune::FieldMatrix<K, m, n> &A, const 
     return ret;
 }
 
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
 //! calculates ret = A/s
 template< class K, int m>
 Dune::FieldVector<K,m> operator/ ( const Dune::FieldVector<K, m> &A, const K& s)
