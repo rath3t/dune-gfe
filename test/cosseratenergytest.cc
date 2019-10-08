@@ -243,97 +243,6 @@ void testFrameInvariance()
     
 }
 
-template <class Basis>
-void testEnergyGradient(Basis basis)
-{
-    const int domainDim = Basis::GridView::dimension;
-    std::cout << " --- Testing the gradient of the Cosserat energy functional, domain dimension: " << domainDim << " ---" << std::endl;
-
-    ParameterTree materialParameters;
-    materialParameters["thickness"] = "0.1";
-    materialParameters["mu"] = "3.8462e+05";
-    materialParameters["lambda"] = "2.7149e+05";
-    materialParameters["mu_c"] = "3.8462e+05";
-    materialParameters["L_c"] = "0.1";
-    materialParameters["q"] = "2.5";
-    materialParameters["kappa"] = "0.1";
-
-    CosseratEnergyLocalStiffness<Basis,3> assembler(materialParameters,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr);
-
-    // //////////////////////////////////////////////////////////////////////////////////////////
-    //   Compare the gradient of the energy function with a finite difference approximation
-    // //////////////////////////////////////////////////////////////////////////////////////////
-
-    auto element = *basis.gridView().template begin<0>();
-    auto localView = basis.localView();
-    localView.bind(element);
-
-    std::vector<TargetSpace> testPoints;
-    ValueFactory<TargetSpace>::get(testPoints);
-
-    // Set up elements of SE(3)
-    std::vector<TargetSpace> coefficients(domainDim+1);
-
-    ::MultiIndex index(domainDim+1, testPoints.size());
-    int numIndices = index.cycle();
-    
-    std::vector<typename RigidBodyMotion<double,3>::TangentVector> gradient(coefficients.size());
-    std::vector<typename RigidBodyMotion<double,3>::TangentVector> fdGradient(coefficients.size());
-
-    for (int i=0; i<numIndices; i++, ++index) {
-        
-        std::cout << "testing index: " << i << std::endl;
-        
-        for (int j=0; j<domainDim+1; j++)
-            coefficients[j] = testPoints[index[j]];
-
-        if (diameter(coefficients) > M_PI-0.05) { 
-            std::cout << "skipped, diameter: " << diameter(coefficients) << std::endl;
-            continue;
-        }
-        
-        // Compute the analytical gradient
-        assembler.assembleGradient(localView,
-                                   coefficients,
-                                   gradient);
-        
-        // Compute the finite difference gradient
-        assembler.LocalGeodesicFEStiffness<Basis,
-                                           RigidBodyMotion<double,3> >::assembleGradient(localView,
-                                   coefficients,
-                                   fdGradient);
-        
-        // Check whether the two are the same
-        double maxError = 0;
-        for (size_t j=0; j<gradient.size(); j++)
-            for (size_t k=0; k<gradient[j].size(); k++) {
-                double diff = std::abs(gradient[j][k] - fdGradient[j][k]);
-                maxError = std::max(maxError, diff);
-            }
-            
-        if (maxError > 1e-3) {
-         
-            std::cout << "Analytical and FD gradients differ!" << std::endl;
-            
-            std::cout << "gradient:" << std::endl;
-            for (size_t j=0; j<gradient.size(); j++)
-                std::cout << gradient[j] << std::endl;
-
-            std::cout << "fd gradient:" << std::endl;
-            for (size_t j=0; j<fdGradient.size(); j++)
-                std::cout << fdGradient[j] << std::endl;
-
-            abort();
-        }
-        
-    }
-    
-}
-
-
 int main(int argc, char** argv)
 {
     MPIHelper::instance(argc, argv);
@@ -382,6 +291,4 @@ int main(int argc, char** argv)
     
     testFrameInvariance<domainDim>();
 
-    testEnergyGradient(basis);
-    
 }
