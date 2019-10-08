@@ -2,6 +2,7 @@
 #define LINEAR_ALGEBRA_HH
 
 #include <dune/common/fmatrix.hh>
+#include <dune/common/version.hh>
 
 #if ADOLC_ADOUBLE_H
 #if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
