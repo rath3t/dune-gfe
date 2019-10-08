@@ -1,7 +1,5 @@
 #include <config.h>
 
-#define SECOND_ORDER
-
 #include <fenv.h>
 
 #include <array>
