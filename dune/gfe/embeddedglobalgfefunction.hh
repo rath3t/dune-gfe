@@ -34,6 +34,8 @@ public:
     //! Dimension of the grid.
     enum { gridDim = GridView::dimension };
 
+    static constexpr auto dimworld = GridView::dimensionworld;
+
     //! Dimension of the embedded tanget space
     enum { embeddedDim = EmbeddedTangentVector::dimension };
 
@@ -95,13 +97,14 @@ public:
 
     /** \brief Evaluate the derivative of the function at local coordinates. */
     void evaluateDerivativeLocal(const Element& element, const Dune::FieldVector<ctype,gridDim>& local,
-                                 Dune::FieldMatrix<ctype, embeddedDim, gridDim>& out) const
+                                 Dune::FieldMatrix<ctype, embeddedDim, dimworld>& out) const
     {
         out = derivative(element,local);
     }
 
     /** \brief Evaluate the derivative of the function at local coordinates. */
-    Dune::FieldMatrix<ctype, embeddedDim, gridDim> derivative(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
+    Dune::FieldMatrix<ctype, embeddedDim, dimworld>
+    derivative(const Element& element, const Dune::FieldVector<ctype,gridDim>& local) const
     {
         auto localView = basis_.localView();
         localView.bind(element);
@@ -131,7 +134,7 @@ public:
         // use it to evaluate the derivative
         auto refJac = localInterpolationRule.evaluateDerivative(local);
 
-        decltype(refJac) out =0.0;
+        Dune::FieldMatrix<ctype, embeddedDim, dimworld> out =0.0;
         //transform the gradient
         const auto jacInvTrans = element.geometry().jacobianInverseTransposed(local);
         for (size_t k=0; k< refJac.N(); k++)
