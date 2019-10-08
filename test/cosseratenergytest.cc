@@ -229,7 +229,7 @@ void testFrameInvariance()
     // Set up elements of SE(3)
     std::vector<TargetSpace> coefficients(domainDim+1);
 
-    MultiIndex index(domainDim+1, testPoints.size());
+    ::MultiIndex index(domainDim+1, testPoints.size());
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {
@@ -277,7 +277,7 @@ void testEnergyGradient(Basis basis)
     // Set up elements of SE(3)
     std::vector<TargetSpace> coefficients(domainDim+1);
 
-    MultiIndex index(domainDim+1, testPoints.size());
+    ::MultiIndex index(domainDim+1, testPoints.size());
     int numIndices = index.cycle();
     
     std::vector<typename RigidBodyMotion<double,3>::TangentVector> gradient(coefficients.size());
