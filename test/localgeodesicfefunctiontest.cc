@@ -63,47 +63,6 @@ evaluateDerivativeFD(const LocalFunction& f, const Dune::FieldVector<ctype, dim>
 }
 
 
-template <int domainDim>
-void testDerivativeTangentiality(const RealTuple<double,1>& x,
-                                 const FieldMatrix<double,1,domainDim>& derivative)
-{
-    // By construction, derivatives of RealTuples are always tangent
-}
-
-// the columns of the derivative must be tangential to the manifold
-template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const UnitVector<double,vectorDim>& x,
-                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
-{
-    for (int i=0; i<domainDim; i++) {
-
-        // The i-th column is a tangent vector if its scalar product with the global coordinates
-        // of x vanishes.
-        double sp = 0;
-        for (int j=0; j<vectorDim; j++)
-            sp += x.globalCoordinates()[j] * derivative[j][i];
-
-        if (std::fabs(sp) > 1e-8)
-            DUNE_THROW(Dune::Exception, "Derivative is not tangential: Column: " << i << ",  product: " << sp);
-
-    }
-
-}
-
-// the columns of the derivative must be tangential to the manifold
-template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const Rotation<double,vectorDim-1>& x,
-                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
-{
-}
-
-// the columns of the derivative must be tangential to the manifold
-template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const RigidBodyMotion<double,3>& x,
-                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
-{
-}
-
 /** \brief Test whether interpolation is invariant under permutation of the simplex vertices
  * \todo Implement this for all dimensions
  */
@@ -194,8 +153,6 @@ void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
             std::cout << "FD        : " << fdDerivative << std::endl;
         }
 
-        testDerivativeTangentiality(f.evaluate(quadPos), derivative);
-
     }
 }
 
@@ -238,8 +195,6 @@ void testDerivativeOfValueWRTCoefficients(const LocalGeodesicFEFunction<domainDi
                 std::cout << "FD        :\n " << fdDerivative << std::endl;
                 assert(false);
             }
-
-            //testDerivativeTangentiality(f.evaluate(quadPos), derivative);
 
         }
         
@@ -284,8 +239,6 @@ void testDerivativeOfGradientWRTCoefficients(const LocalGeodesicFEFunction<domai
                 std::cout << "FD        :\n " << fdDerivative << std::endl;
                 assert(false);
             }
-
-            //testDerivativeTangentiality(f.evaluate(quadPos), derivative);
 
         }
         
