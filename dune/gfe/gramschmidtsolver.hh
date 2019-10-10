@@ -63,13 +63,14 @@ public:
   {
     // Use the Gram-Schmidt algorithm to compute a basis that is orthonormal
     // with respect to the given matrix.
-    for (int i=0; i<dim; i++) {
+    normalize(matrix, orthonormalBasis_[0]);
 
-      normalize(matrix, orthonormalBasis_[i]);
+    for (int i=1; i<dim; i++) {
 
       for (int j=0; j<i; j++)
-        project(matrix, orthonormalBasis_[i], orthonormalBasis_[j]);
+        project(matrix, orthonormalBasis_[j], orthonormalBasis_[i]);
 
+      normalize(matrix, orthonormalBasis_[i]);
     }
 
   }
@@ -100,14 +101,14 @@ public:
     // Use the Gram-Schmidt algorithm to compute a basis that is orthonormal
     // with respect to the given matrix.
     Dune::FieldMatrix<field_type,dim,embeddedDim> orthonormalBasis(basis);
+    normalize(matrix, orthonormalBasis[0]);
 
-    for (int i=0; i<dim; i++) {
-
-      normalize(matrix, orthonormalBasis[i]);
+    for (int i=1; i<dim; i++) {
 
       for (int j=0; j<i; j++)
-        project(matrix, orthonormalBasis[i], orthonormalBasis[j]);
+        project(matrix, orthonormalBasis[j], orthonormalBasis[i]);
 
+      normalize(matrix, orthonormalBasis[i]);
     }
 
     // Solve the system in the orthonormal basis
