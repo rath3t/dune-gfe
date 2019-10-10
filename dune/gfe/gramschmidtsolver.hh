@@ -11,13 +11,13 @@
  * of a linear system.  The advantage of this is that it works even if the matrix is
  * known to have a non-trivial kernel.  This happens in GFE applications when the Hessian
  * of a functional on a manifold is given in coordinates of the surrounding space.
- * The method if efficient for the small systems that we consider in GFE applications.
+ * The method is efficient for the small systems that we consider in GFE applications.
  *
  * \tparam field_type Type used to store scalars
  * \tparam embeddedDim Number of rows and columns of the linear system
- * \tparam dim The rank of the matrix
+ * \tparam rank The rank of the matrix
  */
-template <class field_type, int dim, int embeddedDim>
+template <class field_type, int rank, int embeddedDim>
 class GramSchmidtSolver
 {
   /** \brief Normalize a vector to unit length, measured in a matrix norm
@@ -55,17 +55,18 @@ public:
    * All (non-static) calls to 'solve' will use that basis.  Since computing the basis
    * is the expensive part, the calls to 'solve' will be comparatively cheap.
    *
-   * \param basis Any basis of the space, used as the input for the Gram-Schmidt orthogonalization process
+   * \param basis Any basis of the orthogonal complement of the kernel,
+   *              used as the input for the Gram-Schmidt orthogonalization process
    */
   GramSchmidtSolver(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
-                    const Dune::FieldMatrix<field_type,dim,embeddedDim>& basis)
+                    const Dune::FieldMatrix<field_type,rank,embeddedDim>& basis)
   : orthonormalBasis_(basis)
   {
     // Use the Gram-Schmidt algorithm to compute a basis that is orthonormal
     // with respect to the given matrix.
     normalize(matrix, orthonormalBasis_[0]);
 
-    for (int i=1; i<dim; i++) {
+    for (int i=1; i<rank; i++) {
 
       for (int j=0; j<i; j++)
         project(matrix, orthonormalBasis_[j], orthonormalBasis_[i]);
@@ -79,13 +80,13 @@ public:
              const Dune::FieldVector<field_type,embeddedDim>& rhs) const
   {
     // Solve the system in the orthonormal basis
-    Dune::FieldVector<field_type,dim> orthoCoefficient;
-    for (int i=0; i<dim; i++)
+    Dune::FieldVector<field_type,rank> orthoCoefficient;
+    for (int i=0; i<rank; i++)
       orthoCoefficient[i] = rhs*orthonormalBasis_[i];
 
     // Solution in canonical basis
     x = 0;
-    for (int i=0; i<dim; i++)
+    for (int i=0; i<rank; i++)
       x.axpy(orthoCoefficient[i], orthonormalBasis_[i]);
   }
 
@@ -96,14 +97,14 @@ public:
   static void solve(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
                     Dune::FieldVector<field_type,embeddedDim>& x,
                     const Dune::FieldVector<field_type,embeddedDim>& rhs,
-                    const Dune::FieldMatrix<field_type,dim,embeddedDim>& basis)
+                    const Dune::FieldMatrix<field_type,rank,embeddedDim>& basis)
   {
     // Use the Gram-Schmidt algorithm to compute a basis that is orthonormal
     // with respect to the given matrix.
-    Dune::FieldMatrix<field_type,dim,embeddedDim> orthonormalBasis(basis);
+    Dune::FieldMatrix<field_type,rank,embeddedDim> orthonormalBasis(basis);
     normalize(matrix, orthonormalBasis[0]);
 
-    for (int i=1; i<dim; i++) {
+    for (int i=1; i<rank; i++) {
 
       for (int j=0; j<i; j++)
         project(matrix, orthonormalBasis[j], orthonormalBasis[i]);
@@ -112,20 +113,20 @@ public:
     }
 
     // Solve the system in the orthonormal basis
-    Dune::FieldVector<field_type,dim> orthoCoefficient;
-    for (int i=0; i<dim; i++)
+    Dune::FieldVector<field_type,rank> orthoCoefficient;
+    for (int i=0; i<rank; i++)
       orthoCoefficient[i] = rhs*orthonormalBasis[i];
 
     // Solution in canonical basis
     x = 0;
-    for (int i=0; i<dim; i++)
+    for (int i=0; i<rank; i++)
       x.axpy(orthoCoefficient[i], orthonormalBasis[i]);
 
   }
 
 private:
 
-  Dune::FieldMatrix<field_type,dim,embeddedDim> orthonormalBasis_;
+  Dune::FieldMatrix<field_type,rank,embeddedDim> orthonormalBasis_;
 
 };
 
