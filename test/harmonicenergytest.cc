@@ -13,7 +13,6 @@
 
 const int dim = 2;
 
-typedef UnitVector<double,3> TargetSpace;
 
 using namespace Dune;
 
@@ -28,7 +27,7 @@ double diameter(const std::vector<TargetSpace>& v)
     return d;
 }
 
-template <class Basis>
+template <class Basis, class TargetSpace>
 void testEnergy(const Basis& basis, const std::vector<TargetSpace>& coefficients)
 {
     using GridView = typename Basis::GridView;
@@ -62,8 +61,8 @@ void testEnergy(const Basis& basis, const std::vector<TargetSpace>& coefficients
 }
 
 
-template <int domainDim>
-void testUnitVector3d()
+template <int domainDim, class TargetSpace>
+void test()
 {
     // ////////////////////////////////////////////////////////
     //   Make a test grid consisting of a single simplex
@@ -128,5 +127,5 @@ int main(int argc, char** argv)
 {
     MPIHelper::instance(argc, argv);
 
-    testUnitVector3d<2>();
+    test<2,UnitVector<double,3> >();
 }
