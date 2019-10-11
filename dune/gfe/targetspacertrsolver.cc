@@ -55,6 +55,15 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
         // /////////////////////////////
         //    Solve !
         // /////////////////////////////
+        // TODO: The GramSchmidtSolver may not be the smartest choice here, because it needs
+        // a matrix that is positive definite on the complement of its kernel.  This can limit
+        // the radius of convergence of the Newton solver.  As an example consider interpolation
+        // between two points on the unit sphere that are more than pi/2 apart.  There is a
+        // well-defined unique shortest geodesic between two such points, but depending on the
+        // weights, the weighted sum of squared distances does not everywhere have a positive definite
+        // second derivative.
+        // Maybe the Newton solver has to be replaced by a trust-region or line-search solver
+        // for such situations.
         Dune::FieldMatrix<field_type,blocksize,embeddedBlocksize> basis = x_.orthonormalFrame();
         GramSchmidtSolver<field_type, blocksize, embeddedBlocksize>::solve(hesseMatrix, corr, rhs, basis);
 

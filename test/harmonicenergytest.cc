@@ -17,6 +17,17 @@ typedef UnitVector<double,3> TargetSpace;
 
 using namespace Dune;
 
+/** \brief Computes the diameter of a set */
+template <class TargetSpace>
+double diameter(const std::vector<TargetSpace>& v)
+{
+    double d = 0;
+    for (size_t i=0; i<v.size(); i++)
+        for (size_t j=0; j<v.size(); j++)
+            d = std::max(d, TargetSpace::distance(v[i],v[j]));
+    return d;
+}
+
 template <class Basis>
 void testEnergy(const Basis& basis, const std::vector<TargetSpace>& coefficients)
 {
@@ -101,6 +112,10 @@ void testUnitVector3d()
         
         for (int j=0; j<dim+1; j++)
             coefficients[j] = testPoints[index[j]];
+
+        // This may be overly restrictive, but see the TODO in targetspacetrsolver.cc
+        if (diameter(coefficients) > TargetSpace::convexityRadius)
+            continue;
 
         testEnergy<Basis>(basis, coefficients);
         
