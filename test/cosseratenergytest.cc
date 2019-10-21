@@ -197,10 +197,7 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
         
         double energy = assembler.energy(localView,
                                          rotatedCoefficients);
-        
-        assert(std::fabs(energy-referenceEnergy) < 1e-4);
-        
-        //std::cout << "energy: " << energy << std::endl;
+        assert(std::fabs(energy-referenceEnergy)/std::fabs(energy) < 1e-4);
 
     }
 
@@ -234,6 +231,16 @@ void testFrameInvariance()
 
     for (int i=0; i<numIndices; i++, ++index) {
         
+        // Discard all configurations that deform the element to zero area
+        bool identicalPoints = false;
+        for (int j=0; j<domainDim+1; j++)
+          for (int k=0; k<domainDim+1; k++)
+            if (j!=k and (testPoints[index[j]].r - testPoints[index[k]].r).two_norm() < 1e-5)
+              identicalPoints = true;
+
+        if (identicalPoints)
+          continue;
+
         for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
