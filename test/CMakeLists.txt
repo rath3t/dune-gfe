@@ -9,6 +9,7 @@ set(TESTS
   localgfetestfunctiontest
   localprojectedfefunctiontest
   orthogonalmatrixtest
+  rigidbodymotiontest
   rodassemblertest
   rotationtest
   svdtest
