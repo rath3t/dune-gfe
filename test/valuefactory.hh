@@ -191,7 +191,7 @@ public:
 
         values.resize(nTestPoints);
 
-        // Set up elements of S^1
+        // Set up elements of SE(3)
         for (int i=0; i<nTestPoints; i++)
             values[i] = RigidBodyMotion<double,3>(rValues[i].globalCoordinates(),qValues[i]);
 
