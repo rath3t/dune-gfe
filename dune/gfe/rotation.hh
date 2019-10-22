@@ -671,6 +671,43 @@ public:
 
     }
 
+    /** \brief Transform tangent vectors from quaternion representation to matrix representation
+     *
+     * This class represents rotations as unit quaternions, and therefore variations of rotations
+     * (i.e., tangent vector) are represented in quaternion space, too.  However, some applications
+     * require the tangent vectors as matrices. To obtain matrix coordinates we use the
+     * chain rule, which means that we have to multiply the given derivative with
+     * the derivative of the embedding of the unit quaternion into the space of 3x3 matrices.
+     * This second derivative is almost given by the method getFirstDerivativesOfDirectors.
+     * However, since the directors of a given unit quaternion are the _columns_ of the
+     * corresponding orthogonal matrix, we need to invert the i and j indices
+     *
+     * As a typical GFE assembler will require this for several tangent vectors at once,
+     * the implementation here is a vector one: It allows to treat several tangent vectors
+     * together, which have to come as the columns of the `derivative` parameter.
+     *
+     * So, if I am not mistaken, result[i][j][k] contains \partial R_ij / \partial k
+     *
+     * \param derivative Tangent vector in quaternion coordinates
+     * \returns DR Tangent vector in matrix coordinates
+     */
+    template <int blocksize>
+    Tensor3<T,3,3,blocksize> quaternionTangentToMatrixTangent(const Dune::FieldMatrix<T,4,blocksize>& derivative) const
+    {
+        Tensor3<T,3,3,blocksize> result = T(0);
+
+        Tensor3<T,3 , 3, 4> dd_dq;
+        getFirstDerivativesOfDirectors(dd_dq);
+
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++)
+                for (int k=0; k<blocksize; k++)
+                    for (int l=0; l<4; l++)
+                        result[i][j][k] += dd_dq[j][i][l] * derivative[l][k];
+
+        return result;
+    }
+
     /** \brief Compute the derivative of the squared distance function with respect to the second argument
      *
      * The squared distance function is

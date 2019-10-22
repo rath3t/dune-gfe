@@ -147,36 +147,6 @@ class NonplanarCosseratShellEnergy
     return result;
   }
 
-
-  /** \brief Compute the derivative of the rotation (with respect to x), but wrt matrix coordinates
-      \param value Value of the gfe function at a certain point
-      \param derivative First derivative of the gfe function wrt x at that point, in quaternion coordinates
-      \param DR First derivative of the gfe function wrt x at that point, in matrix coordinates
-   */
-  static void computeDR(const RigidBodyMotion<field_type,3>& value,
-                        const Dune::FieldMatrix<field_type,7,gridDim>& derivative,
-                        Tensor3<field_type,3,3,gridDim>& DR)
-  {
-    // The LocalGFEFunction class gives us the derivatives of the orientation variable,
-    // but as a map into quaternion space.  To obtain matrix coordinates we use the
-    // chain rule, which means that we have to multiply the given derivative with
-    // the derivative of the embedding of the unit quaternion into the space of 3x3 matrices.
-    // This second derivative is almost given by the method getFirstDerivativesOfDirectors.
-    // However, since the directors of a given unit quaternion are the _columns_ of the
-    // corresponding orthogonal matrix, we need to invert the i and j indices
-    //
-    // So, DR[i][j][k] contains \partial R_ij / \partial k
-    Tensor3<field_type,3 , 3, 4> dd_dq;
-    value.q.getFirstDerivativesOfDirectors(dd_dq);
-
-    DR = field_type(0);
-    for (int i=0; i<3; i++)
-      for (int j=0; j<3; j++)
-        for (int k=0; k<gridDim; k++)
-          for (int l=0; l<4; l++)
-            DR[i][j][k] += dd_dq[j][i][l] * derivative[l+3][k];
-  }
-
 public:
 
   /** \brief Constructor with a set of material parameters
@@ -329,8 +299,7 @@ energy(const typename Basis::LocalView& localView,
     value.q.matrix(R);
     auto RT = transpose(R);
 
-    Tensor3<field_type,3,3,gridDim> DR;
-    computeDR(value, derivative, DR);
+    Tensor3<field_type,3,3,gridDim> DR = value.quaternionTangentToMatrixTangent(derivative);
 
     //////////////////////////////////////////////////////////
     //  Fundamental forms and curvature

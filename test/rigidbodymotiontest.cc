@@ -1,14 +1,14 @@
 #include "config.h"
 
+#include <dune/common/parallel/mpihelper.hh>
+
 #include <dune/geometry/type.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/grid/uggrid.hh>
+#include <dune/localfunctions/lagrange/pqkfactory.hh>
 
-#include <dune/functions/functionspacebases/lagrangebasis.hh>
-
+#include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/cosseratenergystiffness.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"
@@ -75,9 +75,7 @@ void testDerivativeOfRotationMatrix(const std::vector<TargetSpace>& corners)
         // evaluate actual derivative
         Dune::FieldMatrix<double, TargetSpace::EmbeddedTangentVector::dimension, domainDim> derivative = f.evaluateDerivative(quadPos);
 
-        Tensor3<double,3,3,domainDim> DR;
-        typedef Dune::Functions::LagrangeBasis<typename UGGrid<domainDim>::LeafGridView,1> FEBasis;
-        CosseratEnergyLocalStiffness<FEBasis,3>::computeDR(f.evaluate(quadPos),derivative, DR);
+        Tensor3<double,3,3,domainDim> DR = f.evaluate(quadPos).quaternionTangentToMatrixTangent(derivative);
 
         // evaluate fd approximation of derivative
         Tensor3<double,3,3,domainDim> DR_fd = evaluateDerivativeFD(f,quadPos);
