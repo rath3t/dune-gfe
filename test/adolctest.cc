@@ -515,10 +515,6 @@ int main (int argc, char *argv[]) try
 
         auto localView     = feBasis.localView();
         localView.bind(element);
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-        auto localIndexSet = feBasis.localIndexSet();
-        localIndexSet.bind(localView);
-#endif
 
         const int numOfBaseFct = localView.size();
 
@@ -526,11 +522,7 @@ int main (int argc, char *argv[]) try
         std::vector<TargetSpace> localSolution(numOfBaseFct);
 
         for (int i=0; i<numOfBaseFct; i++)
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            localSolution[i] = x[localIndexSet.index(i)];
-#else
             localSolution[i] = x[localView.index(i)];
-#endif
 
         std::vector<Dune::FieldVector<double,embeddedBlocksize> > localADGradient(numOfBaseFct);
         std::vector<Dune::FieldVector<double,embeddedBlocksize> > localADVMGradient(numOfBaseFct);  // VM: vector-mode
