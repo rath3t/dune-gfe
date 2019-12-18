@@ -29,6 +29,10 @@ public:
       data_ = {m[2][1], m[0][2], m[1][0]};
     }
 
+    SkewMatrix(T v)
+    : data_(v)
+    {}
+
     SkewMatrix<T,3>& operator*=(const T& a)
     {
         data_ *= a;
