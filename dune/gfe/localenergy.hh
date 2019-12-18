@@ -22,6 +22,12 @@ public:
   energy (const typename Basis::LocalView& localView,
           const std::vector<TargetSpace>& localSolution) const = 0;
 
+  /** Empty virtual default destructor
+   *
+   * To allow proper destruction of derived classes through a base class pointer
+   */
+  virtual ~LocalEnergy() = default;
+
 };
 
 }  // namespace GFE
