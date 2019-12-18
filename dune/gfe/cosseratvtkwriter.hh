@@ -180,33 +180,16 @@ public:
         }
         std::vector<int> connectivity(connectivitySize);
 
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-        auto localIndexSet = basis.localIndexSet();
-#endif
 
         size_t i=0;
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
           localView.bind(element);
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-          localIndexSet.bind(localView);
-#endif
 
           if (element.type().isQuadrilateral())
           {
             if (vtkOrder==2)
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            connectivity[i++] = localIndexSet.index(0);
-            connectivity[i++] = localIndexSet.index(2);
-            connectivity[i++] = localIndexSet.index(8);
-            connectivity[i++] = localIndexSet.index(6);
-
-            connectivity[i++] = localIndexSet.index(1);
-            connectivity[i++] = localIndexSet.index(5);
-            connectivity[i++] = localIndexSet.index(7);
-            connectivity[i++] = localIndexSet.index(3);
-#else
             connectivity[i++] = localView.index(0);
             connectivity[i++] = localView.index(2);
             connectivity[i++] = localView.index(8);
@@ -216,68 +199,37 @@ public:
             connectivity[i++] = localView.index(5);
             connectivity[i++] = localView.index(7);
             connectivity[i++] = localView.index(3);
-#endif
             }
             else  // first order
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            connectivity[i++] = localIndexSet.index(0);
-            connectivity[i++] = localIndexSet.index(1);
-            connectivity[i++] = localIndexSet.index(3);
-            connectivity[i++] = localIndexSet.index(2);
-#else
             connectivity[i++] = localView.index(0);
             connectivity[i++] = localView.index(1);
             connectivity[i++] = localView.index(3);
             connectivity[i++] = localView.index(2);
-#endif
             }
           }
           if (element.type().isTriangle())
           {
             if (vtkOrder==2)
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            connectivity[i++] = localIndexSet.index(0);
-            connectivity[i++] = localIndexSet.index(2);
-            connectivity[i++] = localIndexSet.index(5);
-            connectivity[i++] = localIndexSet.index(1);
-            connectivity[i++] = localIndexSet.index(4);
-            connectivity[i++] = localIndexSet.index(3);
-#else
             connectivity[i++] = localView.index(0);
             connectivity[i++] = localView.index(2);
             connectivity[i++] = localView.index(5);
             connectivity[i++] = localView.index(1);
             connectivity[i++] = localView.index(4);
             connectivity[i++] = localView.index(3);
-#endif
             }
             else  // first order
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            connectivity[i++] = localIndexSet.index(0);
-            connectivity[i++] = localIndexSet.index(1);
-            connectivity[i++] = localIndexSet.index(2);
-#else
             connectivity[i++] = localView.index(0);
             connectivity[i++] = localView.index(1);
             connectivity[i++] = localView.index(2);
-#endif
             }
           }
           if (element.type().isHexahedron())
           {
             if (vtkOrder==2)
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            connectivity[i++] = localIndexSet.index(0);
-            connectivity[i++] = localIndexSet.index(2);
-            connectivity[i++] = localIndexSet.index(5);
-            connectivity[i++] = localIndexSet.index(1);
-            connectivity[i++] = localIndexSet.index(4);
-            connectivity[i++] = localIndexSet.index(3);
-#else
             // Corner dofs
             connectivity[i++] = localView.index(0);
             connectivity[i++] = localView.index(2);
@@ -304,20 +256,9 @@ public:
             connectivity[i++] = localView.index(11);
             connectivity[i++] = localView.index(17);
             connectivity[i++] = localView.index(15);
-#endif
             }
             else  // first order
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            connectivity[i++] = localIndexSet.index(0);
-            connectivity[i++] = localIndexSet.index(1);
-            connectivity[i++] = localIndexSet.index(3);
-            connectivity[i++] = localIndexSet.index(2);
-            connectivity[i++] = localIndexSet.index(4);
-            connectivity[i++] = localIndexSet.index(5);
-            connectivity[i++] = localIndexSet.index(7);
-            connectivity[i++] = localIndexSet.index(6);
-#else
             connectivity[i++] = localView.index(0);
             connectivity[i++] = localView.index(1);
             connectivity[i++] = localView.index(3);
@@ -326,7 +267,6 @@ public:
             connectivity[i++] = localView.index(5);
             connectivity[i++] = localView.index(7);
             connectivity[i++] = localView.index(6);
-#endif
             }
           }
 
@@ -334,25 +274,14 @@ public:
           {
             if (vtkOrder==2)
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-              connectivity[i++] = localIndexSet.index(0);
-              connectivity[i++] = localIndexSet.index(2);
-              connectivity[i++] = localIndexSet.index(1);
-#else
               connectivity[i++] = localView.index(0);
               connectivity[i++] = localView.index(2);
               connectivity[i++] = localView.index(1);
-#endif
             }
             else  // first order
             {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-              connectivity[i++] = localIndexSet.index(0);
-              connectivity[i++] = localIndexSet.index(1);
-#else
               connectivity[i++] = localView.index(0);
               connectivity[i++] = localView.index(1);
-#endif
             }
           }
         }
@@ -518,30 +447,14 @@ public:
         outFile << "      <Cells>" << std::endl;
 
         outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-        auto localIndexSet = p2DeformationBasis.localIndexSet();
-#endif
+
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
         {
           localView.bind(element);
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-          localIndexSet.bind(localView);
-#endif
 
           outFile << "          ";
           if (element.type().isQuadrilateral())
           {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-            outFile << localIndexSet.index(0) << " ";
-            outFile << localIndexSet.index(2) << " ";
-            outFile << localIndexSet.index(8) << " ";
-            outFile << localIndexSet.index(6) << " ";
-
-            outFile << localIndexSet.index(1) << " ";
-            outFile << localIndexSet.index(5) << " ";
-            outFile << localIndexSet.index(7) << " ";
-            outFile << localIndexSet.index(3) << " ";
-#else
             outFile << localView.index(0) << " ";
             outFile << localView.index(2) << " ";
             outFile << localView.index(8) << " ";
@@ -551,7 +464,7 @@ public:
             outFile << localView.index(5) << " ";
             outFile << localView.index(7) << " ";
             outFile << localView.index(3) << " ";
-#endif
+
             outFile << std::endl;
           }
         }

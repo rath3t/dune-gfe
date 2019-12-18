@@ -32,25 +32,13 @@ public:
   {
     auto localView = p2Basis_.localView();
     localView.bind(entity);
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-    auto localIndexSet = p2Basis_.localIndexSet();
-    localIndexSet.bind(localView);
-#endif
 
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-    for (size_t i=0; i<localIndexSet.size(); i++)
-#else
     for (size_t i=0; i<localView.size(); i++)
-#endif
     {
       if (localView.tree().finiteElement().localCoefficients().localKey(i).subEntity() == subEntity
           and localView.tree().finiteElement().localCoefficients().localKey(i).codim() == codim)
       {
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-        result = localIndexSet.index(i)[0];
-#else
         result = localView.index(i);
-#endif
         return true;
       }
     }
