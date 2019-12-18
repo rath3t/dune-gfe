@@ -346,7 +346,7 @@ namespace Dune {
 
       std::vector<Dune::FieldVector<double,3> > points_;
 
-      std::vector<int> cellConnectivity_;
+      std::vector<unsigned int> cellConnectivity_;
 
       std::vector<int> cellOffsets_;
 

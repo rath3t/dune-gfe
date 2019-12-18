@@ -178,8 +178,7 @@ public:
           else
             DUNE_THROW(Dune::IOError, "Unsupported element type '" << nE.first << "' found!");
         }
-        std::vector<int> connectivity(connectivitySize);
-
+        std::vector<unsigned int> connectivity(connectivitySize);
 
         size_t i=0;
         for (const auto& element : elements(gridView, Dune::Partitions::interior))
