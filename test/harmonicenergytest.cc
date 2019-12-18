@@ -11,7 +11,6 @@
 #include "multiindex.hh"
 #include "valuefactory.hh"
 
-const int dim = 2;
 
 
 using namespace Dune;
@@ -33,7 +32,7 @@ void testEnergy(const Basis& basis, const std::vector<TargetSpace>& coefficients
     using GridView = typename Basis::GridView;
     GridView gridView = basis.gridView();
 
-    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, typename Basis::LocalView::Tree::FiniteElement, TargetSpace>;
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<Basis::GridView::dimension, double, typename Basis::LocalView::Tree::FiniteElement, TargetSpace>;
 
     HarmonicEnergy<Basis,GeodesicInterpolationRule,TargetSpace> assembler;
     std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
@@ -72,7 +71,7 @@ void test()
 
     GridFactory<GridType> factory;
 
-    FieldVector<double,dim> pos(0);
+    FieldVector<double,domainDim> pos(0);
     factory.insertVertex(pos);
 
     for (int i=0; i<domainDim; i++) {
@@ -84,7 +83,7 @@ void test()
     std::vector<unsigned int> v(domainDim+1);
     for (int i=0; i<domainDim+1; i++)
         v[i] = i;
-    factory.insertElement(GeometryTypes::simplex(dim), v);
+    factory.insertElement(GeometryTypes::simplex(domainDim), v);
 
     auto grid = std::unique_ptr<const GridType>(factory.createGrid());
     using GridView = typename GridType::LeafGridView;
@@ -102,14 +101,14 @@ void test()
     ValueFactory<TargetSpace>::get(testPoints);
 
     // Set up elements of S^2
-    std::vector<TargetSpace> coefficients(dim+1);
+    std::vector<TargetSpace> coefficients(domainDim+1);
 
-    ::MultiIndex index(dim+1, testPoints.size());
+    ::MultiIndex index(domainDim+1, testPoints.size());
     int numIndices = index.cycle();
 
     for (int i=0; i<numIndices; i++, ++index) {
         
-        for (int j=0; j<dim+1; j++)
+        for (int j=0; j<domainDim+1; j++)
             coefficients[j] = testPoints[index[j]];
 
         // This may be overly restrictive, but see the TODO in targetspacetrsolver.cc
