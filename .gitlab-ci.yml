@@ -11,10 +11,14 @@ before_script: &before
 dune-fufem--gcc:
   image: duneci/dune:2.6-debian-10-gcc-8-17
   script: duneci-standard-test
+  variables:
+    DUNECI_BRANCH: releases/2.6-1
 
 dune-fufem--clang:
   image: duneci/dune:2.6-debian-10-clang-7-libcpp-17
   script: duneci-standard-test
+  variables:
+    DUNECI_BRANCH: releases/2.6-1
 
 dune:git parmg gcc:
   image: duneci/dune:git-debian-10-gcc-8-17
