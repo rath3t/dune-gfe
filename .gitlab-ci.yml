@@ -8,17 +8,25 @@ before_script: &before
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-fufem.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-elasticity.git
 
-dune-fufem--gcc:
+dune:2.6 gcc:
   image: duneci/dune:2.6-debian-10-gcc-8-17
   script: duneci-standard-test
   variables:
     DUNECI_BRANCH: releases/2.6-1
 
-dune-fufem--clang:
+dune:2.6 clang:
   image: duneci/dune:2.6-debian-10-clang-7-libcpp-17
   script: duneci-standard-test
   variables:
     DUNECI_BRANCH: releases/2.6-1
+
+dune:git gcc:
+  image: duneci/dune:git-debian-10-gcc-8-17
+  script: duneci-standard-test
+
+dune:git clang:
+  image: duneci/dune:git-debian-10-clang-7-libcpp-17
+  script: duneci-standard-test
 
 dune:git parmg gcc:
   image: duneci/dune:git-debian-10-gcc-8-17
