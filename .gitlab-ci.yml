@@ -2,16 +2,70 @@
 variables:
   DUNECI_CMAKE_FLAGS: "-DDUNE_PYTHON_FORCE_PYTHON3=TRUE"
 
-before_script:
+before_script: &before
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-matrix-vector.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-fufem.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-elasticity.git
 
-dune-fufem--gcc:
+# ADOLC's comparison operators return `int` instead of `bool` which confuses
+# template meta-programming in dune-common...
+.patch-dune-common: &patch-dune-common
+  - |-
+    patch -d /duneci/modules/dune-common -p1 <<EOT
+    diff --git a/dune/common/densematrix.hh b/dune/common/densematrix.hh
+    index b03bbb0b..917ecef9 100644
+    --- a/dune/common/densematrix.hh
+    +++ b/dune/common/densematrix.hh
+    @@ -897,7 +897,7 @@ namespace Dune
+             for (size_type k=i+1; k<A.rows(); k++)
+             {
+               auto abs = fvmeta::absreal(A[k][i]);
+    -          auto mask = abs > pivmax;
+    +          bool mask = abs > pivmax;
+               pivmax = Simd::cond(mask, abs, pivmax);
+               imax   = Simd::cond(mask, simd_index_type(k), imax);
+             }
+    EOT
+
+dune:2.6 gcc:
   image: duneci/dune:2.6-debian-10-gcc-8-17
   script: duneci-standard-test
+  variables:
+    DUNECI_BRANCH: releases/2.6-1
 
-dune-fufem--clang:
+dune:2.6 clang:
   image: duneci/dune:2.6-debian-10-clang-7-libcpp-17
+  script: duneci-standard-test
+  variables:
+    DUNECI_BRANCH: releases/2.6-1
+
+dune:git gcc:
+  image: duneci/dune:git-debian-10-gcc-8-17
+  before_script:
+  - *patch-dune-common
+  - *before
+  script: duneci-standard-test
+
+dune:git clang:
+  image: duneci/dune:git-debian-10-clang-7-libcpp-17
+  before_script:
+  - *patch-dune-common
+  - *before
+  script: duneci-standard-test
+
+dune:git parmg gcc:
+  image: duneci/dune:git-debian-10-gcc-8-17
+  before_script:
+  - *patch-dune-common
+  - *before
+  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/paraphase/dune-parmg.git
+  script: duneci-standard-test
+
+dune:git parmg clang:
+  image: duneci/dune:git-debian-10-clang-7-libcpp-17
+  before_script:
+  - *patch-dune-common
+  - *before
+  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/paraphase/dune-parmg.git
   script: duneci-standard-test
