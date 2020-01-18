@@ -351,7 +351,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                                                localMapper,
                                                0);
 #endif
-    for (int i=0; i<maxTrustRegionSteps_; i++) {
+    auto& i = statistics_.finalIteration;
+    for (i=0; i<maxTrustRegionSteps_; i++) {
 
 /*        std::cout << "current iterate:\n";
         for (size_t j=0; j<x_.size(); j++)
@@ -643,4 +644,6 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     // //////////////////////////////////////////////
     if (instrumented_)
         fclose(fp);
+
+    statistics_.finalEnergy = oldEnergy;
 }
