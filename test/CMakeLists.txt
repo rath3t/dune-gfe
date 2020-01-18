@@ -4,6 +4,7 @@ set(TESTS
   cosseratenergytest
   frameinvariancetest
   harmonicenergytest
+  harmonicmaptest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
   localprojectedfefunctiontest
@@ -19,3 +20,5 @@ foreach(_test ${TESTS})
   dune_add_test(SOURCES ${_test}.cc)
   target_compile_options(${_test} PRIVATE -g)
 endforeach()
+
+file(COPY grids/irregular-square.msh DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/grids)
