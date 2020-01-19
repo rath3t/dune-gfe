@@ -3,7 +3,6 @@ set(TESTS
   averagedistanceassemblertest
   cosseratenergytest
   frameinvariancetest
-  globalgfetestfunctionbasistest
   harmonicenergytest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
