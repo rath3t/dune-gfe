@@ -27,7 +27,11 @@ public:
    * \param elasticEnergy The elastic energy
    * \param cosseratEnergy The cosserat energy
    */
+#if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
+  SumCosseratEnergy(std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
+#else
   SumCosseratEnergy(std::shared_ptr<Elasticity::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
+#endif
             std::shared_ptr<GFE::LocalEnergy<Basis, TargetSpace>> cosseratEnergy)
 
   : elasticEnergy_(elasticEnergy),
@@ -49,7 +53,11 @@ public:
 
 private:
 
+#if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
+  std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
+#else
   std::shared_ptr<Elasticity::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
+#endif
 
   std::shared_ptr<GFE::LocalEnergy<Basis, TargetSpace> > cosseratEnergy_;
 };

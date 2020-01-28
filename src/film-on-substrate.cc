@@ -14,6 +14,7 @@
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
@@ -23,7 +24,9 @@
 
 #include <dune/elasticity/materials/exphenckyenergy.hh>
 #include <dune/elasticity/materials/henckyenergy.hh>
+#if !DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
 #include <dune/elasticity/materials/mooneyrivlinenergy.hh>
+#endif
 #include <dune/elasticity/materials/neohookeenergy.hh>
 #include <dune/elasticity/materials/neumannenergy.hh>
 #include <dune/elasticity/materials/sumenergy.hh>
@@ -58,6 +61,19 @@
 #endif
 const int dim = WORLD_DIM;
 const int order = 1;
+
+#if DUNE_VERSION_LT(DUNE_COMMON, 2, 7)
+template<>
+struct Dune::MathematicalConstants<adouble>
+{
+  static const adouble pi ()
+  {
+    using std::acos;
+    static const adouble pi = acos( adouble( -1 ) );
+    return pi;
+  }
+};
+#endif
 
 //differentiation method
 typedef adouble ValueType;
@@ -236,13 +252,27 @@ int main (int argc, char *argv[]) try
 
 
   BitSetVector<1> dirichletNodes(feBasis.size(), false);
+#if DUNE_VERSION_LT(DUNE_FUFEM, 2, 7)
+  using FufemFEBasis = DuneFunctionsBasis<FEBasis>;
+  FufemFEBasis fufemFeBasis(feBasis);
+  constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+#endif
 
   BitSetVector<1> neumannNodes(feBasis.size(), false);
+#if DUNE_VERSION_LT(DUNE_FUFEM, 2, 7)
+  constructBoundaryDofs(neumannBoundary,fufemFeBasis,neumannNodes);
+#else
   constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
+#endif
 
   BitSetVector<1> surfaceShellNodes(feBasis.size(), false);
+#if DUNE_VERSION_LT(DUNE_FUFEM, 2, 7)
+  constructBoundaryDofs(surfaceShellBoundary,fufemFeBasis,surfaceShellNodes);
+#else
   constructBoundaryDofs(surfaceShellBoundary,feBasis,surfaceShellNodes);
+#endif
 
   BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
   for (size_t i=0; i<feBasis.size(); i++)
@@ -336,7 +366,11 @@ int main (int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     std::cout << "Selected energy is: " << parameterSet.get<std::string>("energy") << std::endl;
+#if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
+    std::shared_ptr<LocalFEStiffness<GridView,
+#else
     std::shared_ptr<Elasticity::LocalEnergy<GridView,
+#endif
                                      FEBasis::LocalView::Tree::FiniteElement,
                                      std::vector<Dune::FieldVector<ValueType, dim>> > > elasticEnergy;
 
@@ -344,10 +378,12 @@ int main (int argc, char *argv[]) try
       elasticEnergy = std::make_shared<StVenantKirchhoffEnergy<GridView,
                                                                FEBasis::LocalView::Tree::FiniteElement,
                                                                ValueType> >(materialParameters);
+#if !DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
     if (parameterSet.get<std::string>("energy") == "mooneyrivlin")
       elasticEnergy = std::make_shared<MooneyRivlinEnergy<GridView,
                                                                FEBasis::LocalView::Tree::FiniteElement,
                                                                ValueType> >(materialParameters);
+#endif
 
     if (parameterSet.get<std::string>("energy") == "neohooke")
       elasticEnergy = std::make_shared<NeoHookeEnergy<GridView,

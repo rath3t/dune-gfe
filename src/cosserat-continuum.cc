@@ -304,10 +304,18 @@ int main (int argc, char *argv[]) try
           orientationDirichletDofs[i][j] = true;
 #else
     BitSetVector<1> dirichletNodes(feBasis.size(), false);
+#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
+    constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
+#else
     constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+#endif
 
     BitSetVector<1> neumannNodes(feBasis.size(), false);
+#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
+    constructBoundaryDofs(neumannBoundary,fufemFeBasis,neumannNodes);
+#else
     constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
+#endif
 
     BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
     for (size_t i=0; i<feBasis.size(); i++)

@@ -66,7 +66,11 @@ int main (int argc, char *argv[])
   // ///////////////////////////////////////
   using GridType = UGGrid<dim>;
 
+#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
+  std::shared_ptr<GridType> grid(GmshReader<GridType>::read("grids/irregular-square.msh"));
+#else
   std::shared_ptr<GridType> grid = GmshReader<GridType>::read("grids/irregular-square.msh");
+#endif
 
   grid->globalRefine(numLevels-1);
 
@@ -104,8 +108,12 @@ int main (int argc, char *argv[])
 
   BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
   BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
+#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
+  DuneFunctionsBasis<FEBasis> fufemBasis(feBasis);
+  constructBoundaryDofs(dirichletBoundary,fufemBasis,dirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
-
+#endif
 
   ////////////////////////////
   //  Initial iterate
