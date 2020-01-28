@@ -70,6 +70,8 @@ int main (int argc, char *argv[])
 
   grid->globalRefine(numLevels-1);
 
+  grid->loadBalance();
+
   using GridView = GridType::LeafGridView;
   GridView gridView = grid->leafGridView();
 
