@@ -92,6 +92,16 @@ class RiemannianTrustRegionSolver
     typedef typename MapperFactory<typename Basis::GridView,Basis>::LocalMapper LocalMapper;
 #endif
 
+    /** \brief Records information about the last run of the RiemannianTrustRegionSolver
+     *
+     * This is used primarily for unit testing.
+     */
+    struct Statistics
+    {
+      std::size_t finalIteration;
+
+      field_type finalEnergy;
+    };
 
 public:
 
@@ -144,6 +154,8 @@ public:
 
     SolutionType getSol() const {return x_;}
 
+    const Statistics& getStatistics() const {return statistics_;}
+
 protected:
 
 #if HAVE_MPI
@@ -163,7 +175,7 @@ protected:
     Dune::FieldVector<double,blocksize> scaling_;
 
     /** \brief Maximum number of trust-region steps */
-    int maxTrustRegionSteps_;
+    std::size_t maxTrustRegionSteps_;
 
     /** \brief Maximum number of multigrid iterations */
     int innerIterations_;
@@ -194,6 +206,14 @@ protected:
 
     /** \brief If set to true we log convergence speed and other stuff */
     bool instrumented_;
+
+    /** \brief Store information about solver runs for unit testing */
+    Statistics statistics_;
+
+#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
+    std::shared_ptr<Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > > A;
+    std::shared_ptr<Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > > massMatrix;
+#endif
 
 };
 

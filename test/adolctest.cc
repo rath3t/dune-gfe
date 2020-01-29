@@ -412,6 +412,8 @@ void compareMatrices(const Matrix<FieldMatrix<double,N,N> >& matrixA, std::strin
 
 int main (int argc, char *argv[]) try
 {
+    MPIHelper::instance(argc, argv);
+
     typedef std::vector<TargetSpace> SolutionType;
     enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
     enum { blocksize = TargetSpace::TangentVector::dimension };
