@@ -230,16 +230,13 @@ int main (int argc, char *argv[]) try
   PythonFunction<FieldVector<double,dim>, bool> pythonSurfaceShellVertices(Python::evaluate(lambda));
   for (auto&& v : vertices(gridView))
   {
-    bool isDirichlet;
-    pythonDirichletVertices.evaluate(v.geometry().corner(0), isDirichlet);
+    bool isDirichlet = pythonDirichletVertices(v.geometry().corner(0));
     dirichletVertices[indexSet.index(v)] = isDirichlet;
 
-    bool isNeumann;
-    pythonNeumannVertices.evaluate(v.geometry().corner(0), isNeumann);
+    bool isNeumann = pythonNeumannVertices(v.geometry().corner(0));
     neumannVertices[indexSet.index(v)] = isNeumann;
 
-    bool isSurfaceShell;
-    pythonSurfaceShellVertices.evaluate(v.geometry().corner(0), isSurfaceShell);
+    bool isSurfaceShell = pythonSurfaceShellVertices(v.geometry().corner(0));
     surfaceShellVertices[indexSet.index(v)] = isSurfaceShell;
   }
 
