@@ -128,7 +128,9 @@ int main (int argc, char *argv[]) try
     RodLocalStiffness<GridView,double> localStiffness(gridView,
                                                       A, J1, J2, E, nu);
 
-    RodAssembler<FEBasis,3> rodAssembler(gridView, &localStiffness);
+    LocalGeodesicFEFDStiffness<FEBasis,RigidBodyMotion<double,3> > localFDStiffness(&localStiffness);
+
+    RodAssembler<FEBasis,3> rodAssembler(gridView, &localFDStiffness);
 
     RiemannianTrustRegionSolver<FEBasis,RigidBodyMotion<double,3> > rodSolver;
 

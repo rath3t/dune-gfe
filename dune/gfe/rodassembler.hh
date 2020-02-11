@@ -41,12 +41,9 @@ class RodAssembler<Basis,3> : public GeodesicFEAssembler<Basis, RigidBodyMotion<
 public:
         //! ???
     RodAssembler(const Basis& basis,
-                 RodLocalStiffness<GridView,double>* localStiffness)
-        : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,nullptr)
-        , rodEnergy_(localStiffness)
+                 LocalGeodesicFEStiffness<Basis, RigidBodyMotion<double,3> >* localStiffness)
+    : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,localStiffness)
         {
-            this->localStiffness_ = new LocalGeodesicFEFDStiffness<Basis,RigidBodyMotion<double,3>, double>(localStiffness);
-
             std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.size());
 
     for (const auto vertex : Dune::vertices(basis.gridView()))
@@ -59,12 +56,19 @@ public:
                 referenceConfiguration[idx].q = Rotation<double,3>::identity();
             }
 
-    rodEnergy_->setReferenceConfiguration(referenceConfiguration);
+    rodEnergy()->setReferenceConfiguration(referenceConfiguration);
         }
+
+    auto rodEnergy()
+    {
+      // TODO: Does not work for other stiffness implementations
+      auto localFDStiffness = dynamic_cast<LocalGeodesicFEFDStiffness<Basis, RigidBodyMotion<double,3> >*>(this->localStiffness_);
+      return const_cast<RodLocalStiffness<GridView,double>*>(dynamic_cast<const RodLocalStiffness<GridView,double>*>(localFDStiffness->localEnergy_));
+    }
 
         std::vector<RigidBodyMotion<double,3> > getRefConfig()
     {
-      return rodEnergy_->referenceConfiguration_;
+      return rodEnergy()->referenceConfiguration_;
         }
 
   virtual void assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
@@ -82,8 +86,6 @@ public:
         template <class PatchGridView>
         Dune::FieldVector<double,6> getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
                                                       const std::vector<RigidBodyMotion<double,3> >& sol) const;
-
-    RodLocalStiffness<GridView,double>* rodEnergy_;
     }; // end class
 
 
