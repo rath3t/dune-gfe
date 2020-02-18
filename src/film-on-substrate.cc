@@ -144,7 +144,7 @@ int main (int argc, char *argv[]) try
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
   // read solver settings
-  const int numLevels                   = parameterSet.get<int>("numLevels");
+  int numLevels                   = parameterSet.get<int>("numLevels");
   int numHomotopySteps                  = parameterSet.get<int>("numHomotopySteps");
   const double tolerance                = parameterSet.get<double>("tolerance");
   const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
@@ -182,9 +182,36 @@ int main (int argc, char *argv[]) try
     grid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
   }
 
-  grid->globalRefine(numLevels-1);
+  grid->setRefinementType(GridType::RefinementType::COPY);
 
-  grid->loadBalance();
+  // Make Python function that computes which vertices are on the Dirichlet boundary,
+  // based on the vertex positions.
+  std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
+  PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+
+  // Same for the Neumann boundary
+  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
+  PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
+
+  // Same for the boundary that will get wrinkled
+  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("surfaceShellVerticesPredicate", "0") + std::string(")");
+  PythonFunction<FieldVector<double,dim>, bool> pythonSurfaceShellVertices(Python::evaluate(lambda));
+
+  while (numLevels > 0) {
+    for (auto&& e : elements(grid->leafGridView())){
+      bool isSurfaceShell = false;
+      for (int i = 0; i < e.geometry().corners(); i++) {
+          isSurfaceShell = isSurfaceShell || pythonSurfaceShellVertices(e.geometry().corner(i));
+      }
+      grid->mark(isSurfaceShell ? 1 : 0,e);
+    }
+
+    grid->adapt();
+
+    grid->loadBalance();
+
+    numLevels--;
+  }
 
   if (mpiHelper.rank()==0)
     std::cout << "There are " << grid->leafGridView().comm().size() << " processes" << std::endl;
@@ -210,18 +237,7 @@ int main (int argc, char *argv[]) try
 
   const GridView::IndexSet& indexSet = gridView.indexSet();
 
-  // Make Python function that computes which vertices are on the Dirichlet boundary,
-  // based on the vertex positions.
-  std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
 
-  // Same for the Neumann boundary
-  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
-
-  // Same for the boundary that will get wrinkled
-  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("surfaceShellVerticesPredicate", "0") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonSurfaceShellVertices(Python::evaluate(lambda));
   for (auto&& v : vertices(gridView))
   {
     bool isDirichlet = pythonDirichletVertices(v.geometry().corner(0));
