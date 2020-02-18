@@ -208,7 +208,7 @@ setup(const GridType& grid,
                                          FufemBasis0>(pkToP1TransferMatrix,p1Basis,*basis0_);
 
         mmgStep0->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType0>>();
-        Dune::shared_ptr<TransferOperatorType> topTransferOperator = Dune::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
+        std::shared_ptr<TransferOperatorType> topTransferOperator = std::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
         std::dynamic_pointer_cast<TruncatedCompressedMGTransfer<CorrectionType0>>(mmgStep0->mgTransfer_.back())->setMatrix(topTransferOperator);
 
         for (size_t i=0; i<mmgStep0->mgTransfer_.size()-1; i++){

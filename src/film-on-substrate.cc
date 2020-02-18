@@ -348,7 +348,7 @@ int main (int argc, char *argv[]) try
     std::shared_ptr<NeumannFunction> neumannFunction;
     if (parameterSet.hasKey("neumannValues"))
     {
-      neumannFunction = make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,dim> >("neumannValues"),
+      neumannFunction = std::make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,dim> >("neumannValues"),
                                                      homotopyParameter);
 
       std::cout << "Neumann values: " << parameterSet.get<FieldVector<double,dim> >("neumannValues") << std::endl;

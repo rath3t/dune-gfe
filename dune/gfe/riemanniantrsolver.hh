@@ -137,7 +137,7 @@ public:
     void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
     {
         ignoreNodes_ = &ignoreNodes;
-        Dune::shared_ptr<LoopSolver<CorrectionType> > loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
+        std::shared_ptr<LoopSolver<CorrectionType> > loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
         assert(loopSolver);
         loopSolver->iterationStep_->ignoreNodes_ = ignoreNodes_;
     }

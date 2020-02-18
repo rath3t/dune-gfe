@@ -671,7 +671,7 @@ int main (int argc, char *argv[]) try
 
   const int numLevels = parameterSet.get<int>("numLevels");
 
-  shared_ptr<GridType> grid, referenceGrid;
+  std::shared_ptr<GridType> grid, referenceGrid;
 
   FieldVector<double,dimworld> lower(0), upper(1);
 
@@ -706,8 +706,8 @@ int main (int argc, char *argv[]) try
   {
     std::string path                = parameterSet.get<std::string>("path");
     std::string gridFile            = parameterSet.get<std::string>("gridFile");
-    grid          = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
-    referenceGrid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+    grid          = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+    referenceGrid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
   }
 
   grid->globalRefine(numLevels-1);
