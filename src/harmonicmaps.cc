@@ -224,9 +224,7 @@ int main (int argc, char *argv[])
 
     for (auto&& vertex : vertices(gridView))
     {
-      //bool isDirichlet;
       bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
-      pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
       dirichletVertices[indexSet.index(vertex)] = isDirichlet;
     }
 

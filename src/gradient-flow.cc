@@ -164,8 +164,7 @@ int main (int argc, char *argv[]) try
 
   for (auto&& vertex : vertices(grid->leafGridView()))
   {
-    bool isDirichlet;
-    pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
+    bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
     dirichletVertices[indexSet.index(vertex)] = isDirichlet;
   }
 

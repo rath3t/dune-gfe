@@ -266,12 +266,10 @@ int main (int argc, char *argv[]) try
 
     for (auto&& vertex : vertices(gridView))
     {
-        bool isDirichlet;
-        pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
+        bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
         dirichletVertices[indexSet.index(vertex)] = isDirichlet;
 
-        bool isNeumann;
-        pythonNeumannVertices.evaluate(vertex.geometry().corner(0), isNeumann);
+        bool isNeumann = pythonNeumannVertices(vertex.geometry().corner(0));
         neumannVertices[indexSet.index(vertex)] = isNeumann;
     }
 
