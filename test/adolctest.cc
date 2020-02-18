@@ -35,7 +35,7 @@ typedef double FDType;
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
-
+#include <dune/functions/functionspacebases/powerbasis.hh>
 
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfestiffness.hh>
@@ -464,7 +464,15 @@ int main (int argc, char *argv[]) try
     auto identity = [](const FieldVector<double,2>& x) -> FieldVector<double,3> { return {x[0], x[1], 0};};
 
     std::vector<FieldVector<double,3> > v;
-    Functions::interpolate(feBasis, v, identity);
+    using namespace Functions::BasisFactory;
+
+      auto powerBasis = makeBasis(
+        gridView,
+        power<3>(
+          lagrange<1>(),
+          blockedInterleaved()
+      ));
+    Functions::interpolate(powerBasis, v, identity);
 
     for (size_t i=0; i<x.size(); i++)
       x[i].r = v[i];

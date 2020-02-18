@@ -74,10 +74,12 @@ int main (int argc, char *argv[]) try
         rotatedX[i].q = rotation.mult(x[i].q);
     }
 
-    RodLocalStiffness<GridView,double> localStiffness(gridView,
-                                                      1,1,1,1e6,0.3);
+    RodLocalStiffness<GridView,double> localRodFirstOrderModel(gridView,
+                                                               1,1,1,1e6,0.3);
 
-    RodAssembler<FEBasis,3> assembler(feBasis, &localStiffness);
+    LocalGeodesicFEFDStiffness<FEBasis,RigidBodyMotion<double,3> > localFDStiffness(&localRodFirstOrderModel);
+
+    RodAssembler<FEBasis,3> assembler(feBasis, &localFDStiffness);
 
     if (std::abs(assembler.computeEnergy(x) - assembler.computeEnergy(rotatedX)) > 1e-6)
         DUNE_THROW(Dune::Exception, "Rod energy not invariant under rigid body motions!");
