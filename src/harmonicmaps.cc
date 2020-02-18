@@ -172,7 +172,7 @@ int main (int argc, char *argv[])
     typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
 #endif
 
-    shared_ptr<GridType> grid;
+    std::shared_ptr<GridType> grid;
     FieldVector<double,dimworld> lower(0), upper(1);
     std::array<unsigned int,dim> elements;
 
@@ -195,7 +195,7 @@ int main (int argc, char *argv[])
         std::string path                = parameterSet.get<std::string>("path");
         std::string gridFile            = parameterSet.get<std::string>("gridFile");
 
-        grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+        grid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
     }
 
     grid->globalRefine(numLevels-1);
@@ -224,9 +224,7 @@ int main (int argc, char *argv[])
 
     for (auto&& vertex : vertices(gridView))
     {
-      //bool isDirichlet;
       bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
-      pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
       dirichletVertices[indexSet.index(vertex)] = isDirichlet;
     }
 

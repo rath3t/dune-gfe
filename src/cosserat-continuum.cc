@@ -177,7 +177,7 @@ int main (int argc, char *argv[]) try
     typedef UGGrid<dim> GridType;
 #endif
 
-    shared_ptr<GridType> grid;
+    std::shared_ptr<GridType> grid;
 
     FieldVector<double,dimworld> lower(0), upper(1);
 
@@ -201,7 +201,7 @@ int main (int argc, char *argv[]) try
         std::string suffix = gridFile.substr(dotPos, gridFile.length()-dotPos);
 
         if (suffix == ".msh")
-            grid = shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
+            grid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
         else if (suffix == ".vtu" or suffix == ".vtp")
             grid = VTKReader<GridType>::read(path + "/" + gridFile);
     }
@@ -266,12 +266,10 @@ int main (int argc, char *argv[]) try
 
     for (auto&& vertex : vertices(gridView))
     {
-        bool isDirichlet;
-        pythonDirichletVertices.evaluate(vertex.geometry().corner(0), isDirichlet);
+        bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
         dirichletVertices[indexSet.index(vertex)] = isDirichlet;
 
-        bool isNeumann;
-        pythonNeumannVertices.evaluate(vertex.geometry().corner(0), isNeumann);
+        bool isNeumann = pythonNeumannVertices(vertex.geometry().corner(0));
         neumannVertices[indexSet.index(vertex)] = isNeumann;
     }
 
@@ -429,14 +427,14 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
 
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    shared_ptr<NeumannFunction> neumannFunction;
+    std::shared_ptr<NeumannFunction> neumannFunction;
     if (parameterSet.hasKey("neumannValues"))
-        neumannFunction = make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,3> >("neumannValues"),
+        neumannFunction = std::make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,3> >("neumannValues"),
                                                        homotopyParameter);
 
-    shared_ptr<VolumeLoad> volumeLoad;
+    std::shared_ptr<VolumeLoad> volumeLoad;
     if (parameterSet.hasKey("volumeLoad"))
-        volumeLoad = make_shared<VolumeLoad>(parameterSet.get<FieldVector<double,3> >("volumeLoad"),
+        volumeLoad = std::make_shared<VolumeLoad>(parameterSet.get<FieldVector<double,3> >("volumeLoad"),
                                                                                           homotopyParameter);
 
     if (mpiHelper.rank() == 0) {

@@ -76,8 +76,7 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
     PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
     typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
     
-    GeometryType simplex;
-    simplex.makeSimplex(domainDim);
+    GeometryType simplex = GeometryTypes::simplex(domainDim);
 
     //
     std::vector<TargetSpace> cornersRotated1(domainDim+1);
