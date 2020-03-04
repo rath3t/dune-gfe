@@ -78,12 +78,17 @@ setup(const GridType& grid,
     QuadraticIPOptSolver<MatrixType,CorrectionType> baseSolver;
     baseSolver.setSolverParameter(baseTolerance, 100, NumProc::QUIET);
 #else
+    // First create a Gauss-seidel base solver
+    auto baseSolverStep = std::make_shared<TrustRegionGSStep<MatrixType, CorrectionType>>();
+
     // Hack: the two-norm may not scale all that well, but it is fast!
-    ::LoopSolver<CorrectionType> baseSolver(TrustRegionGSStep<MatrixType, CorrectionType>{},
-                                                        baseIterations,
-                                                        baseTolerance,
-                                                        TwoNorm<CorrectionType>{},
-                                                        Solver::QUIET);
+    auto baseNorm = std::make_shared<TwoNorm<CorrectionType>>();
+
+    auto baseSolver = std::make_shared<::LoopSolver<CorrectionType>>(baseSolverStep,
+                                                                            baseIterations,
+                                                                            baseTolerance,
+                                                                            baseNorm,
+                                                                            Solver::QUIET);
 #endif
 #if HAVE_MPI
     // Transfer all Dirichlet data to the master processor
@@ -122,7 +127,7 @@ setup(const GridType& grid,
     operatorAssembler.assemble(laplaceStiffness, localA);
 
 #if HAVE_MPI
-    LocalMapper localMapper = MapperFactory<typename Basis::GridView,Basis>::createLocalMapper(grid_->leafGridView());
+    LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
 
     MatrixCommunicator<GlobalMapper,
                        typename GridType::LeafGridView,
@@ -224,7 +229,7 @@ setup(const GridType& grid,
 #if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
-        typedef Dune::GlobalP1Mapper<typename GridType::LeafGridView> GlobalLeafP1Mapper;
+        typedef Dune::GlobalP1Mapper<Dune::Functions::LagrangeBasis<typename Basis::GridView,1>> GlobalLeafP1Mapper;
         GlobalLeafP1Mapper p1Index(grid_->leafGridView());
 
         typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView> LeafP1LocalMapper;
@@ -251,12 +256,13 @@ setup(const GridType& grid,
     for (int i=0; i<numLevels-1; i++) {
 
         // Construct the local multigrid transfer matrix
-        TruncatedCompressedMGTransfer<CorrectionType>* newTransferOp = new TruncatedCompressedMGTransfer<CorrectionType>;
+        auto newTransferOp = std::make_unique<TruncatedCompressedMGTransfer<CorrectionType>>();
         newTransferOp->setup(*grid_,i,i+1);
 #if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
-        typedef Dune::GlobalP1Mapper<typename GridType::LevelGridView> GlobalLevelP1Mapper;
+        typedef Dune::Functions::LagrangeBasis<typename GridType::LevelGridView, 1> FEBasis;
+        typedef Dune::GlobalP1Mapper<FEBasis> GlobalLevelP1Mapper;
         GlobalLevelP1Mapper fineGUIndex(grid_->levelGridView(i+1));
         GlobalLevelP1Mapper coarseGUIndex(grid_->levelGridView(i));
 
@@ -355,8 +361,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*globalMapper_,
                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                      0);
-
-    LocalMapper localMapper = MapperFactory<typename Basis::GridView,Basis>::createLocalMapper(grid_->leafGridView());
+    LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
     MatrixCommunicator<GlobalMapper,
                        typename GridType::LeafGridView,
                        typename GridType::LeafGridView,

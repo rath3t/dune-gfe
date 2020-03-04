@@ -1,33 +1,31 @@
 #ifndef DUNE_GFE_PARALLEL_GLOBALP2MAPPER_HH
 #define DUNE_GFE_PARALLEL_GLOBALP2MAPPER_HH
 
-/** \brief Include standard header files. */
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <map>
-#include <utility>
-
-/** include base class functionality for the communication interface */
-#include <dune/grid/common/datahandleif.hh>
-
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
+
+#include <dune/gfe/parallel/globalmapper.hh>
+
+#include <dune/gfe/parallel/globalmapper.hh>
+
+#include <dune/gfe/parallel/globalmapper.hh>
 
 namespace Dune {
 
-  template <class GridView>
-  class GlobalP2Mapper
+  template <class Basis>
+  class GlobalP2Mapper : public Dune::GlobalMapper<Basis>
   {
+    using GridView = typename Basis::GridView;
+    using P2BasisMapper = Functions::LagrangeBasis<GridView,2>;
+
   public:
-
     /** \brief The integer number type used for indices */
-    typedef typename GridView::IndexSet::IndexType Index;
+    using typename GlobalMapper<Basis>::Index;
 
-    typedef std::map<Index,Index>    IndexMap;
-
-    GlobalP2Mapper(const GridView& gridView)
-    : p2Mapper_(gridView)
+    GlobalP2Mapper(const typename Basis::GridView& gridView) :
+      GlobalMapper<Basis>(gridView),
+      p2Mapper_(gridView)
     {
+#if !HAVE_DUNE_PARMG
       static_assert(GridView::dimension==2, "Only implemented for two-dimensional grids");
 
       if (gridView.size(GeometryTypes::triangle)>1)
@@ -38,7 +36,7 @@ namespace Dune {
       GlobalIndexSet<GridView> globalElementIndex(gridView,0);
 
       // total number of degrees of freedom
-      size_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
+      this->size_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
 
       auto localView = p2Mapper_.localView();
 
@@ -77,21 +75,19 @@ namespace Dune {
 
           localGlobalMap_[localIndex]  = globalIndex;
         }
-
       }
-
-    }
-
-    /** \brief Given a local index, retrieve its index globally unique over all processes. */
-    Index index(const int& localIndex) const {
-      return localGlobalMap_.find(localIndex)->second;
+#endif
     }
 
     template <class Entity>
     Index subIndex(const Entity& entity, uint i, uint codim) const
     {
       int localIndex = p2Mapper_.map(entity, i, codim);
+#if HAVE_DUNE_PARMG
+      return this->index(localIndex);
+#else
       return localGlobalMap_.find(localIndex)->second;
+#endif
     }
 
     template <class Entity>
@@ -116,22 +112,24 @@ namespace Dune {
       if (not dofFound)
         return false;
 
+#if HAVE_DUNE_PARMG
+      result = this->index(localIndex);
+#else
       result = localGlobalMap_.find(localIndex)->second;
+#endif
       return true;
     }
 
-    unsigned int size() const
-    {
-      return size_;
+#if !HAVE_DUNE_PARMG
+    /** \brief Given a local index, retrieve its index globally unique over all processes. */
+    Index index(const int& localIndex) const {
+      return localGlobalMap_.find(localIndex)->second;
     }
 
-    Functions::LagrangeBasis<GridView,2> p2Mapper_;
+    std::map<Index,Index> localGlobalMap_;
+#endif
 
-    IndexMap localGlobalMap_;
-
-    size_t size_;
-
+    P2BasisMapper p2Mapper_;
   };
-
 }
 #endif   // DUNE_GFE_PARALLEL_GLOBALP2MAPPER_HH
