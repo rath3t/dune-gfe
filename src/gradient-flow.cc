@@ -242,7 +242,6 @@ int main (int argc, char *argv[]) try
     xEmbedded[i] = x[i].globalCoordinates();
 
   auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,
-                                                                                                 TypeTree::hybridTreePath(),
                                                                                                  xEmbedded);
 
   SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),refinementLevels(0));
@@ -282,7 +281,6 @@ int main (int argc, char *argv[]) try
       xEmbedded[i] = x[i].globalCoordinates();
 
     auto xFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<TargetSpace::CoordinateType>(feBasis,
-                                                                                                   TypeTree::hybridTreePath(),
                                                                                                    xEmbedded);
 
     SubsamplingVTKWriter<GridType::LeafGridView> vtkWriter(grid->leafGridView(),refinementLevels(0));

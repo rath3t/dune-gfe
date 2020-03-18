@@ -31,9 +31,9 @@ class CosseratVTKWriter
         v1Embedded[i] = v1[i].globalCoordinates();
 
       // Interpolate
-      auto function = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,7> >(basis1, Dune::TypeTree::hybridTreePath(), v1Embedded);
+      auto function = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,7> >(basis1, v1Embedded);
       std::vector<Dune::FieldVector<double,7> > v2Embedded;
-      Dune::Functions::interpolate(basis2, Dune::TypeTree::hybridTreePath(), v2Embedded, function);
+      Dune::Functions::interpolate(basis2, v2Embedded, function);
 
       // Copy back from R^7 into RigidBodyMotions
       v2.resize(v2Embedded.size());
@@ -51,9 +51,9 @@ class CosseratVTKWriter
         v1Embedded[i] = v1[i].globalCoordinates();
 
       // Interpolate
-      auto function = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3> >(basis1, Dune::TypeTree::hybridTreePath(), v1Embedded);
+      auto function = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3> >(basis1, v1Embedded);
       std::vector<Dune::FieldVector<double,3> > v2Embedded;
-      Dune::Functions::interpolate(basis2, Dune::TypeTree::hybridTreePath(), v2Embedded, function);
+      Dune::Functions::interpolate(basis2, v2Embedded, function);
 
       // Copy back from FieldVector to RealTuple
       v2.resize(v2Embedded.size());
