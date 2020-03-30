@@ -14,6 +14,7 @@
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
+#include <dune/common/timer.hh>
 #include <dune/common/version.hh>
 
 #include <dune/grid/uggrid.hh>
@@ -115,6 +116,7 @@ struct NeumannFunction
 
 int main (int argc, char *argv[]) try
 {
+  Dune::Timer overallTimer;
   // initialize MPI, finalize is done automatically on exit
   Dune::MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
 
@@ -527,6 +529,8 @@ int main (int argc, char *argv[]) try
     solver.solve();
 
     x = solver.getSol();
+
+    std::cout << "Overall calculation took " << overallTimer.elapsed() << " sec." << std::endl;
 
     /////////////////////////////////
     //   Output result
