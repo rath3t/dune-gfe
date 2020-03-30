@@ -552,64 +552,64 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         double modelDecrease = 0;
         SolutionType newIterate = x_;
         if (solved) {
-
-        if (this->verbosity_ == NumProc::FULL)
-            std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
-
-        if (corrGlobalInfinityNorm < this->tolerance_) {
-            if (this->verbosity_ == NumProc::FULL and rank==0)
-                std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
-
-            if (this->verbosity_ != NumProc::QUIET and rank==0)
-                std::cout << i+1 << " trust-region steps were taken." << std::endl;
-            break;
-        }
-
-        // ////////////////////////////////////////////////////
-        //   Check whether trust-region step can be accepted
-        // ////////////////////////////////////////////////////
-
-        for (size_t j=0; j<newIterate.size(); j++)
-            newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
-
-        energy = grid_->comm().sum(energy);
-
-        // compute the model decrease
-        // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
-        // Note that rhs = -g
-        CorrectionType tmp(corr.size());
-        tmp = 0;
-        hessianMatrix_->umv(corr, tmp);
-        modelDecrease = grid_->comm().sum(modelDecrease);
-
-        double relativeModelDecrease = modelDecrease / std::fabs(energy);
-
-        if (this->verbosity_ == NumProc::FULL and rank==0) {
-            std::cout << "Absolute model decrease: " << modelDecrease
-                      << ",  functional decrease: " << oldEnergy - energy << std::endl;
-            std::cout << "Relative model decrease: " << relativeModelDecrease
-                      << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
-        }
-            energy  = assembler_->computeEnergy(newIterate);
-
-        assert(modelDecrease >= 0);
-            modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
-
-        if (energy >= oldEnergy and rank==0) {
             if (this->verbosity_ == NumProc::FULL)
-                printf("Richtung ist keine Abstiegsrichtung!\n");
-        }
+                std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
-        if (energy >= oldEnergy &&
-            (std::abs((oldEnergy-energy)/energy) < 1e-9 || relativeModelDecrease < 1e-9)) {
-            if (this->verbosity_ == NumProc::FULL and rank==0)
-                std::cout << "Suspecting rounding problems" << std::endl;
+            if (corrGlobalInfinityNorm < this->tolerance_) {
+                if (this->verbosity_ == NumProc::FULL and rank==0)
+                    std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
-            if (this->verbosity_ != NumProc::QUIET and rank==0)
-                std::cout << i+1 << " trust-region steps were taken." << std::endl;
+                if (this->verbosity_ != NumProc::QUIET and rank==0)
+                    std::cout << i+1 << " trust-region steps were taken." << std::endl;
+                break;
+            }
 
-            x_ = newIterate;
-            break;
+            // ////////////////////////////////////////////////////
+            //   Check whether trust-region step can be accepted
+            // ////////////////////////////////////////////////////
+
+            for (size_t j=0; j<newIterate.size(); j++)
+                newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
+
+            energy  = assembler_->computeEnergy(newIterate);
+            energy = grid_->comm().sum(energy);
+
+            // compute the model decrease
+            // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
+            // Note that rhs = -g
+            CorrectionType tmp(corr.size());
+            tmp = 0;
+            hessianMatrix_->umv(corr, tmp);
+            modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
+            modelDecrease = grid_->comm().sum(modelDecrease);
+
+            double relativeModelDecrease = modelDecrease / std::fabs(energy);
+
+            if (this->verbosity_ == NumProc::FULL and rank==0) {
+                std::cout << "Absolute model decrease: " << modelDecrease
+                          << ",  functional decrease: " << oldEnergy - energy << std::endl;
+                std::cout << "Relative model decrease: " << relativeModelDecrease
+                          << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
+            }
+            assert(modelDecrease >= 0);
+
+
+            if (energy >= oldEnergy and rank==0) {
+                if (this->verbosity_ == NumProc::FULL)
+                    printf("Richtung ist keine Abstiegsrichtung!\n");
+            }
+
+            if (energy >= oldEnergy &&
+                (std::abs((oldEnergy-energy)/energy) < 1e-9 || relativeModelDecrease < 1e-9)) {
+                if (this->verbosity_ == NumProc::FULL and rank==0)
+                    std::cout << "Suspecting rounding problems" << std::endl;
+
+                if (this->verbosity_ != NumProc::QUIET and rank==0)
+                    std::cout << i+1 << " trust-region steps were taken." << std::endl;
+
+                x_ = newIterate;
+                break;
+            }
         }
 
         // //////////////////////////////////////////////
