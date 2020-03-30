@@ -374,6 +374,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                                                0);
 #endif
     auto& i = statistics_.finalIteration;
+    double totalAssemblyTime = 0.0;
+    double totalSolverTime = 0.0;
     for (i=0; i<maxTrustRegionSteps_; i++) {
 
 /*        std::cout << "current iterate:\n";
@@ -421,6 +423,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 
             if (this->verbosity_ == Solver::FULL)
               std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+            totalAssemblyTime += gradientTimer.elapsed();
 
             // Transfer matrix data
 #if HAVE_MPI
@@ -460,6 +463,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                 corr_global = 0;
             }
             std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
+            totalSolverTime += solutionTimer.elapsed();
 
             if (mgStep && solved)
                 corr_global = mgStep->getSol();
@@ -551,6 +555,9 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         double energy = 0;
         double modelDecrease = 0;
         SolutionType newIterate = x_;
+        if (i == maxTrustRegionSteps_ - 1)
+            std::cout << i+1 << " trust-region steps were taken, the maximum was reached." << std::endl << "Total solver time: " << totalSolverTime << " sec., total assembly time: " << totalAssemblyTime << " sec." << std::endl;
+
         if (solved) {
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
@@ -560,7 +567,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                     std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
                 if (this->verbosity_ != NumProc::QUIET and rank==0)
-                    std::cout << i+1 << " trust-region steps were taken." << std::endl;
+                    std::cout << i+1 << " trust-region steps were taken" << std::endl << "Total solver time: " << totalSolverTime << " sec., total assembly time: " << totalAssemblyTime << " sec." << std::endl;
                 break;
             }
 
