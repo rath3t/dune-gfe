@@ -434,6 +434,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 
         CorrectionType corr_global(rhs_global.size());
         corr_global = 0;
+        bool solved = true;
 
         if (rank==0)
         {
@@ -451,10 +452,16 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             std::cout << "Solve quadratic problem..." << std::endl;
 
             Dune::Timer solutionTimer;
-            innerSolver_->solve();
+            try {
+                innerSolver_->solve();
+            } catch (Dune::Exception &e) {
+                std::cerr << "Error while solving: " << e << std::endl;
+                solved = false;
+                corr_global = 0;
+            }
             std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
 
-            if (mgStep)
+            if (mgStep && solved)
                 corr_global = mgStep->getSol();
 
             //std::cout << "Correction: " << std::endl << corr_global << std::endl;
@@ -541,6 +548,10 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 
 
         }
+        double energy = 0;
+        double modelDecrease = 0;
+        SolutionType newIterate = x_;
+        if (solved) {
 
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
@@ -558,11 +569,9 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         //   Check whether trust-region step can be accepted
         // ////////////////////////////////////////////////////
 
-        SolutionType newIterate = x_;
         for (size_t j=0; j<newIterate.size(); j++)
             newIterate[j] = TargetSpace::exp(newIterate[j], corr[j]);
 
-        double energy    = assembler_->computeEnergy(newIterate);
         energy = grid_->comm().sum(energy);
 
         // compute the model decrease
@@ -571,7 +580,6 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         CorrectionType tmp(corr.size());
         tmp = 0;
         hessianMatrix_->umv(corr, tmp);
-        double modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
         modelDecrease = grid_->comm().sum(modelDecrease);
 
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
@@ -582,8 +590,10 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             std::cout << "Relative model decrease: " << relativeModelDecrease
                       << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
         }
+            energy  = assembler_->computeEnergy(newIterate);
 
         assert(modelDecrease >= 0);
+            modelDecrease = (rhs*corr) - 0.5 * (corr*tmp);
 
         if (energy >= oldEnergy and rank==0) {
             if (this->verbosity_ == NumProc::FULL)
@@ -605,7 +615,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         // //////////////////////////////////////////////
         //   Check for acceptance of the step
         // //////////////////////////////////////////////
-        if ( (oldEnergy-energy) / modelDecrease > 0.9) {
+        if (solved && (oldEnergy-energy) / modelDecrease > 0.9) {
             // very successful iteration
 
             x_ = newIterate;
@@ -616,7 +626,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 
             recomputeGradientHessian = true;
 
-        } else if ( (oldEnergy-energy) / modelDecrease > 0.01
+        } else if (solved && (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
             x_ = newIterate;
