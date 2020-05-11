@@ -256,8 +256,10 @@ int main (int argc, char *argv[]) try
   auto neumannBoundary = std::make_shared<BoundaryPatch<GridView>>(gridView, neumannVertices);
   BoundaryPatch<GridView> surfaceShellBoundary(gridView, surfaceShellVertices);
 
-  if (mpiHelper.rank()==0)
+  if (mpiHelper.rank()==0) {
     std::cout << "Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
+    std::cout << "Shell boundary has " << surfaceShellBoundary.numFaces() << " faces\n";
+  }
 
 
   BitSetVector<1> dirichletNodes(feBasis.size(), false);
@@ -360,8 +362,7 @@ int main (int argc, char *argv[]) try
 
 #if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 8)
     std::shared_ptr<NeumannFunction> neumannFunction;
-    neumannFunction = std::make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,dim> >("neumannValues"),
-                                                     homotopyParameter);
+    neumannFunction = std::make_shared<NeumannFunction>(neumannValues, homotopyParameter);
 #else
       // A constant vector-valued function, for simple Neumann boundary values
     std::shared_ptr<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>> neumannFunctionPtr;
