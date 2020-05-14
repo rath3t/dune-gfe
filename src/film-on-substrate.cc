@@ -22,6 +22,16 @@
 #include <dune/grid/io/file/gmshreader.hh>
 #include <dune/grid/io/file/vtk.hh>
 
+#if DUNE_VERSION_GTE(DUNE_ELASTICITY, 2, 8)
+#include <dune/elasticity/materials/exphenckydensity.hh>
+#include <dune/elasticity/materials/henckydensity.hh>
+#include <dune/elasticity/materials/mooneyrivlindensity.hh>
+#include <dune/elasticity/materials/neohookedensity.hh>
+#include <dune/elasticity/materials/stvenantkirchhoffdensity.hh>
+#include <dune/elasticity/materials/sumenergy.hh>
+#include <dune/elasticity/materials/localintegralenergy.hh>
+#include <dune/elasticity/materials/neumannenergy.hh>
+#else
 #include <dune/elasticity/materials/exphenckyenergy.hh>
 #include <dune/elasticity/materials/henckyenergy.hh>
 #if !DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
@@ -31,6 +41,8 @@
 #include <dune/elasticity/materials/neumannenergy.hh>
 #include <dune/elasticity/materials/sumenergy.hh>
 #include <dune/elasticity/materials/stvenantkirchhoffenergy.hh>
+#endif
+
 
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
@@ -79,7 +91,7 @@ struct Dune::MathematicalConstants<adouble>
 typedef adouble ValueType;
 
 using namespace Dune;
-
+#if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 8)
 /** \brief A constant vector-valued function, for simple Neumann boundary values */
 struct NeumannFunction
     : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,dim> >
@@ -99,25 +111,7 @@ struct NeumannFunction
   FieldVector<double,dim> values_;
   double homotopyParameter_;
 };
-
-struct VolumeLoad
-    : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,3> >
-{
-    VolumeLoad(const FieldVector<double,3> values,
-               double homotopyParameter)
-    : values_(values),
-      homotopyParameter_(homotopyParameter)
-    {}
-
-    void evaluate(const FieldVector<double, dim>& x, FieldVector<double,3>& out) const {
-        out = 0;
-        out.axpy(homotopyParameter_, values_);
-    }
-
-    FieldVector<double,3> values_;
-    double homotopyParameter_;
-};
-
+#endif
 
 int main (int argc, char *argv[]) try
 {
@@ -241,11 +235,11 @@ int main (int argc, char *argv[]) try
   }
 
   BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
-  BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
+  auto neumannBoundary = std::make_shared<BoundaryPatch<GridView>>(gridView, neumannVertices);
   BoundaryPatch<GridView> surfaceShellBoundary(gridView, surfaceShellVertices);
 
   if (mpiHelper.rank()==0)
-    std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
+    std::cout << "Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
 
 
   BitSetVector<1> dirichletNodes(feBasis.size(), false);
@@ -259,9 +253,9 @@ int main (int argc, char *argv[]) try
 
   BitSetVector<1> neumannNodes(feBasis.size(), false);
 #if DUNE_VERSION_LT(DUNE_FUFEM, 2, 7)
-  constructBoundaryDofs(neumannBoundary,fufemFeBasis,neumannNodes);
+  constructBoundaryDofs(*neumannBoundary,fufemFeBasis,neumannNodes);
 #else
-  constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
+  constructBoundaryDofs(*neumannBoundary,feBasis,neumannNodes);
 #endif
 
   BitSetVector<1> surfaceShellNodes(feBasis.size(), false);
@@ -325,7 +319,10 @@ int main (int argc, char *argv[]) try
   auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(feBasis, displacement);
   auto localDisplacementFunction = localFunction(displacementFunction);
 
-  auto neumannValues = parameterSet.get<FieldVector<double,dim> >("neumannValues");
+  FieldVector<double,dim> neumannValues {0,0,0};
+
+  if (parameterSet.hasKey("neumannValues"))
+    neumannValues = parameterSet.get<FieldVector<double,dim> >("neumannValues");
   std::cout << "Neumann values: " << neumannValues << std::endl;
 
   //  We need to subsample, because VTK cannot natively display real second-order functions
@@ -343,16 +340,19 @@ int main (int argc, char *argv[]) try
 
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
 
-    std::shared_ptr<VolumeLoad> volumeLoad;
-
+#if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 8)
     std::shared_ptr<NeumannFunction> neumannFunction;
-    if (parameterSet.hasKey("neumannValues"))
-    {
-      neumannFunction = std::make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,dim> >("neumannValues"),
+    neumannFunction = std::make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,dim> >("neumannValues"),
                                                      homotopyParameter);
-
-      std::cout << "Neumann values: " << parameterSet.get<FieldVector<double,dim> >("neumannValues") << std::endl;
-    }
+#else
+      // A constant vector-valued function, for simple Neumann boundary values
+    std::shared_ptr<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>> neumannFunctionPtr;
+    neumannFunctionPtr = std::make_shared<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>>([&](FieldVector<double,dim> ) {
+      auto nv = neumannValues;
+      nv *= (-homotopyParameter);
+      return nv;
+    });
+#endif
 
     if (mpiHelper.rank() == 0)
     {
@@ -363,6 +363,31 @@ int main (int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     std::cout << "Selected energy is: " << parameterSet.get<std::string>("energy") << std::endl;
+#if DUNE_VERSION_GTE(DUNE_ELASTICITY, 2,8)
+    std::shared_ptr<Elasticity::LocalDensity<dim,ValueType>> elasticDensity;
+    if (parameterSet.get<std::string>("energy") == "stvenantkirchhoff")
+      elasticDensity = std::make_shared<Elasticity::StVenantKirchhoffDensity<dim,ValueType>>(materialParameters);
+    if (parameterSet.get<std::string>("energy") == "neohooke")
+      elasticDensity = std::make_shared<Elasticity::NeoHookeDensity<dim,ValueType>>(materialParameters);
+    if (parameterSet.get<std::string>("energy") == "hencky")
+      elasticDensity = std::make_shared<Elasticity::HenckyDensity<dim,ValueType>>(materialParameters);
+    if (parameterSet.get<std::string>("energy") == "exphencky")
+      elasticDensity = std::make_shared<Elasticity::ExpHenckyDensity<dim,ValueType>>(materialParameters);
+    if (parameterSet.get<std::string>("energy") == "mooneyrivlin")
+      elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType>>(materialParameters);
+
+    if(!elasticDensity)
+      DUNE_THROW(Exception, "Error: Selected energy not available!");
+
+    auto elasticEnergy = std::make_shared<LocalIntegralEnergy<GridView, FEBasis::LocalView::Tree::FiniteElement, ValueType>>(elasticDensity);
+    auto neumannEnergy = std::make_shared<NeumannEnergy<GridView,
+                                                        FEBasis::LocalView::Tree::FiniteElement,
+                                                        ValueType> >(neumannBoundary,neumannFunctionPtr);
+
+    auto elasticAndNeumann = std::make_shared<Dune::SumEnergy<GridView,
+          FEBasis::LocalView::Tree::FiniteElement,
+          ValueType>>(elasticEnergy, neumannEnergy);
+#else
 #if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
     std::shared_ptr<LocalFEStiffness<GridView,
 #else
@@ -402,12 +427,12 @@ int main (int argc, char *argv[]) try
 
     auto neumannEnergy = std::make_shared<NeumannEnergy<GridView,
                                                         FEBasis::LocalView::Tree::FiniteElement,
-                                                        ValueType> >(&neumannBoundary,neumannFunction.get());
+                                                        ValueType> >(neumannBoundary.get(),neumannFunction.get());
 
     auto elasticAndNeumann = std::make_shared<SumEnergy<GridView,
           FEBasis::LocalView::Tree::FiniteElement,
           ValueType>>(elasticEnergy, neumannEnergy);
-
+#endif
 
     using LocalEnergyBase = GFE::LocalEnergy<FEBasis,RigidBodyMotion<adouble, dim> >;
 

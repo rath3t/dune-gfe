@@ -35,9 +35,6 @@ const int dim = 2;
 // Image space of the geodesic fe functions
 typedef UnitVector<double,3> TargetSpace;
 
-// Tangent vector of the image space
-const int blocksize = TargetSpace::TangentVector::dimension;
-
 const int order = 1;
 
 using namespace Dune;
@@ -87,6 +84,24 @@ int main (int argc, char *argv[])
   FEBasis feBasis(gridView);
   SolutionType x(feBasis.size());
 
+  using namespace Functions::BasisFactory;
+
+  // A basis for the embedding space
+  auto powerBasis = makeBasis(
+    gridView,
+    power<TargetSpace::CoordinateType::dimension>(
+      lagrange<order>(),
+      blockedInterleaved()
+  ));
+
+  // A basis for the tangent space
+  auto tangentBasis = makeBasis(
+    gridView,
+    power<TargetSpace::TangentVector::dimension>(
+      lagrange<order>(),
+      blockedInterleaved()
+  ));
+
   ///////////////////////////////////////////
   //  Determine Dirichlet values
   ///////////////////////////////////////////
@@ -107,12 +122,12 @@ int main (int argc, char *argv[])
   }
 
   BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
-  BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
+  BitSetVector<TargetSpace::TangentVector::dimension> dirichletNodes(powerBasis.size(), false);
 #if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
   DuneFunctionsBasis<FEBasis> fufemBasis(feBasis);
   constructBoundaryDofs(dirichletBoundary,fufemBasis,dirichletNodes);
 #else
-  constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+  constructBoundaryDofs(dirichletBoundary,tangentBasis,dirichletNodes);
 #endif
 
   ////////////////////////////
@@ -127,15 +142,6 @@ int main (int argc, char *argv[])
   };
 
   std::vector<TargetSpace::CoordinateType> v;
-  using namespace Functions::BasisFactory;
-
-    auto powerBasis = makeBasis(
-      gridView,
-      power<TargetSpace::CoordinateType::dimension>(
-        lagrange<order>(),
-        blockedInterleaved()
-    ));
-
   Dune::Functions::interpolate(powerBasis, v, initialIterateFunction);
 
   for (size_t i=0; i<x.size(); i++)

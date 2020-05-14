@@ -29,6 +29,8 @@ public:
    */
 #if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
   SumCosseratEnergy(std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
+#elif DUNE_VERSION_GTE(DUNE_ELASTICITY, 2, 8)
+  SumCosseratEnergy(std::shared_ptr<Dune::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
 #else
   SumCosseratEnergy(std::shared_ptr<Elasticity::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy,
 #endif
@@ -55,6 +57,8 @@ private:
 
 #if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 7)
   std::shared_ptr<LocalFEStiffness<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
+#elif DUNE_VERSION_GTE(DUNE_ELASTICITY, 2, 8)
+  std::shared_ptr<Dune::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
 #else
   std::shared_ptr<Elasticity::LocalEnergy<GridView,LocalFiniteElement,std::vector<Dune::FieldVector<field_type,dim> > > > elasticEnergy_;
 #endif

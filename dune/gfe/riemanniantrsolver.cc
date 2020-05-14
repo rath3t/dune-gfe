@@ -476,7 +476,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
 
         if (instrumented_) {
 
-            fprintf(fp, "Trust-region step: %d, trust-region radius: %g\n",
+            fprintf(fp, "Trust-region step: %ld, trust-region radius: %g\n",
                     i, trustRegion.radius());
 
             // ///////////////////////////////////////////////////////////////
@@ -644,7 +644,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
         if (instrumented_) {
 
             char iFilename[100];
-            sprintf(iFilename, "tmp/intermediateSolution_%04d", i);
+            sprintf(iFilename, "tmp/intermediateSolution_%04ld", i);
 
             FILE* fpIterate = fopen(iFilename, "wb");
             if (!fpIterate)
