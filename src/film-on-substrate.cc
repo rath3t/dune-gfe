@@ -73,7 +73,7 @@
 #  define WORLD_DIM 3
 #endif
 const int dim = WORLD_DIM;
-const int order = 1;
+const int order = 2;
 
 #if DUNE_VERSION_LT(DUNE_COMMON, 2, 7)
 template<>
@@ -119,6 +119,9 @@ int main (int argc, char *argv[]) try
   Dune::Timer overallTimer;
   // initialize MPI, finalize is done automatically on exit
   Dune::MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
+
+  if (mpiHelper.rank()==0)
+    std::cout << "ORDER = " << order << std::endl;
 
   // Start Python interpreter
   Python::start();
