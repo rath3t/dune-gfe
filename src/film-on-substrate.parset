@@ -67,21 +67,19 @@ energy = stvenantkirchhoff
 # shell thickness
 thickness = 0.6
 
-# Lame parameters
-# corresponds to E = 71240 N/mm^2, nu=0.31
-# However, we use units N/m^2
-mu = 2.7191e+4
-lambda = 4.4364e+4
+## Lame parameters for stvenantkirchhoff, E = mu(3*lambda + 2*mu)/(lambda + mu)
+# mu = 2.7191e+4
+# lambda = 4.4364e+4
 
 #Lame parameters for the cosserat material
-mu_cosserat = 2.7191e+4
-lambda_cosserat = 4.4364e+4
+mu_cosserat = 7.64e+6 #Parameters for E = 20.4 MPa, nu=0.335
+lambda_cosserat = 1.55e+7
 
 # Cosserat couple modulus
 mu_c = 0
 
 # Length scale parameter
-L_c = 0.6
+L_c = 0.2 
 
 # Curvature exponent
 q = 2
@@ -92,6 +90,26 @@ kappa = 1
 b1 = 1
 b2 = 1
 b3 = 1
+
+# 
+mooneyrivlin_10 = -1.67e+6 #184 2:1
+mooneyrivlin_01 = 1.94e+6
+mooneyrivlin_20 = 2.42e+6
+mooneyrivlin_02 = 6.52e+6
+mooneyrivlin_11 = -7.34e+6
+
+mooneyrivlin_30 = 0
+mooneyrivlin_21 = 0
+mooneyrivlin_12 = 0
+mooneyrivlin_03 = 0
+
+# volume-preserving parameter 
+mooneyrivlin_k = 57e+6	# 184 2:1, mooneyrivlin_k = 57e+6 and mooneyrivlin_energy = log, the neumannValues = 27e4 0 0 result in a stretch of 30% of 45e4 10e4 2e4 in x-direction, so a stretch of 45e4*0.3 = 13.5e4
+mooneyrivlin_energy = log # log, square or ciarlet; different ways to compute the Mooney-Rivlin-Energy
+
+# ciarlet: Fomula from "Ciarlet: Three-Dimensional Elasticity", here no penalty term is 
+# log: Generalized Rivlin model or polynomial hyperelastic model, using  0.5*mooneyrivlin_k*log(det(∇φ)) as the volume-preserving penalty term
+# square: Generalized Rivlin model or polynomial hyperelastic model, using mooneyrivlin_k*(det(∇φ)-1)² as the volume-preserving penalty term
 
 []
 
