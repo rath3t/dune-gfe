@@ -434,6 +434,14 @@ int main (int argc, char *argv[]) try
     }
   }
 
+  const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
+  Python::Reference surfaceShellClass = Python::import(materialParameters.get<std::string>("surfaceShellParameters"));
+  Python::Callable surfaceShellCallable = surfaceShellClass.get("SurfaceShellParameters");
+
+  Python::Reference pythonObject = surfaceShellCallable();
+  PythonFunction<Dune::FieldVector<double, dim>, double> fThickness(pythonObject.get("thickness"));
+  PythonFunction<Dune::FieldVector<double, dim>, Dune::FieldVector<double, 2>> fLame(pythonObject.get("lame"));
+
   for (int i=0; i<numHomotopySteps; i++)
   {
     double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
@@ -442,7 +450,6 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the energy functional
     // ////////////////////////////////////////////////////////////
 
-    const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
 
 #if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 8)
     std::shared_ptr<NeumannFunction> neumannFunction;
@@ -547,7 +554,7 @@ int main (int argc, char *argv[]) try
       vertexNormals[i] = vertexNormal;
     }
 
-    surfaceCosseratEnergy = std::make_shared<SurfaceCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble, adouble>>(materialParameters, std::move(vertexNormals), &surfaceShellBoundary, std::move(geometriesOnShellBoundary));
+    surfaceCosseratEnergy = std::make_shared<SurfaceCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble, adouble>>(materialParameters, std::move(vertexNormals), &surfaceShellBoundary, std::move(geometriesOnShellBoundary), fThickness, fLame);
 
     std::shared_ptr<LocalEnergyBase> totalEnergy;
     totalEnergy = std::make_shared<GFE::SumCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble>> (elasticAndNeumann, surfaceCosseratEnergy);

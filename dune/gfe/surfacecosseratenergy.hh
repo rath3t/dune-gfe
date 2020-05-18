@@ -213,18 +213,15 @@ public:
   SurfaceCosseratEnergy(const Dune::ParameterTree& parameters,
     const std::vector<UnitVector<double,3> >& vertexNormals,
     const BoundaryPatch<GridView>* shellBoundary,
-    const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType,Dune::MultiLinearGeometry<double, dim-1, dim>>& geometriesOnShellBoundary)
+    const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType,Dune::MultiLinearGeometry<double, dim-1, dim>>& geometriesOnShellBoundary,
+    const std::function<double(Dune::FieldVector<double,dim>)> thicknessF,
+    const std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dim>)> lameF)
   : shellBoundary_(shellBoundary),
     vertexNormals_(vertexNormals),
-    geometriesOnShellBoundary_(geometriesOnShellBoundary)
+    geometriesOnShellBoundary_(geometriesOnShellBoundary),
+    thicknessF_(thicknessF),
+    lameF_(lameF)
   {
-    // The shell thickness
-    thickness_ = parameters.template get<double>("thickness");
-
-    // Lame constants
-    mu_ = parameters.template get<double>("mu_cosserat");
-    lambda_ = parameters.template get<double>("lambda_cosserat");
-
     // Cosserat couple modulus
     mu_c_ = parameters.template get<double>("mu_c");
 
@@ -292,6 +289,13 @@ RT energy(const typename Basis::LocalView& localView,
     
       // Local position of the quadrature point
       const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());;
+
+      // Global position of the quadrature point
+      auto quadPosGlobal = it.geometry().global(quad[pt].position());
+      double thickness = thicknessF_(quadPosGlobal);
+      auto lameConstants = lameF_(quadPosGlobal);
+      double mu = lameConstants[0];
+      double lambda = lameConstants[1];
 
       const DT integrationElement = boundaryGeometry.integrationElement(quad[pt].position());
 
@@ -416,15 +420,15 @@ RT energy(const typename Basis::LocalView& localView,
       //////////////////////////////////////////////////////////
 
       // Add the membrane energy density
-      auto energyDensity = (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_m(Ee);
-      energyDensity += (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_m(Ee*b + c*Ke);
-      energyDensity += Dune::Power<3>::eval(thickness_) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke);
-      energyDensity += Dune::Power<5>::eval(thickness_) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
+      auto energyDensity = (thickness - K*Dune::Power<3>::eval(thickness) / 12.0) * W_m(Ee, mu, lambda);
+      energyDensity += (Dune::Power<3>::eval(thickness) / 12.0 - K * Dune::Power<5>::eval(thickness) / 80.0)*W_m(Ee*b + c*Ke, mu, lambda);
+      energyDensity += Dune::Power<3>::eval(thickness) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke, mu, lambda);
+      energyDensity += Dune::Power<5>::eval(thickness) / 80.0 * W_mp( (Ee*b + c*Ke)*b, mu, lambda);
 
       // Add the bending energy density
-      energyDensity += (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_curv(Ke)
-                     + (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_curv(Ke*b)
-                     + Dune::Power<5>::eval(thickness_) / 80.0 * W_curv(Ke*b*b);
+      energyDensity += (thickness - K*Dune::Power<3>::eval(thickness) / 12.0) * W_curv(Ke, mu)
+                     + (Dune::Power<3>::eval(thickness) / 12.0 - K * Dune::Power<5>::eval(thickness) / 80.0)*W_curv(Ke*b, mu)
+                     + Dune::Power<5>::eval(thickness) / 80.0 * W_curv(Ke*b*b, mu);
 
       // Add energy density
       energy += quad[pt].weight() * integrationElement * energyDensity;
@@ -434,26 +438,26 @@ RT energy(const typename Basis::LocalView& localView,
   return energy;
 }
 
-  RT W_m(const Dune::FieldMatrix<field_type,3,3>& S) const
+  RT W_m(const Dune::FieldMatrix<field_type,3,3>& S, double mu, double lambda) const
   {
-    return W_mixt(S,S);
+    return W_mixt(S,S, mu, lambda);
   }
 
-  RT W_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T) const
+  RT W_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T, double mu, double lambda) const
   {
-    return mu_ * frobeniusProduct(sym(S), sym(T))
+    return mu * frobeniusProduct(sym(S), sym(T))
          + mu_c_ * frobeniusProduct(skew(S), skew(T))
-         + lambda_ * mu_ / (lambda_ + 2*mu_) * trace(S) * trace(T);
+         + lambda * mu / (lambda + 2*mu) * trace(S) * trace(T);
   }
 
-  RT W_mp(const Dune::FieldMatrix<field_type,3,3>& S) const
+  RT W_mp(const Dune::FieldMatrix<field_type,3,3>& S, double mu, double lambda) const
   {
-    return mu_ * sym(S).frobenius_norm2() + mu_c_ * skew(S).frobenius_norm2() + lambda_ * 0.5 * traceSquared(S);
+    return mu * sym(S).frobenius_norm2() + mu_c_ * skew(S).frobenius_norm2() + lambda * 0.5 * traceSquared(S);
   }
 
-  RT W_curv(const Dune::FieldMatrix<field_type,3,3>& S) const
+  RT W_curv(const Dune::FieldMatrix<field_type,3,3>& S, double mu) const
   {
-    return mu_ * L_c_ * L_c_ * (b1_ * dev(sym(S)).frobenius_norm2() + b2_ * skew(S).frobenius_norm2() + b3_ * traceSquared(S));
+    return mu * L_c_ * L_c_ * (b1_ * dev(sym(S)).frobenius_norm2() + b2_ * skew(S).frobenius_norm2() + b3_ * traceSquared(S));
   }
 
 private:
@@ -463,11 +467,14 @@ private:
   /** \brief Stress-free geometries of the shell elements*/
   const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType, Dune::MultiLinearGeometry<double, dim-1, dim>> geometriesOnShellBoundary_;
 
-  /** \brief The normal vectors at the grid vertices.  This are used to compute the reference surface curvature. */
+  /** \brief The normal vectors at the grid vertices. They are used to compute the reference surface curvature. */
   std::vector<UnitVector<double,3> > vertexNormals_;
 
-  /** \brief The shell thickness */
-  double thickness_;
+  /** \brief The shell thickness as a function*/
+  std::function<double(Dune::FieldVector<double,dim>)> thicknessF_;
+
+  /** \brief The Lamé-parameters as a function*/
+  std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dim>)> lameF_;
 
   /** \brief Lame constants */
   double mu_, lambda_;
