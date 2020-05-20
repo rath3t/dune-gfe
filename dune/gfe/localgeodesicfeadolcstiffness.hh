@@ -103,7 +103,12 @@ energy(const typename Basis::LocalView& localView,
       localASolution[i] = aRaw[i];  // may contain a projection onto M -- needs to be done in adouble
     }
 
-    energy = localEnergy_->energy(localView,localASolution);
+    try {
+        energy = localEnergy_->energy(localView,localASolution);
+    } catch (Dune::Exception &e) {
+        trace_off(rank);
+        throw e;
+    }
 
     energy >>= pureEnergy;
 

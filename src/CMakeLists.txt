@@ -1,11 +1,13 @@
 set(programs compute-disc-error
              cosserat-continuum
-             film-on-substrate
              gradient-flow
              harmonicmaps
              rod3d)
 #            rodobstacle)
 
+if (dune-parmg_FOUND)
+	set(programs film-on-substrate ${programs})
+endif()
 foreach(_program ${programs})
   add_executable(${_program} ${_program}.cc)
   target_link_dune_default_libraries(${_program})

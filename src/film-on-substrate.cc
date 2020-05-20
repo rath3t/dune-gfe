@@ -14,6 +14,7 @@
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
+#include <dune/common/timer.hh>
 #include <dune/common/version.hh>
 
 #include <dune/grid/uggrid.hh>
@@ -72,7 +73,7 @@
 #  define WORLD_DIM 3
 #endif
 const int dim = WORLD_DIM;
-const int order = 1;
+const int order = 2;
 
 #if DUNE_VERSION_LT(DUNE_COMMON, 2, 7)
 template<>
@@ -115,8 +116,12 @@ struct NeumannFunction
 
 int main (int argc, char *argv[]) try
 {
+  Dune::Timer overallTimer;
   // initialize MPI, finalize is done automatically on exit
   Dune::MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
+
+  if (mpiHelper.rank()==0)
+    std::cout << "ORDER = " << order << std::endl;
 
   // Start Python interpreter
   Python::start();
@@ -144,7 +149,7 @@ int main (int argc, char *argv[]) try
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
   // read solver settings
-  const int numLevels                   = parameterSet.get<int>("numLevels");
+  int numLevels                   = parameterSet.get<int>("numLevels");
   int numHomotopySteps                  = parameterSet.get<int>("numHomotopySteps");
   const double tolerance                = parameterSet.get<double>("tolerance");
   const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
@@ -182,9 +187,36 @@ int main (int argc, char *argv[]) try
     grid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
   }
 
-  grid->globalRefine(numLevels-1);
+  grid->setRefinementType(GridType::RefinementType::COPY);
 
-  grid->loadBalance();
+  // Make Python function that computes which vertices are on the Dirichlet boundary,
+  // based on the vertex positions.
+  std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
+  PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+
+  // Same for the Neumann boundary
+  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
+  PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
+
+  // Same for the boundary that will get wrinkled
+  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("surfaceShellVerticesPredicate", "0") + std::string(")");
+  PythonFunction<FieldVector<double,dim>, bool> pythonSurfaceShellVertices(Python::evaluate(lambda));
+
+  while (numLevels > 0) {
+    for (auto&& e : elements(grid->leafGridView())){
+      bool isSurfaceShell = false;
+      for (int i = 0; i < e.geometry().corners(); i++) {
+          isSurfaceShell = isSurfaceShell || pythonSurfaceShellVertices(e.geometry().corner(i));
+      }
+      grid->mark(isSurfaceShell ? 1 : 0,e);
+    }
+
+    grid->adapt();
+
+    grid->loadBalance();
+
+    numLevels--;
+  }
 
   if (mpiHelper.rank()==0)
     std::cout << "There are " << grid->leafGridView().comm().size() << " processes" << std::endl;
@@ -210,18 +242,7 @@ int main (int argc, char *argv[]) try
 
   const GridView::IndexSet& indexSet = gridView.indexSet();
 
-  // Make Python function that computes which vertices are on the Dirichlet boundary,
-  // based on the vertex positions.
-  std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
 
-  // Same for the Neumann boundary
-  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
-
-  // Same for the boundary that will get wrinkled
-  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("surfaceShellVerticesPredicate", "0") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonSurfaceShellVertices(Python::evaluate(lambda));
   for (auto&& v : vertices(gridView))
   {
     bool isDirichlet = pythonDirichletVertices(v.geometry().corner(0));
@@ -238,8 +259,10 @@ int main (int argc, char *argv[]) try
   auto neumannBoundary = std::make_shared<BoundaryPatch<GridView>>(gridView, neumannVertices);
   BoundaryPatch<GridView> surfaceShellBoundary(gridView, surfaceShellVertices);
 
-  if (mpiHelper.rank()==0)
+  if (mpiHelper.rank()==0) {
     std::cout << "Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
+    std::cout << "Shell boundary has " << surfaceShellBoundary.numFaces() << " faces\n";
+  }
 
 
   BitSetVector<1> dirichletNodes(feBasis.size(), false);
@@ -342,8 +365,7 @@ int main (int argc, char *argv[]) try
 
 #if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 8)
     std::shared_ptr<NeumannFunction> neumannFunction;
-    neumannFunction = std::make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,dim> >("neumannValues"),
-                                                     homotopyParameter);
+    neumannFunction = std::make_shared<NeumannFunction>(neumannValues, homotopyParameter);
 #else
       // A constant vector-valued function, for simple Neumann boundary values
     std::shared_ptr<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>> neumannFunctionPtr;
@@ -511,6 +533,8 @@ int main (int argc, char *argv[]) try
     solver.solve();
 
     x = solver.getSol();
+
+    std::cout << "Overall calculation took " << overallTimer.elapsed() << " sec." << std::endl;
 
     /////////////////////////////////
     //   Output result
