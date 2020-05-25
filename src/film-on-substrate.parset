@@ -3,15 +3,48 @@
 #############################################
 
 structuredGrid = true
-
-# bounding box
+# whole experiment: 45 mm x 10 mm x 2 mm, scaling with 10^7 such that the thickness, which is around 100 nm, so 100x10^-9 = 10^-7 is equal to 1.
+# upper = 45e4 10e4 2e4
+# using only a section of the whole experiment:
 lower = 0 0 0
-upper = 10 10 0.5
+upper = 200 100 200
 
-elements = 10 10 5
+elements = 10 5 5
 
-# Number of grid levels
+# Number of grid levels, all elements containing surfaceshell grid vertices will get adaptively refined
 numLevels = 2
+
+# When starting from a file, the stress-free configuration of the surfaceShell is read from a file, this file needs to match the *finest* grid level!
+startFromFile = true
+pathToGridDeformationFile = ./
+gridDeformationFile = deformation
+
+# When not starting from a file, deformation of the surface shell part can be given here using the gridDeformation function
+gridDeformation="[1.3*x[0], x[1], x[2]]"
+
+#############################################
+#  Boundary values
+#############################################
+
+problem = cantilever
+
+###  Python predicate specifying all Dirichlet grid vertices
+# x is the vertex coordinate
+dirichletVerticesPredicate = "x[0] < 0.01"
+
+###  Python predicate specifying all surfaceshell grid vertices, elements conataining these vertices will get adaptively refined
+# x is the vertex coordinate
+surfaceShellVerticesPredicate = "x[2] > 199.99"
+
+###  Python predicate specifying all Neumann grid vertices
+# x is the vertex coordinate
+neumannVerticesPredicate = "x[0] > 199.99"
+
+##  Neumann values
+neumannValues = 0 0 0 
+
+# Initial deformation
+initialDeformation = "x"
 
 #############################################
 #  Solver parameters
@@ -113,29 +146,3 @@ mooneyrivlin_energy = log # log, square or ciarlet; different ways to compute th
 
 []
 
-#############################################
-#  Boundary values
-#############################################
-
-problem = cantilever
-
-###  Python predicate specifying all Dirichlet grid vertices
-# x is the vertex coordinate
-dirichletVerticesPredicate = "x[0] < 0.01"
-
-###  Python predicate specifying all Neumann grid vertices
-# x is the vertex coordinate
-surfaceShellVerticesPredicate = "x[2] > 0.49"
-
-###  Python predicate specifying all Neumann grid vertices
-# x is the vertex coordinate
-neumannVerticesPredicate = "x[0] > 9.99"
-
-##  Neumann values
-neumannValues = 1e5 0 0 
-
-# Initial deformation
-initialDeformation = "x"
-
-#startFromFile = yes
-#initialIterateFilename = initial_iterate.vtu

@@ -210,9 +210,13 @@ public:
   /** \brief Constructor with a set of material parameters
    * \param parameters The material parameters
    */
-  SurfaceCosseratEnergy(const Dune::ParameterTree& parameters, const std::vector<UnitVector<double,3> >& vertexNormals, const BoundaryPatch<GridView>* shellBoundary)
+  SurfaceCosseratEnergy(const Dune::ParameterTree& parameters,
+    const std::vector<UnitVector<double,3> >& vertexNormals,
+    const BoundaryPatch<GridView>* shellBoundary,
+    const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType,Dune::MultiLinearGeometry<double, dim-1, dim>>& geometriesOnShellBoundary)
   : shellBoundary_(shellBoundary),
-    vertexNormals_(vertexNormals)
+    vertexNormals_(vertexNormals),
+    geometriesOnShellBoundary_(geometriesOnShellBoundary)
   {
     // The shell thickness
     thickness_ = parameters.template get<double>("thickness");
@@ -243,7 +247,6 @@ RT energy(const typename Basis::LocalView& localView,
 {
   // The element geometry
   auto element = localView.element();
-  auto geometry = element.geometry();
 
   // The set of shape functions on this element
   const auto& localFiniteElement = localView.tree().finiteElement();
@@ -273,10 +276,14 @@ RT energy(const typename Basis::LocalView& localView,
 
   RT energy = 0;
 
+  auto& idSet = gridView.grid().globalIdSet();
+
   for (auto&& it : intersections(shellBoundary_->gridView(), element)) {
     if (not shellBoundary_->contains(it))
       continue;
     
+    auto id = idSet.subId(it.inside(), it.indexInInside(), 1);
+    auto boundaryGeometry = geometriesOnShellBoundary_.at(id);
     auto quadOrder = (it.type().isSimplex()) ? localFiniteElement.localBasis().order()
                                                   : localFiniteElement.localBasis().order() * gridDim;
 
@@ -286,7 +293,7 @@ RT energy(const typename Basis::LocalView& localView,
       // Local position of the quadrature point
       const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());;
 
-      const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
+      const DT integrationElement = boundaryGeometry.integrationElement(quad[pt].position());
 
       // The value of the local function
       RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
@@ -321,7 +328,7 @@ RT energy(const typename Basis::LocalView& localView,
 
       // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
       // of the element.  If dimworld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
-      const auto jacobianTransposed = it.geometry().jacobianTransposed(quad[pt].position());
+      const auto jacobianTransposed = boundaryGeometry.jacobianTransposed(quad[pt].position());
       // auto jacobianTransposed = geometry.jacobianTransposed(quadPos);
 
       for (int i=0; i<2; i++)
@@ -450,8 +457,11 @@ RT energy(const typename Basis::LocalView& localView,
   }
 
 private:
-  /** \brief The Neumann boundary */
+  /** \brief The shell boundary */
   const BoundaryPatch<GridView>* shellBoundary_;
+
+  /** \brief Stress-free geometries of the shell elements*/
+  const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType, Dune::MultiLinearGeometry<double, dim-1, dim>> geometriesOnShellBoundary_;
 
   /** \brief The normal vectors at the grid vertices.  This are used to compute the reference surface curvature. */
   std::vector<UnitVector<double,3> > vertexNormals_;
