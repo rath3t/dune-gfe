@@ -68,6 +68,9 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
+#include <iostream>
+#include <fstream>
+
 // grid dimension
 #ifndef WORLD_DIM
 #  define WORLD_DIM 3
@@ -149,7 +152,7 @@ int main (int argc, char *argv[]) try
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
   // read solver settings
-  int numLevels                   = parameterSet.get<int>("numLevels");
+  int numLevels                         = parameterSet.get<int>("numLevels");
   int numHomotopySteps                  = parameterSet.get<int>("numHomotopySteps");
   const double tolerance                = parameterSet.get<double>("tolerance");
   const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
@@ -162,7 +165,8 @@ int main (int argc, char *argv[]) try
   const double mgTolerance              = parameterSet.get<double>("mgTolerance");
   const double baseTolerance            = parameterSet.get<double>("baseTolerance");
   const bool instrumented               = parameterSet.get<bool>("instrumented");
-  std::string resultPath                = parameterSet.get("resultPath", "");
+  const bool startFromFile              = parameterSet.get<bool>("startFromFile");
+  const std::string resultPath          = parameterSet.get("resultPath", "");
 
   // ///////////////////////////////////////
   //    Create the grid
@@ -198,7 +202,7 @@ int main (int argc, char *argv[]) try
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
   PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
 
-  // Same for the boundary that will get wrinkled
+  // Same for the Surface Shell Boundary
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("surfaceShellVerticesPredicate", "0") + std::string(")");
   PythonFunction<FieldVector<double,dim>, bool> pythonSurfaceShellVertices(Python::evaluate(lambda));
 
@@ -241,7 +245,6 @@ int main (int argc, char *argv[]) try
   BitSetVector<1> surfaceShellVertices(gridView.size(dim), false);
 
   const GridView::IndexSet& indexSet = gridView.indexSet();
-
 
   for (auto&& v : vertices(gridView))
   {
@@ -306,14 +309,14 @@ int main (int argc, char *argv[]) try
   
   SolutionTypeCosserat x(feBasis.size());
 
-  //Solution in 3D, without the Cosserat directors on the boundary
   BlockVector<FieldVector<double,3> > v;
   
+  //Initial deformation of the underlying substrate
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
   PythonFunction<FieldVector<double,dim>, FieldVector<double,dim> > pythonInitialDeformation(Python::evaluate(lambda));
   ::Functions::interpolate(fufemFEBasis, v, pythonInitialDeformation);
 
-  //Copy over the parts of the boundary
+  //Copy over the initial deformation
   for (size_t i=0; i<x.size(); i++) {
       x[i].r = v[i];
   }
@@ -349,9 +352,95 @@ int main (int argc, char *argv[]) try
   std::cout << "Neumann values: " << neumannValues << std::endl;
 
   //  We need to subsample, because VTK cannot natively display real second-order functions
-  SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(order));
+  SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(order-1));
   vtkWriter.addVertexData(localDisplacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
-  vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") +  "_" + std::to_string(neumannValues[0]) + "_0");
+  vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") + "_0");
+
+  typedef MultiLinearGeometry<double, dim-1, dim> ML;
+  std::unordered_map<GridType::GlobalIdSet::IdType, ML> geometriesOnShellBoundary;
+  
+  auto& idSet = grid->globalIdSet();
+
+  // Read in the grid deformation
+  if (startFromFile) {
+    const std::string pathToGridDeformationFile = parameterSet.get("pathToGridDeformationFile", "");
+
+    // for this, we create a basis of order 1 in order to deform the geometries on the surface shell boundary
+    typedef Dune::Functions::LagrangeBasis<GridView, 1> FEBasisOrder1;
+    FEBasisOrder1 feBasisOrder1(gridView);
+  
+    // Read grid deformation information from the file specified in the parameter set via gridDeformationFile
+    BlockVector<FieldVector<double,3> > gridDeformationFromFile(feBasisOrder1.size());
+    std::string line;
+    std::ifstream file(pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile"));
+    if (file.is_open()) {
+      size_t i = 0;
+      while (std::getline(file, line)) {
+        size_t j = 0;
+        std::stringstream entries(line);
+        std::string entry;
+        FieldVector<double,3> coord(0);
+        while(entries >> entry) {
+          coord[j++] = std::stod(entry);
+        }
+        gridDeformationFromFile[i++] = coord;
+      }
+      if (i != feBasisOrder1.size())
+        DUNE_THROW(Exception, "Error: Grid and deformation vector do not match!");
+      file.close();
+    } else {
+      DUNE_THROW(Exception, "Error: Could not open the file containing the deformation vector!");
+    }
+
+    auto gridDeformationFromFileFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(feBasisOrder1, gridDeformationFromFile);
+    auto localGridDeformationFromFileFunction = localFunction(gridDeformationFromFileFunction);
+
+    //Write out the stress-free geometries that were read in
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(0));
+    vtkWriter.addVertexData(localGridDeformationFromFileFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
+    vtkWriter.write("stress-free-geometries");
+
+    //Iterate over boundary, each facet on the boundary has an element (boundaryElement.inside()) with a unique global id (idSet.subId);
+    //we store the new geometry in the map with this id as reference
+    for (auto boundaryElement : surfaceShellBoundary) {
+      localGridDeformationFromFileFunction.bind(boundaryElement.inside());
+      std::vector<Dune::FieldVector<double,dim>> corners;
+      for (int i = 0; i < boundaryElement.geometry().corners(); i++) {
+        auto corner = boundaryElement.geometry().corner(i);
+        corner += localGridDeformationFromFileFunction(boundaryElement.inside().geometry().local(boundaryElement.geometry().corner(i)));
+        corners.push_back(corner);
+      }
+      localGridDeformationFromFileFunction.unbind();
+      GridType::GlobalIdSet::IdType id = idSet.subId(boundaryElement.inside(), boundaryElement.indexInInside(), 1);
+      ML boundaryGeometry(boundaryElement.geometry().type(), corners);
+      geometriesOnShellBoundary.insert({id, boundaryGeometry});
+    }
+  } else {
+    // Read grid deformation from deformation function
+    auto gridDeformationLambda = std::string("lambda x: (") + parameterSet.get<std::string>("gridDeformation") + std::string(")");
+    PythonFunction<FieldVector<double,dim>, FieldVector<double,dim> > gridDeformation(Python::evaluate(gridDeformationLambda));
+
+    //Iterate over boundary, each facet on the boundary has an element (boundaryElement.inside()) with a unique global id (idSet.subId);
+    //we store the new geometry in the map with this id as reference
+    for (auto boundaryElement : surfaceShellBoundary) {
+      std::vector<Dune::FieldVector<double,dim>> corners;
+      for (int i = 0; i < boundaryElement.geometry().corners(); i++) {
+        auto corner = gridDeformation(boundaryElement.geometry().corner(i));
+        corners.push_back(corner);
+      }
+      GridType::GlobalIdSet::IdType id = idSet.subId(boundaryElement.inside(), boundaryElement.indexInInside(), 1);
+      ML boundaryGeometry(boundaryElement.geometry().type(), corners);
+      geometriesOnShellBoundary.insert({id, boundaryGeometry});
+    }
+  }
+
+  const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
+  Python::Reference surfaceShellClass = Python::import(materialParameters.get<std::string>("surfaceShellParameters"));
+  Python::Callable surfaceShellCallable = surfaceShellClass.get("SurfaceShellParameters");
+
+  Python::Reference pythonObject = surfaceShellCallable();
+  PythonFunction<Dune::FieldVector<double, dim>, double> fThickness(pythonObject.get("thickness"));
+  PythonFunction<Dune::FieldVector<double, dim>, Dune::FieldVector<double, 2>> fLame(pythonObject.get("lame"));
 
   for (int i=0; i<numHomotopySteps; i++)
   {
@@ -361,7 +450,6 @@ int main (int argc, char *argv[]) try
     //   Create an assembler for the energy functional
     // ////////////////////////////////////////////////////////////
 
-    const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
 
 #if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 8)
     std::shared_ptr<NeumannFunction> neumannFunction;
@@ -465,7 +553,8 @@ int main (int argc, char *argv[]) try
       UnitVector vertexNormal(vertexNormalRaw);
       vertexNormals[i] = vertexNormal;
     }
-    surfaceCosseratEnergy = std::make_shared<SurfaceCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble, adouble>>(materialParameters, std::move(vertexNormals), &surfaceShellBoundary);
+
+    surfaceCosseratEnergy = std::make_shared<SurfaceCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble, adouble>>(materialParameters, std::move(vertexNormals), &surfaceShellBoundary, std::move(geometriesOnShellBoundary), fThickness, fLame);
 
     std::shared_ptr<LocalEnergyBase> totalEnergy;
     totalEnergy = std::make_shared<GFE::SumCosseratEnergy<FEBasis,RigidBodyMotion<adouble, dim>, adouble>> (elasticAndNeumann, surfaceCosseratEnergy);
@@ -553,7 +642,7 @@ int main (int argc, char *argv[]) try
     auto localDisplacementFunction = localFunction(displacementFunction);
 
     //  We need to subsample, because VTK cannot natively display real second-order functions
-    SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(order));
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(order-1));
     vtkWriter.addVertexData(localDisplacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
     vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") + "_" + std::to_string(neumannValues[0]) + "_" + std::to_string(i+1));
   }
