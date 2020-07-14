@@ -282,7 +282,7 @@ RT energy(const typename Basis::LocalView& localView,
     auto id = idSet.subId(it.inside(), it.indexInInside(), 1);
     auto boundaryGeometry = geometriesOnShellBoundary_.at(id);
     auto quadOrder = (it.type().isSimplex()) ? localFiniteElement.localBasis().order()
-                                                  : localFiniteElement.localBasis().order() * gridDim;
+                                                  : localFiniteElement.localBasis().order() * boundaryDim;
 
     const auto& quad = Dune::QuadratureRules<DT, boundaryDim>::rule(it.type(), quadOrder);
     for (size_t pt=0; pt<quad.size(); pt++) {
