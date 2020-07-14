@@ -228,12 +228,7 @@ public:
     // Length scale parameter
     L_c_ = parameters.template get<double>("L_c");
 
-    // Curvature exponent
-    q_ = parameters.template get<double>("q");
-
-    // Shear correction factor
-    kappa_ = parameters.template get<double>("kappa");
-
+    // Curvature parameters
     b1_ = parameters.template get<double>("b1");
     b2_ = parameters.template get<double>("b2");
     b3_ = parameters.template get<double>("b3");
@@ -484,12 +479,6 @@ private:
 
   /** \brief Length scale parameter */
   double L_c_;
-
-  /** \brief Curvature exponent */
-  double q_;
-
-  /** \brief Shear correction factor */
-  double kappa_;
 
   /** \brief Curvature parameters */
   double b1_, b2_, b3_;
