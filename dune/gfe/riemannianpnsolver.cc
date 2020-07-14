@@ -22,10 +22,10 @@
 #include <dune/gfe/parallel/vectorcommunicator.hh>
 #endif
 
-template <class Basis, class TargetSpace>
-void RiemannianProximalNewtonSolver<Basis,TargetSpace>::
+template <class Basis, class TargetSpace, class Assembler>
+void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::
 setup(const GridType& grid,
-      const GeodesicFEAssembler<Basis, TargetSpace>* assembler,
+      const Assembler* assembler,
       const SolutionType& x,
       const Dune::BitSetVector<blocksize>& dirichletNodes,
       double tolerance,
@@ -150,8 +150,8 @@ setup(const GridType& grid,
 }
 
 
-template <class Basis, class TargetSpace>
-void RiemannianProximalNewtonSolver<Basis,TargetSpace>::solve()
+template <class Basis, class TargetSpace, class Assembler>
+void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
 {
     int rank = grid_->comm().rank();
 

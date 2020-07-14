@@ -69,7 +69,7 @@ struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,3> >
 };
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
-template <class Basis, class TargetSpace>
+template <class Basis, class TargetSpace, class Assembler = GeodesicFEAssembler<Basis,TargetSpace>>
 class RiemannianTrustRegionSolver
     : public IterativeSolver<std::vector<TargetSpace>,
                              Dune::BitSetVector<TargetSpace::TangentVector::dimension> >
@@ -115,7 +115,7 @@ public:
 
     /** \brief Set up the solver using a monotone multigrid method as the inner solver */
     void setup(const GridType& grid,
-               const GeodesicFEAssembler<Basis, TargetSpace>* assembler,
+               const Assembler* assembler,
                const SolutionType& x,
                const Dune::BitSetVector<blocksize>& dirichletNodes,
                double tolerance,
@@ -188,7 +188,7 @@ protected:
     std::unique_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const GeodesicFEAssembler<Basis, TargetSpace>* assembler_;
+    const Assembler* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
     std::shared_ptr<Solver> innerSolver_;
