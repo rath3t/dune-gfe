@@ -177,7 +177,7 @@ int main (int argc, char *argv[]) try
   // Make Python function that computes which vertices are on the Dirichlet boundary,
   // based on the vertex positions.
   std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+  PythonFunction<FieldVector<double,dim>, FieldVector<bool,dim>> pythonDirichletVertices(Python::evaluate(lambda));
 
   // Same for the Neumann boundary
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
@@ -253,7 +253,9 @@ int main (int argc, char *argv[]) try
   //                      BOUNDARY DATA
   /////////////////////////////////////////////////////////////
 
-  BitSetVector<1> dirichletVertices(gridView.size(dim), false);
+  BitSetVector<1> dirichletVerticesX(gridView.size(dim), false);
+  BitSetVector<1> dirichletVerticesY(gridView.size(dim), false);
+  BitSetVector<1> dirichletVerticesZ(gridView.size(dim), false);
   BitSetVector<1> neumannVertices(gridView.size(dim), false);
   BitSetVector<1> surfaceShellVertices(gridView.size(dim), false);
 
@@ -261,8 +263,10 @@ int main (int argc, char *argv[]) try
 
   for (auto&& v : vertices(gridView))
   {
-    bool isDirichlet = pythonDirichletVertices(v.geometry().corner(0));
-    dirichletVertices[indexSet.index(v)] = isDirichlet;
+    FieldVector<bool,dim> isDirichlet = pythonDirichletVertices(v.geometry().corner(0));
+    dirichletVerticesX[indexSet.index(v)] = isDirichlet[0];
+    dirichletVerticesY[indexSet.index(v)] = isDirichlet[1];
+    dirichletVerticesZ[indexSet.index(v)] = isDirichlet[2];
 
     bool isNeumann = pythonNeumannVertices(v.geometry().corner(0));
     neumannVertices[indexSet.index(v)] = isNeumann;
@@ -271,17 +275,25 @@ int main (int argc, char *argv[]) try
     surfaceShellVertices[indexSet.index(v)] = isSurfaceShell;
   }
 
-  BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
+  BoundaryPatch<GridView> dirichletBoundaryX(gridView, dirichletVerticesX);
+  BoundaryPatch<GridView> dirichletBoundaryY(gridView, dirichletVerticesY);
+  BoundaryPatch<GridView> dirichletBoundaryZ(gridView, dirichletVerticesZ);
   auto neumannBoundary = std::make_shared<BoundaryPatch<GridView>>(gridView, neumannVertices);
   BoundaryPatch<GridView> surfaceShellBoundary(gridView, surfaceShellVertices);
 
-  std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has " << dirichletBoundary.numFaces() << " faces\n";
+  std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has [" << dirichletBoundaryX.numFaces() <<
+                                                                         ", " << dirichletBoundaryY.numFaces() <<
+                                                                         ", " << dirichletBoundaryZ.numFaces() <<"] faces\n";
   std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
   std::cout << "On rank " << mpiHelper.rank() << ": Shell boundary has " << surfaceShellBoundary.numFaces() << " faces\n";
 
-  BitSetVector<1> dirichletNodes(compositeBasis.size({0}),false);
+  BitSetVector<1> dirichletNodesX(compositeBasis.size({0}),false);
+  BitSetVector<1> dirichletNodesY(compositeBasis.size({0}),false);
+  BitSetVector<1> dirichletNodesZ(compositeBasis.size({0}),false);
   BitSetVector<1> surfaceShellNodes(compositeBasis.size({1}),false);
-  constructBoundaryDofs(dirichletBoundary,deformationFEBasis,dirichletNodes);
+  constructBoundaryDofs(dirichletBoundaryX,deformationFEBasis,dirichletNodesX);
+  constructBoundaryDofs(dirichletBoundaryY,deformationFEBasis,dirichletNodesY);
+  constructBoundaryDofs(dirichletBoundaryZ,deformationFEBasis,dirichletNodesZ);
   constructBoundaryDofs(surfaceShellBoundary,orientationFEBasis,surfaceShellNodes);
 
   //Create BitVector matching the tangential space
@@ -292,14 +304,14 @@ int main (int argc, char *argv[]) try
   BitVector dirichletDofs;
   dirichletDofs[_0].resize(compositeBasis.size({0}));
   dirichletDofs[_1].resize(compositeBasis.size({1}));
-  for (size_t i = 0; i < compositeBasis.size({0}); i++){
-    for (int j = 0; j < dim; j++){
-      dirichletDofs[_0][i][j] = dirichletNodes[i][0];
-    }
+  for (size_t i = 0; i < compositeBasis.size({0}); i++) {
+    dirichletDofs[_0][i][0] = dirichletNodesX[i][0];
+    dirichletDofs[_0][i][1] = dirichletNodesY[i][0];
+    dirichletDofs[_0][i][2] = dirichletNodesZ[i][0];
   }
   for (size_t i = 0; i < compositeBasis.size({1}); i++) {
     for (int j = 0; j < dimRotationTangent; j++){
-      dirichletDofs[_1][i][j] = (not surfaceShellNodes[i][0] or dirichletNodes[i][0]);
+      dirichletDofs[_1][i][j] = not surfaceShellNodes[i][0];
     }
   }
 
