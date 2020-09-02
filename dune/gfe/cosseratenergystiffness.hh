@@ -74,37 +74,6 @@ class CosseratEnergyLocalStiffness
     enum {gridDim=GridView::dimension};
     enum {dimworld=GridView::dimensionworld};
 
-
-    /** \brief Compute the symmetric part of a matrix A, i.e. \f$ \frac 12 (A + A^T) \f$ */
-    static Dune::FieldMatrix<field_type,dim,dim> sym(const Dune::FieldMatrix<field_type,dim,dim>& A)
-    {
-        Dune::FieldMatrix<field_type,dim,dim> result;
-        for (int i=0; i<dim; i++)
-            for (int j=0; j<dim; j++)
-                result[i][j] = 0.5 * (A[i][j] + A[j][i]);
-        return result;
-    }
-
-    /** \brief Compute the antisymmetric part of a matrix A, i.e. \f$ \frac 12 (A - A^T) \f$ */
-    static Dune::FieldMatrix<field_type,dim,dim> skew(const Dune::FieldMatrix<field_type,dim,dim>& A)
-    {
-        Dune::FieldMatrix<field_type,dim,dim> result;
-        for (int i=0; i<dim; i++)
-            for (int j=0; j<dim; j++)
-                result[i][j] = 0.5 * (A[i][j] - A[j][i]);
-        return result;
-    }
-
-    /** \brief Return the square of the trace of a matrix */
-    template <int N>
-    static field_type traceSquared(const Dune::FieldMatrix<field_type,N,N>& A)
-    {
-        field_type trace = 0;
-        for (int i=0; i<N; i++)
-            trace += A[i][i];
-        return trace*trace;
-    }
-
     /** \brief Compute the (row-wise) curl of a matrix R \f$
         \param DR The partial derivatives of the matrix R
      */
@@ -171,9 +140,9 @@ public:
         for (int i=0; i<dim; i++)
             UMinus1[i][i] -= 1;
 
-        return mu_ * sym(UMinus1).frobenius_norm2()
-                + mu_c_ * skew(UMinus1).frobenius_norm2()
-                + (mu_*lambda_)/(2*mu_ + lambda_) * traceSquared(sym(UMinus1));
+        return mu_ * Dune::GFE::sym(UMinus1).frobenius_norm2()
+                + mu_c_ * Dune::GFE::skew(UMinus1).frobenius_norm2()
+                + (mu_*lambda_)/(2*mu_ + lambda_) * Dune::GFE::traceSquared(Dune::GFE::sym(UMinus1));
     }
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
@@ -219,7 +188,7 @@ public:
 
         RT detU = U.determinant();
 
-        return mu_ * sym(UMinus1).frobenius_norm2() + mu_c_ * skew(UMinus1).frobenius_norm2()
+        return mu_ * Dune::GFE::sym(UMinus1).frobenius_norm2() + mu_c_ * Dune::GFE::skew(UMinus1).frobenius_norm2()
                 + (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
     }
 
@@ -275,9 +244,9 @@ public:
                 for (int k=0; k<3; k++)
                     RT_DR3[i][j] += R[k][i] * DR[k][2][j];
 
-        return mu_ * sym(RT_DR3).frobenius_norm2()
-               + mu_c_ * skew(RT_DR3).frobenius_norm2()
-               + mu_*lambda_/(2*mu_+lambda_) * traceSquared(RT_DR3);
+        return mu_ * Dune::GFE::sym(RT_DR3).frobenius_norm2()
+               + mu_c_ * Dune::GFE::skew(RT_DR3).frobenius_norm2()
+               + mu_*lambda_/(2*mu_+lambda_) * Dune::GFE::traceSquared(RT_DR3);
     }
 
     /** \brief The shell thickness */
