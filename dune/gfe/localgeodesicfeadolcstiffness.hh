@@ -106,13 +106,13 @@ energy(const typename Basis::LocalView& localView,
     try {
         energy = localEnergy_->energy(localView,localASolution);
     } catch (Dune::Exception &e) {
-        trace_off(rank);
+        trace_off();
         throw e;
     }
 
     energy >>= pureEnergy;
 
-    trace_off(rank);
+    trace_off();
 #if 0
     size_t tape_stats[STAT_SIZE];
     tapestats(rank,tape_stats);             // reading of tape statistics
