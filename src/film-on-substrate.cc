@@ -217,10 +217,10 @@ int main (int argc, char *argv[]) try
 
     grid->adapt();
 
-    grid->loadBalance();
-
     numLevels--;
   }
+
+  grid->loadBalance();
 
   if (mpiHelper.rank()==0)
     std::cout << "There are " << grid->leafGridView().comm().size() << " processes" << std::endl;
