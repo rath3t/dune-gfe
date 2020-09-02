@@ -462,14 +462,14 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             } catch (Dune::Exception &e) {
                 std::cerr << "Error while solving: " << e << std::endl;
                 solved = false;
-                corr_global = 0;
             }
             std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
             totalSolverTime += solutionTimer.elapsed();
 
-            if (mgStep && solved)
+            if (mgStep && solved) {
                 corr_global = mgStep->getSol();
                 std::cout << "Two norm of the correction: " << corr_global.two_norm() << std::endl;
+            }
         }
 
         // Distribute solution
@@ -477,7 +477,13 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
 #if HAVE_MPI
-        corr = vectorComm.scatter(corr_global);
+        solved = grid_->comm().min(solved);
+        if (solved) {
+            corr = vectorComm.scatter(corr_global);
+        } else  {
+            corr_global = 0;
+            corr = 0;
+        }
 #else
         corr = corr_global;
 #endif
@@ -583,11 +589,14 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             } catch (Dune::Exception &e) {
                 std::cerr << "Error while computing the energy of the new Iterate: " << e << std::endl;
                 std::cerr << "Redoing trust region step with smaller radius..." << std::endl;
-                newIterate = x_;
                 solved = false;
-                energy = oldEnergy;
             }
-            if (solved) {
+            solved = grid_->comm().min(solved);
+
+            if (!solved) {
+                newIterate = x_;
+                energy = oldEnergy;
+            } else {
                 energy = grid_->comm().sum(energy);
 
                 // compute the model decrease
