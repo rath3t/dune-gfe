@@ -262,10 +262,8 @@ int main (int argc, char *argv[]) try
   auto neumannBoundary = std::make_shared<BoundaryPatch<GridView>>(gridView, neumannVertices);
   BoundaryPatch<GridView> surfaceShellBoundary(gridView, surfaceShellVertices);
 
-  if (mpiHelper.rank()==0) {
-    std::cout << "Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
-    std::cout << "Shell boundary has " << surfaceShellBoundary.numFaces() << " faces\n";
-  }
+  std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
+  std::cout << "On rank " << mpiHelper.rank() << ": Shell boundary has " << surfaceShellBoundary.numFaces() << " faces\n";
 
 
   BitSetVector<1> dirichletNodes(feBasis.size(), false);
