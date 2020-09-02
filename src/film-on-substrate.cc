@@ -68,9 +68,6 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <iostream>
-#include <fstream>
-
 // grid dimension
 #ifndef WORLD_DIM
 #  define WORLD_DIM 3
@@ -362,32 +359,49 @@ int main (int argc, char *argv[]) try
   // Read in the grid deformation
   if (startFromFile) {
     const std::string pathToGridDeformationFile = parameterSet.get("pathToGridDeformationFile", "");
-
     // for this, we create a basis of order 1 in order to deform the geometries on the surface shell boundary
-    typedef Dune::Functions::LagrangeBasis<GridView, 1> FEBasisOrder1;
-    FEBasisOrder1 feBasisOrder1(gridView);
-  
+    auto feBasisOrder1 = makeBasis(
+      gridView,
+      power<dim>(
+        lagrange<1>(),
+        blockedInterleaved()
+    ));
+    GlobalIndexSet<GridView> globalVertexIndexSet(gridView,dim);
+
+    std::unordered_map<std::string, FieldVector<double,3>> deformationMap;
+    std::string line, displacement, entry;
+    if (mpiHelper.rank() == 0) 
+      std::cout << "Reading in deformation file: " << pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile") << std::endl;
     // Read grid deformation information from the file specified in the parameter set via gridDeformationFile
-    BlockVector<FieldVector<double,3> > gridDeformationFromFile(feBasisOrder1.size());
-    std::string line;
-    std::ifstream file(pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile"));
+    std::ifstream file(pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile"), std::ios::in);
     if (file.is_open()) {
-      size_t i = 0;
       while (std::getline(file, line)) {
         size_t j = 0;
-        std::stringstream entries(line);
-        std::string entry;
-        FieldVector<double,3> coord(0);
-        while(entries >> entry) {
-          coord[j++] = std::stod(entry);
-        }
-        gridDeformationFromFile[i++] = coord;
+        size_t pos = line.find(":");
+        displacement = line.substr(pos + 1);
+        line.erase(pos);
+        std::stringstream entries(displacement);
+        FieldVector<double,3> displacementVector(0);
+        while(entries >> entry)
+          displacementVector[j++] = std::stod(entry);
+        deformationMap.insert({line,displacementVector});
       }
-      if (i != feBasisOrder1.size())
+      if (mpiHelper.rank() == 0)
+        std::cout << "... done: The grid has " << globalVertexIndexSet.size(dim) << " vertices and the defomation file has " << deformationMap.size() << " entries." << std::endl;
+      if (deformationMap.size() != globalVertexIndexSet.size(dim))
         DUNE_THROW(Exception, "Error: Grid and deformation vector do not match!");
       file.close();
     } else {
       DUNE_THROW(Exception, "Error: Could not open the file containing the deformation vector!");
+    }
+  
+    BlockVector<FieldVector<double,dim>> gridDeformationFromFile;
+    Dune::Functions::interpolate(feBasisOrder1, gridDeformationFromFile, [](FieldVector<double,dim> x){ return x; });
+
+    for (auto& entry : gridDeformationFromFile) {
+      std::stringstream stream;
+      stream << entry;
+      entry = deformationMap.at(stream.str()); //Look up the deformation for this vertex in the deformationMap
     }
 
     auto gridDeformationFromFileFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(feBasisOrder1, gridDeformationFromFile);
