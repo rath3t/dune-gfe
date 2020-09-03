@@ -133,7 +133,7 @@ int main (int argc, char *argv[]) try
   Python::runStream()
         << std::endl << "import sys"
         << std::endl << "import os"
-        << std::endl << "sys.path.append(os.getcwd() + '/../../src/')"
+        << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
         << std::endl;
 
   typedef BlockVector<FieldVector<double,dim> > SolutionType;
@@ -584,7 +584,7 @@ int main (int argc, char *argv[]) try
     //   Set Dirichlet values
     ////////////////////////////////////////////////////////
 
-    Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("problem") + "-dirichlet-values");
+    Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("dirichletValues"));
 
     Python::Callable C = dirichletValuesClass.get("DirichletValues");
 

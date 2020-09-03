@@ -5,13 +5,8 @@ class DirichletValues:
         self.homotopyParameter = homotopyParameter
 
     def deformation(self, x):
-        # Dirichlet b.c. simply clamp the shell in the reference configuration
-        out = x
-
-        return out
-
+        return x
 
     def orientation(self, x):
-        rotation = [[1,0,0], [0, 1, 0], [0, 0, 1]]
+        rotation = [[1,0,0], [0,1,0], [0,0,1]]
         return rotation
-
