@@ -28,12 +28,11 @@ namespace Dune {
       Master m = Dune::ParMG::entityMasterRank(basis.gridView(), [&](int, int codim) -> bool {
               return dofmap.codimSet().test(codim);
             });
-      DofMaster dofmaster = Dune::ParMG::dofMaster(basis, m);
 
-      coarseGlobalDof_ = globalDof(basis,m, dofmap);
+      globalDof_ = globalDof(basis,m, dofmap);
 
       // total number of degrees of freedom
-      size_ = coarseGlobalDof_.size;
+      size_ = globalDof_.size;
     }
 #else
     GlobalMapper(const Basis& basis)
@@ -46,7 +45,7 @@ namespace Dune {
     /** \brief Given a local index, retrieve its index globally unique over all processes. */
     Index index(const int& localIndex) const {
 #if HAVE_DUNE_PARMG
-      return coarseGlobalDof_.globalDof[localIndex];
+      return globalDof_.globalDof[localIndex];
 #else
       return localIndex;
 #endif
@@ -58,7 +57,7 @@ namespace Dune {
     }
 
 #if HAVE_DUNE_PARMG
-    ParMG::GlobalDof coarseGlobalDof_;
+    ParMG::GlobalDof globalDof_;
 #endif
 
     std::size_t size_;

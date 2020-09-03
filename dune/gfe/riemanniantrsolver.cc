@@ -403,6 +403,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                                                    *hessianMatrix_,
                                                    i==0    // assemble occupation pattern only for the first call
                                                    );
+            std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
 
             rhs *= -1;        // The right hand side is the _negative_ gradient
 
@@ -418,11 +419,12 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
                 if ((*mgStep->ignoreNodes_)[j][k])  // global Dirichlet nodes set
                   gradient[j][k] = 0;
 
+            if (this->verbosity_ == Solver::FULL and rank==0) {
+              std::cout << "Gradient operator norm: " << l2Norm_->operator()(gradient) << std::endl;
+              std::cout << "Gradient norm: " << gradient.two_norm() << std::endl;
+            }
             if (this->verbosity_ == Solver::FULL and rank==0)
-              std::cout << "Gradient norm: " << l2Norm_->operator()(gradient) << std::endl;
-
-            if (this->verbosity_ == Solver::FULL)
-              std::cout << "Assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+              std::cout << "Oveall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             totalAssemblyTime += gradientTimer.elapsed();
 
             // Transfer matrix data
@@ -460,15 +462,14 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             } catch (Dune::Exception &e) {
                 std::cerr << "Error while solving: " << e << std::endl;
                 solved = false;
-                corr_global = 0;
             }
             std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
             totalSolverTime += solutionTimer.elapsed();
 
-            if (mgStep && solved)
+            if (mgStep && solved) {
                 corr_global = mgStep->getSol();
-
-            //std::cout << "Correction: " << std::endl << corr_global << std::endl;
+                std::cout << "Two norm of the correction: " << corr_global.two_norm() << std::endl;
+            }
         }
 
         // Distribute solution
@@ -476,7 +477,13 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
 #if HAVE_MPI
-        corr = vectorComm.scatter(corr_global);
+        solved = grid_->comm().min(solved);
+        if (solved) {
+            corr = vectorComm.scatter(corr_global);
+        } else  {
+            corr_global = 0;
+            corr = 0;
+        }
 #else
         corr = corr_global;
 #endif
@@ -582,11 +589,14 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace>::solve()
             } catch (Dune::Exception &e) {
                 std::cerr << "Error while computing the energy of the new Iterate: " << e << std::endl;
                 std::cerr << "Redoing trust region step with smaller radius..." << std::endl;
-                newIterate = x_;
                 solved = false;
-                energy = oldEnergy;
             }
-            if (solved) {
+            solved = grid_->comm().min(solved);
+
+            if (!solved) {
+                newIterate = x_;
+                energy = oldEnergy;
+            } else {
                 energy = grid_->comm().sum(energy);
 
                 // compute the model decrease
