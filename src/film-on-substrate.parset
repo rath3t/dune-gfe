@@ -50,14 +50,31 @@ initialDeformation = "x"
 #  Solver parameters
 #############################################
 
+# Inner solver, cholmod or multigrid
+solvertype = cholmod
+
 # Number of homotopy steps for the Dirichlet boundary conditions
 numHomotopySteps = 1
 
-# Tolerance of the trust region solver
+# Tolerance of the solver
 tolerance = 1e-3
 
-# Max number of steps of the trust region solver
-maxTrustRegionSteps = 20
+# Max number of solver steps
+maxSolverSteps = 300
+
+# Measure convergence
+instrumented = 0
+
+#############################################
+#  Solver parameters specific for proximal newton solver using cholmod
+#############################################
+
+# initial regularization parameter
+initialRegularization = 10000000000
+
+#############################################
+#  Solver parameters specific for trust-region solver using multigrid solver 
+#############################################
 
 trustRegionScaling = 1 1 1 0.01 0.01 0.01
 
