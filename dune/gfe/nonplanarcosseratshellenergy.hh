@@ -34,119 +34,6 @@ class NonplanarCosseratShellEnergy
   enum {gridDim=GridView::dimension};
   enum {dimworld=GridView::dimensionworld};
 
-  /** \brief Compute the symmetric part of a matrix A, i.e. \f$ \frac 12 (A + A^T) \f$ */
-  static Dune::FieldMatrix<field_type,dim,dim> sym(const Dune::FieldMatrix<field_type,dim,dim>& A)
-  {
-    Dune::FieldMatrix<field_type,dim,dim> result;
-    for (int i=0; i<dim; i++)
-      for (int j=0; j<dim; j++)
-        result[i][j] = 0.5 * (A[i][j] + A[j][i]);
-    return result;
-  }
-
-  /** \brief Compute the antisymmetric part of a matrix A, i.e. \f$ \frac 12 (A - A^T) \f$ */
-  static Dune::FieldMatrix<field_type,dim,dim> skew(const Dune::FieldMatrix<field_type,dim,dim>& A)
-  {
-    Dune::FieldMatrix<field_type,dim,dim> result;
-    for (int i=0; i<dim; i++)
-      for (int j=0; j<dim; j++)
-        result[i][j] = 0.5 * (A[i][j] - A[j][i]);
-    return result;
-  }
-
-  /** \brief Compute the deviator of a matrix A */
-  static Dune::FieldMatrix<field_type,dim,dim> dev(const Dune::FieldMatrix<field_type,dim,dim>& A)
-  {
-    Dune::FieldMatrix<field_type,dim,dim> result = A;
-    auto t = trace(A);
-    for (int i=0; i<dim; i++)
-      result[i][i] -= t / dim;
-    return result;
-  }
-
-  /** \brief Return the trace of a matrix */
-  template <class T, int N>
-  static T trace(const Dune::FieldMatrix<T,N,N>& A)
-  {
-    T trace = 0;
-    for (int i=0; i<N; i++)
-      trace += A[i][i];
-    return trace;
-  }
-
-  /** \brief Return the square of the trace of a matrix */
-  template <int N>
-  static field_type traceSquared(const Dune::FieldMatrix<field_type,N,N>& A)
-  {
-    field_type trace = 0;
-    for (int i=0; i<N; i++)
-      trace += A[i][i];
-    return trace*trace;
-  }
-
-  template <class T, int N>
-  static T frobeniusProduct(const Dune::FieldMatrix<T,N,N>& A, const Dune::FieldMatrix<T,N,N>& B)
-  {
-    T result(0.0);
-
-    for (int i=0; i<N; i++)
-      for (int j=0; j<N; j++)
-        result += A[i][j] * B[i][j];
-
-    return result;
-  }
-
-  template <int N>
-  static auto dyadicProduct(const Dune::FieldVector<adouble,N>& A, const Dune::FieldVector<adouble,N>& B)
-    -> Dune::FieldMatrix<adouble,N,N>
-  {
-    Dune::FieldMatrix<adouble,N,N> result;
-
-    for (int i=0; i<N; i++)
-      for (int j=0; j<N; j++)
-        result[i][j] = A[i]*B[j];
-
-    return result;
-  }
-
-  template <int N>
-  static auto dyadicProduct(const Dune::FieldVector<double,N>& A, const Dune::FieldVector<double,N>& B)
-    -> Dune::FieldMatrix<double,N,N>
-  {
-    Dune::FieldMatrix<double,N,N> result;
-
-    for (int i=0; i<N; i++)
-      for (int j=0; j<N; j++)
-        result[i][j] = A[i]*B[j];
-
-    return result;
-  }
-
-  template <int N>
-  static auto dyadicProduct(const Dune::FieldVector<adouble,N>& A, const Dune::FieldVector<double,N>& B)
-    -> Dune::FieldMatrix<adouble,N,N>
-  {
-    Dune::FieldMatrix<adouble,N,N> result;
-
-    for (int i=0; i<N; i++)
-      for (int j=0; j<N; j++)
-        result[i][j] = A[i]*B[j];
-
-    return result;
-  }
-
-  template <class T, int N>
-  static Dune::FieldMatrix<T,N,N> transpose(const Dune::FieldMatrix<T,N,N>& A)
-  {
-    Dune::FieldMatrix<T,N,N> result;
-
-    for (int i=0; i<N; i++)
-      for (int j=0; j<N; j++)
-        result[i][j] = A[j][i];
-
-    return result;
-  }
-
 public:
 
   /** \brief Constructor with a set of material parameters
@@ -192,19 +79,20 @@ public:
 
   RT W_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T) const
   {
-    return mu_ * frobeniusProduct(sym(S), sym(T))
-         + mu_c_ * frobeniusProduct(skew(S), skew(T))
-         + lambda_ * mu_ / (lambda_ + 2*mu_) * trace(S) * trace(T);
+    return mu_ * Dune::GFE::frobeniusProduct(Dune::GFE::sym(S), Dune::GFE::sym(T))
+         + mu_c_ * Dune::GFE::frobeniusProduct(Dune::GFE::skew(S), Dune::GFE::skew(T))
+         + lambda_ * mu_ / (lambda_ + 2*mu_) * Dune::GFE::trace(S) * Dune::GFE::trace(T);
   }
 
   RT W_mp(const Dune::FieldMatrix<field_type,3,3>& S) const
   {
-    return mu_ * sym(S).frobenius_norm2() + mu_c_ * skew(S).frobenius_norm2() + lambda_ * 0.5 * traceSquared(S);
+    return mu_ * Dune::GFE::sym(S).frobenius_norm2() + mu_c_ * Dune::GFE::skew(S).frobenius_norm2() + lambda_ * 0.5 * Dune::GFE::traceSquared(S);
   }
 
   RT W_curv(const Dune::FieldMatrix<field_type,3,3>& S) const
   {
-    return mu_ * L_c_ * L_c_ * (b1_ * dev(sym(S)).frobenius_norm2() + b2_ * skew(S).frobenius_norm2() + b3_ * traceSquared(S));
+    return mu_ * L_c_ * L_c_ * (b1_ * Dune::GFE::dev(Dune::GFE::sym(S)).frobenius_norm2()
+         + b2_ * Dune::GFE::skew(S).frobenius_norm2() + b3_ * Dune::GFE::traceSquared(S));
   }
 
   /** \brief The shell thickness */
@@ -297,7 +185,7 @@ energy(const typename Basis::LocalView& localView,
 
     Dune::FieldMatrix<field_type,dim,dim> R;
     value.q.matrix(R);
-    auto RT = transpose(R);
+    auto RT = Dune::GFE::transpose(R);
 
     Tensor3<field_type,3,3,gridDim> DR = value.quaternionTangentToMatrixTangent(derivative);
 
@@ -328,7 +216,7 @@ energy(const typename Basis::LocalView& localView,
 
     Dune::FieldMatrix<double,3,3> a(0);
     for (int alpha=0; alpha<gridDim; alpha++)
-      a += dyadicProduct(aCovariant[alpha], aContravariant[alpha]);
+      a += Dune::GFE::dyadicProduct(aCovariant[alpha], aContravariant[alpha]);
 
     auto a00 = aCovariant[0] * aCovariant[0];
     auto a01 = aCovariant[0] * aCovariant[1];
@@ -342,7 +230,7 @@ energy(const typename Basis::LocalView& localView,
 
     for (int alpha=0; alpha<2; alpha++)
       for (int beta=0; beta<2; beta++)
-        c += sqrt(aScalar) * eps[alpha][beta] * dyadicProduct(aContravariant[alpha], aContravariant[beta]);
+        c += sqrt(aScalar) * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
 
     // Second fundamental form
     // The derivative of the normal field
@@ -354,14 +242,14 @@ energy(const typename Basis::LocalView& localView,
       Dune::FieldVector<double,3> vec;
       for (int i=0; i<3; i++)
         vec[i] = normalDerivative[i][alpha];
-      b -= dyadicProduct(vec, aContravariant[alpha]);
+      b -= Dune::GFE::dyadicProduct(vec, aContravariant[alpha]);
     }
 
     // Gauss curvature
     auto K = b.determinant();
 
     // Mean curvatue
-    auto H = 0.5 * trace(b);
+    auto H = 0.5 * Dune::GFE::trace(b);
 
     //////////////////////////////////////////////////////////
     //  Strain tensors
@@ -375,7 +263,7 @@ energy(const typename Basis::LocalView& localView,
       Dune::FieldVector<field_type,3> vec;
       for (int i=0; i<3; i++)
         vec[i] = derivative[i][alpha];
-      grad_s_m += dyadicProduct(vec, aContravariant[alpha]);
+      grad_s_m += Dune::GFE::dyadicProduct(vec, aContravariant[alpha]);
     }
 
     Ee = RT * grad_s_m - a;
@@ -389,7 +277,7 @@ energy(const typename Basis::LocalView& localView,
         for (int j=0; j<3; j++)
           tmp[i][j] = DR[i][j][alpha];
       auto tmp2 = RT * tmp;
-      Ke += dyadicProduct(SkewMatrix<field_type,3>(tmp2).axial(), aContravariant[alpha]);
+      Ke += Dune::GFE::dyadicProduct(SkewMatrix<field_type,3>(tmp2).axial(), aContravariant[alpha]);
     }
 
     //////////////////////////////////////////////////////////
