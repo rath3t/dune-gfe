@@ -60,6 +60,7 @@
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/vertexnormals.hh>
 #include <dune/gfe/surfacecosseratenergy.hh>
@@ -132,7 +133,7 @@ int main (int argc, char *argv[]) try
   Python::runStream()
         << std::endl << "import sys"
         << std::endl << "import os"
-        << std::endl << "sys.path.append(os.getcwd() + '/../../src/')"
+        << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
         << std::endl;
 
   typedef BlockVector<FieldVector<double,dim> > SolutionType;
@@ -152,8 +153,9 @@ int main (int argc, char *argv[]) try
   int numLevels                         = parameterSet.get<int>("numLevels");
   int numHomotopySteps                  = parameterSet.get<int>("numHomotopySteps");
   const double tolerance                = parameterSet.get<double>("tolerance");
-  const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
+  const int maxSolverSteps              = parameterSet.get<int>("maxSolverSteps");
   const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
+  const double initialRegularization    = parameterSet.get<double>("initialRegularization");
   const int multigridIterations         = parameterSet.get<int>("numIt");
   const int nu1                         = parameterSet.get<int>("nu1");
   const int nu2                         = parameterSet.get<int>("nu2");
@@ -577,32 +579,12 @@ int main (int argc, char *argv[]) try
 
     GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, &localGFEADOLCStiffness);
 
-    // /////////////////////////////////////////////////
-    //   Create a Riemannian trust-region solver
-    // /////////////////////////////////////////////////
-
-    RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
-    solver.setup(*grid,
-                 &assembler,
-                 x,
-                 dirichletDofs,
-                 tolerance,
-                 maxTrustRegionSteps,
-                 initialTrustRegionRadius,
-                 multigridIterations,
-                 mgTolerance,
-                 mu, nu1, nu2,
-                 baseIterations,
-                 baseTolerance,
-                 instrumented);
-
-    solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
 
     ////////////////////////////////////////////////////////
     //   Set Dirichlet values
     ////////////////////////////////////////////////////////
 
-    Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("problem") + "-dirichlet-values");
+    Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("dirichletValues"));
 
     Python::Callable C = dirichletValuesClass.get("DirichletValues");
 
@@ -625,15 +607,49 @@ int main (int argc, char *argv[]) try
         x[j].r = ddV[j];
         x[j].q.set(dOV[j]);
       }
+    // /////////////////////////////////////////////////
+    //   Create the solver and solve
+    // /////////////////////////////////////////////////
 
+    if (parameterSet.get<std::string>("solvertype") == "multigrid") {
+      RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
+      solver.setup(*grid,
+                   &assembler,
+                   x,
+                   dirichletDofs,
+                   tolerance,
+                   maxSolverSteps,
+                   initialTrustRegionRadius,
+                   multigridIterations,
+                   mgTolerance,
+                   mu, nu1, nu2,
+                   baseIterations,
+                   baseTolerance,
+                   instrumented);
+
+      solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+      solver.setInitialIterate(x);
+      solver.solve();
+
+      x = solver.getSol();
+    } else { //parameterSet.get<std::string>("solvertype") == "cholmod"
+      RiemannianProximalNewtonSolver<FEBasis,TargetSpace> solver;
+      solver.setup(*grid,
+                   &assembler,
+                   x,
+                   dirichletDofs,
+                   tolerance,
+                   maxSolverSteps,
+                   initialRegularization,
+                   instrumented);
+      solver.setInitialIterate(x);
+      solver.solve();
+
+      x = solver.getSol();
+    }
     // /////////////////////////////////////////////////////
     //   Solve!
     // /////////////////////////////////////////////////////
-
-    solver.setInitialIterate(x);
-    solver.solve();
-
-    x = solver.getSol();
 
     std::cout << "Overall calculation took " << overallTimer.elapsed() << " sec." << std::endl;
 
