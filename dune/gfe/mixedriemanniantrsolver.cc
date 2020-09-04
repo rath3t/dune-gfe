@@ -385,6 +385,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
         corr_global[_0].resize(rhs_global[_0].size());
         corr_global[_1].resize(rhs_global[_1].size());
         corr_global = 0;
+        bool solvedByInnerSolver = true;
 
         if (rank==0)
         {
@@ -405,12 +406,16 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
             mmgStep1->preprocess();
 
+            ///////////////////////////////
+            //    Solve !
+            ///////////////////////////////
 
             std::cout << "Solve quadratic problem..." << std::endl;
             double oldEnergy = 0;
             Dune::Timer solutionTimer;
-            for (int ii=0; ii<innerIterations_; ii++)
-            {
+            int ii = 0;
+            try {
+            for (; ii<innerIterations_; ii++) {
               residual[_0] = rhs_global[_0];
               stiffnessMatrix[_0][_1].mmv(corr_global[_1], residual[_0]);
               mmgStep0->setRhs(residual[_0]);
@@ -431,9 +436,16 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
                 std::cout << "Warning: energy increase!" << std::endl;
 
               oldEnergy = energy;
+              if (corr_global.infinity_norm() < innerTolerance_)
+                break;
+            }
+            } catch (Dune::Exception &e) {
+                std::cerr << "Error while solving: " << e << std::endl;
+                solvedByInnerSolver = false;
+                corr_global = 0;
             }
 
-            std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
+            std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds and " << ii << " steps." << std::endl;
 
             //std::cout << "Correction: " << std::endl << corr_global << std::endl;
 
@@ -445,6 +457,10 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
         //corr = vectorComm.scatter(corr_global);
         corr = corr_global;
+        double energy = 0;
+        double modelDecrease = 0;
+        SolutionType newIterate = x_;
+        if (solvedByInnerSolver) {
 
         if (this->verbosity_ == NumProc::FULL)
             std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
@@ -462,14 +478,23 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
         //   Check whether trust-region step can be accepted
         // ////////////////////////////////////////////////////
 
-        SolutionType newIterate = x_;
         for (size_t j=0; j<newIterate[_0].size(); j++)
             newIterate[_0][j] = TargetSpace0::exp(newIterate[_0][j], corr[_0][j]);
 
         for (size_t j=0; j<newIterate[_1].size(); j++)
             newIterate[_1][j] = TargetSpace1::exp(newIterate[_1][j], corr[_1][j]);
 
-        double energy    = assembler_->computeEnergy(newIterate[_0],newIterate[_1]);
+        try {
+          energy = assembler_->computeEnergy(newIterate[_0],newIterate[_1]);
+        } catch (Dune::Exception &e) {
+          std::cerr << "Error while computing the energy of the new Iterate: " << e << std::endl;
+          std::cerr << "Redoing trust region step with smaller radius..." << std::endl;
+          newIterate = x_;
+          solvedByInnerSolver = false;
+          energy = oldEnergy;
+        }
+
+        if (solvedByInnerSolver) {
         energy = mpiHelper.getCollectiveCommunication().sum(energy);
 
         // compute the model decrease
@@ -477,7 +502,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
         // Note that rhs = -g
         CorrectionType tmp(corr);
         hessianMatrix_->mv(corr,tmp);
-        double modelDecrease = rhs*corr - 0.5 * (corr*tmp);
+        modelDecrease = rhs*corr - 0.5 * (corr*tmp);
         modelDecrease = mpiHelper.getCollectiveCommunication().sum(modelDecrease);
 
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
@@ -508,10 +533,12 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
             break;
         }
 
+        }
+        }
         // //////////////////////////////////////////////
         //   Check for acceptance of the step
         // //////////////////////////////////////////////
-        if ( (oldEnergy-energy) / modelDecrease > 0.9) {
+        if ( solvedByInnerSolver && (oldEnergy-energy) / modelDecrease > 0.9) {
             // very successful iteration
 
             x_ = newIterate;
@@ -523,7 +550,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
             recomputeGradientHessian = true;
 
-        } else if ( (oldEnergy-energy) / modelDecrease > 0.01
+        } else if (solvedByInnerSolver && (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
             x_ = newIterate;
