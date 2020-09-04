@@ -122,10 +122,14 @@ energy(const typename Basis::LocalView& localView,
     }
 
     using namespace Dune::TypeTree::Indices;
-    energy = localEnergy_->energy(localView,
+    try {
+        energy = localEnergy_->energy(localView,
                                   localAConfiguration0,
                                   localAConfiguration1);
-
+    } catch (Dune::Exception &e) {
+        trace_off();
+        throw e;
+    }
     energy >>= pureEnergy;
 
     trace_off();
