@@ -31,11 +31,9 @@ class MixedGFEAssembler {
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize1, blocksize0> > MatrixBlock10;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize1, blocksize1> > MatrixBlock11;
 
+public:
     typedef Dune::MultiTypeBlockMatrix<Dune::MultiTypeBlockVector<MatrixBlock00,MatrixBlock01>,
                                        Dune::MultiTypeBlockVector<MatrixBlock10,MatrixBlock11> > MatrixType;
-
-protected:
-public:
     const Basis basis_;
 
     MixedLocalGeodesicFEStiffness<Basis,
