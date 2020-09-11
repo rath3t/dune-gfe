@@ -86,12 +86,13 @@ energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace0>& localConfiguration0,
        const std::vector<TargetSpace1>& localConfiguration1) const
 {
+    int rank = Dune::MPIHelper::getCollectiveCommunication().rank();
     double pureEnergy;
 
     std::vector<ATargetSpace0> localAConfiguration0(localConfiguration0.size());
     std::vector<ATargetSpace1> localAConfiguration1(localConfiguration1.size());
 
-    trace_on(1);
+    trace_on(rank);
 
     adouble energy = 0;
 
@@ -122,10 +123,14 @@ energy(const typename Basis::LocalView& localView,
     }
 
     using namespace Dune::TypeTree::Indices;
-    energy = localEnergy_->energy(localView,
+    try {
+        energy = localEnergy_->energy(localView,
                                   localAConfiguration0,
                                   localAConfiguration1);
-
+    } catch (Dune::Exception &e) {
+        trace_off();
+        throw e;
+    }
     energy >>= pureEnergy;
 
     trace_off();
@@ -197,6 +202,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                            std::vector<typename TargetSpace1::TangentVector>& localGradient1)
 {
+    int rank = Dune::MPIHelper::getCollectiveCommunication().rank();
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
     energy(localView, localConfiguration0, localConfiguration1);
 
@@ -222,7 +228,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
   // Compute gradient
     std::vector<double> g(nDoubles);
-    gradient(1,nDoubles,xp.data(),g.data());                  // gradient evaluation
+    gradient(rank,nDoubles,xp.data(),g.data());                  // gradient evaluation
 
     // Copy into Dune type
     std::vector<typename TargetSpace0::EmbeddedTangentVector> localEmbeddedGradient0(localConfiguration0.size());
@@ -338,7 +344,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       for (int i=0; i<embeddedBlocksize1; i++)
         tangent[nDofs0*embeddedBlocksize0 + (j/blocksize1)*embeddedBlocksize1+i][nDofs0*blocksize0 + j] = orthonormalFrame1[j/blocksize1][j%blocksize1][i];
 
-    hess_mat(1,nDoubles,nDirections,xp.data(),tangent,rawHessian);
+    hess_mat(rank,nDoubles,nDirections,xp.data(),tangent,rawHessian);
 
     // Copy Hessian into Dune data type
     size_t offset0 = nDofs0*embeddedBlocksize0;

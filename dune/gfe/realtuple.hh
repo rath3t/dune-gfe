@@ -66,12 +66,28 @@ public:
         return *this;
     }
 
+    RealTuple& operator-=(const Dune::FieldVector<T,N>& other) {
+        data_ -= other;
+        return *this;
+    }
+
+    template <class T2>
+    RealTuple& operator-=(const RealTuple<T2,N>& other) {
+        data_ -= other.data_;
+        return *this;
+    }
+
     /** \brief Assigment from RealTuple with different type -- used for automatic differentiation with ADOL-C */
     template <class T2>
     RealTuple& operator <<= (const RealTuple<T2,N>& other) {
         for (size_t i=0; i<N; i++)
             data_[i] <<= other.data_[i];
         return *this;
+    }
+
+    /** \brief Const random-access operator*/
+    T operator[] (const size_t indexVariable ) const {
+        return data_[indexVariable];
     }
 
      /** \brief Rebind the RealTuple to another coordinate type */

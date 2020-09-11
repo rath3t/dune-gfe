@@ -385,6 +385,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
         corr_global[_0].resize(rhs_global[_0].size());
         corr_global[_1].resize(rhs_global[_1].size());
         corr_global = 0;
+        bool solvedByInnerSolver = true;
 
         if (rank==0)
         {
@@ -405,35 +406,46 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
             mmgStep1->preprocess();
 
+            ///////////////////////////////
+            //    Solve !
+            ///////////////////////////////
 
             std::cout << "Solve quadratic problem..." << std::endl;
             double oldEnergy = 0;
             Dune::Timer solutionTimer;
-            for (int ii=0; ii<innerIterations_; ii++)
-            {
-              residual[_0] = rhs_global[_0];
-              stiffnessMatrix[_0][_1].mmv(corr_global[_1], residual[_0]);
-              mmgStep0->setRhs(residual[_0]);
-              mmgStep0->iterate();
-
-              residual[_1] = rhs_global[_1];
-              stiffnessMatrix[_1][_0].mmv(corr_global[_0], residual[_1]);
-              mmgStep1->setRhs(residual[_1]);
-              mmgStep1->iterate();
-
-              // Compute energy
-              CorrectionType tmp(corr_global);
-              stiffnessMatrix.mv(corr_global,tmp);
-              double energy = 0.5 * (tmp*corr_global) - (rhs_global*corr_global);
-
-              if (energy > oldEnergy)
-                //DUNE_THROW(Dune::Exception, "energy increase!");
-                std::cout << "Warning: energy increase!" << std::endl;
-
-              oldEnergy = energy;
+            int ii = 0;
+            try {
+              for (; ii<innerIterations_; ii++) {
+                residual[_0] = rhs_global[_0];
+                stiffnessMatrix[_0][_1].mmv(corr_global[_1], residual[_0]);
+                mmgStep0->setRhs(residual[_0]);
+                mmgStep0->iterate();
+  
+                residual[_1] = rhs_global[_1];
+                stiffnessMatrix[_1][_0].mmv(corr_global[_0], residual[_1]);
+                mmgStep1->setRhs(residual[_1]);
+                mmgStep1->iterate();
+  
+                // Compute energy
+                CorrectionType tmp(corr_global);
+                stiffnessMatrix.mv(corr_global,tmp);
+                double energy = 0.5 * (tmp*corr_global) - (rhs_global*corr_global);
+  
+                if (energy > oldEnergy)
+                  //DUNE_THROW(Dune::Exception, "energy increase!");
+                  std::cout << "Warning: energy increase!" << std::endl;
+  
+                oldEnergy = energy;
+                if (corr_global.infinity_norm() < innerTolerance_)
+                  break;
+              }
+            } catch (Dune::Exception &e) {
+                std::cerr << "Error while solving: " << e << std::endl;
+                solvedByInnerSolver = false;
+                corr_global = 0;
             }
 
-            std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds." << std::endl;
+            std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds and " << ii << " steps." << std::endl;
 
             //std::cout << "Correction: " << std::endl << corr_global << std::endl;
 
@@ -445,73 +457,88 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
         //corr = vectorComm.scatter(corr_global);
         corr = corr_global;
-
-        if (this->verbosity_ == NumProc::FULL)
-            std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
-
-        if (corr_global.infinity_norm() < tolerance_) {
-            if (verbosity_ == NumProc::FULL and rank==0)
-                std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
-
-            if (verbosity_ != NumProc::QUIET and rank==0)
-                std::cout << i+1 << " trust-region steps were taken." << std::endl;
-            break;
-        }
-
-        // ////////////////////////////////////////////////////
-        //   Check whether trust-region step can be accepted
-        // ////////////////////////////////////////////////////
-
+        double energy = 0;
+        double modelDecrease = 0;
         SolutionType newIterate = x_;
-        for (size_t j=0; j<newIterate[_0].size(); j++)
-            newIterate[_0][j] = TargetSpace0::exp(newIterate[_0][j], corr[_0][j]);
+        if (solvedByInnerSolver) {
 
-        for (size_t j=0; j<newIterate[_1].size(); j++)
-            newIterate[_1][j] = TargetSpace1::exp(newIterate[_1][j], corr[_1][j]);
+          if (this->verbosity_ == NumProc::FULL)
+              std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
-        double energy    = assembler_->computeEnergy(newIterate[_0],newIterate[_1]);
-        energy = mpiHelper.getCollectiveCommunication().sum(energy);
+          if (corr_global.infinity_norm() < tolerance_) {
+              if (verbosity_ == NumProc::FULL and rank==0)
+                  std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
-        // compute the model decrease
-        // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
-        // Note that rhs = -g
-        CorrectionType tmp(corr);
-        hessianMatrix_->mv(corr,tmp);
-        double modelDecrease = rhs*corr - 0.5 * (corr*tmp);
-        modelDecrease = mpiHelper.getCollectiveCommunication().sum(modelDecrease);
+              if (verbosity_ != NumProc::QUIET and rank==0)
+                  std::cout << i+1 << " trust-region steps were taken." << std::endl;
+              break;
+          }
 
-        double relativeModelDecrease = modelDecrease / std::fabs(energy);
+          // ////////////////////////////////////////////////////
+          //   Check whether trust-region step can be accepted
+          // ////////////////////////////////////////////////////
 
-        if (verbosity_ == NumProc::FULL and rank==0) {
-            std::cout << "Absolute model decrease: " << modelDecrease
-                      << ",  functional decrease: " << oldEnergy - energy << std::endl;
-            std::cout << "Relative model decrease: " << relativeModelDecrease
-                      << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
+          for (size_t j=0; j<newIterate[_0].size(); j++)
+              newIterate[_0][j] = TargetSpace0::exp(newIterate[_0][j], corr[_0][j]);
+
+          for (size_t j=0; j<newIterate[_1].size(); j++)
+              newIterate[_1][j] = TargetSpace1::exp(newIterate[_1][j], corr[_1][j]);
+
+          try {
+            energy = assembler_->computeEnergy(newIterate[_0],newIterate[_1]);
+          } catch (Dune::Exception &e) {
+            std::cerr << "Error while computing the energy of the new Iterate: " << e << std::endl;
+            std::cerr << "Redoing trust region step with smaller radius..." << std::endl;
+            newIterate = x_;
+            solvedByInnerSolver = false;
+            energy = oldEnergy;
+          }
+
+          if (solvedByInnerSolver) {
+            energy = mpiHelper.getCollectiveCommunication().sum(energy);
+
+            // compute the model decrease
+            // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
+            // Note that rhs = -g
+            CorrectionType tmp(corr);
+            hessianMatrix_->mv(corr,tmp);
+            modelDecrease = rhs*corr - 0.5 * (corr*tmp);
+            modelDecrease = mpiHelper.getCollectiveCommunication().sum(modelDecrease);
+
+            double relativeModelDecrease = modelDecrease / std::fabs(energy);
+
+            if (verbosity_ == NumProc::FULL and rank==0) {
+                std::cout << "Absolute model decrease: " << modelDecrease
+                          << ",  functional decrease: " << oldEnergy - energy << std::endl;
+                std::cout << "Relative model decrease: " << relativeModelDecrease
+                          << ",  functional decrease: " << (oldEnergy - energy)/energy << std::endl;
+            }
+
+            assert(modelDecrease >= 0);
+
+            if (energy >= oldEnergy and rank==0) {
+                if (this->verbosity_ == NumProc::FULL)
+                    printf("Richtung ist keine Abstiegsrichtung!\n");
+            }
+
+            if (energy >= oldEnergy &&
+                (std::abs((oldEnergy-energy)/energy) < 1e-9 || relativeModelDecrease < 1e-9)) {
+                if (this->verbosity_ == NumProc::FULL and rank==0)
+                    std::cout << "Suspecting rounding problems" << std::endl;
+
+                if (this->verbosity_ != NumProc::QUIET and rank==0)
+                    std::cout << i+1 << " trust-region steps were taken." << std::endl;
+
+                x_ = newIterate;
+                break;
+            }
+
+          }
         }
-
-        assert(modelDecrease >= 0);
-
-        if (energy >= oldEnergy and rank==0) {
-            if (this->verbosity_ == NumProc::FULL)
-                printf("Richtung ist keine Abstiegsrichtung!\n");
-        }
-
-        if (energy >= oldEnergy &&
-            (std::abs((oldEnergy-energy)/energy) < 1e-9 || relativeModelDecrease < 1e-9)) {
-            if (this->verbosity_ == NumProc::FULL and rank==0)
-                std::cout << "Suspecting rounding problems" << std::endl;
-
-            if (this->verbosity_ != NumProc::QUIET and rank==0)
-                std::cout << i+1 << " trust-region steps were taken." << std::endl;
-
-            x_ = newIterate;
-            break;
-        }
-
         // //////////////////////////////////////////////
         //   Check for acceptance of the step
         // //////////////////////////////////////////////
-        if ( (oldEnergy-energy) / modelDecrease > 0.9) {
+        if ( solvedByInnerSolver && (oldEnergy-energy) / modelDecrease > 0.9) {
             // very successful iteration
 
             x_ = newIterate;
@@ -523,7 +550,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
             recomputeGradientHessian = true;
 
-        } else if ( (oldEnergy-energy) / modelDecrease > 0.01
+        } else if (solvedByInnerSolver && (oldEnergy-energy) / modelDecrease > 0.01
                     || std::abs(oldEnergy-energy) < 1e-12) {
             // successful iteration
             x_ = newIterate;
