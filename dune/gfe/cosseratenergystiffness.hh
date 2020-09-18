@@ -37,9 +37,9 @@ class LocalFiniteElementFactory
 public:
   static auto get(const typename Basis::LocalView& localView,
            std::integral_constant<std::size_t, i> iType)
-    -> decltype(localView.tree().child(iType).finiteElement())
+    -> decltype(localView.tree().child(iType,0).finiteElement())
   {
-    return localView.tree().child(iType).finiteElement();
+    return localView.tree().child(iType,0).finiteElement();
   }
 };
 

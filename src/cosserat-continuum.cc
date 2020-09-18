@@ -218,13 +218,17 @@ int main (int argc, char *argv[]) try
 
     using namespace Dune::Functions::BasisFactory;
 #ifdef MIXED_SPACE
+    const int dimRotation = Rotation<double,dim>::embeddedDim;
     auto compositeBasis = makeBasis(
       gridView,
       composite(
-          lagrange<displacementOrder>(),
-          lagrange<rotationOrder>()
-      )
-    );
+        power<dim>(
+            lagrange<displacementOrder>()
+        ),
+        power<dimRotation>(
+            lagrange<rotationOrder>()
+        )
+    ));
 
     typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
     typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
