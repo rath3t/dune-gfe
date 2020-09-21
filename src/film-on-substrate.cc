@@ -93,27 +93,6 @@ struct Dune::MathematicalConstants<adouble>
 typedef adouble ValueType;
 
 using namespace Dune;
-#if DUNE_VERSION_LT(DUNE_ELASTICITY, 2, 8)
-/** \brief A constant vector-valued function, for simple Neumann boundary values */
-struct NeumannFunction
-    : public Dune::VirtualFunction<FieldVector<double,dim>, FieldVector<double,dim> >
-{
-  NeumannFunction(const FieldVector<double,dim> values,
-                  double homotopyParameter)
-  : values_(values),
-    homotopyParameter_(homotopyParameter)
-  {}
-
-  void evaluate(const FieldVector<double, dim>& x, FieldVector<double,dim>& out) const
-  {
-    out = 0;
-    out.axpy(-homotopyParameter_, values_);
-  }
-
-  FieldVector<double,dim> values_;
-  double homotopyParameter_;
-};
-#endif
 
 int main (int argc, char *argv[]) try
 {
@@ -472,9 +451,7 @@ int main (int argc, char *argv[]) try
       // A constant vector-valued function, for simple Neumann boundary values
     std::shared_ptr<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>> neumannFunctionPtr;
     neumannFunctionPtr = std::make_shared<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>>([&](FieldVector<double,dim> ) {
-      auto nv = neumannValues;
-      nv *= (-homotopyParameter);
-      return nv;
+      return neumannValues * (-homotopyParameter);
     });
 #endif
 

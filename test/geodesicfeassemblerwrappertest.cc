@@ -65,18 +65,6 @@ using MatrixType = MultiTypeBlockMatrix<MatrixRow0,MatrixRow1>;
 //Types for the Non-mixed space
 using RBM = RigidBodyMotion<double, dim>;
 const static int blocksize = RBM::TangentVector::dimension;
-
-struct NeumannFunction
-    : public Dune::VirtualFunction<FieldVector<double,gridDim>, FieldVector<double,dim> >
-{
-    NeumannFunction(){}
-
-    void evaluate(const FieldVector<double, gridDim>& x, FieldVector<double,dim>& out) const {
-        out = 0;
-        out.axpy(1.0, values_);
-    }
-    FieldVector<double,3> values_ = {3e4,2e4,1e4};
-};  
 using CorrectionTypeWrapped = BlockVector<FieldVector<double, blocksize> >;
 using MatrixTypeWrapped = BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >;
 
@@ -143,7 +131,11 @@ int main (int argc, char *argv[])
   parameters["kappa"] = "1";
 
 
-  auto neumannFunction = std::make_shared<NeumannFunction>();
+  FieldVector<double,dim> values_ = {3e4,2e4,1e4};
+  auto neumannFunction = [&](FieldVector<double, gridDim>){
+    return values_;
+  };
+
   CosseratEnergyLocalStiffness<decltype(compositeBasis), dim,adouble> cosseratEnergy(parameters,
                                                                      &neumannBoundary,
                                                                      neumannFunction,

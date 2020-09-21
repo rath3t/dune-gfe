@@ -42,8 +42,8 @@ public:
   NonplanarCosseratShellEnergy(const Dune::ParameterTree& parameters,
                                const std::vector<UnitVector<double,3> >& vertexNormals,
                                const BoundaryPatch<GridView>* neumannBoundary,
-                               const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > neumannFunction,
-                               const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > volumeLoad)
+                               const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction,
+                               const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad)
   : vertexNormals_(vertexNormals),
     neumannBoundary_(neumannBoundary),
     neumannFunction_(neumannFunction),
@@ -117,10 +117,10 @@ public:
   const BoundaryPatch<GridView>* neumannBoundary_;
 
   /** \brief The function implementing the Neumann data */
-  const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > neumannFunction_;
+  const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction_;
 
   /** \brief The function implementing a volume load */
-  const std::shared_ptr<Dune::VirtualFunction<Dune::FieldVector<double,dimworld>, Dune::FieldVector<double,3> > > volumeLoad_;
+  const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad_;
 };
 
 template <class Basis, int dim, class field_type>
@@ -306,12 +306,7 @@ energy(const typename Basis::LocalView& localView,
       continue;
 
     // Value of the volume load density at the current position
-    Dune::FieldVector<double,3> volumeLoadDensity;
-
-    if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(volumeLoad_))
-      std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(volumeLoad_)->evaluateLocal(element, quadPos, volumeLoadDensity);
-    else
-      volumeLoad_->evaluate(geometry.global(quad[pt].position()), volumeLoadDensity);
+    Dune::FieldVector<double,3> volumeLoadDensity = volumeLoad_(geometry.global(quad[pt].position()));
 
     // Only translational dofs are affected by the volume load
     for (size_t i=0; i<volumeLoadDensity.size(); i++)
@@ -344,12 +339,7 @@ energy(const typename Basis::LocalView& localView,
       RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
       // Value of the Neumann data at the current position
-      Dune::FieldVector<double,3> neumannValue;
-
-      if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(neumannFunction_))
-        std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,Dune::FieldVector<double,3> > >(neumannFunction_)->evaluateLocal(element, quadPos, neumannValue);
-      else
-        neumannFunction_->evaluate(it.geometry().global(quad[pt].position()), neumannValue);
+      Dune::FieldVector<double,3> neumannValue = neumannFunction_(it.geometry().global(quad[pt].position()));
 
       // Only translational dofs are affected by the Neumann force
       for (size_t i=0; i<neumannValue.size(); i++)

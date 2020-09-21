@@ -81,45 +81,6 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
 
-/** \brief A constant vector-valued function, for simple Neumann boundary values */
-struct NeumannFunction
-    : public Dune::VirtualFunction<FieldVector<double,dimworld>, FieldVector<double,3> >
-{
-    NeumannFunction(const FieldVector<double,3> values,
-                    double homotopyParameter)
-    : values_(values),
-      homotopyParameter_(homotopyParameter)
-    {}
-
-    void evaluate(const FieldVector<double, dimworld>& x, FieldVector<double,3>& out) const {
-        out = 0;
-        out.axpy(homotopyParameter_, values_);
-    }
-
-    FieldVector<double,3> values_;
-    double homotopyParameter_;
-};
-
-/** \brief A constant vector-valued function, for simple volume loads */
-struct VolumeLoad
-    : public Dune::VirtualFunction<FieldVector<double,dimworld>, FieldVector<double,3> >
-{
-    VolumeLoad(const FieldVector<double,3> values,
-               double homotopyParameter)
-    : values_(values),
-      homotopyParameter_(homotopyParameter)
-    {}
-
-    void evaluate(const FieldVector<double, dimworld>& x, FieldVector<double,3>& out) const {
-        out = 0;
-        out.axpy(homotopyParameter_, values_);
-    }
-
-    FieldVector<double,3> values_;
-    double homotopyParameter_;
-};
-
-
 int main (int argc, char *argv[]) try
 {
     // initialize MPI, finalize is done automatically on exit
@@ -438,15 +399,25 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
 
     const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
-    std::shared_ptr<NeumannFunction> neumannFunction;
+    FieldVector<double,3> neumannValues {0,0,0};
     if (parameterSet.hasKey("neumannValues"))
-        neumannFunction = std::make_shared<NeumannFunction>(parameterSet.get<FieldVector<double,3> >("neumannValues"),
-                                                       homotopyParameter);
+        neumannValues = parameterSet.get<FieldVector<double,3> >("neumannValues");
 
-    std::shared_ptr<VolumeLoad> volumeLoad;
+    auto neumannFunction = [&]( FieldVector<double,dim> ) {
+      auto nV = neumannValues;
+      nV *= homotopyParameter;
+      return nV;
+    };
+
+    FieldVector<double,3> volumeLoadValues {0,0,0};
     if (parameterSet.hasKey("volumeLoad"))
-        volumeLoad = std::make_shared<VolumeLoad>(parameterSet.get<FieldVector<double,3> >("volumeLoad"),
-                                                                                          homotopyParameter);
+        volumeLoadValues = parameterSet.get<FieldVector<double,3> >("volumeLoad");
+
+    auto volumeLoad = [&]( FieldVector<double,dim>) {
+      auto vL = volumeLoadValues;
+      vL *= homotopyParameter;
+      return vL;
+    };
 
     if (mpiHelper.rank() == 0) {
         std::cout << "Material parameters:" << std::endl;
