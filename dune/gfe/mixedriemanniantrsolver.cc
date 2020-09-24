@@ -487,7 +487,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
           try {
             energy = assembler_->computeEnergy(newIterate[_0],newIterate[_1]);
           } catch (Dune::Exception &e) {
-            std::cerr << "Error while computing the energy of the new Iterate: " << e << std::endl;
+            std::cerr << "Error while computing the energy of the new iterate: " << e << std::endl;
             std::cerr << "Redoing trust region step with smaller radius..." << std::endl;
             newIterate = x_;
             solvedByInnerSolver = false;
