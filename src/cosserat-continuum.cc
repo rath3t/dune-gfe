@@ -46,13 +46,16 @@
 #include <dune/gfe/nonplanarcosseratshellenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/cosseratvtkreader.hh>
-#include <dune/gfe/vtkreader.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/vertexnormals.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/mixedgfeassembler.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
+
+#if HAVE_DUNE_VTK
+#include <dune/vtk/vtkreader.hh>
+#endif
 
 // grid dimension
 const int dim = 2;
@@ -203,7 +206,11 @@ int main (int argc, char *argv[]) try
         if (suffix == ".msh")
             grid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
         else if (suffix == ".vtu" or suffix == ".vtp")
-            grid = VTKReader<GridType>::read(path + "/" + gridFile);
+#if HAVE_DUNE_VTK
+            grid = VtkReader<GridType>::createGridFromFile(path + "/" + gridFile);
+#else
+            DUNE_THROW(NotImplemented, "Please install dune-vtk for VTK reading support!");
+#endif
     }
 
     grid->globalRefine(numLevels-1);

@@ -55,18 +55,20 @@ dune:git clang:
   - *before
   script: duneci-standard-test
 
-dune:git parmg gcc:
+dune:git parmg dune-vtk gcc:
   image: registry.dune-project.org/docker/ci/dune:git-debian-10-gcc-8-17
   before_script:
   - *patch-dune-common
   - *before
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/paraphase/dune-parmg.git
+  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-vtk.git
   script: duneci-standard-test
 
-dune:git parmg clang:
+dune:git parmg dune-vtk clang:
   image: registry.dune-project.org/docker/ci/dune:git-ubuntu-20.04-clang-10-20
   before_script:
   - *patch-dune-common
   - *before
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/paraphase/dune-parmg.git
+  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-vtk.git
   script: duneci-standard-test
