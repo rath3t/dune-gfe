@@ -51,7 +51,7 @@ initialDeformation = "x"
 #############################################
 
 # Inner solver, cholmod or multigrid
-solvertype = cholmod
+solvertype = multigrid
 
 # Number of homotopy steps for the Dirichlet boundary conditions
 numHomotopySteps = 1
