@@ -230,7 +230,7 @@ energy(const typename Basis::LocalView& localView,
 
     for (int alpha=0; alpha<2; alpha++)
       for (int beta=0; beta<2; beta++)
-        c += sqrt(aScalar) * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
+        c += aScalar * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
 
     // Second fundamental form
     // The derivative of the normal field
