@@ -1,6 +1,7 @@
 #ifndef DUNE_GFE_SURFACECOSSERATENERGY_HH
 #define DUNE_GFE_SURFACECOSSERATENERGY_HH
 
+#include <dune/common/indices.hh>
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/fufem/functions/virtualgridfunction.hh>
@@ -16,14 +17,15 @@
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/vertexnormals.hh>
 
+namespace Dune::GFE {
 
-template<class Basis, class TargetSpace, class field_type=double, class GradientRT=double>
+template<class Basis, class... TargetSpaces>
 class SurfaceCosseratEnergy
-: public Dune::GFE::LocalEnergy<Basis,TargetSpace>
+: public Dune::GFE::LocalEnergy<Basis, TargetSpaces...>
 {
   using GridView = typename Basis::GridView;
   using DT = typename GridView::ctype ;
-  using RT = typename TargetSpace::ctype;
+  using RT = typename Dune::GFE::LocalEnergy<Basis, TargetSpaces...>::RT ;
   using Entity = typename GridView::template Codim<0>::Entity ;
   using RBM0 = RealTuple<RT,GridView::dimensionworld> ;
   using RBM1 = Rotation<RT,GridView::dimensionworld> ;
@@ -94,13 +96,18 @@ public:
   }
 
 RT energy(const typename Basis::LocalView& localView,
-       const std::vector<RigidBodyMotion<field_type,dimWorld> >& localSolution) const
-{
+          const std::vector<TargetSpaces>&... localSolutions) const
+{ 
+  static_assert(sizeof...(TargetSpaces) == 2, "SurfaceCosseratEnergy needs exactly two TargetSpace!");
+
+  using namespace Dune::Indices;
+  using TargetSpace0 = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
+  const std::vector<TargetSpace0>& localSolution0 = std::get<0>(std::forward_as_tuple(localSolutions...));
+  using TargetSpace1 = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
+  const std::vector<TargetSpace1>& localSolution1 = std::get<1>(std::forward_as_tuple(localSolutions...));
+
   // The element geometry
   auto element = localView.element();
-
-  // The set of shape functions on this element
-  const auto& localFiniteElement = localView.tree().finiteElement();
   auto gridView = localView.globalBasis().gridView();
 
   ////////////////////////////////////////////////////////////////////////////////////
@@ -121,8 +128,34 @@ RT energy(const typename Basis::LocalView& localView,
   ////////////////////////////////////////////////////////////////////////////////////
   //  Set up the local nonlinear finite element function
   ////////////////////////////////////////////////////////////////////////////////////
-  typedef LocalGeodesicFEFunction<gridDim, DT, typename Basis::LocalView::Tree::FiniteElement, TargetSpace> LocalGFEFunctionType;
-  LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
+  using namespace Dune::TypeTree::Indices;
+
+  // The set of shape functions on this element
+  const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
+  const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
+    
+  // to construt a local GFE function, in case they are the shape functions are the same, we can use use one GFE-Function
+#if MIXED_SPACE
+    std::vector<RBM0> localSolutionRBM0(localSolution0.size());
+    std::vector<RBM1> localSolutionRBM1(localSolution1.size());
+    for (int i = 0; i < localSolution0.size(); i++)
+      localSolutionRBM0[i] = localSolution0[i];
+    for (int i = 0; i< localSolution1.size(); i++)
+      localSolutionRBM1[i] = localSolution1[i];
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM0> LocalGFEFunctionType0;
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), RBM1> LocalGFEFunctionType1;
+    LocalGFEFunctionType0 localGeodesicFEFunction0(deformationLocalFiniteElement,localSolutionRBM0);
+    LocalGFEFunctionType1 localGeodesicFEFunction1(orientationLocalFiniteElement,localSolutionRBM1);
+#else
+    std::vector<RBM> localSolutionRBM(localSolution0.size());
+    for (int i = 0; i < localSolution0.size(); i++) {
+      for (int j = 0; j < dimWorld; j++)
+        localSolutionRBM[i].r[j] = localSolution0[i][j];
+      localSolutionRBM[i].q = localSolution1[i];
+    }
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM> LocalGFEFunctionType;
+    LocalGFEFunctionType localGeodesicFEFunction(deformationLocalFiniteElement,localSolutionRBM);
+#endif
 
   RT energy = 0;
 
@@ -134,8 +167,8 @@ RT energy(const typename Basis::LocalView& localView,
     
     auto id = idSet.subId(it.inside(), it.indexInInside(), 1);
     auto boundaryGeometry = geometriesOnShellBoundary_.at(id);
-    auto quadOrder = (it.type().isSimplex()) ? localFiniteElement.localBasis().order()
-                                                  : localFiniteElement.localBasis().order() * boundaryDim;
+    auto quadOrder = (it.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
+                                                  : deformationLocalFiniteElement.localBasis().order() * boundaryDim;
 
     const auto& quad = Dune::QuadratureRules<DT, boundaryDim>::rule(it.type(), quadOrder);
     for (size_t pt=0; pt<quad.size(); pt++) {
@@ -152,18 +185,42 @@ RT energy(const typename Basis::LocalView& localView,
 
       const DT integrationElement = boundaryGeometry.integrationElement(quad[pt].position());
 
+      RBM value;
+      Dune::FieldMatrix<RT, RBM::embeddedDim, dimWorld> derivative;
+      Dune::FieldMatrix<RT, RBM::embeddedDim, boundaryDim> derivative2D;
+
+#if MIXED_SPACE
       // The value of the local function
-      RigidBodyMotion<field_type,dimWorld> value = localGeodesicFEFunction.evaluate(quadPos);
+      RBM0 value0 = localGeodesicFEFunction0.evaluate(quadPos);
+      RBM1 value1 = localGeodesicFEFunction1.evaluate(quadPos);
+      // The derivatives of the local functions
+      auto derivative0 = localGeodesicFEFunction0.evaluateDerivative(quadPos,value0);
+      auto derivative1 = localGeodesicFEFunction1.evaluateDerivative(quadPos,value1);
 
-      // The derivative of the local function
-      auto derivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
-
-      Dune::FieldMatrix<RT,7,2> derivative2D;
-      for (int i = 0; i < 7; i++) {
-        for (int j = 0; j < 2; j++) {
-          derivative2D[i][j] = derivative[i][j];
+      // Put the value and the derivatives together from the separated values
+      for (int i = 0; i < RBM0::dim; i++)
+          value.r[i] = value0[i];
+      value.q = value1;
+      for (int j = 0; j < dimWorld; j++) {
+        for (int i = 0; i < RBM0::embeddedDim; i++) {
+          derivative[i][j] = derivative0[i][j];
+          if (j < boundaryDim)
+            derivative2D[i][j] = derivative0[i][j];
+        }
+        for (int i = 0; i < RBM1::embeddedDim; i++) {
+          derivative[RBM0::embeddedDim + i][j] = derivative1[i][j];
+          if (j < boundaryDim)
+            derivative2D[RBM0::embeddedDim + i][j] = derivative1[i][j];
         }
       }
+#else
+      value = localGeodesicFEFunction.evaluate(quadPos);
+      derivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
+      for (int i = 0; i < RBM::embeddedDim; i++)
+        for (int j = 0; j < boundaryDim; j++)
+          derivative2D[i][j] = derivative[i][j];
+#endif
+
       //////////////////////////////////////////////////////////
       //  The rotation and its derivative
       //  Note: we need it in matrix coordinates
@@ -343,5 +400,6 @@ private:
   double b1_, b2_, b3_;
 
 };
+}  // namespace Dune::GFE
 
 #endif   //#ifndef DUNE_GFE_SURFACECOSSERATENERGY_HH
