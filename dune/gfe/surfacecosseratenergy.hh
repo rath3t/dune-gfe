@@ -1,6 +1,7 @@
 #ifndef DUNE_GFE_SURFACECOSSERATENERGY_HH
 #define DUNE_GFE_SURFACECOSSERATENERGY_HH
 
+#include <dune/common/indices.hh>
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/fufem/functions/virtualgridfunction.hh>
@@ -16,46 +17,21 @@
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/vertexnormals.hh>
 
-template <class Basis, std::size_t i>
-class LocalFiniteElementFactory
-{
-public:
-  static auto get(const typename Basis::LocalView& localView,
-           std::integral_constant<std::size_t, i> iType)
-    -> decltype(localView.tree().child(iType).finiteElement())
-  {
-    return localView.tree().child(iType).finiteElement();
-  }
-};
+namespace Dune::GFE {
 
-/** \brief Specialize for scalar bases, here we cannot call tree().child() */
-template <class GridView, int order, std::size_t i>
-class LocalFiniteElementFactory<Dune::Functions::LagrangeBasis<GridView,order>,i>
-{
-public:
-  static auto get(const typename Dune::Functions::LagrangeBasis<GridView,order>::LocalView& localView,
-           std::integral_constant<std::size_t, i> iType)
-    -> decltype(localView.tree().finiteElement())
-  {
-    return localView.tree().finiteElement();
-  }
-};
-
-template<class Basis, class TargetSpace, class field_type=double, class GradientRT=double>
+template<class Basis, class... TargetSpaces>
 class SurfaceCosseratEnergy
-: public Dune::GFE::LocalEnergy<Basis,TargetSpace>
+: public Dune::GFE::LocalEnergy<Basis, TargetSpaces...>
 {
- // grid types
-  typedef typename Basis::GridView GridView;
-  typedef typename GridView::ctype ctype;
-  typedef typename Basis::LocalView::Tree::FiniteElement LocalFiniteElement;
-  typedef typename GridView::ctype DT;
-  typedef typename TargetSpace::ctype RT;
-  typedef typename GridView::template Codim<0>::Entity Entity;
-  typedef typename TargetSpace::template rebind<adouble>::other ATargetSpace;
+  using GridView = typename Basis::GridView;
+  using DT = typename GridView::ctype ;
+  using RT = typename Dune::GFE::LocalEnergy<Basis, TargetSpaces...>::RT ;
+  using Entity = typename GridView::template Codim<0>::Entity ;
+  using RBM0 = RealTuple<RT,GridView::dimensionworld> ;
+  using RBM1 = Rotation<RT,GridView::dimensionworld> ;
+  using RBM = RigidBodyMotion<RT,GridView::dimensionworld> ;
 
-  enum {dim=GridView::dimension};
-  enum {dimworld=GridView::dimensionworld};
+  enum {dimWorld=GridView::dimensionworld};
   enum {gridDim=GridView::dimension};
   static constexpr int boundaryDim = gridDim - 1;
 
@@ -64,9 +40,9 @@ class SurfaceCosseratEnergy
       \param derivative First derivative of the gfe function wrt x at that point, in quaternion coordinates
       \param DR First derivative of the gfe function wrt x at that point, in matrix coordinates
    */
-  static void computeDR(const RigidBodyMotion<field_type,dimworld>& value,
-                        const Dune::FieldMatrix<field_type,7,boundaryDim>& derivative,
-                        Tensor3<field_type,3,3,boundaryDim>& DR)
+  static void computeDR(const RBM& value,
+                        const Dune::FieldMatrix<RT,RBM::embeddedDim,boundaryDim>& derivative,
+                        Tensor3<RT,dimWorld,dimWorld,boundaryDim>& derivative_rotation)
   {
     // The LocalGFEFunction class gives us the derivatives of the orientation variable,
     // but as a map into quaternion space.  To obtain matrix coordinates we use the
@@ -77,15 +53,15 @@ class SurfaceCosseratEnergy
     // corresponding orthogonal matrix, we need to invert the i and j indices
     //
     // So, DR[i][j][k] contains \partial R_ij / \partial k
-    Tensor3<field_type,3 , 3, 4> dd_dq;
+    Tensor3<RT, dimWorld, dimWorld, 4> dd_dq;
     value.q.getFirstDerivativesOfDirectors(dd_dq);
 
-    DR = field_type(0);
-    for (int i=0; i<3; i++)
-      for (int j=0; j<3; j++)
+    derivative_rotation = RT(0);
+    for (int i=0; i<dimWorld; i++)
+      for (int j=0; j<dimWorld; j++)
         for (int k=0; k<boundaryDim; k++)
           for (int l=0; l<4; l++)
-            DR[i][j][k] += dd_dq[j][i][l] * derivative[l+3][k];
+            derivative_rotation[i][j][k] += dd_dq[j][i][l] * derivative[l+3][k];
   }
 
 
@@ -96,11 +72,11 @@ public:
    * \param parameters The material parameters
    */
   SurfaceCosseratEnergy(const Dune::ParameterTree& parameters,
-    const std::vector<UnitVector<double,3> >& vertexNormals,
+    const std::vector<UnitVector<double,dimWorld> >& vertexNormals,
     const BoundaryPatch<GridView>* shellBoundary,
-    const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType,Dune::MultiLinearGeometry<double, dim-1, dim>>& geometriesOnShellBoundary,
-    const std::function<double(Dune::FieldVector<double,dim>)> thicknessF,
-    const std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dim>)> lameF)
+    const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType,Dune::MultiLinearGeometry<double, dimWorld-1, dimWorld>>& geometriesOnShellBoundary,
+    const std::function<double(Dune::FieldVector<double,dimWorld>)> thicknessF,
+    const std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dimWorld>)> lameF)
   : shellBoundary_(shellBoundary),
     vertexNormals_(vertexNormals),
     geometriesOnShellBoundary_(geometriesOnShellBoundary),
@@ -120,36 +96,66 @@ public:
   }
 
 RT energy(const typename Basis::LocalView& localView,
-       const std::vector<RigidBodyMotion<field_type,dim> >& localSolution) const
-{
+          const std::vector<TargetSpaces>&... localSolutions) const
+{ 
+  static_assert(sizeof...(TargetSpaces) == 2, "SurfaceCosseratEnergy needs exactly two TargetSpace!");
+
+  using namespace Dune::Indices;
+  using TargetSpace0 = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
+  const std::vector<TargetSpace0>& localSolution0 = std::get<0>(std::forward_as_tuple(localSolutions...));
+  using TargetSpace1 = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
+  const std::vector<TargetSpace1>& localSolution1 = std::get<1>(std::forward_as_tuple(localSolutions...));
+
   // The element geometry
   auto element = localView.element();
-
-  // The set of shape functions on this element
-  const auto& localFiniteElement = localView.tree().finiteElement();
+  auto gridView = localView.globalBasis().gridView();
 
   ////////////////////////////////////////////////////////////////////////////////////
   //  Construct a linear (i.e., non-constant!) normal field on each element
   ////////////////////////////////////////////////////////////////////////////////////
-  auto gridView = localView.globalBasis().gridView();
-
-  assert(vertexNormals_.size() == gridView.indexSet().size(gridDim));
-  std::vector<UnitVector<double,3> > cornerNormals(element.subEntities(gridDim));
-  for (size_t i=0; i<cornerNormals.size(); i++)
-    cornerNormals[i] = vertexNormals_[gridView.indexSet().subIndex(element,i,gridDim)];
-
   typedef typename Dune::PQkLocalFiniteElementCache<DT, double, gridDim, 1> P1FiniteElementCache;
   typedef typename P1FiniteElementCache::FiniteElementType P1LocalFiniteElement;
   //it.type()?
   P1FiniteElementCache p1FiniteElementCache;
   const auto& p1LocalFiniteElement = p1FiniteElementCache.get(element.type());
+
+  assert(vertexNormals_.size() == gridView.indexSet().size(gridDim));
+  std::vector<UnitVector<double,3> > cornerNormals(element.subEntities(gridDim));
+  for (size_t i=0; i<cornerNormals.size(); i++)
+    cornerNormals[i] = vertexNormals_[gridView.indexSet().subIndex(element,i,gridDim)];
   Dune::GFE::LocalProjectedFEFunction<gridDim, DT, P1LocalFiniteElement, UnitVector<double,3> > unitNormals(p1LocalFiniteElement, cornerNormals);
 
   ////////////////////////////////////////////////////////////////////////////////////
   //  Set up the local nonlinear finite element function
   ////////////////////////////////////////////////////////////////////////////////////
-  typedef LocalGeodesicFEFunction<gridDim, DT, LocalFiniteElement, TargetSpace> LocalGFEFunctionType;
-  LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
+  using namespace Dune::TypeTree::Indices;
+
+  // The set of shape functions on this element
+  const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
+  const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
+    
+  // to construt a local GFE function, in case they are the shape functions are the same, we can use use one GFE-Function
+#if MIXED_SPACE
+    std::vector<RBM0> localSolutionRBM0(localSolution0.size());
+    std::vector<RBM1> localSolutionRBM1(localSolution1.size());
+    for (int i = 0; i < localSolution0.size(); i++)
+      localSolutionRBM0[i] = localSolution0[i];
+    for (int i = 0; i< localSolution1.size(); i++)
+      localSolutionRBM1[i] = localSolution1[i];
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM0> LocalGFEFunctionType0;
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), RBM1> LocalGFEFunctionType1;
+    LocalGFEFunctionType0 localGeodesicFEFunction0(deformationLocalFiniteElement,localSolutionRBM0);
+    LocalGFEFunctionType1 localGeodesicFEFunction1(orientationLocalFiniteElement,localSolutionRBM1);
+#else
+    std::vector<RBM> localSolutionRBM(localSolution0.size());
+    for (int i = 0; i < localSolution0.size(); i++) {
+      for (int j = 0; j < dimWorld; j++)
+        localSolutionRBM[i].r[j] = localSolution0[i][j];
+      localSolutionRBM[i].q = localSolution1[i];
+    }
+    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM> LocalGFEFunctionType;
+    LocalGFEFunctionType localGeodesicFEFunction(deformationLocalFiniteElement,localSolutionRBM);
+#endif
 
   RT energy = 0;
 
@@ -161,8 +167,8 @@ RT energy(const typename Basis::LocalView& localView,
     
     auto id = idSet.subId(it.inside(), it.indexInInside(), 1);
     auto boundaryGeometry = geometriesOnShellBoundary_.at(id);
-    auto quadOrder = (it.type().isSimplex()) ? localFiniteElement.localBasis().order()
-                                                  : localFiniteElement.localBasis().order() * boundaryDim;
+    auto quadOrder = (it.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
+                                                  : deformationLocalFiniteElement.localBasis().order() * boundaryDim;
 
     const auto& quad = Dune::QuadratureRules<DT, boundaryDim>::rule(it.type(), quadOrder);
     for (size_t pt=0; pt<quad.size(); pt++) {
@@ -179,47 +185,71 @@ RT energy(const typename Basis::LocalView& localView,
 
       const DT integrationElement = boundaryGeometry.integrationElement(quad[pt].position());
 
+      RBM value;
+      Dune::FieldMatrix<RT, RBM::embeddedDim, dimWorld> derivative;
+      Dune::FieldMatrix<RT, RBM::embeddedDim, boundaryDim> derivative2D;
+
+#if MIXED_SPACE
       // The value of the local function
-      RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
+      RBM0 value0 = localGeodesicFEFunction0.evaluate(quadPos);
+      RBM1 value1 = localGeodesicFEFunction1.evaluate(quadPos);
+      // The derivatives of the local functions
+      auto derivative0 = localGeodesicFEFunction0.evaluateDerivative(quadPos,value0);
+      auto derivative1 = localGeodesicFEFunction1.evaluateDerivative(quadPos,value1);
 
-      // The derivative of the local function
-      auto derivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
-
-      Dune::FieldMatrix<RT,7,2> derivative2D;
-      for (int i = 0; i < 7; i++) {
-        for (int j = 0; j < 2; j++) {
-          derivative2D[i][j] = derivative[i][j];
+      // Put the value and the derivatives together from the separated values
+      for (int i = 0; i < RBM0::dim; i++)
+          value.r[i] = value0[i];
+      value.q = value1;
+      for (int j = 0; j < dimWorld; j++) {
+        for (int i = 0; i < RBM0::embeddedDim; i++) {
+          derivative[i][j] = derivative0[i][j];
+          if (j < boundaryDim)
+            derivative2D[i][j] = derivative0[i][j];
+        }
+        for (int i = 0; i < RBM1::embeddedDim; i++) {
+          derivative[RBM0::embeddedDim + i][j] = derivative1[i][j];
+          if (j < boundaryDim)
+            derivative2D[RBM0::embeddedDim + i][j] = derivative1[i][j];
         }
       }
+#else
+      value = localGeodesicFEFunction.evaluate(quadPos);
+      derivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
+      for (int i = 0; i < RBM::embeddedDim; i++)
+        for (int j = 0; j < boundaryDim; j++)
+          derivative2D[i][j] = derivative[i][j];
+#endif
+
       //////////////////////////////////////////////////////////
       //  The rotation and its derivative
       //  Note: we need it in matrix coordinates
       //////////////////////////////////////////////////////////
 
-      Dune::FieldMatrix<field_type,dim,dim> R;
+      Dune::FieldMatrix<RT,dimWorld,dimWorld> R;
       value.q.matrix(R);
-      auto RT = Dune::GFE::transpose(R);
+      auto rt = Dune::GFE::transpose(R);
 
-      Tensor3<field_type,3,3,boundaryDim> DR;
-      computeDR(value, derivative2D, DR);
+      Tensor3<RT,dimWorld,dimWorld,boundaryDim> derivative_rotation;
+      computeDR(value, derivative2D, derivative_rotation);
 
       //////////////////////////////////////////////////////////
       //  Fundamental forms and curvature
       //////////////////////////////////////////////////////////
 
       // First fundamental form
-      Dune::FieldMatrix<double,3,3> aCovariant;
+      Dune::FieldMatrix<double,dimWorld,dimWorld> aCovariant;
 
-      // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
-      // of the element.  If dimworld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
+      // If dimWorld==3, then the first two lines of aCovariant are simply the jacobianTransposed
+      // of the element.  If dimWorld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
       const auto jacobianTransposed = boundaryGeometry.jacobianTransposed(quad[pt].position());
       // auto jacobianTransposed = geometry.jacobianTransposed(quadPos);
 
       for (int i=0; i<2; i++)
       {
-        for (int j=0; j<dimworld; j++)
+        for (int j=0; j<dimWorld; j++)
           aCovariant[i][j] = jacobianTransposed[i][j];
-        for (int j=dimworld; j<3; j++)
+        for (int j=dimWorld; j<3; j++)
           aCovariant[i][j] = 0.0;
       }
 
@@ -271,28 +301,28 @@ RT energy(const typename Basis::LocalView& localView,
       //////////////////////////////////////////////////////////
 
       // Elastic shell strain
-      Dune::FieldMatrix<field_type,3,3> Ee(0);
-      Dune::FieldMatrix<field_type,3,3> grad_s_m(0);
+      Dune::FieldMatrix<RT,3,3> Ee(0);
+      Dune::FieldMatrix<RT,3,3> grad_s_m(0);
       for (int alpha=0; alpha<boundaryDim; alpha++)
       {
-        Dune::FieldVector<field_type,3> vec;
+        Dune::FieldVector<RT,3> vec;
         for (int i=0; i<3; i++)
           vec[i] = derivative[i][alpha];
         grad_s_m += Dune::GFE::dyadicProduct(vec, aContravariant[alpha]);
       }
 
-      Ee = RT * grad_s_m - a;
+      Ee = rt * grad_s_m - a;
 
       // Elastic shell bending-curvature strain
-      Dune::FieldMatrix<field_type,3,3> Ke(0);
+      Dune::FieldMatrix<RT,3,3> Ke(0);
       for (int alpha=0; alpha<boundaryDim; alpha++)
       {
-        Dune::FieldMatrix<field_type,3,3> tmp;
+        Dune::FieldMatrix<RT,3,3> tmp;
         for (int i=0; i<3; i++)
           for (int j=0; j<3; j++)
-            tmp[i][j] = DR[i][j][alpha];
-        auto tmp2 = RT * tmp;
-        Ke += Dune::GFE::dyadicProduct(SkewMatrix<field_type,3>(tmp2).axial(), aContravariant[alpha]);
+            tmp[i][j] = derivative_rotation[i][j][alpha];
+        auto tmp2 = rt * tmp;
+        Ke += Dune::GFE::dyadicProduct(SkewMatrix<RT,3>(tmp2).axial(), aContravariant[alpha]);
       }
 
       //////////////////////////////////////////////////////////
@@ -318,24 +348,24 @@ RT energy(const typename Basis::LocalView& localView,
   return energy;
 }
 
-  RT W_m(const Dune::FieldMatrix<field_type,3,3>& S, double mu, double lambda) const
+  RT W_m(const Dune::FieldMatrix<RT,3,3>& S, double mu, double lambda) const
   {
     return W_mixt(S,S, mu, lambda);
   }
 
-  RT W_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T, double mu, double lambda) const
+  RT W_mixt(const Dune::FieldMatrix<RT,3,3>& S, const Dune::FieldMatrix<RT,3,3>& T, double mu, double lambda) const
   {
     return mu * Dune::GFE::frobeniusProduct(Dune::GFE::sym(S), Dune::GFE::sym(T))
          + mu_c_ * Dune::GFE::frobeniusProduct(Dune::GFE::skew(S), Dune::GFE::skew(T))
          + lambda * mu / (lambda + 2*mu) * Dune::GFE::trace(S) * Dune::GFE::trace(T);
   }
 
-  RT W_mp(const Dune::FieldMatrix<field_type,3,3>& S, double mu, double lambda) const
+  RT W_mp(const Dune::FieldMatrix<RT,3,3>& S, double mu, double lambda) const
   {
     return mu * Dune::GFE::sym(S).frobenius_norm2() + mu_c_ * Dune::GFE::skew(S).frobenius_norm2() + lambda * 0.5 * Dune::GFE::traceSquared(S);
   }
 
-  RT W_curv(const Dune::FieldMatrix<field_type,3,3>& S, double mu) const
+  RT W_curv(const Dune::FieldMatrix<RT,3,3>& S, double mu) const
   {
     return mu * L_c_ * L_c_ * (b1_ * Dune::GFE::dev(Dune::GFE::sym(S)).frobenius_norm2()
          + b2_ * Dune::GFE::skew(S).frobenius_norm2() + b3_ * Dune::GFE::traceSquared(S));
@@ -346,16 +376,16 @@ private:
   const BoundaryPatch<GridView>* shellBoundary_;
 
   /** \brief Stress-free geometries of the shell elements*/
-  const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType, Dune::MultiLinearGeometry<double, dim-1, dim>> geometriesOnShellBoundary_;
+  const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType, Dune::MultiLinearGeometry<double, dimWorld-1, dimWorld>> geometriesOnShellBoundary_;
 
   /** \brief The normal vectors at the grid vertices. They are used to compute the reference surface curvature. */
   std::vector<UnitVector<double,3> > vertexNormals_;
 
   /** \brief The shell thickness as a function*/
-  std::function<double(Dune::FieldVector<double,dim>)> thicknessF_;
+  std::function<double(Dune::FieldVector<double,dimWorld>)> thicknessF_;
 
   /** \brief The Lamé-parameters as a function*/
-  std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dim>)> lameF_;
+  std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dimWorld>)> lameF_;
 
   /** \brief Lame constants */
   double mu_, lambda_;
@@ -370,5 +400,6 @@ private:
   double b1_, b2_, b3_;
 
 };
+}  // namespace Dune::GFE
 
 #endif   //#ifndef DUNE_GFE_SURFACECOSSERATENERGY_HH
