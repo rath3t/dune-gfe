@@ -47,7 +47,6 @@
 #include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/surfacecosseratenergy.hh>
 #include <dune/gfe/sumenergy.hh>
-#include <dune/gfe/vertexnormals.hh>
 
 #if MIXED_SPACE
 #include <dune/gfe/mixedriemanniantrsolver.hh>
@@ -63,6 +62,7 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
+
 // grid dimension
 #ifndef WORLD_DIM
 #  define WORLD_DIM 3
@@ -73,6 +73,8 @@ const int targetDim = WORLD_DIM;
 
 const int displacementOrder = 2;
 const int rotationOrder = 2;
+
+const int stressFreeDataOrder = 2;
 
 #if !MIXED_SPACE
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
@@ -343,32 +345,28 @@ int main (int argc, char *argv[]) try
   vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") + "_0");
   
   /////////////////////////////////////////////////////////////
-  //               INITIAL SURFACE SHELL DATA
+  //               STRESS-FREE SURFACE SHELL DATA
   /////////////////////////////////////////////////////////////
+  auto stressFreeFEBasis = makeBasis(
+    gridView,
+    power<dim>(
+      lagrange<stressFreeDataOrder>(),
+      blockedInterleaved()
+  ));
 
-  typedef MultiLinearGeometry<double, dim-1, dim> ML;
-  std::unordered_map<GridType::GlobalIdSet::IdType, ML> geometriesOnShellBoundary;
-  
   auto& idSet = grid->globalIdSet();
+  GlobalIndexSet<GridView> globalVertexIndexSet(gridView,dim);
+  BlockVector<FieldVector<double,dim> > stressFreeShellVector(stressFreeFEBasis.size());
 
-  // Read in the grid deformation
   if (startFromFile) {
-    // Create a basis of order 1 in order to deform the geometries on the surface shell boundary
     const std::string pathToGridDeformationFile = parameterSet.get("pathToGridDeformationFile", "");
-    // for this, we create a basis of order 1 in order to deform the geometries on the surface shell boundary
-    auto feBasisOrder1 = makeBasis(
-      gridView,
-      power<dim>(
-        lagrange<1>(),
-        blockedInterleaved()
-    ));
-    GlobalIndexSet<GridView> globalVertexIndexSet(gridView,dim);
 
     std::unordered_map<std::string, FieldVector<double,3>> deformationMap;
     std::string line, displacement, entry;
     if (mpiHelper.rank() == 0) 
-      std::cout << "Reading in deformation file: " << pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile") << std::endl;
+      std::cout << "Reading in deformation file ("  << "order is "  << stressFreeDataOrder  << "): " << pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile") << std::endl;
     // Read grid deformation information from the file specified in the parameter set via gridDeformationFile
+
     std::ifstream file(pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile"), std::ios::in);
     if (file.is_open()) {
       while (std::getline(file, line)) {
@@ -384,62 +382,40 @@ int main (int argc, char *argv[]) try
       }
       if (mpiHelper.rank() == 0)
         std::cout << "... done: The grid has " << globalVertexIndexSet.size(dim) << " vertices and the defomation file has " << deformationMap.size() << " entries." << std::endl;
-      if (deformationMap.size() != globalVertexIndexSet.size(dim))
+      if (stressFreeDataOrder == 1 && deformationMap.size() != globalVertexIndexSet.size(dim))
         DUNE_THROW(Exception, "Error: Grid and deformation vector do not match!");
       file.close();
     } else {
       DUNE_THROW(Exception, "Error: Could not open the file containing the deformation vector!");
     }
-  
-    BlockVector<FieldVector<double,dim>> gridDeformationFromFile;
-    Dune::Functions::interpolate(feBasisOrder1, gridDeformationFromFile, [](FieldVector<double,dim> x){ return x; });
+    Dune::Functions::interpolate(stressFreeFEBasis, stressFreeShellVector, [](FieldVector<double,dim> x){ return x; });
 
-    for (auto& entry : gridDeformationFromFile) {
+    for (auto& entry : stressFreeShellVector) {
       std::stringstream stream;
       stream << entry;
-      entry = deformationMap.at(stream.str()); //Look up the deformation for this vertex in the deformationMap
-    }
-
-    auto gridDeformationFromFileFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(feBasisOrder1, gridDeformationFromFile);
-    auto localGridDeformationFromFileFunction = localFunction(gridDeformationFromFileFunction);
-
-    //Write out the stress-free geometries that were read in
-    SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(0));
-    vtkWriter.addVertexData(localGridDeformationFromFileFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
-    vtkWriter.write("stress-free-geometries");
-
-    //Iterate over boundary, each facet on the boundary has an element (boundaryElement.inside()) with a unique global id (idSet.subId);
-    //we store the new geometry in the map with this id as reference
-    for (auto boundaryElement : surfaceShellBoundary) {
-      localGridDeformationFromFileFunction.bind(boundaryElement.inside());
-      std::vector<Dune::FieldVector<double,dim>> corners;
-      for (int i = 0; i < boundaryElement.geometry().corners(); i++) {
-        auto corner = boundaryElement.geometry().corner(i);
-        corner += localGridDeformationFromFileFunction(boundaryElement.inside().geometry().local(boundaryElement.geometry().corner(i)));
-        corners.push_back(corner);
-      }
-      localGridDeformationFromFileFunction.unbind();
-      GridType::GlobalIdSet::IdType id = idSet.subId(boundaryElement.inside(), boundaryElement.indexInInside(), 1);
-      ML boundaryGeometry(boundaryElement.geometry().type(), corners);
-      geometriesOnShellBoundary.insert({id, boundaryGeometry});
+      entry += deformationMap.at(stream.str()); //Look up the displacement for this vertex in the deformationMap
     }
   } else {
     // Read grid deformation from deformation function
     auto gridDeformationLambda = std::string("lambda x: (") + parameterSet.get<std::string>("gridDeformation") + std::string(")");
     auto gridDeformation = Python::make_function<FieldVector<double,dim> >(Python::evaluate(gridDeformationLambda));
+    Dune::Functions::interpolate(stressFreeFEBasis, stressFreeShellVector, gridDeformation);
+  }
 
-    //Iterate over boundary, each facet on the boundary has an element (boundaryElement.inside()) with a unique global id (idSet.subId);
-    //we store the new geometry in the map with this id as reference
-    for (auto boundaryElement : surfaceShellBoundary) {
-      std::vector<Dune::FieldVector<double,dim>> corners;
-      for (int i = 0; i < boundaryElement.geometry().corners(); i++) {
-        auto corner = gridDeformation(boundaryElement.geometry().corner(i));
-        corners.push_back(corner);
-      }
-      GridType::GlobalIdSet::IdType id = idSet.subId(boundaryElement.inside(), boundaryElement.indexInInside(), 1);
-      ML boundaryGeometry(boundaryElement.geometry().type(), corners);
-      geometriesOnShellBoundary.insert({id, boundaryGeometry});
+  auto stressFreeShellFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(stressFreeFEBasis, stressFreeShellVector);
+  
+  if (parameterSet.hasKey("writeOutStressFreeData") && parameterSet.get<bool>("writeOutStressFreeData")) {
+    BlockVector<FieldVector<double,dim> > stressFreeDisplacement(stressFreeFEBasis.size());
+    Dune::Functions::interpolate(stressFreeFEBasis, stressFreeDisplacement, [](FieldVector<double,dim> x){ return (-1.0)*x; });
+
+    for (int i = 0; i < stressFreeFEBasis.size(); i++) {
+      stressFreeDisplacement[i] += stressFreeShellVector[i];
     }
+    auto stressFreeDisplacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(stressFreeFEBasis, stressFreeDisplacement);
+    //Write out the stress-free shell function that was read in
+    SubsamplingVTKWriter<GridView> vtkWriterStressFree(gridView, Dune::refinementLevels(1));
+    vtkWriterStressFree.addVertexData(stressFreeDisplacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
+    vtkWriterStressFree.write("stress-free-shell-function");
   }
 
   /////////////////////////////////////////////////////////////
@@ -450,13 +426,6 @@ int main (int argc, char *argv[]) try
     neumannValues = parameterSet.get<FieldVector<double,dim> >("neumannValues");
   std::cout << "Neumann values: " << neumannValues << std::endl;
 
-  // Vertex Normals for the 3D-Part
-  std::vector<UnitVector<double,dim> > vertexNormals(gridView.size(dim));
-  Dune::FieldVector<double,dim> vertexNormalRaw = {0,0,1};
-  for (int i = 0; i< vertexNormals.size(); i++) {
-    UnitVector vertexNormal(vertexNormalRaw);
-    vertexNormals[i] = vertexNormal;
-  }
   //Function for the Cosserat material parameters
   const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
   Python::Reference surfaceShellClass = Python::import(materialParameters.get<std::string>("surfaceShellParameters"));
@@ -512,7 +481,13 @@ int main (int argc, char *argv[]) try
 
     auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim>>>(elasticDensity);
     auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim>>>(neumannBoundary,*neumannFunctionPtr);
-    auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<CompositeBasis, RealTuple<ValueType,dim>, Rotation<ValueType,dim> >>(materialParameters, std::move(vertexNormals), &surfaceShellBoundary, std::move(geometriesOnShellBoundary), fThickness, fLame);
+    auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
+        decltype(stressFreeShellFunction), CompositeBasis, RealTuple<ValueType,dim>, Rotation<ValueType,dim> >>(
+          materialParameters,
+          &surfaceShellBoundary,
+          stressFreeShellFunction,
+          fThickness,
+          fLame);
 
     GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim>> sumEnergy;
     sumEnergy.addLocalEnergy(neumannEnergy);
