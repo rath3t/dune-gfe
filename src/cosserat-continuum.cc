@@ -47,7 +47,6 @@
 #include <dune/gfe/cosseratvtkreader.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/vertexnormals.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/mixedgfeassembler.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
@@ -55,6 +54,7 @@
 #if HAVE_DUNE_VTK
 #include <dune/vtk/vtkreader.hh>
 #endif
+
 
 // grid dimension
 const int dim = 2;
@@ -440,9 +440,7 @@ int main (int argc, char *argv[]) try
     }
     else
     {
-      std::vector<UnitVector<double,3> > vertexNormals = computeVertexNormals(gridView);
       localCosseratEnergy = std::make_shared<NonplanarCosseratShellEnergy<FEBasis,3,adouble> >(materialParameters,
-                                                                                               std::move(vertexNormals),
                                                                                                &neumannBoundary,
                                                                                                neumannFunction,
                                                                                                volumeLoad);
