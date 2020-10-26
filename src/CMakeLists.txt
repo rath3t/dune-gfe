@@ -5,7 +5,7 @@ set(programs compute-disc-error
              rod3d)
 #            rodobstacle)
 
-if (dune-parmg_FOUND AND ${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.8)
+if (dune-parmg_FOUND AND dune-curvedgeometry_FOUND AND ${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.8)
 	set(programs film-on-substrate ${programs})
 endif()
 foreach(_program ${programs})
