@@ -30,7 +30,7 @@ dirichletValues = identity-dirichlet-values
 
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
-dirichletVerticesPredicate = "x[0] < 0.01"
+dirichletVerticesPredicate = "[x[0] < 0.01, x[0] < 0.01 or x[0] > 199.99, x[0] < 0.01 or x[0] > 199.99]"
 
 ###  Python predicate specifying all surfaceshell grid vertices, elements conataining these vertices will get adaptively refined
 # x is the vertex coordinate
