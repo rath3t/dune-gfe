@@ -419,7 +419,7 @@ int main (int argc, char *argv[]) try
                         3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
                                                                      &neumannBoundary,
                                                                      neumannFunction,
-                                                                     nullptr);
+                                                                     volumeLoad);
 
     MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
                                 RealTuple<double,3>,
