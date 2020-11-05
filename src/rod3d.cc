@@ -24,7 +24,6 @@ typedef RigidBodyMotion<double,3> TargetSpace;
 const int blocksize = TargetSpace::TangentVector::dimension;
 
 using namespace Dune;
-using std::string;
 
 int main (int argc, char *argv[]) try
 {

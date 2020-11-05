@@ -84,7 +84,7 @@ splitVector(const std::vector<TargetSpace>& sol) const {
     Dune::TupleVector<std::vector<MixedSpace0>,std::vector<MixedSpace1>> solutionSplit;
     solutionSplit[_0].resize(n);
     solutionSplit[_1].resize(n);
-    for (int i = 0; i < n; i++) {
+    for (std::size_t i = 0; i < n; i++) {
         solutionSplit[_0][i] = sol[i].r; // Deformation part
         solutionSplit[_1][i] = sol[i].q; // Rotational part
     }
@@ -145,7 +145,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
     hessian = 0;
     gradient.resize(n);
     gradient = 0;
-    for (int i = 0; i < n; i++) {
+    for (std::size_t i = 0; i < n; i++) {
         for (int j = 0; j < blocksize0 + blocksize1; j++)
             gradient[i][j] = j < blocksize0 ? gradient0[i][j] : gradient1[i][j - blocksize0];
     }

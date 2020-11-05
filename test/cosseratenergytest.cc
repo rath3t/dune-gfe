@@ -15,8 +15,6 @@
 #include "multiindex.hh"
 #include "valuefactory.hh"
 
-const double eps = 1e-4;
-
 typedef RigidBodyMotion<double,3> TargetSpace;
 
 using namespace Dune;
