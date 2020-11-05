@@ -33,10 +33,12 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ParameterTree parameterSet;
-    if (argc==2)
-        ParameterTreeParser::readINITree(argv[1], parameterSet);
-    else
-        ParameterTreeParser::readINITree("rod3d.parset", parameterSet);
+    if (argc < 2)
+      DUNE_THROW(Exception, "Usage: ./rod3d <parameter file>");
+
+    ParameterTreeParser::readINITree(argv[1], parameterSet);
+
+    ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");
