@@ -27,6 +27,8 @@ using namespace Dune;
 
 int main (int argc, char *argv[]) try
 {
+    MPIHelper::instance(argc, argv);
+
     typedef std::vector<RigidBodyMotion<double,3> > SolutionType;
 
     // parse data file
