@@ -14,7 +14,6 @@
 
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/geodesicdifference.hh>
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/rodassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
@@ -169,83 +168,6 @@ int main (int argc, char *argv[]) try
 
     BlockVector<FieldVector<double, 6> > strain(x.size()-1);
     rodAssembler.getStrain(x,strain);
-
-    // If convergence measurement is not desired stop here
-    if (!instrumented)
-        exit(0);
-
-    // //////////////////////////////////////////////////////////
-    //   Recompute and compare against exact solution
-    // //////////////////////////////////////////////////////////
-    
-    SolutionType exactSolution = x;
-
-    // //////////////////////////////////////////////////////////
-    //   Compute hessian of the rod functional at the exact solution
-    //   for use of the energy norm it creates.
-    // //////////////////////////////////////////////////////////
-
-    BCRSMatrix<FieldMatrix<double, 6, 6> > hessian;
-    MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
-    rodAssembler.getNeighborsPerVertex(indices);
-    indices.exportIdx(hessian);
-    BlockVector<FieldVector<double,6> > dummyRhs(x.size());
-    rodAssembler.assembleGradientAndHessian(exactSolution, dummyRhs, hessian);
-
-
-    double error = std::numeric_limits<double>::max();
-
-    SolutionType intermediateSolution(x.size());
-
-    // Create statistics file
-    std::ofstream statisticsFile((resultPath + "trStatistics").c_str());
-
-    // Compute error of the initial iterate
-    typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
-    RodDifferenceType rodDifference = computeGeodesicDifference(exactSolution, initialIterate);
-    double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
-
-    int i;
-    for (i=0; i<maxTrustRegionSteps; i++) {
-        
-        // /////////////////////////////////////////////////////
-        //   Read iteration from file
-        // /////////////////////////////////////////////////////
-        char iSolFilename[100];
-        sprintf(iSolFilename, "tmp/intermediateSolution_%04d", i);
-            
-        FILE* fp = fopen(iSolFilename, "rb");
-        if (!fp)
-            DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
-        for (size_t j=0; j<intermediateSolution.size(); j++) {
-            fread(&intermediateSolution[j].r, sizeof(double), 3, fp);
-            fread(&intermediateSolution[j].q, sizeof(double), 4, fp);
-        }
-        
-        fclose(fp);
-
-        // /////////////////////////////////////////////////////
-        //   Compute error
-        // /////////////////////////////////////////////////////
-
-        rodDifference = computeGeodesicDifference(exactSolution, intermediateSolution);
-        
-        error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
-        
-
-        double convRate = error / oldError;
-
-        // Output
-        std::cout << "Trust-region iteration: " << i << "  error : " << error << ",      "
-                  << "convrate " << convRate << std::endl;
-        statisticsFile << i << "  " << error << "  " << convRate << std::endl;
-
-        if (error < 1e-12)
-          break;
-
-        oldError = error;
-        
-    }            
 
 } catch (Exception& e)
 {
