@@ -32,7 +32,6 @@
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
-#include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/dunepython.hh>
 
@@ -230,11 +229,11 @@ int main (int argc, char *argv[]) try
     // Make Python function that computes which vertices are on the Dirichlet boundary,
     // based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    PythonFunction<FieldVector<double,dimworld>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+    auto pythonDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
     // Same for the Neumann boundary
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
-    PythonFunction<FieldVector<double,dimworld>, bool> pythonNeumannVertices(Python::evaluate(lambda));
+    auto pythonNeumannVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
     for (auto&& vertex : vertices(gridView))
     {
@@ -304,25 +303,15 @@ int main (int argc, char *argv[]) try
     x[_0].resize(deformationFEBasis.size());
 
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
+    auto pythonInitialDeformation = Python::make_function<FieldVector<double,3> >(Python::evaluate(lambda));
 
     std::vector<FieldVector<double,3> > v;
-    ::Functions::interpolate(fufemDeformationFEBasis, v, pythonInitialDeformation);
+    Functions::interpolate(deformationFEBasis, v, pythonInitialDeformation);
 
     for (size_t i=0; i<x[_0].size(); i++)
       x[_0][i] = v[i];
 
     x[_1].resize(orientationFEBasis.size());
-#if 0
-    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
-
-    std::vector<FieldVector<double,3> > v;
-    Functions::interpolate(feBasis, v, pythonInitialDeformation);
-
-    for (size_t i=0; i<x.size(); i++)
-      xDisp[i] = v[i];
-#endif
 #else
     SolutionType x(feBasis.size());
 
@@ -364,10 +353,10 @@ int main (int argc, char *argv[]) try
 
     } else {
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
-    PythonFunction<FieldVector<double,dimworld>, FieldVector<double,3> > pythonInitialDeformation(Python::evaluate(lambda));
+      auto pythonInitialDeformation = Python::make_function<FieldVector<double,3> >(Python::evaluate(lambda));
 
     std::vector<FieldVector<double,3> > v;
-      ::Functions::interpolate(fufemFeBasis, v, pythonInitialDeformation);
+      Functions::interpolate(feBasis, v, pythonInitialDeformation);
 
     for (size_t i=0; i<x.size(); i++)
       x[i].r = v[i];
@@ -514,15 +503,15 @@ int main (int argc, char *argv[]) try
         Python::Reference dirichletValuesPythonObject = C(homotopyParameter);
 
         // Extract object member functions as Dune functions
-        PythonFunction<FieldVector<double,dimworld>, FieldVector<double,3> >   deformationDirichletValues(dirichletValuesPythonObject.get("deformation"));
-        PythonFunction<FieldVector<double,dimworld>, FieldMatrix<double,3,3> > orientationDirichletValues(dirichletValuesPythonObject.get("orientation"));
+        auto deformationDirichletValues = Python::make_function<FieldVector<double,3> >(dirichletValuesPythonObject.get("deformation"));
+        auto orientationDirichletValues = Python::make_function<FieldMatrix<double,3,3> >(dirichletValuesPythonObject.get("orientation"));
 
         std::vector<FieldVector<double,3> > ddV;
         std::vector<FieldMatrix<double,3,3> > dOV;
 
 #ifdef MIXED_SPACE
-        ::Functions::interpolate(fufemDeformationFEBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
-        ::Functions::interpolate(fufemOrientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
+        Functions::interpolate(deformationFEBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
+        Functions::interpolate(orientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
 
         for (size_t j=0; j<x[_0].size(); j++)
           if (deformationDirichletNodes[j][0])
@@ -532,8 +521,8 @@ int main (int argc, char *argv[]) try
           if (orientationDirichletNodes[j][0])
             x[_1][j].set(dOV[j]);
 #else
-        ::Functions::interpolate(fufemFeBasis, ddV, deformationDirichletValues, dirichletDofs);
-        ::Functions::interpolate(fufemFeBasis, dOV, orientationDirichletValues, dirichletDofs);
+        Functions::interpolate(feBasis, ddV, deformationDirichletValues, dirichletDofs);
+        Functions::interpolate(feBasis, dOV, orientationDirichletValues, dirichletDofs);
 
         for (size_t j=0; j<x.size(); j++)
           if (dirichletNodes[j][0])

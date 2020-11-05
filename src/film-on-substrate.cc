@@ -177,15 +177,15 @@ int main (int argc, char *argv[]) try
   // Make Python function that computes which vertices are on the Dirichlet boundary,
   // based on the vertex positions.
   std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, FieldVector<bool,dim>> pythonDirichletVertices(Python::evaluate(lambda));
+  auto pythonDirichletVertices = Python::make_function<FieldVector<bool,dim> >(Python::evaluate(lambda));
 
   // Same for the Neumann boundary
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonNeumannVertices(Python::evaluate(lambda));
+  auto pythonNeumannVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
   // Same for the Surface Shell Boundary
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("surfaceShellVerticesPredicate", "0") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, bool> pythonSurfaceShellVertices(Python::evaluate(lambda));
+  auto pythonSurfaceShellVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
   while (numLevels > 0) {
     for (auto&& e : elements(grid->leafGridView())){
@@ -326,7 +326,7 @@ int main (int argc, char *argv[]) try
   //Initial deformation of the underlying substrate
   BlockVector<FieldVector<double,dim> > displacement(compositeBasis.size({0}));
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
-  PythonFunction<FieldVector<double,dim>, FieldVector<double,dim> > pythonInitialDeformation(Python::evaluate(lambda));
+  auto pythonInitialDeformation = Python::make_function<FieldVector<double,dim> >(Python::evaluate(lambda));
   Dune::Functions::interpolate(deformationPowerBasis, displacement, pythonInitialDeformation);
 
   BlockVector<FieldVector<double,dim> > identity(compositeBasis.size({0}));
@@ -426,7 +426,7 @@ int main (int argc, char *argv[]) try
   } else {
     // Read grid deformation from deformation function
     auto gridDeformationLambda = std::string("lambda x: (") + parameterSet.get<std::string>("gridDeformation") + std::string(")");
-    PythonFunction<FieldVector<double,dim>, FieldVector<double,dim> > gridDeformation(Python::evaluate(gridDeformationLambda));
+    auto gridDeformation = Python::make_function<FieldVector<double,dim> >(Python::evaluate(gridDeformationLambda));
 
     //Iterate over boundary, each facet on the boundary has an element (boundaryElement.inside()) with a unique global id (idSet.subId);
     //we store the new geometry in the map with this id as reference
@@ -462,8 +462,8 @@ int main (int argc, char *argv[]) try
   Python::Reference surfaceShellClass = Python::import(materialParameters.get<std::string>("surfaceShellParameters"));
   Python::Callable surfaceShellCallable = surfaceShellClass.get("SurfaceShellParameters");
   Python::Reference pythonObject = surfaceShellCallable();
-  PythonFunction<Dune::FieldVector<double, dim>, double> fThickness(pythonObject.get("thickness"));
-  PythonFunction<Dune::FieldVector<double, dim>, Dune::FieldVector<double, 2>> fLame(pythonObject.get("lame"));
+  auto fThickness = Python::make_function<double>(pythonObject.get("thickness"));
+  auto fLame = Python::make_function<FieldVector<double, 2> >(pythonObject.get("lame"));
 
   for (int i = 0; i < numHomotopySteps; i++)
   {
@@ -546,8 +546,8 @@ int main (int argc, char *argv[]) try
     Python::Reference dirichletValuesPythonObject = C(homotopyParameter);
 
     // Extract object member functions as Dune functions
-    PythonFunction<FieldVector<double,dim>, FieldVector<double,targetDim> >   deformationDirichletValues(dirichletValuesPythonObject.get("deformation"));
-    PythonFunction<FieldVector<double,dim>, FieldMatrix<double,targetDim,targetDim> > rotationalDirichletValues(dirichletValuesPythonObject.get("orientation"));
+    auto deformationDirichletValues = Python::make_function<FieldVector<double,targetDim> >   (dirichletValuesPythonObject.get("deformation"));
+    auto rotationalDirichletValues = Python::make_function<FieldMatrix<double,targetDim,targetDim> > (dirichletValuesPythonObject.get("orientation"));
 
     BlockVector<FieldVector<double,targetDim> > ddV;
     Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
