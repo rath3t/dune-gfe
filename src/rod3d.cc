@@ -92,14 +92,9 @@ int main (int argc, char *argv[]) try
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
-    x.back().r[0] = parameterSet.get<double>("dirichletValueX");
-    x.back().r[1] = parameterSet.get<double>("dirichletValueY");
-    x.back().r[2] = parameterSet.get<double>("dirichletValueZ");
+    x.back().r = parameterSet.get<FieldVector<double,3> >("dirichletValue");
 
-    FieldVector<double,3> axis;
-    axis[0] = parameterSet.get<double>("dirichletAxisX");
-    axis[1] = parameterSet.get<double>("dirichletAxisY");
-    axis[2] = parameterSet.get<double>("dirichletAxisZ");
+    auto axis = parameterSet.get<FieldVector<double,3> >("dirichletAxis");
     double angle = parameterSet.get<double>("dirichletAngle");
 
     x.back().q = Rotation<double,3>(axis, M_PI*angle/180);

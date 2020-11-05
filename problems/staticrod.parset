@@ -57,12 +57,8 @@ J2 = 1
 E = 2.5e5
 nu = 0.3
 
-dirichletValueX = 1
-dirichletValueY = 0
-dirichletValueZ = 0
+dirichletValue = 1 0 0
 
-dirichletAxisX = 1
-dirichletAxisY = 0
-dirichletAxisZ = 0
+dirichletAxis = 1 0 0
 
 dirichletAngle = 0
