@@ -23,10 +23,10 @@
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
+#include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
-#include <dune/fufem/functiontools/basisinterpolator.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/discretizationerror.hh>
@@ -160,7 +160,7 @@ int main (int argc, char *argv[]) try
   // Make Python function that computes which vertices are on the Dirichlet boundary,
   // based on the vertex positions.
   std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-  PythonFunction<FieldVector<double,dimworld>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+  auto pythonDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
   for (auto&& vertex : vertices(grid->leafGridView()))
   {
@@ -177,14 +177,12 @@ int main (int argc, char *argv[]) try
   //   Initial iterate
   ////////////////////////////
 
-  // Read initial iterate into a PythonFunction
-  typedef PythonFunction<FieldVector<double, dimworld>, TargetSpace::CoordinateType> FBase;
-
+  // Read initial iterate into a Python function
   Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
-  auto pythonInitialIterate = module.get("f").toC<std::shared_ptr<FBase>>();
+  auto pythonInitialIterate = Python::make_function<TargetSpace::CoordinateType>(module.get("f"));
 
   std::vector<TargetSpace::CoordinateType> v;
-  ::Functions::interpolate(fufemFeBasis, v, *pythonInitialIterate);
+  Functions::interpolate(feBasis, v, pythonInitialIterate);
 
   SolutionType x(feBasis.size());
 

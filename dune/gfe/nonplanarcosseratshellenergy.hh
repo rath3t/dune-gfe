@@ -7,7 +7,6 @@
 
 #include <dune/matrix-vector/crossproduct.hh>
 
-#include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/localenergy.hh>

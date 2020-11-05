@@ -443,7 +443,7 @@ void measureAnalyticalEOC(const GridView gridView,
   //   Measure the discretization error
   /////////////////////////////////////////////////////////////////
 
-  // Read reference solution and its derivative into a PythonFunction
+  // Read reference solution and its derivative into a Python function
   typedef VirtualDifferentiableFunction<FieldVector<double, dimworld>, typename TargetSpace::CoordinateType> FBase;
 
   Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));

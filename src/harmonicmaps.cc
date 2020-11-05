@@ -220,7 +220,7 @@ int main (int argc, char *argv[])
     // Make Python function that computes which vertices are on the Dirichlet boundary,
     // based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    PythonFunction<FieldVector<double,dimworld>, bool> pythonDirichletVertices(Python::evaluate(lambda));
+    auto pythonDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
     for (auto&& vertex : vertices(gridView))
     {
@@ -243,7 +243,7 @@ int main (int argc, char *argv[])
     //   Initial iterate
     // //////////////////////////
 
-    // Read initial iterate into a PythonFunction
+    // Read initial iterate into a Python function
     Python::Module module = Python::import(parameterSet.get<std::string>("initialIterate"));
     auto pythonInitialIterate = Python::makeFunction<TargetSpace::CoordinateType(const FieldVector<double,dimworld>&)>(module.get("f"));
 
