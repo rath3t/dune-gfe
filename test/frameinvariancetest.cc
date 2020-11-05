@@ -79,7 +79,7 @@ int main (int argc, char *argv[]) try
 
     LocalGeodesicFEFDStiffness<FEBasis,RigidBodyMotion<double,3> > localFDStiffness(&localRodFirstOrderModel);
 
-    RodAssembler<FEBasis,3> assembler(feBasis, &localFDStiffness);
+    RodAssembler<FEBasis,3> assembler(feBasis, localFDStiffness);
 
     if (std::abs(assembler.computeEnergy(x) - assembler.computeEnergy(rotatedX)) > 1e-6)
         DUNE_THROW(Dune::Exception, "Rod energy not invariant under rigid body motions!");

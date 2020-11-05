@@ -62,6 +62,11 @@ public:
     /** \brief Get the occupation structure of the Hessian */
     virtual void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
 
+    /** \brief Get the basis. */
+    const ScalarBasis& getBasis() const {
+        return basis_;
+    }
+
 private:
     Dune::TupleVector<std::vector<MixedSpace0>,std::vector<MixedSpace1>> splitVector(const std::vector<TargetSpace>& sol) const;
     std::unique_ptr<MatrixType> hessianMixed_;

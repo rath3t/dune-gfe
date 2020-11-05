@@ -41,7 +41,7 @@ class RodAssembler<Basis,3> : public GeodesicFEAssembler<Basis, RigidBodyMotion<
 public:
         //! ???
     RodAssembler(const Basis& basis,
-                 LocalGeodesicFEStiffness<Basis, RigidBodyMotion<double,3> >* localStiffness)
+                 LocalGeodesicFEStiffness<Basis, RigidBodyMotion<double,3> >& localStiffness)
     : GeodesicFEAssembler<Basis, RigidBodyMotion<double,3> >(basis,localStiffness)
         {
             std::vector<RigidBodyMotion<double,3> > referenceConfiguration(basis.size());
@@ -62,7 +62,7 @@ public:
     auto rodEnergy()
     {
       // TODO: Does not work for other stiffness implementations
-      auto localFDStiffness = dynamic_cast<LocalGeodesicFEFDStiffness<Basis, RigidBodyMotion<double,3> >*>(this->localStiffness_);
+      auto localFDStiffness = std::dynamic_pointer_cast<LocalGeodesicFEFDStiffness<Basis, RigidBodyMotion<double,3> > >(this->localStiffness_);
       return const_cast<RodLocalStiffness<GridView,double>*>(dynamic_cast<const RodLocalStiffness<GridView,double>*>(localFDStiffness->localEnergy_));
     }
 

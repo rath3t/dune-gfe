@@ -211,7 +211,7 @@ int main (int argc, char *argv[]) try
 
   LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy.get());
 
-  GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, &localGFEADOLCStiffness);
+  GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 
   ///////////////////////////////////////////////////
   //   Create a Riemannian trust-region solver
