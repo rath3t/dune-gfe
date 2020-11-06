@@ -424,7 +424,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
               std::cout << "Gradient norm: " << gradient.two_norm() << std::endl;
             }
             if (this->verbosity_ == Solver::FULL and rank==0)
-              std::cout << "Oveall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+              std::cout << "Overall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             totalAssemblyTime += gradientTimer.elapsed();
 
             // Transfer matrix data

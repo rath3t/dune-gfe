@@ -243,7 +243,7 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
               std::cout << "Gradient norm: " << l2Norm_->operator()(gradient) << std::endl;
 
             if (this->verbosity_ == Solver::FULL and rank==0)
-              std::cout << "Oveall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
+              std::cout << "Overall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             totalAssemblyTime += gradientTimer.elapsed();
 
             // Transfer matrix data
