@@ -145,7 +145,8 @@ class Rotation<T,3> : public Quaternion<T>
 
     /** \brief Computes sin(x/2) / x without getting unstable for small x */
     static T sincHalf(const T& x) {
-        return (x < 1e-4) ? 0.5 - (x*x/48)  + (x*x*x*x)/3840 : std::sin(x/2)/x;
+        using std::sin;
+        return (x < 1e-4) ? 0.5 - (x*x/48)  + (x*x*x*x)/3840 : sin(x/2)/x;
     }
 
     /** \brief Computes sin(sqrt(x)/2) / sqrt(x) without getting unstable for small x
@@ -154,7 +155,9 @@ class Rotation<T,3> : public Quaternion<T>
      * which ADOL-C doesn't like.
      */
     static T sincHalfOfSquare(const T& x) {
-        return (x < 1e-15) ? 0.5 - (x/48)  + (x*x)/(120*32) : std::sin(std::sqrt(x)/2)/std::sqrt(x);
+        using std::sin;
+        using std::sqrt;
+        return (x < 1e-15) ? 0.5 - (x/48)  + (x*x)/(120*32) : sin(sqrt(x)/2)/sqrt(x);
     }
 
     /** \brief Computes sin(sqrt(x)) / sqrt(x) without getting unstable for small x
@@ -163,7 +166,9 @@ class Rotation<T,3> : public Quaternion<T>
      * which ADOL-C doesn't like.
      */
     static T sincOfSquare(const T& x) {
-        return (x < 1e-15) ? 1 - (x/6)  + (x*x)/120 : std::sin(std::sqrt(x))/std::sqrt(x);
+        using std::sin;
+        using std::sqrt;
+        return (x < 1e-15) ? 1 - (x/6)  + (x*x)/120 : sin(sqrt(x))/sqrt(x);
     }
 
 public:
@@ -262,6 +267,9 @@ public:
     /** \brief The exponential map from \f$ \mathfrak{so}(3) \f$ to \f$ SO(3) \f$
      */
     static Rotation<T,3> exp(const SkewMatrix<T,3>& v) {
+        using std::cos;
+        using std::sqrt;
+
         Rotation<T,3> q;
 
         Dune::FieldVector<T,3> vAxial = v.axial();
@@ -282,7 +290,7 @@ public:
         // 1 - x*x/8 + x*x*x*x/384 - ...
         q[3] = (normV2 < 1e-4)
           ? 1 - normV2/8 + normV2*normV2 / 384
-          : std::cos(std::sqrt(normV2)/2);
+          : cos(sqrt(normV2)/2);
 
         return q;
     }
@@ -302,7 +310,10 @@ public:
      */
     static Rotation<T,3> exp(const Rotation<T,3>& p, const Dune::FieldVector<T,4>& v) {
 
-        assert( std::abs(p*v) < 1e-8 );
+        using std::abs;
+        using std::cos;
+        using std::sqrt;
+        assert( abs(p*v) < 1e-8 );
 
         const T norm2 = v.two_norm2();
 
@@ -310,10 +321,10 @@ public:
 
         // The series expansion of cos(x) at x=0 is
         // 1 - x*x/2 + x*x*x*x/24 - ...
-        T cos = (norm2 < 1e-4)
+        T cosValue = (norm2 < 1e-4)
           ? 1 - norm2/2 + norm2*norm2 / 24
-          : std::cos(std::sqrt(norm2));
-        result *= cos;
+          : cos(sqrt(norm2));
+        result *= cosValue;
 
         result.axpy(sincOfSquare(norm2), v);
         return result;
@@ -385,6 +396,8 @@ public:
 
     static Dune::FieldMatrix<T,4,3> Dexp(const SkewMatrix<T,3>& v) {
 
+        using std::cos;
+
         Dune::FieldMatrix<T,4,3> result(0);
         Dune::FieldVector<T,3> vAxial = v.axial();
         T norm = vAxial.two_norm();
@@ -395,8 +408,8 @@ public:
 
                 result[m][i] = (norm<1e-10)
                     /** \todo Isn't there a better way to implement this stably? */
-                    ? 0.5 * (i==m)
-                    : 0.5 * std::cos(norm/2) * vAxial[i] * vAxial[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - vAxial[i]*vAxial[m]/(norm*norm));
+                    ? T(0.5) * (i==m)
+                    : 0.5 * cos(norm/2) * vAxial[i] * vAxial[m] / (norm*norm) + sincHalf(norm) * ( (i==m) - vAxial[i]*vAxial[m]/(norm*norm));
 
             }
 
@@ -408,6 +421,9 @@ public:
 
     static void DDexp(const Dune::FieldVector<T,3>& v,
                       std::array<Dune::FieldMatrix<T,3,3>, 4>& result) {
+
+        using std::cos;
+        using std::sin;
 
         T norm = v.two_norm();
         if (norm<=1e-10) {
@@ -427,15 +443,15 @@ public:
 
                     for (int m=0; m<3; m++) {
 
-                        result[m][i][j] = -0.25*std::sin(norm/2)*v[i]*v[j]*v[m]/(norm*norm*norm)
+                        result[m][i][j] = -0.25*sin(norm/2)*v[i]*v[j]*v[m]/(norm*norm*norm)
                             + ((i==j)*v[m] + (j==m)*v[i] + (i==m)*v[j] - 3*v[i]*v[j]*v[m]/(norm*norm))
-                            * (0.5*std::cos(norm/2) - sincHalf(norm)) / (norm*norm);
+                            * (0.5*cos(norm/2) - sincHalf(norm)) / (norm*norm);
 
 
                     }
 
                     result[3][i][j] = -0.5/(norm*norm)
-                        * ( 0.5*std::cos(norm/2)*v[i]*v[j] + std::sin(norm/2) * ((i==j)*norm - v[i]*v[j]/norm));
+                        * ( 0.5*cos(norm/2)*v[i]*v[j] + sin(norm/2) * ((i==j)*norm - v[i]*v[j]/norm));
 
                 }
 
@@ -457,7 +473,8 @@ public:
 
         } else {
 
-            T invSinc = 1/sincHalf(2*std::acos(q[3]));
+            using std::acos;
+            T invSinc = 1/sincHalf(2*acos(q[3]));
 
             v[0] = q[0] * invSinc;
             v[1] = q[1] * invSinc;
@@ -575,7 +592,9 @@ public:
         T sp = a.globalCoordinates() * b.globalCoordinates();
 
         // Scalar product may be larger than 1.0, due to numerical dirt
-        T dist = 2*std::acos( std::min(sp,T(1.0)) );
+        using std::acos;
+        using std::min;
+        T dist = 2*acos( min(sp,T(1.0)) );
 
         // Make sure we do the right thing if a and b are not in the same sheet
         // of the double covering of the unit quaternions over SO(3)
@@ -601,7 +620,8 @@ public:
 
         } else {
 
-            T dist = 2*std::acos( diff[3] );
+            using std::acos;
+            T dist = 2*acos( diff[3] );
 
             // Make sure we do the right thing if a and b are not in the same sheet
             // of the double covering of the unit quaternions over SO(3)
@@ -725,7 +745,8 @@ public:
         result.axpy(-1*(q*p), q);
 
         // The ternary operator comes from the derivative of the absolute value function
-        result *= 4 * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)) * ( (sp<0) ? -1 : 1 );
+        using std::abs;
+        result *= 4 * UnitVector<T,4>::derivativeOfArcCosSquared(abs(sp)) * ( (sp<0) ? -1 : 1 );
 
         return result;
     }
@@ -742,7 +763,8 @@ public:
             for (int j=0; j<=i; j++)
                 A(i,j) = pProjected[i]*pProjected[j];
 
-        A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp));
+        using std::abs;
+        A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp));
 
         // Compute matrix B (see notes)
         Dune::SymmetricMatrix<T,4> Pq;
@@ -751,7 +773,7 @@ public:
                 Pq(i,j) = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
 
         // Bring it all together
-        A.axpy(-4* ((sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp))*sp, Pq);
+        A.axpy(-4* ((sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(abs(sp))*sp, Pq);
 
         return A;
     }
@@ -773,7 +795,8 @@ public:
         Dune::FieldMatrix<T,4,4> A;
         // A = row * column
         Dune::FMatrixHelp::multMatrix(column,row,A);
-        A *= 4 * UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp));
+        using std::abs;
+        A *= 4 * UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp));
 
         // Compute matrix B (see notes)
         Dune::FieldMatrix<T,4,4> Pp, Pq;
@@ -787,7 +810,7 @@ public:
         Dune::FMatrixHelp::multMatrix(Pp,Pq,B);
 
         // Bring it all together
-        A.axpy(4 * ( (sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)), B);
+        A.axpy(4 * ( (sp<0) ? -1 : 1) * UnitVector<T,4>::derivativeOfArcCosSquared(abs(sp)), B);
 
         return A;
     }
@@ -812,16 +835,17 @@ public:
 
         double plusMinus = (sp < 0) ? -1 : 1;
 
+        using std::abs;
         for (int i=0; i<4; i++)
             for (int j=0; j<4; j++)
                 for (int k=0; k<4; k++) {
 
-                    result[i][j][k] = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::abs(sp)) * pProjected[i] * pProjected[j] * pProjected[k]
-                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * ((i==j)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[j])*pProjected[k]
-                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * ((i==k)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[k])*pProjected[j]
-                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * pProjected[i] * Pq[j][k] * sp
-                                    + plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)) * ((i==j)*q.globalCoordinates()[k] + (i==k)*q.globalCoordinates()[j]) * sp
-                                    - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp)) * p.globalCoordinates()[i] * Pq[j][k];
+                    result[i][j][k] = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(abs(sp)) * pProjected[i] * pProjected[j] * pProjected[k]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp)) * ((i==j)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[j])*pProjected[k]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp)) * ((i==k)*sp + p.globalCoordinates()[i]*q.globalCoordinates()[k])*pProjected[j]
+                                    - UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp)) * pProjected[i] * Pq[j][k] * sp
+                                    + plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(abs(sp)) * ((i==j)*q.globalCoordinates()[k] + (i==k)*q.globalCoordinates()[j]) * sp
+                                    - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(abs(sp)) * p.globalCoordinates()[i] * Pq[j][k];
                 }
 
         Pq *= 4;
@@ -862,10 +886,11 @@ public:
 
         double plusMinus = (sp < 0) ? -1 : 1;
 
-        result = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(std::abs(sp))         * Tensor3<T,4,4,4>::product(qProjected,pProjected,pProjected)
-                 + UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp))      * derivativeOfPqOTimesPq
-                 - UnitVector<T,4>::secondDerivativeOfArcCosSquared(std::abs(sp)) * sp * Tensor3<T,4,4,4>::product(qProjected,Pq)
-                 - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(std::abs(sp))            * Tensor3<T,4,4,4>::product(qProjected,Pq);
+        using std::abs;
+        result = plusMinus * UnitVector<T,4>::thirdDerivativeOfArcCosSquared(abs(sp))         * Tensor3<T,4,4,4>::product(qProjected,pProjected,pProjected)
+                 + UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp))      * derivativeOfPqOTimesPq
+                 - UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp)) * sp * Tensor3<T,4,4,4>::product(qProjected,Pq)
+                 - plusMinus * UnitVector<T,4>::derivativeOfArcCosSquared(abs(sp))            * Tensor3<T,4,4,4>::product(qProjected,Pq);
 
         result *= 4;
 
@@ -955,6 +980,8 @@ public:
     We tacitly assume that the matrix really is orthogonal */
     void set(const Dune::FieldMatrix<T,3,3>& m) {
 
+        using std::sqrt;
+
         // Easier writing
         Dune::FieldVector<T,4>& p = (*this);
         // The following equations for the derivation of a unit quaternion from a rotation
@@ -969,7 +996,7 @@ public:
         // avoid rounding problems
         if (p[0] >= p[1] && p[0] >= p[2] && p[0] >= p[3]) {
 
-            p[0] = std::sqrt(p[0]);
+            p[0] = sqrt(p[0]);
 
             // r_x r_y = (R_12 + R_21) / 4
             p[1] = (m[0][1] + m[1][0]) / 4 / p[0];
@@ -982,7 +1009,7 @@ public:
 
         } else if (p[1] >= p[0] && p[1] >= p[2] && p[1] >= p[3]) {
 
-            p[1] = std::sqrt(p[1]);
+            p[1] = sqrt(p[1]);
 
             // r_x r_y = (R_12 + R_21) / 4
             p[0] = (m[0][1] + m[1][0]) / 4 / p[1];
@@ -995,7 +1022,7 @@ public:
 
         } else if (p[2] >= p[0] && p[2] >= p[1] && p[2] >= p[3]) {
 
-            p[2] = std::sqrt(p[2]);
+            p[2] = sqrt(p[2]);
 
             // r_x r_z = (R_13 + R_31) / 4
             p[0] = (m[0][2] + m[2][0]) / 4 / p[2];
@@ -1008,7 +1035,7 @@ public:
 
         } else {
 
-            p[3] = std::sqrt(p[3]);
+            p[3] = sqrt(p[3]);
 
             // r_0 r_x = (R_32 - R_23) / 4
             p[0] = (m[2][1] - m[1][2]) / 4 / p[3];
@@ -1028,6 +1055,9 @@ public:
     We tacitly assume that the matrix really is orthogonal */
     static Tensor3<T,4,3,3> derivativeOfMatrixToQuaternion(const Dune::FieldMatrix<T,3,3>& m)
     {
+      using std::pow;
+      using std::sqrt;
+
       Tensor3<T,4,3,3> result;
 
       Dune::FieldVector<T,4> p;
@@ -1045,10 +1075,10 @@ public:
         if (p[0] >= p[1] && p[0] >= p[2] && p[0] >= p[3])
         {
           result[0] = {{1,0,0},{0,-1,0},{0,0,-1}};
-          result[0] *= 1.0/(8.0*std::sqrt(p[0]));
+          result[0] *= 1.0/(8.0*sqrt(p[0]));
 
-          T denom = 32 * std::pow(p[0],1.5);
-          T offDiag = 1.0/(4*std::sqrt(p[0]));
+          T denom = 32 * pow(p[0],1.5);
+          T offDiag = 1.0/(4*sqrt(p[0]));
 
           result[1] = { {-(m[0][1]+m[1][0]) / denom, offDiag,              0},
                         {offDiag,                    (m[0][1]+m[1][0]) / denom, 0},
@@ -1065,10 +1095,10 @@ public:
         else if (p[1] >= p[0] && p[1] >= p[2] && p[1] >= p[3])
         {
           result[1] = {{-1,0,0},{0,1,0},{0,0,-1}};
-          result[1] *= 1.0/(8.0*std::sqrt(p[1]));
+          result[1] *= 1.0/(8.0*sqrt(p[1]));
 
-          T denom = 32 * std::pow(p[1],1.5);
-          T offDiag = 1.0/(4*std::sqrt(p[1]));
+          T denom = 32 * pow(p[1],1.5);
+          T offDiag = 1.0/(4*sqrt(p[1]));
 
           result[0] = { {(m[0][1]+m[1][0]) / denom, offDiag,                    0},
                         {offDiag,                  -(m[0][1]+m[1][0]) / denom, 0},
@@ -1085,10 +1115,10 @@ public:
         else if (p[2] >= p[0] && p[2] >= p[1] && p[2] >= p[3])
         {
           result[2] = {{-1,0,0},{0,-1,0},{0,0,1}};
-          result[2] *= 1.0/(8.0*std::sqrt(p[2]));
+          result[2] *= 1.0/(8.0*sqrt(p[2]));
 
-          T denom = 32 * std::pow(p[2],1.5);
-          T offDiag = 1.0/(4*std::sqrt(p[2]));
+          T denom = 32 * pow(p[2],1.5);
+          T offDiag = 1.0/(4*sqrt(p[2]));
 
           result[0] = { {(m[0][2]+m[2][0]) / denom, 0,                         offDiag},
                         {0,                        (m[0][2]+m[2][0]) / denom, 0},
@@ -1105,10 +1135,10 @@ public:
         else
         {
           result[3] = {{1,0,0},{0,1,0},{0,0,1}};
-          result[3] *= 1.0/(8.0*std::sqrt(p[3]));
+          result[3] *= 1.0/(8.0*sqrt(p[3]));
 
-          T denom = 32 * std::pow(p[3],1.5);
-          T offDiag = 1.0/(4*std::sqrt(p[3]));
+          T denom = 32 * pow(p[3],1.5);
+          T offDiag = 1.0/(4*sqrt(p[3]));
 
           result[0] = { {-(m[2][1]-m[1][2]) / denom, 0,                         0},
                         {0,                         -(m[2][1]-m[1][2]) / denom, -offDiag},

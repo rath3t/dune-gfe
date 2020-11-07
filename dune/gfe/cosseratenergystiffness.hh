@@ -227,10 +227,11 @@ public:
 
     RT curvatureEnergy(const Tensor3<field_type,3,3,gridDim>& DR) const
     {
+        using std::pow;
 #ifdef DONT_USE_CURL
-        return mu_ * std::pow(L_c_ * L_c_ * DR.frobenius_norm2(),q_/2.0);
+        return mu_ * pow(L_c_ * L_c_ * DR.frobenius_norm2(),q_/2.0);
 #else
-        return mu_ * std::pow(L_c_ * L_c_ * curl(DR).frobenius_norm2(),q_/2.0);
+        return mu_ * pow(L_c_ * L_c_ * curl(DR).frobenius_norm2(),q_/2.0);
 #endif
     }
 

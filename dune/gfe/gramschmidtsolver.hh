@@ -27,7 +27,8 @@ class GramSchmidtSolver
   static void normalize(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
                         Dune::FieldVector<field_type,embeddedDim>& v)
   {
-    v /= std::sqrt(matrix.energyScalarProduct(v,v));
+    using std::sqrt;
+    v /= sqrt(matrix.energyScalarProduct(v,v));
   }
 
 

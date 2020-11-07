@@ -3,7 +3,12 @@
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
+#include <dune/common/version.hh>
+#if DUNE_VERSION_GTE(DUNE_COMMON, 2, 7)
+#include <dune/common/math.hh>
+#else
 #include <dune/common/power.hh>
+#endif
 
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/symmetricmatrix.hh>
@@ -24,42 +29,54 @@ class UnitVector
 
     /** \brief Computes sin(x) / x without getting unstable for small x */
     static T sinc(const T& x) {
-        return (x < 1e-4) ? 1 - (x*x/6) : std::sin(x)/x;
+        using std::sin;
+        return (x < 1e-4) ? 1 - (x*x/6) : sin(x)/x;
     }
 
     /** \brief Compute arccos^2 without using the (at 1) nondifferentiable function acos x close to 1 */
     static T arcCosSquared(const T& x) {
+        using std::acos;
         const T eps = 1e-4;
         if (x > 1-eps) {  // acos is not differentiable, use the series expansion instead
             return -2 * (x-1) + 1.0/3 * (x-1)*(x-1) - 4.0/45 * (x-1)*(x-1)*(x-1);
         } else
-            return Dune::Power<2>::eval(std::acos(x));
+#if DUNE_VERSION_GTE(DUNE_COMMON, 2, 7)
+            return Dune::power(acos(x),2);
+#else
+            return Dune::Power<2>::eval(acos(x));
+#endif
     }
 
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */
     static T derivativeOfArcCosSquared(const T& x) {
+        using std::acos;
+        using std::sqrt;
         const T eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1);
         } else if (x < -1+eps) {  // The function is not differentiable
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else
-            return -2*std::acos(x) / std::sqrt(1-x*x);
+            return -2*acos(x) / sqrt(1-x*x);
     }
 
     /** \brief Compute the second derivative of arccos^2 without getting unstable for x close to 1 */
     static T secondDerivativeOfArcCosSquared(const T& x) {
+        using std::acos;
+        using std::pow;
         const T eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return 2.0/3 - 8*(x-1)/15;
         } else if (x < -1+eps) {  // The function is not differentiable
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else
-            return 2/(1-x*x) - 2*x*std::acos(x) / std::pow(1-x*x,1.5);
+            return 2/(1-x*x) - 2*x*acos(x) / pow(1-x*x,1.5);
     }
 
     /** \brief Compute the third derivative of arccos^2 without getting unstable for x close to 1 */
     static T thirdDerivativeOfArcCosSquared(const T& x) {
+        using std::acos;
+        using std::sqrt;
         const T eps = 1e-4;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
             return -8.0/15 + 24*(x-1)/35;
@@ -67,7 +84,7 @@ class UnitVector
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else {
             T d = 1-x*x;
-            return 6*x/(d*d) - 6*x*x*std::acos(x)/(d*d*std::sqrt(d)) - 2*std::acos(x)/(d*std::sqrt(d));
+            return 6*x/(d*d) - 6*x*x*acos(x)/(d*d*sqrt(d)) - 2*acos(x)/(d*sqrt(d));
         }
     }
 
@@ -156,11 +173,13 @@ public:
      /** \brief The exponential map */
     static UnitVector exp(const UnitVector& p, const EmbeddedTangentVector& v) {
 
-        assert( std::abs(p.data_*v) < 1e-5 );
+        using std::abs;
+        using std::cos;
+        assert( abs(p.data_*v) < 1e-5 );
 
         const T norm = v.two_norm();
         UnitVector result = p;
-        result.data_ *= std::cos(norm);
+        result.data_ *= cos(norm);
         result.data_.axpy(sinc(norm), v);
         return result;
     }
@@ -176,15 +195,18 @@ public:
     /** \brief Length of the great arc connecting the two points */
      static T distance(const UnitVector& a, const UnitVector& b) {
 
+         using std::acos;
+         using std::min;
+
          // Not nice: we are in a class for unit vectors, but the class is actually
          // supposed to handle perturbations of unit vectors as well.  Therefore
          // we normalize here.
          T x = a.data_ * b.data_/a.data_.two_norm()/b.data_.two_norm();
 
          // paranoia:  if the argument is just eps larger than 1 acos returns NaN
-         x = std::min(x,1.0);
+         x = min(x,1.0);
 
-         return std::acos(x);
+         return acos(x);
     }
 
 #if ADOLC_ADOUBLE_H
@@ -197,7 +219,8 @@ public:
          adouble x = a.data_ * b.data_ / (a.data_.two_norm()*b.data_.two_norm());
 
          // paranoia:  if the argument is just eps larger than 1 acos returns NaN
-         x = std::min(x,1.0);
+         using std::min;
+         x = min(x,1.0);
 
          // Special implementation that remains AD-differentiable near x==1
          return arcCosSquared(x);
@@ -219,7 +242,8 @@ public:
         result = b.projectOntoTangentSpace(result);
 
         // Gradient must be a tangent vector at b, in other words, orthogonal to it
-        assert( std::abs(b.data_ * result) < 1e-5);
+        using std::abs;
+        assert(abs(b.data_ * result) < 1e-5);
 
         return result;
     }
