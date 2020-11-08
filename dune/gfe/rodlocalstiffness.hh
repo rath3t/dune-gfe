@@ -9,6 +9,8 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
+#include <dune/fufem/boundarypatch.hh>
+
 #include <dune/gfe/localfirstordermodel.hh>
 #include "rigidbodymotion.hh"
 
@@ -105,13 +107,30 @@ public:
                           const std::vector<RigidBodyMotion<RT,3> >& solution,
                           std::vector<Dune::FieldVector<double,6> >& gradient) const override;
 
+    /** \brief Get strain at one point of the domain */
     Dune::FieldVector<double, 6> getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
                                            const Entity& element,
                                            const Dune::FieldVector<double,1>& pos) const;
 
+    /** \brief Get stress at one point of the domain */
     Dune::FieldVector<RT, 6> getStress(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
                                            const Entity& element,
                                            const Dune::FieldVector<double,1>& pos) const;
+
+    /** \brief Get average strain for each element */
+    void getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
+                   Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
+
+    /** \brief Get average stress for each element */
+    void getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
+                   Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const;
+
+    /** \brief Return resultant force across boundary in canonical coordinates
+
+     \note Linear run-time in the size of the grid */
+    template <class PatchGridView>
+    Dune::FieldVector<double,6> getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
+                                                  const std::vector<RigidBodyMotion<double,3> >& sol) const;
 
 protected:
 
@@ -147,8 +166,8 @@ protected:
 
 };
 
-template <class GridType, class RT>
-RT RodLocalStiffness<GridType, RT>::
+template <class GridView, class RT>
+RT RodLocalStiffness<GridView, RT>::
 energy(const typename Basis::LocalView& localView,
        const std::vector<RigidBodyMotion<RT,3> >& localSolution) const
 {
@@ -217,8 +236,8 @@ energy(const typename Basis::LocalView& localView,
 }
 
 
-template <class GridType, class RT>
-void RodLocalStiffness<GridType, RT>::
+template <class GridView, class RT>
+void RodLocalStiffness<GridView, RT>::
 interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
                         std::array<Quaternion<double>,6>& grad)
 {
@@ -302,8 +321,8 @@ interpolationDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, doub
 
 
 
-template <class GridType, class RT>
-void RodLocalStiffness<GridType, RT>::
+template <class GridView, class RT>
+void RodLocalStiffness<GridView, RT>::
 interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& q1, double s,
                                 double intervalLength, std::array<Quaternion<double>,6>& grad)
 {
@@ -428,8 +447,8 @@ interpolationVelocityDerivative(const Rotation<RT,3>& q0, const Rotation<RT,3>& 
 
 }
 
-template <class GridType, class RT>
-Dune::FieldVector<double, 6> RodLocalStiffness<GridType, RT>::
+template <class GridView, class RT>
+Dune::FieldVector<double, 6> RodLocalStiffness<GridView, RT>::
 getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
           const Entity& element,
           const Dune::FieldVector<double,1>& pos) const
@@ -500,8 +519,8 @@ getStrain(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
 
     return strain;
 }
-template <class GridType, class RT>
-Dune::FieldVector<RT, 6> RodLocalStiffness<GridType, RT>::
+template <class GridView, class RT>
+Dune::FieldVector<RT, 6> RodLocalStiffness<GridView, RT>::
 getStress(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
               const Entity& element,
                         const Dune::FieldVector<double, 1>& pos) const
@@ -523,8 +542,8 @@ getStress(const std::vector<RigidBodyMotion<RT,3> >& localSolution,
 }
 
 
-template <class GridType, class RT>
-void RodLocalStiffness<GridType, RT>::
+template <class GridView, class RT>
+void RodLocalStiffness<GridView, RT>::
 assembleGradient(const typename Basis::LocalView& localView,
                  const std::vector<RigidBodyMotion<RT,3> >& solution,
                  std::vector<Dune::FieldVector<double,6> >& gradient) const
@@ -715,6 +734,150 @@ assembleGradient(const typename Basis::LocalView& localView,
     }
 }
 
+template <class GridView, class RT>
+void RodLocalStiffness<GridView, RT>::
+getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
+          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const
+{
+    const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
+
+    if (sol.size()!=this->basis_.size())
+        DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
+
+    // Strain defined on each element
+    strain.resize(indexSet.size(0));
+    strain = 0;
+
+    // Loop over all elements
+    for (const auto& element : elements(this->basis_.gridView()))
+    {
+        int elementIdx = indexSet.index(element);
+
+        // Extract local solution on this element
+        Dune::P1LocalFiniteElement<double,double,1> localFiniteElement;
+        int numOfBaseFct = localFiniteElement.localCoefficients().size();
+
+        std::vector<RigidBodyMotion<double,3> > localSolution(2);
+
+        for (int i=0; i<numOfBaseFct; i++)
+            localSolution[i] = sol[indexSet.subIndex(element,i,1)];
+
+        // Get quadrature rule
+        const int polOrd = 2;
+        const auto& quad = Dune::QuadratureRules<double, 1>::rule(element.type(), polOrd);
+
+        for (std::size_t pt=0; pt<quad.size(); pt++)
+        {
+            // Local position of the quadrature point
+            const auto quadPos = quad[pt].position();
+
+            double weight = quad[pt].weight() * element.geometry().integrationElement(quadPos);
+
+            auto localStrain = std::dynamic_pointer_cast<RodLocalStiffness<GridView, double> >(this->localStiffness_)->getStrain(localSolution, element, quad[pt].position());
+
+            // Sum it all up
+            strain[elementIdx].axpy(weight, localStrain);
+        }
+
+        // /////////////////////////////////////////////////////////////////////////
+        //   We want the average strain per element.  Therefore we have to divide
+        //   the integral we just computed by the element volume.
+        // /////////////////////////////////////////////////////////////////////////
+        // we know the element is a line, therefore the integration element is the volume
+        Dune::FieldVector<double,1> dummyPos(0.5);
+        strain[elementIdx] /= element.geometry().integrationElement(dummyPos);
+    }
+}
+
+template <class GridView, class RT>
+void RodLocalStiffness<GridView, RT>::
+getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
+          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const
+{
+    // Get the strain
+    getStrain(sol,stress);
+
+    // Get reference strain
+    Dune::BlockVector<Dune::FieldVector<double, blocksize> > referenceStrain;
+    getStrain(dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_, referenceStrain);
+
+    // Linear diagonal constitutive law
+    for (size_t i=0; i<stress.size(); i++)
+    {
+        for (int j=0; j<3; j++)
+        {
+            stress[i][j]   = (stress[i][j]   - referenceStrain[i][j])   * dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->A_[j];
+            stress[i][j+3] = (stress[i][j+3] - referenceStrain[i][j+3]) * dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->K_[j];
+        }
+    }
+}
+
+template <class GridView, class RT>
+template <class PatchGridView>
+Dune::FieldVector<double,6> RodLocalStiffness<GridView, RT>::
+getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
+                  const std::vector<RigidBodyMotion<double,3> >& sol) const
+{
+    const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
+
+    if (sol.size()!=indexSet.size(1))
+        DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
+
+    Dune::FieldVector<double,3> canonicalStress(0);
+    Dune::FieldVector<double,3> canonicalTorque(0);
+
+    // Loop over the given boundary
+    for (auto facet : boundary)
+    {
+        // //////////////////////////////////////////////
+        //   Compute force across this boundary face
+        // //////////////////////////////////////////////
+
+        double pos = facet.geometryInInside().corner(0);
+
+        std::vector<RigidBodyMotion<double,3> > localSolution(2);
+        localSolution[0] = sol[indexSet.subIndex(*facet.inside(),0,1)];
+        localSolution[1] = sol[indexSet.subIndex(*facet.inside(),1,1)];
+
+        std::vector<RigidBodyMotion<double,3> > localRefConf(2);
+        localRefConf[0] = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.subIndex(*facet.inside(),0,1)];
+        localRefConf[1] = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->referenceConfiguration_[indexSet.subIndex(*facet.inside(),1,1)];
+
+        auto strain          = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->getStrain(localSolution, *facet.inside(), pos);
+        auto referenceStrain = dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->getStrain(localRefConf, *facet.inside(), pos);
+
+        Dune::FieldVector<double,3> localStress;
+        for (int i=0; i<3; i++)
+            localStress[i] = (strain[i] - referenceStrain[i]) * dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->A_[i];
+
+        Dune::FieldVector<double,3> localTorque;
+        for (int i=0; i<3; i++)
+            localTorque[i] = (strain[i+3] - referenceStrain[i+3]) * dynamic_cast<RodLocalStiffness<GridView, double>* >(this->localStiffness_)->K_[i];
+
+        // Transform stress given with respect to the basis given by the three directors to
+        // the canonical basis of R^3
+
+        Dune::FieldMatrix<double,3,3> orientationMatrix;
+        sol[indexSet.subIndex(*facet.inside(),facet.indexInInside(),1)].q.matrix(orientationMatrix);
+
+        orientationMatrix.umv(localStress, canonicalStress);
+
+        orientationMatrix.umv(localTorque, canonicalTorque);
+
+        // Multiply force times boundary normal to get the transmitted force
+        canonicalStress *= facet.unitOuterNormal(Dune::FieldVector<double,0>(0))[0];
+        canonicalTorque *= facet.unitOuterNormal(Dune::FieldVector<double,0>(0))[0];
+    }
+
+    Dune::FieldVector<double,6> result;
+    for (int i=0; i<3; i++)
+    {
+        result[i] = canonicalStress[i];
+        result[i+3] = canonicalTorque[i];
+    }
+
+    return result;
+}
 
 #endif
 

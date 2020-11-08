@@ -74,18 +74,6 @@ public:
   virtual void assembleGradient(const std::vector<RigidBodyMotion<double,3> >& sol,
                                 Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const override;
 
-        void getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
-                       Dune::BlockVector<Dune::FieldVector<double, blocksize> >& strain) const;
-
-        void getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
-                       Dune::BlockVector<Dune::FieldVector<double, blocksize> >& stress) const;
-
-        /** \brief Return resultant force across boundary in canonical coordinates
-
-        \note Linear run-time in the size of the grid */
-        template <class PatchGridView>
-        Dune::FieldVector<double,6> getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
-                                                      const std::vector<RigidBodyMotion<double,3> >& sol) const;
     }; // end class
 
 
