@@ -13,9 +13,11 @@
 #include <dune/solvers/norms/energynorm.hh>
 
 #include <dune/gfe/cosseratvtkwriter.hh>
+#include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/localgeodesicfefdstiffness.hh>
 #include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/rodlocalstiffness.hh>
 #include <dune/gfe/rotation.hh>
-#include <dune/gfe/rodassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
 typedef RigidBodyMotion<double,3> TargetSpace;
@@ -118,16 +120,35 @@ int main (int argc, char *argv[]) try
     dirichletNodes[0] = true;
     dirichletNodes.back() = true;
     
+    //////////////////////////////////////////////
+    //  Create the stress-free configuration
+    //////////////////////////////////////////////
+
+    auto localRodEnergy = std::make_shared<RodLocalStiffness<GridView, double> >(gridView,
+                                                                                 A, J1, J2, E, nu);
+
+    std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
+
+    for (const auto vertex : vertices(gridView))
+    {
+        auto idx = gridView.indexSet().index(vertex);
+
+        referenceConfiguration[idx].r[0] = 0;
+        referenceConfiguration[idx].r[1] = 0;
+        referenceConfiguration[idx].r[2] = vertex.geometry().corner(0)[0];
+        referenceConfiguration[idx].q = Rotation<double,3>::identity();
+    }
+
+    localRodEnergy->setReferenceConfiguration(referenceConfiguration);
+
     // ///////////////////////////////////////////
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
 
-    RodLocalStiffness<GridView,double> localStiffness(gridView,
-                                                      A, J1, J2, E, nu);
+    LocalGeodesicFEFDStiffness<FEBasis,
+                               TargetSpace> localStiffness(localRodEnergy.get());
 
-    LocalGeodesicFEFDStiffness<FEBasis,RigidBodyMotion<double,3> > localFDStiffness(&localStiffness);
-
-    RodAssembler<FEBasis,3> rodAssembler(gridView, localFDStiffness);
+    GeodesicFEAssembler<FEBasis,TargetSpace> rodAssembler(gridView, localStiffness);
 
     RiemannianTrustRegionSolver<FEBasis,RigidBodyMotion<double,3> > rodSolver;
 
@@ -160,9 +181,6 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
     CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "rod3d-result");
-
-    BlockVector<FieldVector<double, 6> > strain(x.size()-1);
-    rodAssembler.getStrain(x,strain);
 
 } catch (Exception& e)
 {

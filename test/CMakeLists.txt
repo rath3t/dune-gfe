@@ -9,7 +9,6 @@ set(TESTS
   localprojectedfefunctiontest
   orthogonalmatrixtest
   rigidbodymotiontest
-  rodassemblertest
   rotationtest
   svdtest
   targetspacetest
