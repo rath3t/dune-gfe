@@ -620,6 +620,9 @@ public:
 
         } else {
 
+            // TODO: ADOL-C does not like this part of the code,
+            // because arccos is not differentiable at -1 and 1.
+            // (Even though the overall 'difference' function is differentiable.)
             using std::acos;
             T dist = 2*acos( diff[3] );
 

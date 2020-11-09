@@ -1,5 +1,10 @@
 #include <config.h>
 
+// Includes for the ADOL-C automatic differentiation library
+// Need to come before (almost) all others.
+#include <adolc/drivers/drivers.h>
+#include <dune/fufem/utilities/adolcnamespaceinjections.hh>
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -14,7 +19,7 @@
 
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
-#include <dune/gfe/localgeodesicfefdstiffness.hh>
+#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/rodlocalstiffness.hh>
 #include <dune/gfe/rotation.hh>
@@ -124,7 +129,7 @@ int main (int argc, char *argv[]) try
     //  Create the stress-free configuration
     //////////////////////////////////////////////
 
-    auto localRodEnergy = std::make_shared<RodLocalStiffness<GridView, double> >(gridView,
+    auto localRodEnergy = std::make_shared<RodLocalStiffness<GridView,adouble> >(gridView,
                                                                                  A, J1, J2, E, nu);
 
     std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
@@ -145,8 +150,8 @@ int main (int argc, char *argv[]) try
     //   Create a solver for the rod problem
     // ///////////////////////////////////////////
 
-    LocalGeodesicFEFDStiffness<FEBasis,
-                               TargetSpace> localStiffness(localRodEnergy.get());
+    LocalGeodesicFEADOLCStiffness<FEBasis,
+                                  TargetSpace> localStiffness(localRodEnergy.get());
 
     GeodesicFEAssembler<FEBasis,TargetSpace> rodAssembler(gridView, localStiffness);
 
