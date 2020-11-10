@@ -15,11 +15,18 @@
 #include <dune/gfe/orthogonalmatrix.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/tensor3.hh>
-#include <dune/gfe/vertexnormals.hh>
+
+#include <dune/curvedgeometry/curvedgeometry.hh>
+#include <dune/localfunctions/lagrange/lfecache.hh>
 
 namespace Dune::GFE {
-
-template<class Basis, class... TargetSpaces>
+/** \brief Assembles the cosserat energy on the given boundary for a single element.
+ *
+ * \tparam CurvedGeometryGridFunction Type of the grid function that gives the geometry of the deformed surface
+ * \tparam Basis Type of the Basis used for assembling
+ * \tparam TargetSpaces The List of TargetSpaces - SurfaceCosseratEnergy needs exactly two TargetSpaces!
+ */
+template<class CurvedGeometryGridFunction, class Basis, class... TargetSpaces>
 class SurfaceCosseratEnergy
 : public Dune::GFE::LocalEnergy<Basis, TargetSpaces...>
 {
@@ -70,16 +77,19 @@ public:
 
   /** \brief Constructor with a set of material parameters
    * \param parameters The material parameters
+   * \param shellBoundary The shellBoundary contains the faces where the cosserat energy is assembled
+   * \param curvedGeometryGridFunction The curvedGeometryGridFunction gives the geometry of the shell in stress-free state.
+            When assembling, we deform the intersections using the curvedGeometryGridFunction and then use the deformed geometries.
+   * \param thicknessF The shell thickness parameter, given as a function and evaluated at each quadrature point
+   * \param lameF The Lame parameters, given as a function and evaluated at each quadrature point
    */
   SurfaceCosseratEnergy(const Dune::ParameterTree& parameters,
-    const std::vector<UnitVector<double,dimWorld> >& vertexNormals,
     const BoundaryPatch<GridView>* shellBoundary,
-    const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType,Dune::MultiLinearGeometry<double, dimWorld-1, dimWorld>>& geometriesOnShellBoundary,
+    const CurvedGeometryGridFunction& curvedGeometryGridFunction,
     const std::function<double(Dune::FieldVector<double,dimWorld>)> thicknessF,
     const std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dimWorld>)> lameF)
   : shellBoundary_(shellBoundary),
-    vertexNormals_(vertexNormals),
-    geometriesOnShellBoundary_(geometriesOnShellBoundary),
+    curvedGeometryGridFunction_(curvedGeometryGridFunction),
     thicknessF_(thicknessF),
     lameF_(lameF)
   {
@@ -98,7 +108,7 @@ public:
 RT energy(const typename Basis::LocalView& localView,
           const std::vector<TargetSpaces>&... localSolutions) const
 { 
-  static_assert(sizeof...(TargetSpaces) == 2, "SurfaceCosseratEnergy needs exactly two TargetSpace!");
+  static_assert(sizeof...(TargetSpaces) == 2, "SurfaceCosseratEnergy needs exactly two TargetSpaces!");
 
   using namespace Dune::Indices;
   using TargetSpace0 = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
@@ -109,21 +119,6 @@ RT energy(const typename Basis::LocalView& localView,
   // The element geometry
   auto element = localView.element();
   auto gridView = localView.globalBasis().gridView();
-
-  ////////////////////////////////////////////////////////////////////////////////////
-  //  Construct a linear (i.e., non-constant!) normal field on each element
-  ////////////////////////////////////////////////////////////////////////////////////
-  typedef typename Dune::PQkLocalFiniteElementCache<DT, double, gridDim, 1> P1FiniteElementCache;
-  typedef typename P1FiniteElementCache::FiniteElementType P1LocalFiniteElement;
-  //it.type()?
-  P1FiniteElementCache p1FiniteElementCache;
-  const auto& p1LocalFiniteElement = p1FiniteElementCache.get(element.type());
-
-  assert(vertexNormals_.size() == gridView.indexSet().size(gridDim));
-  std::vector<UnitVector<double,3> > cornerNormals(element.subEntities(gridDim));
-  for (size_t i=0; i<cornerNormals.size(); i++)
-    cornerNormals[i] = vertexNormals_[gridView.indexSet().subIndex(element,i,gridDim)];
-  Dune::GFE::LocalProjectedFEFunction<gridDim, DT, P1LocalFiniteElement, UnitVector<double,3> > unitNormals(p1LocalFiniteElement, cornerNormals);
 
   ////////////////////////////////////////////////////////////////////////////////////
   //  Set up the local nonlinear finite element function
@@ -159,14 +154,25 @@ RT energy(const typename Basis::LocalView& localView,
 
   RT energy = 0;
 
-  auto& idSet = gridView.grid().globalIdSet();
-
   for (auto&& it : intersections(shellBoundary_->gridView(), element)) {
     if (not shellBoundary_->contains(it))
       continue;
-    
-    auto id = idSet.subId(it.inside(), it.indexInInside(), 1);
-    auto boundaryGeometry = geometriesOnShellBoundary_.at(id);
+
+    auto localGridFunction = localFunction(curvedGeometryGridFunction_);
+    auto curvedGeometryGridFunctionOrder = deformationLocalFiniteElement.localBasis().order();//curvedGeometryGridFunction_.basis().localView().tree().child(0).finiteElement().localBasis().order();
+    localGridFunction.bind(element);
+    auto referenceElement = Dune::referenceElement<DT,boundaryDim>(it.type());
+
+    // Construct the geometry on the boundary using the map lGF(localGeometry.global(local)):
+    // The variable local holds the local coordinates in the 2D reference element, localGeometry.global maps them to the 3D reference element.
+    // The function lGF is the gridfunction bound to the current element, so lGF(localGeometry.global(local)) is the value of curvedGeometryGridFunction_ at
+    // the point on the intersection face.
+    using BoundaryGeometry = Dune::CurvedGeometry<DT, boundaryDim, dimWorld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,boundaryDim>>>;
+    BoundaryGeometry boundaryGeometry(referenceElement,
+      [localGridFunction, localGeometry=it.geometryInInside()](const auto& local) {
+        return localGridFunction(localGeometry.global(local));
+      }, curvedGeometryGridFunctionOrder);
+
     auto quadOrder = (it.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
                                                   : deformationLocalFiniteElement.localBasis().order() * boundaryDim;
 
@@ -243,7 +249,6 @@ RT energy(const typename Basis::LocalView& localView,
       // If dimWorld==3, then the first two lines of aCovariant are simply the jacobianTransposed
       // of the element.  If dimWorld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
       const auto jacobianTransposed = boundaryGeometry.jacobianTransposed(quad[pt].position());
-      // auto jacobianTransposed = geometry.jacobianTransposed(quadPos);
 
       for (int i=0; i<2; i++)
       {
@@ -253,7 +258,7 @@ RT energy(const typename Basis::LocalView& localView,
           aCovariant[i][j] = 0.0;
       }
 
-      aCovariant[2] = Dune::MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
+      aCovariant[2] = Dune::FMatrixHelp::Impl::crossProduct(aCovariant[0], aCovariant[1]);
       aCovariant[2] /= aCovariant[2].two_norm();
 
       auto aContravariant = aCovariant;
@@ -277,9 +282,8 @@ RT energy(const typename Basis::LocalView& localView,
         for (int beta=0; beta<2; beta++)
           c += aScalar * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
 
-      // Second fundamental form
-      // The derivative of the normal field
-      auto normalDerivative = unitNormals.evaluateDerivative(quadPos);
+      // Second fundamental form: The derivative of the normal field
+      auto normalDerivative = boundaryGeometry.normalGradient(quad[pt].position());
 
       Dune::FieldMatrix<double,3,3> b(0);
       for (int alpha=0; alpha<boundaryDim; alpha++)
@@ -375,11 +379,8 @@ private:
   /** \brief The shell boundary */
   const BoundaryPatch<GridView>* shellBoundary_;
 
-  /** \brief Stress-free geometries of the shell elements*/
-  const std::unordered_map<typename GridView::Grid::GlobalIdSet::IdType, Dune::MultiLinearGeometry<double, dimWorld-1, dimWorld>> geometriesOnShellBoundary_;
-
-  /** \brief The normal vectors at the grid vertices. They are used to compute the reference surface curvature. */
-  std::vector<UnitVector<double,3> > vertexNormals_;
+  /** \brief The function used to create the Geometries used for assembling */
+  const CurvedGeometryGridFunction curvedGeometryGridFunction_;
 
   /** \brief The shell thickness as a function*/
   std::function<double(Dune::FieldVector<double,dimWorld>)> thicknessF_;
