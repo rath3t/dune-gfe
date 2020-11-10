@@ -5,6 +5,8 @@
 #include <adolc/drivers/drivers.h>
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
+#include <optional>
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -13,11 +15,20 @@
 
 #include <dune/istl/io.hh>
 
+#include <dune/functions/functionspacebases/interpolate.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
+#include <dune/functions/functionspacebases/powerbasis.hh>
+#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
+#if HAVE_DUNE_VTK
+#include <dune/vtk/vtkwriter.hh>
+#else
 #include <dune/gfe/cosseratvtkwriter.hh>
+#endif
+
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/rigidbodymotion.hh>
@@ -185,7 +196,54 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
+#if HAVE_DUNE_VTK
+    VtkUnstructuredGridWriter<GridView> vtkWriter(gridView, Vtk::ASCII);
+
+    // Make basis for R^3-valued data
+    using namespace Functions::BasisFactory;
+
+    auto worldBasis = makeBasis(
+      gridView,
+      power<3>(lagrange<1>())
+    );
+
+    // The rod displacement field
+    BlockVector<FieldVector<double,3> > displacement(worldBasis.size());
+    for (std::size_t i=0; i<x.size(); i++)
+      displacement[i] = x[i].r;
+
+    std::vector<double> xEmbedding;
+    Functions::interpolate(feBasis, xEmbedding, [](FieldVector<double,1> x){ return x; });
+
+    BlockVector<FieldVector<double,3> > gridEmbedding(xEmbedding.size());
+    for (std::size_t i=0; i<gridEmbedding.size(); i++)
+      gridEmbedding[i] = {xEmbedding[i], 0, 0};
+
+    displacement -= gridEmbedding;
+
+    auto displacementFunction = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, displacement);
+    vtkWriter.addPointData(displacementFunction, "displacement", 3);
+
+    // The three director fields
+    using FunctionType = decltype(displacementFunction);
+    std::array<std::optional<FunctionType>, 3> directorFunction;
+
+    for (int i=0; i<3; i++)
+    {
+      BlockVector<FieldVector<double, 3> > director(worldBasis.size());
+      for (std::size_t j=0; j<x.size(); j++)
+        director[j] = x[j].q.director(i);
+
+      directorFunction[i] = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, std::move(director));
+      vtkWriter.addPointData(*directorFunction[i], "director " + std::to_string(i), 3);
+    }
+
+    vtkWriter.write(resultPath + "rod3d-result");
+#else
+    std::cout << "Falling back to legacy file writing.  Get dune-vtk for better results" << std::endl;
+    // Fall-back solution for users without dune-vtk
     CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "rod3d-result");
+#endif
 
 } catch (Exception& e)
 {
