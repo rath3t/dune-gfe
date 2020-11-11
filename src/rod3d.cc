@@ -29,10 +29,10 @@
 #include <dune/gfe/cosseratvtkwriter.hh>
 #endif
 
+#include <dune/gfe/cosseratrodenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/rodlocalstiffness.hh>
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
@@ -140,8 +140,8 @@ int main (int argc, char *argv[]) try
     //  Create the stress-free configuration
     //////////////////////////////////////////////
 
-    auto localRodEnergy = std::make_shared<RodLocalStiffness<GridView,adouble> >(gridView,
-                                                                                 A, J1, J2, E, nu);
+    auto localRodEnergy = std::make_shared<GFE::CosseratRodEnergy<GridView,adouble> >(gridView,
+                                                                                      A, J1, J2, E, nu);
 
     std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
 
