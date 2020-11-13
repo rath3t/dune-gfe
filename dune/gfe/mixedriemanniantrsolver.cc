@@ -100,7 +100,7 @@ setup(const GridType& grid,
                                                                                    baseNorm0,
                                                                                    Solver::QUIET);
 
-    ::LoopSolver<CorrectionType0>* baseSolver1 = new ::LoopSolver<CorrectionType1>(baseSolverStep1,
+    ::LoopSolver<CorrectionType1>* baseSolver1 = new ::LoopSolver<CorrectionType1>(baseSolverStep1,
                                                                                    baseIterations,
                                                                                    baseTolerance,
                                                                                    baseNorm1,

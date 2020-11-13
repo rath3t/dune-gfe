@@ -82,11 +82,11 @@ public:
 
     void setScaling(const Dune::FieldVector<double,blocksize0+blocksize1>& scaling)
     {
-      for (int i=0; i<3; i++)
-      {
+      for (int i=0; i<blocksize0; i++)
         std::get<0>(scaling_)[i] = scaling[i];
-        std::get<1>(scaling_)[i] = scaling[i+3];
-      }
+
+      for (int i=0; i<blocksize1; i++)
+        std::get<1>(scaling_)[i] = scaling[i+blocksize0];
     }
 
 #if 0
@@ -124,7 +124,7 @@ protected:
     double initialTrustRegionRadius_;
 
     /** \brief Trust-region norm scaling */
-    std::tuple<Dune::FieldVector<double,3>, Dune::FieldVector<double,3> > scaling_;
+    std::tuple<Dune::FieldVector<double,blocksize0>, Dune::FieldVector<double,blocksize1> > scaling_;
 
     /** \brief Maximum number of trust-region steps */
     int maxTrustRegionSteps_;
