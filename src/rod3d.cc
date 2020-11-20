@@ -25,6 +25,7 @@
 
 #if HAVE_DUNE_VTK
 #include <dune/vtk/vtkwriter.hh>
+#include <dune/vtk/datacollectors/lagrangedatacollector.hh>
 #else
 #include <dune/gfe/cosseratvtkwriter.hh>
 #endif
@@ -32,6 +33,8 @@
 #include <dune/gfe/cosseratrodenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
@@ -39,6 +42,9 @@
 typedef RigidBodyMotion<double,3> TargetSpace;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
+
+// Approximation order of the finite element space
+constexpr int order = 2;
 
 using namespace Dune;
 
@@ -91,21 +97,36 @@ int main (int argc, char *argv[]) try
     using GridView = GridType::LeafGridView;
     GridView gridView = grid.leafGridView();
 
-    using FEBasis = Functions::LagrangeBasis<GridView,1>;
+    using FEBasis = Functions::LagrangeBasis<GridView,order>;
     FEBasis feBasis(gridView);
 
     SolutionType x(feBasis.size());
 
-    // //////////////////////////
-    //   Initial solution
-    // //////////////////////////
+    //////////////////////////////////////////////
+    //  Create the stress-free configuration
+    //////////////////////////////////////////////
 
-    for (size_t i=0; i<x.size(); i++) {
-        x[i].r[0] = 0;
-        x[i].r[1] = 0;
-        x[i].r[2] = double(i)/(x.size()-1);
-        x[i].q    = Rotation<double,3>::identity();
+    std::vector<double> referenceConfigurationX(feBasis.size());
+
+    auto identity = [](const FieldVector<double,1>& x) { return x; };
+
+    Functions::interpolate(feBasis, referenceConfigurationX, identity);
+
+    std::vector<RigidBodyMotion<double,3> > referenceConfiguration(feBasis.size());
+
+    for (std::size_t i=0; i<referenceConfiguration.size(); i++)
+    {
+        referenceConfiguration[i].r[0] = 0;
+        referenceConfiguration[i].r[1] = 0;
+        referenceConfiguration[i].r[2] = referenceConfigurationX[i];
+        referenceConfiguration[i].q = Rotation<double,3>::identity();
     }
+
+    /////////////////////////////////////////////////////////////////
+    //   Select the reference configuration as initial iterate
+    /////////////////////////////////////////////////////////////////
+
+    x = referenceConfiguration;
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -135,36 +156,43 @@ int main (int argc, char *argv[]) try
         
     dirichletNodes[0] = true;
     dirichletNodes.back() = true;
-    
+
     //////////////////////////////////////////////
-    //  Create the stress-free configuration
+    //  Create the energy and assembler
     //////////////////////////////////////////////
 
-    auto localRodEnergy = std::make_shared<GFE::CosseratRodEnergy<GridView,adouble> >(gridView,
-                                                                                      A, J1, J2, E, nu);
+    using ATargetSpace = TargetSpace::rebind<adouble>::other;
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+    using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
-    std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
+    // Assembler using ADOL-C
+    std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localRodEnergy;
 
-    for (const auto vertex : vertices(gridView))
+    if (parameterSet["interpolationMethod"] == "geodesic")
     {
-        auto idx = gridView.indexSet().index(vertex);
-
-        referenceConfiguration[idx].r[0] = 0;
-        referenceConfiguration[idx].r[1] = 0;
-        referenceConfiguration[idx].r[2] = vertex.geometry().corner(0)[0];
-        referenceConfiguration[idx].q = Rotation<double,3>::identity();
+        auto energy = std::make_shared<GFE::CosseratRodEnergy<FEBasis, GeodesicInterpolationRule, adouble> >(gridView,
+                                                                                                             A, J1, J2, E, nu);
+        energy->setReferenceConfiguration(referenceConfiguration);
+        localRodEnergy = energy;
     }
-
-    localRodEnergy->setReferenceConfiguration(referenceConfiguration);
-
-    // ///////////////////////////////////////////
-    //   Create a solver for the rod problem
-    // ///////////////////////////////////////////
+    else if (parameterSet["interpolationMethod"] == "projected")
+    {
+        auto energy = std::make_shared<GFE::CosseratRodEnergy<FEBasis, ProjectedInterpolationRule, adouble> >(gridView,
+                                                                                                              A, J1, J2, E, nu);
+        energy->setReferenceConfiguration(referenceConfiguration);
+        localRodEnergy = energy;
+    }
+    else
+        DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
     LocalGeodesicFEADOLCStiffness<FEBasis,
                                   TargetSpace> localStiffness(localRodEnergy.get());
 
     GeodesicFEAssembler<FEBasis,TargetSpace> rodAssembler(gridView, localStiffness);
+
+    /////////////////////////////////////////////
+    //   Create a solver for the rod problem
+    /////////////////////////////////////////////
 
     RiemannianTrustRegionSolver<FEBasis,RigidBodyMotion<double,3> > rodSolver;
 
@@ -197,14 +225,16 @@ int main (int argc, char *argv[]) try
     //   Output result
     // //////////////////////////////
 #if HAVE_DUNE_VTK
-    VtkUnstructuredGridWriter<GridView> vtkWriter(gridView, Vtk::ASCII);
+    using DataCollector = Vtk::LagrangeDataCollector<GridView,order>;
+    DataCollector dataCollector(gridView);
+    VtkUnstructuredGridWriter<GridView,DataCollector> vtkWriter(gridView, Vtk::ASCII);
 
     // Make basis for R^3-valued data
     using namespace Functions::BasisFactory;
 
     auto worldBasis = makeBasis(
       gridView,
-      power<3>(lagrange<1>())
+      power<3>(lagrange<order>())
     );
 
     // The rod displacement field
@@ -227,14 +257,14 @@ int main (int argc, char *argv[]) try
     // The three director fields
     using FunctionType = decltype(displacementFunction);
     std::array<std::optional<FunctionType>, 3> directorFunction;
-
+    std::array<BlockVector<FieldVector<double, 3> >, 3> director;
     for (int i=0; i<3; i++)
     {
-      BlockVector<FieldVector<double, 3> > director(worldBasis.size());
+      director[i].resize(worldBasis.size());
       for (std::size_t j=0; j<x.size(); j++)
-        director[j] = x[j].q.director(i);
+        director[i][j] = x[j].q.director(i);
 
-      directorFunction[i] = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, std::move(director));
+      directorFunction[i] = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, std::move(director[i]));
       vtkWriter.addPointData(*directorFunction[i], "director " + std::to_string(i), 3);
     }
 

@@ -51,6 +51,9 @@ instrumented = no
 #   Problem specifications
 ############################
 
+# Interpolation method
+interpolationMethod = geodesic
+
 A = 1
 J1 = 1
 J2 = 1

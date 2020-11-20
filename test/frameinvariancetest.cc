@@ -5,7 +5,7 @@
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/gfe/cosseratrodenergy.hh>
-#include <dune/gfe/quaternion.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 
 
@@ -69,8 +69,14 @@ int main (int argc, char *argv[]) try
         rotatedX[i].q = rotation.mult(x[i].q);
     }
 
-    GFE::CosseratRodEnergy<GridView,double> localRodEnergy(gridView,
-                                                      1,1,1,1e6,0.3);
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double,
+                                                               FEBasis::LocalView::Tree::FiniteElement,
+                                                               RigidBodyMotion<double,3> >;
+
+    GFE::CosseratRodEnergy<FEBasis,
+                           GeodesicInterpolationRule,
+                           double> localRodEnergy(gridView,
+                                                  1,1,1,1e6,0.3);
 
     std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
 

@@ -59,6 +59,13 @@ public:
         assert(localFiniteElement_.localBasis().size() == coefficients_.size());
     }
 
+    /** \brief Rebind the FEFunction to another TargetSpace */
+    template<class U>
+    struct rebind
+    {
+      using other = LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,U>;
+    };
+
     /** \brief The number of Lagrange points */
     unsigned int size() const
     {
@@ -588,6 +595,13 @@ public:
         orientationFEFunction_ = std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> >(localFiniteElement,orientationCoefficients));
 
     }
+
+    /** \brief Rebind the FEFunction to another TargetSpace */
+    template<class U>
+    struct rebind
+    {
+      using other = LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,U>;
+    };
 
     /** \brief The number of Lagrange points */
     unsigned int size() const
