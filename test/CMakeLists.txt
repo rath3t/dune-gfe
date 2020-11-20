@@ -2,7 +2,7 @@ set(TESTS
   adolctest
   averagedistanceassemblertest
   cosseratenergytest
-  frameinvariancetest
+  cosseratrodenergytest
   harmonicenergytest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
