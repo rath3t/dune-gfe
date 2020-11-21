@@ -212,7 +212,7 @@ assembleGradient(const std::vector<TargetSpace>& sol,
     {
         localView.bind(element);
 
-        // A 1d grid has two vertices
+        // The number of degrees of freedom of the current element
         const auto nDofs = localView.tree().size();
 
         // Extract local solution

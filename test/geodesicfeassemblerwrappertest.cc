@@ -114,7 +114,6 @@ int main (int argc, char *argv[])
   ));
 
   using CompositeBasis = decltype(compositeBasis);
-  using LocalView = typename CompositeBasis::LocalView;
 
   /////////////////////////////////////////////////////////////////////////
   //  Create the energy functions with their parameters
@@ -170,7 +169,7 @@ int main (int argc, char *argv[])
   x[_0].resize(compositeBasis.size({0}));
   x[_1].resize(compositeBasis.size({1}));
   std::vector<RBM> xRBM(compositeBasis.size({0}));
-  for (int i = 0; i < compositeBasis.size({0}); i++) {
+  for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
     for (int j = 0; j < gridDim; j++)
       initialDeformation[i][j] = identity[i][j];
     x[_0][i] = initialDeformation[i];

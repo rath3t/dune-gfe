@@ -4,15 +4,10 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
-#include <dune/gfe/quaternion.hh>
-
-#include <dune/gfe/rodassembler.hh>
-
+#include <dune/gfe/cosseratrodenergy.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 
-// Number of degrees of freedom: 
-// 7 (x, y, z, q_1, q_2, q_3, q_4) for a spatial rod
-const int blocksize = 6;
 
 using namespace Dune;
 
@@ -74,14 +69,36 @@ int main (int argc, char *argv[]) try
         rotatedX[i].q = rotation.mult(x[i].q);
     }
 
-    RodLocalStiffness<GridView,double> localRodFirstOrderModel(gridView,
-                                                               1,1,1,1e6,0.3);
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double,
+                                                               FEBasis::LocalView::Tree::FiniteElement,
+                                                               RigidBodyMotion<double,3> >;
 
-    LocalGeodesicFEFDStiffness<FEBasis,RigidBodyMotion<double,3> > localFDStiffness(&localRodFirstOrderModel);
+    GFE::CosseratRodEnergy<FEBasis,
+                           GeodesicInterpolationRule,
+                           double> localRodEnergy(gridView,
+                                                  1,1,1,1e6,0.3);
 
-    RodAssembler<FEBasis,3> assembler(feBasis, localFDStiffness);
+    std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
 
-    if (std::abs(assembler.computeEnergy(x) - assembler.computeEnergy(rotatedX)) > 1e-6)
+    for (const auto vertex : vertices(gridView))
+    {
+        auto idx = gridView.indexSet().index(vertex);
+
+        referenceConfiguration[idx].r[0] = 0;
+        referenceConfiguration[idx].r[1] = 0;
+        referenceConfiguration[idx].r[2] = vertex.geometry().corner(0)[0];
+        referenceConfiguration[idx].q = Rotation<double,3>::identity();
+    }
+
+    localRodEnergy.setReferenceConfiguration(referenceConfiguration);
+
+    auto localView = feBasis.localView();
+    localView.bind(*gridView.begin<0>());
+
+    SolutionType localX = {x[0], x[1]};
+    SolutionType localRotatedX = {rotatedX[0], rotatedX[1]};
+
+    if (std::abs(localRodEnergy.energy(localView, localX) - localRodEnergy.energy(localView, localRotatedX)) > 1e-6)
         DUNE_THROW(Dune::Exception, "Rod energy not invariant under rigid body motions!");
 
  } catch (Exception& e) {

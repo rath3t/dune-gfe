@@ -1,5 +1,12 @@
 #include <config.h>
 
+// Includes for the ADOL-C automatic differentiation library
+// Need to come before (almost) all others.
+#include <adolc/drivers/drivers.h>
+#include <dune/fufem/utilities/adolcnamespaceinjections.hh>
+
+#include <optional>
+
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
@@ -8,34 +15,53 @@
 
 #include <dune/istl/io.hh>
 
+#include <dune/functions/functionspacebases/interpolate.hh>
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
+#include <dune/functions/functionspacebases/powerbasis.hh>
+#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
+#if HAVE_DUNE_VTK
+#include <dune/vtk/vtkwriter.hh>
+#include <dune/vtk/datacollectors/lagrangedatacollector.hh>
+#else
 #include <dune/gfe/cosseratvtkwriter.hh>
+#endif
+
+#include <dune/gfe/cosseratrodenergy.hh>
+#include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/geodesicdifference.hh>
 #include <dune/gfe/rotation.hh>
-#include <dune/gfe/rodassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
 typedef RigidBodyMotion<double,3> TargetSpace;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
 
+// Approximation order of the finite element space
+constexpr int order = 2;
+
 using namespace Dune;
-using std::string;
 
 int main (int argc, char *argv[]) try
 {
+    MPIHelper::instance(argc, argv);
+
     typedef std::vector<RigidBodyMotion<double,3> > SolutionType;
 
     // parse data file
     ParameterTree parameterSet;
-    if (argc==2)
-        ParameterTreeParser::readINITree(argv[1], parameterSet);
-    else
-        ParameterTreeParser::readINITree("rod3d.parset", parameterSet);
+    if (argc < 2)
+      DUNE_THROW(Exception, "Usage: ./rod3d <parameter file>");
+
+    ParameterTreeParser::readINITree(argv[1], parameterSet);
+
+    ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
     // read solver settings
     const int numLevels        = parameterSet.get<int>("numLevels");
@@ -71,33 +97,43 @@ int main (int argc, char *argv[]) try
     using GridView = GridType::LeafGridView;
     GridView gridView = grid.leafGridView();
 
-    using FEBasis = Functions::LagrangeBasis<GridView,1>;
+    using FEBasis = Functions::LagrangeBasis<GridView,order>;
     FEBasis feBasis(gridView);
 
     SolutionType x(feBasis.size());
 
-    // //////////////////////////
-    //   Initial solution
-    // //////////////////////////
+    //////////////////////////////////////////////
+    //  Create the stress-free configuration
+    //////////////////////////////////////////////
 
-    for (size_t i=0; i<x.size(); i++) {
-        x[i].r[0] = 0;
-        x[i].r[1] = 0;
-        x[i].r[2] = double(i)/(x.size()-1);
-        x[i].q    = Rotation<double,3>::identity();
+    std::vector<double> referenceConfigurationX(feBasis.size());
+
+    auto identity = [](const FieldVector<double,1>& x) { return x; };
+
+    Functions::interpolate(feBasis, referenceConfigurationX, identity);
+
+    std::vector<RigidBodyMotion<double,3> > referenceConfiguration(feBasis.size());
+
+    for (std::size_t i=0; i<referenceConfiguration.size(); i++)
+    {
+        referenceConfiguration[i].r[0] = 0;
+        referenceConfiguration[i].r[1] = 0;
+        referenceConfiguration[i].r[2] = referenceConfigurationX[i];
+        referenceConfiguration[i].q = Rotation<double,3>::identity();
     }
+
+    /////////////////////////////////////////////////////////////////
+    //   Select the reference configuration as initial iterate
+    /////////////////////////////////////////////////////////////////
+
+    x = referenceConfiguration;
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
-    x.back().r[0] = parameterSet.get<double>("dirichletValueX");
-    x.back().r[1] = parameterSet.get<double>("dirichletValueY");
-    x.back().r[2] = parameterSet.get<double>("dirichletValueZ");
+    x.back().r = parameterSet.get<FieldVector<double,3> >("dirichletValue");
 
-    FieldVector<double,3> axis;
-    axis[0] = parameterSet.get<double>("dirichletAxisX");
-    axis[1] = parameterSet.get<double>("dirichletAxisY");
-    axis[2] = parameterSet.get<double>("dirichletAxisZ");
+    auto axis = parameterSet.get<FieldVector<double,3> >("dirichletAxis");
     double angle = parameterSet.get<double>("dirichletAngle");
 
     x.back().q = Rotation<double,3>(axis, M_PI*angle/180);
@@ -120,17 +156,43 @@ int main (int argc, char *argv[]) try
         
     dirichletNodes[0] = true;
     dirichletNodes.back() = true;
-    
-    // ///////////////////////////////////////////
+
+    //////////////////////////////////////////////
+    //  Create the energy and assembler
+    //////////////////////////////////////////////
+
+    using ATargetSpace = TargetSpace::rebind<adouble>::other;
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+    using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+
+    // Assembler using ADOL-C
+    std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localRodEnergy;
+
+    if (parameterSet["interpolationMethod"] == "geodesic")
+    {
+        auto energy = std::make_shared<GFE::CosseratRodEnergy<FEBasis, GeodesicInterpolationRule, adouble> >(gridView,
+                                                                                                             A, J1, J2, E, nu);
+        energy->setReferenceConfiguration(referenceConfiguration);
+        localRodEnergy = energy;
+    }
+    else if (parameterSet["interpolationMethod"] == "projected")
+    {
+        auto energy = std::make_shared<GFE::CosseratRodEnergy<FEBasis, ProjectedInterpolationRule, adouble> >(gridView,
+                                                                                                              A, J1, J2, E, nu);
+        energy->setReferenceConfiguration(referenceConfiguration);
+        localRodEnergy = energy;
+    }
+    else
+        DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
+
+    LocalGeodesicFEADOLCStiffness<FEBasis,
+                                  TargetSpace> localStiffness(localRodEnergy.get());
+
+    GeodesicFEAssembler<FEBasis,TargetSpace> rodAssembler(gridView, localStiffness);
+
+    /////////////////////////////////////////////
     //   Create a solver for the rod problem
-    // ///////////////////////////////////////////
-
-    RodLocalStiffness<GridView,double> localStiffness(gridView,
-                                                      A, J1, J2, E, nu);
-
-    LocalGeodesicFEFDStiffness<FEBasis,RigidBodyMotion<double,3> > localFDStiffness(&localStiffness);
-
-    RodAssembler<FEBasis,3> rodAssembler(gridView, localFDStiffness);
+    /////////////////////////////////////////////
 
     RiemannianTrustRegionSolver<FEBasis,RigidBodyMotion<double,3> > rodSolver;
 
@@ -162,87 +224,56 @@ int main (int argc, char *argv[]) try
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
+#if HAVE_DUNE_VTK
+    using DataCollector = Vtk::LagrangeDataCollector<GridView,order>;
+    DataCollector dataCollector(gridView);
+    VtkUnstructuredGridWriter<GridView,DataCollector> vtkWriter(gridView, Vtk::ASCII);
+
+    // Make basis for R^3-valued data
+    using namespace Functions::BasisFactory;
+
+    auto worldBasis = makeBasis(
+      gridView,
+      power<3>(lagrange<order>())
+    );
+
+    // The rod displacement field
+    BlockVector<FieldVector<double,3> > displacement(worldBasis.size());
+    for (std::size_t i=0; i<x.size(); i++)
+      displacement[i] = x[i].r;
+
+    std::vector<double> xEmbedding;
+    Functions::interpolate(feBasis, xEmbedding, [](FieldVector<double,1> x){ return x; });
+
+    BlockVector<FieldVector<double,3> > gridEmbedding(xEmbedding.size());
+    for (std::size_t i=0; i<gridEmbedding.size(); i++)
+      gridEmbedding[i] = {xEmbedding[i], 0, 0};
+
+    displacement -= gridEmbedding;
+
+    auto displacementFunction = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, displacement);
+    vtkWriter.addPointData(displacementFunction, "displacement", 3);
+
+    // The three director fields
+    using FunctionType = decltype(displacementFunction);
+    std::array<std::optional<FunctionType>, 3> directorFunction;
+    std::array<BlockVector<FieldVector<double, 3> >, 3> director;
+    for (int i=0; i<3; i++)
+    {
+      director[i].resize(worldBasis.size());
+      for (std::size_t j=0; j<x.size(); j++)
+        director[i][j] = x[j].q.director(i);
+
+      directorFunction[i] = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, std::move(director[i]));
+      vtkWriter.addPointData(*directorFunction[i], "director " + std::to_string(i), 3);
+    }
+
+    vtkWriter.write(resultPath + "rod3d-result");
+#else
+    std::cout << "Falling back to legacy file writing.  Get dune-vtk for better results" << std::endl;
+    // Fall-back solution for users without dune-vtk
     CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "rod3d-result");
-
-    BlockVector<FieldVector<double, 6> > strain(x.size()-1);
-    rodAssembler.getStrain(x,strain);
-
-    // If convergence measurement is not desired stop here
-    if (!instrumented)
-        exit(0);
-
-    // //////////////////////////////////////////////////////////
-    //   Recompute and compare against exact solution
-    // //////////////////////////////////////////////////////////
-    
-    SolutionType exactSolution = x;
-
-    // //////////////////////////////////////////////////////////
-    //   Compute hessian of the rod functional at the exact solution
-    //   for use of the energy norm it creates.
-    // //////////////////////////////////////////////////////////
-
-    BCRSMatrix<FieldMatrix<double, 6, 6> > hessian;
-    MatrixIndexSet indices(exactSolution.size(), exactSolution.size());
-    rodAssembler.getNeighborsPerVertex(indices);
-    indices.exportIdx(hessian);
-    BlockVector<FieldVector<double,6> > dummyRhs(x.size());
-    rodAssembler.assembleGradientAndHessian(exactSolution, dummyRhs, hessian);
-
-
-    double error = std::numeric_limits<double>::max();
-
-    SolutionType intermediateSolution(x.size());
-
-    // Create statistics file
-    std::ofstream statisticsFile((resultPath + "trStatistics").c_str());
-
-    // Compute error of the initial iterate
-    typedef BlockVector<FieldVector<double,6> > RodDifferenceType;
-    RodDifferenceType rodDifference = computeGeodesicDifference(exactSolution, initialIterate);
-    double oldError = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
-
-    int i;
-    for (i=0; i<maxTrustRegionSteps; i++) {
-        
-        // /////////////////////////////////////////////////////
-        //   Read iteration from file
-        // /////////////////////////////////////////////////////
-        char iSolFilename[100];
-        sprintf(iSolFilename, "tmp/intermediateSolution_%04d", i);
-            
-        FILE* fp = fopen(iSolFilename, "rb");
-        if (!fp)
-            DUNE_THROW(IOError, "Couldn't open intermediate solution '" << iSolFilename << "'");
-        for (size_t j=0; j<intermediateSolution.size(); j++) {
-            fread(&intermediateSolution[j].r, sizeof(double), 3, fp);
-            fread(&intermediateSolution[j].q, sizeof(double), 4, fp);
-        }
-        
-        fclose(fp);
-
-        // /////////////////////////////////////////////////////
-        //   Compute error
-        // /////////////////////////////////////////////////////
-
-        rodDifference = computeGeodesicDifference(exactSolution, intermediateSolution);
-        
-        error = std::sqrt(EnergyNorm<BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >, BlockVector<FieldVector<double,blocksize> > >::normSquared(rodDifference, hessian));
-        
-
-        double convRate = error / oldError;
-
-        // Output
-        std::cout << "Trust-region iteration: " << i << "  error : " << error << ",      "
-                  << "convrate " << convRate << std::endl;
-        statisticsFile << i << "  " << error << "  " << convRate << std::endl;
-
-        if (error < 1e-12)
-          break;
-
-        oldError = error;
-        
-    }            
+#endif
 
 } catch (Exception& e)
 {

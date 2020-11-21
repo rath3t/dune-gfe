@@ -2,14 +2,13 @@ set(TESTS
   adolctest
   averagedistanceassemblertest
   cosseratenergytest
-  frameinvariancetest
+  cosseratrodenergytest
   harmonicenergytest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
   localprojectedfefunctiontest
   orthogonalmatrixtest
   rigidbodymotiontest
-  rodassemblertest
   rotationtest
   svdtest
   targetspacetest

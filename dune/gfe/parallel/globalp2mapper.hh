@@ -26,54 +26,96 @@ namespace Dune {
       p2Mapper_(gridView)
     {
 #if !HAVE_DUNE_PARMG
-      static_assert(GridView::dimension==2, "Only implemented for two-dimensional grids");
+      static_assert(GridView::dimension<=2, "Only implemented for one- and two-dimensional grids");
 
       if (gridView.size(GeometryTypes::triangle)>1)
         DUNE_THROW(NotImplemented, "GlobalP2Mapper only works for quad grids!");
 
-      GlobalIndexSet<GridView> globalVertexIndex(gridView,2);
-      GlobalIndexSet<GridView> globalEdgeIndex(gridView,1);
+      GlobalIndexSet<GridView> globalVertexIndex(gridView,GridView::dimension);
       GlobalIndexSet<GridView> globalElementIndex(gridView,0);
-
-      // total number of degrees of freedom
-      this->size_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
 
       auto localView = p2Mapper_.localView();
 
-      // Determine
-      for (const auto& element : elements(gridView))
+      if (GridView::dimension==1)
       {
-        localView.bind(element);
+        // total number of degrees of freedom
+        this->size_ = globalVertexIndex.size(GridView::dimension) + globalElementIndex.size(0);
 
-        // Loop over all local degrees of freedom
-        for (size_t i=0; i<localView.size(); i++)
+        // Determine
+        for (const auto& element : elements(gridView))
         {
-          int codim = localView.tree().finiteElement().localCoefficients().localKey(i).codim();
-          int entity   = localView.tree().finiteElement().localCoefficients().localKey(i).subEntity();
+          localView.bind(element);
 
-          auto localIndex  = localView.index(i);
-          int globalIndex;
-          switch (codim)
+          // Loop over all local degrees of freedom
+          for (size_t i=0; i<localView.size(); i++)
           {
-            case 2:  // vertex dofs
-              globalIndex = globalVertexIndex.index(element.template subEntity<2>(entity));
-              break;
+            int codim = localView.tree().finiteElement().localCoefficients().localKey(i).codim();
+            int entity   = localView.tree().finiteElement().localCoefficients().localKey(i).subEntity();
 
-            case 1:  // edge dofs
-              globalIndex = globalEdgeIndex.index(element.template subEntity<1>(entity)) + globalVertexIndex.size(2);
-              break;
+            auto localIndex  = localView.index(i);
+            int globalIndex;
+            switch (codim)
+            {
+              case 1:  // vertex dofs
+                globalIndex = globalVertexIndex.index(element.template subEntity<1>(entity));
+                break;
 
-            case 0:  // element dofs
-              globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
-                            + globalEdgeIndex.size(1)
-                            + globalVertexIndex.size(2);
-              break;
+              case 0:  // element dofs
+                globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
+                              + globalVertexIndex.size(2);
+                break;
 
-            default:
-              DUNE_THROW(Dune::Exception, "Impossible codimension!");
+              default:
+                DUNE_THROW(Dune::Exception, "Impossible codimension!");
+            }
+
+            localGlobalMap_[localIndex]  = globalIndex;
           }
+        }
 
-          localGlobalMap_[localIndex]  = globalIndex;
+      }
+      else
+      {
+        GlobalIndexSet<GridView> globalEdgeIndex(gridView,1);
+
+        // total number of degrees of freedom
+        this->size_ = globalVertexIndex.size(2) + globalEdgeIndex.size(1) + globalElementIndex.size(0);
+
+        // Determine
+        for (const auto& element : elements(gridView))
+        {
+          localView.bind(element);
+
+          // Loop over all local degrees of freedom
+          for (size_t i=0; i<localView.size(); i++)
+          {
+            int codim = localView.tree().finiteElement().localCoefficients().localKey(i).codim();
+            int entity   = localView.tree().finiteElement().localCoefficients().localKey(i).subEntity();
+
+            auto localIndex  = localView.index(i);
+            int globalIndex;
+            switch (codim)
+            {
+              case 2:  // vertex dofs
+                globalIndex = globalVertexIndex.index(element.template subEntity<GridView::dimension>(entity));
+                break;
+
+              case 1:  // edge dofs
+                globalIndex = globalEdgeIndex.index(element.template subEntity<1>(entity)) + globalVertexIndex.size(2);
+                break;
+
+              case 0:  // element dofs
+                globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
+                              + globalEdgeIndex.size(1)
+                              + globalVertexIndex.size(2);
+                break;
+
+              default:
+                DUNE_THROW(Dune::Exception, "Impossible codimension!");
+            }
+
+            localGlobalMap_[localIndex]  = globalIndex;
+          }
         }
       }
 #endif
