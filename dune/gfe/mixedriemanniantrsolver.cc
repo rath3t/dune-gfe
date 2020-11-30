@@ -414,8 +414,10 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
             double oldEnergy = 0;
             Dune::Timer solutionTimer;
             int ii = 0;
+            CorrectionType diff{corr_global};
             try {
               for (; ii<innerIterations_; ii++) {
+                diff=corr_global;
                 residual[_0] = rhs_global[_0];
                 stiffnessMatrix[_0][_1].mmv(corr_global[_1], residual[_0]);
                 mmgStep0->setRhs(residual[_0]);
@@ -436,7 +438,8 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
                   std::cout << "Warning: energy increase!" << std::endl;
   
                 oldEnergy = energy;
-                if (corr_global.infinity_norm() < innerTolerance_)
+                diff -= corr_global;
+                if (diff.infinity_norm() < innerTolerance_)
                   break;
               }
             } catch (Dune::Exception &e) {
