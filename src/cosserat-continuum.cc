@@ -424,6 +424,7 @@ int main (int argc, char *argv[]) try
     else
     {
       localCosseratEnergy = std::make_shared<NonplanarCosseratShellEnergy<FEBasis,3,adouble> >(materialParameters,
+                                                                                               nullptr,
                                                                                                &neumannBoundary,
                                                                                                neumannFunction,
                                                                                                volumeLoad);
