@@ -520,9 +520,9 @@ int main (int argc, char *argv[]) try
     for (int i = 0; i < compositeBasis.size({0}); i++)
       if (dirichletDofs[_0][i][0])
         x[_0][i] = ddV[i];
-    for (int i = 0; i < compositeBasis.size({1}); i++)
-      if (dirichletDofs[_1][i][0])
-        x[_1][i].set(dOV[i]);
+//    for (int i = 0; i < compositeBasis.size({1}); i++)
+//      if (dirichletDofs[_1][i][0])
+//        x[_1][i].set(dOV[i]);
 
 #if !MIXED_SPACE
     //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
