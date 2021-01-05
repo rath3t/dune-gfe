@@ -649,7 +649,14 @@ int main (int argc, char *argv[]) try
   }
   std::string ending = grid->leafGridView().comm().size() > 1 ? std::to_string(mpiHelper.rank()) : "";
   std::ofstream file;
-  file.open("deformation" + ending);
+  std::string pathToOutput = parameterSet.hasKey("pathToOutput") ?  parameterSet.get<std::string>("pathToOutput") : "./";
+  std::string deformationOutput = parameterSet.hasKey("deformationOutput") ?  parameterSet.get<std::string>("deformationOutput") : "deformation";
+  std::string rotationOutput = parameterSet.hasKey("rotationOutput") ?  parameterSet.get<std::string>("rotationOutput") : "rotation";
+  
+  deformationOutput = pathToOutput + deformationOutput;
+  rotationOutput = pathToOutput + rotationOutput;
+
+  file.open(deformationOutput + ending);
   for (int i = 0; i < identity.size(); i++){
     file << identity[i] << ":" << displacement[i] << "\n";
   }
@@ -659,7 +666,7 @@ int main (int argc, char *argv[]) try
   BlockVector<FieldVector<double,dim> > identityRotation(orientationFEBasis.size());
   Dune::Functions::interpolate(orientationPowerBasis, identityRotation, [](FieldVector<double,dim> x){ return x; });
 
-  file.open("rotation" + ending);
+  file.open(rotationOutput + ending);
   for (int i = 0; i < identityRotation.size(); i++){
     file << identityRotation[i] << ":" << x[_1][i] << "\n";
   }
@@ -669,25 +676,25 @@ int main (int argc, char *argv[]) try
   MPI_Barrier(grid->leafGridView().comm());
 
   if (grid->leafGridView().comm().size() > 1 && mpiHelper.rank() == 0) {
-    file.open("deformation");
+    file.open(deformationOutput);
     for (int i = 0; i < grid->leafGridView().comm().size(); i++) {
-      std::ifstream deformationInput("deformation" + std::to_string(i));
+      std::ifstream deformationInput(deformationOutput + std::to_string(i));
       if (deformationInput.is_open()) {
         file << deformationInput.rdbuf();
       }
       deformationInput.close();
-      std::remove(("deformation" + std::to_string(i)).c_str());
+      std::remove((deformationOutput + std::to_string(i)).c_str());
     }
     file.close();
 
-    file.open("rotation");
+    file.open(rotationOutput);
     for (int i = 0; i < grid->leafGridView().comm().size(); i++) {
-      std::ifstream rotationInput("rotation" + std::to_string(i));
+      std::ifstream rotationInput(rotationOutput + std::to_string(i));
       if (rotationInput.is_open()) {
         file << rotationInput.rdbuf();
       }
       rotationInput.close();
-      std::remove(("rotation" + std::to_string(i)).c_str());
+      std::remove((rotationOutput + std::to_string(i)).c_str());
     }
     file.close();
   }
