@@ -5,6 +5,9 @@ set(programs compute-disc-error
              rod3d)
 #            rodobstacle)
 
+if (${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.8)
+  set(programs film-on-substrate-stress-plot ${programs})
+endif()
 if (dune-parmg_FOUND AND dune-curvedgeometry_FOUND AND ${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.8)
 	set(programs film-on-substrate ${programs})
 endif()
