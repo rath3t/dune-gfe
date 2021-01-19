@@ -404,11 +404,7 @@ public:
 
           // dump point coordinates
           writer.beginPoints();
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-          writer.addArray<float>("Coordinates", 3);
-#else
           writer.addArray("Coordinates", 3, Dune::VTK::Precision::float32);
-#endif
           writer.endPoints();
 
           for (int i=0; i<gridView.comm().size(); i++)

@@ -50,11 +50,7 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
     for (const auto& element : elements(grid.leafGridView())) {
 
         // Set up a local gfe function on the father element
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
         size_t nFatherDofs = element.father().subEntities(dim);
-#else
-        size_t nFatherDofs = element.father()->template count<dim>();
-#endif
         std::vector<TargetSpace> coefficients(nFatherDofs);
 
         for (int i=0; i<nFatherDofs; i++)
@@ -67,11 +63,7 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
         // The embedding of this element into the father geometry
         const auto& geometryInFather = element.geometryInFather();
 
-#if DUNE_VERSION_NEWER(DUNE_GRID,2,4)
         size_t nDofs = element.subEntities(dim);
-#else
-        size_t nDofs = element.template count<dim>();
-#endif
         for (int i=0; i<nDofs; i++) {
 
             if (dofMap.find(idSet.subId(element,i,dim)) != dofMap.end()) {

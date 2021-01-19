@@ -80,19 +80,6 @@ const int stressFreeDataOrder = 2;
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
 #endif
 
-#if DUNE_VERSION_LT(DUNE_COMMON, 2, 7)
-template<>
-struct Dune::MathematicalConstants<adouble>
-{
-  static const adouble pi ()
-  {
-    using std::acos;
-    static const adouble pi = acos( adouble( -1 ) );
-    return pi;
-  }
-};
-#endif
-
 //differentiation method
 typedef adouble ValueType;
 

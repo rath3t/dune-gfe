@@ -232,12 +232,7 @@ int main (int argc, char *argv[])
 
     BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
 
-#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-    DuneFunctionsBasis<FEBasis> fufemBasis(feBasis);
-    constructBoundaryDofs(dirichletBoundary,fufemBasis,dirichletNodes);
-#else
     constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
-#endif
 
     // //////////////////////////
     //   Initial iterate
