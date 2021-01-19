@@ -140,11 +140,6 @@ protected:
     /** \brief Store information about solver runs for unit testing */
     Statistics statistics_;
 
-#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-    std::shared_ptr<Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > > A;
-    std::shared_ptr<Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > > massMatrix;
-#endif
-
 };
 
 #include "riemannianpnsolver.cc"

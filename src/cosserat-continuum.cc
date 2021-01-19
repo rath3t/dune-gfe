@@ -32,7 +32,6 @@
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
-#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -203,18 +202,9 @@ int main (int argc, char *argv[]) try
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
 
-    // Construct fufem-style function space bases to ease the transition to dune-functions
-    typedef DuneFunctionsBasis<DeformationFEBasis> FufemDeformationFEBasis;
-    FufemDeformationFEBasis fufemDeformationFEBasis(deformationFEBasis);
-
-    typedef DuneFunctionsBasis<OrientationFEBasis> FufemOrientationFEBasis;
-    FufemOrientationFEBasis fufemOrientationFEBasis(orientationFEBasis);
 #else
     typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, displacementOrder> FEBasis;
     FEBasis feBasis(gridView);
-
-    typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
-    FufemFEBasis fufemFeBasis(feBasis);
 #endif
 
     // /////////////////////////////////////////
@@ -252,10 +242,10 @@ int main (int argc, char *argv[]) try
 
 #ifdef MIXED_SPACE
     BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,fufemDeformationFEBasis,deformationDirichletNodes);
+    constructBoundaryDofs(dirichletBoundary,deformationFEBasis,deformationDirichletNodes);
 
     BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
-    constructBoundaryDofs(neumannBoundary,fufemDeformationFEBasis,neumannNodes);
+    constructBoundaryDofs(neumannBoundary,deformationFEBasis,neumannNodes);
 
     BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
     for (size_t i=0; i<deformationFEBasis.size(); i++)
@@ -264,7 +254,7 @@ int main (int argc, char *argv[]) try
           deformationDirichletDofs[i][j] = true;
 
     BitSetVector<1> orientationDirichletNodes(orientationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,fufemOrientationFEBasis,orientationDirichletNodes);
+    constructBoundaryDofs(dirichletBoundary,orientationFEBasis,orientationDirichletNodes);
 
     BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
     for (size_t i=0; i<orientationFEBasis.size(); i++)
@@ -273,18 +263,11 @@ int main (int argc, char *argv[]) try
           orientationDirichletDofs[i][j] = true;
 #else
     BitSetVector<1> dirichletNodes(feBasis.size(), false);
-#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-    constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
-#else
     constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
-#endif
 
     BitSetVector<1> neumannNodes(feBasis.size(), false);
-#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-    constructBoundaryDofs(neumannBoundary,fufemFeBasis,neumannNodes);
-#else
     constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
-#endif
+
 
     BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
     for (size_t i=0; i<feBasis.size(); i++)

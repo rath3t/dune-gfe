@@ -13,24 +13,6 @@
 
 namespace Dune {
 
-#if DUNE_VERSION_LT(DUNE_FUNCTIONS,2,7)
-template< class K, int m, int n, int p >
-Dune::FieldMatrix< K, m, p > operator* ( const Dune::FieldMatrix< K, m, n > &A, const Dune::FieldMatrix< K, n, p > &B)
-{
-    typedef typename Dune::FieldMatrix< K, m, p > :: size_type size_type;
-    Dune::FieldMatrix< K, m, p > ret;
-
-    for( size_type i = 0; i < m; ++i ) {
-
-        for( size_type j = 0; j < p; ++j ) {
-            ret[ i ][ j ] = K( 0 );
-            for( size_type k = 0; k < n; ++k )
-                ret[ i ][ j ] += A[ i ][ k ] * B[ k ][ j ];
-        }
-    }
-    return ret;
-}
-#endif
   namespace GFE {
 
     /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold

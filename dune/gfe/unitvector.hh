@@ -4,11 +4,7 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
 #include <dune/common/version.hh>
-#if DUNE_VERSION_GTE(DUNE_COMMON, 2, 7)
 #include <dune/common/math.hh>
-#else
-#include <dune/common/power.hh>
-#endif
 
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/symmetricmatrix.hh>
@@ -39,12 +35,9 @@ class UnitVector
         const T eps = 1e-4;
         if (x > 1-eps) {  // acos is not differentiable, use the series expansion instead
             return -2 * (x-1) + 1.0/3 * (x-1)*(x-1) - 4.0/45 * (x-1)*(x-1)*(x-1);
-        } else
-#if DUNE_VERSION_GTE(DUNE_COMMON, 2, 7)
+        } else {
             return Dune::power(acos(x),2);
-#else
-            return Dune::Power<2>::eval(acos(x));
-#endif
+        }
     }
 
     /** \brief Compute the derivative of arccos^2 without getting unstable for x close to 1 */

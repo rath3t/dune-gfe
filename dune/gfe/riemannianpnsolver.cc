@@ -86,22 +86,12 @@ setup(const GridType& grid,
                        LocalMapper,
                        LocalMapper> matrixComm(*globalMapper_, grid_->leafGridView(), localMapper, localMapper, 0);
     if (instrumented_) {
-#if !DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-        auto
-#endif
-        A = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localA));
+        auto A = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localA));
 #else
     if (instrumented_) {
-#if !DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-        auto
+        auto A = std::make_shared<ScalarMatrixType>(localA);
 #endif
-        A = std::make_shared<ScalarMatrixType>(localA);
-#endif
-#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-        h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(*A);
-#else
         h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
-#endif
     }
     //////////////////////////////////////////////////////////////////
     //   Create the inner solver using a cholmod solver
@@ -120,19 +110,12 @@ setup(const GridType& grid,
 
     operatorAssembler.assemble(massStiffness, localMassMatrix);
 
-#if !DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-    auto
-#endif
 #if HAVE_MPI
-    massMatrix = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localMassMatrix));
+    auto massMatrix = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localMassMatrix));
 #else
-    massMatrix = std::make_shared<ScalarMatrixType>(localMassMatrix);
+    auto massMatrix = std::make_shared<ScalarMatrixType>(localMassMatrix);
 #endif
-#if DUNE_VERSION_LT(DUNE_GEOMETRY, 2, 7)
-    l2Norm_ = std::make_shared<H1SemiNorm<CorrectionType> >(*massMatrix);
-#else
     l2Norm_ = std::make_shared<H1SemiNorm<CorrectionType> >(massMatrix);
-#endif
 
     // Write all intermediate solutions, if requested
     if (instrumented_

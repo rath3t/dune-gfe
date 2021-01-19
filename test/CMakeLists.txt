@@ -25,12 +25,10 @@ dune_add_test(SOURCES harmonicmaptest.cc
               TIMEOUT 600
               CMAKE_GUARD MPI_FOUND)
 
-if (${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.7)
 dune_add_test(SOURCES geodesicfeassemblerwrappertest.cc
               MPI_RANKS 1 4
               TIMEOUT 600
               CMAKE_GUARD MPI_FOUND)
-endif()
 
 # Copy the example grid used for testing into the build dir
 file(COPY grids/irregular-square.msh DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/grids)
