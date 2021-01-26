@@ -176,13 +176,17 @@ int main (int argc, char *argv[]) try
   lambda = std::string("lambda x: (") + parameterSet.get<std::string>("surfaceShellVerticesPredicate", "0") + std::string(")");
   auto pythonSurfaceShellVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
+  // Same for adaptive refinement vertices
+  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("adaptiveRefinementVerticesPredicate", "0") + std::string(")");
+  auto pythonAdaptiveRefinementVertices = Python::make_function<bool>(Python::evaluate(lambda));
+
   while (numLevels > 0) {
     for (auto&& e : elements(grid->leafGridView())){
-      bool isSurfaceShell = false;
+      bool refineHere = false;
       for (int i = 0; i < e.geometry().corners(); i++) {
-          isSurfaceShell = isSurfaceShell || pythonSurfaceShellVertices(e.geometry().corner(i));
+          refineHere = refineHere || pythonSurfaceShellVertices(e.geometry().corner(i)) || pythonAdaptiveRefinementVertices(e.geometry().corner(i));
       }
-      grid->mark(isSurfaceShell ? 1 : 0,e);
+      grid->mark(refineHere ? 1 : 0, e);
     }
 
     grid->adapt();
