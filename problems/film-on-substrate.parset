@@ -1,4 +1,11 @@
 #############################################
+# Output parameters
+#############################################
+deformationOutput = deformation
+rotationOutput = rotation
+pathToOutput = ./
+
+#############################################
 #  Grid parameters
 #############################################
 

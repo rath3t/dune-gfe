@@ -230,6 +230,12 @@ int main (int argc, char *argv[]) try
     power<dim>(
         lagrange<displacementOrder>()
   ));
+  auto orientationPowerBasis = makeBasis(
+    gridView,
+    power<dim>(
+        lagrange<rotationOrder>()
+  ));
+
   typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
   typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
   DeformationFEBasis deformationFEBasis(gridView);
@@ -520,9 +526,9 @@ int main (int argc, char *argv[]) try
     for (int i = 0; i < compositeBasis.size({0}); i++)
       if (dirichletDofs[_0][i][0])
         x[_0][i] = ddV[i];
-    for (int i = 0; i < compositeBasis.size({1}); i++)
-      if (dirichletDofs[_1][i][0])
-        x[_1][i].set(dOV[i]);
+//    for (int i = 0; i < compositeBasis.size({1}); i++)
+//      if (dirichletDofs[_1][i][0])
+//        x[_1][i].set(dOV[i]);
 
 #if !MIXED_SPACE
     //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
@@ -628,7 +634,6 @@ int main (int argc, char *argv[]) try
     /////////////////////////////////
 
     // Compute the displacement
-    BlockVector<FieldVector<double,dim> > displacement(compositeBasis.size({0}));
     for (int i = 0; i < compositeBasis.size({0}); i++) {
        for (int j = 0; j  < dim; j++) {
         displacement[i][j] = x[_0][i][j];
@@ -642,6 +647,58 @@ int main (int argc, char *argv[]) try
     vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
     vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") + "_" + std::to_string(neumannValues[0]) + "_" + std::to_string(i+1));
   }
+  std::string ending = grid->leafGridView().comm().size() > 1 ? std::to_string(mpiHelper.rank()) : "";
+  std::ofstream file;
+  std::string pathToOutput = parameterSet.hasKey("pathToOutput") ?  parameterSet.get<std::string>("pathToOutput") : "./";
+  std::string deformationOutput = parameterSet.hasKey("deformationOutput") ?  parameterSet.get<std::string>("deformationOutput") : "deformation";
+  std::string rotationOutput = parameterSet.hasKey("rotationOutput") ?  parameterSet.get<std::string>("rotationOutput") : "rotation";
+  
+  deformationOutput = pathToOutput + deformationOutput;
+  rotationOutput = pathToOutput + rotationOutput;
+
+  file.open(deformationOutput + ending);
+  for (int i = 0; i < identity.size(); i++){
+    file << identity[i] << ":" << displacement[i] << "\n";
+  }
+
+  file.close();
+  
+  BlockVector<FieldVector<double,dim> > identityRotation(orientationFEBasis.size());
+  Dune::Functions::interpolate(orientationPowerBasis, identityRotation, [](FieldVector<double,dim> x){ return x; });
+
+  file.open(rotationOutput + ending);
+  for (int i = 0; i < identityRotation.size(); i++){
+    file << identityRotation[i] << ":" << x[_1][i] << "\n";
+  }
+
+  file.close();
+
+  MPI_Barrier(grid->leafGridView().comm());
+
+  if (grid->leafGridView().comm().size() > 1 && mpiHelper.rank() == 0) {
+    file.open(deformationOutput);
+    for (int i = 0; i < grid->leafGridView().comm().size(); i++) {
+      std::ifstream deformationInput(deformationOutput + std::to_string(i));
+      if (deformationInput.is_open()) {
+        file << deformationInput.rdbuf();
+      }
+      deformationInput.close();
+      std::remove((deformationOutput + std::to_string(i)).c_str());
+    }
+    file.close();
+
+    file.open(rotationOutput);
+    for (int i = 0; i < grid->leafGridView().comm().size(); i++) {
+      std::ifstream rotationInput(rotationOutput + std::to_string(i));
+      if (rotationInput.is_open()) {
+        file << rotationInput.rdbuf();
+      }
+      rotationInput.close();
+      std::remove((rotationOutput + std::to_string(i)).c_str());
+    }
+    file.close();
+  }
+
 } catch (Exception& e) {
     std::cout << e.what() << std::endl;
 }

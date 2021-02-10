@@ -10,6 +10,7 @@ set(TESTS
   orthogonalmatrixtest
   rigidbodymotiontest
   rotationtest
+  surfacecosseratstressassemblertest
   svdtest
   targetspacetest
 )
@@ -32,3 +33,8 @@ dune_add_test(SOURCES geodesicfeassemblerwrappertest.cc
 
 # Copy the example grid used for testing into the build dir
 file(COPY grids/irregular-square.msh DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/grids)
+
+# Copy an example for the stress plot into the build dir
+file(COPY stressPlotData/stressPlotTestDeformation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
+file(COPY stressPlotData/stressPlotTestRotation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
+file(COPY stressPlotData/stressPlotTestInitialDeformation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
