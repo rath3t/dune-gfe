@@ -8,6 +8,7 @@ set(TESTS
   localgfetestfunctiontest
   localprojectedfefunctiontest
   orthogonalmatrixtest
+  polardecompositiontest
   rigidbodymotiontest
   rotationtest
   svdtest
