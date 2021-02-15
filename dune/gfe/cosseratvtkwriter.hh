@@ -109,6 +109,23 @@ class CosseratVTKWriter
     }
 
 public:
+    /** \brief Write a configuration given with respect to a scalar function space basis
+     */
+    template <typename Basis>
+    static void write(const Basis& basis,
+                      const Dune::TupleVector<std::vector<RealTuple<double,3> >,
+                                        std::vector<Rotation<double,3> > >& configuration,
+                      const std::string& filename)
+    {
+      using namespace Dune::TypeTree::Indices;
+      std::vector<RigidBodyMotion<double,3>> xRBM(basis.size());
+      for (int i = 0; i < basis.size(); i++) {
+        for (int j = 0; j < 3; j ++) // Displacement part
+          xRBM[i].r[j] = configuration[_0][i][j];
+        xRBM[i].q = configuration[_1][i];    // Rotation part
+      }
+      write(basis,xRBM,filename);
+    }
 
     /** \brief Write a configuration given with respect to a scalar function space basis
      */
