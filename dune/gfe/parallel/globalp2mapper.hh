@@ -62,7 +62,7 @@ namespace Dune {
 
               case 0:  // element dofs
                 globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
-                              + globalVertexIndex.size(2);
+                              + globalVertexIndex.size(1);
                 break;
 
               default:
