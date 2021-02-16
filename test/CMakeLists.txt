@@ -3,6 +3,7 @@ set(TESTS
   averagedistanceassemblertest
   cosseratenergytest
   cosseratrodenergytest
+  cosseratrodtest
   harmonicenergytest
   localgeodesicfefunctiontest
   localgfetestfunctiontest

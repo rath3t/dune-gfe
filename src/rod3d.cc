@@ -30,13 +30,15 @@
 #include <dune/gfe/cosseratvtkwriter.hh>
 #endif
 
+#include <dune/fufem/boundarypatch.hh>
+#include <dune/fufem/functiontools/boundarydofs.hh>
+
 #include <dune/gfe/cosseratrodenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/rotation.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 
 typedef RigidBodyMotion<double,3> TargetSpace;
@@ -51,8 +53,6 @@ using namespace Dune;
 int main (int argc, char *argv[]) try
 {
     MPIHelper::instance(argc, argv);
-
-    typedef std::vector<RigidBodyMotion<double,3> > SolutionType;
 
     // parse data file
     ParameterTree parameterSet;
@@ -97,22 +97,21 @@ int main (int argc, char *argv[]) try
     using GridView = GridType::LeafGridView;
     GridView gridView = grid.leafGridView();
 
-    using FEBasis = Functions::LagrangeBasis<GridView,order>;
-    FEBasis feBasis(gridView);
-
-    SolutionType x(feBasis.size());
-
     //////////////////////////////////////////////
     //  Create the stress-free configuration
     //////////////////////////////////////////////
 
-    std::vector<double> referenceConfigurationX(feBasis.size());
+    using ScalarBasis = Functions::LagrangeBasis<GridView,order>;
+    ScalarBasis scalarBasis(gridView);
+
+    std::vector<double> referenceConfigurationX(scalarBasis.size());
 
     auto identity = [](const FieldVector<double,1>& x) { return x; };
 
-    Functions::interpolate(feBasis, referenceConfigurationX, identity);
+    Functions::interpolate(scalarBasis, referenceConfigurationX, identity);
 
-    std::vector<RigidBodyMotion<double,3> > referenceConfiguration(feBasis.size());
+    using Configuration = std::vector<RigidBodyMotion<double,3> >;
+    Configuration referenceConfiguration(scalarBasis.size());
 
     for (std::size_t i=0; i<referenceConfiguration.size(); i++)
     {
@@ -122,79 +121,91 @@ int main (int argc, char *argv[]) try
         referenceConfiguration[i].q = Rotation<double,3>::identity();
     }
 
-    /////////////////////////////////////////////////////////////////
-    //   Select the reference configuration as initial iterate
-    /////////////////////////////////////////////////////////////////
+    // Select the reference configuration as initial iterate
 
-    x = referenceConfiguration;
+    Configuration x = referenceConfiguration;
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
-    x.back().r = parameterSet.get<FieldVector<double,3> >("dirichletValue");
+
+    // A basis for the tangent space
+    using namespace Functions::BasisFactory;
+
+    auto tangentBasis = makeBasis(
+      gridView,
+      power<TargetSpace::TangentVector::dimension>(
+        lagrange<order>(),
+        blockedInterleaved()
+    ));
+
+    // Find all boundary dofs
+    BoundaryPatch<GridView> dirichletBoundary(gridView,
+                                              true);    // true: The entire boundary is Dirichlet boundary
+    BitSetVector<TargetSpace::TangentVector::dimension> dirichletNodes(tangentBasis.size(), false);
+    constructBoundaryDofs(dirichletBoundary,tangentBasis,dirichletNodes);
+
+    // Find the dof on the right boundary
+    std::size_t rightBoundaryDof;
+    for (std::size_t i=0; i<referenceConfigurationX.size(); i++)
+      if (std::fabs(referenceConfigurationX[i] - 1.0) < 1e-6)
+      {
+        rightBoundaryDof = i;
+        break;
+      }
+
+    // Set Dirichlet values
+    x[rightBoundaryDof].r = parameterSet.get<FieldVector<double,3> >("dirichletValue");
 
     auto axis = parameterSet.get<FieldVector<double,3> >("dirichletAxis");
     double angle = parameterSet.get<double>("dirichletAngle");
 
-    x.back().q = Rotation<double,3>(axis, M_PI*angle/180);
+    x[rightBoundaryDof].q = Rotation<double,3>(axis, M_PI*angle/180);
 
     // backup for error measurement later
-    SolutionType initialIterate = x;
-
-    std::cout << "Left boundary orientation:" << std::endl;
-    std::cout << "director 0:  " << x[0].q.director(0) << std::endl;
-    std::cout << "director 1:  " << x[0].q.director(1) << std::endl;
-    std::cout << "director 2:  " << x[0].q.director(2) << std::endl;
-    std::cout << std::endl;
     std::cout << "Right boundary orientation:" << std::endl;
-    std::cout << "director 0:  " << x[x.size()-1].q.director(0) << std::endl;
-    std::cout << "director 1:  " << x[x.size()-1].q.director(1) << std::endl;
-    std::cout << "director 2:  " << x[x.size()-1].q.director(2) << std::endl;
-
-    BitSetVector<blocksize> dirichletNodes(feBasis.size());
-    dirichletNodes.unsetAll();
-        
-    dirichletNodes[0] = true;
-    dirichletNodes.back() = true;
+    std::cout << "director 0:  " << x[rightBoundaryDof].q.director(0) << std::endl;
+    std::cout << "director 1:  " << x[rightBoundaryDof].q.director(1) << std::endl;
+    std::cout << "director 2:  " << x[rightBoundaryDof].q.director(2) << std::endl;
 
     //////////////////////////////////////////////
     //  Create the energy and assembler
     //////////////////////////////////////////////
 
     using ATargetSpace = TargetSpace::rebind<adouble>::other;
-    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
-    using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+    using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+    using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
     // Assembler using ADOL-C
-    std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localRodEnergy;
+    std::shared_ptr<GFE::LocalEnergy<ScalarBasis,ATargetSpace> > localRodEnergy;
 
     if (parameterSet["interpolationMethod"] == "geodesic")
     {
-        auto energy = std::make_shared<GFE::CosseratRodEnergy<FEBasis, GeodesicInterpolationRule, adouble> >(gridView,
-                                                                                                             A, J1, J2, E, nu);
+        auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, GeodesicInterpolationRule, adouble> >(gridView,
+                                                                                                                 A, J1, J2, E, nu);
         energy->setReferenceConfiguration(referenceConfiguration);
         localRodEnergy = energy;
     }
     else if (parameterSet["interpolationMethod"] == "projected")
     {
-        auto energy = std::make_shared<GFE::CosseratRodEnergy<FEBasis, ProjectedInterpolationRule, adouble> >(gridView,
-                                                                                                              A, J1, J2, E, nu);
+        auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, ProjectedInterpolationRule, adouble> >(gridView,
+                                                                                                                  A, J1, J2, E, nu);
         energy->setReferenceConfiguration(referenceConfiguration);
         localRodEnergy = energy;
     }
     else
         DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
-    LocalGeodesicFEADOLCStiffness<FEBasis,
+    LocalGeodesicFEADOLCStiffness<ScalarBasis,
                                   TargetSpace> localStiffness(localRodEnergy.get());
 
-    GeodesicFEAssembler<FEBasis,TargetSpace> rodAssembler(gridView, localStiffness);
+    GeodesicFEAssembler<ScalarBasis,TargetSpace> rodAssembler(gridView, localStiffness);
 
     /////////////////////////////////////////////
     //   Create a solver for the rod problem
     /////////////////////////////////////////////
 
-    RiemannianTrustRegionSolver<FEBasis,RigidBodyMotion<double,3> > rodSolver;
+    RiemannianTrustRegionSolver<ScalarBasis,RigidBodyMotion<double,3> > rodSolver;
 
     rodSolver.setup(grid, 
                     &rodAssembler,
@@ -243,7 +254,7 @@ int main (int argc, char *argv[]) try
       displacement[i] = x[i].r;
 
     std::vector<double> xEmbedding;
-    Functions::interpolate(feBasis, xEmbedding, [](FieldVector<double,1> x){ return x; });
+    Functions::interpolate(scalarBasis, xEmbedding, [](FieldVector<double,1> x){ return x; });
 
     BlockVector<FieldVector<double,3> > gridEmbedding(xEmbedding.size());
     for (std::size_t i=0; i<gridEmbedding.size(); i++)
@@ -272,7 +283,7 @@ int main (int argc, char *argv[]) try
 #else
     std::cout << "Falling back to legacy file writing.  Get dune-vtk for better results" << std::endl;
     // Fall-back solution for users without dune-vtk
-    CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "rod3d-result");
+    CosseratVTKWriter<GridType>::write<ScalarBasis>(scalarBasis,x, resultPath + "rod3d-result");
 #endif
 
 } catch (Exception& e)
