@@ -96,7 +96,6 @@ namespace Dune::GFE {
             // Compute gradients of Base functions
             for (size_t i=0; i<gradients.size(); ++i)
               gradients[i] = referenceGradients[i] * transpose(jacobianInverseTransposed);
-              //jacobianInverseTransposed.mv(referenceGradients[i][0], gradients[i]);
 
             // Deformation gradient in vector form
             size_t nDoubles = dim*dim;
@@ -248,8 +247,6 @@ namespace Dune::GFE {
               // Compute gradients of Base functions at this element
               for (size_t i=0; i<gradients.size(); i++)
                 gradients[i] = referenceGradients[i] * transpose(jacobianInverseTransposed);
-
-                //jacobianInverseTransposed.mv(referenceGradients[i][0], gradients[i]);
 
               // Deformation gradient - call this U_es_minus_Id already
               FieldMatrix<double,dim,dim> U_es_minus_Id(0);
