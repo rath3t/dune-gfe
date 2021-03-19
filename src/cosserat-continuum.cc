@@ -53,6 +53,7 @@
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #else
 #include <dune/gfe/geodesicfeassemblerwrapper.hh>
+#include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #endif
@@ -124,7 +125,8 @@ int main (int argc, char *argv[]) try
     const int numLevels                   = parameterSet.get<int>("numLevels");
     int numHomotopySteps                  = parameterSet.get<int>("numHomotopySteps");
     const double tolerance                = parameterSet.get<double>("tolerance");
-    const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
+    const int maxSolverSteps              = parameterSet.get<int>("maxSolverSteps");
+    const double initialRegularization    = parameterSet.get<double>("initialRegularization", 1000);
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
     const int multigridIterations         = parameterSet.get<int>("numIt");
     const int nu1                         = parameterSet.get<int>("nu1");
@@ -456,7 +458,7 @@ int main (int argc, char *argv[]) try
                      x,
                      deformationDirichletDofs,
                      orientationDirichletDofs, tolerance,
-                     maxTrustRegionSteps,
+                     maxSolverSteps,
                      initialTrustRegionRadius,
                      multigridIterations,
                      mgTolerance,
@@ -494,7 +496,7 @@ int main (int argc, char *argv[]) try
                      xTargetSpace,
                      dirichletDofsTargetSpace,
                      tolerance,
-                     maxTrustRegionSteps,
+                     maxSolverSteps,
                      initialTrustRegionRadius,
                      multigridIterations,
                      mgTolerance,
@@ -540,26 +542,45 @@ int main (int argc, char *argv[]) try
               for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
                 dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
             }
+            if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 
-            RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace> solver;
-            solver.setup(*grid,
-                     &assembler,
-                     xTargetSpace,
-                     dirichletDofsTargetSpace,
-                     tolerance,
-                     maxTrustRegionSteps,
-                     initialTrustRegionRadius,
-                     multigridIterations,
-                     mgTolerance,
-                     mu, nu1, nu2,
-                     baseIterations,
-                     baseTolerance,
-                     instrumented);
+                RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace> solver;
+                solver.setup(*grid,
+                         &assembler,
+                         xTargetSpace,
+                         dirichletDofsTargetSpace,
+                         tolerance,
+                         maxSolverSteps,
+                         initialTrustRegionRadius,
+                         multigridIterations,
+                         mgTolerance,
+                         mu, nu1, nu2,
+                         baseIterations,
+                         baseTolerance,
+                         instrumented);
 
-            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
-            solver.setInitialIterate(xTargetSpace);
-            solver.solve();
-            xTargetSpace = solver.getSol();
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
+            } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
+#if DUNE_VERSION_LT(DUNE_COMMON, 2, 8)
+                DUNE_THROW(Exception, "Please install dune-solvers >= 2.8 to use the Proximal Newton Solver with Cholmod!");
+#else
+                RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace> solver;
+                solver.setup(*grid,
+                             &assembler,
+                             xTargetSpace,
+                             dirichletDofsTargetSpace,
+                             tolerance,
+                             maxSolverSteps,
+                             initialRegularization,
+                             instrumented);
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
+#endif
+            }
 
             for (int i = 0; i < xTargetSpace.size(); i++) {
               x[_0][i] = xTargetSpace[i].r;

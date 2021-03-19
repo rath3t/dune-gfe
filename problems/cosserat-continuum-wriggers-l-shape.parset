@@ -20,7 +20,7 @@ numHomotopySteps = 1
 tolerance = 1e-8
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 1000
+maxSolverSteps = 1000
 
 trustRegionScaling = 1 1 1 0.01 0.01 0.01
 
