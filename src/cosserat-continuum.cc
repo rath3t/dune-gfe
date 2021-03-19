@@ -375,7 +375,7 @@ int main (int argc, char *argv[]) try
     if (parameterSet.hasKey("neumannValues"))
         neumannValues = parameterSet.get<FieldVector<double,3> >("neumannValues");
 
-    auto neumannFunction = [&]( FieldVector<double,dim> ) {
+    auto neumannFunction = [&]( FieldVector<double,dimworld> ) {
       auto nV = neumannValues;
       nV *= homotopyParameter;
       return nV;
@@ -385,7 +385,7 @@ int main (int argc, char *argv[]) try
     if (parameterSet.hasKey("volumeLoad"))
         volumeLoadValues = parameterSet.get<FieldVector<double,3> >("volumeLoad");
 
-    auto volumeLoad = [&]( FieldVector<double,dim>) {
+    auto volumeLoad = [&]( FieldVector<double,dimworld>) {
       auto vL = volumeLoadValues;
       vL *= homotopyParameter;
       return vL;
