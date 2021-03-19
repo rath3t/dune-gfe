@@ -237,10 +237,10 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
-    if (mpiHelper.rank()==0)
-      std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
-
-#ifdef MIXED_SPACE
+    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has " << dirichletBoundary.numFaces()
+              << " faces and " << dirichletVertices.count() << " nodes.\n";
+    std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary.numFaces() << " faces.\n";
+  
     BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
     constructBoundaryDofs(dirichletBoundary,deformationFEBasis,deformationDirichletNodes);
 
