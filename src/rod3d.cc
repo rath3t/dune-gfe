@@ -238,7 +238,7 @@ int main (int argc, char *argv[]) try
 #if HAVE_DUNE_VTK
     using DataCollector = Vtk::LagrangeDataCollector<GridView,order>;
     DataCollector dataCollector(gridView);
-    VtkUnstructuredGridWriter<GridView,DataCollector> vtkWriter(gridView, Vtk::ASCII);
+    VtkUnstructuredGridWriter<GridView,DataCollector> vtkWriter(gridView, Vtk::FormatTypes::ASCII);
 
     // Make basis for R^3-valued data
     using namespace Functions::BasisFactory;
