@@ -1,6 +1,8 @@
 #ifndef DUNE_GFE_LINEARALGEBRA_HH
 #define DUNE_GFE_LINEARALGEBRA_HH
 
+#include <random>
+
 #include <dune/common/fmatrix.hh>
 #include <dune/common/version.hh>
 
@@ -119,6 +121,66 @@ namespace Dune {
   }
 #endif
 
+    /** \brief Return a segment of a FieldVector from lower up to lower+size-1 */
+    template< int lower, int size,typename field_type,int n>
+    static FieldVector<field_type,size> segment(const FieldVector<field_type,n>& v)
+    {
+      FieldVector<field_type,size> res;
+      std::copy(v.begin()+lower,v.begin()+lower+size,res.begin());
+      return res;
+    }
+
+    /** \brief Return a segment of a FieldVector from lower up to lower+size-1
+     * lower is unkown at compile time*/
+    template< int size,typename field_type,int n>
+    static FieldVector<field_type,size> segmentAt(const FieldVector<field_type,n>& v,const size_t lower)
+    {
+      FieldVector<field_type,size> res;
+      std::copy(v.begin()+lower,v.begin()+lower+size,res.begin());
+      return res;
+    }
+
+    /** \brief Return a block of a FieldMatrix  (lower1...lower1+size1-1,lower2...lower2+size2-1 */
+    template< int lower1, int size1, int lower2,int size2,typename field_type,int n,int m>
+    static auto block(const FieldMatrix<field_type,n,m>& v)
+    {
+      static_assert(lower1+size1<=n && lower2+size2<=m, "Size mismatch for Block!");
+      FieldMatrix<field_type,size1,size2> res;
+
+      for(int i=lower1; i<lower1+size1; ++i)
+        for(int j=lower2; j<lower2+size2; ++j)
+          res[i-lower1][j-lower2] = v[i][j];
+      return res;
+    }
+
+        /** \brief Return a block of a FieldMatrix  (lower1...lower1+size1-1,lower2...lower2+size2-1
+         * * lower1 and lower2 is unkown at compile time*/
+        template< int size1,int size2,typename field_type,int n,int m>
+        static auto blockAt(const FieldMatrix<field_type,n,m>& v, const size_t& lower1, const size_t& lower2)
+        {
+            assert(lower1+size1<=n && lower2+size2<=m);
+            FieldMatrix<field_type,size1,size2> res;
+
+            for(size_t i=lower1; i<lower1+size1; ++i)
+                for(size_t j=lower2; j<lower2+size2; ++j)
+                    res[i-lower1][j-lower2] = v[i][j];
+            return res;
+        }
+
+    /** \brief Generates FieldVector with random entries in the range -1..1 */
+    template<typename field_type,int n>
+    auto randomFieldVector(field_type lower=-1, field_type upper=1)
+    {
+      std::random_device rd;
+      std::mt19937 mt(rd());
+      std::uniform_real_distribution<field_type> dist(lower, upper);
+      auto rand = [&dist,&mt](){
+                    return dist(mt);
+                  };
+      FieldVector<field_type,n> vec;
+      std::generate(vec.begin(), vec.end(), rand);
+      return vec;
+    }
   }
 }
 
