@@ -604,7 +604,7 @@ public:
     /** \brief Compute the vector in T_aSO(3) that is mapped by the exponential map
         to the geodesic from a to b
     */
-    static SkewMatrix<T,3> difference(const Rotation<T,3>& a, const Rotation<T,3>& b) {
+    static SkewMatrix<T,3> log(const Rotation<T,3>& a, const Rotation<T,3>& b) {
 
         Quaternion<T> diff = a;
         diff.invert();
@@ -622,7 +622,7 @@ public:
 
             // TODO: ADOL-C does not like this part of the code,
             // because arccos is not differentiable at -1 and 1.
-            // (Even though the overall 'difference' function is differentiable.)
+            // (Even though the overall 'log' function is differentiable.)
             using std::acos;
             T dist = 2*acos( diff[3] );
 
@@ -635,7 +635,7 @@ public:
 
             T invSinc = 1/sincHalf(dist);
 
-            // Compute difference on T_a SO(3)
+            // Compute log on T_a SO(3)
             v[0] = diff[0] * invSinc;
             v[1] = diff[1] * invSinc;
             v[2] = diff[2] * invSinc;
@@ -907,8 +907,8 @@ public:
     /** \brief Interpolate between two rotations */
     static Rotation<T,3> interpolate(const Rotation<T,3>& a, const Rotation<T,3>& b, T omega) {
 
-        // Compute difference on T_a SO(3)
-        SkewMatrix<T,3> v = difference(a,b);
+        // Compute log on T_a SO(3)
+        SkewMatrix<T,3> v = log(a,b);
 
         v *= omega;
 
@@ -922,8 +922,8 @@ public:
                                                T omega) {
         Quaternion<T> result(0);
 
-        // Compute difference on T_a SO(3)
-        SkewMatrix<T,3> xi = difference(a,b);
+        // Compute log on T_a SO(3)
+        SkewMatrix<T,3> xi = log(a,b);
 
         SkewMatrix<T,3> v = xi;
         v *= omega;
