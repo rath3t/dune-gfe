@@ -6,6 +6,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/productmanifold.hh>
 #include <dune/gfe/orthogonalmatrix.hh>
 #include <dune/gfe/hyperbolichalfspacepoint.hh>
 
@@ -326,6 +327,32 @@ public:
 
 };
 
+
+
+
+
+/** \brief A class that creates sets of values of various types, to be used in unit tests
+*
+* This is the specialization for ProducManifold<...>
+*/
+template <typename ...TargetSpaces>
+class ValueFactory<Dune::GFE::ProductManifold<TargetSpaces...> >
+{
+using TargetSpace = Dune::GFE::ProductManifold<TargetSpaces...>;
+
+public:
+    static void get(std::vector<TargetSpace >& values) {
+
+        std::vector<typename TargetSpace::CoordinateType > testPoints(10);
+
+        std::generate(testPoints.begin(), testPoints.end(), [](){
+            return Dune::GFE::randomFieldVector<typename TargetSpace::field_type,TargetSpace::CoordinateType::dimension>(0.9,1.1) ; });
+
+        values.resize(testPoints.size());
+
+        std::transform(testPoints.cbegin(),testPoints.cend(),values.begin(),[](const auto& testPoint){return TargetSpace(testPoint);});
+    }
+};
 
 
 #endif

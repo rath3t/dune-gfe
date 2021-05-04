@@ -9,6 +9,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/unitvector.hh>
+#include <dune/gfe/productmanifold.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 
@@ -229,9 +230,29 @@ void testRotations()
 }
 
 
+void testProductManifold()
+{
+    typedef Dune::GFE::ProductManifold<RealTuple<double,5>,UnitVector<double,3>, Rotation<double,3>> TargetSpace;
+
+    std::vector<TargetSpace> corners(dim+1);
+
+    std::generate(corners.begin(), corners.end(), []()  {
+        return Dune::GFE::randomFieldVector<typename TargetSpace::field_type,TargetSpace::CoordinateType::dimension>(0.9,1.1);
+    });
+
+    TargetSpace argument = corners[0];
+    testWeightSet(corners, argument);
+    argument = corners[1];
+    testWeightSet(corners, argument);
+    argument = corners[2];
+    testWeightSet(corners, argument);
+}
+
+
 int main()
 {
     testRealTuples();
     testUnitVectors();
     testRotations();
+    testProductManifold();
 }

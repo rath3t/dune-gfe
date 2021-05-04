@@ -3,6 +3,7 @@
 #include <dune/gfe/unitvector.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/rotation.hh>
+#include <dune/gfe/productmanifold.hh>
 #include <dune/gfe/hyperbolichalfspacepoint.hh>
 
 #include "valuefactory.hh"
@@ -138,8 +139,8 @@ void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
     // transform into embedded coordinates
     typename TargetSpace::EmbeddedTangentVector d2_fd_embedded;
     B.mtv(d2_fd,d2_fd_embedded);
-    
-    if ( (d2 - d2_fd_embedded).infinity_norm() > 100*eps ) {
+
+    if ( (d2 - d2_fd_embedded).infinity_norm() > 200*eps ) {
         std::cout << className(a) << ": Analytical gradient does not match fd approximation." << std::endl;
         std::cout << "d2 Analytical: " << d2 << std::endl;
         std::cout << "d2 FD        : " << d2_fd << std::endl;
@@ -156,14 +157,14 @@ void testHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
     ///////////////////////////////////////////////////////////////////
     //  Test second derivative with respect to second argument
     ///////////////////////////////////////////////////////////////////
-    FieldMatrix<double,embeddedDim,embeddedDim> d2d2 = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
-    
+    FieldMatrix<double,embeddedDim,embeddedDim> d2d2 = (TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(a, b)).matrix();
+
     // finite-difference approximation
     FieldMatrix<double,embeddedDim,embeddedDim> d2d2_fd = getSecondDerivativeOfSecondArgumentFD<TargetSpace,embeddedDim>(a,b);
     
     FieldMatrix<double,embeddedDim,embeddedDim> d2d2_diff = d2d2;
     d2d2_diff -= d2d2_fd;
-    if ( (d2d2_diff).infinity_norm() > 100*eps) {
+    if ( (d2d2_diff).infinity_norm() > 200*eps) {
         std::cout << className(a) << ": Analytical second derivative does not match fd approximation." << std::endl;
         std::cout << "d2d2 Analytical:" << std::endl << d2d2 << std::endl;
         std::cout << "d2d2 FD        :" << std::endl << d2d2_fd << std::endl;
@@ -207,7 +208,8 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
     
     FieldMatrix<double,embeddedDim,embeddedDim> d1d2_diff = d1d2;
     d1d2_diff -= d1d2_fd;
-    if ( (d1d2_diff).infinity_norm() > 100*eps ) {
+
+    if ( (d1d2_diff).infinity_norm() > 200*eps ) {
         std::cout << className(a) << ": Analytical mixed second derivative does not match fd approximation." << std::endl;
         std::cout << "d1d2 Analytical:" << std::endl << d1d2 << std::endl;
         std::cout << "d1d2 FD        :" << std::endl << d1d2_fd << std::endl;
@@ -245,8 +247,8 @@ void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const Target
         d2d2d2_fd[i] /= 2*eps;
         
     }
-    
-    if ( (d2d2d2 - d2d2d2_fd).infinity_norm() > 100*eps) {
+
+    if ( (d2d2d2 - d2d2d2_fd).infinity_norm() > 200*eps) {
         std::cout << className(a) << ": Analytical third derivative does not match fd approximation." << std::endl;
         std::cout << "d2d2d2 Analytical:" << std::endl << d2d2d2 << std::endl;
         std::cout << "d2d2d2 FD        :" << std::endl << d2d2d2_fd << std::endl;
@@ -284,8 +286,8 @@ void testMixedDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const T
         d1d2d2_fd[i] /= 2*eps;
         
     }
-    
-    if ( (d1d2d2 - d1d2d2_fd).infinity_norm() > 100*eps ) {
+
+    if ( (d1d2d2 - d1d2d2_fd).infinity_norm() > 200*eps ) {
         std::cout << className(a) << ": Analytical mixed third derivative does not match fd approximation." << std::endl;
         std::cout << "d1d2d2 Analytical:" << std::endl << d1d2d2 << std::endl;
         std::cout << "d1d2d2 FD        :" << std::endl << d1d2d2_fd << std::endl;
@@ -360,7 +362,7 @@ void test()
             std::cout << "p: " << testPointPair[0] << ",   q: " << testPointPair[1] << std::endl;
             std::cout << TargetSpace::exp(p, TargetSpace::log(p,q)) << std::endl;
             
-            //testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);
+            testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);
             
         }
         
@@ -377,6 +379,9 @@ int main() try
     test<UnitVector<double,2> >();
     test<UnitVector<double,3> >();
     test<UnitVector<double,4> >();
+
+    test<Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2>>>();
+    test<Dune::GFE::ProductManifold<Rotation<double,3>,UnitVector<double,5>>>();
 
 //     test<Rotation<double,3> >();
 //

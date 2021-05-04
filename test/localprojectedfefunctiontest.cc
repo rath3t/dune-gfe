@@ -15,6 +15,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/unitvector.hh>
+#include <dune/gfe/productmanifold.hh>
 
 #include <dune/gfe/localprojectedfefunction.hh>
 #include "multiindex.hh"
@@ -103,6 +104,20 @@ template <int domainDim, int vectorDim>
 void testDerivativeTangentiality(const RigidBodyMotion<double,3>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {
+}
+
+// the columns of the derivative must be tangential to the manifold
+template <int domainDim, int vectorDim,typename ...TargetSpaces>
+void testDerivativeTangentiality(const Dune::GFE::ProductManifold<TargetSpaces...>& x,
+                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
+{
+    size_t posHelper=0;
+    using namespace Dune::Hybrid;
+    forEach(integralRange(Dune::Hybrid::size(x)), [&](auto&& i) {
+        using Manifold = std::remove_reference_t<decltype(x[i])>;
+        testDerivativeTangentiality(x[i],Dune::GFE::blockAt<Manifold::embeddedDim,domainDim>( derivative,posHelper,0));
+        posHelper +=Manifold::embeddedDim;
+    });
 }
 
 /** \brief Test whether interpolation is invariant under permutation of the simplex vertices
@@ -255,6 +270,8 @@ int main()
     test<UnitVector<double,3>,1>(GeometryTypes::line);
     test<Rotation<double,3>,1>(GeometryTypes::line);
     test<RigidBodyMotion<double,3>,1>(GeometryTypes::line);
+    typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2>> CrazyManifold;
+    test<CrazyManifold, 1>(GeometryTypes::line);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d simplex elements
@@ -265,6 +282,8 @@ int main()
     test<UnitVector<double,3>,2>(GeometryTypes::triangle);
     test<Rotation<double,3>,2>(GeometryTypes::triangle);
     test<RigidBodyMotion<double,3>,2>(GeometryTypes::triangle);
+    typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2>> CrazyManifold;
+    test<CrazyManifold, 2>(GeometryTypes::triangle);
 
     ////////////////////////////////////////////////////////////////
     //  Test functions on 2d quadrilateral elements
@@ -275,5 +294,7 @@ int main()
     test<UnitVector<double,3>,2>(GeometryTypes::quadrilateral);
     test<Rotation<double,3>,2>(GeometryTypes::quadrilateral);
     test<RigidBodyMotion<double,3>,2>(GeometryTypes::quadrilateral);
+    typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2>> CrazyManifold;
+    test<CrazyManifold, 2>(GeometryTypes::quadrilateral);
 
 }
