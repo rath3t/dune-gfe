@@ -554,7 +554,7 @@ int main (int argc, char *argv[]) try
     //   Create the chosen solver and solve!
     ///////////////////////////////////////////////////
 
-    if (parameterSet.get<std::string>("solvertype") == "multigrid") {
+    if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 #if MIXED_SPACE
       MixedRiemannianTrustRegionSolver<GridType, CompositeBasis, DeformationFEBasis, RealTuple<double,dim>, OrientationFEBasis, Rotation<double,dim>> solver;
       solver.setup(*grid,
@@ -603,7 +603,7 @@ int main (int argc, char *argv[]) try
         x[_1][i] = xRBM[i].q;
       }
 #endif
-    } else { //parameterSet.get<std::string>("solvertype") == "cholmod"
+    } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
 
 #if MIXED_SPACE
     DUNE_THROW(Exception, "Error: There is no MixedRiemannianProximalNewtonSolver!");
