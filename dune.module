@@ -8,4 +8,4 @@ Version: svn
 Maintainer: oliver.sander@tu-dresden.de
 #depending on
 Depends: dune-common(>=2.7) dune-grid(>=2.7) dune-uggrid dune-istl dune-localfunctions dune-geometry (>=2.7) dune-functions (>=2.7) dune-solvers dune-fufem dune-elasticity (>=2.7)
-Suggests: dune-foamgrid dune-parmg dune-vtk dune-curvedgeometry
+Suggests: dune-foamgrid dune-parmg dune-vtk dune-curvedgrid

@@ -67,7 +67,7 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
 
     typedef DuneFunctionsBasis<Basis> FufemBasis;
-    FufemBasis basis(assembler_->basis_);
+    FufemBasis basis(assembler_->getBasis());
     OperatorAssembler<FufemBasis,FufemBasis> operatorAssembler(basis, basis);
 
     LaplaceAssembler<GridType, typename FufemBasis::LocalFiniteElement, typename FufemBasis::LocalFiniteElement> laplaceStiffness;

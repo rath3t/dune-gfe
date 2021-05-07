@@ -1,3 +1,5 @@
+#define MIXED_SPACE 0
+
 #include <config.h>
 
 #include <fenv.h>
@@ -37,7 +39,6 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
@@ -45,10 +46,17 @@
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/cosseratvtkreader.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
-#include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/mixedgfeassembler.hh>
+
+#if MIXED_SPACE
 #include <dune/gfe/mixedriemanniantrsolver.hh>
+#else
+#include <dune/gfe/geodesicfeassemblerwrapper.hh>
+#include <dune/gfe/riemannianpnsolver.hh>
+#include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/rigidbodymotion.hh>
+#endif
 
 #if HAVE_DUNE_VTK
 #include <dune/vtk/vtkreader.hh>
@@ -59,22 +67,17 @@
 const int dim = 2;
 const int dimworld = 2;
 
-//#define MIXED_SPACE
-
 // Order of the approximation space for the displacement
 const int displacementOrder = 2;
 
 // Order of the approximation space for the microrotations
 const int rotationOrder = 2;
 
-#ifndef MIXED_SPACE
+#if !MIXED_SPACE
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
 
 // Image space of the geodesic fe functions
-typedef RigidBodyMotion<double,3> TargetSpace;
-
-// Tangent vector of the image space
-const int blocksize = TargetSpace::TangentVector::dimension;
+using TargetSpace = RigidBodyMotion<double, 3>;
 #endif
 
 using namespace Dune;
@@ -84,6 +87,15 @@ int main (int argc, char *argv[]) try
     // initialize MPI, finalize is done automatically on exit
     Dune::MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
 
+    if (mpiHelper.rank()==0) {
+        std::cout << "DISPLACEMENTORDER = " << displacementOrder << ", ROTATIONORDER = " << rotationOrder << std::endl;
+        std::cout << "dim = " << dim << ", dimworld = " << dimworld << std::endl;
+    #if MIXED_SPACE
+        std::cout << "MIXED_SPACE = 1" << std::endl;
+    #else
+        std::cout << "MIXED_SPACE = 0" << std::endl;
+    #endif
+    }
     // Start Python interpreter
     Python::start();
     Python::Reference main = Python::import("__main__");
@@ -97,12 +109,8 @@ int main (int argc, char *argv[]) try
         << std::endl;
 
     using namespace TypeTree::Indices;
-#ifdef MIXED_SPACE
     using SolutionType = TupleVector<std::vector<RealTuple<double,3> >,
                                      std::vector<Rotation<double,3> > >;
-#else
-    typedef std::vector<TargetSpace> SolutionType;
-#endif
 
     // parse data file
     ParameterTree parameterSet;
@@ -117,7 +125,8 @@ int main (int argc, char *argv[]) try
     const int numLevels                   = parameterSet.get<int>("numLevels");
     int numHomotopySteps                  = parameterSet.get<int>("numHomotopySteps");
     const double tolerance                = parameterSet.get<double>("tolerance");
-    const int maxTrustRegionSteps         = parameterSet.get<int>("maxTrustRegionSteps");
+    const int maxSolverSteps              = parameterSet.get<int>("maxSolverSteps");
+    const double initialRegularization    = parameterSet.get<double>("initialRegularization", 1000);
     const double initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
     const int multigridIterations         = parameterSet.get<int>("numIt");
     const int nu1                         = parameterSet.get<int>("nu1");
@@ -145,6 +154,8 @@ int main (int argc, char *argv[]) try
 
     std::string structuredGridType = parameterSet["structuredGrid"];
     if (structuredGridType == "cube") {
+        if (dim!=dimworld)
+            DUNE_THROW(GridError, "Please use FoamGrid and read in a grid for problems with dim != dimworld.");
 
         lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
         upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
@@ -183,7 +194,7 @@ int main (int argc, char *argv[]) try
     GridView gridView = grid->leafGridView();
 
     using namespace Dune::Functions::BasisFactory;
-#ifdef MIXED_SPACE
+
     const int dimRotation = Rotation<double,dim>::embeddedDim;
     auto compositeBasis = makeBasis(
       gridView,
@@ -195,6 +206,13 @@ int main (int argc, char *argv[]) try
             lagrange<rotationOrder>()
         )
     ));
+    using CompositeBasis = decltype(compositeBasis);
+
+    auto deformationPowerBasis = makeBasis(
+        gridView,
+        power<3>(
+            lagrange<displacementOrder>()
+    ));
 
     typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
     typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
@@ -202,10 +220,6 @@ int main (int argc, char *argv[]) try
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
 
-#else
-    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, displacementOrder> FEBasis;
-    FEBasis feBasis(gridView);
-#endif
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
@@ -237,10 +251,10 @@ int main (int argc, char *argv[]) try
     BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
-    if (mpiHelper.rank()==0)
-      std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
-
-#ifdef MIXED_SPACE
+    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has " << dirichletBoundary.numFaces()
+              << " faces and " << dirichletVertices.count() << " nodes.\n";
+    std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary.numFaces() << " faces.\n";
+  
     BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
     constructBoundaryDofs(dirichletBoundary,deformationFEBasis,deformationDirichletNodes);
 
@@ -261,43 +275,26 @@ int main (int argc, char *argv[]) try
       if (orientationDirichletNodes[i][0])
         for (int j=0; j<3; j++)
           orientationDirichletDofs[i][j] = true;
-#else
-    BitSetVector<1> dirichletNodes(feBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
-
-    BitSetVector<1> neumannNodes(feBasis.size(), false);
-    constructBoundaryDofs(neumannBoundary,feBasis,neumannNodes);
-
-
-    BitSetVector<blocksize> dirichletDofs(feBasis.size(), false);
-    for (size_t i=0; i<feBasis.size(); i++)
-      if (dirichletNodes[i][0])
-        for (int j=0; j<5; j++)
-          dirichletDofs[i][j] = true;
-#endif
 
     // //////////////////////////
     //   Initial iterate
     // //////////////////////////
 
-#ifdef MIXED_SPACE
     SolutionType x;
 
-    x[_0].resize(deformationFEBasis.size());
+    x[_0].resize(compositeBasis.size({0}));
 
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
     auto pythonInitialDeformation = Python::make_function<FieldVector<double,3> >(Python::evaluate(lambda));
 
     std::vector<FieldVector<double,3> > v;
-    Functions::interpolate(deformationFEBasis, v, pythonInitialDeformation);
+    Functions::interpolate(deformationPowerBasis, v, pythonInitialDeformation);
 
     for (size_t i=0; i<x[_0].size(); i++)
       x[_0][i] = v[i];
 
-    x[_1].resize(orientationFEBasis.size());
-#else
-    SolutionType x(feBasis.size());
-
+    x[_1].resize(compositeBasis.size({1}));
+#if !MIXED_SPACE
     if (parameterSet.hasKey("startFromFile"))
     {
       std::shared_ptr<GridType> initialIterateGrid;
@@ -314,35 +311,32 @@ int main (int argc, char *argv[]) try
         initialIterateGrid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + initialIterateGridFilename));
       }
 
-      SolutionType initialIterate;
+      std::vector<TargetSpace> initialIterate;
       GFE::CosseratVTKReader::read(initialIterate, parameterSet.get<std::string>("initialIterateFilename"));
 
       typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, 2> InitialBasis;
       InitialBasis initialBasis(initialIterateGrid->leafGridView());
 
 #ifdef PROJECTED_INTERPOLATION
-      using LocalInterpolationRule  = LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+      using LocalInterpolationRule  = LocalProjectedFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #else
-      using LocalInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+      using LocalInterpolationRule  = LocalGeodesicFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #endif
       GFE::EmbeddedGlobalGFEFunction<InitialBasis,LocalInterpolationRule,TargetSpace> initialFunction(initialBasis,initialIterate);
-
+      auto powerBasis = makeBasis(
+          gridView,
+          power<7>(
+              lagrange<displacementOrder>()
+      ));
       std::vector<FieldVector<double,7> > v;
-      Dune::Functions::interpolate(feBasis,v,initialFunction);
-      DUNE_THROW(NotImplemented, "Replace scalar basis by power basis!");
+      //TODO: Interpolate does not work with an GFE:EmbeddedGlobalGFEFunction
+      //Dune::Functions::interpolate(powerBasis,v,initialFunction);
 
-      for (size_t i=0; i<x.size(); i++)
-        x[i] = TargetSpace(v[i]);
-
-    } else {
-    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
-      auto pythonInitialDeformation = Python::make_function<FieldVector<double,3> >(Python::evaluate(lambda));
-
-    std::vector<FieldVector<double,3> > v;
-      Functions::interpolate(feBasis, v, pythonInitialDeformation);
-
-    for (size_t i=0; i<x.size(); i++)
-      x[i].r = v[i];
+      for (size_t i=0; i<x.size(); i++) {
+        auto vTargetSpace = TargetSpace(v[i]);
+        x[_0][i] = vTargetSpace.r;
+        x[_1][i] = vTargetSpace.q;
+      }
     }
 #endif
 
@@ -351,14 +345,30 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
-#ifdef MIXED_SPACE
+    BlockVector<FieldVector<double,3> > identity(compositeBasis.size({0}));
+    Dune::Functions::interpolate(deformationPowerBasis, identity, [&](FieldVector<double,dimworld> x){ return x;});
+    BlockVector<FieldVector<double,3> > displacement(compositeBasis.size({0}));
+
+    if (dim == dimworld) {
     CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
                                                                                    orientationFEBasis,x[_1],
                                                                                    resultPath + "mixed-cosserat_homotopy_0");
+    } else {
+#if MIXED_SPACE
+        for (int i = 0; i < displacement.size(); i++) {
+            for (int j = 0; j < 3; j++)
+                displacement[i][j] = x[_0][i][j];
+            displacement[i] -= identity[i];
+        }
+        auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3>>(deformationPowerBasis, displacement);
+    
+        SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(0));
+        vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dimworld));
+        vtkWriter.write(resultPath + "mixed-cosserat_homotopy_0");
 #else
-    CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_0");
-#endif
-
+    CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_0");
+#endif   
+    }
     for (int i=0; i<numHomotopySteps; i++) {
 
         double homotopyParameter = (i+1)*(1.0/numHomotopySteps);
@@ -375,7 +385,7 @@ int main (int argc, char *argv[]) try
     if (parameterSet.hasKey("neumannValues"))
         neumannValues = parameterSet.get<FieldVector<double,3> >("neumannValues");
 
-    auto neumannFunction = [&]( FieldVector<double,dim> ) {
+    auto neumannFunction = [&]( FieldVector<double,dimworld> ) {
       auto nV = neumannValues;
       nV *= homotopyParameter;
       return nV;
@@ -385,7 +395,7 @@ int main (int argc, char *argv[]) try
     if (parameterSet.hasKey("volumeLoad"))
         volumeLoadValues = parameterSet.get<FieldVector<double,3> >("volumeLoad");
 
-    auto volumeLoad = [&]( FieldVector<double,dim>) {
+    auto volumeLoad = [&]( FieldVector<double,dimworld>) {
       auto vL = volumeLoadValues;
       vL *= homotopyParameter;
       return vL;
@@ -395,82 +405,6 @@ int main (int argc, char *argv[]) try
         std::cout << "Material parameters:" << std::endl;
         materialParameters.report();
     }
-
-    // Assembler using ADOL-C
-#ifdef MIXED_SPACE
-    CosseratEnergyLocalStiffness<decltype(compositeBasis),
-                        3,adouble> cosseratEnergyADOLCLocalStiffness(materialParameters,
-                                                                     &neumannBoundary,
-                                                                     neumannFunction,
-                                                                     volumeLoad);
-
-    MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
-                                RealTuple<double,3>,
-                                Rotation<double,3> > localGFEADOLCStiffness(&cosseratEnergyADOLCLocalStiffness);
-
-    MixedGFEAssembler<decltype(compositeBasis),
-                      RealTuple<double,3>,
-                      Rotation<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
-#else
-    std::shared_ptr<GFE::LocalEnergy<FEBasis,RigidBodyMotion<adouble,3> > > localCosseratEnergy;
-
-    if (dim==dimworld)
-    {
-      localCosseratEnergy = std::make_shared<CosseratEnergyLocalStiffness<FEBasis,3,adouble> >(materialParameters,
-                                                                                               &neumannBoundary,
-                                                                                               neumannFunction,
-                                                                                               volumeLoad);
-    }
-    else
-    {
-      localCosseratEnergy = std::make_shared<NonplanarCosseratShellEnergy<FEBasis,3,adouble> >(materialParameters,
-                                                                                               &neumannBoundary,
-                                                                                               neumannFunction,
-                                                                                               volumeLoad);
-    }
-
-    LocalGeodesicFEADOLCStiffness<FEBasis,
-                                  TargetSpace> localGFEADOLCStiffness(localCosseratEnergy.get());
-
-    GeodesicFEAssembler<FEBasis,TargetSpace> assembler(gridView, localGFEADOLCStiffness);
-#endif
-
-    // /////////////////////////////////////////////////
-    //   Create a Riemannian trust-region solver
-    // /////////////////////////////////////////////////
-
-#ifdef MIXED_SPACE
-    MixedRiemannianTrustRegionSolver<GridType,
-                                     decltype(compositeBasis),
-                                     DeformationFEBasis, RealTuple<double,3>,
-                                     OrientationFEBasis, Rotation<double,3> > solver;
-#else
-    RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
-#endif
-    solver.setup(*grid,
-                 &assembler,
-#ifdef MIXED_SPACE
-                 deformationFEBasis,
-                 orientationFEBasis,
-#endif
-                 x,
-#ifdef MIXED_SPACE
-                 deformationDirichletDofs,
-                 orientationDirichletDofs,
-#else
-                 dirichletDofs,
-#endif
-                 tolerance,
-                 maxTrustRegionSteps,
-                 initialTrustRegionRadius,
-                 multigridIterations,
-                 mgTolerance,
-                 mu, nu1, nu2,
-                 baseIterations,
-                 baseTolerance,
-                 instrumented);
-
-        solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
 
         ////////////////////////////////////////////////////////
         //   Set Dirichlet values
@@ -484,91 +418,234 @@ int main (int argc, char *argv[]) try
         Python::Reference dirichletValuesPythonObject = C(homotopyParameter);
 
         // Extract object member functions as Dune functions
-        auto deformationDirichletValues = Python::make_function<FieldVector<double,3> >(dirichletValuesPythonObject.get("deformation"));
-        auto orientationDirichletValues = Python::make_function<FieldMatrix<double,3,3> >(dirichletValuesPythonObject.get("orientation"));
+        auto deformationDirichletValues = Python::make_function<FieldVector<double,3> >   (dirichletValuesPythonObject.get("deformation"));
+        auto orientationDirichletValues = Python::make_function<FieldMatrix<double,3,3> > (dirichletValuesPythonObject.get("orientation"));
+    
+        BlockVector<FieldVector<double,3> > ddV;
+        Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
+    
+        BlockVector<FieldMatrix<double,3,3> > dOV;
+        Dune::Functions::interpolate(orientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
+    
+        for (int i = 0; i < compositeBasis.size({0}); i++) {
+          if (deformationDirichletDofs[i][0])
+            x[_0][i] = ddV[i];
+        }
+        for (int i = 0; i < compositeBasis.size({1}); i++)
+          if (orientationDirichletDofs[i][0])
+            x[_1][i].set(dOV[i]);
 
-        std::vector<FieldVector<double,3> > ddV;
-        std::vector<FieldMatrix<double,3,3> > dOV;
+        if (dim==dimworld) {
+            CosseratEnergyLocalStiffness<CompositeBasis, 3,adouble> localCosseratEnergy(materialParameters,
+                                                                                            &neumannBoundary,
+                                                                                            neumannFunction,
+                                                                                            volumeLoad);
+            MixedLocalGFEADOLCStiffness<CompositeBasis,
+                                RealTuple<double,3>,
+                                Rotation<double,3> > localGFEADOLCStiffness(&localCosseratEnergy);
+            MixedGFEAssembler<CompositeBasis,
+                      RealTuple<double,3>,
+                      Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+#if MIXED_SPACE
+            MixedRiemannianTrustRegionSolver<GridType,
+                                         CompositeBasis,
+                                         DeformationFEBasis, RealTuple<double,3>,
+                                         OrientationFEBasis, Rotation<double,3> > solver;
+            solver.setup(*grid,
+                     &mixedAssembler,
+                     deformationFEBasis,
+                     orientationFEBasis,
+                     x,
+                     deformationDirichletDofs,
+                     orientationDirichletDofs, tolerance,
+                     maxSolverSteps,
+                     initialTrustRegionRadius,
+                     multigridIterations,
+                     mgTolerance,
+                     mu, nu1, nu2,
+                     baseIterations,
+                     baseTolerance,
+                     instrumented);
 
-#ifdef MIXED_SPACE
-        Functions::interpolate(deformationFEBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
-        Functions::interpolate(orientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
+            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
 
-        for (size_t j=0; j<x[_0].size(); j++)
-          if (deformationDirichletNodes[j][0])
-            x[_0][j] = ddV[j];
-
-        for (size_t j=0; j<x[_1].size(); j++)
-          if (orientationDirichletNodes[j][0])
-            x[_1][j].set(dOV[j]);
+            solver.setInitialIterate(x);
+            solver.solve();
+            x = solver.getSol();
 #else
-        Functions::interpolate(feBasis, ddV, deformationDirichletValues, dirichletDofs);
-        Functions::interpolate(feBasis, dOV, orientationDirichletValues, dirichletDofs);
+            //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
+            //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a RigidBodyMotion
+            //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
+            std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
+            BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
+            for (int i = 0; i < compositeBasis.size({0}); i++) {
+              for (int j = 0; j < 3; j ++) { // Displacement part
+                xTargetSpace[i].r[j] = x[_0][i][j];
+                dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
+              }
+              xTargetSpace[i].q = x[_1][i]; // Rotation part
+              for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
+                dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
+            }
 
-        for (size_t j=0; j<x.size(); j++)
-          if (dirichletNodes[j][0])
-          {
-            x[j].r = ddV[j];
-            x[j].q.set(dOV[j]);
-          }
+            using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace, RealTuple<double, 3>, Rotation<double,3>>;
+            GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
+            RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+            solver.setup(*grid,
+                     &assembler,
+                     xTargetSpace,
+                     dirichletDofsTargetSpace,
+                     tolerance,
+                     maxSolverSteps,
+                     initialTrustRegionRadius,
+                     multigridIterations,
+                     mgTolerance,
+                     mu, nu1, nu2,
+                     baseIterations,
+                     baseTolerance,
+                     instrumented);
+
+            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+            solver.setInitialIterate(xTargetSpace);
+            solver.solve();
+            xTargetSpace = solver.getSol();
+            for (int i = 0; i < xTargetSpace.size(); i++) {
+              x[_0][i] = xTargetSpace[i].r;
+              x[_1][i] = xTargetSpace[i].q;
+            }
 #endif
+        } else {
+#if MIXED_SPACE
+            DUNE_THROW(Exception, "Problems with dim != dimworld do not work for MIXED_SPACE = 1!");
+#else
+            std::shared_ptr<LocalGeodesicFEADOLCStiffness<DeformationFEBasis, TargetSpace>> localGFEADOLCStiffness;
 
-        // /////////////////////////////////////////////////////
-        //   Solve!
-        // /////////////////////////////////////////////////////
+            NonplanarCosseratShellEnergy<DeformationFEBasis, 3, adouble> localCosseratEnergyPlanar(materialParameters,
+                                                                                                    nullptr,
+                                                                                                    &neumannBoundary,
+                                                                                                    neumannFunction,
+                                                                                                    volumeLoad);
+              localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<DeformationFEBasis, TargetSpace>>(&localCosseratEnergyPlanar);
 
-        solver.setInitialIterate(x);
-        solver.solve();
+            GeodesicFEAssembler<DeformationFEBasis,TargetSpace> assembler(gridView, *localGFEADOLCStiffness);
+            //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
+            //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a RigidBodyMotion
+            //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
+            std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
+            BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
+            for (int i = 0; i < compositeBasis.size({0}); i++) {
+              for (int j = 0; j < 3; j ++) { // Displacement part
+                xTargetSpace[i].r[j] = x[_0][i][j];
+                dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
+              }
+              xTargetSpace[i].q = x[_1][i]; // Rotation part
+              for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
+                dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
+            }
+            if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 
-        x = solver.getSol();
+                RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace> solver;
+                solver.setup(*grid,
+                         &assembler,
+                         xTargetSpace,
+                         dirichletDofsTargetSpace,
+                         tolerance,
+                         maxSolverSteps,
+                         initialTrustRegionRadius,
+                         multigridIterations,
+                         mgTolerance,
+                         mu, nu1, nu2,
+                         baseIterations,
+                         baseTolerance,
+                         instrumented);
 
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
+            } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
+#if DUNE_VERSION_LT(DUNE_COMMON, 2, 8)
+                DUNE_THROW(Exception, "Please install dune-solvers >= 2.8 to use the Proximal Newton Solver with Cholmod!");
+#else
+                RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace> solver;
+                solver.setup(*grid,
+                             &assembler,
+                             xTargetSpace,
+                             dirichletDofsTargetSpace,
+                             tolerance,
+                             maxSolverSteps,
+                             initialRegularization,
+                             instrumented);
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
+#endif
+            }
+
+            for (int i = 0; i < xTargetSpace.size(); i++) {
+              x[_0][i] = xTargetSpace[i].r;
+              x[_1][i] = xTargetSpace[i].q;
+            }
+#endif
+        }
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-#ifdef MIXED_SPACE
+        if (dim == dimworld) {
         CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
                                                                                        orientationFEBasis,x[_1],
                                                                                        resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
-#else
-        CosseratVTKWriter<GridType>::write<FEBasis>(feBasis,x, resultPath + "cosserat_homotopy_" + iAsAscii.str());
+        } else {
+#if MIXED_SPACE
+            for (int i = 0; i < displacement.size(); i++) {
+               for (int j = 0; j  < 3; j++) {
+                displacement[i][j] = x[_0][i][j];
+              }
+              displacement[i] -= identity[i];
+            }
+            auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3>>(deformationPowerBasis, displacement);
+    
+            //  We need to subsample, because VTK cannot natively display real second-order functions
+            SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(displacementOrder-1));
+            vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, 3));
+            vtkWriter.write(resultPath + "cosserat_homotopy_" + std::to_string(i+1));
+#else 
+        CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_" + std::to_string(i+1));
 #endif
-
+        }
     }
 
     // //////////////////////////////
     //   Output result
     // //////////////////////////////
 
-#ifndef MIXED_SPACE
+#if !MIXED_SPACE
     // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
     // This data may be used by other applications measuring the discretization error
-    BlockVector<TargetSpace::CoordinateType> xEmbedded(x.size());
-    for (size_t i=0; i<x.size(); i++)
-      xEmbedded[i] = x[i].globalCoordinates();
+    BlockVector<TargetSpace::CoordinateType> xEmbedded(compositeBasis.size({0}));
+    for (size_t i=0; i<compositeBasis.size({0}); i++)
+        for (size_t j=0; j<TargetSpace::TangentVector::dimension; j++)
+            xEmbedded[i][j] = j < 3 ? x[_0][i][j] : x[_1][i].globalCoordinates()[j-3];
 
     std::ofstream outFile("cosserat-continuum-result-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
     MatrixVector::Generic::writeBinary(outFile, xEmbedded);
     outFile.close();
 #endif
 
+    if (parameterSet.get<bool>("computeAverageNeumannDeflection", false) and parameterSet.hasKey("neumannValues")) {
     // finally: compute the average deformation of the Neumann boundary
     // That is what we need for the locking tests
     FieldVector<double,3> averageDef(0);
-#ifdef MIXED_SPACE
     for (size_t i=0; i<x[_0].size(); i++)
         if (neumannNodes[i][0])
             averageDef += x[_0][i].globalCoordinates();
-#else
-    for (size_t i=0; i<x.size(); i++)
-        if (neumannNodes[i][0])
-            averageDef += x[i].r;
-#endif
     averageDef /= neumannNodes.count();
 
     if (mpiHelper.rank()==0 and parameterSet.hasKey("neumannValues"))
     {
       std::cout << "Neumann values = " << parameterSet.get<FieldVector<double, 3> >("neumannValues") << "  "
                 << ",  average deflection: " << averageDef << std::endl;
+    }
     }
 
 } catch (Exception& e)
