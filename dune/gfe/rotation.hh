@@ -146,7 +146,7 @@ class Rotation<T,3> : public Quaternion<T>
     /** \brief Computes sin(x/2) / x without getting unstable for small x */
     static T sincHalf(const T& x) {
         using std::sin;
-        return (x < 1e-4) ? 0.5 - (x*x/48)  + (x*x*x*x)/3840 : sin(x/2)/x;
+        return (x < 1e-1) ? 0.5 - (x*x/48)  + Dune::power(x,4)/3840 - Dune::power(x,6)/645120  : sin(x/2)/x;
     }
 
     /** \brief Computes sin(sqrt(x)/2) / sqrt(x) without getting unstable for small x
@@ -168,7 +168,15 @@ class Rotation<T,3> : public Quaternion<T>
     static T sincOfSquare(const T& x) {
         using std::sin;
         using std::sqrt;
-        return (x < 1e-15) ? 1 - (x/6)  + (x*x)/120 : sin(sqrt(x))/sqrt(x);
+        // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+        return (x < 1e-2) ?
+        1-x/6
+        +x*x/120
+        -Dune::power(x,3)/5040
+        +Dune::power(x,4)/362880
+        -Dune::power(x,5)/39916800
+        +Dune::power(x,6)/6227020800
+        -Dune::power(x,7)/1307674368000: sin(sqrt(x))/sqrt(x);
     }
 
 public:
@@ -289,7 +297,7 @@ public:
         // hence the series of cos(x/2) is
         // 1 - x*x/8 + x*x*x*x/384 - ...
         q[3] = (normV2 < 1e-4)
-          ? 1 - normV2/8 + normV2*normV2 / 384
+          ? 1 - normV2/8 + normV2*normV2 / 384-Dune::power(normV2,3)/46080 + Dune::power(normV2,4)/10321920
           : cos(sqrt(normV2)/2);
 
         return q;
@@ -321,8 +329,8 @@ public:
 
         // The series expansion of cos(x) at x=0 is
         // 1 - x*x/2 + x*x*x*x/24 - ...
-        T cosValue = (norm2 < 1e-4)
-          ? 1 - norm2/2 + norm2*norm2 / 24
+        T cosValue = (norm2 < 1e-5)
+          ? 1 - norm2/2 + norm2*norm2 / 24 - Dune::power(norm2,3)/720+Dune::power(norm2,4)/40320
           : cos(sqrt(norm2));
         result *= cosValue;
 

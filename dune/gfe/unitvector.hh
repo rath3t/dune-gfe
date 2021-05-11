@@ -26,15 +26,24 @@ class UnitVector
     /** \brief Computes sin(x) / x without getting unstable for small x */
     static T sinc(const T& x) {
         using std::sin;
-        return (x < 1e-4) ? 1 - (x*x/6) : sin(x)/x;
+        return (x < 1e-2) ? 1.0-x*x/6.0+ Dune::power(x,4)/120.0-Dune::power(x,6)/5040.0+Dune::power(x,8)/362880.0 : sin(x)/x;
     }
 
     /** \brief Compute arccos^2 without using the (at 1) nondifferentiable function acos x close to 1 */
     static T arcCosSquared(const T& x) {
         using std::acos;
-        const T eps = 1e-4;
-        if (x > 1-eps) {  // acos is not differentiable, use the series expansion instead
-            return -2 * (x-1) + 1.0/3 * (x-1)*(x-1) - 4.0/45 * (x-1)*(x-1)*(x-1);
+        const T eps = 1e-2;
+        if (x > 1-eps) {  // acos is not differentiable, use the series expansion instead,
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            //return -2 * (x-1) + 1.0/3 * (x-1)*(x-1) - 4.0/45 * (x-1)*(x-1)*(x-1);
+            return 11665028.0/4729725.0
+            -141088.0/45045.0*x
+            +   413.0/429.0*x*x
+            -  5344.0/12285.0*Dune::power(x,3)
+            +    245.0/1287.0*Dune::power(x,4)
+            -  1632.0/25025.0*Dune::power(x,5)
+            +     56.0/3861.0*Dune::power(x,6)
+            -    32.0/21021.0*Dune::power(x,7);
         } else {
             return Dune::power(acos(x),2);
         }
@@ -44,9 +53,19 @@ class UnitVector
     static T derivativeOfArcCosSquared(const T& x) {
         using std::acos;
         using std::sqrt;
-        const T eps = 1e-4;
+        const T eps = 1e-2;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1);
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            //return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1);
+            return -47104.0/15015.0
+            +12614.0/6435.0*x
+            -63488.0/45045.0*x*x
+            + 1204.0/1287.0*Dune::power(x,3)
+            - 2048.0/4095.0*Dune::power(x,4)
+            +   112.0/585.0*Dune::power(x,5)
+            -2048.0/45045.0*Dune::power(x,6)
+            +   32.0/6435.0*Dune::power(x,7);
+
         } else if (x < -1+eps) {  // The function is not differentiable
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else
@@ -57,9 +76,20 @@ class UnitVector
     static T secondDerivativeOfArcCosSquared(const T& x) {
         using std::acos;
         using std::pow;
-        const T eps = 1e-4;
+        const T eps = 1e-2;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return 2.0/3 - 8*(x-1)/15;
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            //return 2.0/3 - 8*(x-1)/15;
+            return 1350030.0/676039.0+5632.0/2028117.0*Dune::power(x,10)
+            -1039056896.0/334639305.0*x
+            +150876.0/39767.0*x*x
+            -445186048.0/111546435.0*Dune::power(x,3)
+            +       343728.0/96577.0*Dune::power(x,4)
+            -  57769984.0/22309287.0*Dune::power(x,5)
+            +      710688.0/482885.0*Dune::power(x,6)
+            -  41615360.0/66927861.0*Dune::power(x,7)
+            +     616704.0/3380195.0*Dune::power(x,8)
+            -     245760.0/7436429.0*Dune::power(x,9);
         } else if (x < -1+eps) {  // The function is not differentiable
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else
@@ -70,10 +100,22 @@ class UnitVector
     static T thirdDerivativeOfArcCosSquared(const T& x) {
         using std::acos;
         using std::sqrt;
-        const T eps = 1e-4;
+        const T eps = 1e-2;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            return -8.0/15 + 24*(x-1)/35;
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            //return -8.0/15 + 24*(x-1)/35;
+            return -1039056896.0/334639305.0
+            +301752.0/39767.0*x
+            -445186048.0/37182145.0*x*x
+            +1374912.0/96577.0*Dune::power(x,3)
+            -288849920.0/22309287.0*Dune::power(x,4)
+            +4264128.0/482885.0*Dune::power(x,5)
+            -41615360.0/9561123.0*Dune::power(x,6)
+            +4933632.0/3380195.0*Dune::power(x,7)
+            -2211840.0/7436429.0*Dune::power(x,8)
+            +56320.0/2028117.0*Dune::power(x,9);
         } else if (x < -1+eps) {  // The function is not differentiable
+
             DUNE_THROW(Dune::Exception, "arccos^2 is not differentiable at x==-1!");
         } else {
             T d = 1-x*x;
