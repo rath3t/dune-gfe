@@ -111,6 +111,9 @@ int main (int argc, char *argv[]) try
 #endif
   }
 
+  if (argc < 3)
+    DUNE_THROW(Exception, "Usage: ./film-on-substrate <python path> <parameter file>");
+
   // Start Python interpreter
   Python::start();
   Python::Reference main = Python::import("__main__");
@@ -119,14 +122,13 @@ int main (int argc, char *argv[]) try
   //feenableexcept(FE_INVALID);
   Python::runStream()
         << std::endl << "import sys"
-        << std::endl << "import os"
-        << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
+        << std::endl << "sys.path.append('" << argv[1] << "')"
         << std::endl;
 
   // parse data file
   ParameterTree parameterSet;
 
-  ParameterTreeParser::readINITree(argv[1], parameterSet);
+  ParameterTreeParser::readINITree(argv[2], parameterSet);
 
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
