@@ -371,7 +371,7 @@ energy(const typename Basis::LocalView& localView,
 
         // Only translational dofs are affected by the volume load
         for (size_t i=0; i<volumeLoadDensity.size(); i++)
-            energy -= thickness_ * (volumeLoadDensity[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+            energy += thickness_ * (volumeLoadDensity[i] * value.r[i]) * quad[pt].weight() * integrationElement;
     }
 
 
@@ -405,7 +405,7 @@ energy(const typename Basis::LocalView& localView,
 
             // Only translational dofs are affected by the Neumann force
             for (size_t i=0; i<neumannValue.size(); i++)
-                energy -= thickness_ * (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+                energy += thickness_ * (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
 
         }
 

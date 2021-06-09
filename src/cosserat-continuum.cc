@@ -398,7 +398,7 @@ int main (int argc, char *argv[]) try
 
     auto neumannFunction = [&]( FieldVector<double,dimworld> ) {
       auto nV = neumannValues;
-      nV *= homotopyParameter;
+      nV *= (-homotopyParameter);
       return nV;
     };
 
@@ -408,7 +408,7 @@ int main (int argc, char *argv[]) try
 
     auto volumeLoad = [&]( FieldVector<double,dimworld>) {
       auto vL = volumeLoadValues;
-      vL *= homotopyParameter;
+      vL *= (-homotopyParameter);
       return vL;
     };
 
