@@ -64,9 +64,9 @@ evaluateDerivativeFD(const LocalFunction& f, const Dune::FieldVector<ctype, dim>
 }
 
 
-template <int domainDim>
-void testDerivativeTangentiality(const RealTuple<double,1>& x,
-                                 const FieldMatrix<double,1,domainDim>& derivative)
+template <int domainDim, int dim>
+void testDerivativeTangentiality(const RealTuple<double,dim>& x,
+                                 const FieldMatrix<double,dim,domainDim>& derivative)
 {
     // By construction, derivatives of RealTuples are always tangent
 }
@@ -191,6 +191,7 @@ void testDerivative(const GFE::LocalProjectedFEFunction<domainDim,double,typenam
             std::cout << className<TargetSpace>() << ": Analytical gradient does not match fd approximation." << std::endl;
             std::cout << "Analytical: " << derivative << std::endl;
             std::cout << "FD        : " << fdDerivative << std::endl;
+            assert(false);
         }
 
         testDerivativeTangentiality(f.evaluate(quadPos), derivative);
@@ -262,6 +263,7 @@ int main()
 
     test<RealTuple<double,1>,2>(GeometryTypes::triangle);
     test<UnitVector<double,2>,2>(GeometryTypes::triangle);
+    test<RealTuple<double,3>,2>(GeometryTypes::triangle);
     test<UnitVector<double,3>,2>(GeometryTypes::triangle);
     test<Rotation<double,3>,2>(GeometryTypes::triangle);
     test<RigidBodyMotion<double,3>,2>(GeometryTypes::triangle);
