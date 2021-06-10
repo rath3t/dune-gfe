@@ -214,6 +214,14 @@ int main (int argc, char *argv[]) try
             lagrange<displacementOrder>()
     ));
 
+    auto orientationPowerBasis = makeBasis(
+        gridView,
+        power<3>(
+            power<3>(
+            lagrange<rotationOrder>()
+        )
+    ));
+
     typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
     typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
 
@@ -425,7 +433,7 @@ int main (int argc, char *argv[]) try
         Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
     
         BlockVector<FieldMatrix<double,3,3> > dOV;
-        Dune::Functions::interpolate(orientationFEBasis, dOV, orientationDirichletValues, orientationDirichletDofs);
+        Dune::Functions::interpolate(orientationPowerBasis, dOV, orientationDirichletValues);
     
         for (int i = 0; i < compositeBasis.size({0}); i++) {
           if (deformationDirichletDofs[i][0])
