@@ -230,10 +230,13 @@ int main (int argc, char *argv[]) try
     power<dim>(
         lagrange<displacementOrder>()
   ));
+
   auto orientationPowerBasis = makeBasis(
-    gridView,
-    power<dim>(
-        lagrange<rotationOrder>()
+      gridView,
+      power<dim>(
+          power<dim>(
+          lagrange<rotationOrder>()
+      )
   ));
 
   typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
@@ -521,14 +524,14 @@ int main (int argc, char *argv[]) try
     Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
 
     BlockVector<FieldMatrix<double,targetDim,targetDim> > dOV;
-    Dune::Functions::interpolate(orientationFEBasis, dOV, rotationalDirichletValues, orientationDirichletDofs);
+    Dune::Functions::interpolate(orientationPowerBasis, dOV, rotationalDirichletValues);
 
     for (int i = 0; i < compositeBasis.size({0}); i++)
       if (dirichletDofs[_0][i][0])
         x[_0][i] = ddV[i];
-//    for (int i = 0; i < compositeBasis.size({1}); i++)
-//      if (dirichletDofs[_1][i][0])
-//        x[_1][i].set(dOV[i]);
+    for (int i = 0; i < compositeBasis.size({1}); i++)
+      if (dirichletDofs[_1][i][0])
+        x[_1][i].set(dOV[i]);
 
 #if !MIXED_SPACE
     //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
@@ -664,7 +667,12 @@ int main (int argc, char *argv[]) try
   file.close();
   
   BlockVector<FieldVector<double,dim> > identityRotation(orientationFEBasis.size());
-  Dune::Functions::interpolate(orientationPowerBasis, identityRotation, [](FieldVector<double,dim> x){ return x; });
+  auto identityRotationPowerBasis = makeBasis(
+    gridView,
+    power<dim>(
+        lagrange<rotationOrder>()
+  ));
+  Dune::Functions::interpolate(identityRotationPowerBasis, identityRotation, [](FieldVector<double,dim> x){ return x; });
 
   file.open(rotationOutput + ending);
   for (int i = 0; i < identityRotation.size(); i++){
