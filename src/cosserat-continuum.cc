@@ -1,4 +1,5 @@
 #define MIXED_SPACE 0
+//#define PROJECTED_INTERPOLATION
 
 #include <config.h>
 
@@ -39,6 +40,8 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
+#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
@@ -318,7 +321,7 @@ int main (int argc, char *argv[]) try
       InitialBasis initialBasis(initialIterateGrid->leafGridView());
 
 #ifdef PROJECTED_INTERPOLATION
-      using LocalInterpolationRule  = LocalProjectedFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+      using LocalInterpolationRule  = GFE::LocalProjectedFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #else
       using LocalInterpolationRule  = LocalGeodesicFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #endif

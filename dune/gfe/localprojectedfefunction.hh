@@ -152,17 +152,7 @@ namespace Dune {
 
       auto derivativeOfProjection = TargetSpace::derivativeOfProjection(embeddedInterpolation);
 
-      typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType result;
-
-      for (size_t i=0; i<result.N(); i++)
-        for (size_t j=0; j<result.M(); j++)
-        {
-          result[i][j] = 0;
-          for (size_t k=0; k<derivativeOfProjection.M(); k++)
-            result[i][j] += derivativeOfProjection[i][k]*derivative[k][j];
-        }
-
-      return result;
+      return derivativeOfProjection*derivative;
     }
 
     /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold -- specialization for SO(3)
