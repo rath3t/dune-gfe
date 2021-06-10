@@ -3,6 +3,7 @@
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/version.hh>
+#include <dune/istl/scaledidmatrix.hh>
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -12,6 +13,20 @@
 namespace Dune {
 
   namespace GFE {
+
+  /** \brief Multiplication of a ScalecIdentityMatrix with another FieldMatrix */
+  template <class T, int N, int otherCols>
+  Dune::FieldMatrix<T,N,otherCols> operator* ( const Dune::ScaledIdentityMatrix<T, N>& diagonalMatrix,
+                        const Dune::FieldMatrix<T, N, otherCols>& matrix)
+  {
+      Dune::FieldMatrix<T,N,otherCols> result(0);
+
+      for (size_t i = 0; i < N; ++i)
+        for (size_t j = 0; j < otherCols; ++j)
+          result[i][j] = diagonalMatrix[i][i]*matrix[i][j];
+
+      return result;
+  }
 
   /** \brief Return the trace of a matrix */
   template <class T, int n>
