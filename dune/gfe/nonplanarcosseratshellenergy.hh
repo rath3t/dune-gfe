@@ -230,6 +230,9 @@ energy(const typename Basis::LocalView& localView,
 
     auto aContravariant = aCovariant;
     aContravariant.invert();
+    // The contravariant base vectors are the *columns* of the inverse of the covariant matrix
+    // To get an easier access to the columns, we use the transpose of the contravariant matrix
+    aContravariant = Dune::GFE::transpose(aContravariant);
 
     Dune::FieldMatrix<double,3,3> a(0);
     for (int alpha=0; alpha<gridDim; alpha++)
