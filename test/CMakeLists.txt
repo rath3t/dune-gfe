@@ -16,6 +16,10 @@ set(TESTS
   targetspacetest
 )
 
+if(dune-foamgrid_FOUND)
+  set(TESTS nonplanarcosseratenergytest ${TESTS})
+endif()
+
 foreach(_test ${TESTS})
   dune_add_test(SOURCES ${_test}.cc)
   target_compile_options(${_test} PRIVATE -g)
