@@ -1,10 +1,11 @@
 set(programs compute-disc-error
              cosserat-continuum
              gradient-flow
-             harmonicmaps
-             rod3d)
+             harmonicmaps)
 #            rodobstacle)
-
+if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
+  set (programs rod3d ${programs})
+endif()
 if (${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.8)
   set(programs film-on-substrate-stress-plot ${programs})
 endif()
