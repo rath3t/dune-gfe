@@ -575,9 +575,6 @@ int main (int argc, char *argv[]) try
                 solver.solve();
                 xTargetSpace = solver.getSol();
             } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
-#if DUNE_VERSION_LT(DUNE_COMMON, 2, 8)
-                DUNE_THROW(Exception, "Please install dune-solvers >= 2.8 to use the Proximal Newton Solver with Cholmod!");
-#else
                 RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace> solver;
                 solver.setup(*grid,
                              &assembler,
@@ -590,7 +587,6 @@ int main (int argc, char *argv[]) try
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
-#endif
             }
 
             for (int i = 0; i < xTargetSpace.size(); i++) {

@@ -13,7 +13,11 @@
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
+#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
 #include <dune/solvers/solvers/cholmodsolver.hh>
+#else
+#include <dune/solvers/solvers/umfpacksolver.hh>
+#endif
 
 #include <dune/gfe/periodic1dpq1nodalbasis.hh>
 
@@ -67,7 +71,7 @@ public:
           hessianMatrix_(nullptr), h1SemiNorm_(NULL)
     {}
 
-    /** \brief Set up the solver using a choldmod solver as the inner solver */
+    /** \brief Set up the solver using a choldmod or umfpack solver as the inner solver */
     void setup(const GridType& grid,
                const Assembler* assembler,
                const SolutionType& x,
@@ -123,8 +127,11 @@ protected:
     const Assembler* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
+#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
     std::shared_ptr<typename Dune::Solvers::CholmodSolver<MatrixType,CorrectionType>> innerSolver_;
-
+#else
+    std::shared_ptr<typename Dune::Solvers::UMFPackSolver<MatrixType,CorrectionType>> innerSolver_;
+#endif
     /** \brief The Dirichlet nodes */
     const Dune::BitSetVector<blocksize>* ignoreNodes_;
 
