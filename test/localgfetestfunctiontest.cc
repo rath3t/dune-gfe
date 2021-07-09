@@ -10,6 +10,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/realtuple.hh>
 #include <dune/gfe/unitvector.hh>
+#include <dune/gfe/productmanifold.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localgfetestfunctionbasis.hh>
@@ -79,6 +80,8 @@ int main() try
         
     test<Rotation<double,3>, 1>();
     test<Rotation<double,3>, 2>();
+    typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2>> CrazyManifold;
+    test<CrazyManifold, 2>();
 
 } catch (Exception& e) {
     std::cout << e << std::endl;

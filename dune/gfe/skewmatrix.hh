@@ -48,7 +48,34 @@ public:
     {
         return data_;
     }
-   
+
+    typedef typename Dune::FieldVector<T,3>::Iterator Iterator;
+
+    //! begin iterator
+    Iterator begin ()
+    {
+        return Iterator(data_,0);
+    }
+
+    //! end iterator
+    Iterator end ()
+    {
+        return Iterator(data_,3);
+    }
+
+    typedef typename Dune::FieldVector<T,3>::ConstIterator ConstIterator;
+    //! begin iterator
+    ConstIterator begin () const
+    {
+        return ConstIterator(data_,0);
+    }
+
+    //! end iterator
+    ConstIterator end () const
+    {
+        return ConstIterator(data_,3);
+    }
+
     /** \brief Embedd the skey-symmetric matrix in R^3x3 */ 
     Dune::FieldMatrix<T,3,3> toMatrix() const
     {

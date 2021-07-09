@@ -106,7 +106,14 @@ public:
 
     Simply the Euclidean distance */
     static T distance(const RealTuple& a, const RealTuple& b) {
-        return (a.data_ - b.data_).two_norm();
+        return log(a.data_,b.data_).two_norm();
+    }
+
+    /** \brief The logarithmic map
+     * Simply the difference vector for RealTuple
+     * */
+    static auto log(const RealTuple& a, const RealTuple& b) {
+        return a.data_ - b.data_;
     }
 
 #if ADOLC_ADOUBLE_H
@@ -214,6 +221,11 @@ public:
     const Dune::FieldVector<T,N>& globalCoordinates() const {
         return data_;
     }
+
+     Dune::FieldVector<T,N>& globalCoordinates()  {
+        return data_;
+    }
+
 
     /** \brief Compute an orthonormal basis of the tangent space of R^n.
 
