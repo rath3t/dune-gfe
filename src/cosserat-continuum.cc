@@ -501,6 +501,7 @@ int main (int argc, char *argv[]) try
 
             using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace, RealTuple<double, 3>, Rotation<double,3>>;
             GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
+            if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
             RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
             solver.setup(*grid,
                      &assembler,
@@ -520,6 +521,20 @@ int main (int argc, char *argv[]) try
             solver.setInitialIterate(xTargetSpace);
             solver.solve();
             xTargetSpace = solver.getSol();
+            } else {
+                RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+                solver.setup(*grid,
+                             &assembler,
+                             xTargetSpace,
+                             dirichletDofsTargetSpace,
+                             tolerance,
+                             maxSolverSteps,
+                             initialRegularization,
+                             instrumented);
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
+            }
             for (int i = 0; i < xTargetSpace.size(); i++) {
               x[_0][i] = xTargetSpace[i].r;
               x[_1][i] = xTargetSpace[i].q;
