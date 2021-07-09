@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <math.h>
+
 #include <dune/foamgrid/foamgrid.hh>
 
 #include <dune/geometry/type.hh>
@@ -34,8 +36,9 @@ std::unique_ptr<GridType> makeSingleElementGrid()
     constexpr auto triangle = Dune::GeometryTypes::triangle;
     GridFactory<GridType> factory;
 
+    //Create a triangle that is not parallel to the planes formed by the coordinate axes
     FieldVector<double,dimworld> vertex0{0,0,0};
-    FieldVector<double,dimworld> vertex1{0,1,0};
+    FieldVector<double,dimworld> vertex1{0,1,1}; 
     FieldVector<double,dimworld> vertex2{1,0,0};
     factory.insertVertex(vertex0);
     factory.insertVertex(vertex1);
@@ -50,50 +53,8 @@ std::unique_ptr<GridType> makeSingleElementGrid()
 //////////////////////////////////////////////////////////////////////////////////////
 //   Test energy computation for the same grid with different refinement levels
 //////////////////////////////////////////////////////////////////////////////////////
-
-TargetSpace getConfiguration(const FieldVector<double, dimworld>& point) {
-    FieldVector<double, dimworld> displacementAtPoint(0);
-    FieldVector<double,4> rotationVectorAtPoint(0);
-
-    if (point[0] == 0 and point[1] == 0 and point[2] == 0) {
-        //0 0 0
-        displacementAtPoint = {0, 0, 0};
-        rotationVectorAtPoint = {0, 0, 0, 1};
-    } else if (point[0] == 1 and point[1] == 0 and point[2] == 0) {
-        //1 0 0
-        displacementAtPoint = {0, 0, 1};
-        rotationVectorAtPoint = {0, 0, 0, 1};
-    } else if (point[0] == 0 and point[1] == 1 and point[2] == 0) {
-        //0 1 0
-        displacementAtPoint = {0, 0, 1};
-        rotationVectorAtPoint = {0, 0, 0, 1};
-    } else if (point[0] == 0.5 and point[1] == 0 and point[2] == 0) {
-        //0.5 0 0
-        displacementAtPoint = {0, 0, 0.5};
-        rotationVectorAtPoint = {0, 0, 0, 1};
-    } else if (point[0] == 0 and point[1] == 0.5 and point[2] == 0) {
-        //0 0.5 0
-        displacementAtPoint = {0, 0, 0.5};
-        rotationVectorAtPoint = {0, 0, 0, 1};
-    } else if (point[0] == 0.5 and point[1] == 0.5 and point[2] == 0) {
-        //0.5 0.5 0
-        displacementAtPoint = {0, 0, 1};
-        rotationVectorAtPoint = {0, 0, 0, 1};
-    }
-
-    TargetSpace configuration;
-    for (int i = 0; i < dimworld; i++)
-        configuration.r[i] = point[i] + displacementAtPoint[i];
-
-    Rotation<double,dimworld> rotation(rotationVectorAtPoint);
-    FieldMatrix<double,dimworld,dimworld> rotationMatrix(0);
-    rotation.matrix(rotationMatrix);
-    configuration.q.set(rotationMatrix);
-
-    return configuration;
-}
-
-double calculateEnergy(const int numLevels)
+template <class F1, class F2>
+double calculateEnergy(const int numLevels, const F1 referenceConfigurationFunction, const F2 configurationFunction)
 {
     ParameterTree materialParameters;
     materialParameters["thickness"] = "0.1";
@@ -111,7 +72,7 @@ double calculateEnergy(const int numLevels)
     grid->globalRefine(numLevels-1);
     GridType::LeafGridView gridView = grid->leafGridView();
 
-    using FEBasis = Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1>;
+    using FEBasis = Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,2>;
     FEBasis feBasis(gridView);
 
     using namespace Dune::Functions::BasisFactory;
@@ -120,74 +81,107 @@ double calculateEnergy(const int numLevels)
     auto deformationPowerBasis = makeBasis(
         gridView,
         power<dimworld>(
-            lagrange<1>()
+            lagrange<2>()
     ));
 
-    BlockVector<FieldVector<double,3> > helperVector;
-    Dune::Functions::interpolate(deformationPowerBasis, helperVector, [](FieldVector<double,dimworld> x){
-        auto out = x;
-        out[2] += x[0];
-        return out;
-    });
-    //Dune::Functions::interpolate(deformationPowerBasis, helperVector, [](FieldVector<double,dimworld> x){ return x; });
+    BlockVector<FieldVector<double,3> > helperVector1(feBasis.size());
+    Dune::Functions::interpolate(deformationPowerBasis, helperVector1, referenceConfigurationFunction);
+    auto stressFreeConfiguration = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dimworld>>(deformationPowerBasis, helperVector1);
 
-    auto stressFreeConfiguration = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dimworld>>(deformationPowerBasis, helperVector);
-
-    NonplanarCosseratShellEnergy<FEBasis, 3, double, decltype(stressFreeConfiguration)> localCosseratEnergyPlanar(materialParameters,
+    NonplanarCosseratShellEnergy<FEBasis, 3, double, decltype(stressFreeConfiguration)> nonplanarCosseratShellEnergy(materialParameters,
                                                                                                     &stressFreeConfiguration,
                                                                                                     nullptr,
                                                                                                     nullptr,
                                                                                                     nullptr);
-
-    BlockVector<FieldVector<double,3> > id;
-    Dune::Functions::interpolate(deformationPowerBasis, id, [](FieldVector<double,dimworld> x){ return x; });
     BlockVector<TargetSpace> sol(feBasis.size());
     TupleVector<std::vector<RealTuple<double,3> >,
                 std::vector<Rotation<double,3> > > solTuple;
     solTuple[_0].resize(feBasis.size());
     solTuple[_1].resize(feBasis.size());
+
+    BlockVector<FieldVector<double,3> > helperVector2(feBasis.size());
+    Dune::Functions::interpolate(deformationPowerBasis, helperVector2, configurationFunction);
     for (int i = 0; i < feBasis.size(); i++) {
-        sol[i] = getConfiguration(id[i]);
+        for (int j = 0; j < dimworld; j++)
+            sol[i].r[j] = helperVector2[i][j]; 
+
+        FieldVector<double,4> idRotation = {0, 0, 0, 1}; //set rotation = Id everywhere
+        Rotation<double,dimworld> rotation(idRotation);
+        FieldMatrix<double,dimworld,dimworld> rotationMatrix(0);
+        rotation.matrix(rotationMatrix);
+        sol[i].q.set(rotationMatrix);
         solTuple[_0][i] = sol[i].r;
         solTuple[_1][i] = sol[i].q;
     }
-
     CosseratVTKWriter<GridType>::write<FEBasis>(feBasis, solTuple, "configuration_l" + std::to_string(numLevels));
 
     double energy = 0;
-
     // A view on the FE basis on a single element
     auto localView = feBasis.localView();
-
     // Loop over all elements
-    for (const auto& element : elements(feBasis.gridView(), Dune::Partitions::interior))
-    {
+    for (const auto& element : elements(feBasis.gridView(), Dune::Partitions::interior)) {
         localView.bind(element);
-
         // Number of degrees of freedom on this element
         size_t nDofs = localView.tree().size();
-
         std::vector<TargetSpace> localSolution(nDofs);
-
         for (size_t i=0; i<nDofs; i++)
             localSolution[i] = sol[localView.index(i)[0]];
-
-        energy += localCosseratEnergyPlanar.energy(localView, localSolution);
-
+        energy += nonplanarCosseratShellEnergy.energy(localView, localSolution);
     }
-
     return energy;
 }
 
 int main(int argc, char** argv)
 {
     MPIHelper::instance(argc, argv);
+    auto configurationId = [](FieldVector<double,dimworld> x){ return x; };
+    auto configurationStretchY = [](FieldVector<double,dimworld> x){
+        auto out = x;
+        out[1] *= 2;
+        return out;
+    };
 
-    double energyFine = calculateEnergy(2);
-    double energyCoarse = calculateEnergy(1);
-    std::cout << "energyFine: " << energyFine << std::endl;
-    std::cout << "energyCoarse: " << energyCoarse << std::endl;
+    auto configurationTwist = [](FieldVector<double,dimworld> x){
+        auto out = x;
+        out[1] = x[2];
+        out[2] = -x[1];
+        return out;
+    };
 
+    auto configurationCurved = [](FieldVector<double,dimworld> x){
+        auto out = x;
+        out[1] = x[2];
+        out[2] = -x[1];
+        return out;
+    };
+    auto configurationSquare = [](FieldVector<double,dimworld> x){
+        auto out = x;
+        out[1] += x[1]*x[1];
+        return out;
+    };
 
+    auto configurationSin = [](FieldVector<double,dimworld> x){
+        auto out = x;
+        out[2] = sin(x[2]);
+        return out;
+    };
+
+    double energyFine = calculateEnergy(2, configurationId, configurationStretchY);
+    double energyCoarse = calculateEnergy(1, configurationId, configurationStretchY);
     assert(std::abs(energyFine - energyCoarse) < 1e-3);
+
+    double energyForZeroDifference = calculateEnergy(1,configurationId,configurationId);
+    assert(std::abs(energyForZeroDifference) < 1e-3);
+
+    double energyForZeroDifference2 = calculateEnergy(1,configurationStretchY,configurationStretchY);
+    assert(std::abs(energyForZeroDifference2) < 1e-3);
+
+    double energyForZeroDifference3 = calculateEnergy(1,configurationTwist,configurationTwist);
+    assert(std::abs(energyForZeroDifference3) < 1e-3);
+
+    double energyForZeroDifference4 = calculateEnergy(1,configurationSquare,configurationSquare);
+    assert(std::abs(energyForZeroDifference4) < 1e-3);
+
+    double energyForZeroDifference5 = calculateEnergy(1,configurationSin,configurationSin);
+    assert(std::abs(energyForZeroDifference5) < 1e-3);
 }
