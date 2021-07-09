@@ -502,25 +502,25 @@ int main (int argc, char *argv[]) try
             using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace, RealTuple<double, 3>, Rotation<double,3>>;
             GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
             if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
-            RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
-            solver.setup(*grid,
-                     &assembler,
-                     xTargetSpace,
-                     dirichletDofsTargetSpace,
-                     tolerance,
-                     maxSolverSteps,
-                     initialTrustRegionRadius,
-                     multigridIterations,
-                     mgTolerance,
-                     mu, nu1, nu2,
-                     baseIterations,
-                     baseTolerance,
-                     instrumented);
-
-            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
-            solver.setInitialIterate(xTargetSpace);
-            solver.solve();
-            xTargetSpace = solver.getSol();
+                RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+                solver.setup(*grid,
+                         &assembler,
+                         xTargetSpace,
+                         dirichletDofsTargetSpace,
+                         tolerance,
+                         maxSolverSteps,
+                         initialTrustRegionRadius,
+                         multigridIterations,
+                         mgTolerance,
+                         mu, nu1, nu2,
+                         baseIterations,
+                         baseTolerance,
+                         instrumented);
+    
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
             } else {
                 RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
                 solver.setup(*grid,
