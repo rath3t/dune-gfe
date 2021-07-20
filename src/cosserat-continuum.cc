@@ -501,25 +501,40 @@ int main (int argc, char *argv[]) try
 
             using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace, RealTuple<double, 3>, Rotation<double,3>>;
             GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
-            RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
-            solver.setup(*grid,
-                     &assembler,
-                     xTargetSpace,
-                     dirichletDofsTargetSpace,
-                     tolerance,
-                     maxSolverSteps,
-                     initialTrustRegionRadius,
-                     multigridIterations,
-                     mgTolerance,
-                     mu, nu1, nu2,
-                     baseIterations,
-                     baseTolerance,
-                     instrumented);
-
-            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
-            solver.setInitialIterate(xTargetSpace);
-            solver.solve();
-            xTargetSpace = solver.getSol();
+            if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
+                RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+                solver.setup(*grid,
+                         &assembler,
+                         xTargetSpace,
+                         dirichletDofsTargetSpace,
+                         tolerance,
+                         maxSolverSteps,
+                         initialTrustRegionRadius,
+                         multigridIterations,
+                         mgTolerance,
+                         mu, nu1, nu2,
+                         baseIterations,
+                         baseTolerance,
+                         instrumented);
+    
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
+            } else {
+                RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+                solver.setup(*grid,
+                             &assembler,
+                             xTargetSpace,
+                             dirichletDofsTargetSpace,
+                             tolerance,
+                             maxSolverSteps,
+                             initialRegularization,
+                             instrumented);
+                solver.setInitialIterate(xTargetSpace);
+                solver.solve();
+                xTargetSpace = solver.getSol();
+            }
             for (int i = 0; i < xTargetSpace.size(); i++) {
               x[_0][i] = xTargetSpace[i].r;
               x[_1][i] = xTargetSpace[i].q;
@@ -575,9 +590,6 @@ int main (int argc, char *argv[]) try
                 solver.solve();
                 xTargetSpace = solver.getSol();
             } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
-#if DUNE_VERSION_LT(DUNE_COMMON, 2, 8)
-                DUNE_THROW(Exception, "Please install dune-solvers >= 2.8 to use the Proximal Newton Solver with Cholmod!");
-#else
                 RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace> solver;
                 solver.setup(*grid,
                              &assembler,
@@ -590,7 +602,6 @@ int main (int argc, char *argv[]) try
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
-#endif
             }
 
             for (int i = 0; i < xTargetSpace.size(); i++) {

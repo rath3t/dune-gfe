@@ -11,8 +11,13 @@
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
 #include <dune/fufem/assemblers/basisinterpolationmatrixassembler.hh>
 
-// Using a cholmod solver as the inner solver
+#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
+// Using a cholmod solver as the inner solver, available only since 2.8
 #include <dune/solvers/solvers/cholmodsolver.hh>
+#else
+// Using a umfpack solver as the inner solver
+#include <dune/solvers/solvers/umfpacksolver.hh>
+#endif
 
 #include <dune/solvers/norms/twonorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
@@ -96,8 +101,12 @@ setup(const GridType& grid,
     //////////////////////////////////////////////////////////////////
     //   Create the inner solver using a cholmod solver
     //////////////////////////////////////////////////////////////////
-
+#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
     innerSolver_ = std::make_shared<Dune::Solvers::CholmodSolver<MatrixType,CorrectionType> >();
+#else
+    std::cout << "using umfpacksolver" << std::endl;
+    innerSolver_ = std::make_shared<Dune::Solvers::UMFPackSolver<MatrixType,CorrectionType> >();
+#endif
     innerSolver_->setIgnore(*globalDirichletNodes);
 
     // //////////////////////////////////////////////////////////////////////////////////////
