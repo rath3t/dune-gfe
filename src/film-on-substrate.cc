@@ -333,9 +333,12 @@ int main (int argc, char *argv[]) try
 
   BlockVector<FieldVector<double,dim> > identity(compositeBasis.size({0}));
   Dune::Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,dim> x){ return x; });
-
+  
+  double max_x = 0;
+  double initial_max_x = 0;
   for (int i = 0; i < displacement.size(); i++) {
     x[_0][i] = displacement[i]; //Copy over the initial deformation to the deformation part of x
+    initial_max_x = std::max(x[_0][i][0], initial_max_x);
     displacement[i] -= identity[i]; //Subtract identity to get the initial displacement as a function
   }
   auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(deformationPowerBasis, displacement);
@@ -654,6 +657,14 @@ int main (int argc, char *argv[]) try
     vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
     vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") + "_" + std::to_string(neumannValues[0]) + "_" + std::to_string(i+1));
   }
+  for (int i = 0; i < x[_0].size(); i++) {
+    max_x = std::max(x[_0][i][0], max_x);
+  }
+
+  if (mpiHelper.rank()==0) {
+    std::cout << "Maximal value in x-direction: " << max_x << ", this is a stretch in of " << 100*(max_x - initial_max_x)/initial_max_x << " %." << std::endl;
+  }
+
   std::string ending = grid->leafGridView().comm().size() > 1 ? std::to_string(mpiHelper.rank()) : "";
   std::ofstream file;
   std::string pathToOutput = parameterSet.hasKey("pathToOutput") ?  parameterSet.get<std::string>("pathToOutput") : "./";
