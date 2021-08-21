@@ -40,7 +40,10 @@ dirichletValues = identity-dirichlet-values
 # x is the vertex coordinate
 dirichletVerticesPredicate = "[x[0] < 0.01, x[0] < 0.01 or x[0] > 199.99, x[0] < 0.01 or x[0] > 199.99]"
 
-###  Python predicate specifying all surfaceshell grid vertices, elements conataining these vertices will get adaptively refined
+###  Python predicate specifying the vertices whose elements will get adaptively refined 
+adaptiveRefinementVerticesPredicate = "x[2] > 199.99 and x[0] > 49.99 and x[0] < 150.01"
+
+###  Python predicate specifying all surfaceshell grid vertices, elements conataining these vertices will get ALSO get adaptively refined
 # x is the vertex coordinate
 surfaceShellVerticesPredicate = "x[2] > 199.99 and x[0] > 49.99 and x[0] < 150.01"
 
@@ -136,24 +139,53 @@ b1 = 1
 b2 = 1
 b3 = 1
 
-# 
-mooneyrivlin_10 = -1.67e+6 #184 2:1
+
+mooneyrivlin_energy = log
+# log, square or ciarlet; different ways to compute the Mooney-Rivlin-Energy
+
+# ciarlet: Formula from "Ciarlet: Three-Dimensional Elasticity": not tested thoroughly yet
+# log: Generalized Rivlin model or polynomial hyperelastic model, using  0.5*mooneyrivlin_k*log(det(∇φ)) as the volume-preserving penalty term
+# square: Generalized Rivlin model or polynomial hyperelastic model, using mooneyrivlin_k*(det(∇φ)-1)² as the volume-preserving penalty term
+
+# volume-preserving parameter:
+# 184 2:1, mooneyrivlin_k = 57e+6 and mooneyrivlin_energy = log, the neumannValues = 27e4 0 0 result in a stretch of 30% in x-direction
+# 184 10:1, mooneyrivlin_k = 90e+6 and mooneyrivlin_energy = log, the neumannValues = 27e4 0 0 result in a stretch of 30% in x-direction
+
+#182 2:1
+#mooneyrivlin_10 = -3.01e+6 
+#mooneyrivlin_01 = 3.36e+6
+#mooneyrivlin_20 = 5.03e+6
+#mooneyrivlin_02 = 13.1e+6
+#mooneyrivlin_11 = -15.2e+6
+#mooneyrivlin_k = ???
+
+#182 20:1
+#mooneyrivlin_10 = -7.28e+5 
+#mooneyrivlin_01 = 9.17e+5
+#mooneyrivlin_20 = 1.23e+5
+#mooneyrivlin_02 = 8.15e+5
+#mooneyrivlin_11 = -5.14e+5
+#mooneyrivlin_k = ???
+
+#184 2:1 ANDRE
+mooneyrivlin_10 = -1.67e+6 
 mooneyrivlin_01 = 1.94e+6
 mooneyrivlin_20 = 2.42e+6
 mooneyrivlin_02 = 6.52e+6
 mooneyrivlin_11 = -7.34e+6
+mooneyrivlin_k = 57e+6
+
+#184 10:1 ANIK
+#mooneyrivlin_10 = -1.44e+6 
+#mooneyrivlin_01 = 1.95e+6
+#mooneyrivlin_20 = 2.65e+6
+#mooneyrivlin_02 = 5.06e+6
+#mooneyrivlin_11 = -6.56e+6
+#mooneyrivlin_k = 90e+6
 
 mooneyrivlin_30 = 0
 mooneyrivlin_21 = 0
 mooneyrivlin_12 = 0
 mooneyrivlin_03 = 0
-
-# volume-preserving parameter 
-mooneyrivlin_k = 57e+6	# 184 2:1, mooneyrivlin_k = 57e+6 and mooneyrivlin_energy = log, the neumannValues = 27e4 0 0 result in a stretch of 30% of 45e4 10e4 2e4 in x-direction, so a stretch of 45e4*0.3 = 13.5e4
-mooneyrivlin_energy = log # log, square or ciarlet; different ways to compute the Mooney-Rivlin-Energy
-
-# ciarlet: Fomula from "Ciarlet: Three-Dimensional Elasticity", here no penalty term is 
-# log: Generalized Rivlin model or polynomial hyperelastic model, using  0.5*mooneyrivlin_k*log(det(∇φ)) as the volume-preserving penalty term
-# square: Generalized Rivlin model or polynomial hyperelastic model, using mooneyrivlin_k*(det(∇φ)-1)² as the volume-preserving penalty term
 
 []
