@@ -328,7 +328,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
     Dune::Timer energyTimer;
     double oldEnergy = assembler_->computeEnergy(x_);
     if (this->verbosity_ == Solver::FULL)
-        std::cout << "Energy computation took " << energyTimer.elapsed() << " sec." << std::endl;
+        std::cout << "Energy computation took " << energyTimer.elapsed() << " sec." << ",  final energy: " << oldEnergy <<  std::endl;
 
 
     oldEnergy = grid_->comm().sum(oldEnergy);
