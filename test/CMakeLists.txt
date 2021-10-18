@@ -18,6 +18,10 @@ if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
   set(TESTS cosseratrodtest ${TESTS})
 endif()
 
+if (dune-curvedgrid_FOUND)
+  set(TESTS test-cylinder ${TESTS})
+endif()
+
 if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
   set(TESTS surfacecosseratstressassemblertest ${TESTS})
 endif()

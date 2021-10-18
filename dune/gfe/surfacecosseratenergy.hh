@@ -286,22 +286,16 @@ RT energy(const typename Basis::LocalView& localView,
           c += aScalar * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
 
       // Second fundamental form: The derivative of the normal field
-      auto normalDerivative = boundaryGeometry.normalGradient(quad[pt].position());
-
-      Dune::FieldMatrix<double,3,3> b(0);
-      for (int alpha=0; alpha<boundaryDim; alpha++)
-      {
-        Dune::FieldVector<double,3> vec;
-        for (int i=0; i<3; i++)
-          vec[i] = normalDerivative[i][alpha];
-        b -= Dune::GFE::dyadicProduct(vec, aContravariant[alpha]);
-      }
-
-      // Gauss curvature
-      auto K = b.determinant();
+      auto b = boundaryGeometry.normalGradient(quad[pt].position());
+      b *= (-1);
 
       // Mean curvatue
       auto H = 0.5 * Dune::GFE::trace(b);
+
+      // Gauss curvature, calculated with the normalGradient in the eucidean coordinate system
+      // see e.g. formula (3.5) from "Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
+      auto bSquared = b*b;
+      auto K = 2*H*H - 0.5*Dune::GFE::trace(bSquared);
 
       //////////////////////////////////////////////////////////
       //  Strain tensors

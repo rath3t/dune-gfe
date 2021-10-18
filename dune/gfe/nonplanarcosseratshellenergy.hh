@@ -146,6 +146,9 @@ energy(const typename Basis::LocalView& localView,
   // The element geometry
   auto element = localView.element();
 
+  // The set of shape functions on this element
+  const auto& localFiniteElement = localView.tree().finiteElement();
+
 #if HAVE_DUNE_CURVEDGEOMETRY
   // Construct a curved geometry of this element of the Cosserat shell in stress-free state
   // When using element.geometry(), then the curvatures on the element are zero, when using a curved geometry, they are not
@@ -153,6 +156,7 @@ energy(const typename Basis::LocalView& localView,
   // this is used for the curved geometry approximation.
   // The variable local holds the local coordinates in the reference element
   // and localGeometry.global maps them to the world coordinates
+  auto curvedGeometryGridFunctionOrder = localFiniteElement.localBasis().order();
   Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim>>> geometry(referenceElement(element),
     [this,element](const auto& local) {
       if (not stressFreeStateGridFunction_) {
@@ -161,13 +165,10 @@ energy(const typename Basis::LocalView& localView,
       auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
       localGridFunction.bind(element);
       return localGridFunction(local);
-    }, 2); /*order*/
+    }, curvedGeometryGridFunctionOrder);
 #else
   auto geometry = element.geometry();
 #endif
-
-  // The set of shape functions on this element
-  const auto& localFiniteElement = localView.tree().finiteElement();
 
   ////////////////////////////////////////////////////////////////////////////////////
   //  Set up the local nonlinear finite element function
@@ -192,7 +193,7 @@ energy(const typename Basis::LocalView& localView,
     // The value of the local function
     RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
 
-    // The derivative of the local function
+    // The derivative of the local function w.r.t. the coordinate system of the tangent space
     auto derivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
 
     //////////////////////////////////////////////////////////
@@ -204,6 +205,7 @@ energy(const typename Basis::LocalView& localView,
     value.q.matrix(R);
     auto RT = Dune::GFE::transpose(R);
 
+    //Derivative of the rotation w.r.t. the coordinate system of the tangent space
     Tensor3<field_type,3,3,gridDim> DR = value.quaternionTangentToMatrixTangent(derivative);
 
     //////////////////////////////////////////////////////////
@@ -252,28 +254,24 @@ energy(const typename Basis::LocalView& localView,
       for (int beta=0; beta<2; beta++)
         c += aScalar * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
 
-#if HAVE_DUNE_CURVEDGEOMETRY
-    // Second fundamental form: The derivative of the normal field, on each quadrature point
-    auto normalDerivative = geometry.normalGradient(quad[pt].position());
-#else
-    //In case dune-curvedgeometry is not installed, the normal derivative is set to zero.
-    Dune::FieldMatrix<double,3,3> normalDerivative(0);
-#endif
-
     Dune::FieldMatrix<double,3,3> b(0);
-    for (int alpha=0; alpha<gridDim; alpha++)
-    {
-      Dune::FieldVector<double,3> vec;
-      for (int i=0; i<3; i++)
-        vec[i] = normalDerivative[i][alpha];
-      b -= Dune::GFE::dyadicProduct(vec, aContravariant[alpha]);
-    }
-
-    // Gauss curvature
-    auto K = b.determinant();
-
+#if HAVE_DUNE_CURVEDGEOMETRY
+    // In case dune-curvedgeometry is not installed, we assume the second fundamental form b
+    // ( (-1) * the derivative of the normal field, evaluated at each quadrature point) is zero!
+    auto grad_s_n = geometry.normalGradient(quad[pt].position());
+    grad_s_n *= (-1);
+    for (int i = 0; i < dimworld; i++)
+      for (int j = 0; j < dimworld; j++)
+        b[i][j] = grad_s_n[i][j];
+#endif
+    
     // Mean curvatue
     auto H = 0.5 * Dune::GFE::trace(b);
+
+    // Gauss curvature, calculated with the normalGradient in the euclidean coordinate system
+    // see e.g. formula (3.5) in "Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
+    auto bSquared = b*b;
+    auto K = 2*H*H - 0.5*Dune::GFE::trace(bSquared);
 
     //////////////////////////////////////////////////////////
     //  Strain tensors
@@ -292,7 +290,7 @@ energy(const typename Basis::LocalView& localView,
 
     Ee = RT * grad_s_m - a;
 
-    // Elastic shell bending-curvature strain
+    // Elastic shell bending-curvature strain, e.g. formula (4.56) in "Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
     Dune::FieldMatrix<field_type,3,3> Ke(0);
     for (int alpha=0; alpha<gridDim; alpha++)
     {
