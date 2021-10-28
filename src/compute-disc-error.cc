@@ -107,8 +107,8 @@ auto findSupportingElement(const GridType& sourceGrid,
   //   Find the corresponding coarse grid element on the adaptive grid.
   //   This is a linear algorithm, but we expect the coarse grid to be small.
   //////////////////////////////////////////////////////////////////////
-  LevelMultipleCodimMultipleGeomTypeMapper<GridType> sourceP0Mapper (sourceGrid, 0, mcmgElementLayout());
-  LevelMultipleCodimMultipleGeomTypeMapper<GridType> targetP0Mapper(targetGrid, 0, mcmgElementLayout());
+  MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView> sourceP0Mapper (sourceGrid.levelGridView(0), mcmgElementLayout());
+  MultipleCodimMultipleGeomTypeMapper<typename GridType::LevelGridView> targetP0Mapper(targetGrid.levelGridView(0), mcmgElementLayout());
   const auto coarseIndex = sourceP0Mapper.index(element);
 
   auto targetLevelView = targetGrid.levelGridView(0);
