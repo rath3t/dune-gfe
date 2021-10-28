@@ -119,7 +119,7 @@ public:
     {
       using namespace Dune::TypeTree::Indices;
       std::vector<RigidBodyMotion<double,3>> xRBM(basis.size());
-      for (int i = 0; i < basis.size(); i++) {
+      for (std::size_t i = 0; i < basis.size(); i++) {
         for (int j = 0; j < 3; j ++) // Displacement part
           xRBM[i].r[j] = configuration[_0][i][j];
         xRBM[i].q = configuration[_1][i];    // Rotation part

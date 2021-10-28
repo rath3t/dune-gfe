@@ -51,7 +51,7 @@ using ValueType = adouble;
 
 int main (int argc, char *argv[]) try
 {
-  MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
+  MPIHelper::instance(argc, argv);
 
   // Start Python interpreter
   Python::start();
@@ -196,7 +196,7 @@ int main (int argc, char *argv[]) try
   Functions::interpolate(basisOrderD, x, [](FieldVector<double,dim> x){ return x; });
   Functions::interpolate(basisOrderD, xInitial, [](FieldVector<double,dim> x){ return x; });
 
-  for (int i = 0; i < basisOrderD.size(); i++) {
+  for (std::size_t i = 0; i < basisOrderD.size(); i++) {
     std::stringstream stream;
     stream << x[i];
     //Look up the displacement for this vertex in the deformationMap
@@ -223,7 +223,7 @@ int main (int argc, char *argv[]) try
   rot_director[1].resize(basisOrderR.size());
   rot_director[2].resize(basisOrderR.size());
 
-  for (int i = 0; i < basisOrderR.size(); i++) {
+  for (std::size_t i = 0; i < basisOrderR.size(); i++) {
     std::stringstream stream;
     stream << xOrderR[i];
     Rotation<double,dim> rotation(rotationMap.at(stream.str()));

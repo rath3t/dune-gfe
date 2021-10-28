@@ -77,7 +77,7 @@ namespace Dune::GFE {
 
           // Extract values at this element
           std::vector<double> localConfiguration(nDofsOrderD);
-          for (int i=0; i<nDofsOrderD; i++)
+          for (size_t i=0; i<nDofsOrderD; i++)
             localConfiguration[i] = xFlat[localViewOrderD.index(i)]; //localViewOrderD.index(i) is a multi-index
 
           //Store the reference gradient and the gradients for this element
@@ -216,7 +216,7 @@ namespace Dune::GFE {
             // Extract local configuration at this element
             std::vector<double> localConfiguration(nDofsOrderD);
             std::vector<double> localConfigurationInitial(nDofsOrderD);
-            for (int i=0; i<nDofsOrderD; i++) {
+            for (size_t i=0; i<nDofsOrderD; i++) {
               localConfiguration[i] = xFlat[localViewOrderD.index(i)];
               localConfigurationInitial[i] = xInitialFlat[localViewOrderD.index(i)];
             }
@@ -231,7 +231,7 @@ namespace Dune::GFE {
             localViewOrderR.bind(element);
             const auto& lFEOrderR = localViewOrderR.tree().child(0).finiteElement();
             VectorR localConfigurationRot(lFEOrderR.size());
-            for (int i=0; i<localConfigurationRot.size(); i++)
+            for (std::size_t i=0; i<localConfigurationRot.size(); i++)
               localConfigurationRot[i] = rot[localViewOrderR.index(i)[0]];//localViewOrderR.index(i) is a multiindex, its first entry is the actual index
             typedef LocalGeodesicFEFunction<dim, double, decltype(lFEOrderR), TargetSpaceR> LocalGFEFunctionType;
             LocalGFEFunctionType localGeodesicFEFunction(lFEOrderR,localConfigurationRot);

@@ -38,8 +38,6 @@ setup(const GridType& grid,
       double initialRegularization,
       bool instrumented)
 {
-    int rank = grid.comm().rank();
-
     grid_                     = &grid;
     assembler_                = assembler;
     x_                        = x;
@@ -255,7 +253,7 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
         if (rank==0)
         {
             // Add the regularization - Identity Matrix for now
-            for(int i=0; i<stiffnessMatrix.N(); i++)
+            for (std::size_t i=0; i<stiffnessMatrix.N(); i++)
               for(int j=0; j<blocksize; j++)
                 stiffnessMatrix[i][i][j][j] += regularization;
 

@@ -5,10 +5,6 @@
 
 #include <dune/gfe/parallel/globalmapper.hh>
 
-#include <dune/gfe/parallel/globalmapper.hh>
-
-#include <dune/gfe/parallel/globalmapper.hh>
-
 namespace Dune {
 
   template <class Basis>

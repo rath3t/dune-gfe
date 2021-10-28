@@ -305,7 +305,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
 #if HAVE_MPI
     MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
 #else
-    const Basis& basis = assembler_->basis_;
+    const Basis& basis = assembler_->getBasis();
     MaxNormTrustRegion<blocksize> trustRegion(basis.size(), initialTrustRegionRadius_);
 #endif
     trustRegion.set(initialTrustRegionRadius_, scaling_);
