@@ -16,7 +16,54 @@ namespace Dune {
 
   namespace GFE {
 
-  /** \brief Multiplication of a ScalecIdentityMatrix with another FieldMatrix */
+#if ADOLC_ADOUBLE_H
+  /** \brief Calculates ret = s*A, where A has as field_type of adouble.
+   *
+   * The function template is disabled if s isn't a scalar or adolc type.
+   */
+  template<typename T1,int m, int n,class = typename std::enable_if< std::is_scalar_v<T1> || std::is_base_of_v<badouble,T1> >::type >
+  auto operator* ( const T1& s, const Dune::FieldMatrix<adouble, m, n> &A)
+  {
+      typedef typename Dune::FieldMatrix<adouble,m,n> :: size_type size_type;
+      Dune::FieldMatrix<adouble,m,n> ret;
+
+      for( size_type i = 0; i < m; ++i )
+        for( size_type j = 0; j < n; ++j )
+          ret[i][j] = s * A[i][j];
+
+      return ret;
+  }
+
+  /** \brief Calculates ret = A*v, where A has as field_type of adouble.
+   *
+   * The function template is disabled if the field_type of v is no an adolc type
+   */
+  template<typename T1,int m, int n,class = typename std::enable_if<  std::is_base_of_v<badouble,T1> >::type >
+  auto operator* (const Dune::FieldMatrix<double, m, n> &A,  const Dune::FieldVector<T1,n>& v )
+  {
+    typedef typename Dune::FieldMatrix<adouble,m,n> :: size_type size_type;
+    Dune::FieldVector<adouble,m> ret(0.0);
+
+    for( size_type i = 0; i < m; ++i )
+      for( size_type j = 0; j < n; ++j )
+        ret[i] +=  A[i][j]*v[j];
+
+    return ret;
+  }
+
+
+  /** \brief Calculates ret = A*s, where A has as field_type of adouble.
+   *
+   * The function template is disabled if s isn't a scalar or adolc type.
+   */
+  template<typename T1,int m, int n,class = typename std::enable_if< std::is_scalar_v<T1> || std::is_base_of_v<badouble,T1> >::type >
+  auto operator* (const Dune::FieldMatrix<adouble, m, n> &A, const T1& s )
+  {
+    return s*A;
+  }
+#endif
+
+  /** \brief Multiplication of a ScaledIdentityMatrix with another FieldMatrix */
   template <class T, int N, int otherCols>
   Dune::FieldMatrix<T,N,otherCols> operator* ( const Dune::ScaledIdentityMatrix<T, N>& diagonalMatrix,
                         const Dune::FieldMatrix<T, N, otherCols>& matrix)
@@ -84,12 +131,12 @@ namespace Dune {
   }
 
   /** \brief Return the transposed matrix */
-  template <class T, int n>
-  static FieldMatrix<T,n,n> transpose(const FieldMatrix<T,n,n>& A)
+  template <class T, int n, int m>
+  static FieldMatrix<T,m,n> transpose(const FieldMatrix<T,n,m>& A)
   {
-    FieldMatrix<T,n,n> result;
+    FieldMatrix<T,m,n> result;
 
-    for (int i=0; i<n; i++)
+    for (int i=0; i<m; i++)
       for (int j=0; j<n; j++)
         result[i][j] = A[j][i];
 
@@ -109,32 +156,32 @@ namespace Dune {
     return result;
   }
 
-  template <class T, int n>
-  static auto dyadicProduct(const FieldVector<T,n>& A, const FieldVector<T,n>& B)
-  {
-    FieldMatrix<T,n,n> result;
 
+  /** \brief Return a*b^T */
+  template <class T1,class T2, int n, int m>
+  static auto dyadicProduct(const FieldVector<T1,n>& a, const FieldVector<T2,m>& b)
+  {
+    using ScalarResultType = typename Dune::PromotionTraits<T1,T2>::PromotedType;
+    FieldMatrix<ScalarResultType,n,m> result;
     for (int i=0; i<n; i++)
-      for (int j=0; j<n; j++)
-        result[i][j] = A[i]*B[j];
+      for (int j=0; j<m; j++)
+        result[i][j] = a[i]*b[j];
 
     return result;
   }
 
-#if ADOLC_ADOUBLE_H
-  template <int n>
-  static auto dyadicProduct(const FieldVector<adouble,n>& A, const FieldVector<double,n>& B)
-    -> FieldMatrix<adouble,n,n>
+
+  /** \brief Get the requested column of fieldmatrix */
+  template<typename field_type, int cols, int rows>
+  auto col(const Dune::FieldMatrix<field_type, rows, cols> &mat, const int requestedCol)
   {
-    FieldMatrix<adouble,n,n> result;
+    Dune::FieldVector<field_type, rows> col;
 
-    for (int i=0; i<n; i++)
-      for (int j=0; j<n; j++)
-        result[i][j] = A[i]*B[j];
+    for (int i = 0; i < rows; ++i)
+      col[i] = mat[i][requestedCol];
 
-    return result;
+    return col;
   }
-#endif
 
     /** \brief Return a segment of a FieldVector from lower up to lower+size-1 */
     template< int lower, int size,typename field_type,int n>
