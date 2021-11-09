@@ -327,7 +327,7 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
         int elementIdx = indexSet.index(element);
 
         // Extract local solution on this element
-        P1LocalFiniteElement<double,double,1> localFiniteElement;
+        Dune::LagrangeSimplexLocalFiniteElement<double, double, 1, 1> localFiniteElement;
         int numOfBaseFct = localFiniteElement.localCoefficients().size();
 
         std::vector<RigidBodyMotion<double,3> > localSolution(2);
