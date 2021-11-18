@@ -199,11 +199,11 @@ int main (int argc, char *argv[]) try
 
     using namespace Dune::Functions::BasisFactory;
 
-    const int dimRotation = Rotation<double,dim>::embeddedDim;
+    const int dimRotation = Rotation<double,3>::embeddedDim;
     auto compositeBasis = makeBasis(
       gridView,
       composite(
-        power<dim>(
+        power<3>(
             lagrange<displacementOrder>()
         ),
         power<dimRotation>(
