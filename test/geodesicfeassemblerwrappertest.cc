@@ -9,6 +9,7 @@
 
 #include <dune/common/typetraits.hh>
 #include <dune/common/bitsetvector.hh>
+#include <dune/common/tuplevector.hh>
 
 #include <dune/functions/functionspacebases/compositebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
@@ -54,7 +55,7 @@ using ValueType = adouble;
 //Types for the mixed space
 using DisplacementVector = std::vector<RealTuple<double,dim>>;
 using RotationVector =  std::vector<Rotation<double,dim>>;
-using Vector = MultiTypeBlockVector<DisplacementVector, RotationVector>;
+using Vector = TupleVector<DisplacementVector, RotationVector>;
 const int dimCR = Rotation<double,dim>::TangentVector::dimension; //dimCorrectionRotation = Dimension of the correction for rotations
 using CorrectionType = MultiTypeBlockVector<BlockVector<FieldVector<double,dim> >, BlockVector<FieldVector<double,dimCR>>>;
 
