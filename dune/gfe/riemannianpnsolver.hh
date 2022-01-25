@@ -89,7 +89,8 @@ public:
 
     void solve();
 
-    void setInitialSolution(const SolutionType& x) DUNE_DEPRECATED {
+    [[deprecated]] 
+    void setInitialSolution(const SolutionType& x) {
         x_ = x;
     }
 
