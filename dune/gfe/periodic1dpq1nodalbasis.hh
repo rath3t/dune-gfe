@@ -4,6 +4,7 @@
 #define DUNE_GFE_PERIODIC_1D_PQ1NODALBASIS_HH
 
 #include <dune/common/exceptions.hh>
+#include <dune/common/math.hh>
 
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
@@ -109,7 +110,7 @@ public:
 
   size_type maxNodeSize() const
   {
-    return StaticPower<2,GV::dimension>::power;
+    return Dune::power(2,GV::dimension);
   }
 
 //protected:
@@ -123,7 +124,7 @@ class Periodic1DPQ1Node :
   public LeafBasisNode
 {
   static const int dim = GV::dimension;
-  static const int maxSize = StaticPower<2,GV::dimension>::power;
+  static const int maxSize = Dune::power(2,GV::dimension);
 
   using FiniteElementCache = typename Dune::PQkLocalFiniteElementCache<typename GV::ctype, double, dim, 1>;
 

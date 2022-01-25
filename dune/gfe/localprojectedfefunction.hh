@@ -10,6 +10,7 @@
 #include <dune/gfe/rotation.hh>
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/linearalgebra.hh>
+#include <dune/gfe/polardecomposition.hh>
 
 namespace Dune {
 
@@ -174,22 +175,6 @@ namespace Dune {
 
       static const int spaceDim = TargetSpace::TangentVector::dimension;
 
-      static FieldMatrix<field_type,3,3> polarFactor(const FieldMatrix<field_type,3,3>& matrix)
-      {
-        // Use Higham's method
-        auto polar = matrix;
-        for (size_t i=0; i<3; i++)
-        {
-          auto polarInvert = polar;
-          polarInvert.invert();
-          for (size_t j=0; j<polar.N(); j++)
-            for (size_t k=0; k<polar.M(); k++)
-              polar[j][k] = 0.5 * (polar[j][k] + polarInvert[k][j]);
-        }
-
-        return polar;
-      }
-
       /**
        * \param A The argument of the projection
        * \param polar The image of the projection, i.e., the polar factor of A
@@ -208,9 +193,11 @@ namespace Dune {
         polar = A;
 
         // Use Heron's method
-        const size_t maxIterations = 3;
+        const size_t maxIterations = 100;
+        double tol = 0.001;
         for (size_t iteration=0; iteration<maxIterations; iteration++)
         {
+          auto oldPolar = polar;
           auto polarInvert = polar;
           polarInvert.invert();
           for (size_t i=0; i<polar.N(); i++)
@@ -241,6 +228,11 @@ namespace Dune {
               for (int k=0; k<3; k++)
                 for (int l=0; l<3; l++)
                   result[i][j][k][l] = 0.5 * (result[i][j][k][l] - tmp2[i][j][k][l]);
+
+          oldPolar -= polar;
+          if (oldPolar.frobenius_norm() < tol) {
+            break;
+          }
         }
 
         return result;
@@ -295,7 +287,7 @@ namespace Dune {
         }
 
         // Project back onto SO(3)
-        result.set(polarFactor(interpolatedMatrix));
+        result.set(Dune::GFE::PolarDecomposition()(interpolatedMatrix));
 
         return result;
       }

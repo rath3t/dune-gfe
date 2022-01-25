@@ -307,15 +307,15 @@ energy(const typename Basis::LocalView& localView,
     //////////////////////////////////////////////////////////
 
     // Add the membrane energy density
-    auto energyDensity = (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_m(Ee)
-                       + (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_m(Ee*b + c*Ke)
-                       + Dune::Power<3>::eval(thickness_) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
-                       + Dune::Power<5>::eval(thickness_) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
+    auto energyDensity = (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_m(Ee)
+                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
+                       + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
+                       + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
 
     // Add the bending energy density
-    energyDensity += (thickness_ - K*Dune::Power<3>::eval(thickness_) / 12.0) * W_curv(Ke)
-                   + (Dune::Power<3>::eval(thickness_) / 12.0 - K * Dune::Power<5>::eval(thickness_) / 80.0)*W_curv(Ke*b)
-                   + Dune::Power<5>::eval(thickness_) / 80.0 * W_curv(Ke*b*b);
+    energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_curv(Ke)
+                   + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_curv(Ke*b)
+                   + Dune::power(thickness_,5) / 80.0 * W_curv(Ke*b*b);
 
     // Add energy density
     energy += quad[pt].weight() * integrationElement * energyDensity;
