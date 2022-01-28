@@ -1,7 +1,8 @@
 set(programs compute-disc-error
              cosserat-continuum
              gradient-flow
-             harmonicmaps)
+             harmonicmaps
+             simofoxshell)
 #            rodobstacle)
 if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
   set (programs rod3d ${programs})
