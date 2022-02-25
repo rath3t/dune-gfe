@@ -29,23 +29,17 @@ double diameter(const std::vector<TargetSpace>& v)
 const double eps = 1e-4;
 
 template <class TargetSpace>
-double energy(const TargetSpace& a, const TargetSpace& b)
+double distanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
-    return TargetSpace::distance(a,b) * TargetSpace::distance(a,b);
+    return Dune::power(TargetSpace::distance(a,b), 2);
 }
 
+// Squared distance between two points slightly off the manifold.
+// This is required for finite difference approximations.
 template <class TargetSpace, int dim>
-double energy(const TargetSpace& a, const FieldVector<double,dim>& b)
+double distanceSquared(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b)
 {
-#warning Cast where there should not be one
-    return TargetSpace::distance(a,TargetSpace(b)) * TargetSpace::distance(a,TargetSpace(b));
-}
-
-template <class TargetSpace, int dim>
-double energy(const FieldVector<double,dim>& a, const FieldVector<double,dim>& b)
-{
-#warning Cast where there should not be one
-    return TargetSpace::distance(TargetSpace(a),TargetSpace(b)) * TargetSpace::distance(TargetSpace(a),TargetSpace(b));
+    return Dune::power(TargetSpace::distance(TargetSpace(a),TargetSpace(b)), 2);
 }
 
 /** \brief Compute the Riemannian Hessian of the squared distance function in global coordinates
@@ -67,15 +61,15 @@ FieldMatrix<double,worldDim,worldDim> getSecondDerivativeOfSecondArgumentFD(cons
     for (size_t i=0; i<spaceDim; i++) {
         for (size_t j=0; j<spaceDim; j++) {
 
-            FieldVector<double,worldDim> epsXi = B[i];    epsXi *= eps;
-            FieldVector<double,worldDim> epsEta = B[j];   epsEta *= eps;
+            FieldVector<double,worldDim> epsXi  = eps * B[i];
+            FieldVector<double,worldDim> epsEta = eps * B[j];
             
-            FieldVector<double,worldDim> minusEpsXi  = epsXi;   minusEpsXi  *= -1;
-            FieldVector<double,worldDim> minusEpsEta = epsEta;  minusEpsEta *= -1;
+            FieldVector<double,worldDim> minusEpsXi  = -1 * epsXi;
+            FieldVector<double,worldDim> minusEpsEta = -1 * epsEta;
             
-            double forwardValue  = energy(a,TargetSpace::exp(b,epsXi+epsEta)) - energy(a, TargetSpace::exp(b,epsXi)) - energy(a,TargetSpace::exp(b,epsEta));
-            double centerValue   = energy(a,b)                   - energy(a,b)              - energy(a,b);
-            double backwardValue = energy(a,TargetSpace::exp(b,minusEpsXi + minusEpsEta)) - energy(a, TargetSpace::exp(b,minusEpsXi)) - energy(a,TargetSpace::exp(b,minusEpsEta));
+            double forwardValue  = distanceSquared(a,TargetSpace::exp(b,epsXi+epsEta)) - distanceSquared(a, TargetSpace::exp(b,epsXi)) - distanceSquared(a,TargetSpace::exp(b,epsEta));
+            double centerValue   = distanceSquared(a,b) - distanceSquared(a,b) - distanceSquared(a,b);
+            double backwardValue = distanceSquared(a,TargetSpace::exp(b,minusEpsXi + minusEpsEta)) - distanceSquared(a, TargetSpace::exp(b,minusEpsXi)) - distanceSquared(a,TargetSpace::exp(b,minusEpsEta));
             
             d2d2_fd[i][j] = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
             
@@ -111,7 +105,7 @@ void testOrthonormalFrame(const TargetSpace& a)
 }
 
 template <class TargetSpace>
-void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+void testDerivativeOfDistanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
     static const size_t embeddedDim = TargetSpace::embeddedDim;
     
@@ -126,14 +120,12 @@ void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
     typename TargetSpace::TangentVector d2_fd;
     for (size_t i=0; i<TargetSpace::TangentVector::dimension; i++) {
         
-        typename TargetSpace::EmbeddedTangentVector fwVariation = B[i];
-        typename TargetSpace::EmbeddedTangentVector bwVariation = B[i];
-        fwVariation *= eps;
-        bwVariation *= -eps;
+        typename TargetSpace::EmbeddedTangentVector fwVariation =  eps * B[i];
+        typename TargetSpace::EmbeddedTangentVector bwVariation = -eps * B[i];
         TargetSpace bPlus  = TargetSpace::exp(b,fwVariation);
         TargetSpace bMinus = TargetSpace::exp(b,bwVariation);
 
-        d2_fd[i] = (energy(a,bPlus) - energy(a,bMinus)) / (2*eps);
+        d2_fd[i] = (distanceSquared(a,bPlus) - distanceSquared(a,bMinus)) / (2*eps);
     }
 
     // transform into embedded coordinates
@@ -150,7 +142,7 @@ void testDerivativeOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
 }
 
 template <class TargetSpace>
-void testHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+void testHessianOfDistanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
     static const int embeddedDim = TargetSpace::embeddedDim;
     
@@ -162,9 +154,7 @@ void testHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
     // finite-difference approximation
     FieldMatrix<double,embeddedDim,embeddedDim> d2d2_fd = getSecondDerivativeOfSecondArgumentFD<TargetSpace,embeddedDim>(a,b);
     
-    FieldMatrix<double,embeddedDim,embeddedDim> d2d2_diff = d2d2;
-    d2d2_diff -= d2d2_fd;
-    if ( (d2d2_diff).infinity_norm() > 200*eps) {
+    if ( (d2d2 - d2d2_fd).infinity_norm() > 200*eps) {
         std::cout << className(a) << ": Analytical second derivative does not match fd approximation." << std::endl;
         std::cout << "d2d2 Analytical:" << std::endl << d2d2 << std::endl;
         std::cout << "d2d2 FD        :" << std::endl << d2d2_fd << std::endl;
@@ -174,7 +164,7 @@ void testHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
 }
 
 template <class TargetSpace>
-void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+void testMixedDerivativesOfDistanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
     static const size_t embeddedDim = TargetSpace::embeddedDim;
     
@@ -200,16 +190,13 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
             bPlus[j]  += eps;
             bMinus[j] -= eps;
                 
-            d1d2_fd[i][j] = (energy<TargetSpace>(aPlus,bPlus) + energy<TargetSpace>(aMinus,bMinus)
-                            - energy<TargetSpace>(aPlus,bMinus) - energy<TargetSpace>(aMinus,bPlus)) / (4*eps*eps);
+            d1d2_fd[i][j] = (distanceSquared<TargetSpace>(aPlus,bPlus) + distanceSquared<TargetSpace>(aMinus,bMinus)
+                            - distanceSquared<TargetSpace>(aPlus,bMinus) - distanceSquared<TargetSpace>(aMinus,bPlus)) / (4*eps*eps);
 
         }
     }
     
-    FieldMatrix<double,embeddedDim,embeddedDim> d1d2_diff = d1d2;
-    d1d2_diff -= d1d2_fd;
-
-    if ( (d1d2_diff).infinity_norm() > 200*eps ) {
+    if ( (d1d2 - d1d2_fd).infinity_norm() > 200*eps ) {
         std::cout << className(a) << ": Analytical mixed second derivative does not match fd approximation." << std::endl;
         std::cout << "d1d2 Analytical:" << std::endl << d1d2 << std::endl;
         std::cout << "d1d2 FD        :" << std::endl << d1d2_fd << std::endl;
@@ -220,7 +207,7 @@ void testMixedDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpa
 
 
 template <class TargetSpace>
-void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+void testDerivativeOfHessianOfDistanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
     static const size_t embeddedDim = TargetSpace::embeddedDim;
     
@@ -259,7 +246,7 @@ void testDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const Target
 
 
 template <class TargetSpace>
-void testMixedDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+void testMixedDerivativeOfHessianOfDistanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
     static const size_t embeddedDim = TargetSpace::embeddedDim;
     
@@ -298,38 +285,38 @@ void testMixedDerivativeOfHessianOfSquaredDistance(const TargetSpace& a, const T
 
 
 template <class TargetSpace>
-void testDerivativesOfSquaredDistance(const TargetSpace& a, const TargetSpace& b)
+void testDerivativesOfDistanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
     
     ///////////////////////////////////////////////////////////////////
     //  Test derivative with respect to second argument
     ///////////////////////////////////////////////////////////////////
     
-    testDerivativeOfSquaredDistance<TargetSpace>(a,b);
+    testDerivativeOfDistanceSquared<TargetSpace>(a,b);
     
     ///////////////////////////////////////////////////////////////////
     //  Test second derivative with respect to second argument
     ///////////////////////////////////////////////////////////////////
 
-    testHessianOfSquaredDistance<TargetSpace>(a,b);
+    testHessianOfDistanceSquared<TargetSpace>(a,b);
 
     //////////////////////////////////////////////////////////////////////////////
     //  Test mixed second derivative with respect to first and second argument
     //////////////////////////////////////////////////////////////////////////////
 
-    testMixedDerivativesOfSquaredDistance<TargetSpace>(a,b);
+    testMixedDerivativesOfDistanceSquared<TargetSpace>(a,b);
     
     /////////////////////////////////////////////////////////////////////////////////////////////
     //  Test third derivative with respect to second argument
     /////////////////////////////////////////////////////////////////////////////////////////////
     
-    testDerivativeOfHessianOfSquaredDistance<TargetSpace>(a,b);
+    testDerivativeOfHessianOfDistanceSquared<TargetSpace>(a,b);
 
     /////////////////////////////////////////////////////////////////////////////////////////////
     //  Test mixed third derivative with respect to first (once) and second (twice) argument
     /////////////////////////////////////////////////////////////////////////////////////////////
     
-    testMixedDerivativeOfHessianOfSquaredDistance<TargetSpace>(a,b);
+    testMixedDerivativeOfHessianOfDistanceSquared<TargetSpace>(a,b);
 
 }
 
@@ -357,7 +344,7 @@ void test()
             if (diameter(testPointPair) > TargetSpace::convexityRadius)
                 continue;
 
-            testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);
+            testDerivativesOfDistanceSquared<TargetSpace>(testPoints[i], testPoints[j]);
             
         }
         
