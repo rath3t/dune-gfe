@@ -357,11 +357,6 @@ void test()
             if (diameter(testPointPair) > TargetSpace::convexityRadius)
                 continue;
 
-            TargetSpace p = testPointPair[0];
-            TargetSpace q = testPointPair[1];
-            std::cout << "p: " << testPointPair[0] << ",   q: " << testPointPair[1] << std::endl;
-            std::cout << TargetSpace::exp(p, TargetSpace::log(p,q)) << std::endl;
-            
             testDerivativesOfSquaredDistance<TargetSpace>(testPoints[i], testPoints[j]);
             
         }
