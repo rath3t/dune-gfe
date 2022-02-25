@@ -145,22 +145,26 @@ public:
     }
 
     /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
-    static Dune::FieldMatrix<T,embeddedDim,embeddedDim> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
+    static Dune::SymmetricMatrix<T,embeddedDim> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
     {
-        Dune::FieldMatrix<T,embeddedDim,embeddedDim> result(0);
+        Dune::SymmetricMatrix<T,embeddedDim> result;
 
         // The linear part
-        Dune::FieldMatrix<T,N,N> linearPart = RealTuple<T,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
+        Dune::SymmetricMatrix<T,N> linearPart = RealTuple<T,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
         for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                result[i][j] = linearPart[i][j];
+            for (int j=0; j<=i; j++)
+                result(i,j) = linearPart(i,j);
 
         // The rotation part
-        Dune::FieldMatrix<T,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim> rotationPart
+        Dune::SymmetricMatrix<T,Rotation<T,N>::embeddedDim> rotationPart
                 = Rotation<ctype,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
         for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
-            for (int j=0; j<Rotation<T,N>::embeddedDim; j++)
-                result[N+i][N+j] = rotationPart[i][j];
+        {
+            for (int j=0; j<N; j++)
+                result(N+i,j) = 0;
+            for (int j=0; j<=i; j++)
+                result(N+i,N+j) = rotationPart(i,j);
+        }
 
         return result;
     }

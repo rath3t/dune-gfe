@@ -380,7 +380,8 @@ int main() try
 
 //     test<Rotation<double,3> >();
 //
-//     test<RigidBodyMotion<double,3> >();
+    // Test the RigidBodyMotion class
+    test<RigidBodyMotion<double,3> >();
 //
 //     test<HyperbolicHalfspacePoint<double,2> >();
 
