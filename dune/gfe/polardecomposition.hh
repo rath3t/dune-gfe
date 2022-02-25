@@ -25,7 +25,7 @@ namespace Dune::GFE {
         template <class field_type>
         FieldMatrix<field_type,3,3> operator() (const FieldMatrix<field_type,3,3>& matrix, double tol = 0.001) const
         {
-            int maxIterations = 100;
+            size_t maxIterations = 100;
             // Use Higham's method
             auto polar = matrix;
             for (size_t i=0; i<maxIterations; i++)
