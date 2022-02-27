@@ -374,7 +374,7 @@ int main() try
 
 } catch (Exception& e) {
 
-    std::cout << e << std::endl;
+    std::cout << e.what() << std::endl;
 
 }
 

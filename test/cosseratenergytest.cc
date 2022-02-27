@@ -7,8 +7,6 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
-#include <dune/fufem/functions/constantfunction.hh>
-
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
 
@@ -44,7 +42,7 @@ std::unique_ptr<GridType> makeSingleSimplexGrid()
         v[i] = i;
     factory.insertElement(GeometryTypes::simplex(domainDim), v);
 
-    return std::unique_ptr<GridType>(factory.createGrid());
+    return factory.createGrid();
 }
 
 

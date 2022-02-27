@@ -244,7 +244,7 @@ namespace Dune::GFE {
                     mini = i;
 
             Pleft[3][mini]  = 1;
-            Pright[mini][3] = 1;      // Smalest element to the last position
+            Pright[mini][3] = 1;      // Smallest element to the last position
 
 
             for (int i = 0; i < 4; ++i) {
