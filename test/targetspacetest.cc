@@ -359,15 +359,18 @@ int main() try
     test<RealTuple<double,1> >();
     test<RealTuple<double,3> >();
     
+    // Test the UnitVector class
     test<UnitVector<double,2> >();
     test<UnitVector<double,3> >();
     test<UnitVector<double,4> >();
 
+    // Test the rotation class
+    test<Rotation<double,3> >();
+
+    // Test the ProductManifold class
     test<Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2>>>();
     test<Dune::GFE::ProductManifold<Rotation<double,3>,UnitVector<double,5>>>();
 
-//     test<Rotation<double,3> >();
-//
     // Test the RigidBodyMotion class
     test<RigidBodyMotion<double,3> >();
 //
