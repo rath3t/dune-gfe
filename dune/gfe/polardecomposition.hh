@@ -248,9 +248,9 @@ namespace Dune::GFE {
 
 
             for (int i = 0; i < 4; ++i) {
-                if ( i != maxi & i != mini ) {
+                if ( i != maxi && i != mini ) {
                     for (int j = 0; j < 4; ++j) {
-                        if ( j != maxi & j != mini & j != i  ) {
+                        if ( j != maxi && j != mini && j != i  ) {
                             if ( Bdiag[i] < Bdiag[j] ) {
                                 Pleft[1][j]  = 1;   // Second largest element at the second position
                                 Pright[j][1] = 1;
