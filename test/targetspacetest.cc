@@ -355,8 +355,9 @@ void test()
 
 int main() try
 {
-//     test<RealTuple<double,1> >();
-//     test<RealTuple<double,3> >();
+    // Test the RealTuple class
+    test<RealTuple<double,1> >();
+    test<RealTuple<double,3> >();
     
     test<UnitVector<double,2> >();
     test<UnitVector<double,3> >();
