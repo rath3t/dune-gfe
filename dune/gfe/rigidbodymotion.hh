@@ -99,6 +99,26 @@ public:
         return result;
     }
 
+    /** \brief Compute difference vector from a to b on the tangent space of a */
+    static EmbeddedTangentVector log(const RigidBodyMotion<ctype,N>& a,
+                                     const RigidBodyMotion<ctype,N>& b)
+    {
+        EmbeddedTangentVector result;
+
+        // Usual linear difference
+        for (int i=0; i<N; i++)
+            result[i] = b.r[i] - a.r[i];
+
+        // Subtract orientations on the tangent space of 'a'
+        typename Rotation<ctype,N>::EmbeddedTangentVector v = Rotation<ctype,N>::log(a.q, b.q);
+
+        // Compute difference on T_a SO(3)
+        for (int i=0; i<Rotation<ctype,N>::EmbeddedTangentVector::dimension; i++)
+            result[i+N] = v[i];
+
+        return result;
+    }
+
     /** \brief Compute geodesic distance from a to b */
     static T distance(const RigidBodyMotion<ctype,N>& a, const RigidBodyMotion<ctype,N>& b) {
 
@@ -109,7 +129,12 @@ public:
         return std::sqrt(euclideanDistanceSquared + rotationDistance*rotationDistance);
     }
 
-    /** \brief Compute difference vector from a to b on the tangent space of a */
+    /** \brief Compute difference vector from a to b on the tangent space of a
+
+     * \warning The method is buggy!  See https://gitlab.mn.tu-dresden.de/osander/dune-gfe/-/merge_requests/2
+     * \deprecated Use the log method instead!
+     */
+    [[deprecated("Use RigidBodyMotion::log instead of RigidBodyMotion::difference!")]]
     static TangentVector difference(const RigidBodyMotion<ctype,N>& a,
                                     const RigidBodyMotion<ctype,N>& b) {
 

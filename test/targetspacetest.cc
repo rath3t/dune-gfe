@@ -29,6 +29,22 @@ double diameter(const std::vector<TargetSpace>& v)
 const double eps = 1e-4;
 
 template <class TargetSpace>
+void testExpLog(const TargetSpace& a, const TargetSpace& b)
+{
+    // Check whether exp and log are mutually inverse
+    typename TargetSpace::EmbeddedTangentVector logarithm = TargetSpace::log(a,b);
+    TargetSpace exponential = TargetSpace::exp(a, logarithm);
+
+    if (TargetSpace::distance(b, exponential) > eps)
+    {
+        std::cout << className(a) << ": Exp and log are not mutually inverse." << std::endl;
+        std::cout << "exp(a,log(a,b)): " << exponential << std::endl;
+        std::cout << "b              : " << b << std::endl;
+        assert(false);
+    }
+}
+
+template <class TargetSpace>
 double distanceSquared(const TargetSpace& a, const TargetSpace& b)
 {
     return Dune::power(TargetSpace::distance(a,b), 2);
@@ -344,6 +360,10 @@ void test()
             if (diameter(testPointPair) > TargetSpace::convexityRadius)
                 continue;
 
+            // Test the exponential map and the logarithm
+            testExpLog(testPoints[i], testPoints[j]);
+
+            // Test the various derivatives of the squared distance
             testDerivativesOfDistanceSquared<TargetSpace>(testPoints[i], testPoints[j]);
             
         }

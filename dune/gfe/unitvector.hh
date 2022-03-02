@@ -219,6 +219,10 @@ public:
         return result;
     }
 
+    /** \brief The inverse of the exponential map
+     *
+     * \results A vector in the tangent space of p
+     */
     static EmbeddedTangentVector log(const UnitVector& p, const UnitVector& q)
     {
       EmbeddedTangentVector result = p.projectOntoTangentSpace(q.data_-p.data_);
