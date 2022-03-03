@@ -570,7 +570,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
             try {
                 energy  = assembler_->computeEnergy(newIterate);
             } catch (Dune::Exception &e) {
-                std::cerr << "Error while computing the energy of the new Iterate: " << e << std::endl;
+                std::cerr << "Error while computing the energy of the new iterate: " << e << std::endl;
                 std::cerr << "Redoing trust region step with smaller radius..." << std::endl;
                 solved = false;
             }
