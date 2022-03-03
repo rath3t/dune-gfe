@@ -92,7 +92,7 @@ static bool symmetryTest(std::unordered_map<std::string, FieldVector<double,d>> 
 
 int main (int argc, char *argv[])
 {
-  MPIHelper& mpiHelper = MPIHelper::instance(argc, argv);
+  MPIHelper::instance(argc, argv);
 
   /////////////////////////////////////////////////////////////
   //                      CREATE THE GRID
@@ -186,7 +186,7 @@ int main (int argc, char *argv[])
   Functions::interpolate(basisOrderD, x, [](FieldVector<double,dim> x){ return x; });
   Functions::interpolate(basisOrderD, xInitial, [](FieldVector<double,dim> x){ return x; });
 
-  for (int i = 0; i < basisOrderD.size(); i++) {
+  for (std::size_t i = 0; i < basisOrderD.size(); i++) {
     std::stringstream stream;
     stream << x[i];
     //Look up the displacement for this vertex in the deformationMap
@@ -201,7 +201,7 @@ int main (int argc, char *argv[])
   DisplacementVector xOrderR;
   xOrderR.resize(basisOrderR.size());
   Functions::interpolate(basisOrderR, xOrderR, [](FieldVector<double,dim> x){ return x; });
-  for (int i = 0; i < basisOrderR.size(); i++) {
+  for (std::size_t i = 0; i < basisOrderR.size(); i++) {
     std::stringstream stream;
     stream << xOrderR[i];
     Rotation<double,dim> rotation(rotationMap.at(stream.str()));

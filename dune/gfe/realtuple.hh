@@ -110,10 +110,11 @@ public:
     }
 
     /** \brief The logarithmic map
-     * Simply the difference vector for RealTuple
+     *
+     * \result A vector in the tangent space of a, viz: b-a
      * */
     static auto log(const RealTuple& a, const RealTuple& b) {
-        return a.data_ - b.data_;
+        return b.data_ - a.data_;
     }
 
 #if ADOLC_ADOUBLE_H

@@ -25,7 +25,7 @@ namespace Dune::GFE {
         template <class field_type>
         FieldMatrix<field_type,3,3> operator() (const FieldMatrix<field_type,3,3>& matrix, double tol = 0.001) const
         {
-            int maxIterations = 100;
+            size_t maxIterations = 100;
             // Use Higham's method
             auto polar = matrix;
             for (size_t i=0; i<maxIterations; i++)
@@ -244,13 +244,13 @@ namespace Dune::GFE {
                     mini = i;
 
             Pleft[3][mini]  = 1;
-            Pright[mini][3] = 1;      // Smalest element to the last position
+            Pright[mini][3] = 1;      // Smallest element to the last position
 
 
             for (int i = 0; i < 4; ++i) {
-                if ( i != maxi & i != mini ) {
+                if ( i != maxi && i != mini ) {
                     for (int j = 0; j < 4; ++j) {
-                        if ( j != maxi & j != mini & j != i  ) {
+                        if ( j != maxi && j != mini && j != i  ) {
                             if ( Bdiag[i] < Bdiag[j] ) {
                                 Pleft[1][j]  = 1;   // Second largest element at the second position
                                 Pright[j][1] = 1;

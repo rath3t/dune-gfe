@@ -80,7 +80,7 @@ int main (int argc, char *argv[]) try
 
     std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
 
-    for (const auto vertex : vertices(gridView))
+    for (const auto& vertex : vertices(gridView))
     {
         auto idx = gridView.indexSet().index(vertex);
 

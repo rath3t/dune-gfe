@@ -161,9 +161,9 @@ namespace Dune::GFE
     }
 
     /** \brief Compute difference vector from a to b on the tangent space of a */
-    static TangentVector log(const ProductManifold<TS,TargetSpaces...>& a, const ProductManifold<TS,TargetSpaces...>& b)
+    static EmbeddedTangentVector log(const ProductManifold<TS,TargetSpaces...>& a, const ProductManifold<TS,TargetSpaces...>& b)
     {
-      TangentVector diff;
+      EmbeddedTangentVector diff;
       auto logFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
       {
           auto& res     = std::get<0>(argsTuple);
@@ -172,7 +172,7 @@ namespace Dune::GFE
           using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
           const auto diffLoc =  Manifold::log(a,b);
           std::copy(diffLoc.begin(),diffLoc.end(),res.begin()+posHelper[0]);
-          posHelper[0] += Manifold::dim;
+          posHelper[0] += Manifold::embeddedDim;
       };
       foreachManifold(logFunctor,diff,a, b);
       return diff;

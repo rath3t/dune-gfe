@@ -99,6 +99,26 @@ public:
         return result;
     }
 
+    /** \brief Compute difference vector from a to b on the tangent space of a */
+    static EmbeddedTangentVector log(const RigidBodyMotion<ctype,N>& a,
+                                     const RigidBodyMotion<ctype,N>& b)
+    {
+        EmbeddedTangentVector result;
+
+        // Usual linear difference
+        for (int i=0; i<N; i++)
+            result[i] = b.r[i] - a.r[i];
+
+        // Subtract orientations on the tangent space of 'a'
+        typename Rotation<ctype,N>::EmbeddedTangentVector v = Rotation<ctype,N>::log(a.q, b.q);
+
+        // Compute difference on T_a SO(3)
+        for (int i=0; i<Rotation<ctype,N>::EmbeddedTangentVector::dimension; i++)
+            result[i+N] = v[i];
+
+        return result;
+    }
+
     /** \brief Compute geodesic distance from a to b */
     static T distance(const RigidBodyMotion<ctype,N>& a, const RigidBodyMotion<ctype,N>& b) {
 
@@ -109,7 +129,12 @@ public:
         return std::sqrt(euclideanDistanceSquared + rotationDistance*rotationDistance);
     }
 
-    /** \brief Compute difference vector from a to b on the tangent space of a */
+    /** \brief Compute difference vector from a to b on the tangent space of a
+
+     * \warning The method is buggy!  See https://gitlab.mn.tu-dresden.de/osander/dune-gfe/-/merge_requests/2
+     * \deprecated Use the log method instead!
+     */
+    [[deprecated("Use RigidBodyMotion::log instead of RigidBodyMotion::difference!")]]
     static TangentVector difference(const RigidBodyMotion<ctype,N>& a,
                                     const RigidBodyMotion<ctype,N>& b) {
 
@@ -145,22 +170,26 @@ public:
     }
 
     /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
-    static Dune::FieldMatrix<T,embeddedDim,embeddedDim> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
+    static Dune::SymmetricMatrix<T,embeddedDim> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RigidBodyMotion<ctype,N> & p, const RigidBodyMotion<ctype,N> & q)
     {
-        Dune::FieldMatrix<T,embeddedDim,embeddedDim> result(0);
+        Dune::SymmetricMatrix<T,embeddedDim> result;
 
         // The linear part
-        Dune::FieldMatrix<T,N,N> linearPart = RealTuple<T,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
+        Dune::SymmetricMatrix<T,N> linearPart = RealTuple<T,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.r,q.r);
         for (int i=0; i<N; i++)
-            for (int j=0; j<N; j++)
-                result[i][j] = linearPart[i][j];
+            for (int j=0; j<=i; j++)
+                result(i,j) = linearPart(i,j);
 
         // The rotation part
-        Dune::FieldMatrix<T,Rotation<T,N>::embeddedDim,Rotation<T,N>::embeddedDim> rotationPart
+        Dune::SymmetricMatrix<T,Rotation<T,N>::embeddedDim> rotationPart
                 = Rotation<ctype,N>::secondDerivativeOfDistanceSquaredWRTSecondArgument(p.q,q.q);
         for (int i=0; i<Rotation<T,N>::embeddedDim; i++)
-            for (int j=0; j<Rotation<T,N>::embeddedDim; j++)
-                result[N+i][N+j] = rotationPart[i][j];
+        {
+            for (int j=0; j<N; j++)
+                result(N+i,j) = 0;
+            for (int j=0; j<=i; j++)
+                result(N+i,N+j) = rotationPart(i,j);
+        }
 
         return result;
     }

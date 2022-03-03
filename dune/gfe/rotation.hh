@@ -305,7 +305,10 @@ public:
     }
 
 
-    /** \brief The exponential map from a given point $p \in SO(3)$. */
+    /** \brief The exponential map from a given point $p \in SO(3)$.
+
+     * \param v A tangent vector *at the identity*!
+     */
     static Rotation<T,3> exp(const Rotation<T,3>& p, const SkewMatrix<T,3>& v) {
         Rotation<T,3> corr = exp(v);
         return p.mult(corr);
@@ -403,6 +406,12 @@ public:
         return skew;
     }
 
+    /** \brief Derivative of the exponential map at the identity
+     *
+     * The exponential map at the identity is a map from a neighborhood of zero to the neighborhood of the identity rotation.
+     *
+     * \param v Where to evaluate the derivative of the (exponential map at the identity)
+     */
     static Dune::FieldMatrix<T,4,3> Dexp(const SkewMatrix<T,3>& v) {
 
         using std::cos;
@@ -613,7 +622,10 @@ public:
     /** \brief Compute the vector in T_aSO(3) that is mapped by the exponential map
         to the geodesic from a to b
     */
-    static SkewMatrix<T,3> log(const Rotation<T,3>& a, const Rotation<T,3>& b) {
+    static EmbeddedTangentVector log(const Rotation<T,3>& a, const Rotation<T,3>& b) {
+
+        // embedded tangent vector at identity
+        Quaternion<T> v;
 
         Quaternion<T> diff = a;
         diff.invert();
@@ -622,7 +634,6 @@ public:
         // Compute the geodesical distance between a and b on SO(3)
         // Due to numerical dirt, diff[3] may be larger than 1.
         // In that case, use 1 instead of diff[3].
-        Dune::FieldVector<T,3> v;
         if (diff[3] > 1.0) {
 
             v = 0;
@@ -645,13 +656,14 @@ public:
             T invSinc = 1/sincHalf(dist);
 
             // Compute log on T_a SO(3)
-            v[0] = diff[0] * invSinc;
-            v[1] = diff[1] * invSinc;
-            v[2] = diff[2] * invSinc;
-
+            v[0] = 0.5 * diff[0] * invSinc;
+            v[1] = 0.5 * diff[1] * invSinc;
+            v[2] = 0.5 * diff[2] * invSinc;
+            v[3] = 0;
         }
 
-        return SkewMatrix<T,3>(v);
+        // multiply with base point to get real embedded tangent vector
+        return ((Quaternion<T>) a).mult(v);
     }
 
     /** \brief Compute the derivatives of the director vectors with respect to the quaternion coordinates
@@ -917,11 +929,8 @@ public:
     static Rotation<T,3> interpolate(const Rotation<T,3>& a, const Rotation<T,3>& b, T omega) {
 
         // Compute log on T_a SO(3)
-        SkewMatrix<T,3> v = log(a,b);
-
-        v *= omega;
-
-        return a.mult(exp(v));
+        EmbeddedTangentVector v = log(a,b);
+        return exp(a, omega*v);
     }
 
     /** \brief Interpolate between two rotations

@@ -168,7 +168,6 @@ static bool test4dDeterminant() {
 
 static bool testdominantEVNewton() {
     field_type detB = 0.992928;
-    field_type detM = 0.000620104;
     FieldVector<field_type,3>  minpol = {0, -1.99999, -0.00496083};
     double correctDominantEV = 1.05397;
 
