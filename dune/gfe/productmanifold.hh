@@ -8,7 +8,6 @@
 #include <dune/common/math.hh>
 #include <dune/common/hybridutilities.hh>
 #include <dune/common/tuplevector.hh>
-#include <dune/common/power.hh>
 
 #include <dune/gfe/linearalgebra.hh>
 
@@ -188,7 +187,7 @@ namespace Dune::GFE
           const auto& a = std::get<1>(argsTuple)[manifoldInt];
           const auto& b = std::get<2>(argsTuple)[manifoldInt];
           using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          res += Dune::Power<2>().eval(Manifold::distance(a,b));
+          res += power(Manifold::distance(a,b),2);
       };
       foreachManifold(distanceFunctor,dist,a, b);
       return sqrt(dist);
