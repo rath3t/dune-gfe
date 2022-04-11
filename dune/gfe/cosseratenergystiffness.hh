@@ -131,7 +131,7 @@ public:
                const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const override;
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
-     * the first equation of (4.4) in Neff's paper
+     * the first equation of (4.4) in Neff's paper from 2006: A geometrically exact planar Cosserat shell model with microstructure: Existence of minimizers for zero Cosserat couple modulus
      */
     RT quadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
     {
@@ -141,7 +141,7 @@ public:
 
         return mu_ * Dune::GFE::sym(UMinus1).frobenius_norm2()
                 + mu_c_ * Dune::GFE::skew(UMinus1).frobenius_norm2()
-                + (mu_*lambda_)/(2*mu_ + lambda_) * Dune::GFE::traceSquared(Dune::GFE::sym(UMinus1));
+                + (mu_*lambda_)/(2*mu_ + lambda_) * Dune::GFE::traceSquared(UMinus1); // Dune::GFE::traceSquared(UMinus1) = Dune::GFE::traceSquared(Dune::GFE::sym(UMinus1))
     }
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
