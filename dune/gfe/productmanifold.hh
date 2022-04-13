@@ -16,18 +16,6 @@ namespace Dune::GFE
   namespace Impl
   {
     template<typename T, typename ... Ts>
-    constexpr auto sumDim()
-    {
-      return (T::dim + ... + sumDim<Ts>());
-    }
-
-    template<typename T, typename ... Ts>
-    constexpr auto sumEmbeddedDim()
-    {
-      return (T::embeddedDim + ... + sumEmbeddedDim<Ts>());
-    }
-
-    template<typename T, typename ... Ts>
     constexpr auto variadicConvexityRadiusMin()
     {
       if constexpr (sizeof...(Ts)!=0)
@@ -53,24 +41,24 @@ namespace Dune::GFE
   }
 
   /** \brief A Product manifold */
-  template <typename TS, typename ... TargetSpaces>
+  template <typename ... TargetSpaces>
   class ProductManifold
   {
   public:
     template<std::size_t I>
     using IC = Dune::index_constant<I>;
     /** \brief The type used for coordinates. */
-    using ctype = typename std::common_type<typename TS::ctype, typename TargetSpaces::ctype...>::type ;
-    using field_type =  typename std::common_type<typename TS::ctype, typename TargetSpaces::ctype...>::type ;
+    using ctype = typename std::common_type<typename TargetSpaces::ctype...>::type ;
+    using field_type =  typename std::common_type<typename TargetSpaces::ctype...>::type ;
 
     /** \brief Number of factors */
-    static constexpr int numTS = 1 + sizeof...(TargetSpaces);
+    static constexpr int numTS = sizeof...(TargetSpaces);
 
     /** \brief Dimension of manifold */
-    static constexpr int dim = TS::dim + Impl::sumDim<TargetSpaces ...>();
+    static constexpr int dim = (0 + ... + TargetSpaces::dim);
 
     /** \brief Dimension of the embedding space */
-    static constexpr int embeddedDim = TS::embeddedDim + Impl::sumEmbeddedDim<TargetSpaces ...>();
+    static constexpr int embeddedDim = (0 + ... + TargetSpaces::embeddedDim);
 
     /** \brief Type of a tangent of the ProductManifold with inner dimensions*/
     typedef Dune::FieldVector<field_type, dim> TangentVector;
@@ -79,7 +67,7 @@ namespace Dune::GFE
     typedef Dune::FieldVector<field_type, embeddedDim> EmbeddedTangentVector;
 
     /** \brief The global convexity radius of the Product space */
-    static constexpr double convexityRadius = Impl::variadicConvexityRadiusMin<TS,TargetSpaces ...>();
+    static constexpr double convexityRadius = Impl::variadicConvexityRadiusMin<TargetSpaces ...>();
 
     /** \brief The type used for global coordinates */
     typedef Dune::FieldVector<field_type ,embeddedDim> CoordinateType;
@@ -88,7 +76,7 @@ namespace Dune::GFE
     ProductManifold()    = default;
 
     /** \brief Constructor from another ProductManifold */
-    ProductManifold(const ProductManifold<TS,TargetSpaces ...>& productManifold)
+    ProductManifold(const ProductManifold& productManifold)
       : data_(productManifold.data_)
     {}
 
@@ -108,16 +96,16 @@ namespace Dune::GFE
     }
 
     /** \brief Assignment from a coordinates vector of the embedding space */
-    ProductManifold<TS,TargetSpaces ...>& operator=(const CoordinateType& globalCoordinates)
+    ProductManifold& operator=(const CoordinateType& globalCoordinates)
     {
-      ProductManifold<TS,TargetSpaces ...> res(globalCoordinates);
+      ProductManifold res(globalCoordinates);
       data_ = res.data_;
       return *this;
     }
 
     /** \brief Assignment from ProductManifold with different type -- used for automatic differentiation with ADOL-C */
-    template <typename TS2, typename ... TargetSpaces2>
-    ProductManifold<TS,TargetSpaces ...>& operator <<=(const ProductManifold<TS2,TargetSpaces2 ...>& other)
+    template <typename ... TargetSpaces2>
+    ProductManifold<TargetSpaces ...>& operator <<=(const ProductManifold<TargetSpaces2 ...>& other)
     {
       forEach(integralRange(IC<numTS>()), [&](auto&& i) {
         (*this)[i] <<= other[i];
@@ -129,13 +117,13 @@ namespace Dune::GFE
     template<class U,typename ... TargetSpaces2>
     struct rebind
     {
-      typedef  typename Impl::rebindHelper<U,TS,TargetSpaces...>::other other;
+      typedef  typename Impl::rebindHelper<U,TargetSpaces...>::other other;
     };
 
     /** \brief The exponential map from a given point. */
-    static ProductManifold<TS,TargetSpaces ...> exp(const ProductManifold<TS,TargetSpaces ...>& p, const EmbeddedTangentVector& v)
+    static ProductManifold<TargetSpaces ...> exp(const ProductManifold& p, const EmbeddedTangentVector& v)
     {
-      ProductManifold<TS,TargetSpaces ...> res;
+      ProductManifold res;
       auto expFunctor =[]  (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
       {
           auto& res        = std::get<0>(argsTuple)[manifoldInt];
@@ -151,7 +139,7 @@ namespace Dune::GFE
     }
 
     /** \brief The exponential map from a given point using an intrinsic tangent vector*/
-    static ProductManifold<TS,TargetSpaces ...> exp(const ProductManifold<TS,TargetSpaces ...>& p, const TangentVector& v)
+    static ProductManifold exp(const ProductManifold& p, const TangentVector& v)
     {
       auto basis = p.orthonormalFrame();
       EmbeddedTangentVector embeddedTangent;
@@ -160,7 +148,7 @@ namespace Dune::GFE
     }
 
     /** \brief Compute difference vector from a to b on the tangent space of a */
-    static EmbeddedTangentVector log(const ProductManifold<TS,TargetSpaces...>& a, const ProductManifold<TS,TargetSpaces...>& b)
+    static EmbeddedTangentVector log(const ProductManifold& a, const ProductManifold& b)
     {
       EmbeddedTangentVector diff;
       auto logFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
@@ -178,7 +166,7 @@ namespace Dune::GFE
     }
 
     /** \brief Compute geodesic distance from a to b */
-    static field_type distance(const ProductManifold<TS,TargetSpaces...>& a, const ProductManifold<TS,TargetSpaces...>& b)
+    static field_type distance(const ProductManifold& a, const ProductManifold& b)
     {
       field_type dist=0.0;
       auto distanceFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
@@ -194,8 +182,8 @@ namespace Dune::GFE
     }
 
     /** \brief Compute the gradient of the squared distance function keeping the first argument fixed */
-    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const ProductManifold<TS,TargetSpaces...>& a,
-                                                                              const ProductManifold<TS,TargetSpaces...>& b)
+    static EmbeddedTangentVector derivativeOfDistanceSquaredWRTSecondArgument(const ProductManifold& a,
+                                                                              const ProductManifold& b)
     {
       EmbeddedTangentVector derivative;
       derivative= 0.0;
@@ -215,8 +203,8 @@ namespace Dune::GFE
     }
 
     /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
-    static auto secondDerivativeOfDistanceSquaredWRTSecondArgument(const ProductManifold<TS,TargetSpaces...>&  a,
-                                                                   const ProductManifold<TS, TargetSpaces...>& b)
+    static auto secondDerivativeOfDistanceSquaredWRTSecondArgument(const ProductManifold& a,
+                                                                   const ProductManifold& b)
     {
       Dune::SymmetricMatrix<field_type,embeddedDim> result;
       auto secDerivOfDistSqWRTSecArgFunctor = [] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
@@ -237,8 +225,8 @@ namespace Dune::GFE
 
     /** \brief Compute the mixed second derivate \partial d^2 / \partial da db     */
     static Dune::FieldMatrix<field_type ,embeddedDim,embeddedDim>
-    secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const ProductManifold<TS,TargetSpaces ...>&  a,
-                                                               const ProductManifold<TS, TargetSpaces ...>& b)
+    secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(const ProductManifold& a,
+                                                               const ProductManifold& b)
     {
       Dune::FieldMatrix<field_type,embeddedDim,embeddedDim> result(0);
       auto secDerivOfDistSqWRTFirstAndSecArgFunctor = [] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
@@ -259,8 +247,8 @@ namespace Dune::GFE
 
     /** \brief Compute the third derivative \partial d^3 / \partial dq^3  */
     static Tensor3<field_type ,embeddedDim,embeddedDim,embeddedDim>
-    thirdDerivativeOfDistanceSquaredWRTSecondArgument(const ProductManifold<TS,TargetSpaces ...>&  a,
-                                                      const ProductManifold<TS, TargetSpaces ...>& b)
+    thirdDerivativeOfDistanceSquaredWRTSecondArgument(const ProductManifold& a,
+                                                      const ProductManifold& b)
     {
       Tensor3<field_type,embeddedDim,embeddedDim,embeddedDim> result(0);
       auto thirdDerivOfDistSqWRTSecArgFunctor =[](auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
@@ -282,8 +270,8 @@ namespace Dune::GFE
 
     /** \brief Compute the mixed third derivative \partial d^3 / \partial da db^2  */
     static Tensor3<field_type ,embeddedDim,embeddedDim,embeddedDim>
-    thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const ProductManifold<TS,TargetSpaces ...>&  a,
-                                                                const ProductManifold<TS, TargetSpaces ...>& b)
+    thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(const ProductManifold& a,
+                                                                const ProductManifold& b)
     {
       Tensor3<field_type,embeddedDim,embeddedDim,embeddedDim> result(0);
       auto thirdDerivOfDistSqWRT1And2ArgFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
@@ -338,9 +326,9 @@ namespace Dune::GFE
     }
 
     /** \brief Project tangent vector of R^n onto the normal space space */
-    static ProductManifold<TS,TargetSpaces ...> projectOnto(const CoordinateType& v)
+    static ProductManifold projectOnto(const CoordinateType& v)
     {
-      ProductManifold<TS,TargetSpaces ...> result {v};
+      ProductManifold<TargetSpaces ...> result {v};
       auto projectOntoFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
       {
           auto& res = std::get<0>(argsTuple)[manifoldInt];
@@ -361,7 +349,7 @@ namespace Dune::GFE
       {
           auto& res     = std::get<0>(argsTuple);
           const auto& v = std::get<1>(argsTuple);
-          const Dune::TupleVector<TS,TargetSpaces...> ManifoldTuple;
+          const Dune::TupleVector<TargetSpaces...> ManifoldTuple;
           using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(ManifoldTuple[manifoldInt])> >;
           const auto vLoc =  Manifold::derivativeOfProjection(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
           for(size_t k=posHelper[0]; k<posHelper[0]+Manifold::embeddedDim; ++k )
@@ -451,8 +439,8 @@ namespace Dune::GFE
       return numTS;
     }
 
-    template<class TS2, class... TargetSpaces2>
-    friend std::ostream& operator<<(std::ostream& s, const ProductManifold<TS2, TargetSpaces2 ...>& c);
+    template<class... TargetSpaces2>
+    friend std::ostream& operator<<(std::ostream& s, const ProductManifold<TargetSpaces2 ...>& c);
 
   private:
     /**
@@ -487,13 +475,13 @@ namespace Dune::GFE
       });
     }
 
-    std::tuple<TS,TargetSpaces ...> data_;
+    std::tuple<TargetSpaces ...> data_;
 };
 
-  template< typename TS,typename ... TargetSpaces>
-  std::ostream& operator<<(std::ostream& s, const ProductManifold<TS, TargetSpaces ...>& c)
+  template<typename ... TargetSpaces>
+  std::ostream& operator<<(std::ostream& s, const ProductManifold<TargetSpaces ...>& c)
   {
-    Dune::Hybrid::forEach(Dune::Hybrid::integralRange(Dune::index_constant<ProductManifold<TS, TargetSpaces ...>::numTS>()), [&](auto&& i) {
+    Dune::Hybrid::forEach(Dune::Hybrid::integralRange(Dune::index_constant<ProductManifold<TargetSpaces ...>::numTS>()), [&](auto&& i) {
         s<<Dune::className<decltype(c[i])>()<<" "<< c[i]<<"\n";
     });
     return s;
