@@ -3,7 +3,7 @@
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
-#include <dune/common/power.hh>
+#include <dune/common/math.hh>
 
 #include <dune/istl/scaledidmatrix.hh>
 
@@ -376,7 +376,7 @@ public:
                     
                     } else if (i!=N-1 and j==N-1 and k==N-1) {
                     
-                        dFdqdqdq[i][j][k] = -2*(p[i] - q[i]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                        dFdqdqdq[i][j][k] = -2*(p[i] - q[i]) / (p[N-1]*Dune::power(q[N-1],3));
                     
                     } else if (i==N-1 and j!=N-1 and k!=N-1) {
                     
@@ -384,16 +384,16 @@ public:
                     
                     } else if (i==N-1 and j!=N-1 and k==N-1) {
                     
-                        dFdqdqdq[i][j][k] = -2*(p[j] - q[j]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                        dFdqdqdq[i][j][k] = -2*(p[j] - q[j]) / (p[N-1]*Dune::power(q[N-1],3));
                     
                     } else if (i==N-1 and j==N-1 and k!=N-1) {
                     
-                        dFdqdqdq[i][j][k] = -2*(p[k] - q[k]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                        dFdqdqdq[i][j][k] = -2*(p[k] - q[k]) / (p[N-1]*Dune::power(q[N-1],3));
                 
                     } else if (i==N-1 and j==N-1 and k==N-1) {
                     
-                        dFdqdqdq[i][j][k] = -2/Dune::Power<3>::eval(q[N-1]) - 1/(p[N-1]*q[N-1]*q[N-1]) - 4*(p[N-1]-q[N-1])/(p[N-1]*Dune::Power<3>::eval(q[N-1]))
-                                            - 3*diffNormSquared / (p[N-1]*Dune::Power<4>::eval(q[N-1]));
+                        dFdqdqdq[i][j][k] = -2/Dune::power(q[N-1],3) - 1/(p[N-1]*q[N-1]*q[N-1]) - 4*(p[N-1]-q[N-1])/(p[N-1]*Dune::power(q[N-1],3))
+                                            - 3*diffNormSquared / (p[N-1]*Dune::power(q[N-1],4));
                 
                     }
                     
@@ -464,7 +464,7 @@ public:
                     
                     } else if (i!=N-1 and j==N-1 and k==N-1) {
                     
-                        dFdpdqdq[i][j][k] = 2*(p[i] - q[i]) / (p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                        dFdpdqdq[i][j][k] = 2*(p[i] - q[i]) / (p[N-1]*Dune::power(q[N-1],3));
                     
                     } else if (i==N-1 and j!=N-1 and k!=N-1) {
                     
@@ -472,18 +472,18 @@ public:
                     
                     } else if (i==N-1 and j!=N-1 and k==N-1) {
                     
-                        dFdpdqdq[i][j][k] = -(p[j] - q[j]) / (p[N-1]*p[N-1]*Dune::Power<2>::eval(q[N-1]));
+                        dFdpdqdq[i][j][k] = -(p[j] - q[j]) / (p[N-1]*p[N-1]*Dune::power(q[N-1],2));
                     
                     } else if (i==N-1 and j==N-1 and k!=N-1) {
                     
-                        dFdpdqdq[i][j][k] = -(p[k] - q[k]) / (p[N-1]*p[N-1]*Dune::Power<2>::eval(q[N-1]));
+                        dFdpdqdq[i][j][k] = -(p[k] - q[k]) / (p[N-1]*p[N-1]*Dune::power(q[N-1],2));
                 
                     } else if (i==N-1 and j==N-1 and k==N-1) {
                     
                         dFdpdqdq[i][j][k] = 1.0/(p[N-1]*q[N-1]*q[N-1])
-                                          + 2*(p[N-1]-q[N-1])/(p[N-1]*Dune::Power<3>::eval(q[N-1]))
+                                          + 2*(p[N-1]-q[N-1])/(p[N-1]*Dune::power(q[N-1],3))
                                           -   (p[N-1]-q[N-1])/(p[N-1]*p[N-1]*q[N-1]*q[N-1])
-                                          - diffNormSquared / (p[N-1]*p[N-1]*Dune::Power<3>::eval(q[N-1]));
+                                          - diffNormSquared / (p[N-1]*p[N-1]*Dune::power(q[N-1],3));
                 
                     }
                     
