@@ -63,6 +63,7 @@ namespace Dune {
   }
 #endif
 
+#if !DUNE_VERSION_NEWER(DUNE_COMMON, 2, 8)
   /** \brief Multiplication of a ScaledIdentityMatrix with another FieldMatrix */
   template <class T, int N, int otherCols>
   Dune::FieldMatrix<T,N,otherCols> operator* ( const Dune::ScaledIdentityMatrix<T, N>& diagonalMatrix,
@@ -76,6 +77,7 @@ namespace Dune {
 
       return result;
   }
+#endif
 
   /** \brief Return the trace of a matrix */
   template <class T, int n>
