@@ -33,13 +33,13 @@ class CosseratRodEnergy
     typedef typename GridView::template Codim<0>::Entity Entity;
 
     // some other sizes
-    enum {dim=GridView::dimension};
+    constexpr static int dim = GridView::dimension;
 
     // Quadrature order used for the extension and shear energy
-    enum {shearQuadOrder = 2};
+    constexpr static int shearQuadOrder = 2;
 
     // Quadrature order used for the bending and torsion energy
-    enum {bendingQuadOrder = 2};
+    constexpr static int bendingQuadOrder = 2;
 
 public:
 

@@ -24,7 +24,7 @@ class NeumannEnergy
   using DT = typename GridView::Grid::ctype;
   using RT = typename Dune::GFE::LocalEnergy<Basis,TargetSpaces...>::RT;
 
-  enum {dim=GridView::dimension};
+  constexpr static int dim = GridView::dimension;
 
 public:
 

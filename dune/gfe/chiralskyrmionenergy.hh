@@ -27,7 +27,7 @@ class ChiralSkyrmionEnergy
   typedef typename GridView::template Codim<0>::Entity Entity;
 
   // some other sizes
-  enum {gridDim=GridView::dimension};
+  constexpr static int gridDim = GridView::dimension;
 
 public:
 
@@ -38,7 +38,7 @@ public:
   }
 
   //! Dimension of a tangent space
-  enum { blocksize = TargetSpace::TangentVector::dimension };
+  constexpr static int blocksize = TargetSpace::TangentVector::dimension;
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,

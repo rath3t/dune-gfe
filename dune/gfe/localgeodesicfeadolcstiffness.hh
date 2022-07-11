@@ -32,15 +32,15 @@ class LocalGeodesicFEADOLCStiffness
     typedef typename TargetSpace::template rebind<adouble>::other ATargetSpace;
 
     // some other sizes
-    enum {gridDim=GridView::dimension};
+    constexpr static int gridDim = GridView::dimension;
 
 public:
 
     //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::dimension };
+    constexpr static int blocksize = TargetSpace::TangentVector::dimension;
 
     //! Dimension of the embedding space
-    enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
+    constexpr static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
     LocalGeodesicFEADOLCStiffness(const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)

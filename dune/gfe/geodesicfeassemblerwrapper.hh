@@ -18,12 +18,12 @@ GeodesicFEAssemblerWrapper {
     typedef typename Basis::GridView GridView;
 
     //! Dimension of the grid.
-    enum { gridDim = GridView::dimension };
+    constexpr static int gridDim = GridView::dimension;
 
     //! Dimension of the tangent space
-    enum { blocksize = TargetSpace::TangentVector::dimension };
-    enum { blocksize0 = MixedSpace0::TangentVector::dimension };
-    enum { blocksize1 = MixedSpace1::TangentVector::dimension };
+    constexpr static int blocksize = TargetSpace::TangentVector::dimension;
+    constexpr static int blocksize0 = MixedSpace0::TangentVector::dimension;
+    constexpr static int blocksize1 = MixedSpace1::TangentVector::dimension;
 
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;

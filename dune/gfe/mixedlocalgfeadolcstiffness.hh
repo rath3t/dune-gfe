@@ -33,17 +33,17 @@ class MixedLocalGFEADOLCStiffness
     typedef typename TargetSpace1::template rebind<adouble>::other ATargetSpace1;
 
     // some other sizes
-    enum {gridDim=GridView::dimension};
+    constexpr static int gridDim = GridView::dimension;
 
 public:
 
     //! Dimension of a tangent space
-    enum { blocksize0 = TargetSpace0::TangentVector::dimension };
-    enum { blocksize1 = TargetSpace1::TangentVector::dimension };
+    constexpr static int blocksize0 = TargetSpace0::TangentVector::dimension;
+    constexpr static int blocksize1 = TargetSpace1::TangentVector::dimension;
 
     //! Dimension of the embedding space
-    enum { embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension };
-    enum { embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension };
+    constexpr static int embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension;
+    constexpr static int embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension;
 
     MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0,
                                                                     ATargetSpace1>* energy)

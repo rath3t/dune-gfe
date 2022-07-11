@@ -31,7 +31,7 @@ class TrustRegionMMGBaseSolver
     // For complex-valued data
     typedef typename Dune::FieldTraits<field_type>::real_type real_type;
 
-    enum {blocksize = VectorType::value_type::dimension};
+    constexpr static int blocksize = VectorType::value_type::dimension;
     typedef Dune::BitSetVector<blocksize> BitVectorType;
 
 public:

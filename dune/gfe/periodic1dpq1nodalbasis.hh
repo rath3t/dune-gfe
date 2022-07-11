@@ -174,7 +174,7 @@ protected:
 template<typename GV, class MI>
 class Periodic1DPQ1NodeIndexSet
 {
-  enum {dim = GV::dimension};
+  constexpr static int dim = GV::dimension;
 
 public:
 

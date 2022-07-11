@@ -44,8 +44,8 @@ class NonplanarCosseratShellEnergy
   typedef typename GridView::template Codim<0>::Entity Entity;
 
   // some other sizes
-  enum {gridDim=GridView::dimension};
-  enum {dimworld=GridView::dimensionworld};
+  constexpr static int gridDim = GridView::dimension;
+  constexpr static int dimworld = GridView::dimensionworld;
 
 public:
 

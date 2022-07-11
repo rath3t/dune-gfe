@@ -38,8 +38,8 @@ class SurfaceCosseratEnergy
   using RBM1 = Rotation<RT,GridView::dimensionworld> ;
   using RBM = RigidBodyMotion<RT,GridView::dimensionworld> ;
 
-  enum {dimWorld=GridView::dimensionworld};
-  enum {gridDim=GridView::dimension};
+  constexpr static int dimWorld = GridView::dimensionworld;
+  constexpr static int gridDim = GridView::dimension;
   static constexpr int boundaryDim = gridDim - 1;
 
   /** \brief Compute the derivative of the rotation (with respect to x), but wrt matrix coordinates

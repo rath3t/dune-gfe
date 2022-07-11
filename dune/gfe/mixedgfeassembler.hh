@@ -19,11 +19,11 @@ class MixedGFEAssembler {
     typedef typename GridView::template Codim<0>::template Partition<Dune::Interior_Partition>::Iterator ElementIterator;
 
     //! Dimension of the grid.
-    enum { gridDim = GridView::dimension };
+    constexpr static int gridDim = GridView::dimension;
 
     //! Dimension of a tangent space
-    enum { blocksize0 = TargetSpace0::TangentVector::dimension };
-    enum { blocksize1 = TargetSpace1::TangentVector::dimension };
+    constexpr static int blocksize0 = TargetSpace0::TangentVector::dimension;
+    constexpr static int blocksize1 = TargetSpace1::TangentVector::dimension;
 
     //!
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double, blocksize0, blocksize0> > MatrixBlock00;

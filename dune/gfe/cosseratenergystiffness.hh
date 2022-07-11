@@ -70,8 +70,8 @@ class CosseratEnergyLocalStiffness
     typedef typename GridView::template Codim<0>::Entity Entity;
 
     // some other sizes
-    enum {gridDim=GridView::dimension};
-    enum {dimworld=GridView::dimensionworld};
+    constexpr static int gridDim = GridView::dimension;
+    constexpr static int dimworld = GridView::dimensionworld;
 
     /** \brief Compute the (row-wise) curl of a matrix R \f$
         \param DR The partial derivatives of the matrix R
