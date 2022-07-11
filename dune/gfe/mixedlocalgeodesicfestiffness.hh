@@ -15,13 +15,13 @@ class MixedLocalGeodesicFEStiffness
     typedef typename GridView::template Codim<0>::Entity Entity;
 
     // some other sizes
-    enum {gridDim=GridView::dimension};
+    constexpr static int gridDim = GridView::dimension;
 
 public:
 
     //! Dimension of a tangent space
-    enum { deformationBlocksize = DeformationTargetSpace::TangentVector::dimension };
-    enum { orientationBlocksize = OrientationTargetSpace::TangentVector::dimension };
+    constexpr static int deformationBlocksize = DeformationTargetSpace::TangentVector::dimension;
+    constexpr static int orientationBlocksize = OrientationTargetSpace::TangentVector::dimension;
 
     /** \brief Assemble the local stiffness matrix at the current position
 

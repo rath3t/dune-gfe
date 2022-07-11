@@ -18,7 +18,7 @@ class L2DistanceSquaredEnergy
   typedef typename TargetSpace::ctype RT;
 
   // some other sizes
-  enum {gridDim=GridView::dimension};
+  constexpr static int gridDim = GridView::dimension;
 
 public:
 

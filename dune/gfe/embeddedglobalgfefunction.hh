@@ -32,12 +32,12 @@ public:
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
 
     //! Dimension of the grid.
-    enum { gridDim = GridView::dimension };
+    constexpr static int gridDim = GridView::dimension;
 
     static constexpr auto dimworld = GridView::dimensionworld;
 
     //! Dimension of the embedded tanget space
-    enum { embeddedDim = EmbeddedTangentVector::dimension };
+    constexpr static int embeddedDim = EmbeddedTangentVector::dimension;
 
 
     //! Create global function by a global basis and the corresponding coefficient vector

@@ -37,7 +37,7 @@ class PressureAverager : public Ipopt::TNLP
     typedef typename MatrixType::row_type RowType;
 
 
-    enum {dim=GridView::dimension};
+    constexpr static int dim = GridView::dimension;
 
 public:
     /** \brief Constructor */

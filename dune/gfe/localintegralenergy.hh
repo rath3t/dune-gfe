@@ -29,7 +29,7 @@ class LocalIntegralEnergy
   using DT = typename GridView::Grid::ctype;
   using RT = typename Dune::GFE::LocalEnergy<Basis,TargetSpaces...>::RT;
 
-  enum {gridDim=GridView::dimension};
+  constexpr static int gridDim = GridView::dimension;
 
 public:
 

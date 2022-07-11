@@ -66,12 +66,12 @@ class LocalADOLCStiffness
     typedef typename TargetSpace::template rebind<adouble>::other ATargetSpace;
 
     // some other sizes
-    enum {gridDim=GridView::dimension};
+    constexpr static int gridDim = GridView::dimension;
 
 public:
 
     //! Dimension of the embedding space
-    enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
+    constexpr static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
     LocalADOLCStiffness(const GFE::LocalEnergy<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
@@ -223,10 +223,10 @@ class LocalFDStiffness
 public:
 
     //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::dimension };
+    constexpr static int blocksize = TargetSpace::TangentVector::dimension;
 
     //! Dimension of the embedding space
-    enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
+    constexpr static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
     LocalFDStiffness(const GFE::LocalEnergy<Basis, ATargetSpace>* energy)
     : localEnergy_(energy)
@@ -415,8 +415,8 @@ int main (int argc, char *argv[]) try
     MPIHelper::instance(argc, argv);
 
     typedef std::vector<TargetSpace> SolutionType;
-    enum { embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension };
-    enum { blocksize = TargetSpace::TangentVector::dimension };
+    constexpr static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
+    constexpr static int blocksize = TargetSpace::TangentVector::dimension;
 
     // ///////////////////////////////////////
     //    Create the grid

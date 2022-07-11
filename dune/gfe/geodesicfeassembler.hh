@@ -20,10 +20,10 @@ class GeodesicFEAssembler {
     using LocalStiffness = LocalGeodesicFEStiffness<Basis, TargetSpace>;
 
     //! Dimension of the grid.
-    enum { gridDim = GridView::dimension };
+    constexpr static int gridDim = GridView::dimension;
 
     //! Dimension of a tangent space
-    enum { blocksize = TargetSpace::TangentVector::dimension };
+    constexpr static int blocksize = TargetSpace::TangentVector::dimension;
 
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
