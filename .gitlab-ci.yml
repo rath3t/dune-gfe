@@ -72,3 +72,12 @@ dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid clang:
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-curvedgeometry.git
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/iwr/dune-curvedgrid.git
   script: duneci-standard-test
+
+# Check for spelling mistakes in text
+code-spelling-check:
+  stage: .pre
+  # Avoid the global 'before_script'
+  before_script: ""
+  image: registry.dune-project.org/docker/ci/debian:11
+  script:
+  - codespell
