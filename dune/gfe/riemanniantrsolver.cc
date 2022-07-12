@@ -604,7 +604,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
 
                 if (energy >= oldEnergy and rank==0) {
                     if (this->verbosity_ == NumProc::FULL)
-                        printf("Richtung ist keine Abstiegsrichtung!\n");
+                        std::cout << "Direction is not a descent direction!" << std::endl;
                 }
 
                 if (energy >= oldEnergy &&

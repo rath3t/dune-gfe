@@ -129,7 +129,7 @@ RT energy(const typename Basis::LocalView& localView,
   const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
   const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
     
-  // to construt a local GFE function, in case they are the shape functions are the same, we can use use one GFE-Function
+  // to construct a local GFE function, in case they are the shape functions are the same, we can use use one GFE-Function
 #if MIXED_SPACE
     std::vector<RBM0> localSolutionRBM0(localSolution0.size());
     std::vector<RBM1> localSolutionRBM1(localSolution1.size());

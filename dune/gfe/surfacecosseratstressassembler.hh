@@ -172,7 +172,7 @@ namespace Dune::GFE {
         \param rot Coefficient vector for the rotation
         \param x Coefficient vector for the displacement
         \param xInitial Coefficient vector for the stress-free configuration of the shell, used to calculate nablaTheta
-        \param lameF Function assinging the lamé parameters to a given point
+        \param lameF Function assigning the Lamé parameters to a given point
         \param mu_c Cosserat couple modulus
         \param shellBoundary BoundaryPatch containing the elements that actually belong to the shell
         \param order Order of the quadrature rule

@@ -77,7 +77,7 @@ public:
         return *this;
     }
 
-    /** \brief Assigment from RealTuple with different type -- used for automatic differentiation with ADOL-C */
+    /** \brief Assignment from RealTuple with different type -- used for automatic differentiation with ADOL-C */
     template <class T2>
     RealTuple& operator <<= (const RealTuple<T2,N>& other) {
         for (size_t i=0; i<N; i++)

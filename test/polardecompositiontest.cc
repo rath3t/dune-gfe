@@ -111,7 +111,7 @@ static double timeTest(double perturbationFromSO3 = 1.0) {
 
     for (int j = 0; j < numberOfTests; ++j) { // testing loop
         FieldMatrix<field_type,3,3> N;
-        // Only measure the time if the decomposition is unique and if both algorithms will retun an orthogonal matrix!
+        // Only measure the time if the decomposition is unique and if both algorithms will return an orthogonal matrix!
         // Attention: For matrices that are quite far away from an orthogonal matrix, Dune::GFE::PolarDecomposition() might return a matrix with determinant = -1 !
         double normOfDifference = 10;
         FieldMatrix<field_type,3,3> Q1;

@@ -233,14 +233,14 @@ namespace Dune::GFE {
 
             // Find Pivotmatrix
             for (int i = 0; i < 4; ++i) // going through the diagonal searching for the maximum
-                if ( Bdiag[maxi] < Bdiag[i] )  // found a bigger one but smaler than the older ones 
+                if ( Bdiag[maxi] < Bdiag[i] )  // found a bigger one but smaller than the older ones
                     maxi = i;
 
             Pleft[0][maxi]  = 1;
             Pright[maxi][0] = 1;        // Largest element to the first position
 
             for (int i = 0; i < 4; ++i) // going through the diagonal searching for the minimum
-                if ( Bdiag[mini] > Bdiag[i] )  // found a smaler one but smaler than the older ones 
+                if ( Bdiag[mini] > Bdiag[i] )  // found a smaller one but smaller than the older ones
                     mini = i;
 
             Pleft[3][mini]  = 1;

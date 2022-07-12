@@ -92,7 +92,7 @@ void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
             field_type energy    = assembler_->value(newIterate);
 
             if (energy >= oldEnergy)
-                printf("Richtung ist keine Abstiegsrichtung!\n");
+                std::cout << "Direction is not a descent direction!" << std::endl;
         }
 
         //  Actually take the step

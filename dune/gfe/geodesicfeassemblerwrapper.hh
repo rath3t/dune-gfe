@@ -124,7 +124,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
     // Get a split up version of the input
     auto solutionSplit = splitVector(sol);
 
-    // Define the Matrix and the Gradient in Block Stucture
+    // Define the matrix and the gradient in the block structure
     Dune::BlockVector<Dune::FieldVector<double, blocksize0> > gradient0(n);
     Dune::BlockVector<Dune::FieldVector<double, blocksize1> > gradient1(n);
     

@@ -17,7 +17,7 @@ namespace Dune {
     /** \brief Interpolate on a manifold, as fast as we can
      *
      * This class implements interpolation of values on a manifold in a 'quick-and-dirty' way.
-     * No particular interpolation rule is used consistenly for all manifolds.  Rather, it is
+     * No particular interpolation rule is used consistently for all manifolds.  Rather, it is
      * used whatever is quickest and 'reasonable' for any given space.  The reason to have this
      * is to provide initial iterates for the iterative solvers used to solve the local
      * geodesic-FE minimization problems.
@@ -117,7 +117,7 @@ namespace Dune {
       // The averaging can give you singular matrices quite quickly (try two matrices that
       // differ by a rotation of pi/2).  Then, the QR factorization of the identity may
       // not be the identity (but differ in sign)!  I tried that with the implementation
-      // from Numerical recipies.
+      // from Numerical Recipes.
       //
       // What do we do instead?  We start from the coefficient that produces the lowest
       // value of the objective functional.

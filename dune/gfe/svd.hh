@@ -42,7 +42,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
 
     int flag,i,its,j,jj,k,l,nm;
     T anorm,c,f,g,h,s,scale,x,y,z;
-    T rv1[n+1];  // 1 too large to accomodate fortran numbering
+    T rv1[n+1];  // 1 too large to accommodate fortran numbering
 
     //Householder reduction to bidiagonal form.
     g=scale=anorm=0.0;

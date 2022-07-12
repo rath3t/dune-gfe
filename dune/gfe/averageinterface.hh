@@ -660,7 +660,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
     app->Options()->SetStringValue("jac_c_constant", "yes");
     app->Options()->SetIntegerValue("print_level", 0);
 
-    // Intialize the IpoptApplication and process the options
+    // Initialize the IpoptApplication and process the options
     Ipopt::ApplicationReturnStatus status;
     status = app->Initialize();
     if (status != Ipopt::Solve_Succeeded)

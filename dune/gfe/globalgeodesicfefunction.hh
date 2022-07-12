@@ -46,7 +46,7 @@ public:
     //! Dimension of the grid.
     constexpr static int gridDim = GridView::dimension;
 
-    //! Dimension of the embedded tanget space
+    //! Dimension of the embedded tangent space
     constexpr static int embeddedDim = EmbeddedTangentVector::dimension;
 
 
