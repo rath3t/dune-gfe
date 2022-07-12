@@ -56,7 +56,7 @@ public:
         q.normalize();
     }
 
-    /** \brief Assigment from RigidBodyMotion with different type -- used for automatic differentiation with ADOL-C */
+    /** \brief Assignment from RigidBodyMotion with different type -- used for automatic differentiation with ADOL-C */
     template <class T2>
     RigidBodyMotion& operator <<= (const RigidBodyMotion<T2,N>& other) {
         for (int i=0; i<N; i++)

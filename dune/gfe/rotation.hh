@@ -169,7 +169,7 @@ class Rotation<T,3> : public Quaternion<T>
     static T sincOfSquare(const T& x) {
         using std::sin;
         using std::sqrt;
-        // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+        // we need here lots of terms to be sure that the numerical derivatives are also within maschine precision
         return (x < 1e-2) ?
         1-x/6
         +x*x/120
@@ -247,7 +247,7 @@ public:
       return *this;
     }
 
-    /** \brief Assigment from Rotation with different type -- used for automatic differentiation with ADOL-C */
+    /** \brief Assignment from Rotation with different type -- used for automatic differentiation with ADOL-C */
     template <class T2>
     Rotation& operator <<= (const Rotation<T2,3>& other) {
         for (int i=0; i<4; i++)

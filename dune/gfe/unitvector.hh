@@ -34,7 +34,7 @@ class UnitVector
         using std::acos;
         const T eps = 1e-2;
         if (x > 1-eps) {  // acos is not differentiable, use the series expansion instead,
-            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precision
             //return -2 * (x-1) + 1.0/3 * (x-1)*(x-1) - 4.0/45 * (x-1)*(x-1)*(x-1);
             return 11665028.0/4729725.0
             -141088.0/45045.0*x
@@ -55,7 +55,7 @@ class UnitVector
         using std::sqrt;
         const T eps = 1e-2;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precision
             //return -2 + 2*(x-1)/3 - 4/15*(x-1)*(x-1);
             return -47104.0/15015.0
             +12614.0/6435.0*x
@@ -78,7 +78,7 @@ class UnitVector
         using std::pow;
         const T eps = 1e-2;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precision
             //return 2.0/3 - 8*(x-1)/15;
             return 1350030.0/676039.0+5632.0/2028117.0*Dune::power(x,10)
             -1039056896.0/334639305.0*x
@@ -102,7 +102,7 @@ class UnitVector
         using std::sqrt;
         const T eps = 1e-2;
         if (x > 1-eps) {  // regular expression is unstable, use the series expansion instead
-            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precission
+            // we need here lots of terms to be sure that the numerical derivatives are also within maschine precision
             //return -8.0/15 + 24*(x-1)/35;
             return -1039056896.0/334639305.0
             +301752.0/39767.0*x
@@ -170,7 +170,7 @@ public:
         data_ /= data_.two_norm();
     }
 
-    /** \brief Assigment from UnitVector with different type -- used for automatic differentiation with ADOL-C */
+    /** \brief Assignment from UnitVector with different type -- used for automatic differentiation with ADOL-C */
     template <class T2>
     UnitVector& operator <<= (const UnitVector<T2,N>& other) {
         for (int i=0; i<N; i++)

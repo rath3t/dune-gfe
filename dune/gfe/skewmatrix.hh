@@ -76,7 +76,7 @@ public:
         return ConstIterator(data_,3);
     }
 
-    /** \brief Embedd the skey-symmetric matrix in R^3x3 */ 
+    /** \brief Embed the skew-symmetric matrix in R^3x3 */
     Dune::FieldMatrix<T,3,3> toMatrix() const
     {
         Dune::FieldMatrix<T,3,3> mat;

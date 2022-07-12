@@ -195,7 +195,7 @@ namespace Dune {
     }
 
     /** \brief Return a segment of a FieldVector from lower up to lower+size-1
-     * lower is unkown at compile time*/
+     * lower is unknown at compile time*/
     template< int size,typename field_type,int n>
     static FieldVector<field_type,size> segmentAt(const FieldVector<field_type,n>& v,const size_t lower)
     {
@@ -218,7 +218,7 @@ namespace Dune {
     }
 
         /** \brief Return a block of a FieldMatrix  (lower1...lower1+size1-1,lower2...lower2+size2-1
-         * * lower1 and lower2 is unkown at compile time*/
+         * * lower1 and lower2 are unknown at compile time*/
         template< int size1,int size2,typename field_type,int n,int m>
         static auto blockAt(const FieldMatrix<field_type,n,m>& v, const size_t& lower1, const size_t& lower2)
         {

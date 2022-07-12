@@ -168,7 +168,7 @@ int main (int argc, char *argv[])
   bool rotationIsSymmetric = symmetryTest<dimRotation>(rotationMap, 30);
 
   if (!deformationIsSymmetric) {
-    std::cerr << "The stressAssemblerTest checking for symmetry only works with a symmetric deformation intput file! Please check the file for symmetry!" << std::endl;
+    std::cerr << "The stressAssemblerTest checking for symmetry only works with a symmetric deformation input file! Please check the file for symmetry!" << std::endl;
     return 1;
   }
   if (!rotationIsSymmetric) {

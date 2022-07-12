@@ -300,7 +300,7 @@ int main (int argc, char *argv[]) try
              double energy    = rodAssembler.computeEnergy(newIterate);
 
              if (energy >= oldEnergy)
-                 DUNE_THROW(SolverError, "Richtung ist keine Abstiegsrichtung!");
+                 DUNE_THROW(SolverError, "Direction is not a descent direction!");
 
              //  Add correction to the current solution
              for (int j=0; j<x.size(); j++)

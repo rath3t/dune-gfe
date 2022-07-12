@@ -521,7 +521,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
             if (energy >= oldEnergy and rank==0) {
                 if (this->verbosity_ == NumProc::FULL)
-                    printf("Richtung ist keine Abstiegsrichtung!\n");
+                    std::cout << "Direction is not a descent direction!" << std::endl;
             }
 
             if (energy >= oldEnergy &&

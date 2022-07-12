@@ -36,7 +36,7 @@ public:
 
     static constexpr auto dimworld = GridView::dimensionworld;
 
-    //! Dimension of the embedded tanget space
+    //! Dimension of the embedded tangent space
     constexpr static int embeddedDim = EmbeddedTangentVector::dimension;
 
 
