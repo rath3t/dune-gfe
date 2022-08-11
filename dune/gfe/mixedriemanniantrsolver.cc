@@ -87,20 +87,20 @@ setup(const GridType& grid,
     baseSolver1->setTolerance(baseTolerance);
 #else
     // First create a Gauss-seidel base solver
-    TrustRegionGSStep<MatrixType00, CorrectionType0>* baseSolverStep0 = new TrustRegionGSStep<MatrixType00, CorrectionType0>;
-    TrustRegionGSStep<MatrixType11, CorrectionType1>* baseSolverStep1 = new TrustRegionGSStep<MatrixType11, CorrectionType1>;
+    auto baseSolverStep0 = std::make_shared< TrustRegionGSStep<MatrixType00, CorrectionType0> >();
+    auto baseSolverStep1 = std::make_shared< TrustRegionGSStep<MatrixType11, CorrectionType1> >();
 
     // Hack: the two-norm may not scale all that well, but it is fast!
-    TwoNorm<CorrectionType0>* baseNorm0 = new TwoNorm<CorrectionType0>;
-    TwoNorm<CorrectionType1>* baseNorm1 = new TwoNorm<CorrectionType1>;
+    auto baseNorm0 = std::make_shared< TwoNorm<CorrectionType0> >();
+    auto baseNorm1 = std::make_shared< TwoNorm<CorrectionType1> >();
 
-    ::LoopSolver<CorrectionType0>* baseSolver0 = new ::LoopSolver<CorrectionType0>(baseSolverStep0,
+    auto baseSolver0 = std::make_shared< ::LoopSolver<CorrectionType0> >(baseSolverStep0,
                                                                                    baseIterations,
                                                                                    baseTolerance,
                                                                                    baseNorm0,
                                                                                    Solver::QUIET);
 
-    ::LoopSolver<CorrectionType1>* baseSolver1 = new ::LoopSolver<CorrectionType1>(baseSolverStep1,
+    auto baseSolver1 = std::make_shared< ::LoopSolver<CorrectionType1> >(baseSolverStep1,
                                                                                    baseIterations,
                                                                                    baseTolerance,
                                                                                    baseNorm1,
