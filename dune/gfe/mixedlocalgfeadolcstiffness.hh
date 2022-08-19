@@ -86,7 +86,7 @@ energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace0>& localConfiguration0,
        const std::vector<TargetSpace1>& localConfiguration1) const
 {
-    int rank = Dune::MPIHelper::getCollectiveCommunication().rank();
+    int rank = Dune::MPIHelper::getCommunication().rank();
     double pureEnergy;
 
     std::vector<ATargetSpace0> localAConfiguration0(localConfiguration0.size());
@@ -202,7 +202,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                            std::vector<typename TargetSpace1::TangentVector>& localGradient1)
 {
-    int rank = Dune::MPIHelper::getCollectiveCommunication().rank();
+    int rank = Dune::MPIHelper::getCommunication().rank();
     // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
     energy(localView, localConfiguration0, localConfiguration1);
 
