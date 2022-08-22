@@ -317,7 +317,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
     using namespace Dune::TypeTree::Indices;
 
     double oldEnergy = assembler_->computeEnergy(x_[_0], x_[_1]);
-    oldEnergy = mpiHelper.getCollectiveCommunication().sum(oldEnergy);
+    oldEnergy = mpiHelper.getCommunication().sum(oldEnergy);
 
     bool recomputeGradientHessian = true;
     CorrectionType rhs;
@@ -498,7 +498,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
           }
 
           if (solvedByInnerSolver) {
-            energy = mpiHelper.getCollectiveCommunication().sum(energy);
+            energy = mpiHelper.getCommunication().sum(energy);
 
             // compute the model decrease
             // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
@@ -506,7 +506,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
             CorrectionType tmp(corr);
             hessianMatrix_->mv(corr,tmp);
             modelDecrease = rhs*corr - 0.5 * (corr*tmp);
-            modelDecrease = mpiHelper.getCollectiveCommunication().sum(modelDecrease);
+            modelDecrease = mpiHelper.getCommunication().sum(modelDecrease);
 
             double relativeModelDecrease = modelDecrease / std::fabs(energy);
 
