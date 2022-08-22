@@ -208,7 +208,7 @@ public:
         : Quaternion<T>(0,0,0,1)
     {}
 
-    explicit Rotation<T,3>(const std::array<T,4>& c)
+    explicit Rotation(const std::array<T,4>& c)
     {
         for (int i=0; i<4; i++)
             (*this)[i] = c[i];
@@ -216,13 +216,13 @@ public:
         *this /= this->two_norm();
     }
 
-    explicit Rotation<T,3>(const Dune::FieldVector<T,4>& c)
+    explicit Rotation(const Dune::FieldVector<T,4>& c)
         : Quaternion<T>(c)
     {
         *this /= this->two_norm();
     }
 
-    Rotation<T,3>(Dune::FieldVector<T,3> axis, T angle)
+    Rotation(Dune::FieldVector<T,3> axis, T angle)
     {
         axis /= axis.two_norm();
         axis *= std::sin(angle/2);
