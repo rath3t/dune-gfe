@@ -3,6 +3,8 @@
 
 #include <dune/gfe/mixedgfeassembler.hh>
 #include <dune/common/tuplevector.hh>
+#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/productmanifold.hh>
 
 namespace Dune::GFE {
 
@@ -85,8 +87,13 @@ splitVector(const std::vector<TargetSpace>& sol) const {
     solutionSplit[_0].resize(n);
     solutionSplit[_1].resize(n);
     for (std::size_t i = 0; i < n; i++) {
-        solutionSplit[_0][i] = sol[i].r; // Deformation part
-        solutionSplit[_1][i] = sol[i].q; // Rotational part
+        if constexpr(std::is_base_of<TargetSpace,RigidBodyMotion<double, 3>>::value) {
+            solutionSplit[_0][i] = sol[i].r; // Deformation part
+            solutionSplit[_1][i] = sol[i].q; // Rotational part
+        } else if constexpr(std::is_base_of<TargetSpace,ProductManifold<RealTuple<double,3>,UnitVector<double,3>>>::value) {
+            solutionSplit[_0][i] = sol[i][_0]; // Deformation part
+            solutionSplit[_1][i] = sol[i][_1]; // Rotational part
+        }
     }
     return solutionSplit;
 }

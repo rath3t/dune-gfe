@@ -1,3 +1,4 @@
+#define MIXED_SPACE 0
 #include <config.h>
 
 #include <array>
@@ -30,6 +31,12 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 
+#if !MIXED_SPACE
+#include <dune/gfe/geodesicfeassemblerwrapper.hh>
+#include <dune/gfe/productmanifold.hh>
+#include <dune/gfe/riemannianpnsolver.hh>
+#endif
+
 #if HAVE_DUNE_VTK
 #include <dune/vtk/vtkreader.hh>
 #endif
@@ -45,6 +52,10 @@ const int midsurfaceOrder = 1;
 const int directorOrder = 1;
 
 using namespace Dune;
+
+#if !MIXED_SPACE
+static_assert(midsurfaceOrder==directorOrder, "displacement and rotation order do not match!");
+#endif
 
 int main(int argc, char *argv[]) try
 {
@@ -78,8 +89,9 @@ int main(int argc, char *argv[]) try
   const auto numLevels = parameterSet.get<int>("numLevels");
   const auto totalLoadSteps = parameterSet.get<int>("numHomotopySteps");
   const auto tolerance = parameterSet.get<double>("tolerance");
-  const auto maxTrustRegionSteps = parameterSet.get<int>("maxTrustRegionSteps");
+  const auto maxSolverSteps = parameterSet.get<int>("maxSolverSteps");
   const auto initialTrustRegionRadius = parameterSet.get<double>("initialTrustRegionRadius");
+  const auto initialRegularization = parameterSet.get<double>("initialRegularization");
   const auto multigridIterations = parameterSet.get<int>("numIt");
   const auto nu1 = parameterSet.get<int>("nu1");
   const auto nu2 = parameterSet.get<int>("nu2");
@@ -299,10 +311,33 @@ int main(int argc, char *argv[]) try
 
     MixedGFEAssembler<decltype(compositeBasis),
         RealTuple<double,3>, UnitVector<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
+    ////////////////////////////////////////////////////////
+    //   Set Dirichlet values
+    ////////////////////////////////////////////////////////
+
+    Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("problem") + "-dirichlet-values");// + std::to_string(loadStep));
+
+    Python::Callable C = dirichletValuesClass.get("DirichletValues");
+
+    // Call a constructor.
+    Python::Reference dirichletValuesPythonObject = C(loadFactor);
+
+    // Extract object member functions as Dune functions
+    auto deformationDirichletValues = Python::make_function<FieldVector<double, 3> >(dirichletValuesPythonObject.get("deformation"));
+
+    BlockVector<FieldVector<double,3> > ddV(deformationPowerBasis.size());
+    Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
+
+    for (size_t j = 0; j < x[_0].size(); j++){
+      if (deformationDirichletNodes[j][0]){
+        x[_0][j] = ddV[j];
+      }
+    }
 
     // /////////////////////////////////////////////////
     //   Create a Riemannian trust-region solver
     // /////////////////////////////////////////////////
+    if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 
     MixedRiemannianTrustRegionSolver<Grid,
         decltype(compositeBasis),
@@ -317,7 +352,7 @@ int main(int argc, char *argv[]) try
                  deformationDirichletDofs,
                  orientationDirichletDofs,
                  tolerance,
-                 maxTrustRegionSteps,
+                 maxSolverSteps,
                  initialTrustRegionRadius,
                  multigridIterations,
                  mgTolerance,
@@ -328,27 +363,6 @@ int main(int argc, char *argv[]) try
 
     solver.setScaling(parameterSet.get<FieldVector<double, 5> >("trustRegionScaling"));
 
-    ////////////////////////////////////////////////////////
-    //   Set Dirichlet values
-    ////////////////////////////////////////////////////////
-
-    Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("problem") + "-dirichlet-values");
-
-    Python::Callable C = dirichletValuesClass.get("DirichletValues");
-
-    // Call a constructor.
-    Python::Reference dirichletValuesPythonObject = C(loadFactor);
-
-    // Extract object member functions as Dune functions
-    auto deformationDirichletValues = Python::make_function<FieldVector<double, 3> >(dirichletValuesPythonObject.get("deformation"));
-
-    std::vector<FieldVector<double, 3> > ddV;
-    Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
-
-    for (size_t j = 0; j < x[_0].size(); j++)
-      if (deformationDirichletNodes[j][0])
-        x[_0][j] = ddV[j];
-
     // /////////////////////////////////////////////////////
     //   Solve!
     // /////////////////////////////////////////////////////
@@ -357,7 +371,39 @@ int main(int argc, char *argv[]) try
     solver.solve();
 
     x = solver.getSol();
-
+    } else {
+#if !MIXED_SPACE
+      using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3>>;
+      std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
+      BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
+      for (int i = 0; i < compositeBasis.size({0}); i++) {
+        xTargetSpace[i][_0] = x[_0][i]; // Displacement part
+        xTargetSpace[i][_1] = x[_1][i]; // Rotation part
+        for (int j = 0; j < 3; j ++)
+          dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
+        for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
+          dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
+      }
+      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<decltype(compositeBasis), MidsurfaceFEBasis, TargetSpace, RealTuple<double, 3>, UnitVector<double,3>>;
+      GFEAssemblerWrapper assemblerNotMixed(&assembler, midsurfaceFEBasis);
+      RiemannianProximalNewtonSolver<MidsurfaceFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+      solver.setup(*grid,
+                   &assemblerNotMixed,
+                   xTargetSpace,
+                   dirichletDofsTargetSpace,
+                   tolerance,
+                   maxSolverSteps,
+                   initialRegularization,
+                   instrumented);
+      solver.setInitialIterate(xTargetSpace);
+      solver.solve();
+      xTargetSpace = solver.getSol();
+      for (int i = 0; i < xTargetSpace.size(); i++) {
+        x[_0][i] = xTargetSpace[i][_0];
+        x[_1][i] = xTargetSpace[i][_1];
+      }
+#endif
+    }
     // Output result of each load step
     std::stringstream iAsAscii;
     iAsAscii << loadStep + 1;
