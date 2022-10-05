@@ -77,7 +77,7 @@ public:
 
     /** \brief Constructor setting shape constants and material parameters
         \param A The rod section area
-        \param J1, J2 The geometric moments (Fl‰chentr‰gheitsmomente)
+        \param J1, J2 The geometric moments (Fl√§chentr√§gheitsmomente)
         \param E Young's modulus
         \param nu Poisson number
     */
