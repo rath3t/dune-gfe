@@ -80,11 +80,33 @@ public:
     b1_ = parameters.template get<double>("b1");
     b2_ = parameters.template get<double>("b2");
     b3_ = parameters.template get<double>("b3");
+    
+    // Indicator to use the alternative energy W_Coss from Birsan 2021:
+    useAlternativeEnergyWCoss_ = parameters.template get<bool>("useAlternativeEnergyWCoss", false);
   }
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const;
+  /*  Sources:
+      Birsan 2019: Derivation of a refined six-parameter shell model, equation (111)
+      Birsan 2021: Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126)
+  */
+  RT W_Coss(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<double,3,3>& a, const Dune::FieldVector<double,3>& n0) const
+  {
+    return W_Coss_mixt(S,S,a,n0);
+  }
+
+  RT W_Coss_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T, const Dune::FieldMatrix<double,3,3>& a, const Dune::FieldVector<double,3>& n0) const
+  {
+    auto planarPart = W_mixt(a*S,a*T);
+    Dune::FieldVector<field_type, 3> n0S;
+    Dune::FieldVector<field_type, 3> n0T;
+    S.mtv(n0, n0S);
+    T.mtv(n0, n0T);
+    field_type normalPart = 2*mu_*mu_c_* n0S * n0T /(mu_ + mu_c_);
+    return planarPart + normalPart;
+  }
 
   RT W_m(const Dune::FieldMatrix<field_type,3,3>& S) const
   {
@@ -124,6 +146,10 @@ public:
   /** \brief Curvature parameters */
   double b1_, b2_, b3_;
 
+  /** \brief Indicator to use the alternative energy W_Coss from Birsan 2021:
+             Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126). */
+
+  bool useAlternativeEnergyWCoss_;
   /** \brief The geometry used for assembling */
   const StressFreeStateGridFunction* stressFreeStateGridFunction_;
 
@@ -307,10 +333,18 @@ energy(const typename Basis::LocalView& localView,
     //////////////////////////////////////////////////////////
 
     // Add the membrane energy density
-    auto energyDensity = (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_m(Ee)
-                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
-                       + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
-                       + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
+    field_type energyDensity = 0;
+    if (useAlternativeEnergyWCoss_) {
+      energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_Coss(Ee, a, aContravariant[2])
+                    + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2])
+                    + Dune::power(thickness_,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2])
+                    + Dune::power(thickness_,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2]);
+    } else {
+      energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_m(Ee)
+                    + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
+                    + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
+                    + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
+    }
 
     // Add the bending energy density
     energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_curv(Ke)
