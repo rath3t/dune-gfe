@@ -5,7 +5,6 @@
 #include <dune/istl/io.hh>
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
-#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
 #include <dune/fufem/assemblers/operatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
@@ -147,11 +146,8 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
-    typedef DuneFunctionsBasis<Basis0> FufemBasis0;
-    FufemBasis0 basis0(grid.leafGridView());
-
-    typedef DuneFunctionsBasis<Basis1> FufemBasis1;
-    FufemBasis1 basis1(grid.leafGridView());
+    Basis0 basis0(grid.leafGridView());
+    Basis1 basis1(grid.leafGridView());
 
 #if 0
     BasisType basis(grid.leafGridView());
@@ -194,16 +190,18 @@ setup(const GridType& grid,
     mmgStep0->mgTransfer_.resize(numLevels-1);
     mmgStep1->mgTransfer_.resize(numLevels-1);
 
-    if (basis0.getLocalFiniteElement(*grid.leafGridView().template begin<0>()).localBasis().order() > 1)
+    // Get bind to some element to be able to query the FE space order
+    auto localView0 = basis0.localView();
+    localView0.bind(*grid.leafGridView().template begin<0>());
+
+    if (localView0.tree().finiteElement().localBasis().order() > 1)
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType0>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
-        assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
-                                         FufemBasis0>(pkToP1TransferMatrix,p1Basis,*basis0_);
+        assembleGlobalBasisTransferMatrix(pkToP1TransferMatrix,p1Basis,*basis0_);
 
         mmgStep0->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType0>>();
         std::shared_ptr<TransferOperatorType> topTransferOperator = std::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
@@ -234,16 +232,17 @@ setup(const GridType& grid,
 
     }
 
-    if (basis1.getLocalFiniteElement(*grid.leafGridView().template begin<0>()).localBasis().order() > 1)
+    auto localView1 = basis1.localView();
+    localView1.bind(*grid.leafGridView().template begin<0>());
+
+    if (localView1.tree().finiteElement().localBasis().order() > 1)
     {
       if (numLevels>1) {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType1>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
-        assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
-                                         FufemBasis1>(pkToP1TransferMatrix,p1Basis,*basis1_);
+        assembleGlobalBasisTransferMatrix(pkToP1TransferMatrix,p1Basis,*basis1_);
 
         mmgStep1->mgTransfer_.back() = std::make_shared<TruncatedCompressedMGTransfer<CorrectionType1>>();
         std::shared_ptr<TransferOperatorType> topTransferOperator = std::make_shared<TransferOperatorType>(pkToP1TransferMatrix);
