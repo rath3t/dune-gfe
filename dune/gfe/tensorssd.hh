@@ -71,7 +71,7 @@ public:
         return *this;
     }
 
-    friend TensorSSD<T,N1,N2> operator*(const TensorSSD<T,N1,N2>& a, const Dune::Matrix<Dune::FieldMatrix<T,1,1> >& b)
+    friend TensorSSD<T,N1,N2> operator*(const TensorSSD<T,N1,N2>& a, const Dune::Matrix<T>& b)
     {
         TensorSSD<T,N1,N2> result(b.M());
             
@@ -83,7 +83,7 @@ public:
                 for (size_t k=0; k<b.M(); k++) {
                     result.data_[i][j][k] = 0;
                     for (size_t l=0; l<N4; l++)
-                        result.data_[i][j][k] += a.data_[i][j][l]*b[l][k][0][0];
+                        result.data_[i][j][k] += a.data_[i][j][l]*b[l][k];
                 }
                     
         return result;

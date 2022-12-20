@@ -151,9 +151,9 @@ private:
     }
 
     /** \brief Compute derivate of F(w,q) (the derivative of the weighted distance fctl) wrt to w */
-    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > computeDFdw(const TargetSpace& q) const
+    Dune::Matrix<RT> computeDFdw(const TargetSpace& q) const
     {
-        Dune::Matrix<Dune::FieldMatrix<RT,1,1> > dFdw(embeddedDim,localFiniteElement_.localBasis().size());
+        Dune::Matrix<RT> dFdw(embeddedDim,localFiniteElement_.localBasis().size());
         for (size_t i=0; i<localFiniteElement_.localBasis().size(); i++) {
             Dune::FieldVector<RT,embeddedDim> tmp = TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], q);
             for (int j=0; j<embeddedDim; j++)
@@ -250,20 +250,20 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
     localFiniteElement_.localBasis().evaluateJacobian(local, B);
 
     // compute negative derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
-    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > dFdw = computeDFdw(q);
+    Dune::Matrix<RT> dFdw = computeDFdw(q);
     dFdw *= -1;
 
     // multiply the two previous matrices: the result is the right hand side
     // RHS = dFdw * B;
     // We need to write this multiplication by hand, because B is actually an (#coefficients) times 1 times dim matrix,
     // and we need to ignore the middle index.
-    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > RHS(dFdw.N(), dim);
+    Dune::Matrix<RT> RHS(dFdw.N(), dim);
 
     for (size_t i=0; i<RHS.N(); i++)
       for (size_t j=0; j<RHS.M(); j++) {
         RHS[i][j] = 0;
         for (size_t k=0; k<dFdw.M(); k++)
-          RHS[i][j] += dFdw[i][k][0][0]*B[k][0][j];
+          RHS[i][j] += dFdw[i][k]*B[k][0][j];
       }
 
     // the actual system matrix
@@ -413,7 +413,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
     std::vector<Dune::FieldMatrix<ctype,1,dim> > BNested(coefficients_.size());
     localFiniteElement_.localBasis().evaluateJacobian(local, BNested);
-    Dune::Matrix<Dune::FieldMatrix<RT,1,1> > B(coefficients_.size(), dim);
+    Dune::Matrix<RT> B(coefficients_.size(), dim);
     for (size_t i=0; i<coefficients_.size(); i++)
         for (size_t j=0; j<dim; j++)
             B[i][j] = BNested[i][0][j];
