@@ -37,6 +37,14 @@ dune:2.8 gcc:
   - *before
   script: duneci-standard-test
 
+dune:2.9 gcc:
+  variables:
+    DUNECI_BRANCH: releases/2.9
+  image: registry.dune-project.org/docker/ci/dune:2.9-debian-11-gcc-10-20
+  before_script:
+  - *before
+  script: duneci-standard-test
+
 dune:git gcc:
   image: registry.dune-project.org/docker/ci/dune:git-debian-10-gcc-8-17
   before_script:
