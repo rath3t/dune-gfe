@@ -5,8 +5,7 @@
 
 #include <dune/grid/common/mcmgmapper.hh>
 
-#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
-#include <dune/fufem/assemblers/operatorassembler.hh>
+#include <dune/fufem/assemblers/dunefunctionsoperatorassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
 #include <dune/fufem/assemblers/basisinterpolationmatrixassembler.hh>
@@ -116,15 +115,14 @@ setup(const GridType& grid,
     //   Assemble a Laplace matrix to create a norm that's equivalent to the H1-norm
     // //////////////////////////////////////////////////////////////////////////////////////
 
-    typedef DuneFunctionsBasis<Basis> FufemBasis;
-    FufemBasis basis(assembler_->getBasis());
-    OperatorAssembler<FufemBasis,FufemBasis> operatorAssembler(basis, basis);
+    const Basis& basis = assembler_->getBasis();
+    Dune::Fufem::DuneFunctionsOperatorAssembler<Basis,Basis> operatorAssembler(basis, basis);
 
-    LaplaceAssembler<GridType, typename FufemBasis::LocalFiniteElement, typename FufemBasis::LocalFiniteElement> laplaceStiffness;
+    Dune::Fufem::LaplaceAssembler laplaceStiffness;
     typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
     ScalarMatrixType localA;
 
-    operatorAssembler.assemble(laplaceStiffness, localA);
+    operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localA), laplaceStiffness);
 
 #if HAVE_MPI
     LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
@@ -153,10 +151,10 @@ setup(const GridType& grid,
     //   This will be used to monitor the gradient
     // //////////////////////////////////////////////////////////////////////////////////////
 
-    MassAssembler<GridType, typename Basis::LocalView::Tree::FiniteElement, typename Basis::LocalView::Tree::FiniteElement> massStiffness;
+    Dune::Fufem::MassAssembler massStiffness;
     ScalarMatrixType localMassMatrix;
 
-    operatorAssembler.assemble(massStiffness, localMassMatrix);
+    operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localMassMatrix), massStiffness);
 
 #if HAVE_MPI
     auto massMatrix = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localMassMatrix));
@@ -203,12 +201,10 @@ setup(const GridType& grid,
     if (not isP1Basis)
     {
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-        DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> > p1Basis(grid_->leafGridView());
+        Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> p1Basis(grid_->leafGridView());
 
         TransferOperatorType pkToP1TransferMatrix;
-        assembleBasisInterpolationMatrix<TransferOperatorType,
-                                         DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> >,
-                                         FufemBasis>(pkToP1TransferMatrix,p1Basis,basis);
+        assembleGlobalBasisTransferMatrix(pkToP1TransferMatrix,p1Basis,basis);
 #if HAVE_MPI
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
