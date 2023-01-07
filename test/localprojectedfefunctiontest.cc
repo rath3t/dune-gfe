@@ -179,8 +179,8 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 
 }
 
-template <int domainDim, class TargetSpace>
-void testDerivative(const GFE::LocalProjectedFEFunction<domainDim,double,typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
+template <int domainDim, class TargetSpace, bool conforming=true>
+void testDerivative(const GFE::LocalProjectedFEFunction<domainDim,double,typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace, conforming>& f)
 {
     static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
 
@@ -209,7 +209,8 @@ void testDerivative(const GFE::LocalProjectedFEFunction<domainDim,double,typenam
             assert(false);
         }
 
-        testDerivativeTangentiality(f.evaluate(quadPos), derivative);
+        if(conforming)
+            testDerivativeTangentiality(f.evaluate(quadPos), derivative);
 
     }
 }
@@ -245,10 +246,11 @@ void test(const GeometryType& element)
         typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
 
         GFE::LocalProjectedFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
+        GFE::LocalProjectedFEFunction<domainDim, double, LocalFiniteElement, TargetSpace,false> f_nonconforming(feCache.get(element), corners);
 
         //testPermutationInvariance(corners);
         testDerivative<domainDim>(f);
-
+        testDerivative<domainDim>(f_nonconforming);
     }
 
 }

@@ -11,6 +11,7 @@
 #include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/polardecomposition.hh>
+#include <dune/gfe/realtuple.hh>
 
 namespace Dune {
 
@@ -22,8 +23,9 @@ namespace Dune {
      * \tparam ctype Type used for coordinates on the reference element
      * \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
      * \tparam TargetSpace The manifold that the function takes its values in
+     * \tparam conforming Geometrical conformity of the functions (omits projections when set to false)
      */
-    template <int dim, class ctype, class LocalFiniteElement, class TS>
+    template <int dim, class ctype, class LocalFiniteElement, class TS, bool conforming=true>
     class LocalProjectedFEFunction
     {
     public:
@@ -35,6 +37,8 @@ namespace Dune {
       static const int embeddedDim = EmbeddedTangentVector::dimension;
 
       static const int spaceDim = TargetSpace::TangentVector::dimension;
+
+      constexpr static bool conformingFlag = conforming;
 
     public:
 
@@ -57,7 +61,7 @@ namespace Dune {
       template<class U>
       struct rebind
       {
-        using other = LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,U>;
+        using other = LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,U,conforming>;
       };
 
       /** \brief The number of Lagrange points */
@@ -73,7 +77,7 @@ namespace Dune {
       }
 
       /** \brief Evaluate the function */
-      TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
+      auto evaluate(const Dune::FieldVector<ctype, dim>& local) const;
 
       /** \brief Evaluate the derivative of the function */
       DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
@@ -102,8 +106,8 @@ namespace Dune {
 
     };
 
-    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-    TargetSpace LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace, bool conforming>
+    auto LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
     evaluate(const Dune::FieldVector<ctype, dim>& local) const
     {
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
@@ -114,24 +118,43 @@ namespace Dune {
       for (size_t i=0; i<coefficients_.size(); i++)
         c.axpy(w[i][0], coefficients_[i].globalCoordinates());
 
-      return TargetSpace::projectOnto(c);
+      if constexpr (conformingFlag)
+        return TargetSpace::projectOnto(c);
+      else
+        return (RealTuple<ctype, TargetSpace::CoordinateType::dimension>)c;
+
     }
 
-    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-    typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
-    LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
+    typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::DerivativeType
+    LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
     evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
-      // the function value at the point where we are evaluating the derivative
-      TargetSpace q = evaluate(local);
+      if constexpr(conformingFlag)
+      { 
+        // the function value at the point where we are evaluating the derivative
+        TargetSpace q = evaluate(local);
 
-      // Actually compute the derivative
-      return evaluateDerivative(local,q);
+        // Actually compute the derivative
+        return evaluateDerivative(local, q);
+      }
+      else {
+        std::vector<Dune::FieldMatrix<ctype, 1, dim>> wDer;
+        localFiniteElement_.localBasis().evaluateJacobian(local, wDer);
+
+        Dune::FieldMatrix<RT, embeddedDim, dim> derivative(0);
+        for (size_t i = 0; i < embeddedDim; i++)
+          for (size_t j = 0; j < dim; j++)
+            for (size_t k = 0; k < coefficients_.size(); k++)
+              derivative[i][j] += wDer[k][0][j] * coefficients_[k].globalCoordinates()[i];
+
+        return derivative;
+      }
     }
 
-    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-    typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
-    LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
+    typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::DerivativeType
+    LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
     evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
     {
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
