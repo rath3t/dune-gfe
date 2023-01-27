@@ -279,6 +279,7 @@ public:
 };
 
 template <class Basis, int dim, class field_type>
+[[deprecated("Use an std::vector<RealTuple<field_type,dim>> and an std::vector<Rotation<field_type,dim>> together with the MixedGFEAssembler and the GFEAssemblerWrapper instead of std::vector<RigidBodyMotion<field_type,dim>>.")]]
 typename CosseratEnergyLocalStiffness<Basis,dim,field_type>::RT
 CosseratEnergyLocalStiffness<Basis,dim,field_type>::
 energy(const typename Basis::LocalView& localView,

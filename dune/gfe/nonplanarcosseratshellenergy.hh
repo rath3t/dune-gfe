@@ -92,6 +92,7 @@ public:
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const;
+
 /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<RealTuple<field_type,dim> >& localDisplacementConfiguration,
@@ -173,6 +174,7 @@ public:
 };
 
 template <class Basis, int dim, class field_type, class StressFreeStateGridFunction>
+[[deprecated("Use an std::vector<RealTuple<field_type,dim>> and an std::vector<Rotation<field_type,dim>> together with the MixedGFEAssembler and the GFEAssemblerWrapper instead of std::vector<RigidBodyMotion<field_type,dim>>.")]]
 typename NonplanarCosseratShellEnergy<Basis, dim, field_type, StressFreeStateGridFunction>::RT
 NonplanarCosseratShellEnergy<Basis,dim,field_type, StressFreeStateGridFunction>::
 energy(const typename Basis::LocalView& localView,
