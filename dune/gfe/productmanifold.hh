@@ -10,9 +10,14 @@
 #include <dune/common/tuplevector.hh>
 
 #include <dune/gfe/linearalgebra.hh>
+#include <dune/gfe/symmetricmatrix.hh>
+#include <dune/gfe/tensor3.hh>
 
 namespace Dune::GFE
 {
+  template <typename ... TargetSpaces>
+  class ProductManifold;
+
   namespace Impl
   {
     template<typename T, typename ... Ts>
@@ -23,9 +28,6 @@ namespace Dune::GFE
       else
         return T::convexityRadius;
     }
-
-    template <typename TS, typename ... TargetSpaces>
-    class ProductManifold;
 
     template<class U,typename Tfirst,typename ... TargetSpaces2>
     struct rebindHelper

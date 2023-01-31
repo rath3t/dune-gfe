@@ -370,6 +370,11 @@ void test()
         
     }
     
+    // Test whether we can rebind to another number type
+    using FTargetSpace = typename TargetSpace::template rebind<float>::other;
+
+    // Can we construct an object of that rebound type?
+    FTargetSpace fTargetSpace;
 }
 
 
