@@ -270,6 +270,6 @@ int main (int argc, char *argv[]) try
 
  } catch (Exception& e) {
 
-    std::cout << e << std::endl;
+    std::cout << e.what() << std::endl;
 
  }

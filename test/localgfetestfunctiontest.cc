@@ -84,6 +84,6 @@ int main() try
     test<CrazyManifold, 2>();
 
 } catch (Exception& e) {
-    std::cout << e << std::endl;
+    std::cout << e.what() << std::endl;
 }
 
