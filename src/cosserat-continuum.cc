@@ -167,7 +167,7 @@ int main (int argc, char *argv[]) try
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
     } else {
-        std::string path                = parameterSet.get<std::string>("path");
+        std::string path                = parameterSet.get<std::string>("path", "");
         std::string gridFile            = parameterSet.get<std::string>("gridFile");
 
         // Guess the grid file format by looking at the file name suffix
