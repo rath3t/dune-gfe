@@ -441,8 +441,13 @@ namespace Dune::GFE
       return numTS;
     }
 
-    template<class... TargetSpaces2>
-    friend std::ostream& operator<<(std::ostream& s, const ProductManifold<TargetSpaces2 ...>& c);
+    friend std::ostream& operator<<(std::ostream& s, const ProductManifold<TargetSpaces ...>& c)
+    {
+      Dune::Hybrid::forEach(Dune::Hybrid::integralRange(Dune::index_constant<ProductManifold<TargetSpaces ...>::numTS>()), [&](auto&& i) {
+        s<<Dune::className<decltype(c[i])>()<<" "<< c[i]<<"\n";
+      });
+      return s;
+    }
 
   private:
     /**
@@ -479,14 +484,5 @@ namespace Dune::GFE
 
     std::tuple<TargetSpaces ...> data_;
 };
-
-  template<typename ... TargetSpaces>
-  std::ostream& operator<<(std::ostream& s, const ProductManifold<TargetSpaces ...>& c)
-  {
-    Dune::Hybrid::forEach(Dune::Hybrid::integralRange(Dune::index_constant<ProductManifold<TargetSpaces ...>::numTS>()), [&](auto&& i) {
-        s<<Dune::className<decltype(c[i])>()<<" "<< c[i]<<"\n";
-    });
-    return s;
-  }
 }
 #endif
