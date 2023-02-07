@@ -3,9 +3,9 @@ variables:
   DUNECI_CMAKE_FLAGS: "-DDUNE_PYTHON_FORCE_PYTHON3=TRUE"
 
 before_script: &before
-  - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-matrix-vector.git
+  - duneci-install-module https://gitlab.dune-project.org/fufem/dune-matrix-vector.git
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
-  - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-fufem.git
+  - duneci-install-module https://gitlab.dune-project.org/fufem/dune-fufem.git
   - duneci-install-module https://gitlab.mn.tu-dresden.de/ag-sander/dune/dune-elasticity.git
 
 # ADOL-C's comparison operators prior to version 2.7.2 return `int` instead of `bool`,
