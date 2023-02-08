@@ -337,6 +337,22 @@ void testDerivativesOfDistanceSquared(const TargetSpace& a, const TargetSpace& b
 }
 
 
+// The class ProductManifold had a bug that lead to a build failure
+// when using std::cout in the namespace Dune::GFE.
+//
+// See https://gitlab.mn.tu-dresden.de/osander/dune-gfe/-/merge_requests/114
+//
+// The following method is here to make sure that this bug does not
+// come back.
+namespace Dune::GFE
+{
+    void testUsingIOStream()
+    {
+      std::cout << "dummy text" << std::endl;
+    }
+}
+
+
 template <class TargetSpace>
 void test()
 {
