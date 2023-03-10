@@ -293,31 +293,62 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     Dune::Matrix<Dune::FieldMatrix<double,blocksize1, embeddedBlocksize1> > embeddedHessian11(nDofs1,nDofs1);
 
     if(adolcScalarMode_) {
-#if 0
-    std::vector<double> v(nDoubles);
-    std::vector<double> w(nDoubles);
+        std::vector<double> v(nDoubles);
+        std::vector<double> w(nDoubles);
 
-    std::fill(v.begin(), v.end(), 0.0);
+        std::fill(v.begin(), v.end(), 0.0);
 
-    for (int i=0; i<nDofs; i++)
-      for (int ii=0; ii<blocksize; ii++)
-      {
-        // Evaluate Hessian in the direction of each vector of the orthonormal frame
-        for (size_t k=0; k<embeddedBlocksize; k++)
-          v[i*embeddedBlocksize + k] = orthonormalFrame[i][ii][k];
+        size_t nDoubles0 = nDofs0*embeddedBlocksize0; // nDoubles = nDoubles0 + nDoubles1
+        size_t nDoubles1 = nDofs1*embeddedBlocksize1;
 
-        int rc= 3;
-        MINDEC(rc, hess_vec(1, nDoubles, xp.data(), v.data(), w.data()));
-        if (rc < 0)
-          DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
+        std::fill(v.begin(), v.end(), 0.0);
 
-        for (int j=0; j<nDoubles; j++)
-          embeddedHessian[i][j/embeddedBlocksize][ii][j%embeddedBlocksize] = w[j];
+        for (size_t i=0; i<nDofs0 + nDofs1; i++) {
 
-        // Make v the null vector again
-        std::fill(&v[i*embeddedBlocksize], &v[(i+1)*embeddedBlocksize], 0.0);
-      }
-#endif
+            // Evaluate Hessian in the direction of each vector of the orthonormal frame
+            if (i < nDofs0) { //Upper half
+                auto i0 = i;
+                for (int ii0=0; ii0<blocksize0; ii0++) {
+                    for (size_t k0=0; k0<embeddedBlocksize0; k0++) {
+                        v[i0*embeddedBlocksize0 + k0] = orthonormalFrame0[i0][ii0][k0];
+                    }
+                    int rc= 3;
+                    MINDEC(rc, hess_vec(rank, nDoubles, xp.data(), v.data(), w.data()));
+                    if (rc < 0)
+                        DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
+
+                    for (size_t j0=0; j0<nDoubles0; j0++) //Upper left
+                        embeddedHessian00[i0][j0/embeddedBlocksize0][ii0][j0%embeddedBlocksize0] = w[j0];
+
+                    for (size_t j1=0; j1<nDoubles1; j1++) //Upper right
+                        embeddedHessian01[i0][j1/embeddedBlocksize1][ii0][j1%embeddedBlocksize1] = w[nDoubles0 + j1];
+            
+                    // Make v the null vector again
+                    std::fill(&v[i0*embeddedBlocksize0], &v[(i0+1)*embeddedBlocksize0], 0.0);
+                }
+            } else  { // i = nDofs0 ... nDofs0 + nDofs1 //lower half
+                auto i1 = i - nDofs0;
+                for (int ii1=0; ii1<blocksize1; ii1++) {
+                    for (size_t k1=0; k1<embeddedBlocksize1; k1++) {
+                        v[nDoubles0 + i1*embeddedBlocksize1 + k1] = orthonormalFrame1[i1][ii1][k1];
+                    }
+                    int rc= 3;
+                    MINDEC(rc, hess_vec(rank, nDoubles, xp.data(), v.data(), w.data()));
+                    if (rc < 0)
+                        DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
+
+                    for (size_t j0=0; j0<nDoubles0; j0++) //Uppper left
+                        embeddedHessian10[i1][j0/embeddedBlocksize0][ii1][j0%embeddedBlocksize0] = w[j0];
+
+                    for (size_t j1=0; j1<nDoubles1; j1++) //Upper right
+                        embeddedHessian11[i1][j1/embeddedBlocksize1][ii1][j1%embeddedBlocksize1] = w[nDoubles0 + j1];
+            
+                    // Make v the null vector again
+                    std::fill(&v[nDoubles0 + i1*embeddedBlocksize1], &v[nDoubles0 + (i1+1)*embeddedBlocksize1], 0.0);
+                }
+            }
+        }
+
     } else { //ADOL-C vector mode}
         int n = nDoubles;
         int nDirections = nDofs0 * blocksize0 + nDofs1 * blocksize1;
