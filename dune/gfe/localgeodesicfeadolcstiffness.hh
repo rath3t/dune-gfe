@@ -15,8 +15,6 @@
 #include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfestiffness.hh>
 
-#define ADOLC_VECTOR_MODE
-
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
 template<class Basis, class TargetSpace>
@@ -42,8 +40,9 @@ public:
     //! Dimension of the embedding space
     constexpr static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
-    LocalGeodesicFEADOLCStiffness(const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* energy)
-    : localEnergy_(energy)
+    LocalGeodesicFEADOLCStiffness(const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* energy, bool adolcScalarMode = false)
+    : localEnergy_(energy),
+      adolcScalarMode_(adolcScalarMode)
     {}
 
     /** \brief Compute the energy at the current configuration */
@@ -67,7 +66,7 @@ public:
                          std::vector<typename TargetSpace::TangentVector>& localGradient);
 
     const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
-
+    const bool adolcScalarMode_;
 };
 
 
@@ -251,62 +250,61 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
     Dune::Matrix<Dune::FieldMatrix<double,blocksize, embeddedBlocksize> > embeddedHessian(nDofs,nDofs);
 
-#ifndef ADOLC_VECTOR_MODE
-    std::vector<double> v(nDoubles);
-    std::vector<double> w(nDoubles);
+    if (adolcScalarMode_) {
+        std::vector<double> v(nDoubles);
+        std::vector<double> w(nDoubles);
 
-    std::fill(v.begin(), v.end(), 0.0);
+        std::fill(v.begin(), v.end(), 0.0);
 
-    for (size_t i=0; i<nDofs; i++)
-      for (int ii=0; ii<blocksize; ii++)
-      {
-        // Evaluate Hessian in the direction of each vector of the orthonormal frame
-        for (size_t k=0; k<embeddedBlocksize; k++)
-          v[i*embeddedBlocksize + k] = orthonormalFrame[i][ii][k];
+        for (size_t i=0; i<nDofs; i++)
+            for (int ii=0; ii<blocksize; ii++)
+            {
+                // Evaluate Hessian in the direction of each vector of the orthonormal frame
+                for (size_t k=0; k<embeddedBlocksize; k++)
+                    v[i*embeddedBlocksize + k] = orthonormalFrame[i][ii][k];
+    
+                int rc= 3;
+                MINDEC(rc, hess_vec(rank, nDoubles, xp.data(), v.data(), w.data()));
+                if (rc < 0)
+                    DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
+    
+                for (size_t j=0; j<nDoubles; j++)
+                    embeddedHessian[i][j/embeddedBlocksize][ii][j%embeddedBlocksize] = w[j];
+    
+                // Make v the null vector again
+                std::fill(&v[i*embeddedBlocksize], &v[(i+1)*embeddedBlocksize], 0.0);
+            }
+    } else { //ADOL-C vector mode
+        int n = nDoubles;
+        int nDirections = nDofs * blocksize;
+        double* tangent[nDoubles];
+        for(size_t i=0; i<nDoubles; i++)
+            tangent[i] = (double*)malloc(nDirections*sizeof(double));
 
-        int rc= 3;
-        MINDEC(rc, hess_vec(rank, nDoubles, xp.data(), v.data(), w.data()));
-        if (rc < 0)
-          DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
+        double* rawHessian[nDoubles];
+        for(size_t i=0; i<nDoubles; i++)
+            rawHessian[i] = (double*)malloc(nDirections*sizeof(double));
 
-        for (size_t j=0; j<nDoubles; j++)
-          embeddedHessian[i][j/embeddedBlocksize][ii][j%embeddedBlocksize] = w[j];
+        for (int j=0; j<nDirections; j++)
+        {
+          for (int i=0; i<n; i++)
+            tangent[i][j] = 0.0;
 
-        // Make v the null vector again
-        std::fill(&v[i*embeddedBlocksize], &v[(i+1)*embeddedBlocksize], 0.0);
-      }
-#else
-    int n = nDoubles;
-    int nDirections = nDofs * blocksize;
-    double* tangent[nDoubles];
-    for(size_t i=0; i<nDoubles; i++)
-        tangent[i] = (double*)malloc(nDirections*sizeof(double));
+          for (int i=0; i<embeddedBlocksize; i++)
+            tangent[(j/blocksize)*embeddedBlocksize+i][j] = orthonormalFrame[j/blocksize][j%blocksize][i];
+        }
+        hess_mat(rank,nDoubles,nDirections,xp.data(),tangent,rawHessian);
 
-    double* rawHessian[nDoubles];
-    for(size_t i=0; i<nDoubles; i++)
-        rawHessian[i] = (double*)malloc(nDirections*sizeof(double));
+        // Copy Hessian into Dune data type
+        for(size_t i=0; i<nDoubles; i++)
+          for (int j=0; j<nDirections; j++)
+            embeddedHessian[j/blocksize][i/embeddedBlocksize][j%blocksize][i%embeddedBlocksize] = rawHessian[i][j];
 
-    for (int j=0; j<nDirections; j++)
-    {
-      for (int i=0; i<n; i++)
-        tangent[i][j] = 0.0;
-
-      for (int i=0; i<embeddedBlocksize; i++)
-        tangent[(j/blocksize)*embeddedBlocksize+i][j] = orthonormalFrame[j/blocksize][j%blocksize][i];
+        for(size_t i=0; i<nDoubles; i++) {
+            free(rawHessian[i]);
+            free(tangent[i]);
+        }
     }
-    hess_mat(rank,nDoubles,nDirections,xp.data(),tangent,rawHessian);
-
-    // Copy Hessian into Dune data type
-    for(size_t i=0; i<nDoubles; i++)
-      for (int j=0; j<nDirections; j++)
-        embeddedHessian[j/blocksize][i/embeddedBlocksize][j%blocksize][i%embeddedBlocksize] = rawHessian[i][j];
-
-    for(size_t i=0; i<nDoubles; i++) {
-        free(rawHessian[i]);
-        free(tangent[i]);
-    }
-#endif
-
     // From this, compute the Hessian with respect to the manifold (which we assume here is embedded
     // isometrically in a Euclidean space.
     // For the detailed explanation of the following see: Absil, Mahoney, Trumpf, "An extrinsic look

@@ -139,6 +139,7 @@ int main (int argc, char *argv[]) try
     const double mgTolerance              = parameterSet.get<double>("mgTolerance");
     const double baseTolerance            = parameterSet.get<double>("baseTolerance");
     const bool instrumented               = parameterSet.get<bool>("instrumented");
+    const bool adolcScalarMode            = parameterSet.get<bool>("adolcScalarMode", false);
     std::string resultPath                = parameterSet.get("resultPath", "");
 
     // ///////////////////////////////////////
@@ -453,7 +454,7 @@ int main (int argc, char *argv[]) try
                                                                                             volumeLoad);
             MixedLocalGFEADOLCStiffness<CompositeBasis,
                                 RealTuple<double,3>,
-                                Rotation<double,3> > localGFEADOLCStiffness(&localCosseratEnergy);
+                                Rotation<double,3> > localGFEADOLCStiffness(&localCosseratEnergy, adolcScalarMode);
             MixedGFEAssembler<CompositeBasis,
                       RealTuple<double,3>,
                       Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
@@ -551,7 +552,7 @@ int main (int argc, char *argv[]) try
                                                                                                     &neumannBoundary,
                                                                                                     neumannFunction,
                                                                                                     volumeLoad);
-              localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<DeformationFEBasis, TargetSpace>>(&localCosseratEnergyPlanar);
+              localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<DeformationFEBasis, TargetSpace>>(&localCosseratEnergyPlanar, adolcScalarMode);
 
             GeodesicFEAssembler<DeformationFEBasis,TargetSpace> assembler(gridView, *localGFEADOLCStiffness);
             //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
