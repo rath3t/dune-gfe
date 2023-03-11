@@ -14,8 +14,6 @@
 
 #include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
 
-#define ADOLC_VECTOR_MODE
-
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
 template<class Basis, class TargetSpace0, class TargetSpace1>
@@ -46,8 +44,9 @@ public:
     constexpr static int embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension;
 
     MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0,
-                                                                    ATargetSpace1>* energy)
-    : localEnergy_(energy)
+                                                                    ATargetSpace1>* energy, bool adolcScalarMode = false)
+    : localEnergy_(energy),
+      adolcScalarMode_(adolcScalarMode)
     {}
 
     /** \brief Compute the energy at the current configuration */
@@ -75,7 +74,7 @@ public:
                                             std::vector<typename TargetSpace1::TangentVector>& localGradient1);
 
     const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0, ATargetSpace1>* localEnergy_;
-
+    const bool adolcScalarMode_;
 };
 
 
@@ -293,88 +292,118 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     Dune::Matrix<Dune::FieldMatrix<double,blocksize1, embeddedBlocksize0> > embeddedHessian10(nDofs1,nDofs0);
     Dune::Matrix<Dune::FieldMatrix<double,blocksize1, embeddedBlocksize1> > embeddedHessian11(nDofs1,nDofs1);
 
-#ifndef ADOLC_VECTOR_MODE
-#error ADOL-C scalar mode not implemented
-#if 0
-    std::vector<double> v(nDoubles);
-    std::vector<double> w(nDoubles);
+    if(adolcScalarMode_) {
+        std::vector<double> v(nDoubles);
+        std::vector<double> w(nDoubles);
 
-    std::fill(v.begin(), v.end(), 0.0);
+        std::fill(v.begin(), v.end(), 0.0);
 
-    for (int i=0; i<nDofs; i++)
-      for (int ii=0; ii<blocksize; ii++)
-      {
-        // Evaluate Hessian in the direction of each vector of the orthonormal frame
-        for (size_t k=0; k<embeddedBlocksize; k++)
-          v[i*embeddedBlocksize + k] = orthonormalFrame[i][ii][k];
+        size_t nDoubles0 = nDofs0*embeddedBlocksize0; // nDoubles = nDoubles0 + nDoubles1
+        size_t nDoubles1 = nDofs1*embeddedBlocksize1;
 
-        int rc= 3;
-        MINDEC(rc, hess_vec(1, nDoubles, xp.data(), v.data(), w.data()));
-        if (rc < 0)
-          DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
+        std::fill(v.begin(), v.end(), 0.0);
 
-        for (int j=0; j<nDoubles; j++)
-          embeddedHessian[i][j/embeddedBlocksize][ii][j%embeddedBlocksize] = w[j];
+        for (size_t i=0; i<nDofs0 + nDofs1; i++) {
 
-        // Make v the null vector again
-        std::fill(&v[i*embeddedBlocksize], &v[(i+1)*embeddedBlocksize], 0.0);
-      }
-#endif
-#else
-    int n = nDoubles;
-    int nDirections = nDofs0 * blocksize0 + nDofs1 * blocksize1;
-    double* tangent[nDoubles];
-    for(size_t i=0; i<nDoubles; i++)
-        tangent[i] = (double*)malloc(nDirections*sizeof(double));
+            // Evaluate Hessian in the direction of each vector of the orthonormal frame
+            if (i < nDofs0) { //Upper half
+                auto i0 = i;
+                for (int ii0=0; ii0<blocksize0; ii0++) {
+                    for (size_t k0=0; k0<embeddedBlocksize0; k0++) {
+                        v[i0*embeddedBlocksize0 + k0] = orthonormalFrame0[i0][ii0][k0];
+                    }
+                    int rc= 3;
+                    MINDEC(rc, hess_vec(rank, nDoubles, xp.data(), v.data(), w.data()));
+                    if (rc < 0)
+                        DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
 
-    double* rawHessian[nDoubles];
-    for(size_t i=0; i<nDoubles; i++)
-        rawHessian[i] = (double*)malloc(nDirections*sizeof(double));
+                    for (size_t j0=0; j0<nDoubles0; j0++) //Upper left
+                        embeddedHessian00[i0][j0/embeddedBlocksize0][ii0][j0%embeddedBlocksize0] = w[j0];
 
-    // Initialize directions field with zeros
-    for (int j=0; j<nDirections; j++)
-      for (int i=0; i<n; i++)
-        tangent[i][j] = 0.0;
+                    for (size_t j1=0; j1<nDoubles1; j1++) //Upper right
+                        embeddedHessian01[i0][j1/embeddedBlocksize1][ii0][j1%embeddedBlocksize1] = w[nDoubles0 + j1];
+            
+                    // Make v the null vector again
+                    std::fill(&v[i0*embeddedBlocksize0], &v[(i0+1)*embeddedBlocksize0], 0.0);
+                }
+            } else  { // i = nDofs0 ... nDofs0 + nDofs1 //lower half
+                auto i1 = i - nDofs0;
+                for (int ii1=0; ii1<blocksize1; ii1++) {
+                    for (size_t k1=0; k1<embeddedBlocksize1; k1++) {
+                        v[nDoubles0 + i1*embeddedBlocksize1 + k1] = orthonormalFrame1[i1][ii1][k1];
+                    }
+                    int rc= 3;
+                    MINDEC(rc, hess_vec(rank, nDoubles, xp.data(), v.data(), w.data()));
+                    if (rc < 0)
+                        DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
 
-    for (size_t j=0; j<nDofs0*blocksize0; j++)
-      for (int i=0; i<embeddedBlocksize0; i++)
-        tangent[(j/blocksize0)*embeddedBlocksize0+i][j] = orthonormalFrame0[j/blocksize0][j%blocksize0][i];
+                    for (size_t j0=0; j0<nDoubles0; j0++) //Uppper left
+                        embeddedHessian10[i1][j0/embeddedBlocksize0][ii1][j0%embeddedBlocksize0] = w[j0];
 
-    for (size_t j=0; j<nDofs1*blocksize1; j++)
-      for (int i=0; i<embeddedBlocksize1; i++)
-        tangent[nDofs0*embeddedBlocksize0 + (j/blocksize1)*embeddedBlocksize1+i][nDofs0*blocksize0 + j] = orthonormalFrame1[j/blocksize1][j%blocksize1][i];
+                    for (size_t j1=0; j1<nDoubles1; j1++) //Upper right
+                        embeddedHessian11[i1][j1/embeddedBlocksize1][ii1][j1%embeddedBlocksize1] = w[nDoubles0 + j1];
+            
+                    // Make v the null vector again
+                    std::fill(&v[nDoubles0 + i1*embeddedBlocksize1], &v[nDoubles0 + (i1+1)*embeddedBlocksize1], 0.0);
+                }
+            }
+        }
 
-    hess_mat(rank,nDoubles,nDirections,xp.data(),tangent,rawHessian);
+    } else { //ADOL-C vector mode}
+        int n = nDoubles;
+        int nDirections = nDofs0 * blocksize0 + nDofs1 * blocksize1;
+        double* tangent[nDoubles];
+        for(size_t i=0; i<nDoubles; i++)
+            tangent[i] = (double*)malloc(nDirections*sizeof(double));
 
-    // Copy Hessian into Dune data type
-    size_t offset0 = nDofs0*embeddedBlocksize0;
-    size_t offset1 = nDofs0*blocksize0;
+        double* rawHessian[nDoubles];
+        for(size_t i=0; i<nDoubles; i++)
+            rawHessian[i] = (double*)malloc(nDirections*sizeof(double));
 
-    // upper left block
-    for(size_t i=0; i<nDofs0*embeddedBlocksize0; i++)
-      for (size_t j=0; j<nDofs0*blocksize0; j++)
-        embeddedHessian00[j/blocksize0][i/embeddedBlocksize0][j%blocksize0][i%embeddedBlocksize0] = rawHessian[i][j];
+        // Initialize directions field with zeros
+        for (int j=0; j<nDirections; j++)
+          for (int i=0; i<n; i++)
+            tangent[i][j] = 0.0;
 
-    // upper right block
-    for(size_t i=0; i<nDofs1*embeddedBlocksize1; i++)
-      for (size_t j=0; j<nDofs0*blocksize0; j++)
-        embeddedHessian01[j/blocksize0][i/embeddedBlocksize1][j%blocksize0][i%embeddedBlocksize1] = rawHessian[offset0+i][j];
+        for (size_t j=0; j<nDofs0*blocksize0; j++)
+          for (int i=0; i<embeddedBlocksize0; i++)
+            tangent[(j/blocksize0)*embeddedBlocksize0+i][j] = orthonormalFrame0[j/blocksize0][j%blocksize0][i];
 
-    // lower left block
-    for(size_t i=0; i<nDofs0*embeddedBlocksize0; i++)
-      for (size_t j=0; j<nDofs1*blocksize1; j++)
-        embeddedHessian10[j/blocksize1][i/embeddedBlocksize0][j%blocksize1][i%embeddedBlocksize0] = rawHessian[i][offset1+j];
+        for (size_t j=0; j<nDofs1*blocksize1; j++)
+          for (int i=0; i<embeddedBlocksize1; i++)
+            tangent[nDofs0*embeddedBlocksize0 + (j/blocksize1)*embeddedBlocksize1+i][nDofs0*blocksize0 + j] = orthonormalFrame1[j/blocksize1][j%blocksize1][i];
 
-    // lower right block
-    for(size_t i=0; i<nDofs1*embeddedBlocksize1; i++)
-      for (size_t j=0; j<nDofs1*blocksize1; j++)
-        embeddedHessian11[j/blocksize1][i/embeddedBlocksize1][j%blocksize1][i%embeddedBlocksize1] = rawHessian[offset0+i][offset1+j];
+        hess_mat(rank,nDoubles,nDirections,xp.data(),tangent,rawHessian);
 
-    for(size_t i=0; i<nDoubles; i++) {
-        free(rawHessian[i]);
-        free(tangent[i]);
+        // Copy Hessian into Dune data type
+        size_t offset0 = nDofs0*embeddedBlocksize0;
+        size_t offset1 = nDofs0*blocksize0;
+
+        // upper left block
+        for(size_t i=0; i<nDofs0*embeddedBlocksize0; i++)
+          for (size_t j=0; j<nDofs0*blocksize0; j++)
+            embeddedHessian00[j/blocksize0][i/embeddedBlocksize0][j%blocksize0][i%embeddedBlocksize0] = rawHessian[i][j];
+
+        // upper right block
+        for(size_t i=0; i<nDofs1*embeddedBlocksize1; i++)
+          for (size_t j=0; j<nDofs0*blocksize0; j++)
+            embeddedHessian01[j/blocksize0][i/embeddedBlocksize1][j%blocksize0][i%embeddedBlocksize1] = rawHessian[offset0+i][j];
+
+        // lower left block
+        for(size_t i=0; i<nDofs0*embeddedBlocksize0; i++)
+          for (size_t j=0; j<nDofs1*blocksize1; j++)
+            embeddedHessian10[j/blocksize1][i/embeddedBlocksize0][j%blocksize1][i%embeddedBlocksize0] = rawHessian[i][offset1+j];
+
+        // lower right block
+        for(size_t i=0; i<nDofs1*embeddedBlocksize1; i++)
+          for (size_t j=0; j<nDofs1*blocksize1; j++)
+            embeddedHessian11[j/blocksize1][i/embeddedBlocksize1][j%blocksize1][i%embeddedBlocksize1] = rawHessian[offset0+i][offset1+j];
+
+        for(size_t i=0; i<nDoubles; i++) {
+            free(rawHessian[i]);
+            free(tangent[i]);
+        }
     }
-#endif
 
     // From this, compute the Hessian with respect to the manifold (which we assume here is embedded
     // isometrically in a Euclidean space.
