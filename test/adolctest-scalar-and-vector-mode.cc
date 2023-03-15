@@ -82,17 +82,6 @@ int main (int argc, char *argv[])
 
   using namespace Functions::BasisFactory;
 
-  auto compositeBasisMixed = makeBasis(
-    gridView,
-    composite(
-      power<dim>(
-        lagrange<2>()
-      ),
-      power<dim>(
-        lagrange<1>()
-      )
-  ));
-
   auto compositeBasis = makeBasis(
     gridView,
     composite(
