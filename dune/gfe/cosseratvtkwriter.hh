@@ -126,6 +126,21 @@ public:
       }
       write(basis,xRBM,filename);
     }
+     /** \brief Write a configuration given with respect to a scalar function space basis
+     */
+    template <typename Basis, typename VectorType>
+    static void write(const Basis& basis,
+                      const VectorType& configuration,
+                      const std::string& filename)
+    {
+      using namespace Dune::TypeTree::Indices;
+      std::vector<RigidBodyMotion<double,3>> xRBM(basis.size());
+      for (std::size_t i = 0; i < basis.size(); i++) {
+        for (int j = 0; j < 3; j ++) // Displacement part
+          xRBM[i].r[j] = configuration[i][j];
+      }
+      write(basis,xRBM,filename);
+    }
 
     /** \brief Write a configuration given with respect to a scalar function space basis
      */
