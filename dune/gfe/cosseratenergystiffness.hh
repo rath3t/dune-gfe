@@ -99,7 +99,8 @@ public:
                                  const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction,
                                  const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad)
     : neumannBoundary_(neumannBoundary),
-      neumannFunction_(neumannFunction)
+      neumannFunction_(neumannFunction),
+      volumeLoad_(volumeLoad)
     {
         // The shell thickness
         thickness_ = parameters.template get<double>("thickness");
@@ -371,7 +372,7 @@ energy(const typename Basis::LocalView& localView,
 
         // Only translational dofs are affected by the volume load
         for (size_t i=0; i<volumeLoadDensity.size(); i++)
-            energy += thickness_ * (volumeLoadDensity[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+            energy += (volumeLoadDensity[i] * value.r[i]) * quad[pt].weight() * integrationElement;
     }
 
 
@@ -405,7 +406,7 @@ energy(const typename Basis::LocalView& localView,
 
             // Only translational dofs are affected by the Neumann force
             for (size_t i=0; i<neumannValue.size(); i++)
-                energy += thickness_ * (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+                energy += (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
 
         }
 
@@ -513,6 +514,20 @@ energy(const typename Basis::LocalView& localView,
         } else
             DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
 
+        ///////////////////////////////////////////////////////////
+        // Volume load contribution
+        ///////////////////////////////////////////////////////////
+        if (not volumeLoad_)
+            continue;
+
+        // Value of the volume load density at the current position
+        auto volumeLoadDensity = volumeLoad_(element.geometry().global(quad[pt].position()));
+
+
+        // Only translational dofs are affected by the volume load
+        for (size_t i=0; i<volumeLoadDensity.size(); i++)
+            energy += (volumeLoadDensity[i] * deformationValue[i]) * quad[pt].weight() * integrationElement;
+
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -544,7 +559,7 @@ energy(const typename Basis::LocalView& localView,
 
             // Only translational dofs are affected by the Neumann force
             for (size_t i=0; i<neumannValue.size(); i++)
-                energy += thickness_ * (neumannValue[i] * deformationValue.globalCoordinates()[i]) * quad[pt].weight() * integrationElement;
+                energy += (neumannValue[i] * deformationValue.globalCoordinates()[i]) * quad[pt].weight() * integrationElement;
 
         }
 

@@ -199,11 +199,11 @@ int main (int argc, char *argv[]) try
 
     using namespace Dune::Functions::BasisFactory;
 
-    const int dimRotation = Rotation<double,dim>::embeddedDim;
+    const int dimRotation = Rotation<double,3>::embeddedDim;
     auto compositeBasis = makeBasis(
       gridView,
       composite(
-        power<dim>(
+        power<3>(
             lagrange<displacementOrder>()
         ),
         power<dimRotation>(
@@ -403,15 +403,14 @@ int main (int argc, char *argv[]) try
       return nV;
     };
 
-    FieldVector<double,3> volumeLoadValues {0,0,0};
-    if (parameterSet.hasKey("volumeLoad"))
-        volumeLoadValues = parameterSet.get<FieldVector<double,3> >("volumeLoad");
+    Python::Reference volumeLoadClass = Python::import(parameterSet.get<std::string>("volumeLoadPythonFunction", "zero-volume-load"));
+    Python::Callable volumeLoadCallable = volumeLoadClass.get("VolumeLoad");
 
-    auto volumeLoad = [&]( FieldVector<double,dimworld>) {
-      auto vL = volumeLoadValues;
-      vL *= (-homotopyParameter);
-      return vL;
-    };
+    // Call a constructor
+    Python::Reference volumeLoadPythonObject = volumeLoadCallable(homotopyParameter);
+
+    // Extract object member functions as Dune functions
+    auto volumeLoad = Python::make_function<FieldVector<double,3> > (volumeLoadPythonObject.get("volumeLoad"));
 
     if (mpiHelper.rank() == 0) {
         std::cout << "Material parameters:" << std::endl;

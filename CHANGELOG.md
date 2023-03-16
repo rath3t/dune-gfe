@@ -1,5 +1,10 @@
 # Master
 
+- Do not scale the density functions  with the thickness to avoid confusion
+  since some densities need to be scaled and some do not need to be scaled
+  with the thickness depending on the dimension of the grid, their direction
+  and their kind (Neumann or volume load).
+
 - Fix bug in the `RealTuple::log` method: Calling `log(a,b)`returned `a-b`
   instead of `b-a`.
 
