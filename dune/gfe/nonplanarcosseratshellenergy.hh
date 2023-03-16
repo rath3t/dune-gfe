@@ -157,8 +157,8 @@ public:
 
   /** \brief Indicator to use the alternative energy W_Coss from Birsan 2021:
              Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126). */
-
   bool useAlternativeEnergyWCoss_;
+
   /** \brief The geometry used for assembling */
   const StressFreeStateGridFunction* stressFreeStateGridFunction_;
 
