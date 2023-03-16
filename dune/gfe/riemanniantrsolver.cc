@@ -22,7 +22,8 @@
 #include <dune/solvers/norms/twonorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3))
 #include <dune/gfe/parallel/matrixcommunicator.hh>
 #include <dune/gfe/parallel/vectorcommunicator.hh>
 #endif
@@ -60,11 +61,12 @@ setup(const GridType& grid,
 
     int numLevels = grid_->maxLevel()+1;
 
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     //////////////////////////////////////////////////////////////////
     //  Create global numbering for matrix and vector transfer
     //////////////////////////////////////////////////////////////////
 
-#if HAVE_MPI
     globalMapper_ = std::make_unique<GlobalMapper>(grid_->leafGridView());
 #endif
 
@@ -89,7 +91,8 @@ setup(const GridType& grid,
                                                                             baseNorm,
                                                                             Solver::QUIET);
 #endif
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     // Transfer all Dirichlet data to the master processor
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
                                                                                                                                      grid_->leafGridView().comm(),
@@ -124,7 +127,8 @@ setup(const GridType& grid,
 
     operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localA), laplaceStiffness);
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
 
     MatrixCommunicator<GlobalMapper,
@@ -156,7 +160,8 @@ setup(const GridType& grid,
 
     operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localMassMatrix), massStiffness);
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     auto massMatrix = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localMassMatrix));
 #else
     auto massMatrix = std::make_shared<ScalarMatrixType>(localMassMatrix);
@@ -205,7 +210,9 @@ setup(const GridType& grid,
 
         TransferOperatorType pkToP1TransferMatrix;
         assembleGlobalBasisTransferMatrix(pkToP1TransferMatrix,p1Basis,basis);
-#if HAVE_MPI
+
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
         typedef Dune::GlobalP1Mapper<Dune::Functions::LagrangeBasis<typename Basis::GridView,1>> GlobalLeafP1Mapper;
@@ -237,7 +244,8 @@ setup(const GridType& grid,
         // Construct the local multigrid transfer matrix
         auto newTransferOp = std::make_unique<TruncatedCompressedMGTransfer<CorrectionType>>();
         newTransferOp->setup(*grid_,i,i+1);
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
         // If we are on more than 1 processors, join all local transfer matrices on rank 0,
         // and construct a single global transfer operator there.
         typedef Dune::Functions::LagrangeBasis<typename GridType::LevelGridView, 1> FEBasis;
@@ -250,7 +258,8 @@ setup(const GridType& grid,
         LevelLocalMapper coarseLevelLocalMapper(grid_->levelGridView(i), Dune::mcmgVertexLayout());
 #endif
         typedef typename TruncatedCompressedMGTransfer<CorrectionType>::TransferOperatorType TransferOperatorType;
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
         MatrixCommunicator<GlobalLevelP1Mapper,
                            typename GridType::LevelGridView,
                            typename GridType::LevelGridView,
@@ -274,7 +283,8 @@ setup(const GridType& grid,
 
     if (rank==0)
     {
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
         hasObstacle_.resize(globalMapper_->size(), true);
 #else
         hasObstacle_.resize(basis.size(), true);
@@ -298,7 +308,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
         mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(&loopSolver->getIterationStep());
     }
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     MaxNormTrustRegion<blocksize> trustRegion(globalMapper_->size(), initialTrustRegionRadius_);
 #else
     const Basis& basis = assembler_->getBasis();
@@ -337,7 +348,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
     CorrectionType rhs;
     MatrixType stiffnessMatrix;
     CorrectionType rhs_global;
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*globalMapper_,
                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                      0);
@@ -388,7 +400,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
             rhs *= -1;        // The right hand side is the _negative_ gradient
 
             // Transfer vector data
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
             rhs_global = vectorComm.reduceAdd(rhs);
 #else
             rhs_global = rhs;
@@ -407,8 +420,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
               std::cout << "Overall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             totalAssemblyTime += gradientTimer.elapsed();
 
-            // Transfer matrix data
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
             stiffnessMatrix = matrixComm.reduceAdd(*hessianMatrix_);
 #else
             stiffnessMatrix = *hessianMatrix_;
@@ -456,7 +469,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
         if (grid_->comm().size()>1 and rank==0)
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
         solved = grid_->comm().min(solved);
         if (solved) {
             corr = vectorComm.scatter(corr_global);

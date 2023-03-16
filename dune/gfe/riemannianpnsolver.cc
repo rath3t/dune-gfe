@@ -21,7 +21,8 @@
 #include <dune/solvers/norms/twonorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
 #include <dune/gfe/parallel/matrixcommunicator.hh>
 #include <dune/gfe/parallel/vectorcommunicator.hh>
 #endif
@@ -46,15 +47,13 @@ setup(const GridType& grid,
     instrumented_             = instrumented;
     ignoreNodes_              = &dirichletNodes;
 
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     //////////////////////////////////////////////////////////////////
     //  Create global numbering for matrix and vector transfer
     //////////////////////////////////////////////////////////////////
 
-#if HAVE_MPI
     globalMapper_ = std::make_unique<GlobalMapper>(grid_->leafGridView());
-#endif
-    
-#if HAVE_MPI
     // Transfer all Dirichlet data to the master processor
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
                                                                                                                                      grid_->leafGridView().comm(),
@@ -77,7 +76,8 @@ setup(const GridType& grid,
 
     operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localA), laplaceStiffness);
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
 
     MatrixCommunicator<GlobalMapper,
@@ -115,7 +115,8 @@ setup(const GridType& grid,
 
     operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localMassMatrix), massStiffness);
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     auto massMatrix = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localMassMatrix));
 #else
     auto massMatrix = std::make_shared<ScalarMatrixType>(localMassMatrix);
@@ -170,7 +171,8 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
     bool recomputeGradientHessian = true;
     CorrectionType rhs, rhs_global;
     MatrixType stiffnessMatrix;
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*globalMapper_,
                                                                                                                      grid_->leafGridView().comm(),
                                                                                                                      0);
@@ -216,7 +218,8 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
             rhs *= -1;        // The right hand side is the _negative_ gradient
 
             // Transfer vector data
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
             rhs_global = vectorComm.reduceAdd(rhs);
 #else
             rhs_global = rhs;
@@ -234,8 +237,8 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
               std::cout << "Overall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
             totalAssemblyTime += gradientTimer.elapsed();
 
-            // Transfer matrix data
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
             stiffnessMatrix = matrixComm.reduceAdd(*hessianMatrix_);
 #else
             stiffnessMatrix = *hessianMatrix_;
@@ -280,7 +283,8 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
         if (grid_->comm().size()>1 and rank==0)
             std::cout << "Transfer solution back to root process ..." << std::endl;
 
-#if HAVE_MPI
+// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
+#if HAVE_MPI && (!defined(GRID_DIM) or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM) or (defined(WORLD_DIM) && WORLD_DIM < 3))
         solved = grid_->comm().min(solved);
         if (solved) {
             corr = vectorComm.scatter(corr_global);

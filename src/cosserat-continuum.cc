@@ -66,8 +66,8 @@
 
 
 // grid dimension
-const int dim = 2;
-const int dimworld = 2;
+const int dim = GRID_DIM;
+const int dimworld = WORLD_DIM;
 
 // Order of the approximation space for the displacement
 const int displacementOrder = 2;
