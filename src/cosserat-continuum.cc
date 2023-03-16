@@ -1,4 +1,19 @@
-#define MIXED_SPACE 0
+#ifndef LFE_ORDER
+    #define LFE_ORDER 2
+#endif
+
+#ifndef GFE_ORDER
+    #define GFE_ORDER 1
+#endif
+
+#ifndef MIXED_SPACE
+    #if LFE_ORDER != GFE_ORDER
+    #define MIXED_SPACE 1
+    #else
+    #define MIXED_SPACE 0
+    #endif
+#endif
+
 //#define PROJECTED_INTERPOLATION
 
 #include <config.h>
@@ -70,10 +85,10 @@ const int dim = GRID_DIM;
 const int dimworld = WORLD_DIM;
 
 // Order of the approximation space for the displacement
-const int displacementOrder = 2;
+const int displacementOrder = LFE_ORDER;
 
 // Order of the approximation space for the microrotations
-const int rotationOrder = 2;
+const int rotationOrder = GFE_ORDER;
 
 #if !MIXED_SPACE
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
