@@ -322,6 +322,8 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
     CorrectionType rhs;
     MatrixType stiffnessMatrix;
     CorrectionType rhs_global;
+    double totalAssemblyTime = 0.0;
+    double totalSolverTime = 0.0;
 #if 0
     VectorCommunicator<GUIndex, CorrectionType> vectorComm(*guIndex_, 0);
     MatrixCommunicator<GUIndex, MatrixType> matrixComm(*guIndex_, 0);
@@ -359,6 +361,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
             if (this->verbosity_ == Solver::FULL)
               std::cout << "Assembly took " << assemblyTimer.elapsed() << " sec." << std::endl;
+            totalAssemblyTime += assemblyTimer.elapsed();
 
             // Transfer matrix data
 #if 0
@@ -448,7 +451,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
             }
 
             std::cout << "Solving the quadratic problem took " << solutionTimer.elapsed() << " seconds and " << ii << " steps." << std::endl;
-
+            totalSolverTime += solutionTimer.elapsed();
             //std::cout << "Correction: " << std::endl << corr_global << std::endl;
 
         }
@@ -472,7 +475,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
                   std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
               if (verbosity_ != NumProc::QUIET and rank==0)
-                  std::cout << i+1 << " trust-region steps were taken." << std::endl;
+                  std::cout << i+1 << " trust-region steps were taken" << std::endl << "Total solver time: " << totalSolverTime << " sec., total assembly time: " << totalAssemblyTime << " sec." << std::endl;
               break;
           }
 
