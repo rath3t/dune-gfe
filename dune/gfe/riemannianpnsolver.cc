@@ -375,7 +375,7 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
             if (this->verbosity_ == NumProc::FULL && rank==0)
                 std::cout << "Infinity norm of the correction: " << corrGlobalInfinityNorm << std::endl;
 
-            if (corrGlobalInfinityNorm < this->tolerance_) {
+            if (corrGlobalInfinityNorm < this->tolerance_ && corrGlobalInfinityNorm < 1/regularization) {
                 if (this->verbosity_ == NumProc::FULL and rank==0)
                     std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
