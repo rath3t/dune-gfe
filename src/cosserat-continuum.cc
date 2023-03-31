@@ -477,7 +477,7 @@ int main (int argc, char *argv[]) try
                      baseTolerance,
                      instrumented);
 
-            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+            solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
 
             solver.setInitialIterate(x);
             solver.solve();
@@ -516,7 +516,7 @@ int main (int argc, char *argv[]) try
                          baseTolerance,
                          instrumented);
     
-                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
@@ -530,6 +530,7 @@ int main (int argc, char *argv[]) try
                              maxSolverSteps,
                              initialRegularization,
                              instrumented);
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
@@ -577,7 +578,7 @@ int main (int argc, char *argv[]) try
                      baseTolerance,
                      instrumented);
 
-            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+            solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
 
             solver.setInitialIterate(x);
             solver.solve();
@@ -616,7 +617,7 @@ int main (int argc, char *argv[]) try
                          baseTolerance,
                          instrumented);
 
-                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
@@ -630,6 +631,7 @@ int main (int argc, char *argv[]) try
                              maxSolverSteps,
                              initialRegularization,
                              instrumented);
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();

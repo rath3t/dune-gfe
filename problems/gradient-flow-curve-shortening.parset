@@ -20,6 +20,8 @@ tolerance = 1e-8
 # Max number of steps of the trust region solver
 maxTrustRegionSteps = 100
 
+solverScaling = 1 1 1 0.01 0.01 0.01
+
 # Initial trust-region radius
 initialTrustRegionRadius = 0.25
 

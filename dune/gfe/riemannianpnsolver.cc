@@ -253,7 +253,7 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
             // Add the regularization - Identity Matrix for now
             for (std::size_t i=0; i<stiffnessMatrix.N(); i++)
               for(int j=0; j<blocksize; j++)
-                stiffnessMatrix[i][i][j][j] += regularization;
+                stiffnessMatrix[i][i][j][j] += regularization*scaling_[j];
 
             innerSolver_->setProblem(stiffnessMatrix,corr_global,rhs_global);
             innerSolver_->preprocess();
