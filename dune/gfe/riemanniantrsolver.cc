@@ -546,8 +546,8 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
             std::cout << i+1 << " trust-region steps were taken, the maximum was reached." << std::endl << "Total solver time: " << totalSolverTime << " sec., total assembly time: " << totalAssemblyTime << " sec." << std::endl;
 
         if (solved) {
-            if (this->verbosity_ == NumProc::FULL)
-                std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
+            if (this->verbosity_ == NumProc::FULL and rank==0)
+                std::cout << "Infinity norm of the correction: " << corrGlobalInfinityNorm << std::endl;
 
             if (corrGlobalInfinityNorm < this->tolerance_ && corrGlobalInfinityNorm < trustRegion.radius()*smallestScalingParameter) {
                 if (this->verbosity_ == NumProc::FULL and rank==0)
