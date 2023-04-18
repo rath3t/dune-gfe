@@ -305,6 +305,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
     MaxNormTrustRegion<blocksize> trustRegion(basis.size(), initialTrustRegionRadius_);
 #endif
     trustRegion.set(initialTrustRegionRadius_, scaling_);
+    auto smallestScalingParameter = *std::min_element(std::begin(scaling_), std::end(scaling_));
 
     std::vector<BoxConstraint<field_type,blocksize> > trustRegionObstacles;
 
@@ -548,7 +549,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
             if (this->verbosity_ == NumProc::FULL)
                 std::cout << "Infinity norm of the correction: " << corr.infinity_norm() << std::endl;
 
-            if (corrGlobalInfinityNorm < this->tolerance_) {
+            if (corrGlobalInfinityNorm < this->tolerance_ && corrGlobalInfinityNorm < trustRegion.radius()*smallestScalingParameter) {
                 if (this->verbosity_ == NumProc::FULL and rank==0)
                     std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
@@ -650,6 +651,14 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
 
             if (this->verbosity_ == NumProc::FULL and rank==0)
                 std::cout << "Unsuccessful iteration!" << std::endl;
+            if (trustRegion.radius() < 1e-9) {
+                if (this->verbosity_ == NumProc::FULL and rank==0)
+                    std::cout << "The radius is too small to continue with a meaningful calculation!" << std::endl;
+
+                if (this->verbosity_ != NumProc::QUIET and rank==0)
+                    std::cout << i+1 << " trust-region steps were taken" << std::endl << "Total solver time: " << totalSolverTime << " sec., total assembly time: " << totalAssemblyTime << " sec." << std::endl;
+                break;
+            }
         }
 
         // /////////////////////////////////////////////////////////////////////

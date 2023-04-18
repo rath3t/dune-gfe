@@ -42,7 +42,6 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/nonplanarcosseratshellenergy.hh>
@@ -540,20 +539,50 @@ int main (int argc, char *argv[]) try
               x[_1][i] = xTargetSpace[i].q;
             }
 #endif
-        } else {
-#if MIXED_SPACE
-            DUNE_THROW(Exception, "Problems with dim != dimworld do not work for MIXED_SPACE = 1!");
-#else
-            std::shared_ptr<LocalGeodesicFEADOLCStiffness<DeformationFEBasis, TargetSpace>> localGFEADOLCStiffness;
+        } else { //dim != dimworld
+            using StiffnessType = MixedLocalGFEADOLCStiffness<CompositeBasis, RealTuple<double,3>, Rotation<double,3>>;
+            std::shared_ptr<StiffnessType> localGFEStiffness;
 
-            NonplanarCosseratShellEnergy<DeformationFEBasis, 3, adouble> localCosseratEnergyPlanar(materialParameters,
+            NonplanarCosseratShellEnergy< CompositeBasis, 3, adouble,
+            Dune::Functions::DiscreteGlobalBasisFunction< DeformationFEBasis,std::vector<Dune::FieldVector<double, dimworld>> >>
+                                                                localCosseratEnergyPlanar(materialParameters,
                                                                                                     nullptr,
                                                                                                     &neumannBoundary,
                                                                                                     neumannFunction,
                                                                                                     volumeLoad);
-              localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<DeformationFEBasis, TargetSpace>>(&localCosseratEnergyPlanar, adolcScalarMode);
 
-            GeodesicFEAssembler<DeformationFEBasis,TargetSpace> assembler(gridView, *localGFEADOLCStiffness);
+              localGFEStiffness = std::make_shared<StiffnessType>(&localCosseratEnergyPlanar, adolcScalarMode);
+
+            MixedGFEAssembler<CompositeBasis,
+                      RealTuple<double,3>,
+                      Rotation<double,3> > mixedAssembler(compositeBasis, localGFEStiffness.get());
+#if MIXED_SPACE
+            MixedRiemannianTrustRegionSolver<GridType,
+                                         CompositeBasis,
+                                         DeformationFEBasis, RealTuple<double,3>,
+                                         OrientationFEBasis, Rotation<double,3> > solver;
+            solver.setup(*grid,
+                     &mixedAssembler,
+                     deformationFEBasis,
+                     orientationFEBasis,
+                     x,
+                     deformationDirichletDofs,
+                     orientationDirichletDofs, tolerance,
+                     maxSolverSteps,
+                     initialTrustRegionRadius,
+                     multigridIterations,
+                     mgTolerance,
+                     mu, nu1, nu2,
+                     baseIterations,
+                     baseTolerance,
+                     instrumented);
+
+            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+
+            solver.setInitialIterate(x);
+            solver.solve();
+            x = solver.getSol();
+#else
             //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
             //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a RigidBodyMotion
             //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
@@ -568,9 +597,11 @@ int main (int argc, char *argv[]) try
               for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
                 dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
             }
-            if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 
-                RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace> solver;
+            using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace, RealTuple<double, 3>, Rotation<double,3>>;
+            GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
+            if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
+                RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
                 solver.setup(*grid,
                          &assembler,
                          xTargetSpace,
@@ -590,7 +621,7 @@ int main (int argc, char *argv[]) try
                 solver.solve();
                 xTargetSpace = solver.getSol();
             } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
-                RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace> solver;
+                RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
                 solver.setup(*grid,
                              &assembler,
                              xTargetSpace,
