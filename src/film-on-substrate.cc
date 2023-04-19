@@ -1,4 +1,19 @@
-#define MIXED_SPACE 0
+#ifndef LFE_ORDER
+    #define LFE_ORDER 2
+#endif
+
+#ifndef GFE_ORDER
+    #define GFE_ORDER 2
+#endif
+
+#ifndef MIXED_SPACE
+    #if LFE_ORDER != GFE_ORDER
+    #define MIXED_SPACE 1
+    #else
+    #define MIXED_SPACE 0
+    #endif
+#endif
+
 #include <iostream>
 #include <fstream>
 
@@ -63,16 +78,12 @@
 #include <dune/solvers/norms/energynorm.hh>
 
 
-// grid dimension
-#ifndef WORLD_DIM
-#  define WORLD_DIM 3
-#endif
 const int dim = WORLD_DIM;
 
 const int targetDim = WORLD_DIM;
 
-const int displacementOrder = 2;
-const int rotationOrder = 2;
+const int displacementOrder = GFE_ORDER;
+const int rotationOrder = LFE_ORDER;
 
 const int stressFreeDataOrder = 2;
 
