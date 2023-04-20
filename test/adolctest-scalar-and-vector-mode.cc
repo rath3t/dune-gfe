@@ -108,6 +108,9 @@ int main (int argc, char *argv[])
   parameters["L_c"] = "0.01";
   parameters["q"] = "2";
   parameters["kappa"] = "1";
+  parameters["b1"] = "1";
+  parameters["b2"] = "1";
+  parameters["b3"] = "1";
 
   //Mixed space
   CosseratEnergyLocalStiffness<decltype(compositeBasis), dim,adouble> cosseratEnergyMixed(parameters,

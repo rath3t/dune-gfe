@@ -87,7 +87,7 @@ initialRegularization = 1000000
 #  Solver parameters specific for trust-region solver using multigrid solver 
 #############################################
 
-trustRegionScaling = 1 1 1 0.01 0.01 0.01
+solverScaling = 1 1 1 0.01 0.01 0.01
 
 # Initial trust-region radius
 initialTrustRegionRadius = 3.125

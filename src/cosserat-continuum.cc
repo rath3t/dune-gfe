@@ -1,4 +1,19 @@
-#define MIXED_SPACE 0
+#ifndef LFE_ORDER
+    #define LFE_ORDER 2
+#endif
+
+#ifndef GFE_ORDER
+    #define GFE_ORDER 1
+#endif
+
+#ifndef MIXED_SPACE
+    #if LFE_ORDER != GFE_ORDER
+    #define MIXED_SPACE 1
+    #else
+    #define MIXED_SPACE 0
+    #endif
+#endif
+
 //#define PROJECTED_INTERPOLATION
 
 #include <config.h>
@@ -66,14 +81,14 @@
 
 
 // grid dimension
-const int dim = 2;
-const int dimworld = 2;
+const int dim = GRID_DIM;
+const int dimworld = WORLD_DIM;
 
 // Order of the approximation space for the displacement
-const int displacementOrder = 2;
+const int displacementOrder = LFE_ORDER;
 
 // Order of the approximation space for the microrotations
-const int rotationOrder = 2;
+const int rotationOrder = GFE_ORDER;
 
 #if !MIXED_SPACE
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
@@ -106,8 +121,7 @@ int main (int argc, char *argv[]) try
     //feenableexcept(FE_INVALID);
     Python::runStream()
         << std::endl << "import sys"
-        << std::endl << "import os"
-        << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
+        << std::endl << "sys.path.append('" << argv[1] << "')"
         << std::endl;
 
     using namespace TypeTree::Indices;
@@ -116,10 +130,10 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ParameterTree parameterSet;
-    if (argc < 2)
-      DUNE_THROW(Exception, "Usage: ./cosserat-continuum <parameter file>");
+    if (argc < 3)
+      DUNE_THROW(Exception, "Usage: ./cosserat-continuum <python path> <parameter file>");
 
-    ParameterTreeParser::readINITree(argv[1], parameterSet);
+    ParameterTreeParser::readINITree(argv[2], parameterSet);
 
     ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
@@ -139,7 +153,7 @@ int main (int argc, char *argv[]) try
     const double baseTolerance            = parameterSet.get<double>("baseTolerance");
     const bool instrumented               = parameterSet.get<bool>("instrumented");
     const bool adolcScalarMode            = parameterSet.get<bool>("adolcScalarMode", false);
-    std::string resultPath                = parameterSet.get("resultPath", "");
+    const std::string resultPath          = parameterSet.get("resultPath", "");
 
     // ///////////////////////////////////////
     //    Create the grid
@@ -167,7 +181,7 @@ int main (int argc, char *argv[]) try
         grid = StructuredGridFactory<GridType>::createCubeGrid(lower, upper, elements);
 
     } else {
-        std::string path                = parameterSet.get<std::string>("path");
+        std::string path                = parameterSet.get<std::string>("path", "");
         std::string gridFile            = parameterSet.get<std::string>("gridFile");
 
         // Guess the grid file format by looking at the file name suffix
@@ -225,26 +239,45 @@ int main (int argc, char *argv[]) try
         )
     ));
 
+    BlockVector<FieldVector<double,dimworld> > identityDeformation(compositeBasis.size({0}));
+    auto identityDeformationBasis = makeBasis(
+        gridView,
+        power<dimworld>(
+            lagrange<displacementOrder>()
+    ));
+    Dune::Functions::interpolate(identityDeformationBasis, identityDeformation, [&](FieldVector<double,dimworld> x){ return x;});
+
+
+    BlockVector<FieldVector<double,dimworld> > identityRotation(compositeBasis.size({1}));
+    auto identityRotationBasis = makeBasis(
+        gridView,
+        power<dimworld>(
+            lagrange<rotationOrder>()
+    ));
+    Dune::Functions::interpolate(identityRotationBasis, identityRotation, [&](FieldVector<double,dimworld> x){ return x;});
+
     typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
     typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
 
-
     // /////////////////////////////////////////
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    BitSetVector<1> dirichletVertices(gridView.size(dim), false);
     BitSetVector<1> neumannVertices(gridView.size(dim), false);
+    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
+    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
 
     const GridView::IndexSet& indexSet = gridView.indexSet();
 
-    // Make Python function that computes which vertices are on the Dirichlet boundary,
-    // based on the vertex positions.
+    // Make Python function that computes which vertices are on the Dirichlet boundary, based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    auto pythonDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
+    auto pythonDirichletVertices = Python::make_function<FieldVector<bool,3>>(Python::evaluate(lambda));
+
+    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletRotationVerticesPredicate") + std::string(")");
+    auto pythonOrientationDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
     // Same for the Neumann boundary
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
@@ -252,40 +285,34 @@ int main (int argc, char *argv[]) try
 
     for (auto&& vertex : vertices(gridView))
     {
-        bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
-        dirichletVertices[indexSet.index(vertex)] = isDirichlet;
-
         bool isNeumann = pythonNeumannVertices(vertex.geometry().corner(0));
         neumannVertices[indexSet.index(vertex)] = isNeumann;
     }
 
-    BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
-    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has " << dirichletBoundary.numFaces()
-              << " faces and " << dirichletVertices.count() << " nodes.\n";
-    std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary.numFaces() << " faces.\n";
+    std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary.numFaces()
+              << " faces and " << neumannVertices.count() << " degrees of freedom.\n";
   
-    BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,deformationFEBasis,deformationDirichletNodes);
-
     BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
     constructBoundaryDofs(neumannBoundary,deformationFEBasis,neumannNodes);
 
-    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
-    for (size_t i=0; i<deformationFEBasis.size(); i++)
-      if (deformationDirichletNodes[i][0])
-        for (int j=0; j<3; j++)
-          deformationDirichletDofs[i][j] = true;
+    for (size_t i=0; i<deformationFEBasis.size(); i++) {
+        FieldVector<bool,3> isDirichlet;
+            isDirichlet = pythonDirichletVertices(identityDeformation[i]);
+        for (size_t j=0; j<3; j++)
+            deformationDirichletDofs[i][j] = isDirichlet[j];
+    }
 
-    BitSetVector<1> orientationDirichletNodes(orientationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,orientationFEBasis,orientationDirichletNodes);
 
-    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
-    for (size_t i=0; i<orientationFEBasis.size(); i++)
-      if (orientationDirichletNodes[i][0])
-        for (int j=0; j<3; j++)
-          orientationDirichletDofs[i][j] = true;
+    for (size_t i=0; i<orientationFEBasis.size(); i++) {
+        bool isDirichletOrientation = pythonOrientationDirichletVertices(identityRotation[i]);
+        for (size_t j=0; j<3; j++)
+            orientationDirichletDofs[i][j] = isDirichletOrientation;
+    }
+
+    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has " << deformationDirichletDofs.count() << " degrees of freedom.\n";
+    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary (orientation) has " << orientationDirichletDofs.count() << " degrees of freedom.\n";
 
     // //////////////////////////
     //   Initial iterate
@@ -432,14 +459,18 @@ int main (int argc, char *argv[]) try
         auto orientationDirichletValues = Python::make_function<FieldMatrix<double,3,3> > (dirichletValuesPythonObject.get("orientation"));
     
         BlockVector<FieldVector<double,3> > ddV;
-        Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
+        Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues);
     
         BlockVector<FieldMatrix<double,3,3> > dOV;
         Dune::Functions::interpolate(orientationPowerBasis, dOV, orientationDirichletValues);
     
         for (int i = 0; i < compositeBasis.size({0}); i++) {
-          if (deformationDirichletDofs[i][0])
-            x[_0][i] = ddV[i];
+            FieldVector<double,3> x0i({x[_0][i][0],x[_0][i][1],x[_0][i][2]});
+            for (int j=0; j<3; j++) {
+                if (deformationDirichletDofs[i][j])
+                    x0i[j] = ddV[i][j];
+            }
+            x[_0][i] = x0i;
         }
         for (int i = 0; i < compositeBasis.size({1}); i++)
           if (orientationDirichletDofs[i][0])
@@ -477,7 +508,7 @@ int main (int argc, char *argv[]) try
                      baseTolerance,
                      instrumented);
 
-            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+            solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
 
             solver.setInitialIterate(x);
             solver.solve();
@@ -516,7 +547,7 @@ int main (int argc, char *argv[]) try
                          baseTolerance,
                          instrumented);
     
-                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
@@ -530,6 +561,7 @@ int main (int argc, char *argv[]) try
                              maxSolverSteps,
                              initialRegularization,
                              instrumented);
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
@@ -577,7 +609,7 @@ int main (int argc, char *argv[]) try
                      baseTolerance,
                      instrumented);
 
-            solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+            solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
 
             solver.setInitialIterate(x);
             solver.solve();
@@ -616,7 +648,7 @@ int main (int argc, char *argv[]) try
                          baseTolerance,
                          instrumented);
 
-                solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();
@@ -630,6 +662,7 @@ int main (int argc, char *argv[]) try
                              maxSolverSteps,
                              initialRegularization,
                              instrumented);
+                solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
                 solver.setInitialIterate(xTargetSpace);
                 solver.solve();
                 xTargetSpace = solver.getSol();

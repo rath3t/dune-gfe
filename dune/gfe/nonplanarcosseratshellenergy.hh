@@ -135,6 +135,7 @@ public:
     return mu_ * Dune::GFE::sym(S).frobenius_norm2() + mu_c_ * Dune::GFE::skew(S).frobenius_norm2() + lambda_ * 0.5 * Dune::GFE::traceSquared(S);
   }
 
+  //For b1 = b2 = 1 and b3 = 1/3, this reduces to S.frobenius_norm2()
   RT W_curv(const Dune::FieldMatrix<field_type,3,3>& S) const
   {
     return mu_ * L_c_ * L_c_ * (b1_ * Dune::GFE::dev(Dune::GFE::sym(S)).frobenius_norm2()

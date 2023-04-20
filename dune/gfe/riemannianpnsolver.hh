@@ -69,7 +69,9 @@ public:
     RiemannianProximalNewtonSolver()
         : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
           hessianMatrix_(nullptr), h1SemiNorm_(NULL)
-    {}
+    {
+        std::fill(scaling_.begin(), scaling_.end(), 1.0);
+    }
 
     /** \brief Set up the solver using a choldmod or umfpack solver as the inner solver */
     void setup(const GridType& grid,
@@ -80,6 +82,11 @@ public:
                int maxProximalNewtonSteps,
                double initialRegularization,
                bool instrumented);
+
+    void setScaling(const Dune::FieldVector<double,blocksize>& scaling)
+    {
+      scaling_ = scaling;
+    }
 
     void setIgnoreNodes(const Dune::BitSetVector<blocksize>& ignoreNodes)
     {
@@ -117,6 +124,9 @@ protected:
     /** \brief The initial regularization parameter for the proximal newton step */
     double initialRegularization_;
     double tolerance_;
+
+    /** \brief Regularization scaling */
+    Dune::FieldVector<double,blocksize> scaling_;
 
     /** \brief Maximum number of proximal-newton steps */
     std::size_t maxProximalNewtonSteps_;

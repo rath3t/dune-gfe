@@ -1,4 +1,19 @@
-#define MIXED_SPACE 0
+#ifndef LFE_ORDER
+    #define LFE_ORDER 2
+#endif
+
+#ifndef GFE_ORDER
+    #define GFE_ORDER 2
+#endif
+
+#ifndef MIXED_SPACE
+    #if LFE_ORDER != GFE_ORDER
+    #define MIXED_SPACE 1
+    #else
+    #define MIXED_SPACE 0
+    #endif
+#endif
+
 #include <iostream>
 #include <fstream>
 
@@ -63,16 +78,12 @@
 #include <dune/solvers/norms/energynorm.hh>
 
 
-// grid dimension
-#ifndef WORLD_DIM
-#  define WORLD_DIM 3
-#endif
 const int dim = WORLD_DIM;
 
 const int targetDim = WORLD_DIM;
 
-const int displacementOrder = 2;
-const int rotationOrder = 2;
+const int displacementOrder = GFE_ORDER;
+const int rotationOrder = LFE_ORDER;
 
 const int stressFreeDataOrder = 2;
 
@@ -100,6 +111,9 @@ int main (int argc, char *argv[]) try
 #endif
   }
 
+  if (argc < 3)
+    DUNE_THROW(Exception, "Usage: ./film-on-substrate <python path> <parameter file>");
+
   // Start Python interpreter
   Python::start();
   Python::Reference main = Python::import("__main__");
@@ -108,14 +122,13 @@ int main (int argc, char *argv[]) try
   //feenableexcept(FE_INVALID);
   Python::runStream()
         << std::endl << "import sys"
-        << std::endl << "import os"
-        << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
+        << std::endl << "sys.path.append('" << argv[1] << "')"
         << std::endl;
 
   // parse data file
   ParameterTree parameterSet;
 
-  ParameterTreeParser::readINITree(argv[1], parameterSet);
+  ParameterTreeParser::readINITree(argv[2], parameterSet);
 
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
@@ -584,7 +597,7 @@ int main (int argc, char *argv[]) try
                    baseTolerance,
                    instrumented);
 
-      solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+      solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
       solver.setInitialIterate(x);
       solver.solve();
       x = solver.getSol();
@@ -604,7 +617,7 @@ int main (int argc, char *argv[]) try
                    baseTolerance,
                    instrumented);
 
-      solver.setScaling(parameterSet.get<FieldVector<double,6> >("trustRegionScaling"));
+      solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
       solver.setInitialIterate(xRBM);
       solver.solve();
       xRBM = solver.getSol();
@@ -627,6 +640,7 @@ int main (int argc, char *argv[]) try
                    maxSolverSteps,
                    initialRegularization,
                    instrumented);
+      solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
       solver.setInitialIterate(xRBM);
       solver.solve();
       xRBM = solver.getSol();

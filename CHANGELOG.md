@@ -1,5 +1,11 @@
 # Master
 
+- Build cosserat-continuum for different combinations of LFE-orders and
+  GFE-orders, the respective program is called
+  cosserat-continuum-Xd-in-Xd-LFE_ORDER-GFE_ORDER
+  TODO: This is now set during compile time, but shall be changed to be
+  set during runtime.
+
 - Do not scale the density functions  with the thickness to avoid confusion
   since some densities need to be scaled and some do not need to be scaled
   with the thickness depending on the dimension of the grid, their direction

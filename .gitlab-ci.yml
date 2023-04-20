@@ -59,7 +59,7 @@ dune:git clang:
   - *before
   script: duneci-standard-test
 
-dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid gcc:
+dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid dune-foamgrid gcc:
   image: registry.dune-project.org/docker/ci/dune:git-debian-10-gcc-8-17
   before_script:
   - *patch-dune-common
@@ -68,9 +68,10 @@ dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid gcc:
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-vtk.git
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-curvedgeometry.git
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/iwr/dune-curvedgrid.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-foamgrid.git
   script: duneci-standard-test
 
-dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid clang:
+dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid dune-foamgrid clang:
   image: registry.dune-project.org/docker/ci/dune:git-ubuntu-20.04-clang-10-20
   before_script:
   - *patch-dune-common
@@ -79,6 +80,7 @@ dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid clang:
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-vtk.git
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-curvedgeometry.git
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/iwr/dune-curvedgrid.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-foamgrid.git
   script: duneci-standard-test
 
 # Check for spelling mistakes in text

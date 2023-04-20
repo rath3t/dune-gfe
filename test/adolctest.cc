@@ -490,6 +490,9 @@ int main (int argc, char *argv[]) try
     materialParameters["L_c"] = "1";
     materialParameters["q"] = "2";
     materialParameters["kappa"] = "1";
+    materialParameters["b1"] = "1";
+    materialParameters["b2"] = "1";
+    materialParameters["b3"] = "1";
 
     ///////////////////////////////////////////////////////////////////////
     //  Assemblers for the Euclidean derivatives in an embedding space
