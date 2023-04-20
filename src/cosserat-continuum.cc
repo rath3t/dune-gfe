@@ -121,8 +121,7 @@ int main (int argc, char *argv[]) try
     //feenableexcept(FE_INVALID);
     Python::runStream()
         << std::endl << "import sys"
-        << std::endl << "import os"
-        << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
+        << std::endl << "sys.path.append('" << argv[1] << "')"
         << std::endl;
 
     using namespace TypeTree::Indices;
@@ -131,10 +130,10 @@ int main (int argc, char *argv[]) try
 
     // parse data file
     ParameterTree parameterSet;
-    if (argc < 2)
-      DUNE_THROW(Exception, "Usage: ./cosserat-continuum <parameter file>");
+    if (argc < 3)
+      DUNE_THROW(Exception, "Usage: ./cosserat-continuum <python path> <parameter file>");
 
-    ParameterTreeParser::readINITree(argv[1], parameterSet);
+    ParameterTreeParser::readINITree(argv[2], parameterSet);
 
     ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
