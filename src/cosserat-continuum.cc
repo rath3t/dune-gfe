@@ -153,7 +153,7 @@ int main (int argc, char *argv[]) try
     const double baseTolerance            = parameterSet.get<double>("baseTolerance");
     const bool instrumented               = parameterSet.get<bool>("instrumented");
     const bool adolcScalarMode            = parameterSet.get<bool>("adolcScalarMode", false);
-    std::string resultPath                = parameterSet.get("resultPath", "");
+    const std::string resultPath          = parameterSet.get("resultPath", "");
 
     // ///////////////////////////////////////
     //    Create the grid
@@ -261,7 +261,6 @@ int main (int argc, char *argv[]) try
 
     DeformationFEBasis deformationFEBasis(gridView);
     OrientationFEBasis orientationFEBasis(gridView);
-
 
     // /////////////////////////////////////////
     //   Read Dirichlet values
