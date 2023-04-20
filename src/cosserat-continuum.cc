@@ -240,6 +240,23 @@ int main (int argc, char *argv[]) try
         )
     ));
 
+    BlockVector<FieldVector<double,dimworld> > identityDeformation(compositeBasis.size({0}));
+    auto identityDeformationBasis = makeBasis(
+        gridView,
+        power<dimworld>(
+            lagrange<displacementOrder>()
+    ));
+    Dune::Functions::interpolate(identityDeformationBasis, identityDeformation, [&](FieldVector<double,dimworld> x){ return x;});
+
+
+    BlockVector<FieldVector<double,dimworld> > identityRotation(compositeBasis.size({1}));
+    auto identityRotationBasis = makeBasis(
+        gridView,
+        power<dimworld>(
+            lagrange<rotationOrder>()
+    ));
+    Dune::Functions::interpolate(identityRotationBasis, identityRotation, [&](FieldVector<double,dimworld> x){ return x;});
+
     typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
     typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
 
@@ -251,15 +268,18 @@ int main (int argc, char *argv[]) try
     //   Read Dirichlet values
     // /////////////////////////////////////////
 
-    BitSetVector<1> dirichletVertices(gridView.size(dim), false);
     BitSetVector<1> neumannVertices(gridView.size(dim), false);
+    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
+    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
 
     const GridView::IndexSet& indexSet = gridView.indexSet();
 
-    // Make Python function that computes which vertices are on the Dirichlet boundary,
-    // based on the vertex positions.
+    // Make Python function that computes which vertices are on the Dirichlet boundary, based on the vertex positions.
     std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
-    auto pythonDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
+    auto pythonDirichletVertices = Python::make_function<FieldVector<bool,3>>(Python::evaluate(lambda));
+
+    lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletRotationVerticesPredicate") + std::string(")");
+    auto pythonOrientationDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
     // Same for the Neumann boundary
     lambda = std::string("lambda x: (") + parameterSet.get<std::string>("neumannVerticesPredicate", "0") + std::string(")");
@@ -267,40 +287,34 @@ int main (int argc, char *argv[]) try
 
     for (auto&& vertex : vertices(gridView))
     {
-        bool isDirichlet = pythonDirichletVertices(vertex.geometry().corner(0));
-        dirichletVertices[indexSet.index(vertex)] = isDirichlet;
-
         bool isNeumann = pythonNeumannVertices(vertex.geometry().corner(0));
         neumannVertices[indexSet.index(vertex)] = isNeumann;
     }
 
-    BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
     BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
-    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has " << dirichletBoundary.numFaces()
-              << " faces and " << dirichletVertices.count() << " nodes.\n";
-    std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary.numFaces() << " faces.\n";
+    std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary.numFaces()
+              << " faces and " << neumannVertices.count() << " degrees of freedom.\n";
   
-    BitSetVector<1> deformationDirichletNodes(deformationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,deformationFEBasis,deformationDirichletNodes);
-
     BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
     constructBoundaryDofs(neumannBoundary,deformationFEBasis,neumannNodes);
 
-    BitSetVector<3> deformationDirichletDofs(deformationFEBasis.size(), false);
-    for (size_t i=0; i<deformationFEBasis.size(); i++)
-      if (deformationDirichletNodes[i][0])
-        for (int j=0; j<3; j++)
-          deformationDirichletDofs[i][j] = true;
+    for (size_t i=0; i<deformationFEBasis.size(); i++) {
+        FieldVector<bool,3> isDirichlet;
+            isDirichlet = pythonDirichletVertices(identityDeformation[i]);
+        for (size_t j=0; j<3; j++)
+            deformationDirichletDofs[i][j] = isDirichlet[j];
+    }
 
-    BitSetVector<1> orientationDirichletNodes(orientationFEBasis.size(), false);
-    constructBoundaryDofs(dirichletBoundary,orientationFEBasis,orientationDirichletNodes);
 
-    BitSetVector<3> orientationDirichletDofs(orientationFEBasis.size(), false);
-    for (size_t i=0; i<orientationFEBasis.size(); i++)
-      if (orientationDirichletNodes[i][0])
-        for (int j=0; j<3; j++)
-          orientationDirichletDofs[i][j] = true;
+    for (size_t i=0; i<orientationFEBasis.size(); i++) {
+        bool isDirichletOrientation = pythonOrientationDirichletVertices(identityRotation[i]);
+        for (size_t j=0; j<3; j++)
+            orientationDirichletDofs[i][j] = isDirichletOrientation;
+    }
+
+    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has " << deformationDirichletDofs.count() << " degrees of freedom.\n";
+    std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary (orientation) has " << orientationDirichletDofs.count() << " degrees of freedom.\n";
 
     // //////////////////////////
     //   Initial iterate
@@ -447,14 +461,18 @@ int main (int argc, char *argv[]) try
         auto orientationDirichletValues = Python::make_function<FieldMatrix<double,3,3> > (dirichletValuesPythonObject.get("orientation"));
     
         BlockVector<FieldVector<double,3> > ddV;
-        Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
+        Dune::Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues);
     
         BlockVector<FieldMatrix<double,3,3> > dOV;
         Dune::Functions::interpolate(orientationPowerBasis, dOV, orientationDirichletValues);
     
         for (int i = 0; i < compositeBasis.size({0}); i++) {
-          if (deformationDirichletDofs[i][0])
-            x[_0][i] = ddV[i];
+            FieldVector<double,3> x0i({x[_0][i][0],x[_0][i][1],x[_0][i][2]});
+            for (int j=0; j<3; j++) {
+                if (deformationDirichletDofs[i][j])
+                    x0i[j] = ddV[i][j];
+            }
+            x[_0][i] = x0i;
         }
         for (int i = 0; i < compositeBasis.size({1}); i++)
           if (orientationDirichletDofs[i][0])
