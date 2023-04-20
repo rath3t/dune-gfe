@@ -61,6 +61,9 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
     materialParameters["L_c"] = "0.1";
     materialParameters["q"] = "2.5";
     materialParameters["kappa"] = "0.1";
+    materialParameters["b1"] = "1";
+    materialParameters["b2"] = "1";
+    materialParameters["b3"] = "1";
 
     typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> FEBasis;
     FEBasis feBasis(grid->leafGridView());
