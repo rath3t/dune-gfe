@@ -580,16 +580,15 @@ int main (int argc, char *argv[]) try
             using StiffnessType = MixedLocalGFEADOLCStiffness<CompositeBasis, RealTuple<double,3>, Rotation<double,3>>;
             std::shared_ptr<StiffnessType> localGFEStiffness;
 
-            NonplanarCosseratShellEnergy< CompositeBasis, 3, adouble,
-            Dune::Functions::DiscreteGlobalBasisFunction< DeformationFEBasis,std::vector<Dune::FieldVector<double, dimworld>> >>
-                                                                localCosseratEnergyPlanar(materialParameters,
-                                                                                                    nullptr,
-                                                                                                    &neumannBoundary,
-                                                                                                    neumannFunction,
-                                                                                                    volumeLoad);
+#if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2
+            NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> localCosseratEnergy(materialParameters,
+                                                                                        &creator,
+                                                                                        &neumannBoundary,
+                                                                                        neumannFunction,
+                                                                                        volumeLoad);
 
-              localGFEStiffness = std::make_shared<StiffnessType>(&localCosseratEnergyPlanar, adolcScalarMode);
-
+            localGFEStiffness = std::make_shared<StiffnessType>(&localCosseratEnergy, adolcScalarMode);
+#endif
             MixedGFEAssembler<CompositeBasis,
                       RealTuple<double,3>,
                       Rotation<double,3> > mixedAssembler(compositeBasis, localGFEStiffness.get());
