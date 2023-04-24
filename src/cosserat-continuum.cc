@@ -77,6 +77,8 @@
 #include <dune/vtk/vtkreader.hh>
 #endif
 
+#include <dune/gmsh4/gmsh4reader.hh>
+#include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
 
 // grid dimension
 const int dim = GRID_DIM;
@@ -164,6 +166,9 @@ int main (int argc, char *argv[]) try
 #endif
 
     std::shared_ptr<GridType> grid;
+
+    GridFactory<GridType> factory;
+    Gmsh4::LagrangeGridCreator creator{factory};
 
     FieldVector<double,dimworld> lower(0), upper(1);
 
