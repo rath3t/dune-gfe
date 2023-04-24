@@ -393,7 +393,7 @@ int main (int argc, char *argv[]) try
                                                                                    resultPath + "mixed-cosserat_homotopy_0");
     } else {
 #if MIXED_SPACE
-        for (int i = 0; i < displacement.size(); i++) {
+        for (std::size_t i = 0; i < displacement.size(); i++) {
             for (int j = 0; j < 3; j++)
                 displacement[i][j] = x[_0][i][j];
             displacement[i] -= identity[i];
@@ -472,7 +472,7 @@ int main (int argc, char *argv[]) try
             }
             x[_0][i] = x0i;
         }
-        for (int i = 0; i < compositeBasis.size({1}); i++)
+        for (std::size_t i = 0; i < compositeBasis.size({1}); i++)
           if (orientationDirichletDofs[i][0])
             x[_1][i].set(dOV[i]);
 
@@ -620,7 +620,7 @@ int main (int argc, char *argv[]) try
             //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
             std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
             BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
-            for (int i = 0; i < compositeBasis.size({0}); i++) {
+            for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
               for (int j = 0; j < 3; j ++) { // Displacement part
                 xTargetSpace[i].r[j] = x[_0][i][j];
                 dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
@@ -668,7 +668,7 @@ int main (int argc, char *argv[]) try
                 xTargetSpace = solver.getSol();
             }
 
-            for (int i = 0; i < xTargetSpace.size(); i++) {
+            for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
               x[_0][i] = xTargetSpace[i].r;
               x[_1][i] = xTargetSpace[i].q;
             }
@@ -683,7 +683,7 @@ int main (int argc, char *argv[]) try
                                                                                        resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
         } else {
 #if MIXED_SPACE
-            for (int i = 0; i < displacement.size(); i++) {
+            for (std::size_t i = 0; i < displacement.size(); i++) {
                for (int j = 0; j  < 3; j++) {
                 displacement[i][j] = x[_0][i][j];
               }

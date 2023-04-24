@@ -376,7 +376,7 @@ int main(int argc, char *argv[]) try
       using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3>>;
       std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
       BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
-      for (int i = 0; i < compositeBasis.size({0}); i++) {
+      for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
         xTargetSpace[i][_0] = x[_0][i]; // Displacement part
         xTargetSpace[i][_1] = x[_1][i]; // Rotation part
         for (int j = 0; j < 3; j ++)
@@ -398,7 +398,7 @@ int main(int argc, char *argv[]) try
       solver.setInitialIterate(xTargetSpace);
       solver.solve();
       xTargetSpace = solver.getSol();
-      for (int i = 0; i < xTargetSpace.size(); i++) {
+      for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
         x[_0][i] = xTargetSpace[i][_0];
         x[_1][i] = xTargetSpace[i][_1];
       }
