@@ -7,5 +7,5 @@ Module: dune-gfe
 Version: svn
 Maintainer: oliver.sander@tu-dresden.de
 #depending on
-Depends: dune-common(>=2.7) dune-grid(>=2.7) dune-uggrid dune-istl dune-localfunctions dune-geometry (>=2.7) dune-functions (>=2.7) dune-solvers dune-fufem dune-elasticity (>=2.7)
+Depends: dune-common(>=2.7) dune-grid(>=2.7) dune-uggrid dune-istl dune-localfunctions dune-geometry (>=2.7) dune-functions (>=2.7) dune-solvers dune-fufem dune-elasticity (>=2.7) dune-gmsh4
 Suggests: dune-foamgrid dune-parmg dune-vtk dune-curvedgrid

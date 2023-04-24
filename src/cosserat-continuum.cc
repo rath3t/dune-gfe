@@ -38,8 +38,6 @@
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
-#include <dune/grid/io/file/gmshreader.hh>
-
 #if HAVE_DUNE_FOAMGRID
 #include <dune/foamgrid/foamgrid.hh>
 #endif
@@ -190,9 +188,11 @@ int main (int argc, char *argv[]) try
           DUNE_THROW(IOError, "Could not determine grid input file format");
         std::string suffix = gridFile.substr(dotPos, gridFile.length()-dotPos);
 
-        if (suffix == ".msh")
-            grid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
-        else if (suffix == ".vtu" or suffix == ".vtp")
+        if (suffix == ".msh") {
+            Gmsh4Reader reader{creator};
+            reader.read(path + "/" + gridFile);
+            grid = factory.createGrid();
+        } else if (suffix == ".vtu" or suffix == ".vtp")
 #if HAVE_DUNE_VTK
             grid = VtkReader<GridType>::createGridFromFile(path + "/" + gridFile);
 #else
@@ -346,7 +346,7 @@ int main (int argc, char *argv[]) try
         std::string path                       = parameterSet.get<std::string>("path");
         std::string initialIterateGridFilename = parameterSet.get<std::string>("initialIterateGridFilename");
 
-        initialIterateGrid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + initialIterateGridFilename));
+        initialIterateGrid = std::shared_ptr<GridType>(Gmsh4Reader<GridType>::createGridFromFile(path + "/" + initialIterateGridFilename));
       }
 
       std::vector<TargetSpace> initialIterate;
