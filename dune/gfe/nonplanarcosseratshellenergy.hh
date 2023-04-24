@@ -32,8 +32,7 @@
  * \tparam field_type                  The coordinate type of the TargetSpace
  * \tparam StressFreeStateGridFunction Type of the GridFunction representing the Cosserat shell in a stress free state
  */
-template<class Basis, int dim, class field_type=double, class StressFreeStateGridFunction = 
-  Dune::Functions::DiscreteGlobalBasisFunction<Basis,std::vector<Dune::FieldVector<double, Basis::GridView::dimensionworld>> > >
+template<class Basis, int dim, class field_type, class StressFreeStateGridFunction>
 class NonplanarCosseratShellEnergy
   : public Dune::GFE::LocalEnergy<Basis,RigidBodyMotion<field_type,dim> >,
     public MixedLocalGeodesicFEStiffness<Basis,
@@ -161,7 +160,7 @@ public:
              Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126). */
   bool useAlternativeEnergyWCoss_;
 
-  /** \brief The geometry used for assembling */
+  /** \brief The geometry of the reference deformation used for assembling */
   const StressFreeStateGridFunction* stressFreeStateGridFunction_;
 
   /** \brief The Neumann boundary */
@@ -189,23 +188,17 @@ energy(const typename Basis::LocalView& localView,
   const auto& localFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
 
 #if HAVE_DUNE_CURVEDGEOMETRY
-  // Construct a curved geometry of this element of the Cosserat shell in stress-free state
-  // When using element.geometry(), then the curvatures on the element are zero, when using a curved geometry, they are not
-  // If a parametrization representing the Cosserat shell in a stress-free state is given,
-  // this is used for the curved geometry approximation.
+  // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
   // The variable local holds the local coordinates in the reference element
   // and localGeometry.global maps them to the world coordinates
-  auto curvedGeometryGridFunctionOrder = localFiniteElement.localBasis().order();
   Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim>>> geometry(referenceElement(element),
     [this,element](const auto& local) {
-      if (not stressFreeStateGridFunction_) {
-        return element.geometry().global(local);
-      }
       auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
       localGridFunction.bind(element);
       return localGridFunction(local);
-    }, curvedGeometryGridFunctionOrder);
+    }, stressFreeStateGridFunction_->order());
 #else
+  // When using element.geometry(), the geometry of the element is flat
   auto geometry = element.geometry();
 #endif
 
@@ -436,23 +429,17 @@ energy(const typename Basis::LocalView& localView,
   const auto& orientationLocalFiniteElement = LocalFiniteElementFactory<Basis,1>::get(localView,_1);
 
 #if HAVE_DUNE_CURVEDGEOMETRY
-  // Construct a curved geometry of this element of the Cosserat shell in stress-free state
-  // When using element.geometry(), then the curvatures on the element are zero, when using a curved geometry, they are not
-  // If a parametrization representing the Cosserat shell in a stress-free state is given,
-  // this is used for the curved geometry approximation.
+  // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
   // The variable local holds the local coordinates in the reference element
   // and localGeometry.global maps them to the world coordinates
-  auto curvedGeometryGridFunctionOrder = deformationLocalFiniteElement.localBasis().order();
   Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim>>> geometry(referenceElement(element),
     [this,element](const auto& local) {
-      if (not stressFreeStateGridFunction_) {
-        return element.geometry().global(local);
-      }
       auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
       localGridFunction.bind(element);
       return localGridFunction(local);
-    }, curvedGeometryGridFunctionOrder);
+    }, stressFreeStateGridFunction_->order());
 #else
+  // When using element.geometry(), the geometry of the element is flat
   auto geometry = element.geometry();
 #endif
 

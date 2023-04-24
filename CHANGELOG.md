@@ -1,5 +1,6 @@
 # Master
 
+- Added dune-gmsh4 as a dependency
 - Build cosserat-continuum for different combinations of LFE-orders and
   GFE-orders, the respective program is called
   cosserat-continuum-Xd-in-Xd-LFE_ORDER-GFE_ORDER

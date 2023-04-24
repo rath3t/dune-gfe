@@ -38,8 +38,6 @@
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
 
-#include <dune/grid/io/file/gmshreader.hh>
-
 #if HAVE_DUNE_FOAMGRID
 #include <dune/foamgrid/foamgrid.hh>
 #endif
@@ -79,6 +77,8 @@
 #include <dune/vtk/vtkreader.hh>
 #endif
 
+#include <dune/gmsh4/gmsh4reader.hh>
+#include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
 
 // grid dimension
 const int dim = GRID_DIM;
@@ -167,6 +167,9 @@ int main (int argc, char *argv[]) try
 
     std::shared_ptr<GridType> grid;
 
+    GridFactory<GridType> factory;
+    Gmsh4::LagrangeGridCreator creator{factory};
+
     FieldVector<double,dimworld> lower(0), upper(1);
 
     std::string structuredGridType = parameterSet["structuredGrid"];
@@ -190,9 +193,11 @@ int main (int argc, char *argv[]) try
           DUNE_THROW(IOError, "Could not determine grid input file format");
         std::string suffix = gridFile.substr(dotPos, gridFile.length()-dotPos);
 
-        if (suffix == ".msh")
-            grid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + gridFile));
-        else if (suffix == ".vtu" or suffix == ".vtp")
+        if (suffix == ".msh") {
+            Gmsh4Reader reader{creator};
+            reader.read(path + "/" + gridFile);
+            grid = factory.createGrid();
+        } else if (suffix == ".vtu" or suffix == ".vtp")
 #if HAVE_DUNE_VTK
             grid = VtkReader<GridType>::createGridFromFile(path + "/" + gridFile);
 #else
@@ -346,7 +351,7 @@ int main (int argc, char *argv[]) try
         std::string path                       = parameterSet.get<std::string>("path");
         std::string initialIterateGridFilename = parameterSet.get<std::string>("initialIterateGridFilename");
 
-        initialIterateGrid = std::shared_ptr<GridType>(GmshReader<GridType>::read(path + "/" + initialIterateGridFilename));
+        initialIterateGrid = std::shared_ptr<GridType>(Gmsh4Reader<GridType>::createGridFromFile(path + "/" + initialIterateGridFilename));
       }
 
       std::vector<TargetSpace> initialIterate;
@@ -383,29 +388,28 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     // Output initial iterate (of homotopy loop)
-    BlockVector<FieldVector<double,3> > identity(compositeBasis.size({0}));
-    Dune::Functions::interpolate(deformationPowerBasis, identity, [&](FieldVector<double,dimworld> x){ return x;});
-    BlockVector<FieldVector<double,3> > displacement(compositeBasis.size({0}));
-
-    if (dim == dimworld) {
+    if (dim == 2 && dimworld == 2) {
     CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
                                                                                    orientationFEBasis,x[_1],
-                                                                                   resultPath + "mixed-cosserat_homotopy_0");
-    } else {
+                                                                                   resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
+    } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
-        for (std::size_t i = 0; i < displacement.size(); i++) {
-            for (int j = 0; j < 3; j++)
-                displacement[i][j] = x[_0][i][j];
-            displacement[i] -= identity[i];
-        }
-        auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3>>(deformationPowerBasis, displacement);
-    
-        SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(0));
-        vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dimworld));
-        vtkWriter.write(resultPath + "mixed-cosserat_homotopy_0");
+    CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
 #else
-    CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_0");
+    CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
 #endif   
+    } else if (dim == 3 && dimworld == 3) {
+    
+    BlockVector<FieldVector<double,dimworld> > displacement(x[_0].size());
+    for (size_t i=0; i<x[_0].size(); i++) {
+        for (int j = 0; j < 3; j ++)
+            displacement[i][j] = x[_0][i][j] - identityDeformation[i][j];
+    }
+
+    auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(deformationPowerBasis, displacement);
+    SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(displacementOrder-1));
+    vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
+    vtkWriter.write(resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
     }
     for (int i=0; i<numHomotopySteps; i++) {
 
@@ -465,7 +469,7 @@ int main (int argc, char *argv[]) try
         Dune::Functions::interpolate(orientationPowerBasis, dOV, orientationDirichletValues);
     
         for (int i = 0; i < compositeBasis.size({0}); i++) {
-            FieldVector<double,3> x0i({x[_0][i][0],x[_0][i][1],x[_0][i][2]});
+            FieldVector<double,3> x0i = x[_0][i].globalCoordinates();
             for (int j=0; j<3; j++) {
                 if (deformationDirichletDofs[i][j])
                     x0i[j] = ddV[i][j];
@@ -575,16 +579,15 @@ int main (int argc, char *argv[]) try
             using StiffnessType = MixedLocalGFEADOLCStiffness<CompositeBasis, RealTuple<double,3>, Rotation<double,3>>;
             std::shared_ptr<StiffnessType> localGFEStiffness;
 
-            NonplanarCosseratShellEnergy< CompositeBasis, 3, adouble,
-            Dune::Functions::DiscreteGlobalBasisFunction< DeformationFEBasis,std::vector<Dune::FieldVector<double, dimworld>> >>
-                                                                localCosseratEnergyPlanar(materialParameters,
-                                                                                                    nullptr,
-                                                                                                    &neumannBoundary,
-                                                                                                    neumannFunction,
-                                                                                                    volumeLoad);
+#if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2
+            NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> localCosseratEnergy(materialParameters,
+                                                                                        &creator,
+                                                                                        &neumannBoundary,
+                                                                                        neumannFunction,
+                                                                                        volumeLoad);
 
-              localGFEStiffness = std::make_shared<StiffnessType>(&localCosseratEnergyPlanar, adolcScalarMode);
-
+            localGFEStiffness = std::make_shared<StiffnessType>(&localCosseratEnergy, adolcScalarMode);
+#endif
             MixedGFEAssembler<CompositeBasis,
                       RealTuple<double,3>,
                       Rotation<double,3> > mixedAssembler(compositeBasis, localGFEStiffness.get());
@@ -677,27 +680,29 @@ int main (int argc, char *argv[]) try
         // Output result of each homotopy step
         std::stringstream iAsAscii;
         iAsAscii << i+1;
-        if (dim == dimworld) {
+
+        if (dim == 2 && dimworld == 2) {
         CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
                                                                                        orientationFEBasis,x[_1],
-                                                                                       resultPath + "mixed-cosserat_homotopy_" + iAsAscii.str());
-        } else {
+                                                                                       resultPath + "cosserat_homotopy_" + iAsAscii.str());
+        } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
-            for (std::size_t i = 0; i < displacement.size(); i++) {
-               for (int j = 0; j  < 3; j++) {
-                displacement[i][j] = x[_0][i][j];
-              }
-              displacement[i] -= identity[i];
-            }
-            auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3>>(deformationPowerBasis, displacement);
-    
-            //  We need to subsample, because VTK cannot natively display real second-order functions
-            SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(displacementOrder-1));
-            vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, 3));
-            vtkWriter.write(resultPath + "cosserat_homotopy_" + std::to_string(i+1));
+        CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
 #else 
-        CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_" + std::to_string(i+1));
+        CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
 #endif
+        } else if (dim == 3 && dimworld == 3) {
+    
+        BlockVector<FieldVector<double,dimworld> > displacement(x[_0].size());
+        for (size_t i=0; i<x[_0].size(); i++) {
+            for (int j = 0; j < 3; j ++)
+                displacement[i][j] = x[_0][i][j] - identityDeformation[i][j];
+        }
+
+        auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(deformationPowerBasis, displacement);
+        SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(displacementOrder-1));
+        vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
+        vtkWriter.write(resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
         }
     }
 

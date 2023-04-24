@@ -546,9 +546,13 @@ int main (int argc, char *argv[]) try
     BlockVector<FieldMatrix<double,targetDim,targetDim> > dOV;
     Dune::Functions::interpolate(orientationPowerBasis, dOV, rotationalDirichletValues);
 
-    for (int i = 0; i < compositeBasis.size({0}); i++)
-      if (dirichletDofs[_0][i][0])
-        x[_0][i] = ddV[i];
+    for (int i = 0; i < compositeBasis.size({0}); i++) {
+      FieldVector<double,3> x0i = x[_0][i].globalCoordinates();
+      for (int j=0; j<3; j++)
+        if (deformationDirichletDofs[i][j])
+          x0i[j] = ddV[i][j];
+      x[_0][i] = x0i;
+    }
     for (int i = 0; i < compositeBasis.size({1}); i++)
       if (dirichletDofs[_1][i][0])
         x[_1][i].set(dOV[i]);
