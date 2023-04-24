@@ -469,7 +469,7 @@ int main (int argc, char *argv[]) try
         Dune::Functions::interpolate(orientationPowerBasis, dOV, orientationDirichletValues);
     
         for (int i = 0; i < compositeBasis.size({0}); i++) {
-            FieldVector<double,3> x0i({x[_0][i][0],x[_0][i][1],x[_0][i][2]});
+            FieldVector<double,3> x0i = x[_0][i].globalCoordinates();
             for (int j=0; j<3; j++) {
                 if (deformationDirichletDofs[i][j])
                     x0i[j] = ddV[i][j];
