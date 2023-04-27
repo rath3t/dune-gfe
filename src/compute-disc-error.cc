@@ -219,6 +219,9 @@ void measureDiscreteEOC(const GridView gridView,
 
   HierarchicSearch<typename GridView::Grid,typename GridView::IndexSet> hierarchicSearch(gridView.grid(), gridView.indexSet());
 
+  auto localReferenceSolution = localFunction(referenceSolution);
+  auto localNumericalSolution = localFunction(numericalSolution);
+
   if (std::is_same<TargetSpace,RigidBodyMotion<double,3> >::value)
   {
     double deformationL2ErrorSquared = 0;
@@ -228,6 +231,9 @@ void measureDiscreteEOC(const GridView gridView,
 
     for (const auto& rElement : elements(referenceGridView))
     {
+      localReferenceSolution.bind(rElement);
+      auto localReferenceDerivative = derivative(localReferenceSolution);
+
       const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
 
       for (const auto& qp : quadRule)
@@ -237,10 +243,12 @@ void measureDiscreteEOC(const GridView gridView,
         auto globalPos = rElement.geometry().global(qp.position());
 
         auto element = hierarchicSearch.findEntity(globalPos);
+        localNumericalSolution.bind(element);
+        auto localNumericalDerivative = derivative(localNumericalSolution);
         auto localPos = element.geometry().local(globalPos);
 
-        auto refValue = referenceSolution(rElement, qp.position());
-        auto numValue = numericalSolution(element, localPos);
+        auto refValue = localReferenceSolution(qp.position());
+        auto numValue = localNumericalSolution(localPos);
         auto diff = refValue - numValue;
         assert(diff.size()==7);
 
@@ -248,7 +256,7 @@ void measureDiscreteEOC(const GridView gridView,
         for (int i=0; i<3; i++)
           deformationL2ErrorSquared += integrationElement * qp.weight() * diff[i] * diff[i];
 
-        auto derDiff = referenceSolution.derivative(rElement, qp.position()) - numericalSolution.derivative(element, localPos);
+        auto derDiff = localReferenceDerivative(qp.position()) - localNumericalDerivative(localPos);
 
         for (int i=0; i<3; i++)
           deformationH1ErrorSquared += integrationElement * qp.weight() * derDiff[i].two_norm2();
@@ -266,8 +274,8 @@ void measureDiscreteEOC(const GridView gridView,
 
         orientationL2ErrorSquared += integrationElement * qp.weight() * orientationDiff.frobenius_norm2();
 
-        auto referenceDerQuat = referenceSolution.derivative(rElement, qp.position());
-        auto numericalDerQuat = numericalSolution.derivative(element, localPos);
+        auto referenceDerQuat = localReferenceDerivative(qp.position());
+        auto numericalDerQuat = localNumericalDerivative(localPos);
 
         // Transform to matrix coordinates
         Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(FieldVector<double,4>{refValue[3], refValue[4], refValue[5], refValue[6]});
@@ -308,6 +316,9 @@ void measureDiscreteEOC(const GridView gridView,
 
     for (const auto& rElement : elements(referenceGridView))
     {
+      localReferenceSolution.bind(rElement);
+      auto localReferenceDerivative = derivative(localReferenceSolution);
+
       const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
 
       for (const auto& qp : quadRule)
@@ -317,14 +328,16 @@ void measureDiscreteEOC(const GridView gridView,
         auto globalPos = rElement.geometry().global(qp.position());
 
         auto element = hierarchicSearch.findEntity(globalPos);
+        localNumericalSolution.bind(element);
+        auto localNumericalDerivative = derivative(localNumericalSolution);
         auto localPos = element.geometry().local(globalPos);
 
         FieldMatrix<double,3,3> referenceValue, numericalValue;
-        auto refValue = referenceSolution(rElement, qp.position());
+        auto refValue = localReferenceSolution(qp.position());
         Rotation<double,3> referenceRotation(refValue);
         referenceRotation.matrix(referenceValue);
 
-        auto numValue = numericalSolution(element, localPos);
+        auto numValue = localNumericalSolution(localPos);
         Rotation<double,3> numericalRotation(numValue);
         numericalRotation.matrix(numericalValue);
 
@@ -332,8 +345,8 @@ void measureDiscreteEOC(const GridView gridView,
 
         l2ErrorSquared += integrationElement * qp.weight() * diff.frobenius_norm2();
 
-        auto referenceDerQuat = referenceSolution.derivative(rElement, qp.position());
-        auto numericalDerQuat = numericalSolution.derivative(element, localPos);
+        auto referenceDerQuat = localReferenceDerivative(qp.position());
+        auto numericalDerQuat = localNumericalDerivative(localPos);
 
         // Transform to matrix coordinates
         Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(refValue);
@@ -371,6 +384,9 @@ void measureDiscreteEOC(const GridView gridView,
 
   for (const auto& rElement : elements(referenceGridView))
   {
+    localReferenceSolution.bind(rElement);
+    auto localReferenceDerivative = derivative(localReferenceSolution);
+
     const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
 
     for (const auto& qp : quadRule)
@@ -383,13 +399,15 @@ void measureDiscreteEOC(const GridView gridView,
                                                      gridView.grid(),
                                                      rElement, qp.position());
       auto element  = std::get<0>(supportingElement);
+      localNumericalSolution.bind(element);
+      auto localNumericalDerivative = derivative(localNumericalSolution);
       auto localPos = std::get<1>(supportingElement);
 
-      auto diff = referenceSolution(rElement, qp.position()) - numericalSolution(element, localPos);
+      auto diff = localReferenceSolution(qp.position()) - localNumericalSolution(localPos);
 
       l2ErrorSquared += integrationElement * qp.weight() * diff.two_norm2();
 
-      auto derDiff = referenceSolution.derivative(rElement, qp.position()) - numericalSolution.derivative(element, localPos);
+      auto derDiff = localReferenceDerivative(qp.position()) - localNumericalDerivative(localPos);
 
       h1ErrorSquared += integrationElement * qp.weight() * derDiff.frobenius_norm2();
 
@@ -444,6 +462,27 @@ void measureAnalyticalEOC(const GridView gridView,
   /////////////////////////////////////////////////////////////////
 
   // Read reference solution and its derivative into a Python function
+#if DUNE_VERSION_GT(DUNE_FUFEM, 2, 9)
+  Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
+
+  using Domain = FieldVector<double, dimworld>;
+  using Range = typename TargetSpace::CoordinateType;
+  auto referenceSolution = Python::makeDifferentiableFunction<Range(Domain)>(module.get("fdf"));
+  auto referenceDerivative = derivative(referenceSolution);
+
+  // TODO: We need to use a type-erasure wrapper here
+  // Only used if // parameterSet["interpolationMethod"] == "geodesic"
+  auto numericalSolutionGeodesic = GFE::EmbeddedGlobalGFEFunction<FEBasis,
+                                                                  LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+                                                                  TargetSpace> (feBasis, x);
+  auto localNumericalSolutionGeodesic = localFunction(numericalSolutionGeodesic);
+
+  // ONly used if parameterSet["interpolationMethod"] == "projected"
+  auto numericalSolutionProjected = GFE::EmbeddedGlobalGFEFunction<FEBasis,
+                                                                   GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+                                                                   TargetSpace> (feBasis, x);
+  auto localNumericalSolutionProjected = localFunction(numericalSolutionProjected);
+#else
   typedef VirtualDifferentiableFunction<FieldVector<double, dimworld>, typename TargetSpace::CoordinateType> FBase;
 
   Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
@@ -461,6 +500,7 @@ void measureAnalyticalEOC(const GridView gridView,
     numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
                                                                         GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
                                                                         TargetSpace> > (feBasis, x);
+#endif
 
   // QuadratureRule for the integral of the L^2 error
   QuadratureRuleKey quadKey(dim,6);
@@ -478,6 +518,13 @@ void measureAnalyticalEOC(const GridView gridView,
 
     for (auto&& element : elements(gridView))
     {
+#if DUNE_VERSION_GT(DUNE_FUFEM, 2, 9)
+      localNumericalSolutionGeodesic.bind(element);
+      localNumericalSolutionProjected.bind(element);
+      auto localNumericalDerivativeGeodesic = derivative(localNumericalSolutionGeodesic);
+      auto localNumericalDerivativeProjected = derivative(localNumericalSolutionProjected);
+#endif
+
       // Get quadrature formula
       quadKey.setGeometryType(element.type());
       const auto& quad = QuadratureRuleCache<double, dim>::rule(quadKey);
@@ -489,6 +536,15 @@ void measureAnalyticalEOC(const GridView gridView,
         const auto weight = quadPoint.weight();
 
         // Evaluate function a
+#if DUNE_VERSION_GT(DUNE_FUFEM, 2, 9)
+        FieldVector<double,blocksize> numValue;
+        if (parameterSet["interpolationMethod"] == "geodesic")
+            numValue = localNumericalSolutionGeodesic(quadPos);
+        if (parameterSet["interpolationMethod"] == "projected")
+            numValue = localNumericalSolutionProjected(quadPos);
+
+        auto refValue = referenceSolution(element.geometry().global(quadPos));
+#else
         FieldVector<double,blocksize> numValue;
         numericalSolution.get()->evaluateLocal(element, quadPos,numValue);
 
@@ -501,6 +557,7 @@ void measureAnalyticalEOC(const GridView gridView,
                                                                                                                          );
         else
           referenceSolution->evaluate(element.geometry().global(quadPos), refValue);
+#endif
 
         // Get error in matrix space
         Rotation<double,3> numRotation(numValue);
@@ -511,6 +568,17 @@ void measureAnalyticalEOC(const GridView gridView,
         FieldMatrix<double,3,3> refValueMatrix;
         refRotation.matrix(refValueMatrix);
 
+#if DUNE_VERSION_GT(DUNE_FUFEM, 2, 9)
+        // Evaluate derivatives in quaternion space
+        FieldMatrix<double,blocksize,dimworld> num_di;
+
+        if (parameterSet["interpolationMethod"] == "geodesic")
+            num_di = localNumericalDerivativeGeodesic(quadPos);
+        if (parameterSet["interpolationMethod"] == "projected")
+            num_di = localNumericalDerivativeProjected(quadPos);
+
+        auto ref_di = referenceDerivative(element.geometry().global(quadPos));
+#else
         // Evaluate derivatives in quaternion space
         FieldMatrix<double,blocksize,dimworld> num_di;
         FieldMatrix<double,blocksize,dimworld> ref_di;
@@ -528,6 +596,7 @@ void measureAnalyticalEOC(const GridView gridView,
                                                                                                                                 ref_di);
         else
           referenceSolution->evaluateDerivative(element.geometry().global(quadPos), ref_di);
+#endif
 
         // Transform into matrix space
         Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = Rotation<double,3>::derivativeOfQuaternionToMatrix(numValue);
@@ -560,6 +629,36 @@ void measureAnalyticalEOC(const GridView gridView,
   }
   else
   {
+#if DUNE_VERSION_GT(DUNE_FUFEM, 2, 9)
+    double l2Error = -1;
+    double h1Error = -1;
+
+    if (parameterSet["interpolationMethod"] == "geodesic")
+    {
+      l2Error = Fufem::DiscretizationError::computeL2DifferenceSquared(numericalSolutionGeodesic,
+                                                                       referenceSolution,
+                                                                       quadKey);
+
+      h1Error = Fufem::DiscretizationError::computeL2DifferenceSquared(derivative(numericalSolutionGeodesic),
+                                                                       derivative(referenceSolution),
+                                                                       quadKey);
+    }
+
+    if (parameterSet["interpolationMethod"] == "projected")
+    {
+      l2Error = Fufem::DiscretizationError::computeL2DifferenceSquared(numericalSolutionProjected,
+                                                                       referenceSolution,
+                                                                       quadKey);
+
+      h1Error = Fufem::DiscretizationError::computeL2DifferenceSquared(derivative(numericalSolutionProjected),
+                                                                       derivative(referenceSolution),
+                                                                       quadKey);
+    }
+
+    std::cout << "elements: " << gridView.size(0)
+              << "      "
+              << "L^2 error: " << std::sqrt(l2Error)
+#else
     auto l2Error = DiscretizationError<GridView>::computeL2Error(numericalSolution.get(),
                                                             referenceSolution.get(),
                                                             quadKey);
@@ -572,6 +671,7 @@ void measureAnalyticalEOC(const GridView gridView,
     std::cout << "elements: " << gridView.size(0)
               << "      "
               << "L^2 error: " << l2Error
+#endif
               << "      ";
     std::cout << "h^1 error: " << std::sqrt(h1Error) << std::endl;
   }
