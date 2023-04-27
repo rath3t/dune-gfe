@@ -7,6 +7,7 @@ before_script: &before
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
   - duneci-install-module https://gitlab.dune-project.org/fufem/dune-fufem.git
   - duneci-install-module https://gitlab.mn.tu-dresden.de/ag-sander/dune/dune-elasticity.git
+  - duneci-install-module https://gitlab.mn.tu-dresden.de/iwr/dune-gmsh4
 
 # ADOL-C's comparison operators prior to version 2.7.2 return `int` instead of `bool`,
 # which confuses template meta-programming in dune-common...
@@ -27,15 +28,6 @@ before_script: &before
                imax   = Simd::cond(mask, simd_index_type(k), imax);
              }
     EOT
-
-dune:2.8 gcc:
-  variables:
-    DUNECI_BRANCH: releases/2.8
-  image: registry.dune-project.org/docker/ci/dune:2.8-debian-10-gcc-8-17
-  before_script:
-  - *patch-dune-common
-  - *before
-  script: duneci-standard-test
 
 dune:2.9 gcc:
   variables:
