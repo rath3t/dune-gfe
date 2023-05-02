@@ -4,6 +4,7 @@ set(TESTS
   averagedistanceassemblertest
   cosseratenergytest
   cosseratrodenergytest
+  embeddedglobalgfefunctiontest
   harmonicenergytest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
