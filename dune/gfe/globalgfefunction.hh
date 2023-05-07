@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <dune/common/typetraits.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/utility/hierarchicsearch.hh>
 
@@ -15,9 +16,27 @@
 #include <dune/functions/gridfunctions/gridfunction.hh>
 #include <dune/functions/backends/concepts.hh>
 
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+#include <dune/fufem/functions/virtualgridfunction.hh>
+#endif
+
 namespace Dune::GFE {
 
 namespace Impl {
+
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  // This collects all data that is shared by all related
+  // global and local functions.
+  template <typename Basis, typename Vector>
+  struct Data
+  {
+    using GridView = typename Basis::GridView;
+    using EntitySet = Functions::GridViewEntitySet<GridView, 0>;
+    EntitySet entitySet;
+    std::shared_ptr<const Basis> basis;
+    std::shared_ptr<const Vector> coefficients;
+  };
+#endif
 
 /** \brief Common base class for GlobalGFEFunction and its derivative
  *
@@ -25,8 +44,14 @@ namespace Impl {
  * \tparam V Container of coefficients
  * \tparam LocalInterpolationRule How to interpolate manifold-valued data
  */
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+template<typename B, typename V, typename LocalInterpolationRule, typename Range>
+class GlobalGFEFunctionBase
+: public VirtualGridViewFunction<typename B::GridView, Range>
+#else
 template<typename B, typename V, typename LocalInterpolationRule>
 class GlobalGFEFunctionBase
+#endif
 {
 public:
   using Basis = B;
@@ -47,6 +72,7 @@ public:
 
 protected:
 
+#if DUNE_VERSION_GT(DUNE_FUFEM, 2, 9)
   // This collects all data that is shared by all related
   // global and local functions. This way we don't need to
   // keep track of it individually.
@@ -56,6 +82,7 @@ protected:
     std::shared_ptr<const Basis> basis;
     std::shared_ptr<const Vector> coefficients;
   };
+#endif
 
 public:
   class LocalFunctionBase
@@ -68,7 +95,11 @@ public:
     using Element = typename EntitySet::Element;
 
   protected:
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+    LocalFunctionBase(const std::shared_ptr<const Data<Basis,Vector>>& data)
+#else
     LocalFunctionBase(const std::shared_ptr<const Data>& data)
+#endif
       : data_(data)
       , localView_(data_->basis->localView())
     {
@@ -153,15 +184,25 @@ public:
 
   protected:
 
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+    std::shared_ptr<const Data<Basis,Vector> > data_;
+#else
     std::shared_ptr<const Data> data_;
+#endif
     LocalView localView_;
     std::vector<Coefficient> localDoFs_;
     std::unique_ptr<LocalInterpolationRule> localInterpolationRule_;
   };
 
 protected:
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  GlobalGFEFunctionBase(const std::shared_ptr<const Data<Basis,Vector>>& data)
+    : VirtualGridViewFunction<typename B::GridView, Range>(data->basis->gridView())
+    , data_(data)
+#else
   GlobalGFEFunctionBase(const std::shared_ptr<const Data>& data)
     : data_(data)
+#endif
   {
     /* Nothing. */
   }
@@ -187,7 +228,11 @@ public:
   }
 
 protected:
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  std::shared_ptr<const Data<Basis, Vector> > data_;
+#else
   std::shared_ptr<const Data> data_;
+#endif
 };
 
 } // namespace Impl
@@ -206,14 +251,25 @@ class GlobalGFEFunctionDerivative;
  */
 template<typename B, typename LIR, typename TargetSpace>
 class GlobalGFEFunction
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  : public Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR, typename TargetSpace::CoordinateType>
+#else
   : public Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR>
+#endif
 {
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Base = Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR, typename TargetSpace::CoordinateType>;
+#else
   using Base = Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR>;
   using Data = typename Base::Data;
+#endif
 
 public:
   using Basis = typename Base::Basis;
   using Vector = typename Base::Vector;
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Data = typename Impl::Data<Basis,Vector>;
+#endif
   using LocalInterpolationRule = LIR;
 
   using Domain = typename Base::Domain;
@@ -309,6 +365,15 @@ public:
   {
     return LocalFunction(t);
   }
+
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Element = typename Basis::GridView::template Codim<0>::Entity;
+  /** \brief Evaluate the function at local coordinates. */
+  void evaluateLocal(const Element& element, const Domain& local, typename TargetSpace::CoordinateType& out) const
+  {
+    DUNE_THROW(NotImplemented, "!");
+  }
+#endif
 };
 
 
@@ -322,16 +387,29 @@ public:
  */
 template<typename GGF>
 class GlobalGFEFunctionDerivative
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  : public Impl::GlobalGFEFunctionBase<typename GGF::Basis, typename GGF::Vector, typename GGF::LocalInterpolationRule,
+  Dune::FieldMatrix<double, GGF::Vector::value_type::EmbeddedTangentVector::dimension, GGF::Basis::GridView::dimensionworld> >
+#else
   : public Impl::GlobalGFEFunctionBase<typename GGF::Basis, typename GGF::Vector, typename GGF::LocalInterpolationRule>
+#endif
 {
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Base = Impl::GlobalGFEFunctionBase<typename GGF::Basis, typename GGF::Vector, typename GGF::LocalInterpolationRule,
+  Dune::FieldMatrix<double, GGF::Vector::value_type::EmbeddedTangentVector::dimension, GGF::Basis::GridView::dimensionworld> >;
+#else
   using Base = Impl::GlobalGFEFunctionBase<typename GGF::Basis, typename GGF::Vector, typename GGF::LocalInterpolationRule>;
   using Data = typename Base::Data;
+#endif
 
 public:
   using GlobalGFEFunction = GGF;
 
   using Basis = typename Base::Basis;
   using Vector = typename Base::Vector;
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Data = typename Impl::Data<Basis,Vector>;
+#endif
 
   using Domain = typename Base::Domain;
   using Range = typename Functions::SignatureTraits<typename GlobalGFEFunction::Traits::DerivativeInterface>::Range;
@@ -452,6 +530,16 @@ public:
   {
     return LocalFunction(f);
   }
+
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Element = typename Basis::GridView::template Codim<0>::Entity;
+  /** \brief Evaluate the function at local coordinates. */
+  void evaluateLocal(const Element& element, const Domain& local, Range& out) const override
+  {
+    // This method will never be called.
+  }
+#endif
+
 };
 
 } // namespace Dune::GFE

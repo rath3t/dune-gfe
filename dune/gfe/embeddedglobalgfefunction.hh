@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <dune/common/typetraits.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/utility/hierarchicsearch.hh>
 
@@ -39,14 +40,25 @@ template<typename B, typename LIR, typename TargetSpace>
 class EmbeddedGlobalGFEFunction
 // There is no separate base class for EmbeddedGlobalGFEFunction, because the base class
 // only handles coefficients and indices.  It is independent of the type of function values.
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  : public Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR, typename TargetSpace::CoordinateType>
+#else
   : public Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR>
+#endif
 {
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Base = Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR, typename TargetSpace::CoordinateType>;
+#else
   using Base = Impl::GlobalGFEFunctionBase<B, std::vector<TargetSpace>, LIR>;
   using Data = typename Base::Data;
+#endif
 
 public:
   using Basis = typename Base::Basis;
   using Vector = typename Base::Vector;
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Data = typename Impl::Data<Basis,Vector>;
+#endif
   using LocalInterpolationRule = LIR;
 
   using Domain = typename Base::Domain;
@@ -142,6 +154,66 @@ public:
   {
     return LocalFunction(t);
   }
+
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Element = typename Basis::GridView::template Codim<0>::Entity;
+  /** \brief Evaluate the function at local coordinates. */
+  void evaluateLocal(const Element& element, const Domain& local, typename TargetSpace::CoordinateType& out) const override
+  {
+    out = this->operator()(element,local);
+  }
+
+  /** \brief Evaluate the function at local coordinates. */
+  typename TargetSpace::CoordinateType operator()(const Element& element, const Domain& local) const
+  {
+    auto localView = this->basis().localView();
+    localView.bind(element);
+    auto numOfBaseFct = localView.size();
+
+    // Extract local coefficients
+    std::vector<TargetSpace> localCoeff(numOfBaseFct);
+
+    for (size_t i=0; i<numOfBaseFct; i++)
+      localCoeff[i] = this->dofs()[localView.index(i)];
+
+    // create local gfe function
+    LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
+    return localInterpolationRule.evaluate(local).globalCoordinates();
+  }
+
+  /** \brief evaluation of derivative in local coordinates
+   *
+   *  \param e Evaluate in local coordinates with respect to this element.
+   *  \param x point in local coordinates at which to evaluate the derivative
+   *  \param d will contain the derivative at x after return
+   */
+  void evaluateDerivativeLocal(const Element& element, const Domain& local,
+                               typename Functions::SignatureTraits<typename EmbeddedGlobalGFEFunction::Traits::DerivativeInterface>::Range& out) const override
+  {
+    auto localView = this->basis().localView();
+    localView.bind(element);
+    auto numOfBaseFct = localView.size();
+
+    // Extract local coefficients
+    std::vector<TargetSpace> localCoeff(numOfBaseFct);
+
+    for (decltype(numOfBaseFct) i=0; i<numOfBaseFct; i++)
+      localCoeff[i] = this->dofs()[localView.index(i)];
+
+    // create local gfe function
+    LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
+
+    // use it to evaluate the derivative
+    auto refJac = localInterpolationRule.evaluateDerivative(local);
+
+    out =0.0;
+
+    //transform the gradient
+    const auto jacInvTrans = element.geometry().jacobianInverseTransposed(local);
+    for (size_t k=0; k< refJac.N(); k++)
+      jacInvTrans.umv(refJac[k],out[k]);
+  }
+#endif
 };
 
 
@@ -157,16 +229,29 @@ template<typename EGGF>
 class EmbeddedGlobalGFEFunctionDerivative
 // There is no separate base class for EmbeddedGlobalGFEFunction, because the base class
 // only handles coefficients and indices.  It is independent of the type of function values.
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  : public Impl::GlobalGFEFunctionBase<typename EGGF::Basis, typename EGGF::Vector, typename EGGF::LocalInterpolationRule,
+  Dune::FieldMatrix<double, EGGF::Vector::value_type::EmbeddedTangentVector::dimension, EGGF::Basis::GridView::dimensionworld> >
+#else
   : public Impl::GlobalGFEFunctionBase<typename EGGF::Basis, typename EGGF::Vector, typename EGGF::LocalInterpolationRule>
+#endif
 {
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Base = Impl::GlobalGFEFunctionBase<typename EGGF::Basis, typename EGGF::Vector, typename EGGF::LocalInterpolationRule,
+  Dune::FieldMatrix<double, EGGF::Vector::value_type::EmbeddedTangentVector::dimension, EGGF::Basis::GridView::dimensionworld> >;
+#else
   using Base = Impl::GlobalGFEFunctionBase<typename EGGF::Basis, typename EGGF::Vector, typename EGGF::LocalInterpolationRule>;
   using Data = typename Base::Data;
+#endif
 
 public:
   using EmbeddedGlobalGFEFunction = EGGF;
 
   using Basis = typename Base::Basis;
   using Vector = typename Base::Vector;
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Data = typename Impl::Data<Basis,Vector>;
+#endif
 
   using Domain = typename Base::Domain;
   using Range = typename Functions::SignatureTraits<typename EmbeddedGlobalGFEFunction::Traits::DerivativeInterface>::Range;
@@ -287,6 +372,16 @@ public:
   {
     return LocalFunction(f);
   }
+
+#if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)
+  using Element = typename Basis::GridView::template Codim<0>::Entity;
+  /** \brief Evaluate the function at local coordinates. */
+  void evaluateLocal(const Element& element, const Domain& local, Range& out) const override
+  {
+    // This method will never be called.
+  }
+#endif
+
 };
 
 } // namespace Dune::GFE
