@@ -101,7 +101,7 @@ double calculateEnergy(const int numLevels, const F1 referenceConfigurationFunct
 
     BlockVector<FieldVector<double,3> > helperVector2(feBasis.size());
     Dune::Functions::interpolate(deformationPowerBasis, helperVector2, configurationFunction);
-    for (int i = 0; i < feBasis.size(); i++) {
+    for (std::size_t i = 0; i < feBasis.size(); i++) {
         for (int j = 0; j < dimworld; j++)
             sol[i].r[j] = helperVector2[i][j]; 
 
