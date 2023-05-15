@@ -1,5 +1,8 @@
 # Master
 
+- The file `periodic1dpq1nodalbasis.hh` has been removed.  Use `periodicbasis.hh`
+  from the `dune-functions` module in the future.
+
 - Replaced the class `GlobalGeodesicFEFunction` by a new one called
   `GlobalGFEFunction`.  There are two important changes:  First of all,
   the new class implements the `dune-functions` interface rather than

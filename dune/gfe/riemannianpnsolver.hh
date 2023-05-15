@@ -19,8 +19,6 @@
 #include <dune/solvers/solvers/umfpacksolver.hh>
 #endif
 
-#include <dune/gfe/periodic1dpq1nodalbasis.hh>
-
 #include "riemanniantrsolver.hh"
 #include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalmapper.hh>
