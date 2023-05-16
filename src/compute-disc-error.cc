@@ -144,7 +144,7 @@ auto findSupportingElement(const GridType& sourceGrid,
     pos     = childPos;
   }
 
-  return std::tie(element, pos);
+  return std::make_tuple(element, pos);
 }
 
 template <class GridView, int order, class TargetSpace>
