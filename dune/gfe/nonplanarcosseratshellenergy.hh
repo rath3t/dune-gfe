@@ -11,6 +11,10 @@
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
+#if HAVE_DUNE_GMSH4
+#include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
+#endif
+
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
@@ -141,6 +145,19 @@ public:
          + b2_ * Dune::GFE::skew(S).frobenius_norm2() + b3_ * Dune::GFE::traceSquared(S));
   }
 
+#if HAVE_DUNE_GMSH4
+  static int getOrder(const Dune::Gmsh4::LagrangeGridCreator<typename GridView::Grid>* lagrangeGridCreator)
+  {
+    return lagrangeGridCreator->order();
+  }
+#endif
+
+  template<typename B, typename V, typename NTREM, typename R>
+  static int getOrder(const Dune::Functions::DiscreteGlobalBasisFunction<B,V, NTREM, R>* gridFunction)
+  {
+    return gridFunction->basis().preBasis().subPreBasis().order();
+  }
+
   /** \brief The shell thickness */
   double thickness_;
 
@@ -196,7 +213,7 @@ energy(const typename Basis::LocalView& localView,
       auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
       localGridFunction.bind(element);
       return localGridFunction(local);
-    }, stressFreeStateGridFunction_->order());
+    }, getOrder(stressFreeStateGridFunction_));
 #else
   // When using element.geometry(), the geometry of the element is flat
   auto geometry = element.geometry();
@@ -437,7 +454,7 @@ energy(const typename Basis::LocalView& localView,
       auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
       localGridFunction.bind(element);
       return localGridFunction(local);
-    }, stressFreeStateGridFunction_->order());
+    }, getOrder(stressFreeStateGridFunction_));
 #else
   // When using element.geometry(), the geometry of the element is flat
   auto geometry = element.geometry();

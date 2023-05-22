@@ -163,12 +163,19 @@ public:
         //  Downsample 3rd-order functions onto a P2-space.  That's all VTK can visualize today.
         if (order>=3)
         {
-          typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,2> P2Basis;
-          P2Basis p2Basis(gridView);
+          using namespace Dune::Functions::BasisFactory;
+          auto p2Basis = makeBasis(gridView, lagrange<2>());
+
+          auto blockedP2Basis = makeBasis(
+            gridView,
+            power<3>(
+              lagrange<2>(),
+              blockedInterleaved()
+          ));
 
         std::vector<RigidBodyMotion<double,3> > downsampledConfig;
 
-          downsample(basis, configuration, p2Basis, downsampledConfig);
+          downsample(basis, configuration, blockedP2Basis, downsampledConfig);
 
           write(p2Basis, downsampledConfig, filename);
           return;
@@ -398,16 +405,22 @@ public:
         }
 
         std::vector<RealTuple<double,3> > displacementConfiguration = deformationConfiguration;
-        typedef typename GridType::LeafGridView GridView;
-        typedef Dune::Functions::LagrangeBasis<GridView,2> P2DeformationBasis;
-        P2DeformationBasis p2DeformationBasis(gridView);
 
         if (order == 3)
         {
+          using namespace Dune::Functions::BasisFactory;
+
+          auto p2DeformationBasis = makeBasis(
+            gridView,
+            power<3>(
+              lagrange<2>(),
+              blockedInterleaved()
+          ));
+
           // resample to 2nd order -- vtk can't do anything higher
           std::vector<RealTuple<double,3> > p2DeformationConfiguration;
 
-          downsample<DisplacementBasis,P2DeformationBasis>(displacementBasis, displacementConfiguration,
+          downsample(displacementBasis, displacementConfiguration,
                      p2DeformationBasis, p2DeformationConfiguration);
 
           displacementConfiguration = p2DeformationConfiguration;

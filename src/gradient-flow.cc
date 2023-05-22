@@ -25,11 +25,10 @@
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
+#include <dune/functions/functionspacebases/powerbasis.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
-#include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
-#include <dune/fufem/discretizationerror.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/solvers/solvers/iterativesolver.hh>
@@ -39,12 +38,11 @@
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/globalgeodesicfefunction.hh>
+#include <dune/gfe/globalgfefunction.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/harmonicenergy.hh>
 #include <dune/gfe/l2distancesquaredenergy.hh>
 #include <dune/gfe/weightedsumenergy.hh>
-#include <dune/gfe/periodic1dpq1nodalbasis.hh>
 
 // grid dimension
 const int dim = 1;
@@ -137,21 +135,18 @@ int main (int argc, char *argv[]) try
   }
 
   grid->globalRefine(numLevels-1);
+  auto gridView = grid->leafGridView();
 
   //////////////////////////////////////////////////////////////////////////////////
   //  Construct the scalar function space basis corresponding to the GFE space
   //////////////////////////////////////////////////////////////////////////////////
 
   typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, order> FEBasis;
-  //typedef Dune::Functions::Periodic1DPQ1NodalBasis<typename GridType::LeafGridView> FEBasis;
   FEBasis feBasis(grid->leafGridView());
 
   ///////////////////////////////////////////
   //   Read Dirichlet values
   ///////////////////////////////////////////
-
-  typedef DuneFunctionsBasis<FEBasis> FufemFEBasis;
-  FufemFEBasis fufemFeBasis(feBasis);
 
   BitSetVector<1> dirichletVertices(grid->leafGridView().size(dim), false);
 
@@ -171,7 +166,7 @@ int main (int argc, char *argv[]) try
   BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), dirichletVertices);
 
   BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
-  constructBoundaryDofs(dirichletBoundary,fufemFeBasis,dirichletNodes);
+  constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
 
   ////////////////////////////
   //   Initial iterate
@@ -182,7 +177,16 @@ int main (int argc, char *argv[]) try
   auto pythonInitialIterate = Python::make_function<TargetSpace::CoordinateType>(module.get("f"));
 
   std::vector<TargetSpace::CoordinateType> v;
-  Functions::interpolate(feBasis, v, pythonInitialIterate);
+  using namespace Functions::BasisFactory;
+
+  auto powerBasis = makeBasis(
+    gridView,
+    power<TargetSpace::CoordinateType::dimension>(
+      lagrange<order>(),
+      blockedInterleaved()
+  ));
+
+  Functions::interpolate(powerBasis, v, pythonInitialIterate);
 
   SolutionType x(feBasis.size());
 
@@ -259,7 +263,7 @@ int main (int argc, char *argv[]) try
 
   for (int i=0; i<numTimeSteps; i++)
   {
-    auto previousTimeStepFct = std::make_shared<GlobalGeodesicFEFunction<FufemFEBasis,TargetSpace> >(fufemFeBasis,previousTimeStep);
+    auto previousTimeStepFct = std::make_shared<GFE::GlobalGFEFunction<FEBasis,GeodesicInterpolationRule::rebind<TargetSpace>::other,TargetSpace> >(feBasis,previousTimeStep);
     l2DistanceSquaredEnergy->origin_ = previousTimeStepFct;
 
     solver.setInitialIterate(x);

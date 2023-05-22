@@ -1,5 +1,16 @@
 # Master
 
+- The file `periodic1dpq1nodalbasis.hh` has been removed.  Use `periodicbasis.hh`
+  from the `dune-functions` module in the future.
+
+- Replaced the class `GlobalGeodesicFEFunction` by a new one called
+  `GlobalGFEFunction`.  There are two important changes:  First of all,
+  the new class implements the `dune-functions` interface rather than
+  the deprecated one based on inheritance from `VirtualGridViewFunction`.
+  Secondly, the new class does not hard-wire geodesic interpolation
+  anymore.  Rather, you can give it interpolation classes which then
+  govern how interpolation is done.
+
 - Added dune-gmsh4 as a dependency
 - Build cosserat-continuum for different combinations of LFE-orders and
   GFE-orders, the respective program is called

@@ -5,6 +5,7 @@
 
 #include <dune/geometry/quadraturerules.hh>
 
+#include <dune/gfe/globalgfefunction.hh>
 #include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 
@@ -20,10 +21,12 @@ class L2DistanceSquaredEnergy
   // some other sizes
   constexpr static int gridDim = GridView::dimension;
 
+  using LocalInterpolationRule = LocalGeodesicFEFunction<gridDim, DT, typename Basis::LocalView::Tree::FiniteElement, typename TargetSpace::template rebind<double>::other>;
+
 public:
 
   // This is the function that we are computing the L2-distance to
-  std::shared_ptr<VirtualGridViewFunction<GridView,typename TargetSpace::template rebind<double>::other > > origin_;
+  std::shared_ptr<Dune::GFE::GlobalGFEFunction<Basis, LocalInterpolationRule, typename TargetSpace::template rebind<double>::other > > origin_;
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
@@ -36,10 +39,12 @@ public:
     typedef LocalGeodesicFEFunction<gridDim, double, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
     LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
+    const auto element = localView.element();
+    auto localOrigin = localFunction(*origin_);
+    localOrigin.bind(element);
+
     // Just guessing an appropriate quadrature order
     auto quadOrder = localFiniteElement.localBasis().order() * 2 * gridDim;
-
-    const auto element = localView.element();
 
     const auto& quad = Dune::QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
 
@@ -54,21 +59,14 @@ public:
 
       // The function value
       auto value = localGeodesicFEFunction.evaluate(quadPos);
-      typename TargetSpace::template rebind<double>::other originValue;
-      origin_->evaluateLocal(element,quadPos, originValue);
+      auto originValue = localOrigin(quadPos);
 
       // The derivative of the 'origin' function
       // First: as function defined on the reference element
-      typename VirtualGridViewFunction<GridView,typename TargetSpace::template rebind<double>::other>::DerivativeType originReferenceDerivative;
-      origin_->evaluateDerivativeLocal(element,quadPos,originReferenceDerivative);
+      auto originReferenceDerivative = derivative(localOrigin)(quadPos);
 
       // The derivative of the function defined on the actual element
-      typename VirtualGridViewFunction<GridView,typename TargetSpace::template rebind<double>::other >::DerivativeType originDerivative(0);
-
-      auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
-
-      for (size_t comp=0; comp<originReferenceDerivative.N(); comp++)
-        jacobianInverseTransposed.umv(originReferenceDerivative[comp], originDerivative[comp]);
+      auto originDerivative = originReferenceDerivative * element.geometry().jacobianInverse(quadPos);
 
       double weightFactor = originDerivative.frobenius_norm();
       // un-comment the following line to switch off the weight factor

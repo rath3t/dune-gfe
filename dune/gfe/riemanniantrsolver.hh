@@ -15,8 +15,6 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
-#include <dune/gfe/periodic1dpq1nodalbasis.hh>
-
 #include "geodesicfeassembler.hh"
 #include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalmapper.hh>
@@ -39,15 +37,6 @@ struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,1> >
     {
       return LocalMapper(gridView, Dune::mcmgVertexLayout());
     }
-};
-
-// This case is not going to actually work, but I need the specialization to make
-// the sequential code compile.
-template <typename GridView>
-struct MapperFactory<Dune::Functions::Periodic1DPQ1NodalBasis<GridView> >
-{
-    typedef Dune::GlobalP1Mapper<Dune::Functions::Periodic1DPQ1NodalBasis<GridView>> GlobalMapper;
-    typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
 };
 
 template <typename GridView>

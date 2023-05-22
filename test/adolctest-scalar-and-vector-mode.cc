@@ -86,10 +86,10 @@ int main (int argc, char *argv[])
     gridView,
     composite(
       power<dim>(
-        lagrange<2>()
+        lagrange<1>()
       ),
       power<dim>(
-        lagrange<2>()
+        lagrange<1>()
       )
   ));
 
@@ -132,7 +132,7 @@ int main (int argc, char *argv[])
                     Rotation<double,dim> > mixedAssemblerScalar(compositeBasis, &mixedLocalGFEADOLCStiffnessScalar);
   
   //Non-mixed space
-  using DeformationFEBasis = Dune::Functions::LagrangeBasis<GridView,2>;
+  using DeformationFEBasis = Dune::Functions::LagrangeBasis<GridView,1>;
 
   CosseratEnergyLocalStiffness<DeformationFEBasis, dim,adouble> cosseratEnergy(parameters,
                                                                      nullptr,
@@ -151,7 +151,7 @@ int main (int argc, char *argv[])
   auto deformationPowerBasis = makeBasis(
     gridView,
     power<gridDim>(
-        lagrange<2>()
+        lagrange<1>()
   ));
   BlockVector<FieldVector<double,gridDim> > identity(compositeBasis.size({0}));
   Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,gridDim> x){ return x; });

@@ -468,7 +468,7 @@ int main (int argc, char *argv[]) try
         BlockVector<FieldMatrix<double,3,3> > dOV;
         Dune::Functions::interpolate(orientationPowerBasis, dOV, orientationDirichletValues);
     
-        for (int i = 0; i < compositeBasis.size({0}); i++) {
+        for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
             FieldVector<double,3> x0i = x[_0][i].globalCoordinates();
             for (int j=0; j<3; j++) {
                 if (deformationDirichletDofs[i][j])
@@ -523,7 +523,7 @@ int main (int argc, char *argv[]) try
             //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
             std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
             BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
-            for (int i = 0; i < compositeBasis.size({0}); i++) {
+            for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
               for (int j = 0; j < 3; j ++) { // Displacement part
                 xTargetSpace[i].r[j] = x[_0][i][j];
                 dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
@@ -570,7 +570,7 @@ int main (int argc, char *argv[]) try
                 solver.solve();
                 xTargetSpace = solver.getSol();
             }
-            for (int i = 0; i < xTargetSpace.size(); i++) {
+            for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
               x[_0][i] = xTargetSpace[i].r;
               x[_1][i] = xTargetSpace[i].q;
             }
