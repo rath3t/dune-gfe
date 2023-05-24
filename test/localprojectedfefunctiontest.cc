@@ -10,7 +10,7 @@
 #include <dune/geometry/type.hh>
 #include <dune/geometry/referenceelements.hh>
 
-#include <dune/localfunctions/lagrange/pqkfactory.hh>
+#include <dune/localfunctions/lagrange/lagrangelfecache.hh>
 
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
@@ -130,8 +130,8 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
     if (domainDim!=2)
         return;
 
-    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
-    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
 
     GeometryType simplex = GeometryTypes::simplex(domainDim);
 
@@ -180,7 +180,7 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 }
 
 template <int domainDim, class TargetSpace, bool conforming=true>
-void testDerivative(const GFE::LocalProjectedFEFunction<domainDim,double,typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace, conforming>& f)
+void testDerivative(const GFE::LocalProjectedFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace, conforming>& f)
 {
     static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
 
@@ -242,8 +242,8 @@ void test(const GeometryType& element)
             continue;
 
         // Make local gfe function to be tested
-        PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
-        typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+        LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
+        typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
 
         GFE::LocalProjectedFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
         GFE::LocalProjectedFEFunction<domainDim, double, LocalFiniteElement, TargetSpace,false> f_nonconforming(feCache.get(element), corners);

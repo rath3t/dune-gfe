@@ -9,7 +9,7 @@
 #include <dune/geometry/type.hh>
 #include <dune/geometry/referenceelements.hh>
 
-#include <dune/localfunctions/lagrange/pqkfactory.hh>
+#include <dune/localfunctions/lagrange/lagrangelfecache.hh>
 
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
@@ -74,8 +74,8 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
     if (domainDim!=2)
         return;
 
-    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
-    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
     
     GeometryType simplex = GeometryTypes::simplex(domainDim);
 
@@ -124,7 +124,7 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 }
 
 template <int domainDim, class TargetSpace>
-void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
+void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
 {
     static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
     
@@ -158,7 +158,7 @@ void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename PQkL
 
 
 template <int domainDim, class TargetSpace>
-void testDerivativeOfValueWRTCoefficients(const LocalGeodesicFEFunction<domainDim,double,typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
+void testDerivativeOfValueWRTCoefficients(const LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
 {
     static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
     
@@ -202,7 +202,7 @@ void testDerivativeOfValueWRTCoefficients(const LocalGeodesicFEFunction<domainDi
 }
 
 template <int domainDim, class TargetSpace>
-void testDerivativeOfGradientWRTCoefficients(const LocalGeodesicFEFunction<domainDim,double,typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
+void testDerivativeOfGradientWRTCoefficients(const LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
 {
     static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
     
@@ -272,8 +272,8 @@ void test(const GeometryType& element)
             continue;
         
         // Make local gfe function to be tested
-        PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
-        typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+        LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
+        typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
     
         LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
 

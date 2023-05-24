@@ -5,7 +5,7 @@
 #include <dune/geometry/type.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/localfunctions/lagrange/pqkfactory.hh>
+#include <dune/localfunctions/lagrange/lagrangelfecache.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>
@@ -58,8 +58,8 @@ template <int domainDim>
 void testDerivativeOfRotationMatrix(const std::vector<TargetSpace>& corners)
 {
     // Make local fe function to be tested
-    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
-    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
 
     LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement, TargetSpace> f(feCache.get(GeometryTypes::simplex(domainDim)), corners);
 

@@ -45,7 +45,7 @@ public:
     LocalGfeTestFunctionFiniteElement(const LagrangeLfe& lfe, const std::vector<TargetSpace> baseCoeff) :
         baseCoeff_(baseCoeff),
         basis_(lfe, baseCoeff_),
-        coefficients_(lfe.clone()->localCoefficients()),
+        coefficients_(lfe.localCoefficients()),
         gt_(lfe.type())
     {}
 
@@ -79,7 +79,7 @@ public:
 private:
     const std::vector<TargetSpace> baseCoeff_;
     LocalBasis basis_;
-    const typename Traits::LocalCoefficientsType& coefficients_;
+    const typename Traits::LocalCoefficientsType coefficients_;
     LocalInterpolation  interpolation_;
     Dune::GeometryType gt_;
 };
