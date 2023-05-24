@@ -26,8 +26,8 @@
 #include <dune/grid/utility/structuredgridfactory.hh>
 
 #include <dune/gfe/filereader.hh>
-#include <dune/gfe/rotation.hh>
 #include <dune/gfe/surfacecosseratstressassembler.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include <dune/matrix-vector/transpose.hh>
 

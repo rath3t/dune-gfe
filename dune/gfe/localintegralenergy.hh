@@ -7,8 +7,8 @@
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/gfe/localenergy.hh>
-#include <dune/gfe/realtuple.hh>
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 #include <dune/elasticity/materials/localdensity.hh>
 

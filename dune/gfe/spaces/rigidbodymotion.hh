@@ -1,10 +1,10 @@
-#ifndef RIGID_BODY_MOTION_HH
-#define RIGID_BODY_MOTION_HH
+#ifndef DUNE_GFE_SPACES_RIGIDBODYMOTION_HH
+#define DUNE_GFE_SPACES_RIGIDBODYMOTION_HH
 
 #include <dune/common/fvector.hh>
 
-#include <dune/gfe/realtuple.hh>
-#include "rotation.hh"
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 /** \brief A rigid-body motion in R^N, i.e., a member of SE(N) */
 template <class T, int N>

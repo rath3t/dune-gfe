@@ -8,7 +8,7 @@
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"

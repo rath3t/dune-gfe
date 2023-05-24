@@ -1,5 +1,5 @@
-#ifndef ORTHOGONAL_MATRIX_HH
-#define ORTHOGONAL_MATRIX_HH
+#ifndef DUNE_GFE_SPACES_ORTHOGONALMATRIX_HH
+#define DUNE_GFE_SPACES_ORTHOGONALMATRIX_HH
 
 #include <dune/common/fmatrix.hh>
 
@@ -177,4 +177,4 @@ private:
     
 };
 
-#endif // ORTHOGONAL_MATRIX_HH
+#endif  // DUNE_GFE_SPACES_ORTHOGONALMATRIX_HH

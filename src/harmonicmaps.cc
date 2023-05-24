@@ -38,10 +38,6 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/unitvector.hh>
-#include <dune/gfe/realtuple.hh>
-#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
@@ -50,6 +46,10 @@
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rotation.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 // grid dimension
 const int dim = 2;

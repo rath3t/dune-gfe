@@ -7,8 +7,8 @@
 
 #include <dune/geometry/type.hh>
 
-#include <dune/gfe/rotation.hh>
 #include <dune/gfe/linearalgebra.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 namespace Dune {
 

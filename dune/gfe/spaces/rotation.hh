@@ -1,5 +1,5 @@
-#ifndef ROTATION_HH
-#define ROTATION_HH
+#ifndef DUNE_GFE_SPACES_ROTATION_HH
+#define DUNE_GFE_SPACES_ROTATION_HH
 
 /** \file
     \brief Define rotations in Euclidean spaces
@@ -12,11 +12,11 @@
 #include <dune/common/exceptions.hh>
 #include <dune/common/math.hh>
 
-#include "quaternion.hh"
 #include <dune/gfe/tensor3.hh>
-#include <dune/gfe/unitvector.hh>
 #include <dune/gfe/skewmatrix.hh>
 #include <dune/gfe/symmetricmatrix.hh>
+#include <dune/gfe/spaces/quaternion.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 template <class T, int dim>
 class Rotation

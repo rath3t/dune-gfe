@@ -21,13 +21,13 @@
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 
-#include <dune/gfe/unitvector.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/harmonicenergy.hh>
 #include <dune/gfe/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 // grid dimension
 const int dim = 2;

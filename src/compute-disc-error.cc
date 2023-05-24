@@ -24,12 +24,12 @@
 #include <dune/fufem/dunepython.hh>
 #include <dune/fufem/makesphere.hh>
 
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/unitvector.hh>
-#include <dune/gfe/realtuple.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 // grid dimension
 const int dim = 2;

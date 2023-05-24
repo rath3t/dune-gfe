@@ -1,5 +1,5 @@
-#ifndef REAL_TUPLE_HH
-#define REAL_TUPLE_HH
+#ifndef DUNE_GFE_SPACES_REALTUPLE_HH
+#define DUNE_GFE_SPACES_REALTUPLE_HH
 
 #include <dune/common/fvector.hh>
 

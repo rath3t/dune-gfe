@@ -1,10 +1,10 @@
 #include <config.h>
 
-#include <dune/gfe/unitvector.hh>
-#include <dune/gfe/realtuple.hh>
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/productmanifold.hh>
-#include <dune/gfe/hyperbolichalfspacepoint.hh>
+#include <dune/gfe/spaces/hyperbolichalfspacepoint.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/unitvector.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include "valuefactory.hh"
 

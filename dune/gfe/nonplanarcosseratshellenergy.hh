@@ -18,11 +18,11 @@
 #include <dune/gfe/cosseratenergystiffness.hh>
 #include <dune/gfe/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/unitvector.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 #if HAVE_DUNE_CURVEDGEOMETRY
 #include <dune/curvedgeometry/curvedgeometry.hh>

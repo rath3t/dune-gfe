@@ -1,5 +1,5 @@
-#ifndef QUATERNION_HH
-#define QUATERNION_HH
+#ifndef DUNE_GFE_SPACES_QUATERNION_HH
+#define DUNE_GFE_SPACES_QUATERNION_HH
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>

@@ -10,7 +10,7 @@
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
 #include <dune/gfe/localquickanddirtyfefunction.hh>
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/tensorssd.hh>

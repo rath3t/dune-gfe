@@ -3,8 +3,8 @@
 
 #include <dune/gfe/mixedgfeassembler.hh>
 #include <dune/common/tuplevector.hh>
-#include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/productmanifold.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 namespace Dune::GFE {
 

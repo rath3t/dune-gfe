@@ -7,10 +7,10 @@
 #include <dune/common/fvector.hh>
 #include <dune/localfunctions/lagrange/pqkfactory.hh>
 
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/realtuple.hh>
-#include <dune/gfe/unitvector.hh>
-#include <dune/gfe/productmanifold.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localgfetestfunctionbasis.hh>

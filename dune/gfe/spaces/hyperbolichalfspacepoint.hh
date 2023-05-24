@@ -1,5 +1,5 @@
-#ifndef HYPERBOLIC_HALF_SPACE_POINT_HH
-#define HYPERBOLIC_HALF_SPACE_POINT_HH
+#ifndef DUNE_GFE_SPACES_HYPERBOLICHALFSPACEPOINT_HH
+#define DUNE_GFE_SPACES_HYPERBOLICHALFSPACEPOINT_HH
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>

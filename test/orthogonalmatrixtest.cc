@@ -1,6 +1,6 @@
 #include <config.h>
 
-#include <dune/gfe/orthogonalmatrix.hh>
+#include <dune/gfe/spaces/orthogonalmatrix.hh>
 
 #include "valuefactory.hh"
 

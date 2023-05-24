@@ -20,10 +20,10 @@
 #else
 #include "localgeodesicfefunction.hh"
 #endif
-#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/tensor3.hh>
-#include <dune/gfe/orthogonalmatrix.hh>
 #include <dune/gfe/cosseratstrain.hh>
+#include <dune/gfe/spaces/orthogonalmatrix.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 #define DONT_USE_CURL
 

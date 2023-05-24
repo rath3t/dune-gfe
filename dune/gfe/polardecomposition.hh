@@ -6,8 +6,8 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/common/version.hh>
 #include <dune/common/exceptions.hh>
-#include <dune/gfe/rotation.hh>
 #include <dune/gfe/linearalgebra.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //  Two Methods to compute the Polar Factor of a 3x3 matrix
