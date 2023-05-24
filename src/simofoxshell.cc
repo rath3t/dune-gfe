@@ -27,14 +27,14 @@
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/mixedgfeassembler.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
-#include <dune/gfe/unitvector.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 #if !MIXED_SPACE
 #include <dune/gfe/geodesicfeassemblerwrapper.hh>
-#include <dune/gfe/productmanifold.hh>
 #include <dune/gfe/riemannianpnsolver.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 #endif
 
 #if HAVE_DUNE_VTK

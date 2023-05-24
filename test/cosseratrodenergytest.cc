@@ -6,7 +6,7 @@
 
 #include <dune/gfe/cosseratrodenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 
 using namespace Dune;

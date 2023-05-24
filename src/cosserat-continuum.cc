@@ -70,7 +70,7 @@
 #include <dune/gfe/geodesicfeassemblerwrapper.hh>
 #include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 #endif
 
 #if HAVE_DUNE_VTK

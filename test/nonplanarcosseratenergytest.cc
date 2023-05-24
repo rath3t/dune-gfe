@@ -13,7 +13,7 @@
 
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/nonplanarcosseratshellenergy.hh>
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"

@@ -1,7 +1,7 @@
 #ifndef DUNE_GFE_COSSERATVTKREADER_HH
 #define DUNE_GFE_COSSERATVTKREADER_HH
 
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 namespace Dune
 {

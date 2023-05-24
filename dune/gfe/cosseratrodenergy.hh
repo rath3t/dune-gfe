@@ -17,7 +17,7 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/localenergy.hh>
-#include <dune/gfe/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 namespace Dune::GFE {
 

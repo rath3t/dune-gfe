@@ -34,8 +34,8 @@
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/gfe/filereader.hh>
-#include <dune/gfe/rotation.hh>
 #include <dune/gfe/surfacecosseratstressassembler.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 // grid dimension
 #ifndef WORLD_DIM

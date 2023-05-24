@@ -8,11 +8,11 @@
 
 #include <dune/geometry/type.hh>
 
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/polardecomposition.hh>
-#include <dune/gfe/realtuple.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 namespace Dune {
 

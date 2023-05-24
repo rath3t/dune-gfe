@@ -4,8 +4,8 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/linearalgebra.hh>
-#include <dune/gfe/rotation.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include <dune/matrix-vector/transpose.hh>
 

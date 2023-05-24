@@ -1,5 +1,8 @@
 # Master
 
+- All files that implement target spaces have been moved to the
+  `spaces` subdirectory.
+
 - The file `periodic1dpq1nodalbasis.hh` has been removed.  Use `periodicbasis.hh`
   from the `dune-functions` module in the future.
 

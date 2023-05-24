@@ -10,8 +10,8 @@
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
-#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/vtkfile.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 
 /** \brief Write the configuration of a Cosserat material in VTK format */

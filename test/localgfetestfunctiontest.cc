@@ -5,12 +5,12 @@
 #include <array>
 
 #include <dune/common/fvector.hh>
-#include <dune/localfunctions/lagrange/pqkfactory.hh>
+#include <dune/localfunctions/lagrange/lagrangelfecache.hh>
 
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/realtuple.hh>
-#include <dune/gfe/unitvector.hh>
-#include <dune/gfe/productmanifold.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localgfetestfunctionbasis.hh>
@@ -38,8 +38,8 @@ void test()
     MultiIndex index(domainDim+1, nTestPoints);
     int numIndices = index.cycle();
     
-    PQkLocalFiniteElementCache<double,double,domainDim,1> feCache;
-    typedef typename PQkLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
+    typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
     
     for (int i=0; i<numIndices; i++, ++index) {
         

@@ -5,9 +5,10 @@
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/common/fmatrix.hh>
-#include <dune/localfunctions/lagrange/pqkfactory.hh>
 #include <dune/istl/solvers.hh>
 #include <dune/istl/preconditioners.hh>
+
+#include <dune/localfunctions/lagrange/lagrangelfecache.hh>
 
 #include dune/matrix-vector/crossproduct.hh>
 
@@ -524,7 +525,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
     const int dim                               = GridView::dimension;
     typedef double field_type;
 
-    Dune::PQkLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
+    Dune::LagrangeLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
 
     // Create the matrix of constraints
     Dune::BCRSMatrix<Dune::FieldMatrix<field_type,1,1> > constraints(2*dim, dim*interface.numVertices(),
@@ -567,7 +568,7 @@ void computeAveragePressure(const typename RigidBodyMotion<double,GridView::dime
     for (; it!=endIt; ++it) {
 
         // Get shape functions
-        const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType&
+        const typename Dune::LagrangeLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType&
             localFiniteElement = finiteElementCache.get(it->inside()->type());
 
             const Dune::ReferenceElement<double,dim>& refElement = Dune::ReferenceElements<double, dim>::general(it->inside()->type());
@@ -726,7 +727,7 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
     const typename GridView::IndexSet& indexSet = gridView.indexSet();
     const int dim        = GridView::dimension;
 
-    Dune::PQkLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
+    Dune::LagrangeLocalFiniteElementCache<double,double, dim, 1> finiteElementCache;
 
     // ///////////////////////////////////////////
     //   Initialize output configuration
@@ -751,7 +752,7 @@ void computeAverageInterface(const BoundaryPatch<GridView>& interface,
             const QuadratureRule<double, dim-1>& quad = QuadratureRules<double, dim-1>::rule(segmentGeometry.type(), dim-1);
 
             // Get set of shape functions on this segment
-            const typename Dune::PQkLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType&
+            const typename Dune::LagrangeLocalFiniteElementCache<double,double, dim, 1>::FiniteElementType&
                 localFiniteElement = finiteElementCache.get(it->inside()->type());
 
             /* Loop over all integration points */

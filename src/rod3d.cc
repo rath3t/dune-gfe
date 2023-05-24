@@ -38,8 +38,8 @@
 #include <dune/gfe/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
 
 typedef RigidBodyMotion<double,3> TargetSpace;
 

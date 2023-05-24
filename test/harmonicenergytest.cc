@@ -4,9 +4,9 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
-#include <dune/gfe/unitvector.hh>
 #include <dune/gfe/harmonicenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"

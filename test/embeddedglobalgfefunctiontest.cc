@@ -11,7 +11,7 @@
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/unitvector.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 using namespace Dune;
 

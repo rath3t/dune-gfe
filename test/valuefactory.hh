@@ -3,12 +3,12 @@
 
 #include <vector>
 
-#include <dune/gfe/unitvector.hh>
-#include <dune/gfe/rotation.hh>
-#include <dune/gfe/rigidbodymotion.hh>
-#include <dune/gfe/productmanifold.hh>
-#include <dune/gfe/orthogonalmatrix.hh>
-#include <dune/gfe/hyperbolichalfspacepoint.hh>
+#include <dune/gfe/spaces/hyperbolichalfspacepoint.hh>
+#include <dune/gfe/spaces/orthogonalmatrix.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rotation.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 /** \brief A class that creates sets of values of various types, to be used in unit tests
  *

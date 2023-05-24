@@ -1,5 +1,5 @@
-#ifndef UNIT_VECTOR_HH
-#define UNIT_VECTOR_HH
+#ifndef DUNE_GFE_SPACES_UNITVECTOR_HH
+#define DUNE_GFE_SPACES_UNITVECTOR_HH
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>

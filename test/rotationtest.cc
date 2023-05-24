@@ -5,7 +5,7 @@
 
 #include <dune/common/fmatrix.hh>
 
-#include <dune/gfe/rotation.hh>
+#include <dune/gfe/spaces/rotation.hh>
 #include "valuefactory.hh"
 
 using namespace Dune;

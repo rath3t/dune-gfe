@@ -12,8 +12,8 @@
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/localenergy.hh>
 #include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
-#include <dune/gfe/realtuple.hh>
-#include <dune/gfe/unitvector.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 namespace Dune::GFE {
 
