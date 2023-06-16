@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <dune/common/bitsetvector.hh>
+#include <dune/common/parametertree.hh>
 
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
@@ -118,6 +119,13 @@ public:
                int baseIterations,
                double baseTolerance,
                bool instrumented);
+
+    /** \brief Set up the solver using a monotone multigrid method as the inner solver */
+    void setup(const GridType& grid,
+               const Assembler* assembler,
+               const SolutionType& x,
+               const Dune::BitSetVector<blocksize>& dirichletNodes,
+               const Dune::ParameterTree& parameterSet);
 
     void setScaling(const Dune::FieldVector<double,blocksize>& scaling)
     {
