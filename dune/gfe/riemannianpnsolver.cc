@@ -28,6 +28,24 @@
 #endif
 
 template <class Basis, class TargetSpace, class Assembler>
+void RiemannianProximalNewtonSolver<Basis, TargetSpace, Assembler>::
+    setup(const GridType& grid,
+        const Assembler* assembler,
+        const SolutionType& x,
+        const Dune::BitSetVector<blocksize>& dirichletNodes,
+        const Dune::ParameterTree& parameterSet)
+{
+    setup(grid,
+          assembler,
+          x,
+          dirichletNodes,
+          parameterSet.get<double>("tolerance"),
+          parameterSet.get<int>("maxProximalNewtonSteps "),
+          parameterSet.get<double>("initialRegularization"),
+          parameterSet.get<bool>("instrumented", 0));
+}
+
+template <class Basis, class TargetSpace, class Assembler>
 void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::
 setup(const GridType& grid,
       const Assembler* assembler,
@@ -52,7 +70,7 @@ setup(const GridType& grid,
     //////////////////////////////////////////////////////////////////
     //  Create global numbering for matrix and vector transfer
     //////////////////////////////////////////////////////////////////
-
+    
     globalMapper_ = std::make_unique<GlobalMapper>(grid_->leafGridView());
     // Transfer all Dirichlet data to the master processor
     VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,

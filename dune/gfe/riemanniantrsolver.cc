@@ -29,6 +29,29 @@
 #endif
 
 template <class Basis, class TargetSpace, class Assembler>
+void RiemannianTrustRegionSolver<Basis, TargetSpace, Assembler>::
+    setup(const GridType& grid,
+        const Assembler* assembler,
+        const SolutionType& x,
+        const Dune::BitSetVector<blocksize>& dirichletNodes,
+        const Dune::ParameterTree& parameterSet)
+{
+    setup(grid,
+          assembler,
+          x,
+          dirichletNodes,
+          parameterSet.get<double>("tolerance"),
+          parameterSet.get<int>("maxTrustRegionSteps"),
+          parameterSet.get<double>("initialTrustRegionRadius"),
+          parameterSet.get<int>("numIt"),
+          parameterSet.get<double>("mgTolerance"),
+          parameterSet.get<int>("mu"), parameterSet.get<int>("nu1"), parameterSet.get<int>("nu2"),
+          parameterSet.get<int>("baseIt"),
+          parameterSet.get<double>("baseTolerance"),
+          parameterSet.get<bool>("instrumented", 0));
+}
+
+template <class Basis, class TargetSpace, class Assembler>
 void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::
 setup(const GridType& grid,
       const Assembler* assembler,
@@ -692,7 +715,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
                 fwrite(&x_[j], sizeof(TargetSpace), 1, fpIterate);
 
             fclose(fpIterate);
-
+            
         }
 
         if (rank==0)
