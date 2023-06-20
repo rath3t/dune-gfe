@@ -161,6 +161,9 @@ protected:
     /** \brief If set to true we log convergence speed and other stuff */
     bool instrumented_;
 
+    /** \brief Norm type used for stopping criterion (default is infinity norm) */
+    enum class ErrorNormType {infinity, H1semi} normType_ = ErrorNormType::infinity;
+
     /** \brief Store information about solver runs for unit testing */
     Statistics statistics_;
 

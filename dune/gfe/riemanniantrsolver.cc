@@ -36,6 +36,13 @@ void RiemannianTrustRegionSolver<Basis, TargetSpace, Assembler>::
         const Dune::BitSetVector<blocksize>& dirichletNodes,
         const Dune::ParameterTree& parameterSet)
 {
+    if(parameterSet.get("norm", "infinity") == "infinity")
+        normType_ = ErrorNormType::infinity;
+    else if(parameterSet.get("norm", "infinity") == "H1-Semi")
+        normType_ = ErrorNormType::H1semi;
+    else
+        DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
+
     setup(grid,
           assembler,
           x,
@@ -505,9 +512,16 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
         corr = corr_global;
 #endif
 
-        // Make infinity norm of corr_global known on all processors
-        double corrNorm = corr.infinity_norm();
-        double corrGlobalInfinityNorm = grid_->comm().max(corrNorm);
+        double corrNorm;
+        if (normType_ == ErrorNormType::infinity)
+            corrNorm = corr.infinity_norm();
+        else if (normType_ == ErrorNormType::H1semi)
+            corrNorm = h1SemiNorm_->operator()(corr);
+        else
+            DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
+
+        // Make norm of corr_global known on all processors
+        double corrGlobalNorm = grid_->comm().max(corrNorm);
 
         if (instrumented_) {
 
@@ -584,9 +598,14 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
 
         if (solved) {
             if (this->verbosity_ == NumProc::FULL and rank==0)
-                std::cout << "Infinity norm of the correction: " << corrGlobalInfinityNorm << std::endl;
+                if (normType_ == ErrorNormType::infinity)
+                    std::cout << "infinity norm of the correction: " << corrGlobalNorm << std::endl;
+                else if (normType_ == ErrorNormType::H1semi)
+                    std::cout << "H1-semi norm of the correction: " << corrGlobalNorm << std::endl;
+                else
+                    DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
 
-            if (corrGlobalInfinityNorm < this->tolerance_ && corrGlobalInfinityNorm < trustRegion.radius()*smallestScalingParameter) {
+            if (corrGlobalNorm < this->tolerance_ && corrGlobalNorm < trustRegion.radius()*smallestScalingParameter) {
                 if (this->verbosity_ == NumProc::FULL and rank==0)
                     std::cout << "CORRECTION IS SMALL ENOUGH" << std::endl;
 
