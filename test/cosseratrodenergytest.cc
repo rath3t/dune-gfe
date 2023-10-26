@@ -4,7 +4,7 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
-#include <dune/gfe/cosseratrodenergy.hh>
+#include <dune/gfe/assemblers/cosseratrodenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>
 

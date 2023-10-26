@@ -21,18 +21,18 @@
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/dunepython.hh>
 
-#include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
-#include <dune/gfe/simofoxenergy.hh>
+#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/simofoxenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
-#include <dune/gfe/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
 #if !MIXED_SPACE
-#include <dune/gfe/geodesicfeassemblerwrapper.hh>
+#include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
 #include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #endif

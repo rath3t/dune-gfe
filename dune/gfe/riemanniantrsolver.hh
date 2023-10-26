@@ -16,7 +16,7 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/loopsolver.hh>
 
-#include "geodesicfeassembler.hh"
+#include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/grid/utility/globalindexset.hh>
 #include <dune/gfe/parallel/globalmapper.hh>
 #include <dune/gfe/parallel/globalp1mapper.hh>

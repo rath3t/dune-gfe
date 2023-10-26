@@ -6,7 +6,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/gfe/localenergy.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 
 template<class Basis, class TargetSpace>

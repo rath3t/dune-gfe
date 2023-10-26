@@ -40,10 +40,10 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/harmonicenergy.hh>
-#include <dune/gfe/chiralskyrmionenergy.hh>
-#include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/harmonicenergy.hh>
+#include <dune/gfe/assemblers/chiralskyrmionenergy.hh>
+#include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>

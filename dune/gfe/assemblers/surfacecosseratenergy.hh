@@ -8,10 +8,10 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/cosseratstrain.hh>
-#include <dune/gfe/localenergy.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>
 

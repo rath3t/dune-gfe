@@ -56,17 +56,17 @@
 #include <dune/grid/io/file/vtk.hh>
 
 #include <dune/gfe/cosseratvtkwriter.hh>
-#include <dune/gfe/localintegralenergy.hh>
-#include <dune/gfe/mixedgfeassembler.hh>
-#include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
+#include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/neumannenergy.hh>
-#include <dune/gfe/surfacecosseratenergy.hh>
-#include <dune/gfe/sumenergy.hh>
+#include <dune/gfe/assemblers/surfacecosseratenergy.hh>
+#include <dune/gfe/assemblers/sumenergy.hh>
 
 #if MIXED_SPACE
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #else
-#include <dune/gfe/geodesicfeassemblerwrapper.hh>
+#include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
 #include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>

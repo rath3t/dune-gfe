@@ -34,14 +34,14 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/globalgfefunction.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
-#include <dune/gfe/harmonicenergy.hh>
-#include <dune/gfe/l2distancesquaredenergy.hh>
-#include <dune/gfe/weightedsumenergy.hh>
+#include <dune/gfe/assemblers/harmonicenergy.hh>
+#include <dune/gfe/assemblers/l2distancesquaredenergy.hh>
+#include <dune/gfe/assemblers/weightedsumenergy.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
 // grid dimension

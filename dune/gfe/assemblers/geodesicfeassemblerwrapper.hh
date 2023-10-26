@@ -1,7 +1,7 @@
 #ifndef GLOBAL_GEODESIC_FE_ASSEMBLERWRAPPER_HH
 #define GLOBAL_GEODESIC_FE_ASSEMBLERWRAPPER_HH
 
-#include <dune/gfe/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/common/tuplevector.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>

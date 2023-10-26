@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include <dune/gfe/localenergy.hh>
-#include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 
 namespace Dune::GFE {
 

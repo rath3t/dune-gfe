@@ -12,8 +12,8 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 
-#include <dune/gfe/localenergy.hh>
-#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */

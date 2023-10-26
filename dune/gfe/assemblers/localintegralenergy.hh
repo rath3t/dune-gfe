@@ -6,7 +6,7 @@
 
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/gfe/localenergy.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>
 
