@@ -49,6 +49,17 @@ class MixedRiemannianTrustRegionSolver
     typedef Dune::MultiTypeBlockVector<CorrectionType0, CorrectionType1> CorrectionType;
     typedef Dune::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > SolutionType;
 
+    /** \brief Records information about the last run of the RiemannianTrustRegionSolver
+     *
+     * This is used primarily for unit testing.
+     */
+    struct Statistics
+    {
+      std::size_t finalIteration;
+
+      field_type finalEnergy;
+    };
+
 public:
 
     MixedRiemannianTrustRegionSolver()
@@ -110,6 +121,8 @@ public:
       return x_;
     }
 
+    const Statistics& getStatistics() const {return statistics_;}
+
 protected:
 #if 0
     std::unique_ptr<GUIndex> guIndex_;
@@ -164,6 +177,9 @@ protected:
     /** \brief The norm used to measure multigrid convergence */
     H1SemiNorm<CorrectionType0>* h1SemiNorm0_;
     H1SemiNorm<CorrectionType1>* h1SemiNorm1_;
+
+    /** \brief Store information about solver runs for testing */
+    Statistics statistics_;
 };
 
 #include "mixedriemanniantrsolver.cc"

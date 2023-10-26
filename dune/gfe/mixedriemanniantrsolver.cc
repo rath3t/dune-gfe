@@ -305,6 +305,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
     for (int i=0; i<maxTrustRegionSteps_; i++) {
 
+        statistics_.finalIteration = i;
         Dune::Timer totalTimer;
         if (this->verbosity_ == Solver::FULL and rank==0) {
             std::cout << "----------------------------------------------------" << std::endl;
@@ -574,4 +575,5 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
     }
 
+   statistics_.finalEnergy = oldEnergy;
 }
