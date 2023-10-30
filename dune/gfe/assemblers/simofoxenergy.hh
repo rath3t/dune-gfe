@@ -10,8 +10,8 @@
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/geometry/quadraturerules.hh>
 #include <dune/gfe/linearalgebra.hh>
-#include <dune/gfe/localenergy.hh>
-#include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 

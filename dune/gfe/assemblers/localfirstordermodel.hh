@@ -1,7 +1,7 @@
 #ifndef DUNE_GFE_LOCALFIRSTORDERMODEL_HH
 #define DUNE_GFE_LOCALFIRSTORDERMODEL_HH
 
-#include <dune/gfe/localenergy.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
 
 namespace Dune {
 

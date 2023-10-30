@@ -4,7 +4,7 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
-#include <dune/gfe/harmonicenergy.hh>
+#include <dune/gfe/assemblers/harmonicenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 

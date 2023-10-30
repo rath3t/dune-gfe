@@ -7,7 +7,7 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
-#include <dune/gfe/cosseratenergystiffness.hh>
+#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>
 
 #include "multiindex.hh"

@@ -22,11 +22,11 @@
 #include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/grid/uggrid.hh>
 
-#include <dune/gfe/cosseratenergystiffness.hh>
-#include <dune/gfe/geodesicfeassembler.hh>
-#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/mixedgfeassembler.hh>
-#include <dune/gfe/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
+#include <dune/gfe/assemblers/geodesicfeassembler.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
 
 #include <dune/istl/multitypeblockmatrix.hh>
 #include <dune/istl/multitypeblockvector.hh>

@@ -4,7 +4,7 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 
-#include <dune/gfe/localfirstordermodel.hh>
+#include <dune/gfe/assemblers/localfirstordermodel.hh>
 
 template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness

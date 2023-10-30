@@ -13,12 +13,12 @@
 #include <dune/matrix-vector/transpose.hh>
 #endif
 
-#include <dune/gfe/localenergy.hh>
-#include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 #ifdef PROJECTED_INTERPOLATION
 #include <dune/gfe/localprojectedfefunction.hh>
 #else
-#include "localgeodesicfefunction.hh"
+#include <dune/gfe/localgeodesicfefunction.hh>
 #endif
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/cosseratstrain.hh>

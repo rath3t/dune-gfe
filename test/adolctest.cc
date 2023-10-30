@@ -37,11 +37,11 @@ typedef double FDType;
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
 
-#include <dune/gfe/localgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/cosseratenergystiffness.hh>
-#include <dune/gfe/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/localgeodesicfefdstiffness.hh>
+#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfefdstiffness.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>
 
 // grid dimension

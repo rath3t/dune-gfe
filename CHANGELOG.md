@@ -1,5 +1,8 @@
 # Master
 
+- All files that implement assemblers have been moved to the
+  `assemblers` subdirectory.
+  
 - All files that implement target spaces have been moved to the
   `spaces` subdirectory.
 

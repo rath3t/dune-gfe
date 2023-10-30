@@ -7,7 +7,7 @@
 #include <dune/istl/matrix.hh>
 #include <dune/istl/multitypeblockmatrix.hh>
 
-#include <dune/gfe/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 
 
 /** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces

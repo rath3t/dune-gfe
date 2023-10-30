@@ -5,9 +5,6 @@
 #include <dune/istl/io.hh>
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
-#include <dune/fufem/assemblers/operatorassembler.hh>
-#include <dune/fufem/assemblers/localassemblers/laplaceassembler.hh>
-#include <dune/fufem/assemblers/localassemblers/massassembler.hh>
 #include <dune/fufem/assemblers/basisinterpolationmatrixassembler.hh>
 
 // Using a monotone multigrid as the inner solver
@@ -148,32 +145,6 @@ setup(const GridType& grid,
     // //////////////////////////////////////////////////////////////////////////////////////
     Basis0 basis0(grid.leafGridView());
     Basis1 basis1(grid.leafGridView());
-
-#if 0
-    BasisType basis(grid.leafGridView());
-    OperatorAssembler<BasisType,BasisType> operatorAssembler(basis, basis);
-
-    LaplaceAssembler<GridType, typename BasisType::LocalFiniteElement, typename BasisType::LocalFiniteElement> laplaceStiffness;
-    typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1> > ScalarMatrixType;
-    ScalarMatrixType localA;
-
-    operatorAssembler.assemble(laplaceStiffness, localA);
-
-    if (h1SemiNorm_)
-        delete h1SemiNorm_;
-
-
-    MatrixCommunicator<GUIndex, ScalarMatrixType> matrixComm(*guIndex_, 0);
-    ScalarMatrixType* A = new ScalarMatrixType(matrixComm.reduceAdd(localA));
-
-    h1SemiNorm_ = new H1SemiNorm<CorrectionType>(*A);
-
-    innerSolver_ = std::shared_ptr<LoopSolver<CorrectionType> >(new ::LoopSolver<CorrectionType>(mmgStep,
-                                                                                                   innerIterations_,
-                                                                                                   innerTolerance_,
-                                                                                                   h1SemiNorm_,
-                                                                                                 Solver::FULL));
-#endif
 
     // ////////////////////////////////////////////////////////////
     //    Create Hessian matrix and its occupation structure

@@ -19,7 +19,7 @@
 #include <dune/solvers/solvers/loopsolver.hh>
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 
-#include <dune/gfe/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/mixedgfeassembler.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType,
