@@ -61,3 +61,6 @@ file(COPY grids/irregular-square.msh DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/gri
 file(COPY stressPlotData/stressPlotTestDeformation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
 file(COPY stressPlotData/stressPlotTestRotation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
 file(COPY stressPlotData/stressPlotTestInitialDeformation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
+
+# Copy an .adolcrc file into the build dir to make sure the tapes stay in memory and do not get written to disk because this causes errors sometimes
+file(COPY .adolcrc DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
