@@ -49,6 +49,11 @@ dune_add_test(SOURCES harmonicmaptest.cc
               CMAKE_GUARD MPI_FOUND)
 endif()
 
+if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.9)
+  dune_add_test(SOURCES cosseratcontinuumtest.cc
+              TIMEOUT 600)
+endif()
+
 dune_add_test(SOURCES geodesicfeassemblerwrappertest.cc
               MPI_RANKS 1 4
               TIMEOUT 600
