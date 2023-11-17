@@ -1,5 +1,8 @@
 # Master
 
+- All files that implement densities have been put into the
+  `densities` subdirectory.
+
 - All files that implement assemblers have been moved to the
   `assemblers` subdirectory.
   
