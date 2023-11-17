@@ -1,5 +1,5 @@
-#ifndef DUNE_GFE_LOCALINTEGRALENERGY_HH
-#define DUNE_GFE_LOCALINTEGRALENERGY_HH
+#ifndef DUNE_GFE_ASSEMBLERS_LOCALINTEGRALENERGY_HH
+#define DUNE_GFE_ASSEMBLERS_LOCALINTEGRALENERGY_HH
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fmatrixev.hh>
@@ -7,8 +7,15 @@
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/cosseratstrain.hh>
+#include <dune/gfe/densities/localdensity.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rigidbodymotion.hh>
+#ifdef PROJECTED_INTERPOLATION
+#include <dune/gfe/localprojectedfefunction.hh>
+#else
+#include <dune/gfe/localgeodesicfefunction.hh>
+#endif
 
 #include <dune/elasticity/materials/localdensity.hh>
 
@@ -27,79 +34,120 @@ class LocalIntegralEnergy
   using LocalView = typename Basis::LocalView;
   using GridView = typename LocalView::GridView;
   using DT = typename GridView::Grid::ctype;
-  using RT = typename Dune::GFE::LocalEnergy<Basis,TargetSpaces...>::RT;
+  using RT = typename GFE::LocalEnergy<Basis,TargetSpaces...>::RT;
 
   constexpr static int gridDim = GridView::dimension;
 
 public:
 
-  /** \brief Constructor with a local energy density
+  /** \brief Constructor with a Dune::Elasticity::LocalDensity
     */
-  LocalIntegralEnergy(const std::shared_ptr<Dune::Elasticity::LocalDensity<gridDim,RT,DT>>& ld)
-  : localDensity_(ld)
+  LocalIntegralEnergy(const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT>>& ld)
+  : localDensityElasticity_(ld)
   {}
 
-  /** \brief Assemble the energy for a single element */
+  /** \brief Constructor with a Dune::GFE::LocalDensity
+    */
+  LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<gridDim,RT,DT>>& ld)
+  : localDensityGFE_(ld)
+  {}
+
+private:
+
+    /** \brief Assemble the energy for a single element */
   RT energy(const typename Basis::LocalView& localView,
             const std::vector<TargetSpaces>&... localSolutions) const
   { 
-    static_assert(sizeof...(TargetSpaces) > 0, "LocalIntegralEnergy needs at least one TargetSpace!");
-
-    using TargetSpace = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
-    static_assert( (std::is_same<TargetSpace, RigidBodyMotion<RT,gridDim>>::value)
-      or (std::is_same<TargetSpace, RealTuple<RT,gridDim>>::value), "The first TargetSpace of LocalIntegralEnergy needs to be RigidBodyMotion or RealTuple!" );
-    
-    const std::vector<TargetSpace>& localSolution = std::get<0>(std::forward_as_tuple(localSolutions...));
-
-    using namespace Dune::Indices;
-    // powerBasis: grab the finite element of the first child
-    const auto& localFiniteElement = localView.tree().child(_0,0).finiteElement();
     const auto& element = localView.element();
+
+    static_assert(sizeof...(TargetSpaces) > 1, "LocalGeodesicIntegralEnergy needs at least two TargetSpace!");
+
+    using TargetSpaceDeformation = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
+    using TargetSpaceRotation = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
+
+    static_assert( (std::is_same<TargetSpaceDeformation, RigidBodyMotion<RT,gridDim>>::value)
+      or (std::is_same<TargetSpaceDeformation, RealTuple<RT,gridDim>>::value), "The first TargetSpace of LocalGeodesicIntegralEnergy needs to be RigidBodyMotion or RealTuple!" );
+    
+    const std::vector<TargetSpaceDeformation>& localDeformationConfiguration = std::get<0>(std::forward_as_tuple(localSolutions...));
+    const std::vector<TargetSpaceRotation>& localOrientationConfiguration = std::get<1>(std::forward_as_tuple(localSolutions...));
+
+    using namespace Indices;
+    // composite Basis: grab the finite element of the first child
+    const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
+    const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
+
+#ifdef PROJECTED_INTERPOLATION
+    using LocalDeformationGFEFunctionType = GFE::LocalProjectedFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<RT,gridDim> >;
+    using LocalOrientationGFEFunctionType = GFE::LocalProjectedFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<RT,gridDim> >;
+#else
+    using LocalDeformationGFEFunctionType = LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<RT,gridDim> >;
+    using LocalOrientationGFEFunctionType = LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<RT,gridDim> >;
+#endif
+    LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
+    LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
 
     RT energy = 0;
 
-    // store gradients of shape functions and base functions
-    std::vector<FieldMatrix<DT,1,gridDim> > referenceGradients(localFiniteElement.size());
-    std::vector<FieldVector<DT,gridDim> > gradients(localFiniteElement.size());
+    int quadOrder = (element.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
+                                                 : deformationLocalFiniteElement.localBasis().order() * gridDim;
 
-    int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
-                                                 : localFiniteElement.localBasis().order() * gridDim;
+    const auto& quad = QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
-    const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
-
-    for (const auto& qp : quad)
+    for (size_t pt=0; pt<quad.size(); pt++)
     {
-      const DT integrationElement = element.geometry().integrationElement(qp.position());
+        // Local position of the quadrature point
+        const FieldVector<DT,gridDim>& quadPos = quad[pt].position();
 
-      const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(qp.position());
+        auto x = element.geometry().global(quadPos);
 
-      // Global position
-      auto x = element.geometry().global(qp.position());
+        const DT integrationElement = element.geometry().integrationElement(quadPos);
 
-      // Get gradients of shape functions
-      localFiniteElement.localBasis().evaluateJacobian(qp.position(), referenceGradients);
+        const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
 
-      // compute gradients of base functions
-      for (size_t i=0; i<gradients.size(); ++i)
-        jacobianInverseTransposed.mv(referenceGradients[i][0], gradients[i]);
+        DT weightWithintegrationElement = quad[pt].weight() * integrationElement;
 
-      // Deformation gradient
-      FieldMatrix<RT,gridDim,gridDim> deformationGradient(0);
-      for (size_t i=0; i<gradients.size(); i++)
-        for (int j=0; j<gridDim; j++)
-          deformationGradient[j].axpy(localSolution[i][j], gradients[i]);
-      // Integrate the energy density
-      energy += qp.weight() * integrationElement * (*localDensity_)(x, deformationGradient);
+        // The value of the local deformation
+        RealTuple<RT,gridDim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
+
+        // The derivative of the deformation defined on the reference element
+        typename LocalDeformationGFEFunctionType::DerivativeType deformationReferenceDerivative = localDeformationGFEFunction.evaluateDerivative(quadPos,deformationValue);
+
+        // The derivative of the deformation defined on the actual element
+        typename LocalDeformationGFEFunctionType::DerivativeType deformationDerivative;
+        for (size_t comp=0; comp<deformationReferenceDerivative.N(); comp++)
+            jacobianInverseTransposed.mv(deformationReferenceDerivative[comp], deformationDerivative[comp]);
+
+        // Integrate the energy density
+        if (localDensityElasticity_)
+          energy += weightWithintegrationElement * (*localDensityElasticity_)(x, deformationDerivative);
+        else if (localDensityGFE_) {
+          // The value of the local rotation
+          Rotation<RT,gridDim>  orientationValue = localOrientationGFEFunction.evaluate(quadPos);
+
+          // The derivative of the rotation defined on the reference element
+          typename LocalOrientationGFEFunctionType::DerivativeType orientationReferenceDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,orientationValue);
+
+          // The derivative of the rotation defined on the actual element
+          typename LocalOrientationGFEFunctionType::DerivativeType orientationDerivative;
+          for (size_t comp=0; comp<orientationReferenceDerivative.N(); comp++)
+              jacobianInverseTransposed.mv(orientationReferenceDerivative[comp], orientationDerivative[comp]);
+
+          energy += weightWithintegrationElement * (*localDensityGFE_)(x,
+                                                                       deformationValue,
+                                                                       deformationDerivative,
+                                                                       orientationValue,
+                                                                       orientationDerivative);
+        }
     }
 
     return energy;
   }
 
 protected:
-  const std::shared_ptr<Dune::Elasticity::LocalDensity<gridDim,RT,DT>> localDensity_ = nullptr;
-
+  const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT>> localDensityElasticity_ = nullptr;
+  const std::shared_ptr<GFE::LocalDensity<gridDim,RT,DT>> localDensityGFE_ = nullptr;
 };
 
 }  // namespace Dune::GFE
 
-#endif   //#ifndef DUNE_GFE_LOCALINTEGRALENERGY_HH
+#endif   //#ifndef DUNE_GFE_ASSEMBLERS_LOCALINTEGRALENERGY_HH
