@@ -22,10 +22,13 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
-#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/sumenergy.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
+#include <dune/gfe/densities/bulkcosseratdensity.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
+#include <dune/gfe/neumannenergy.hh>
 
 // grid dimension
 const int dim = 3;
@@ -193,14 +196,16 @@ int main (int argc, char *argv[])
   //  Create an assembler
   // ////////////////////////////
 
-  CosseratEnergyLocalStiffness<CompositeBasis, dim,adouble> localCosseratEnergy(parameters,
-                                                                              neumannBoundary.get(),
-                                                                              neumannFunction,
-                                                                              nullptr);
+  GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dim>,Rotation<adouble,dim> > sumEnergy;
+  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim>>>(neumannBoundary,neumannFunction);
+  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<adouble,double>>(parameters);
+  auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim>>>(bulkCosseratDensity);
+  sumEnergy.addLocalEnergy(bulkCosseratEnergy);
+  sumEnergy.addLocalEnergy(neumannEnergy);
 
   MixedLocalGFEADOLCStiffness<CompositeBasis,
                       RealTuple<double,dim>,
-                      Rotation<double,dim> > localGFEADOLCStiffness(&localCosseratEnergy);
+                      Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
             RealTuple<double,dim>,
             Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
