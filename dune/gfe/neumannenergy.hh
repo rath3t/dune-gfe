@@ -57,7 +57,8 @@ public:
       if (not neumannBoundary_ or not neumannBoundary_->contains(intersection))
         continue;
 
-      int quadOrder = localFiniteElement.localBasis().order();
+      int quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
+                                                    : localFiniteElement.localBasis().order() * dim;
 
       const auto& quad = Dune::QuadratureRules<DT, dim-1>::rule(intersection.type(), quadOrder);
 

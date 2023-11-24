@@ -49,6 +49,11 @@ dune_add_test(SOURCES harmonicmaptest.cc
               CMAKE_GUARD MPI_FOUND)
 endif()
 
+if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.9)
+  dune_add_test(SOURCES cosseratcontinuumtest.cc
+              TIMEOUT 600)
+endif()
+
 dune_add_test(SOURCES geodesicfeassemblerwrappertest.cc
               MPI_RANKS 1 4
               TIMEOUT 600
@@ -61,3 +66,6 @@ file(COPY grids/irregular-square.msh DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/gri
 file(COPY stressPlotData/stressPlotTestDeformation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
 file(COPY stressPlotData/stressPlotTestRotation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
 file(COPY stressPlotData/stressPlotTestInitialDeformation DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/stressPlotData)
+
+# Copy an .adolcrc file into the build dir to make sure the tapes stay in memory and do not get written to disk because this causes errors sometimes
+file(COPY .adolcrc DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
