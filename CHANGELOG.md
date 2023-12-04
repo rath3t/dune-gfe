@@ -1,5 +1,8 @@
 # Master
 
+- Building the module requires CMake version 3.16 now, to be in line
+  with the current core modules.
+
 - All files that implement densities have been put into the
   `densities` subdirectory.
 

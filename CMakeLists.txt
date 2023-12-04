@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.16)
 project(dune-gfe CXX)
 
 if(NOT (dune-common_DIR OR dune-common_ROOT OR
