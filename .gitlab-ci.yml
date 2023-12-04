@@ -37,22 +37,22 @@ dune:2.9 gcc:
   - *before
   script: duneci-standard-test
 
-dune:git gcc:
-  image: registry.dune-project.org/docker/ci/dune:git-debian-10-gcc-8-17
+dune:git gcc-10 C++20:
+  image: registry.dune-project.org/docker/ci/dune:git-debian-11-gcc-10-20
   before_script:
   - *patch-dune-common
   - *before
   script: duneci-standard-test
 
-dune:git clang:
-  image: registry.dune-project.org/docker/ci/dune:git-ubuntu-20.04-clang-10-20
+dune:git clang-11 C++20:
+  image: registry.dune-project.org/docker/ci/dune:git-debian-11-clang-11-20
   before_script:
   - *patch-dune-common
   - *before
   script: duneci-standard-test
 
-dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid dune-foamgrid gcc:
-  image: registry.dune-project.org/docker/ci/dune:git-debian-10-gcc-8-17
+dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid dune-foamgrid gcc-10 C++20:
+  image: registry.dune-project.org/docker/ci/dune:git-debian-11-gcc-10-20
   before_script:
   - *patch-dune-common
   - *before
@@ -63,8 +63,8 @@ dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid dune-foamgrid g
   - duneci-install-module https://gitlab.dune-project.org/extensions/dune-foamgrid.git
   script: duneci-standard-test
 
-dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid dune-foamgrid clang:
-  image: registry.dune-project.org/docker/ci/dune:git-ubuntu-20.04-clang-10-20
+dune:git dune-parmg dune-vtk dune-curvedgeometry dune-curvedgrid dune-foamgrid clang-11 C++20:
+  image: registry.dune-project.org/docker/ci/dune:git-debian-11-clang-11-20
   before_script:
   - *patch-dune-common
   - *before
