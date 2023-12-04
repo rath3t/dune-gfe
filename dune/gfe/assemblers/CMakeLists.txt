@@ -11,6 +11,7 @@ install(FILES
         localgeodesicfefdstiffness.hh
         localgeodesicfestiffness.hh
         localintegralenergy.hh
+        localintegralstiffness.hh
         mixedgfeassembler.hh
         nonplanarcosseratshellenergy.hh
         simofoxenergy.hh

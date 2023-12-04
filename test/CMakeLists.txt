@@ -7,6 +7,7 @@ set(TESTS
   localadolcstiffnesstest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
+  localintegralstiffnesstest
   localprojectedfefunctiontest
   orthogonalmatrixtest
   polardecompositiontest
