@@ -1,5 +1,43 @@
 #install headers
-install(FILES gfe.hh DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/gfe)
+install(FILES
+        averagedistanceassembler.hh
+        averageinterface.hh
+        cosseratstrain.hh
+        cosseratvtkreader.hh
+        cosseratvtkwriter.hh
+        embeddedglobalgfefunction.hh
+        filereader.hh
+        geodesicdifference.hh
+        geodesicfefunctionadaptor.hh
+        gfedifferencenormsquared.hh
+        globalgfefunction.hh
+        gramschmidtsolver.hh
+        linearalgebra.hh
+        localgeodesicfefunction.hh
+        localgfetestfunctionbasis.hh
+        localprojectedfefunction.hh
+        localquickanddirtyfefunction.hh
+        localtangentfefunction.hh
+        maxnormtrustregion.hh
+        mixedriemanniantrsolver.cc
+        mixedriemanniantrsolver.hh
+        neumannenergy.hh
+        polardecomposition.hh
+        riemannianpnsolver.cc
+        riemannianpnsolver.hh
+        riemanniantrsolver.cc
+        riemanniantrsolver.hh
+        rodfactory.hh
+        skewmatrix.hh
+        svd.hh
+        symmetricmatrix.hh
+        targetspacertrsolver.cc
+        targetspacertrsolver.hh
+        tensorssd.hh
+        tensor3.hh
+        trustregionmmgbasesolver.hh
+        vtkfile.hh
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/gfe)
 
 add_subdirectory("spaces")
 add_subdirectory("assemblers")
