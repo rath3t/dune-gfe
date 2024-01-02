@@ -17,7 +17,7 @@
 #include <dune/fufem/functiontools/boundarydofs.hh>
 
 #include <dune/gfe/assemblers/cosseratrodenergy.hh>
-#include <dune/gfe/geodesicfeassembler.hh>
+#include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
