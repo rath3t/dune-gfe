@@ -1176,36 +1176,6 @@ public:
       return result;
     }
 
-    /** \brief Create three vectors which form an orthonormal basis of \mathbb{H} together
-        with this one.
-
-        This is used to compute the strain in rod problems.
-        See: Dichmann, Li, Maddocks, 'Hamiltonian Formulations and Symmetries in
-        Rod Mechanics', page 83
-    */
-    Quaternion<T> B(int m) const {
-        assert(m>=0 && m<3);
-        Quaternion<T> r;
-        if (m==0) {
-            r[0] =  (*this)[3];
-            r[1] =  (*this)[2];
-            r[2] = -(*this)[1];
-            r[3] = -(*this)[0];
-        } else if (m==1) {
-            r[0] = -(*this)[2];
-            r[1] =  (*this)[3];
-            r[2] =  (*this)[0];
-            r[3] = -(*this)[1];
-        } else {
-            r[0] =  (*this)[1];
-            r[1] = -(*this)[0];
-            r[2] =  (*this)[3];
-            r[3] = -(*this)[2];
-        }
-
-        return r;
-    }
-
     /** \brief Project tangent vector of R^n onto the tangent space */
     EmbeddedTangentVector projectOntoTangentSpace(const EmbeddedTangentVector& v) const {
         EmbeddedTangentVector result = v;
@@ -1265,12 +1235,17 @@ public:
         return *this;
     }
 
-    /** \brief Compute an orthonormal basis of the tangent space of SO(3). */
+    /** \brief Compute an orthonormal basis of the tangent space of the unit quaternions
+     *
+     * Since the unit quaternions are an odd-dimensional sphere, there exists a globally
+     * continuous orthonormal frame field.  I took the expression here from
+     * "Dichmann, Li, Maddocks, 'Hamiltonian Formulations and Symmetries in Rod Mechanics', page 83"
+     */
     Dune::FieldMatrix<T,3,4> orthonormalFrame() const {
-        Dune::FieldMatrix<T,3,4> result;
-        for (int i=0; i<3; i++)
-            result[i] = B(i);
-        return result;
+        return {{ (*this)[3],  (*this)[2], -(*this)[1], -(*this)[0]},
+                {-(*this)[2],  (*this)[3],  (*this)[0], -(*this)[1]},
+                { (*this)[1], -(*this)[0],  (*this)[3], -(*this)[2]}};
+
     }
 
 };

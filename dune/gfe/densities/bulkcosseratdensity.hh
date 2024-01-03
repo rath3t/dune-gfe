@@ -6,6 +6,8 @@
 
 #include <dune/common/fmatrix.hh>
 
+#include <dune/gfe/cosseratstrain.hh>
+#include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/densities/localdensity.hh>
 
 namespace Dune::GFE {
