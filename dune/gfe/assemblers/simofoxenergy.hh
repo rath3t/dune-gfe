@@ -276,7 +276,7 @@ namespace Dune::GFE {
    *
    *  The energy is 0.5 * S * E = 0.5 * transpose(E) * Cmat * E, where
    *  S are the stress resultants [membrane forces, bending moments, transverse shear forces]
-   *  E are the components of the Green-Lagrangian strains [membrane strains, bending , tranverse shear]
+   *  E are the components of the Green-Lagrangian strains [membrane strains, bending, transverse shear]
    *  see for details Paper Equation 4.11,4.10 and 10.1
    */
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>

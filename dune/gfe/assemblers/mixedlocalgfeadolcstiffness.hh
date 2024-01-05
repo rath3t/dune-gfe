@@ -337,7 +337,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
           if (rc < 0)
             DUNE_THROW(Dune::Exception, "ADOL-C has returned with error code " << rc << "!");
 
-          for (size_t j0=0; j0<nDoubles0; j0++)           //Uppper left
+          for (size_t j0=0; j0<nDoubles0; j0++)           // Upper left
             embeddedHessian10[i1][j0/embeddedBlocksize0][ii1][j0%embeddedBlocksize0] = w[j0];
 
           for (size_t j1=0; j1<nDoubles1; j1++)           //Upper right

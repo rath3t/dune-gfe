@@ -58,7 +58,7 @@ public:
 
     return q;
   }
-  /** \brief Return the tripel of director vectors represented by a unit quaternion
+  /** \brief Return the triple of director vectors represented by a unit quaternion
 
      The formulas are taken from Dichmann, Li, Maddocks, (2.6.4), (2.6.5), (2.6.6)
    */

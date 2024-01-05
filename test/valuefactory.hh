@@ -333,7 +333,7 @@ public:
 
 /** \brief A class that creates sets of values of various types, to be used in unit tests
  *
- * This is the specialization for ProducManifold<...>
+ * This is the specialization for ProductManifold<...>
  */
 template <typename ... TargetSpaces>
 class ValueFactory<Dune::GFE::ProductManifold<TargetSpaces...> >

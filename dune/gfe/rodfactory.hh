@@ -168,7 +168,7 @@ public:
      \param rod The configuration to be computed
      \param radius The rod's radius
      \param E The rod's elastic modulus
-     \param nu The rod's Poission modulus
+     \param nu The rod's Poisson modulus
      \param beginning The prescribed Dirichlet values
      \param end The prescribed Dirichlet values
      \param[out] rod The new rod
