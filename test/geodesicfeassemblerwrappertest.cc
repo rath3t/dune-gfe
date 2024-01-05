@@ -53,14 +53,14 @@ using namespace Indices;
 using ValueType = adouble;
 
 //Types for the mixed space
-using DisplacementVector = std::vector<RealTuple<double,dim>>;
-using RotationVector =  std::vector<Rotation<double,dim>>;
+using DisplacementVector = std::vector<RealTuple<double,dim> >;
+using RotationVector =  std::vector<Rotation<double,dim> >;
 using Vector = TupleVector<DisplacementVector, RotationVector>;
 const int dimCR = Rotation<double,dim>::TangentVector::dimension; //dimCorrectionRotation = Dimension of the correction for rotations
-using CorrectionType = MultiTypeBlockVector<BlockVector<FieldVector<double,dim> >, BlockVector<FieldVector<double,dimCR>>>;
+using CorrectionType = MultiTypeBlockVector<BlockVector<FieldVector<double,dim> >, BlockVector<FieldVector<double,dimCR> > >;
 
-using MatrixRow0 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dim,dim>>,  BCRSMatrix<FieldMatrix<double,dim,dimCR>>>;
-using MatrixRow1 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dimCR,dim>>, BCRSMatrix<FieldMatrix<double,dimCR,dimCR>>>;
+using MatrixRow0 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dim,dim> >,  BCRSMatrix<FieldMatrix<double,dim,dimCR> > >;
+using MatrixRow1 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dimCR,dim> >, BCRSMatrix<FieldMatrix<double,dimCR,dimCR> > >;
 using MatrixType = MultiTypeBlockMatrix<MatrixRow0,MatrixRow1>;
 
 //Types for the Non-mixed space
@@ -85,14 +85,14 @@ int main (int argc, char *argv[])
   GridView gridView = grid->leafGridView();
 
   std::function<bool(FieldVector<double,gridDim>)> isNeumann = [](FieldVector<double,gridDim> coordinate) {
-    return coordinate[0] > 0.99;
-  };
+                                                                 return coordinate[0] > 0.99;
+                                                               };
 
   BitSetVector<1> neumannVertices(gridView.size(gridDim), false);
   const GridView::IndexSet& indexSet = gridView.indexSet();
-  
+
   for (auto&& vertex : vertices(gridView))
-      neumannVertices[indexSet.index(vertex)] = isNeumann(vertex.geometry().corner(0));
+    neumannVertices[indexSet.index(vertex)] = isNeumann(vertex.geometry().corner(0));
 
   BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
 
@@ -108,11 +108,11 @@ int main (int argc, char *argv[])
     composite(
       power<dim>(
         lagrange<displacementOrder>()
-      ),
+        ),
       power<dim>(
         lagrange<rotationOrder>()
-      )
-  ));
+        )
+      ));
 
   using CompositeBasis = decltype(compositeBasis);
 
@@ -136,36 +136,38 @@ int main (int argc, char *argv[])
 
   FieldVector<double,dim> values_ = {3e4,2e4,1e4};
   auto neumannFunction = [&](FieldVector<double, gridDim>){
-    return values_;
-  };
+                           return values_;
+                         };
 
   CosseratEnergyLocalStiffness<decltype(compositeBasis), dim,adouble> cosseratEnergy(parameters,
-                                                                     &neumannBoundary,
-                                                                     neumannFunction,
-                                                                     nullptr);
+                                                                                     &neumannBoundary,
+                                                                                     neumannFunction,
+                                                                                     nullptr);
   MixedLocalGFEADOLCStiffness<CompositeBasis,
-                              RealTuple<double,dim>,
-                              Rotation<double,dim> > mixedLocalGFEADOLCStiffness(&cosseratEnergy);
+      RealTuple<double,dim>,
+      Rotation<double,dim> > mixedLocalGFEADOLCStiffness(&cosseratEnergy);
   MixedGFEAssembler<CompositeBasis,
-                    RealTuple<double,dim>,
-                    Rotation<double,dim> > mixedAssembler(compositeBasis, &mixedLocalGFEADOLCStiffness);
+      RealTuple<double,dim>,
+      Rotation<double,dim> > mixedAssembler(compositeBasis, &mixedLocalGFEADOLCStiffness);
 
   using RBM = RigidBodyMotion<double, dim>;
   using DeformationFEBasis = Functions::LagrangeBasis<GridView,displacementOrder>;
   DeformationFEBasis deformationFEBasis(gridView);
-  using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim>>;
+  using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim> >;
   GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
-  
+
   /////////////////////////////////////////////////////////////////////////
   //  Prepare the iterate x where we want to assemble - identity in 2D with z = 0
-  /////////////////////////////////////////////////////////////////////////  
+  /////////////////////////////////////////////////////////////////////////
   auto deformationPowerBasis = makeBasis(
     gridView,
     power<gridDim>(
-        lagrange<displacementOrder>()
-  ));
+      lagrange<displacementOrder>()
+      ));
   BlockVector<FieldVector<double,gridDim> > identity(compositeBasis.size({0}));
-  Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,gridDim> x){ return x; });
+  Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,gridDim> x){
+    return x;
+  });
   BlockVector<FieldVector<double,dim> > initialDeformation(compositeBasis.size({0}));
   initialDeformation = 0;
 
@@ -184,7 +186,7 @@ int main (int argc, char *argv[])
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  //  Compute the energy, assemble the Gradient and Hessian using 
+  //  Compute the energy, assemble the Gradient and Hessian using
   //  the GeodesicFEAssemblerWrapper and the MixedGFEAssembler and compare!
   //////////////////////////////////////////////////////////////////////////////
   CorrectionTypeWrapped gradient;
@@ -207,27 +209,27 @@ int main (int argc, char *argv[])
 
   if (std::abs(energy - energyMixed)/energyMixed > 1e-8)
   {
-      std::cerr << std::setprecision(9);
-      std::cerr << "The energy calculated by the GeodesicFEAssemblerWrapper is " << energy << " but "
-                << energyMixed << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
-      return 1;
+    std::cerr << std::setprecision(9);
+    std::cerr << "The energy calculated by the GeodesicFEAssemblerWrapper is " << energy << " but "
+              << energyMixed << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
+    return 1;
   }
   if ( std::abs(gradientTwoNorm - gradientMixedTwoNorm)/gradientMixedTwoNorm > 1e-8 ||
        std::abs(gradientInfinityNorm - gradientMixedInfinityNorm)/gradientMixedInfinityNorm > 1e-8)
   {
-      std::cerr << std::setprecision(9);
-      std::cerr << "The gradient infinity norm calculated by the GeodesicFEAssemblerWrapper is " << gradientInfinityNorm << " but "
-                << gradientMixedInfinityNorm << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
-      std::cerr << "The gradient norm calculated by the GeodesicFEAssemblerWrapper is " << gradientTwoNorm << " but "
-                << gradientMixedTwoNorm << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
-      return 1;
+    std::cerr << std::setprecision(9);
+    std::cerr << "The gradient infinity norm calculated by the GeodesicFEAssemblerWrapper is " << gradientInfinityNorm << " but "
+              << gradientMixedInfinityNorm << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
+    std::cerr << "The gradient norm calculated by the GeodesicFEAssemblerWrapper is " << gradientTwoNorm << " but "
+              << gradientMixedTwoNorm << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
+    return 1;
   }
 
   if (std::abs(matrixFrobeniusNorm - matrixMixedFrobeniusNorm)/matrixMixedFrobeniusNorm > 1e-8)
   {
-      std::cerr << std::setprecision(9);
-      std::cerr << "The matrix norm calculated by the GeodesicFEAssemblerWrapper is " << matrixFrobeniusNorm << " but "
-                << matrixMixedFrobeniusNorm << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
-      return 1;
+    std::cerr << std::setprecision(9);
+    std::cerr << "The matrix norm calculated by the GeodesicFEAssemblerWrapper is " << matrixFrobeniusNorm << " but "
+              << matrixMixedFrobeniusNorm << " (calculated by the MixedGFEAssembler) was expected!" << std::endl;
+    return 1;
   }
 }

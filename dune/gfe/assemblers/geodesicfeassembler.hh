@@ -15,83 +15,83 @@
 template <class Basis, class TargetSpace>
 class GeodesicFEAssembler {
 
-    using field_type = typename TargetSpace::field_type;
-    typedef typename Basis::GridView GridView;
-    using LocalStiffness = LocalGeodesicFEStiffness<Basis, TargetSpace>;
+  using field_type = typename TargetSpace::field_type;
+  typedef typename Basis::GridView GridView;
+  using LocalStiffness = LocalGeodesicFEStiffness<Basis, TargetSpace>;
 
-    //! Dimension of the grid.
-    constexpr static int gridDim = GridView::dimension;
+  //! Dimension of the grid.
+  constexpr static int gridDim = GridView::dimension;
 
-    //! Dimension of a tangent space
-    constexpr static int blocksize = TargetSpace::TangentVector::dimension;
+  //! Dimension of a tangent space
+  constexpr static int blocksize = TargetSpace::TangentVector::dimension;
 
-    //!
-    typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
+  //!
+  typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
 
 
 protected:
 
-    //! The global basis
-    const Basis basis_;
+  //! The global basis
+  const Basis basis_;
 
-    //! The local stiffness operator
-    std::shared_ptr<LocalStiffness> localStiffness_;
+  //! The local stiffness operator
+  std::shared_ptr<LocalStiffness> localStiffness_;
 
 public:
 
-    /** \brief Constructor for a given grid */
-    GeodesicFEAssembler(const Basis& basis)
-        : basis_(basis)
-    {}
+  /** \brief Constructor for a given grid */
+  GeodesicFEAssembler(const Basis& basis)
+    : basis_(basis)
+  {}
 
-    /** \brief Constructor for a given grid */
-    template <class LocalStiffnessT>
-    GeodesicFEAssembler(const Basis& basis,
-                        LocalStiffnessT&& localStiffness)
-        : basis_(basis),
-          localStiffness_(Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness)))
-    {}
+  /** \brief Constructor for a given grid */
+  template <class LocalStiffnessT>
+  GeodesicFEAssembler(const Basis& basis,
+                      LocalStiffnessT&& localStiffness)
+    : basis_(basis),
+    localStiffness_(Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness)))
+  {}
 
-    /** \brief Set the local stiffness assembler. This can be a temporary, l-value or shared pointer. */
-    template <class LocalStiffnessT>
-    void setLocalStiffness(LocalStiffnessT&& localStiffness) {
-        localStiffness_ = Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness));
-    }
+  /** \brief Set the local stiffness assembler. This can be a temporary, l-value or shared pointer. */
+  template <class LocalStiffnessT>
+  void setLocalStiffness(LocalStiffnessT&& localStiffness) {
+    localStiffness_ = Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness));
+  }
 
-    /** \brief Get the local stiffness operator. */
-    const LocalStiffness& getLocalStiffness() const {
-        return *localStiffness_;
-    }
+  /** \brief Get the local stiffness operator. */
+  const LocalStiffness& getLocalStiffness() const {
+    return *localStiffness_;
+  }
 
-    /** \brief Get the local stiffness operator. */
-    LocalStiffness& getLocalStiffness() {
-        return *localStiffness_;
-    }
+  /** \brief Get the local stiffness operator. */
+  LocalStiffness& getLocalStiffness() {
+    return *localStiffness_;
+  }
 
-    /** \brief Get the basis. */
-    const Basis& getBasis() const {
-        return basis_;
-    }
+  /** \brief Get the basis. */
+  const Basis& getBasis() const {
+    return basis_;
+  }
 
-    /** \brief Assemble the tangent stiffness matrix and the functional gradient together
-     *
-     * This is more efficient than computing them separately, because you need the gradient
-     * anyway to compute the Riemannian Hessian.
-     */
-    virtual void assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
-                                            Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >& gradient,
-                                            Dune::BCRSMatrix<MatrixBlock>& hessian,
-                                            bool computeOccupationPattern=true) const;
+  /** \brief Assemble the tangent stiffness matrix and the functional gradient together
+   *
+   * This is more efficient than computing them separately, because you need the gradient
+   * anyway to compute the Riemannian Hessian.
+   */
+  virtual void assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
+                                          Dune::BlockVector<Dune::FieldVector<field_type, blocksize> >& gradient,
+                                          Dune::BCRSMatrix<MatrixBlock>& hessian,
+                                          bool computeOccupationPattern=true) const;
 
-    /** \brief Assemble the gradient */
-    virtual void assembleGradient(const std::vector<TargetSpace>& sol,
-                          Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
+  /** \brief Assemble the gradient */
+  virtual void assembleGradient(const std::vector<TargetSpace>& sol,
+                                Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
 
-    /** \brief Compute the energy of a deformation state */
-    virtual double computeEnergy(const std::vector<TargetSpace>& sol) const;
+  /** \brief Compute the energy of a deformation state */
+  virtual double computeEnergy(const std::vector<TargetSpace>& sol) const;
 
-    //protected:
-    void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
+  //protected:
+  void getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const;
 
 }; // end class
 
@@ -101,34 +101,34 @@ template <class Basis, class TargetSpace>
 void GeodesicFEAssembler<Basis,TargetSpace>::
 getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
-    auto n = basis_.size();
+  auto n = basis_.size();
 
-    nb.resize(n, n);
+  nb.resize(n, n);
 
-    // A view on the FE basis on a single element
-    auto localView = basis_.localView();
+  // A view on the FE basis on a single element
+  auto localView = basis_.localView();
 
-    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
-    {
-        // Bind the local FE basis view to the current element
-        localView.bind(element);
+  for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+  {
+    // Bind the local FE basis view to the current element
+    localView.bind(element);
 
-        const auto& lfe = localView.tree().finiteElement();
+    const auto& lfe = localView.tree().finiteElement();
 
-        for (size_t i=0; i<lfe.size(); i++) {
+    for (size_t i=0; i<lfe.size(); i++) {
 
-            for (size_t j=0; j<lfe.size(); j++) {
+      for (size_t j=0; j<lfe.size(); j++) {
 
-                auto iIdx = localView.index(i);
-                auto jIdx = localView.index(j);
+        auto iIdx = localView.index(i);
+        auto jIdx = localView.index(j);
 
-                nb.add(iIdx, jIdx);
+        nb.add(iIdx, jIdx);
 
-            }
-
-        }
+      }
 
     }
+
+  }
 
 }
 
@@ -139,57 +139,57 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
                            Dune::BCRSMatrix<MatrixBlock>& hessian,
                            bool computeOccupationPattern) const
 {
-    if (computeOccupationPattern) {
+  if (computeOccupationPattern) {
 
-        Dune::MatrixIndexSet neighborsPerVertex;
-        getNeighborsPerVertex(neighborsPerVertex);
-        neighborsPerVertex.exportIdx(hessian);
+    Dune::MatrixIndexSet neighborsPerVertex;
+    getNeighborsPerVertex(neighborsPerVertex);
+    neighborsPerVertex.exportIdx(hessian);
 
+  }
+
+  hessian = 0;
+
+  gradient.resize(sol.size());
+  gradient = 0;
+
+  // A view on the FE basis on a single element
+  auto localView = basis_.localView();
+
+  for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+  {
+    localView.bind(element);
+
+    const int numOfBaseFct = localView.tree().size();
+
+    // Extract local solution
+    std::vector<TargetSpace> localSolution(numOfBaseFct);
+
+    for (int i=0; i<numOfBaseFct; i++)
+      localSolution[i] = sol[localView.index(i)];
+
+    std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
+
+    // setup local matrix and gradient
+    localStiffness_->assembleGradientAndHessian(localView, localSolution, localGradient);
+
+    // Add element matrix to global stiffness matrix
+    for(int i=0; i<numOfBaseFct; i++) {
+
+      auto row = localView.index(i);
+
+      for (int j=0; j<numOfBaseFct; j++ ) {
+
+        auto col = localView.index(j);
+        hessian[row][col] += localStiffness_->A_[i][j];
+
+      }
     }
 
-    hessian = 0;
+    // Add local gradient to global gradient
+    for (int i=0; i<numOfBaseFct; i++)
+      gradient[localView.index(i)] += localGradient[i];
 
-    gradient.resize(sol.size());
-    gradient = 0;
-
-    // A view on the FE basis on a single element
-    auto localView = basis_.localView();
-
-    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
-    {
-        localView.bind(element);
-
-        const int numOfBaseFct = localView.tree().size();
-
-        // Extract local solution
-        std::vector<TargetSpace> localSolution(numOfBaseFct);
-
-        for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[localView.index(i)];
-
-        std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
-
-        // setup local matrix and gradient
-        localStiffness_->assembleGradientAndHessian(localView, localSolution, localGradient);
-
-        // Add element matrix to global stiffness matrix
-        for(int i=0; i<numOfBaseFct; i++) {
-
-            auto row = localView.index(i);
-
-            for (int j=0; j<numOfBaseFct; j++ ) {
-
-                auto col = localView.index(j);
-                hessian[row][col] += localStiffness_->A_[i][j];
-
-            }
-        }
-
-        // Add local gradient to global gradient
-        for (int i=0; i<numOfBaseFct; i++)
-            gradient[localView.index(i)] += localGradient[i];
-
-    }
+  }
 
 }
 
@@ -198,38 +198,38 @@ void GeodesicFEAssembler<Basis,TargetSpace>::
 assembleGradient(const std::vector<TargetSpace>& sol,
                  Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
 {
-    if (sol.size()!=basis_.size())
-        DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
+  if (sol.size()!=basis_.size())
+    DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
 
-    grad.resize(sol.size());
-    grad = 0;
+  grad.resize(sol.size());
+  grad = 0;
 
-    // A view on the FE basis on a single element
-    auto localView = basis_.localView();
+  // A view on the FE basis on a single element
+  auto localView = basis_.localView();
 
-    // Loop over all elements
-    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
-    {
-        localView.bind(element);
+  // Loop over all elements
+  for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+  {
+    localView.bind(element);
 
-        // The number of degrees of freedom of the current element
-        const auto nDofs = localView.tree().size();
+    // The number of degrees of freedom of the current element
+    const auto nDofs = localView.tree().size();
 
-        // Extract local solution
-        std::vector<TargetSpace> localSolution(nDofs);
+    // Extract local solution
+    std::vector<TargetSpace> localSolution(nDofs);
 
-        for (size_t i=0; i<nDofs; i++)
-            localSolution[i] = sol[localView.index(i)];
+    for (size_t i=0; i<nDofs; i++)
+      localSolution[i] = sol[localView.index(i)];
 
-        // Assemble local gradient
-        std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
+    // Assemble local gradient
+    std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
 
-        localStiffness_->assembleGradient(localView, localSolution, localGradient);
+    localStiffness_->assembleGradient(localView, localSolution, localGradient);
 
-        // Add to global gradient
-        for (size_t i=0; i<nDofs; i++)
-            grad[localView.index(i)[0]] += localGradient[i];
-    }
+    // Add to global gradient
+    for (size_t i=0; i<nDofs; i++)
+      grad[localView.index(i)[0]] += localGradient[i];
+  }
 
 }
 
@@ -238,36 +238,35 @@ template <class Basis, class TargetSpace>
 double GeodesicFEAssembler<Basis, TargetSpace>::
 computeEnergy(const std::vector<TargetSpace>& sol) const
 {
-    double energy = 0;
+  double energy = 0;
 
-    if (sol.size() != basis_.size())
-        DUNE_THROW(Dune::Exception, "Coefficient vector doesn't match the function space basis!");
+  if (sol.size() != basis_.size())
+    DUNE_THROW(Dune::Exception, "Coefficient vector doesn't match the function space basis!");
 
-    // A view on the FE basis on a single element
-    auto localView = basis_.localView();
+  // A view on the FE basis on a single element
+  auto localView = basis_.localView();
 
-    // Loop over all elements
-    for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
-    {
-        localView.bind(element);
+  // Loop over all elements
+  for (const auto& element : elements(basis_.gridView(), Dune::Partitions::interior))
+  {
+    localView.bind(element);
 
-        // Number of degrees of freedom on this element
-        size_t nDofs = localView.tree().size();
+    // Number of degrees of freedom on this element
+    size_t nDofs = localView.tree().size();
 
-        std::vector<TargetSpace> localSolution(nDofs);
+    std::vector<TargetSpace> localSolution(nDofs);
 
-        for (size_t i=0; i<nDofs; i++)
-            localSolution[i] = sol[localView.index(i)[0]];
+    for (size_t i=0; i<nDofs; i++)
+      localSolution[i] = sol[localView.index(i)[0]];
 
-        energy += localStiffness_->energy(localView, localSolution);
+    energy += localStiffness_->energy(localView, localSolution);
 
-    }
+  }
 
-    return energy;
+  return energy;
 
 }
 
 
 
 #endif
-

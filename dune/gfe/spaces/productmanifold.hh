@@ -32,13 +32,13 @@ namespace Dune::GFE
     template<class U,typename Tfirst,typename ... TargetSpaces2>
     struct rebindHelper
     {
-        typedef ProductManifold<typename Tfirst::template rebind<U>::other ,typename rebindHelper<U,TargetSpaces2...>::other> other;
+      typedef ProductManifold<typename Tfirst::template rebind<U>::other ,typename rebindHelper<U,TargetSpaces2...>::other> other;
     };
 
     template<class U,typename Tlast>
     struct rebindHelper<U,Tlast>
     {
-        typedef  typename Tlast::template rebind<U>::other other;
+      typedef  typename Tlast::template rebind<U>::other other;
     };
   }
 
@@ -87,13 +87,13 @@ namespace Dune::GFE
     {
       DUNE_ASSERT_BOUNDS(globalCoordinates.size()== sumEmbeddedDim)
       auto constructorFunctor =[]  (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res = std::get<0>(argsTuple)[manifoldInt];
-          const auto& globalCoords =std::get<1>(argsTuple);
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(res)> >;
-          res = Manifold(Dune::GFE::segmentAt<Manifold::embeddedDim>(globalCoords,posHelper[0]));
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                {
+                                  auto& res = std::get<0>(argsTuple)[manifoldInt];
+                                  const auto& globalCoords =std::get<1>(argsTuple);
+                                  using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(res)> >;
+                                  res = Manifold(Dune::GFE::segmentAt<Manifold::embeddedDim>(globalCoords,posHelper[0]));
+                                  posHelper[0] += Manifold::embeddedDim;
+                                };
       foreachManifold(constructorFunctor,*this,globalCoordinates);
     }
 
@@ -127,15 +127,15 @@ namespace Dune::GFE
     {
       ProductManifold res;
       auto expFunctor =[]  (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res        = std::get<0>(argsTuple)[manifoldInt];
-          const auto& p    = std::get<1>(argsTuple)[manifoldInt];
-          const auto& tang = std::get<2>(argsTuple);
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(res)> >;
-          auto currentEmbeddedTangentVector = Dune::GFE::segmentAt<Manifold::embeddedDim>(tang,posHelper[0]);
-          res =  Manifold::exp(p,currentEmbeddedTangentVector);
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                        {
+                          auto& res        = std::get<0>(argsTuple)[manifoldInt];
+                          const auto& p    = std::get<1>(argsTuple)[manifoldInt];
+                          const auto& tang = std::get<2>(argsTuple);
+                          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(res)> >;
+                          auto currentEmbeddedTangentVector = Dune::GFE::segmentAt<Manifold::embeddedDim>(tang,posHelper[0]);
+                          res =  Manifold::exp(p,currentEmbeddedTangentVector);
+                          posHelper[0] += Manifold::embeddedDim;
+                        };
       foreachManifold(expFunctor,res,p,v);
       return res;
     }
@@ -154,15 +154,15 @@ namespace Dune::GFE
     {
       EmbeddedTangentVector diff;
       auto logFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res     = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          const auto& b = std::get<2>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto diffLoc =  Manifold::log(a,b);
-          std::copy(diffLoc.begin(),diffLoc.end(),res.begin()+posHelper[0]);
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                        {
+                          auto& res     = std::get<0>(argsTuple);
+                          const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                          const auto& b = std::get<2>(argsTuple)[manifoldInt];
+                          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                          const auto diffLoc =  Manifold::log(a,b);
+                          std::copy(diffLoc.begin(),diffLoc.end(),res.begin()+posHelper[0]);
+                          posHelper[0] += Manifold::embeddedDim;
+                        };
       foreachManifold(logFunctor,diff,a, b);
       return diff;
     }
@@ -172,13 +172,13 @@ namespace Dune::GFE
     {
       field_type dist=0.0;
       auto distanceFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res     = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          const auto& b = std::get<2>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          res += power(Manifold::distance(a,b),2);
-      };
+                             {
+                               auto& res     = std::get<0>(argsTuple);
+                               const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                               const auto& b = std::get<2>(argsTuple)[manifoldInt];
+                               using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                               res += power(Manifold::distance(a,b),2);
+                             };
       foreachManifold(distanceFunctor,dist,a, b);
       return sqrt(dist);
     }
@@ -191,15 +191,15 @@ namespace Dune::GFE
       derivative= 0.0;
 
       auto derivOfDistSqdWRTSecArgFunctor = [] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& derivative = std::get<0>(argsTuple);
-          const auto& a    = std::get<1>(argsTuple)[manifoldInt];
-          const auto& b    = std::get<2>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto diffLoc = Manifold::derivativeOfDistanceSquaredWRTSecondArgument(a,b);
-          std::copy(diffLoc.begin(),diffLoc.end(),derivative.begin()+posHelper[0]);
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                            {
+                                              auto& derivative = std::get<0>(argsTuple);
+                                              const auto& a    = std::get<1>(argsTuple)[manifoldInt];
+                                              const auto& b    = std::get<2>(argsTuple)[manifoldInt];
+                                              using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                              const auto diffLoc = Manifold::derivativeOfDistanceSquaredWRTSecondArgument(a,b);
+                                              std::copy(diffLoc.begin(),diffLoc.end(),derivative.begin()+posHelper[0]);
+                                              posHelper[0] += Manifold::embeddedDim;
+                                            };
       foreachManifold(derivOfDistSqdWRTSecArgFunctor, derivative,a, b);
       return derivative;
     }
@@ -210,17 +210,17 @@ namespace Dune::GFE
     {
       Dune::SymmetricMatrix<field_type,embeddedDim> result;
       auto secDerivOfDistSqWRTSecArgFunctor = [] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& deriv   = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          const auto& b = std::get<2>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto diffLoc = Manifold::secondDerivativeOfDistanceSquaredWRTSecondArgument(a,b);
-          for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
-            for(size_t j=posHelper[0]; j<=i; ++j )
-                deriv(i,j)  = diffLoc(i - posHelper[0], j - posHelper[0]);
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                              {
+                                                auto& deriv   = std::get<0>(argsTuple);
+                                                const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                                const auto& b = std::get<2>(argsTuple)[manifoldInt];
+                                                using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                                const auto diffLoc = Manifold::secondDerivativeOfDistanceSquaredWRTSecondArgument(a,b);
+                                                for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
+                                                  for(size_t j=posHelper[0]; j<=i; ++j )
+                                                    deriv(i,j)  = diffLoc(i - posHelper[0], j - posHelper[0]);
+                                                posHelper[0] += Manifold::embeddedDim;
+                                              };
       foreachManifold(secDerivOfDistSqWRTSecArgFunctor,result,a, b);
       return result;
     }
@@ -232,17 +232,17 @@ namespace Dune::GFE
     {
       Dune::FieldMatrix<field_type,embeddedDim,embeddedDim> result(0);
       auto secDerivOfDistSqWRTFirstAndSecArgFunctor = [] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto&   deriv = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          const auto& b = std::get<2>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto diffLoc = Manifold::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(a,b);
-          for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
-            for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
-                deriv[i][j] = diffLoc[i - posHelper[0]][ j - posHelper[0]];
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                                      {
+                                                        auto&   deriv = std::get<0>(argsTuple);
+                                                        const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                                        const auto& b = std::get<2>(argsTuple)[manifoldInt];
+                                                        using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                                        const auto diffLoc = Manifold::secondDerivativeOfDistanceSquaredWRTFirstAndSecondArgument(a,b);
+                                                        for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
+                                                          for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
+                                                            deriv[i][j] = diffLoc[i - posHelper[0]][ j - posHelper[0]];
+                                                        posHelper[0] += Manifold::embeddedDim;
+                                                      };
       foreachManifold(secDerivOfDistSqWRTFirstAndSecArgFunctor,result,a, b);
       return result;
     }
@@ -254,18 +254,18 @@ namespace Dune::GFE
     {
       Tensor3<field_type,embeddedDim,embeddedDim,embeddedDim> result(0);
       auto thirdDerivOfDistSqWRTSecArgFunctor =[](auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& deriv   = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          const auto& b = std::get<2>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)>>;
-          const auto diffLoc = Manifold::thirdDerivativeOfDistanceSquaredWRTSecondArgument(a,b);
-          for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
-              for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
-                  for(size_t k=posHelper[0]; k<posHelper[0]+Manifold::embeddedDim; ++k )
-                      deriv[i][j][k] = diffLoc[i - posHelper[0]][ j - posHelper[0]][k - posHelper[0]];
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                                {
+                                                  auto& deriv   = std::get<0>(argsTuple);
+                                                  const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                                  const auto& b = std::get<2>(argsTuple)[manifoldInt];
+                                                  using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                                  const auto diffLoc = Manifold::thirdDerivativeOfDistanceSquaredWRTSecondArgument(a,b);
+                                                  for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
+                                                    for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
+                                                      for(size_t k=posHelper[0]; k<posHelper[0]+Manifold::embeddedDim; ++k )
+                                                        deriv[i][j][k] = diffLoc[i - posHelper[0]][ j - posHelper[0]][k - posHelper[0]];
+                                                  posHelper[0] += Manifold::embeddedDim;
+                                                };
       foreachManifold(thirdDerivOfDistSqWRTSecArgFunctor,result,a, b);
       return result;
     }
@@ -277,18 +277,18 @@ namespace Dune::GFE
     {
       Tensor3<field_type,embeddedDim,embeddedDim,embeddedDim> result(0);
       auto thirdDerivOfDistSqWRT1And2ArgFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& deriv   = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          const auto& b = std::get<2>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)>>;
-          const auto diffLoc =  Manifold::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a,b);
-          for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
-              for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
-                  for(size_t k=posHelper[0]; k<posHelper[0]+Manifold::embeddedDim; ++k )
-                      deriv[i][j][k] = diffLoc[i - posHelper[0]][ j - posHelper[0]][k - posHelper[0]];
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                                  {
+                                                    auto& deriv   = std::get<0>(argsTuple);
+                                                    const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                                    const auto& b = std::get<2>(argsTuple)[manifoldInt];
+                                                    using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                                    const auto diffLoc =  Manifold::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a,b);
+                                                    for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::embeddedDim; ++i )
+                                                      for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
+                                                        for(size_t k=posHelper[0]; k<posHelper[0]+Manifold::embeddedDim; ++k )
+                                                          deriv[i][j][k] = diffLoc[i - posHelper[0]][ j - posHelper[0]][k - posHelper[0]];
+                                                    posHelper[0] += Manifold::embeddedDim;
+                                                  };
       foreachManifold(thirdDerivOfDistSqWRT1And2ArgFunctor,result,a, b);
       return result;
     }
@@ -298,14 +298,14 @@ namespace Dune::GFE
     {
       EmbeddedTangentVector result {v};
       auto projectOntoTangentSpaceFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& v       = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto vLoc = a.projectOntoTangentSpace(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
-          std::copy(vLoc.begin(),vLoc.end(),v.begin()+posHelper[0]);
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                            {
+                                              auto& v       = std::get<0>(argsTuple);
+                                              const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                              using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                              const auto vLoc = a.projectOntoTangentSpace(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
+                                              std::copy(vLoc.begin(),vLoc.end(),v.begin()+posHelper[0]);
+                                              posHelper[0] += Manifold::embeddedDim;
+                                            };
       foreachManifold(projectOntoTangentSpaceFunctor,result,*this);
       return result;
     }
@@ -315,14 +315,14 @@ namespace Dune::GFE
     {
       EmbeddedTangentVector result {v};
       auto projectOntoNormalSpaceFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& v       = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto vLoc = a.projectOntoNormalSpace(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
-          std::copy(vLoc.begin(),vLoc.end(),v.begin()+posHelper[0]);
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                           {
+                                             auto& v       = std::get<0>(argsTuple);
+                                             const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                             using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                             const auto vLoc = a.projectOntoNormalSpace(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
+                                             std::copy(vLoc.begin(),vLoc.end(),v.begin()+posHelper[0]);
+                                             posHelper[0] += Manifold::embeddedDim;
+                                           };
       foreachManifold(projectOntoNormalSpaceFunctor,result,*this);
       return result;
     }
@@ -332,13 +332,13 @@ namespace Dune::GFE
     {
       ProductManifold<TargetSpaces ...> result {v};
       auto projectOntoFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res = std::get<0>(argsTuple)[manifoldInt];
-          auto& v   = std::get<1>(argsTuple);
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(res)> >;
-          res =  Manifold::projectOnto(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                {
+                                  auto& res = std::get<0>(argsTuple)[manifoldInt];
+                                  auto& v   = std::get<1>(argsTuple);
+                                  using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(res)> >;
+                                  res =  Manifold::projectOnto(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
+                                  posHelper[0] += Manifold::embeddedDim;
+                                };
       foreachManifold(projectOntoFunctor,result, v);
       return result;
     }
@@ -348,17 +348,17 @@ namespace Dune::GFE
     {
       Dune::FieldMatrix<typename CoordinateType::value_type, embeddedDim, embeddedDim> result;
       auto derivativeOfProjectionFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res     = std::get<0>(argsTuple);
-          const auto& v = std::get<1>(argsTuple);
-          const Dune::TupleVector<TargetSpaces...> ManifoldTuple;
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(ManifoldTuple[manifoldInt])> >;
-          const auto vLoc =  Manifold::derivativeOfProjection(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
-          for(size_t k=posHelper[0]; k<posHelper[0]+Manifold::embeddedDim; ++k )
-              for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
-                  res[k][j] = vLoc[k - posHelper[0]][j-posHelper[0]];
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                           {
+                                             auto& res     = std::get<0>(argsTuple);
+                                             const auto& v = std::get<1>(argsTuple);
+                                             const Dune::TupleVector<TargetSpaces...> ManifoldTuple;
+                                             using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(ManifoldTuple[manifoldInt])> >;
+                                             const auto vLoc =  Manifold::derivativeOfProjection(Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
+                                             for(size_t k=posHelper[0]; k<posHelper[0]+Manifold::embeddedDim; ++k )
+                                               for(size_t j=posHelper[0]; j<posHelper[0]+Manifold::embeddedDim; ++j )
+                                                 res[k][j] = vLoc[k - posHelper[0]][j-posHelper[0]];
+                                             posHelper[0] += Manifold::embeddedDim;
+                                           };
       foreachManifold(derivativeOfProjectionFunctor,result, v);
       return result;
     }
@@ -368,17 +368,17 @@ namespace Dune::GFE
     {
       EmbeddedTangentVector result;
       auto weingartenFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res     = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          const auto& z = std::get<2>(argsTuple);
-          const auto& v = std::get<3>(argsTuple);
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto resLoc =  a.weingarten(Dune::GFE::segmentAt<Manifold::embeddedDim>(z,posHelper[0]),
-                                            Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
-          std::copy(resLoc.begin(),resLoc.end(),res.begin()+posHelper[0]);
-          posHelper[0] +=Manifold::embeddedDim;
-      };
+                               {
+                                 auto& res     = std::get<0>(argsTuple);
+                                 const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                 const auto& z = std::get<2>(argsTuple);
+                                 const auto& v = std::get<3>(argsTuple);
+                                 using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                 const auto resLoc =  a.weingarten(Dune::GFE::segmentAt<Manifold::embeddedDim>(z,posHelper[0]),
+                                                                   Dune::GFE::segmentAt<Manifold::embeddedDim>(v,posHelper[0]));
+                                 std::copy(resLoc.begin(),resLoc.end(),res.begin()+posHelper[0]);
+                                 posHelper[0] +=Manifold::embeddedDim;
+                               };
       foreachManifold(weingartenFunctor,result, *this,z, v);
       return result;
     }
@@ -389,17 +389,17 @@ namespace Dune::GFE
     {
       Dune::FieldMatrix<field_type,dim,embeddedDim> result(0);
       auto orthonormalFrameFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
-      {
-          auto& res     = std::get<0>(argsTuple);
-          const auto& a = std::get<1>(argsTuple)[manifoldInt];
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
-          const auto resLoc =  a.orthonormalFrame();
-          for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::dim; ++i )
-              for(size_t j=posHelper[1]; j<posHelper[1]+Manifold::embeddedDim; ++j )
-                  res[i][j] = resLoc[i - posHelper[0]][j-posHelper[1]];
-          posHelper[0] += Manifold::dim;
-          posHelper[1] += Manifold::embeddedDim;
-      };
+                                     {
+                                       auto& res     = std::get<0>(argsTuple);
+                                       const auto& a = std::get<1>(argsTuple)[manifoldInt];
+                                       using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(a)> >;
+                                       const auto resLoc =  a.orthonormalFrame();
+                                       for(size_t i=posHelper[0]; i<posHelper[0]+Manifold::dim; ++i )
+                                         for(size_t j=posHelper[1]; j<posHelper[1]+Manifold::embeddedDim; ++j )
+                                           res[i][j] = resLoc[i - posHelper[0]][j-posHelper[1]];
+                                       posHelper[0] += Manifold::dim;
+                                       posHelper[1] += Manifold::embeddedDim;
+                                     };
       foreachManifold(orthonormalFrameFunctor,result,*this);
       return result;
     }
@@ -409,14 +409,14 @@ namespace Dune::GFE
     {
       CoordinateType returnValue;
       auto globalCoordinatesFunctor =[] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& i)
-      {
-          auto& res       = std::get<0>(argsTuple);
-          const auto& p   = std::get<1>(argsTuple)[i];
-          const auto vLoc =  p.globalCoordinates();
-          using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(p)> >;
-          std::copy(vLoc.begin(),vLoc.end(),res.begin()+posHelper[0]);
-          posHelper[0] += Manifold::embeddedDim;
-      };
+                                      {
+                                        auto& res       = std::get<0>(argsTuple);
+                                        const auto& p   = std::get<1>(argsTuple)[i];
+                                        const auto vLoc =  p.globalCoordinates();
+                                        using Manifold = std::remove_const_t<typename std::remove_reference_t<decltype(p)> >;
+                                        std::copy(vLoc.begin(),vLoc.end(),res.begin()+posHelper[0]);
+                                        posHelper[0] += Manifold::embeddedDim;
+                                      };
       foreachManifold(globalCoordinatesFunctor,returnValue,*this);
       return returnValue;
     }
@@ -478,11 +478,11 @@ namespace Dune::GFE
       auto argsTuple = std::forward_as_tuple(args ...);
       std::array<std::size_t,2> posHelper({0,0});
       Dune::Hybrid::forEach(Dune::Hybrid::integralRange(IC<numTS>()),[&](auto&& i) {
-          functor(argsTuple,posHelper,i);
+        functor(argsTuple,posHelper,i);
       });
     }
 
     std::tuple<TargetSpaces ...> data_;
-};
+  };
 }
 #endif

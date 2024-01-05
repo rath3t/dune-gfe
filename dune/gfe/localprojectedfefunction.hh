@@ -52,8 +52,8 @@ namespace Dune {
        */
       LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
                                const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients)
+        : localFiniteElement_(localFiniteElement),
+        coefficients_(coefficients)
       {
         assert(localFiniteElement_.localBasis().size() == coefficients_.size());
       }
@@ -132,7 +132,7 @@ namespace Dune {
     evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
       if constexpr(conformingFlag)
-      { 
+      {
         // the function value at the point where we are evaluating the derivative
         TargetSpace q = evaluate(local);
 
@@ -140,7 +140,7 @@ namespace Dune {
         return evaluateDerivative(local, q);
       }
       else {
-        std::vector<Dune::FieldMatrix<ctype, 1, dim>> wDer;
+        std::vector<Dune::FieldMatrix<ctype, 1, dim> > wDer;
         localFiniteElement_.localBasis().evaluateJacobian(local, wDer);
 
         Dune::FieldMatrix<RT, embeddedDim, dim> derivative(0);
@@ -209,7 +209,7 @@ namespace Dune {
        * \param polar The image of the projection, i.e., the polar factor of A
        */
       static std::array<std::array<FieldMatrix<field_type,3,3>, 3>, 3> derivativeOfProjection(const FieldMatrix<field_type,3,3>& A,
-                                                                       FieldMatrix<field_type,3,3>& polar)
+                                                                                              FieldMatrix<field_type,3,3>& polar)
       {
         std::array<std::array<FieldMatrix<field_type,3,3>, 3>, 3> result;
 
@@ -279,8 +279,8 @@ namespace Dune {
        */
       LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
                                const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients)
+        : localFiniteElement_(localFiniteElement),
+        coefficients_(coefficients)
       {
         assert(localFiniteElement_.localBasis().size() == coefficients_.size());
       }
@@ -437,17 +437,17 @@ namespace Dune {
        */
       LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
                                const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
+        : localFiniteElement_(localFiniteElement),
         translationCoefficients_(coefficients.size())
       {
         assert(localFiniteElement.localBasis().size() == coefficients.size());
 
         for (size_t i=0; i<coefficients.size(); i++)
-            translationCoefficients_[i] = coefficients[i].r;
+          translationCoefficients_[i] = coefficients[i].r;
 
         std::vector<Rotation<field_type,3> > orientationCoefficients(coefficients.size());
         for (size_t i=0; i<coefficients.size(); i++)
-            orientationCoefficients[i] = coefficients[i].q;
+          orientationCoefficients[i] = coefficients[i].q;
 
         orientationFunction_ = std::make_unique<LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
       }
@@ -482,7 +482,7 @@ namespace Dune {
 
         result.r = 0;
         for (size_t i=0; i<w.size(); i++)
-            result.r.axpy(w[i][0], translationCoefficients_[i]);
+          result.r.axpy(w[i][0], translationCoefficients_[i]);
 
         result.q = orientationFunction_->evaluate(local);
 
@@ -513,15 +513,15 @@ namespace Dune {
         localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
 
         for (size_t i=0; i<translationCoefficients_.size(); i++)
-            for (int j=0; j<3; j++)
-                result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
+          for (int j=0; j<3; j++)
+            result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
 
         // get orientation part
         Dune::FieldMatrix<field_type,4,dim> qResult = orientationFunction_->evaluateDerivative(local,q.q);
 
         for (int i=0; i<4; i++)
-            for (int j=0; j<dim; j++)
-                result[3+i][j] = qResult[i][j];
+          for (int j=0; j<dim; j++)
+            result[3+i][j] = qResult[i][j];
 
         return result;
       }

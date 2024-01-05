@@ -29,7 +29,7 @@ public:
 
   WeightedSumEnergy(std::vector<std::shared_ptr<Dune::GFE::LocalEnergy<Basis,TargetSpace> > > addends,
                     std::vector<double> weights)
-  : addends_(addends),
+    : addends_(addends),
     weights_(weights)
   {}
 
@@ -51,4 +51,3 @@ public:
 };
 
 #endif
-

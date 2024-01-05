@@ -60,10 +60,10 @@ int main (int argc, char *argv[]) try
 
   //feenableexcept(FE_INVALID);
   Python::runStream()
-        << std::endl << "import sys"
-        << std::endl << "import os"
-        << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
-        << std::endl;
+    << std::endl << "import sys"
+    << std::endl << "import os"
+    << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
+    << std::endl;
 
   // parse data file
   ParameterTree parameterSet;
@@ -103,12 +103,12 @@ int main (int argc, char *argv[]) try
   auto pythonSurfaceShellVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
   int numLevels = parameterSet.get<int>("numLevels");
- 
+
   while (numLevels > 0) {
-    for (auto&& e : elements(grid->leafGridView())){
+    for (auto&& e : elements(grid->leafGridView())) {
       bool isSurfaceShell = false;
       for (int i = 0; i < e.geometry().corners(); i++) {
-          isSurfaceShell = isSurfaceShell || pythonSurfaceShellVertices(e.geometry().corner(i));
+        isSurfaceShell = isSurfaceShell || pythonSurfaceShellVertices(e.geometry().corner(i));
       }
       grid->mark(isSurfaceShell ? 1 : 0,e);
     }
@@ -122,8 +122,8 @@ int main (int argc, char *argv[]) try
 
   if (grid->leafGridView().comm().size() > 1)
     DUNE_THROW(Exception,
-      std::string("To create a stress plot, please use only one process, now there are ") + std::to_string(grid->leafGridView().comm().size()) + std::string(" procsses."));
-  
+               std::string("To create a stress plot, please use only one process, now there are ") + std::to_string(grid->leafGridView().comm().size()) + std::string(" procsses."));
+
   typedef GridType::LeafGridView GridView;
   GridView gridView = grid->leafGridView();
 
@@ -148,14 +148,14 @@ int main (int argc, char *argv[]) try
   auto basisOrderD = makeBasis(
     gridView,
     power<dim>(
-        lagrange<displacementOrder>()
-  ));
+      lagrange<displacementOrder>()
+      ));
 
   auto basisOrderR = makeBasis(
     gridView,
     power<dim>(
-        lagrange<rotationOrder>()
-  ));
+      lagrange<rotationOrder>()
+      ));
 
   /////////////////////////////////////////////////////////////
   //                      INITIAL DATA
@@ -169,14 +169,14 @@ int main (int argc, char *argv[]) try
   std::cout << "... done: The basis has " << basisOrderD.size() << " elements and the defomation file has " << deformationMap.size() << " entries." << std::endl;
 
   const auto dimRotation = Rotation<double,dim>::embeddedDim;
-  std::unordered_map<std::string, FieldVector<double,dimRotation>> rotationMap;
+  std::unordered_map<std::string, FieldVector<double,dimRotation> > rotationMap;
   if (parameterSet.hasKey("rotationOutput")) {
     std::cout << "Reading in rotation file ("  << "order is "  << rotationOrder  << "): " << pathToOutput + parameterSet.get<std::string>("rotationOutput") << std::endl;
     rotationMap = Dune::GFE::transformFileToMap<dimRotation>(pathToOutput + parameterSet.get<std::string>("rotationOutput"));
   }
   const bool startFromFile = parameterSet.get<bool>("startFromFile");
-  std::unordered_map<std::string, FieldVector<double,dim>> initialDeformationMap;
-  
+  std::unordered_map<std::string, FieldVector<double,dim> > initialDeformationMap;
+
   auto gridDeformationLambda = std::string("lambda x: (") + parameterSet.get<std::string>("gridDeformation") + std::string(")");
   auto gridDeformation = Python::make_function<FieldVector<double,dim> >(Python::evaluate(gridDeformationLambda));
 
@@ -192,9 +192,13 @@ int main (int argc, char *argv[]) try
   xInitial.resize(basisOrderD.size());
   DisplacementVector displacement;
   displacement.resize(basisOrderD.size());
-  
-  Functions::interpolate(basisOrderD, x, [](FieldVector<double,dim> x){ return x; });
-  Functions::interpolate(basisOrderD, xInitial, [](FieldVector<double,dim> x){ return x; });
+
+  Functions::interpolate(basisOrderD, x, [](FieldVector<double,dim> x){
+    return x;
+  });
+  Functions::interpolate(basisOrderD, xInitial, [](FieldVector<double,dim> x){
+    return x;
+  });
 
   for (std::size_t i = 0; i < basisOrderD.size(); i++) {
     std::stringstream stream;
@@ -210,14 +214,16 @@ int main (int argc, char *argv[]) try
     }
   }
 
-  using RotationVector = std::vector<Rotation<double,dim>>;
+  using RotationVector = std::vector<Rotation<double,dim> >;
   RotationVector rot;
   rot.resize(basisOrderR.size());
   DisplacementVector xOrderR;
   xOrderR.resize(basisOrderR.size());
-  Functions::interpolate(basisOrderR, xOrderR, [](FieldVector<double,dim> x){ return x; });
-  
-  using DirectorVector = std::vector<Dune::FieldVector<double,dim>>;
+  Functions::interpolate(basisOrderR, xOrderR, [](FieldVector<double,dim> x){
+    return x;
+  });
+
+  using DirectorVector = std::vector<Dune::FieldVector<double,dim> >;
   std::array<DirectorVector,3> rot_director;
   rot_director[0].resize(basisOrderR.size());
   rot_director[1].resize(basisOrderR.size());
@@ -239,42 +245,42 @@ int main (int argc, char *argv[]) try
   /////////////////////////////////////////////////////////////
   int quadOrder = parameterSet.hasKey("quadOrder") ? parameterSet.get<int>("quadOrder") : 4;
 
-  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, Rotation<double,dim>>
-        (basisOrderD, basisOrderR);
-  
+  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, Rotation<double,dim> >
+                           (basisOrderD, basisOrderR);
+
 
   std::cout << "Selected energy is: " << parameterSet.get<std::string>("energy") << std::endl;
-  std::shared_ptr<Elasticity::LocalDensity<dim,ValueType>> elasticDensity;
+  std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;
 
   const ParameterTree& materialParameters = parameterSet.sub("materialParameters");
 
   if (parameterSet.get<std::string>("energy") == "stvenantkirchhoff")
-    elasticDensity = std::make_shared<Elasticity::StVenantKirchhoffDensity<dim,ValueType>>(materialParameters);
+    elasticDensity = std::make_shared<Elasticity::StVenantKirchhoffDensity<dim,ValueType> >(materialParameters);
   if (parameterSet.get<std::string>("energy") == "neohooke")
-    elasticDensity = std::make_shared<Elasticity::NeoHookeDensity<dim,ValueType>>(materialParameters);
+    elasticDensity = std::make_shared<Elasticity::NeoHookeDensity<dim,ValueType> >(materialParameters);
   if (parameterSet.get<std::string>("energy") == "hencky")
-    elasticDensity = std::make_shared<Elasticity::HenckyDensity<dim,ValueType>>(materialParameters);
+    elasticDensity = std::make_shared<Elasticity::HenckyDensity<dim,ValueType> >(materialParameters);
   if (parameterSet.get<std::string>("energy") == "exphencky")
-    elasticDensity = std::make_shared<Elasticity::ExpHenckyDensity<dim,ValueType>>(materialParameters);
+    elasticDensity = std::make_shared<Elasticity::ExpHenckyDensity<dim,ValueType> >(materialParameters);
   if (parameterSet.get<std::string>("energy") == "mooneyrivlin")
-    elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType>>(materialParameters);
+    elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType> >(materialParameters);
 
   if(!elasticDensity)
-    DUNE_THROW(Exception, "Error: Selected energy not available!");      
+    DUNE_THROW(Exception, "Error: Selected energy not available!");
 
   Python::Reference surfaceShellClass = Python::import(materialParameters.get<std::string>("surfaceShellParameters"));
   Python::Callable surfaceShellCallable = surfaceShellClass.get("SurfaceShellParameters");
   Python::Reference pythonObject = surfaceShellCallable();
   auto fLame = Python::make_function<FieldVector<double, 2> >(pythonObject.get("lame"));
 
-  std::vector<FieldMatrix<double,dim,dim>> stressSubstrate1stPiolaKirchhoffTensor;
-  std::vector<FieldMatrix<double,dim,dim>> stressSubstrateCauchyTensor;
+  std::vector<FieldMatrix<double,dim,dim> > stressSubstrate1stPiolaKirchhoffTensor;
+  std::vector<FieldMatrix<double,dim,dim> > stressSubstrateCauchyTensor;
   std::cout << "Assemble stress for the substrate.." << std::endl;
-  stressAssembler.assembleSubstrateStress<Elasticity::LocalDensity<dim,ValueType>>(x, elasticDensity.get(), quadOrder, stressSubstrate1stPiolaKirchhoffTensor, stressSubstrateCauchyTensor);
+  stressAssembler.assembleSubstrateStress<Elasticity::LocalDensity<dim,ValueType> >(x, elasticDensity.get(), quadOrder, stressSubstrate1stPiolaKirchhoffTensor, stressSubstrateCauchyTensor);
 
-  std::vector<FieldMatrix<double,dim,dim>> stressShellBiotTensor;
+  std::vector<FieldMatrix<double,dim,dim> > stressShellBiotTensor;
   std::cout << "Assemble stress for the shell.." << std::endl;
-  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
+  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
 
   std::vector<double> stressSubstrate1stPiolaKirchhoff(stressSubstrate1stPiolaKirchhoffTensor.size());
   std::vector<double> stressSubstrateCauchy(stressSubstrate1stPiolaKirchhoffTensor.size());
@@ -296,12 +302,12 @@ int main (int argc, char *argv[]) try
     stressShellBiot[i] = stressShellBiotTensor[i].frobenius_norm();
   }
 
-  
-  auto displacementFunction = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(basisOrderD, displacement);
 
-  auto director0Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(basisOrderR, rot_director[0]);
-  auto director1Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(basisOrderR, rot_director[1]);
-  auto director2Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(basisOrderR, rot_director[2]);
+  auto displacementFunction = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(basisOrderD, displacement);
+
+  auto director0Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(basisOrderR, rot_director[0]);
+  auto director1Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(basisOrderR, rot_director[1]);
+  auto director2Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(basisOrderR, rot_director[2]);
 
   SubsamplingVTKWriter<GridView> vtkWriter(gridView, refinementLevels(displacementOrder-1));
   vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
@@ -330,6 +336,7 @@ int main (int argc, char *argv[]) try
   vtkWriterElementOnly.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
   vtkWriterElementOnly.write("stress_plot_" + parameterSet.get<std::string>("energy") + "_element_only");
 
-} catch (Exception& e) {
-    std::cout << e.what() << std::endl;
+}
+catch (Exception& e) {
+  std::cout << e.what() << std::endl;
 }

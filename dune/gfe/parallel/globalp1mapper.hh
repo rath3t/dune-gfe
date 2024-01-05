@@ -14,12 +14,12 @@ namespace Dune {
     using GridView = typename Basis::GridView;
     using P1BasisMapper = MultipleCodimMultipleGeomTypeMapper<GridView>;
 
-    public:
+  public:
     /** \brief The integer number type used for indices */
     using typename GlobalMapper<Basis>::Index;
 
     GlobalP1Mapper(const typename Basis::GridView& gridView)
-    : GlobalMapper<Basis>(gridView),
+      : GlobalMapper<Basis>(gridView),
       p1Mapper_(gridView,mcmgVertexLayout())
     {
 #if !HAVE_DUNE_PARMG

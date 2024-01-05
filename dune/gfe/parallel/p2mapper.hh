@@ -19,7 +19,7 @@ public:
   typedef typename Dune::Functions::LagrangeBasis<GridView,2>::MultiIndex::value_type Index;
 
   P2BasisMapper(const GridView& gridView)
-  : p2Basis_(gridView)
+    : p2Basis_(gridView)
   {}
 
   std::size_t size() const
@@ -50,4 +50,3 @@ public:
 };
 
 #endif
-

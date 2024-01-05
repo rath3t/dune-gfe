@@ -10,71 +10,71 @@
 #include <dune/solvers/solvers/quadraticipopt.hh>
 
 /** \brief Base solver for a monotone multigrid solver when used as the inner solver in a trust region method
-  *
-  * Monotone multigrid methods solve constrained problems even on the coarsest level.  Therefore, the choice
-  * of possible coarse grid solvers is limited.  I have tried both Gauss-Seidel and IPOpt, and both of them
-  * have not satisfied my.  Gauss-Seidel is slow when the coarse grid is not coarse enough.  The results computed
-  * by IPOpt appear to be imprecise, and I didn't get good trust-region convergence.  I don't really understand
-  * this -- it may be a bug in our IPOpt wrapper code.
-  * Ideally, one would use a direct solver, in particular close to the solution.  However, a direct solver may
-  * not produce admissible corrections.  Also, it may produce energy increase.  Therefore, the TrustRegionMMGBaseSolver
-  * does a pragmatic approach: a solution is first computed using UMFPack, disregarding the obstacles.
-  * If the result is admissible and decreases the energy we keep it.  Otherwise we fall back to IPOpt.
-  */
+ *
+ * Monotone multigrid methods solve constrained problems even on the coarsest level.  Therefore, the choice
+ * of possible coarse grid solvers is limited.  I have tried both Gauss-Seidel and IPOpt, and both of them
+ * have not satisfied my.  Gauss-Seidel is slow when the coarse grid is not coarse enough.  The results computed
+ * by IPOpt appear to be imprecise, and I didn't get good trust-region convergence.  I don't really understand
+ * this -- it may be a bug in our IPOpt wrapper code.
+ * Ideally, one would use a direct solver, in particular close to the solution.  However, a direct solver may
+ * not produce admissible corrections.  Also, it may produce energy increase.  Therefore, the TrustRegionMMGBaseSolver
+ * does a pragmatic approach: a solution is first computed using UMFPack, disregarding the obstacles.
+ * If the result is admissible and decreases the energy we keep it.  Otherwise we fall back to IPOpt.
+ */
 template <class MatrixType, class VectorType>
 class TrustRegionMMGBaseSolver
-: public IterativeSolver<VectorType>,
-  public CanIgnore<Dune::BitSetVector<VectorType::block_type::dimension> >
+  : public IterativeSolver<VectorType>,
+    public CanIgnore<Dune::BitSetVector<VectorType::block_type::dimension> >
 {
-    typedef typename VectorType::field_type field_type;
+  typedef typename VectorType::field_type field_type;
 
-    // For complex-valued data
-    typedef typename Dune::FieldTraits<field_type>::real_type real_type;
+  // For complex-valued data
+  typedef typename Dune::FieldTraits<field_type>::real_type real_type;
 
-    constexpr static int blocksize = VectorType::value_type::dimension;
-    typedef Dune::BitSetVector<blocksize> BitVectorType;
+  constexpr static int blocksize = VectorType::value_type::dimension;
+  typedef Dune::BitSetVector<blocksize> BitVectorType;
 
 public:
 
-    /** \brief Constructor taking all relevant data */
-    TrustRegionMMGBaseSolver(Solver::VerbosityMode verbosity)
-        : IterativeSolver<VectorType, BitVectorType>(100,     // maxIterations
-                                                     1e-8,    // tolerance
-                                                     nullptr,
-                                                     verbosity,
-                                                     false)  // false = use absolute error
-    {}
+  /** \brief Constructor taking all relevant data */
+  TrustRegionMMGBaseSolver(Solver::VerbosityMode verbosity)
+    : IterativeSolver<VectorType, BitVectorType>(100,         // maxIterations
+                                                 1e-8,        // tolerance
+                                                 nullptr,
+                                                 verbosity,
+                                                 false)      // false = use absolute error
+  {}
 
-    void setProblem(const MatrixType& matrix,
-                    VectorType& x,
-                    const VectorType& rhs) {
-        matrix_ = &matrix;
-        x_ = &x;
-        rhs_ = &rhs;
-    }
+  void setProblem(const MatrixType& matrix,
+                  VectorType& x,
+                  const VectorType& rhs) {
+    matrix_ = &matrix;
+    x_ = &x;
+    rhs_ = &rhs;
+  }
 
-    /**  \brief Checks whether all relevant member variables are set
-      *  \exception SolverError if the iteration step is not set up properly
-      */
-    virtual void check() const;
+  /**  \brief Checks whether all relevant member variables are set
+   *  \exception SolverError if the iteration step is not set up properly
+   */
+  virtual void check() const;
 
-    virtual void preprocess();
+  virtual void preprocess();
 
-    /**  \brief Loop, call the iteration procedure
-      *  and monitor convergence
-      */
-    virtual void solve();
+  /**  \brief Loop, call the iteration procedure
+   *  and monitor convergence
+   */
+  virtual void solve();
 
-    //! The quadratic term in the quadratic energy, is assumed to be symmetric
-    const MatrixType* matrix_;
+  //! The quadratic term in the quadratic energy, is assumed to be symmetric
+  const MatrixType* matrix_;
 
-    //! Vector to store the solution
-    VectorType* x_;
+  //! Vector to store the solution
+  VectorType* x_;
 
-    //! The linear term in the quadratic energy
-    const VectorType* rhs_;
+  //! The linear term in the quadratic energy
+  const VectorType* rhs_;
 
-    std::vector<BoxConstraint<field_type,blocksize> >* obstacles_;
+  std::vector<BoxConstraint<field_type,blocksize> >* obstacles_;
 
 };
 
@@ -82,14 +82,14 @@ public:
 template <class MatrixType, class VectorType>
 void TrustRegionMMGBaseSolver<MatrixType, VectorType>::check() const
 {
-    // check base class
-    IterativeSolver<VectorType,BitVectorType>::check();
+  // check base class
+  IterativeSolver<VectorType,BitVectorType>::check();
 }
 
 template <class MatrixType, class VectorType>
 void TrustRegionMMGBaseSolver<MatrixType, VectorType>::preprocess()
 {
-    //this->iterationStep_->preprocess();
+  //this->iterationStep_->preprocess();
 }
 
 template <class MatrixType, class VectorType>

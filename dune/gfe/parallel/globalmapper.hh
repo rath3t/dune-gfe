@@ -26,8 +26,8 @@ namespace Dune {
     {
       DofMap dofmap = Dune::ParMG::entitiesToDofsMap(&basis);
       Master m = Dune::ParMG::entityMasterRank(basis.gridView(), [&](int, int codim) -> bool {
-              return dofmap.codimSet().test(codim);
-            });
+        return dofmap.codimSet().test(codim);
+      });
 
       globalDof_ = globalDof(basis,m, dofmap);
 

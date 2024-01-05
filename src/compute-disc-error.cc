@@ -39,50 +39,50 @@ using namespace Dune;
 
 /** \brief Check whether given local coordinates are contained in the reference element
     \todo This method exists in the Dune grid interface!  But we need the eps.
-*/
+ */
 static bool checkInside(const Dune::GeometryType& type,
                         const Dune::FieldVector<double, dim> &loc,
                         double eps)
 {
   switch (type.dim())
   {
-    case 0: // vertex
-      return false;
+  case 0 :  // vertex
+    return false;
 
-    case 1: // line
-      return -eps <= loc[0] && loc[0] <= 1+eps;
+  case 1 :  // line
+    return -eps <= loc[0] && loc[0] <= 1+eps;
 
-    case 2:
+  case 2 :
 
-      if (type.isSimplex()) {
-        return -eps <= loc[0] && -eps <= loc[1] && (loc[0]+loc[1])<=1+eps;
-      } else if (type.isCube()) {
-        return -eps <= loc[0] && loc[0] <= 1+eps
-            && -eps <= loc[1] && loc[1] <= 1+eps;
-      } else
-        DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
-
-    case 3:
-      if (type.isSimplex()) {
-        return -eps <= loc[0] && -eps <= loc[1] && -eps <= loc[2]
-              && (loc[0]+loc[1]+loc[2]) <= 1+eps;
-      } else if (type.isPyramid()) {
-        return -eps <= loc[0] && -eps <= loc[1] && -eps <= loc[2]
-              && (loc[0]+loc[2]) <= 1+eps
-              && (loc[1]+loc[2]) <= 1+eps;
-      } else if (type.isPrism()) {
-        return -eps <= loc[0] && -eps <= loc[1]
-              && (loc[0]+loc[1])<= 1+eps
-              && -eps <= loc[2] && loc[2] <= 1+eps;
-      } else if (type.isCube()) {
-        return -eps <= loc[0] && loc[0] <= 1+eps
-            && -eps <= loc[1] && loc[1] <= 1+eps
-            && -eps <= loc[2] && loc[2] <= 1+eps;
-      }else
-        DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
-
-    default:
+    if (type.isSimplex()) {
+      return -eps <= loc[0] && -eps <= loc[1] && (loc[0]+loc[1])<=1+eps;
+    } else if (type.isCube()) {
+      return -eps <= loc[0] && loc[0] <= 1+eps
+             && -eps <= loc[1] && loc[1] <= 1+eps;
+    } else
       DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
+
+  case 3 :
+    if (type.isSimplex()) {
+      return -eps <= loc[0] && -eps <= loc[1] && -eps <= loc[2]
+             && (loc[0]+loc[1]+loc[2]) <= 1+eps;
+    } else if (type.isPyramid()) {
+      return -eps <= loc[0] && -eps <= loc[1] && -eps <= loc[2]
+             && (loc[0]+loc[2]) <= 1+eps
+             && (loc[1]+loc[2]) <= 1+eps;
+    } else if (type.isPrism()) {
+      return -eps <= loc[0] && -eps <= loc[1]
+             && (loc[0]+loc[1])<= 1+eps
+             && -eps <= loc[2] && loc[2] <= 1+eps;
+    } else if (type.isCube()) {
+      return -eps <= loc[0] && loc[0] <= 1+eps
+             && -eps <= loc[1] && loc[1] <= 1+eps
+             && -eps <= loc[2] && loc[2] <= 1+eps;
+    }else
+      DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
+
+  default :
+    DUNE_THROW(Dune::GridError, "checkInside():  ERROR:  Unknown type " << type << " found!");
   }
 
 }
@@ -379,47 +379,47 @@ void measureDiscreteEOC(const GridView gridView,
   }
   else
   {
-  double l2ErrorSquared = 0;
-  double h1ErrorSquared = 0;
+    double l2ErrorSquared = 0;
+    double h1ErrorSquared = 0;
 
-  for (const auto& rElement : elements(referenceGridView))
-  {
-    localReferenceSolution.bind(rElement);
-    auto localReferenceDerivative = derivative(localReferenceSolution);
-
-    const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
-
-    for (const auto& qp : quadRule)
+    for (const auto& rElement : elements(referenceGridView))
     {
-      auto integrationElement = rElement.geometry().integrationElement(qp.position());
+      localReferenceSolution.bind(rElement);
+      auto localReferenceDerivative = derivative(localReferenceSolution);
 
-      // Given a point with local coordinates qp.position() on element rElement of the reference grid
-      // find the element and local coordinates on the grid of the numerical simulation
-      auto supportingElement = findSupportingElement(referenceGridView.grid(),
-                                                     gridView.grid(),
-                                                     rElement, qp.position());
-      auto element  = std::get<0>(supportingElement);
-      localNumericalSolution.bind(element);
-      auto localNumericalDerivative = derivative(localNumericalSolution);
-      auto localPos = std::get<1>(supportingElement);
+      const auto& quadRule = QuadratureRules<double, dim>::rule(rElement.type(), 6);
 
-      auto diff = localReferenceSolution(qp.position()) - localNumericalSolution(localPos);
+      for (const auto& qp : quadRule)
+      {
+        auto integrationElement = rElement.geometry().integrationElement(qp.position());
 
-      l2ErrorSquared += integrationElement * qp.weight() * diff.two_norm2();
+        // Given a point with local coordinates qp.position() on element rElement of the reference grid
+        // find the element and local coordinates on the grid of the numerical simulation
+        auto supportingElement = findSupportingElement(referenceGridView.grid(),
+                                                       gridView.grid(),
+                                                       rElement, qp.position());
+        auto element  = std::get<0>(supportingElement);
+        localNumericalSolution.bind(element);
+        auto localNumericalDerivative = derivative(localNumericalSolution);
+        auto localPos = std::get<1>(supportingElement);
 
-      auto derDiff = localReferenceDerivative(qp.position()) - localNumericalDerivative(localPos);
+        auto diff = localReferenceSolution(qp.position()) - localNumericalSolution(localPos);
 
-      h1ErrorSquared += integrationElement * qp.weight() * derDiff.frobenius_norm2();
+        l2ErrorSquared += integrationElement * qp.weight() * diff.two_norm2();
 
+        auto derDiff = localReferenceDerivative(qp.position()) - localNumericalDerivative(localPos);
+
+        h1ErrorSquared += integrationElement * qp.weight() * derDiff.frobenius_norm2();
+
+      }
     }
-  }
 
-  std::cout << "levels: " << gridView.grid().maxLevel()+1
-            << "      "
-            << "L^2 error: " << std::sqrt(l2ErrorSquared)
-            << "      "
-            << "h^1 error: " << std::sqrt(h1ErrorSquared)
-            << std::endl;
+    std::cout << "levels: " << gridView.grid().maxLevel()+1
+              << "      "
+              << "L^2 error: " << std::sqrt(l2ErrorSquared)
+              << "      "
+              << "h^1 error: " << std::sqrt(h1ErrorSquared)
+              << std::endl;
   }
 }
 
@@ -473,33 +473,33 @@ void measureAnalyticalEOC(const GridView gridView,
   // TODO: We need to use a type-erasure wrapper here
   // Only used if // parameterSet["interpolationMethod"] == "geodesic"
   auto numericalSolutionGeodesic = GFE::EmbeddedGlobalGFEFunction<FEBasis,
-                                                                  LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
-                                                                  TargetSpace> (feBasis, x);
+      LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+      TargetSpace> (feBasis, x);
   auto localNumericalSolutionGeodesic = localFunction(numericalSolutionGeodesic);
 
   // ONly used if parameterSet["interpolationMethod"] == "projected"
   auto numericalSolutionProjected = GFE::EmbeddedGlobalGFEFunction<FEBasis,
-                                                                   GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
-                                                                   TargetSpace> (feBasis, x);
+      GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+      TargetSpace> (feBasis, x);
   auto localNumericalSolutionProjected = localFunction(numericalSolutionProjected);
 #else
   typedef VirtualDifferentiableFunction<FieldVector<double, dimworld>, typename TargetSpace::CoordinateType> FBase;
 
   Python::Module module = Python::import(parameterSet.get<std::string>("referenceSolution"));
-  auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase>>();
+  auto referenceSolution = module.get("fdf").toC<std::shared_ptr<FBase> >();
 
   // The numerical solution, as a grid function
   std::unique_ptr<VirtualGridViewFunction<GridView, typename TargetSpace::CoordinateType> > numericalSolution;
 
   if (parameterSet["interpolationMethod"] == "geodesic")
     numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
-                                                                        LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
-                                                                        TargetSpace> > (feBasis, x);
+        LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+        TargetSpace> > (feBasis, x);
 
   if (parameterSet["interpolationMethod"] == "projected")
     numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
-                                                                        GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
-                                                                        TargetSpace> > (feBasis, x);
+        GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+        TargetSpace> > (feBasis, x);
 #endif
 
   // QuadratureRule for the integral of the L^2 error
@@ -539,9 +539,9 @@ void measureAnalyticalEOC(const GridView gridView,
 #if DUNE_VERSION_GT(DUNE_FUFEM, 2, 9)
         FieldVector<double,blocksize> numValue;
         if (parameterSet["interpolationMethod"] == "geodesic")
-            numValue = localNumericalSolutionGeodesic(quadPos);
+          numValue = localNumericalSolutionGeodesic(quadPos);
         if (parameterSet["interpolationMethod"] == "projected")
-            numValue = localNumericalSolutionProjected(quadPos);
+          numValue = localNumericalSolutionProjected(quadPos);
 
         auto refValue = referenceSolution(element.geometry().global(quadPos));
 #else
@@ -550,11 +550,11 @@ void measureAnalyticalEOC(const GridView gridView,
 
         // Evaluate function b.  If it is a grid function use that to speed up the evaluation
         FieldVector<double,blocksize> refValue;
-        if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution))
-            std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution)->evaluateLocal(element,
-                                                                                                                          quadPos,
-                                                                                                                          refValue
-                                                                                                                         );
+        if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> > >(referenceSolution))
+          std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> > >(referenceSolution)->evaluateLocal(element,
+                                                                                                                                               quadPos,
+                                                                                                                                               refValue
+                                                                                                                                               );
         else
           referenceSolution->evaluate(element.geometry().global(quadPos), refValue);
 #endif
@@ -573,9 +573,9 @@ void measureAnalyticalEOC(const GridView gridView,
         FieldMatrix<double,blocksize,dimworld> num_di;
 
         if (parameterSet["interpolationMethod"] == "geodesic")
-            num_di = localNumericalDerivativeGeodesic(quadPos);
+          num_di = localNumericalDerivativeGeodesic(quadPos);
         if (parameterSet["interpolationMethod"] == "projected")
-            num_di = localNumericalDerivativeProjected(quadPos);
+          num_di = localNumericalDerivativeProjected(quadPos);
 
         auto ref_di = referenceDerivative(element.geometry().global(quadPos));
 #else
@@ -585,15 +585,15 @@ void measureAnalyticalEOC(const GridView gridView,
 
         if (dynamic_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >*>(numericalSolution.get()))
           dynamic_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >*>(numericalSolution.get())->evaluateDerivativeLocal(element,
-                                                                                                                                quadPos,
-                                                                                                                                num_di);
+                                                                                                                                                  quadPos,
+                                                                                                                                                  num_di);
         else
           numericalSolution->evaluateDerivative(element.geometry().global(quadPos), num_di);
 
-        if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution))
-        std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> >>(referenceSolution)->evaluateDerivativeLocal(element,
-                                                                                                                                quadPos,
-                                                                                                                                ref_di);
+        if (std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> > >(referenceSolution))
+          std::dynamic_pointer_cast<const VirtualGridViewFunction<GridView,FieldVector<double,blocksize> > >(referenceSolution)->evaluateDerivativeLocal(element,
+                                                                                                                                                         quadPos,
+                                                                                                                                                         ref_di);
         else
           referenceSolution->evaluateDerivative(element.geometry().global(quadPos), ref_di);
 #endif
@@ -660,19 +660,19 @@ void measureAnalyticalEOC(const GridView gridView,
               << "L^2 error: " << std::sqrt(l2Error)
 #else
     auto l2Error = DiscretizationError<GridView>::computeL2Error(numericalSolution.get(),
-                                                            referenceSolution.get(),
-                                                            quadKey);
+                                                                 referenceSolution.get(),
+                                                                 quadKey);
 
     auto h1Error = DiscretizationError<GridView>::computeH1HalfNormDifferenceSquared(gridView,
-                                                                                numericalSolution.get(),
-                                                                                referenceSolution.get(),
-                                                                                quadKey);
+                                                                                     numericalSolution.get(),
+                                                                                     referenceSolution.get(),
+                                                                                     quadKey);
 
     std::cout << "elements: " << gridView.size(0)
               << "      "
               << "L^2 error: " << l2Error
 #endif
-              << "      ";
+      << "      ";
     std::cout << "h^1 error: " << std::sqrt(h1Error) << std::endl;
   }
 }
@@ -690,20 +690,20 @@ void measureEOC(const std::shared_ptr<GridType> grid,
 
     switch (order)
     {
-      case 1:
+    case 1 :
       measureDiscreteEOC<typename GridType::LeafGridView,1,TargetSpace>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
       break;
 
-      case 2:
+    case 2 :
       measureDiscreteEOC<typename GridType::LeafGridView,2,TargetSpace>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
       break;
 
-      case 3:
+    case 3 :
       measureDiscreteEOC<typename GridType::LeafGridView,3,TargetSpace>(grid->leafGridView(), referenceGrid->leafGridView(), parameterSet);
       break;
 
-      default:
-        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
+    default :
+      DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
     }
     return;  // Success
   }
@@ -712,20 +712,20 @@ void measureEOC(const std::shared_ptr<GridType> grid,
   {
     switch (order)
     {
-      case 1:
+    case 1 :
       measureAnalyticalEOC<typename GridType::LeafGridView,1,TargetSpace>(grid->leafGridView(), parameterSet);
       break;
 
-      case 2:
+    case 2 :
       measureAnalyticalEOC<typename GridType::LeafGridView,2,TargetSpace>(grid->leafGridView(), parameterSet);
       break;
 
-      case 3:
+    case 3 :
       measureAnalyticalEOC<typename GridType::LeafGridView,3,TargetSpace>(grid->leafGridView(), parameterSet);
       break;
 
-      default:
-        DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
+    default :
+      DUNE_THROW(NotImplemented, "Order '" << order << "' is not implemented");
     }
     return;  // Success
   }
@@ -743,9 +743,9 @@ int main (int argc, char *argv[]) try
   Python::run("import math");
 
   Python::runStream()
-      << std::endl << "import sys"
-      << std::endl << "sys.path.append('/home/sander/dune/dune-gfe/problems')"
-      << std::endl;
+    << std::endl << "import sys"
+    << std::endl << "sys.path.append('/home/sander/dune/dune-gfe/problems')"
+    << std::endl;
 
   // parse data file
   ParameterTree parameterSet;
@@ -763,10 +763,10 @@ int main (int argc, char *argv[]) try
   //    Create the grids
   /////////////////////////////////////////
 #if HAVE_DUNE_FOAMGRID
-    typedef std::conditional<dim==1 or dim!=dimworld,FoamGrid<dim,dimworld>,UGGrid<dim> >::type GridType;
+  typedef std::conditional<dim==1 or dim!=dimworld,FoamGrid<dim,dimworld>,UGGrid<dim> >::type GridType;
 #else
-    static_assert(dim==dimworld, "You need to have dune-foamgrid installed for dim != dimworld!");
-    typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
+  static_assert(dim==dimworld, "You need to have dune-foamgrid installed for dim != dimworld!");
+  typedef std::conditional<dim==1,OneDGrid,UGGrid<dim> >::type GridType;
 #endif
 
   const int numLevels = parameterSet.get<int>("numLevels");
@@ -818,102 +818,102 @@ int main (int argc, char *argv[]) try
 
   switch (targetDim)
   {
-    case 1:
-      if (targetSpace=="RealTuple")
-      {
-        measureEOC<GridType,RealTuple<double,1> >(grid,
-                                                  referenceGrid,
-                                                  parameterSet);
-      } else if (targetSpace=="UnitVector")
-      {
-        measureEOC<GridType,UnitVector<double,1> >(grid,
-                                                   referenceGrid,
-                                                   parameterSet);
-      } else
-        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
-      break;
+  case 1 :
+    if (targetSpace=="RealTuple")
+    {
+      measureEOC<GridType,RealTuple<double,1> >(grid,
+                                                referenceGrid,
+                                                parameterSet);
+    } else if (targetSpace=="UnitVector")
+    {
+      measureEOC<GridType,UnitVector<double,1> >(grid,
+                                                 referenceGrid,
+                                                 parameterSet);
+    } else
+      DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+    break;
 
-    case 2:
-      if (targetSpace=="RealTuple")
-      {
-        measureEOC<GridType,RealTuple<double,2> >(grid,
-                                                  referenceGrid,
-                                                  parameterSet);
-      } else if (targetSpace=="UnitVector")
-      {
-        measureEOC<GridType,UnitVector<double,2> >(grid,
-                                                   referenceGrid,
-                                                   parameterSet);
+  case 2 :
+    if (targetSpace=="RealTuple")
+    {
+      measureEOC<GridType,RealTuple<double,2> >(grid,
+                                                referenceGrid,
+                                                parameterSet);
+    } else if (targetSpace=="UnitVector")
+    {
+      measureEOC<GridType,UnitVector<double,2> >(grid,
+                                                 referenceGrid,
+                                                 parameterSet);
 #if 0
-      } else if (targetSpace=="Rotation")
-      {
-        measureEOC<GridType,Rotation<double,2> >(grid,
-                                                 referenceGrid,
-                                                 parameterSet);
-      } else if (targetSpace=="RigidBodyMotion")
-      {
-        measureEOC<GridType,RigidBodyMotion<double,2> >(grid,
-                                                        referenceGrid,
-                                                        parameterSet);
+    } else if (targetSpace=="Rotation")
+    {
+      measureEOC<GridType,Rotation<double,2> >(grid,
+                                               referenceGrid,
+                                               parameterSet);
+    } else if (targetSpace=="RigidBodyMotion")
+    {
+      measureEOC<GridType,RigidBodyMotion<double,2> >(grid,
+                                                      referenceGrid,
+                                                      parameterSet);
 #endif
-      } else
-        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
-      break;
+    } else
+      DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+    break;
 
-    case 3:
-      if (targetSpace=="RealTuple")
-      {
-        measureEOC<GridType,RealTuple<double,3> >(grid,
-                                                  referenceGrid,
-                                                  parameterSet);
-      } else if (targetSpace=="UnitVector")
-      {
-        measureEOC<GridType,UnitVector<double,3> >(grid,
-                                                   referenceGrid,
-                                                   parameterSet);
-      } else if (targetSpace=="Rotation")
-      {
-        measureEOC<GridType,Rotation<double,3> >(grid,
+  case 3 :
+    if (targetSpace=="RealTuple")
+    {
+      measureEOC<GridType,RealTuple<double,3> >(grid,
+                                                referenceGrid,
+                                                parameterSet);
+    } else if (targetSpace=="UnitVector")
+    {
+      measureEOC<GridType,UnitVector<double,3> >(grid,
                                                  referenceGrid,
                                                  parameterSet);
-      } else if (targetSpace=="RigidBodyMotion")
-      {
-        measureEOC<GridType,RigidBodyMotion<double,3> >(grid,
-                                                        referenceGrid,
-                                                        parameterSet);
-      } else
-        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
-      break;
+    } else if (targetSpace=="Rotation")
+    {
+      measureEOC<GridType,Rotation<double,3> >(grid,
+                                               referenceGrid,
+                                               parameterSet);
+    } else if (targetSpace=="RigidBodyMotion")
+    {
+      measureEOC<GridType,RigidBodyMotion<double,3> >(grid,
+                                                      referenceGrid,
+                                                      parameterSet);
+    } else
+      DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+    break;
 
-    case 4:
-      if (targetSpace=="RealTuple")
-      {
-        measureEOC<GridType,RealTuple<double,4> >(grid,
-                                                  referenceGrid,
-                                                  parameterSet);
-      } else if (targetSpace=="UnitVector")
-      {
-        measureEOC<GridType,UnitVector<double,4> >(grid,
-                                                   referenceGrid,
-                                                   parameterSet);
+  case 4 :
+    if (targetSpace=="RealTuple")
+    {
+      measureEOC<GridType,RealTuple<double,4> >(grid,
+                                                referenceGrid,
+                                                parameterSet);
+    } else if (targetSpace=="UnitVector")
+    {
+      measureEOC<GridType,UnitVector<double,4> >(grid,
+                                                 referenceGrid,
+                                                 parameterSet);
 #if 0
-      } else if (targetSpace=="Rotation")
-      {
-        measureEOC<GridType,Rotation<double,4> >(grid,
-                                                 referenceGrid,
-                                                 parameterSet);
-      } else if (targetSpace=="RigidBodyMotion")
-      {
-        measureEOC<GridType,RigidBodyMotion<double,4> >(grid,
-                                                        referenceGrid,
-                                                        parameterSet);
+    } else if (targetSpace=="Rotation")
+    {
+      measureEOC<GridType,Rotation<double,4> >(grid,
+                                               referenceGrid,
+                                               parameterSet);
+    } else if (targetSpace=="RigidBodyMotion")
+    {
+      measureEOC<GridType,RigidBodyMotion<double,4> >(grid,
+                                                      referenceGrid,
+                                                      parameterSet);
 #endif
-      } else
-        DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
-      break;
+    } else
+      DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
+    break;
 
-    default:
-      DUNE_THROW(NotImplemented, "Target dimension '" << targetDim << "' is not implemented");
+  default :
+    DUNE_THROW(NotImplemented, "Target dimension '" << targetDim << "' is not implemented");
   }
 
   return 0;

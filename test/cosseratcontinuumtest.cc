@@ -62,14 +62,14 @@ int main (int argc, char *argv[])
   // ///////////////////////////////////////
   using GridType = UGGrid<dim>;
 
-  //Create a grid with 2 elements, one element will get refined to create different element types, the other one stays a cube 
+  //Create a grid with 2 elements, one element will get refined to create different element types, the other one stays a cube
   std::shared_ptr<GridType> grid = StructuredGridFactory<GridType>::createCubeGrid({0,0,0}, {1,1,1}, {2,1,1});
 
   // Refine once
-  for (auto&& e : elements(grid->leafGridView())){
+  for (auto&& e : elements(grid->leafGridView())) {
     bool refineThisElement = false;
     for (int i = 0; i < e.geometry().corners(); i++) {
-        refineThisElement = refineThisElement || (e.geometry().corner(i)[0] > 0.99);
+      refineThisElement = refineThisElement || (e.geometry().corner(i)[0] > 0.99);
     }
     grid->mark(refineThisElement ? 1 : 0, e);
   }
@@ -90,12 +90,12 @@ int main (int argc, char *argv[])
     gridView,
     composite(
       power<dim>(
-          lagrange<displacementOrder>()
-      ),
+        lagrange<displacementOrder>()
+        ),
       power<dimRotation>(
-          lagrange<rotationOrder>()
-      )
-  ));
+        lagrange<rotationOrder>()
+        )
+      ));
   using CompositeBasis = decltype(compositeBasis);
 
   using DeformationFEBasis = Functions::LagrangeBasis<GridView,displacementOrder>;
@@ -112,18 +112,22 @@ int main (int argc, char *argv[])
     gridView,
     composite(
       power<dim>(
-          lagrange<displacementOrder>()
-      ),
+        lagrange<displacementOrder>()
+        ),
       power<dim>(
-          lagrange<rotationOrder>()
-      )
-  ));
+        lagrange<rotationOrder>()
+        )
+      ));
   auto deformationPowerBasis = Functions::subspaceBasis(identityBasis, _0);
   auto rotationPowerBasis = Functions::subspaceBasis(identityBasis, _1);
 
-  MultiTypeBlockVector<BlockVector<FieldVector<double,dim>>,BlockVector<FieldVector<double,dim>>> identity;
-  Functions::interpolate(deformationPowerBasis, identity, [&](FieldVector<double,dim> x){ return x;});
-  Functions::interpolate(rotationPowerBasis, identity, [&](FieldVector<double,dim> x){ return x;});
+  MultiTypeBlockVector<BlockVector<FieldVector<double,dim> >,BlockVector<FieldVector<double,dim> > > identity;
+  Functions::interpolate(deformationPowerBasis, identity, [&](FieldVector<double,dim> x){
+    return x;
+  });
+  Functions::interpolate(rotationPowerBasis, identity, [&](FieldVector<double,dim> x){
+    return x;
+  });
 
   BitSetVector<dim> deformationDirichletDofs(deformationFEBasis.size(), false);
   BitSetVector<dim> orientationDirichletDofs(orientationFEBasis.size(), false);
@@ -132,40 +136,40 @@ int main (int argc, char *argv[])
 
   // Make predicate function that computes which vertices are on the Dirichlet boundary, based on the vertex positions.
   auto isDirichlet = [](FieldVector<double,dim> coordinate)
-  {
-    return coordinate[0] < 0.01;
-  };
+                     {
+                       return coordinate[0] < 0.01;
+                     };
 
   for (size_t i=0; i<deformationFEBasis.size(); i++) {
-      bool isDirichletDeformation = isDirichlet(identity[_0][i]);
-      for (size_t j=0; j<dim; j++)
-          deformationDirichletDofs[i][j] = isDirichletDeformation;
+    bool isDirichletDeformation = isDirichlet(identity[_0][i]);
+    for (size_t j=0; j<dim; j++)
+      deformationDirichletDofs[i][j] = isDirichletDeformation;
   }
   for (size_t i=0; i<orientationFEBasis.size(); i++) {
-      bool isDirichletOrientation = isDirichlet(identity[_1][i]);
-      for (size_t j=0; j<dim; j++)
-          orientationDirichletDofs[i][j] = isDirichletOrientation;
+    bool isDirichletOrientation = isDirichlet(identity[_1][i]);
+    for (size_t j=0; j<dim; j++)
+      orientationDirichletDofs[i][j] = isDirichletOrientation;
   }
 
   // /////////////////////////////////////////
   //  Determine Neumann dofs and values
-  // /////////////////////////////////////////  
+  // /////////////////////////////////////////
 
   std::function<bool(FieldVector<double,dim>)> isNeumann = [](FieldVector<double,dim> coordinate) {
-    return coordinate[0] > 0.99;
-  };
+                                                             return coordinate[0] > 0.99;
+                                                           };
 
   BitSetVector<1> neumannVertices(gridView.size(dim), false);
-  
-  for (auto&& vertex : vertices(gridView))
-      neumannVertices[indexSet.index(vertex)] = isNeumann(vertex.geometry().corner(0));
 
-  auto neumannBoundary = std::make_shared<BoundaryPatch<GridType::LeafGridView>>(gridView, neumannVertices);
+  for (auto&& vertex : vertices(gridView))
+    neumannVertices[indexSet.index(vertex)] = isNeumann(vertex.geometry().corner(0));
+
+  auto neumannBoundary = std::make_shared<BoundaryPatch<GridType::LeafGridView> >(gridView, neumannVertices);
 
   FieldVector<double,dim> values_ = {0,0,0};
   auto neumannFunction = [&](FieldVector<double, dim>){
-    return values_;
-  };
+                           return values_;
+                         };
 
   // //////////////////////////
   //  Initial iterate
@@ -197,39 +201,39 @@ int main (int argc, char *argv[])
   // ////////////////////////////
 
   GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dim>,Rotation<adouble,dim> > sumEnergy;
-  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim>>>(neumannBoundary,neumannFunction);
-  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<adouble,double>>(parameters);
-  auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim>>>(bulkCosseratDensity);
+  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
+  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<adouble,double> >(parameters);
+  auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(bulkCosseratDensity);
   sumEnergy.addLocalEnergy(bulkCosseratEnergy);
   sumEnergy.addLocalEnergy(neumannEnergy);
 
   MixedLocalGFEADOLCStiffness<CompositeBasis,
-                      RealTuple<double,dim>,
-                      Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
+      RealTuple<double,dim>,
+      Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
-            RealTuple<double,dim>,
-            Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
-  
+      RealTuple<double,dim>,
+      Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+
   MixedRiemannianTrustRegionSolver<GridType,
-                                 CompositeBasis,
-                                 DeformationFEBasis, RealTuple<double,dim>,
-                                 OrientationFEBasis, Rotation<double,dim> > solver;
+      CompositeBasis,
+      DeformationFEBasis, RealTuple<double,dim>,
+      OrientationFEBasis, Rotation<double,dim> > solver;
   solver.setup(*grid,
-           &mixedAssembler,
-           deformationFEBasis,
-           orientationFEBasis,
-           x,
-           deformationDirichletDofs,
-           orientationDirichletDofs,
-           tolerance,
-           maxSolverSteps,
-           initialTrustRegionRadius,
-           multigridIterations,
-           mgTolerance,
-           3, 3, 1,   // Multigrid V-cycle
-           baseIterations,
-           baseTolerance,
-           false);
+               &mixedAssembler,
+               deformationFEBasis,
+               orientationFEBasis,
+               x,
+               deformationDirichletDofs,
+               orientationDirichletDofs,
+               tolerance,
+               maxSolverSteps,
+               initialTrustRegionRadius,
+               multigridIterations,
+               mgTolerance,
+               3, 3, 1, // Multigrid V-cycle
+               baseIterations,
+               baseTolerance,
+               false);
 
   solver.setInitialIterate(x);
   solver.solve();
@@ -243,17 +247,17 @@ int main (int argc, char *argv[])
 
   if (solver.getStatistics().finalIteration != expectedFinalIteration)
   {
-      std::cerr << "Trust-region solver did " << solver.getStatistics().finalIteration+1
-                << " iterations, instead of the expected '" << expectedFinalIteration+1 << "'!" << std::endl;
-      return 1;
+    std::cerr << "Trust-region solver did " << solver.getStatistics().finalIteration+1
+              << " iterations, instead of the expected '" << expectedFinalIteration+1 << "'!" << std::endl;
+    return 1;
   }
 
   if ( std::abs(solver.getStatistics().finalEnergy - expectedEnergy) > 1e-7)
   {
-      std::cerr << std::setprecision(9);
-      std::cerr << "Final energy is " << solver.getStatistics().finalEnergy
-                << " but '" << expectedEnergy << "' was expected!" << std::endl;
-      return 1;
+    std::cerr << std::setprecision(9);
+    std::cerr << "Final energy is " << solver.getStatistics().finalEnergy
+              << " but '" << expectedEnergy << "' was expected!" << std::endl;
+    return 1;
   }
 
   return 0;

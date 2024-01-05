@@ -6,21 +6,21 @@
 
 namespace Dune {
 
-/** \brief  A class implementing a symmetric matrix with compile-time size
- *
- *  A \f$ dim\times dim \f$ matrix is stored internally as a <tt>Dune::FieldVector<double, dim*(dim+1)/2></tt>
- *  The components are assumed to be \f$ [ E(1,1),\  E(2,1),\ E(2,2),\ E(3,1),\ E(3,2),\ E(3,3) ]\f$
- *  and analogous for other dimensions
- *  \tparam  dim number of lines/columns of the matrix
- */
-template <class T, int N>
-class SymmetricMatrix
-{
-public:
-
-  /** \brief The type used for scalars
+  /** \brief  A class implementing a symmetric matrix with compile-time size
+   *
+   *  A \f$ dim\times dim \f$ matrix is stored internally as a <tt>Dune::FieldVector<double, dim*(dim+1)/2></tt>
+   *  The components are assumed to be \f$ [ E(1,1),\  E(2,1),\ E(2,2),\ E(3,1),\ E(3,2),\ E(3,3) ]\f$
+   *  and analogous for other dimensions
+   *  \tparam  dim number of lines/columns of the matrix
    */
-  typedef T field_type;
+  template <class T, int N>
+  class SymmetricMatrix
+  {
+  public:
+
+    /** \brief The type used for scalars
+     */
+    typedef T field_type;
 
     /** \brief Default constructor, creates uninitialized matrix
      */
@@ -68,7 +68,7 @@ public:
       T result = 0;
       for (size_t i=0; i<N; i++)
         for (size_t j=0; j<=i; j++)
-            result += (1-0.5*(i==j)) * operator()(i,j) * (v1[i] * v2[j] + v1[j] * v2[i]);
+          result += (1-0.5*(i==j)) * operator()(i,j) * (v1[i] * v2[j] + v1[j] * v2[i]);
 
       return result;
     }
@@ -78,7 +78,7 @@ public:
       data_.axpy(a,other.data_);
     }
 
-        /** \brief Return the FieldMatrix representation of the symmetric tensor.*/
+    /** \brief Return the FieldMatrix representation of the symmetric tensor.*/
     Dune::FieldMatrix<T,N,N> matrix() const
     {
       Dune::FieldMatrix<T,N,N> mat;
@@ -89,9 +89,9 @@ public:
       return mat;
     }
 
-private:
+  private:
     Dune::FieldVector<T,N*(N+1)/2> data_;
-};
+  };
 
 }
 #endif

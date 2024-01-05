@@ -53,9 +53,9 @@ namespace Dune {
        * \param coefficients Values of the function at the Lagrange points
        */
       LocalQuickAndDirtyFEFunction(const LocalFiniteElement& localFiniteElement,
-                               const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients)
+                                   const std::vector<TargetSpace>& coefficients)
+        : localFiniteElement_(localFiniteElement),
+        coefficients_(coefficients)
       {
         assert(localFiniteElement_.localBasis().size() == coefficients_.size());
       }

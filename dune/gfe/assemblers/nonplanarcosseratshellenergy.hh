@@ -40,8 +40,8 @@ template<class Basis, int dim, class field_type, class StressFreeStateGridFuncti
 class NonplanarCosseratShellEnergy
   : public Dune::GFE::LocalEnergy<Basis,RigidBodyMotion<field_type,dim> >,
     public MixedLocalGeodesicFEStiffness<Basis,
-                                           RealTuple<field_type,dim>,
-                                           Rotation<field_type,dim> >
+        RealTuple<field_type,dim>,
+        Rotation<field_type,dim> >
 {
   // grid types
   typedef typename Basis::GridView GridView;
@@ -65,7 +65,7 @@ public:
                                const BoundaryPatch<GridView>* neumannBoundary,
                                const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction,
                                const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad)
-  : stressFreeStateGridFunction_(stressFreeStateGridFunction),
+    : stressFreeStateGridFunction_(stressFreeStateGridFunction),
     neumannBoundary_(neumannBoundary),
     neumannFunction_(neumannFunction),
     volumeLoad_(volumeLoad)
@@ -87,7 +87,7 @@ public:
     b1_ = parameters.template get<double>("b1");
     b2_ = parameters.template get<double>("b2");
     b3_ = parameters.template get<double>("b3");
-    
+
     // Indicator to use the alternative energy W_Coss from Birsan 2021:
     useAlternativeEnergyWCoss_ = parameters.template get<bool>("useAlternativeEnergyWCoss", false);
   }
@@ -96,7 +96,7 @@ public:
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const;
 
-/** \brief Assemble the energy for a single element */
+  /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<RealTuple<field_type,dim> >& localDisplacementConfiguration,
              const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const override;
@@ -104,7 +104,7 @@ public:
   /*  Sources:
       Birsan 2019: Derivation of a refined six-parameter shell model, equation (111)
       Birsan 2021: Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126)
-  */
+   */
   RT W_Coss(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<double,3,3>& a, const Dune::FieldVector<double,3>& n0) const
   {
     return W_Coss_mixt(S,S,a,n0);
@@ -129,8 +129,8 @@ public:
   RT W_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T) const
   {
     return mu_ * Dune::GFE::frobeniusProduct(Dune::GFE::sym(S), Dune::GFE::sym(T))
-         + mu_c_ * Dune::GFE::frobeniusProduct(Dune::GFE::skew(S), Dune::GFE::skew(T))
-         + lambda_ * mu_ / (lambda_ + 2*mu_) * Dune::GFE::trace(S) * Dune::GFE::trace(T);
+           + mu_c_ * Dune::GFE::frobeniusProduct(Dune::GFE::skew(S), Dune::GFE::skew(T))
+           + lambda_ * mu_ / (lambda_ + 2*mu_) * Dune::GFE::trace(S) * Dune::GFE::trace(T);
   }
 
   RT W_mp(const Dune::FieldMatrix<field_type,3,3>& S) const
@@ -142,7 +142,7 @@ public:
   RT W_curv(const Dune::FieldMatrix<field_type,3,3>& S) const
   {
     return mu_ * L_c_ * L_c_ * (b1_ * Dune::GFE::dev(Dune::GFE::sym(S)).frobenius_norm2()
-         + b2_ * Dune::GFE::skew(S).frobenius_norm2() + b3_ * Dune::GFE::traceSquared(S));
+                                + b2_ * Dune::GFE::skew(S).frobenius_norm2() + b3_ * Dune::GFE::traceSquared(S));
   }
 
 #if HAVE_DUNE_GMSH4
@@ -208,11 +208,11 @@ energy(const typename Basis::LocalView& localView,
   // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
   // The variable local holds the local coordinates in the reference element
   // and localGeometry.global maps them to the world coordinates
-  Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim>>> geometry(referenceElement(element),
-    [this,element](const auto& local) {
-      auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
-      localGridFunction.bind(element);
-      return localGridFunction(local);
+  Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim> > > geometry(referenceElement(element),
+                                                                                                                                [this,element](const auto& local) {
+                                                                                                                                auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
+                                                                                                                                localGridFunction.bind(element);
+                                                                                                                                return localGridFunction(local);
     }, getOrder(stressFreeStateGridFunction_));
 #else
   // When using element.geometry(), the geometry of the element is flat
@@ -313,7 +313,7 @@ energy(const typename Basis::LocalView& localView,
       for (int j = 0; j < dimworld; j++)
         b[i][j] = grad_s_n[i][j];
 #endif
-    
+
     // Mean curvatue
     auto H = 0.5 * Dune::GFE::trace(b);
 
@@ -359,20 +359,20 @@ energy(const typename Basis::LocalView& localView,
     field_type energyDensity = 0;
     if (useAlternativeEnergyWCoss_) {
       energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_Coss(Ee, a, aContravariant[2])
-                    + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2])
-                    + Dune::power(thickness_,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2])
-                    + Dune::power(thickness_,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2]);
+                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2])
+                       + Dune::power(thickness_,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2])
+                       + Dune::power(thickness_,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2]);
     } else {
       energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_m(Ee)
-                    + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
-                    + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
-                    + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
+                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
+                       + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
+                       + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
     }
 
     // Add the bending energy density
     energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_curv(Ke)
-                   + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_curv(Ke*b)
-                   + Dune::power(thickness_,5) / 80.0 * W_curv(Ke*b*b);
+                     + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_curv(Ke*b)
+                     + Dune::power(thickness_,5) / 80.0 * W_curv(Ke*b*b);
 
     // Add energy density
     energy += quad[pt].weight() * integrationElement * energyDensity;
@@ -449,11 +449,11 @@ energy(const typename Basis::LocalView& localView,
   // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
   // The variable local holds the local coordinates in the reference element
   // and localGeometry.global maps them to the world coordinates
-  Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim>>> geometry(referenceElement(element),
-    [this,element](const auto& local) {
-      auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
-      localGridFunction.bind(element);
-      return localGridFunction(local);
+  Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim> > > geometry(referenceElement(element),
+                                                                                                                                [this,element](const auto& local) {
+                                                                                                                                auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
+                                                                                                                                localGridFunction.bind(element);
+                                                                                                                                return localGridFunction(local);
     }, getOrder(stressFreeStateGridFunction_));
 #else
   // When using element.geometry(), the geometry of the element is flat
@@ -558,7 +558,7 @@ energy(const typename Basis::LocalView& localView,
         b[i][j] = grad_s_n[i][j];
 #endif
     b *= (-1);
-    
+
     // Mean curvatue
     auto H = 0.5 * Dune::GFE::trace(b);
 
@@ -604,19 +604,19 @@ energy(const typename Basis::LocalView& localView,
     field_type energyDensity = 0;
     if (useAlternativeEnergyWCoss_) {
       energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_Coss(Ee, a, aContravariant[2])
-                    + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2])
-                    + Dune::power(thickness_,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2])
-                    + Dune::power(thickness_,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2]);
+                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2])
+                       + Dune::power(thickness_,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2])
+                       + Dune::power(thickness_,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2]);
     } else {
       energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_m(Ee)
-                    + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
-                    + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
-                    + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
+                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
+                       + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
+                       + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
     }
 
     energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_curv(Ke)
-                   + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_curv(Ke*b)
-                   + Dune::power(thickness_,5) / 80.0 * W_curv(Ke*b*b);
+                     + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_curv(Ke*b)
+                     + Dune::power(thickness_,5) / 80.0 * W_curv(Ke*b*b);
 
     // Add energy density
     energy += quad[pt].weight() * integrationElement * energyDensity;
@@ -674,4 +674,3 @@ energy(const typename Basis::LocalView& localView,
 }
 
 #endif   //#ifndef DUNE_GFE_NONPLANARCOSSERATSHELLENERGY_HH
-

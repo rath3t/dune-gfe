@@ -88,7 +88,7 @@ int main (int argc, char *argv[])
     power<TargetSpace::CoordinateType::dimension>(
       lagrange<order>(),
       blockedInterleaved()
-  ));
+      ));
 
   // A basis for the tangent space
   auto tangentBasis = makeBasis(
@@ -96,7 +96,7 @@ int main (int argc, char *argv[])
     power<TargetSpace::TangentVector::dimension>(
       lagrange<order>(),
       blockedInterleaved()
-  ));
+      ));
 
   ///////////////////////////////////////////
   //  Determine Dirichlet values
@@ -107,9 +107,9 @@ int main (int argc, char *argv[])
   // Make predicate function that computes which vertices are on the Dirichlet boundary,
   // based on the vertex positions.
   auto dirichletVerticesPredicate = [](FieldVector<double,dim> x)
-  {
-    return (x[0] < -4.9999 or x[0] > 4.9999 or x[1] < -4.9999 or x[1] > 4.9999);
-  };
+                                    {
+                                      return (x[0] < -4.9999 or x[0] > 4.9999 or x[1] < -4.9999 or x[1] > 4.9999);
+                                    };
 
   for (auto&& vertex : vertices(gridView))
   {
@@ -127,10 +127,10 @@ int main (int argc, char *argv[])
 
   // The inverse stereographic projection through the north pole
   auto initialIterateFunction = [](FieldVector<double,dim> x) -> TargetSpace::CoordinateType
-  {
-    auto normSquared = x.two_norm2();
-    return {2*x[0] / (normSquared+1), 2*x[1] / (normSquared+1), (normSquared-1)/ (normSquared+1)};
-  };
+                                {
+                                  auto normSquared = x.two_norm2();
+                                  return {2*x[0] / (normSquared+1), 2*x[1] / (normSquared+1), (normSquared-1)/ (normSquared+1)};
+                                };
 
   std::vector<TargetSpace::CoordinateType> v;
   Dune::Functions::interpolate(powerBasis, v, initialIterateFunction);
@@ -184,18 +184,18 @@ int main (int argc, char *argv[])
   std::size_t expectedFinalIteration = 12;
   if (solver.getStatistics().finalIteration != expectedFinalIteration)
   {
-      std::cerr << "Trust-region solver did " << solver.getStatistics().finalIteration+1
-                << " iterations, instead of the expected '" << expectedFinalIteration+1 << "'!" << std::endl;
-      return 1;
+    std::cerr << "Trust-region solver did " << solver.getStatistics().finalIteration+1
+              << " iterations, instead of the expected '" << expectedFinalIteration+1 << "'!" << std::endl;
+    return 1;
   }
 
   double expectedEnergy = 12.2927849;
   if ( std::abs(solver.getStatistics().finalEnergy - expectedEnergy) > 1e-7)
   {
-      std::cerr << std::setprecision(9);
-      std::cerr << "Final energy is " << solver.getStatistics().finalEnergy
-                << " but '" << expectedEnergy << "' was expected!" << std::endl;
-      return 1;
+    std::cerr << std::setprecision(9);
+    std::cerr << "Final energy is " << solver.getStatistics().finalEnergy
+              << " but '" << expectedEnergy << "' was expected!" << std::endl;
+    return 1;
   }
 
   return 0;

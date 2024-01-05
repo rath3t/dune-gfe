@@ -21,10 +21,10 @@
 
 namespace Dune::GFE {
 
-template<class Basis, class LocalInterpolationRule, class RT>
-class CosseratRodEnergy
-: public LocalEnergy<Basis, RigidBodyMotion<RT,3> >
-{
+  template<class Basis, class LocalInterpolationRule, class RT>
+  class CosseratRodEnergy
+    : public LocalEnergy<Basis, RigidBodyMotion<RT,3> >
+  {
     typedef RigidBodyMotion<RT,3> TargetSpace;
 
     // grid types
@@ -41,18 +41,18 @@ class CosseratRodEnergy
     // Quadrature order used for the bending and torsion energy
     constexpr static int bendingQuadOrder = 2;
 
-public:
+  public:
 
     /** \brief The stress-free configuration
 
-      The number type cannot be RT, because RT become `adouble` when
-      using RodLocalStiffness together with an AD system.
-      The referenceConfiguration is not a variable, and we don't
-      want to use `adouble` for it.
+       The number type cannot be RT, because RT become `adouble` when
+       using RodLocalStiffness together with an AD system.
+       The referenceConfiguration is not a variable, and we don't
+       want to use `adouble` for it.
      */
     std::vector<RigidBodyMotion<double,3> > referenceConfiguration_;
 
-public:
+  public:
 
     //! Each block is x, y, theta in 2d, T (R^3 \times SO(3)) in 3d
     static constexpr auto blocksize = TargetSpace::EmbeddedTangentVector::dimension;
@@ -70,9 +70,9 @@ public:
     //! Constructor
     CosseratRodEnergy(const GridView& gridView,
                       const std::array<double,3>& K, const std::array<double,3>& A)
-        : K_(K),
-          A_(A),
-          gridView_(gridView)
+      : K_(K),
+      A_(A),
+      gridView_(gridView)
     {}
 
     /** \brief Constructor setting shape constants and material parameters
@@ -80,27 +80,27 @@ public:
         \param J1, J2 The geometric moments (Flächenträgheitsmomente)
         \param E Young's modulus
         \param nu Poisson number
-    */
+     */
     CosseratRodEnergy(const GridView& gridView,
                       double A, double J1, double J2, double E, double nu)
-        : gridView_(gridView)
+      : gridView_(gridView)
     {
-        // shear modulus
-        double G = E/(2+2*nu);
+      // shear modulus
+      double G = E/(2+2*nu);
 
-        K_[0] = E * J1;
-        K_[1] = E * J2;
-        K_[2] = G * (J1 + J2);
+      K_[0] = E * J1;
+      K_[1] = E * J2;
+      K_[2] = G * (J1 + J2);
 
-        A_[0] = G * A;
-        A_[1] = G * A;
-        A_[2] = E * A;
+      A_[0] = G * A;
+      A_[1] = G * A;
+      A_[2] = E * A;
     }
 
     /** \brief Set the stress-free configuration
      */
     void setReferenceConfiguration(const std::vector<RigidBodyMotion<double,3> >& referenceConfiguration) {
-        referenceConfiguration_ = referenceConfiguration;
+      referenceConfiguration_ = referenceConfiguration;
     }
 
     /** \brief Compute local element energy */
@@ -113,8 +113,8 @@ public:
      */
     template<class ReboundLocalInterpolationRule>
     auto getStrain(const ReboundLocalInterpolationRule& localSolution,
-                                           const Entity& element,
-                                           const FieldVector<double,1>& pos) const;
+                   const Entity& element,
+                   const FieldVector<double,1>& pos) const;
 
     /** \brief Get the rod stress at one point in the rod
      *
@@ -122,8 +122,8 @@ public:
      */
     template<class Number>
     auto getStress(const std::vector<RigidBodyMotion<Number,3> >& localSolution,
-                                           const Entity& element,
-                                           const FieldVector<double,1>& pos) const;
+                   const Entity& element,
+                   const FieldVector<double,1>& pos) const;
 
     /** \brief Get average strain for each element */
     void getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
@@ -135,43 +135,43 @@ public:
 
     /** \brief Return resultant force across boundary in canonical coordinates
 
-     \note Linear run-time in the size of the grid */
+       \note Linear run-time in the size of the grid */
     template <class PatchGridView>
     auto getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
-                                                  const std::vector<RigidBodyMotion<double,3> >& sol) const;
+                           const std::vector<RigidBodyMotion<double,3> >& sol) const;
 
-protected:
+  protected:
 
     std::vector<RigidBodyMotion<double,3> > getLocalReferenceConfiguration(const typename Basis::LocalView& localView) const
     {
-        unsigned int numOfBaseFct = localView.size();
-        std::vector<RigidBodyMotion<double,3> > localReferenceConfiguration(numOfBaseFct);
+      unsigned int numOfBaseFct = localView.size();
+      std::vector<RigidBodyMotion<double,3> > localReferenceConfiguration(numOfBaseFct);
 
-        for (size_t i=0; i<numOfBaseFct; i++)
-            localReferenceConfiguration[i] = referenceConfiguration_[localView.index(i)];
+      for (size_t i=0; i<numOfBaseFct; i++)
+        localReferenceConfiguration[i] = referenceConfiguration_[localView.index(i)];
 
-        return localReferenceConfiguration;
+      return localReferenceConfiguration;
     }
 
-      template <class T>
+    template <class T>
     static FieldVector<T,3> darboux(const Rotation<T,3>& q, const FieldVector<T,4>& q_s)
     {
-        FieldVector<T,3> u;  // The Darboux vector
+      FieldVector<T,3> u;    // The Darboux vector
 
-        u[0] = 2 * (q.B(0) * q_s);
-        u[1] = 2 * (q.B(1) * q_s);
-        u[2] = 2 * (q.B(2) * q_s);
+      u[0] = 2 * (q.B(0) * q_s);
+      u[1] = 2 * (q.B(1) * q_s);
+      u[2] = 2 * (q.B(2) * q_s);
 
-        return u;
+      return u;
     }
 
-};
+  };
 
-template<class Basis, class LocalInterpolationRule, class RT>
-RT CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-energy(const typename Basis::LocalView& localView,
-       const std::vector<RigidBodyMotion<RT,3> >& localCoefficients) const
-{
+  template<class Basis, class LocalInterpolationRule, class RT>
+  RT CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  energy(const typename Basis::LocalView& localView,
+         const std::vector<RigidBodyMotion<RT,3> >& localCoefficients) const
+  {
     const auto& localFiniteElement = localView.tree().finiteElement();
     LocalInterpolationRule localConfiguration(localFiniteElement, localCoefficients);
 
@@ -193,20 +193,20 @@ energy(const typename Basis::LocalView& localView,
 
     for (size_t pt=0; pt<shearingQuad.size(); pt++) {
 
-        // Local position of the quadrature point
-        const auto quadPos = shearingQuad[pt].position();
+      // Local position of the quadrature point
+      const auto quadPos = shearingQuad[pt].position();
 
-        const double integrationElement = element.geometry().integrationElement(quadPos);
+      const double integrationElement = element.geometry().integrationElement(quadPos);
 
-        double weight = shearingQuad[pt].weight() * integrationElement;
+      double weight = shearingQuad[pt].weight() * integrationElement;
 
-        auto strain = getStrain(localConfiguration, element, quadPos);
+      auto strain = getStrain(localConfiguration, element, quadPos);
 
-        // The reference strain
-        auto referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
+      // The reference strain
+      auto referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
 
-        for (int i=0; i<3; i++)
-            energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
+      for (int i=0; i<3; i++)
+        energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
 
     }
 
@@ -215,33 +215,33 @@ energy(const typename Basis::LocalView& localView,
 
     for (size_t pt=0; pt<bendingQuad.size(); pt++) {
 
-        // Local position of the quadrature point
-        const FieldVector<double,1>& quadPos = bendingQuad[pt].position();
+      // Local position of the quadrature point
+      const FieldVector<double,1>& quadPos = bendingQuad[pt].position();
 
-        double weight = bendingQuad[pt].weight() * element.geometry().integrationElement(quadPos);
+      double weight = bendingQuad[pt].weight() * element.geometry().integrationElement(quadPos);
 
-        auto strain = getStrain(localConfiguration, element, quadPos);
+      auto strain = getStrain(localConfiguration, element, quadPos);
 
-        // The reference strain
-        auto referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
+      // The reference strain
+      auto referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
 
-        // Part II: the bending and twisting energy
-        for (int i=0; i<3; i++)
-            energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
+      // Part II: the bending and twisting energy
+      for (int i=0; i<3; i++)
+        energy += weight * 0.5 * K_[i] * (strain[i+3] - referenceStrain[i+3]) * (strain[i+3] - referenceStrain[i+3]);
 
     }
 
     return energy;
-}
+  }
 
 
-template<class Basis, class LocalInterpolationRule, class RT>
-template <class ReboundLocalInterpolationRule>
-auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-getStrain(const ReboundLocalInterpolationRule& localInterpolation,
-          const Entity& element,
-          const FieldVector<double,1>& pos) const
-{
+  template<class Basis, class LocalInterpolationRule, class RT>
+  template <class ReboundLocalInterpolationRule>
+  auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  getStrain(const ReboundLocalInterpolationRule& localInterpolation,
+            const Entity& element,
+            const FieldVector<double,1>& pos) const
+  {
     const auto jit = element.geometry().jacobianInverseTransposed(pos);
 
     auto value = localInterpolation.evaluate(pos);
@@ -282,15 +282,15 @@ getStrain(const ReboundLocalInterpolationRule& localInterpolation,
     strain[5] = u[2];
 
     return strain;
-}
+  }
 
-template<class Basis, class LocalInterpolationRule, class RT>
-template <class Number>
-auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-getStress(const std::vector<RigidBodyMotion<Number,3> >& localSolution,
-          const Entity& element,
-          const FieldVector<double, 1>& pos) const
-{
+  template<class Basis, class LocalInterpolationRule, class RT>
+  template <class Number>
+  auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  getStress(const std::vector<RigidBodyMotion<Number,3> >& localSolution,
+            const Entity& element,
+            const FieldVector<double, 1>& pos) const
+  {
     const auto& indexSet = gridView_.indexSet();
     std::vector<TargetSpace> localRefConf = {referenceConfiguration_[indexSet.subIndex(element, 0, 1)],
                                              referenceConfiguration_[indexSet.subIndex(element, 1, 1)]};
@@ -300,22 +300,22 @@ getStress(const std::vector<RigidBodyMotion<Number,3> >& localSolution,
 
     FieldVector<RT, 6> stress;
     for (int i=0; i < dim; i++)
-        stress[i] = (strain[i] - referenceStrain[i]) * A_[i];
+      stress[i] = (strain[i] - referenceStrain[i]) * A_[i];
 
     for (int i=0; i < dim; i++)
-        stress[i+3] = (strain[i+3] - referenceStrain[i+3]) * K_[i];
+      stress[i+3] = (strain[i+3] - referenceStrain[i+3]) * K_[i];
     return stress;
-}
+  }
 
-template<class Basis, class LocalInterpolationRule, class RT>
-void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
-          BlockVector<FieldVector<double, blocksize> >& strain) const
-{
+  template<class Basis, class LocalInterpolationRule, class RT>
+  void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
+            BlockVector<FieldVector<double, blocksize> >& strain) const
+  {
     const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
 
     if (sol.size()!=this->basis_.size())
-        DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
+      DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
     // Strain defined on each element
     strain.resize(indexSet.size(0));
@@ -324,49 +324,49 @@ getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
     // Loop over all elements
     for (const auto& element : elements(this->basis_.gridView()))
     {
-        int elementIdx = indexSet.index(element);
+      int elementIdx = indexSet.index(element);
 
-        // Extract local solution on this element
-        Dune::LagrangeSimplexLocalFiniteElement<double, double, 1, 1> localFiniteElement;
-        int numOfBaseFct = localFiniteElement.localCoefficients().size();
+      // Extract local solution on this element
+      Dune::LagrangeSimplexLocalFiniteElement<double, double, 1, 1> localFiniteElement;
+      int numOfBaseFct = localFiniteElement.localCoefficients().size();
 
-        std::vector<RigidBodyMotion<double,3> > localSolution(2);
+      std::vector<RigidBodyMotion<double,3> > localSolution(2);
 
-        for (int i=0; i<numOfBaseFct; i++)
-            localSolution[i] = sol[indexSet.subIndex(element,i,1)];
+      for (int i=0; i<numOfBaseFct; i++)
+        localSolution[i] = sol[indexSet.subIndex(element,i,1)];
 
-        // Get quadrature rule
-        const int polOrd = 2;
-        const auto& quad = QuadratureRules<double, 1>::rule(element.type(), polOrd);
+      // Get quadrature rule
+      const int polOrd = 2;
+      const auto& quad = QuadratureRules<double, 1>::rule(element.type(), polOrd);
 
-        for (std::size_t pt=0; pt<quad.size(); pt++)
-        {
-            // Local position of the quadrature point
-            const auto quadPos = quad[pt].position();
+      for (std::size_t pt=0; pt<quad.size(); pt++)
+      {
+        // Local position of the quadrature point
+        const auto quadPos = quad[pt].position();
 
-            double weight = quad[pt].weight() * element.geometry().integrationElement(quadPos);
+        double weight = quad[pt].weight() * element.geometry().integrationElement(quadPos);
 
-            auto localStrain = getStrain(localSolution, element, quad[pt].position());
+        auto localStrain = getStrain(localSolution, element, quad[pt].position());
 
-            // Sum it all up
-            strain[elementIdx].axpy(weight, localStrain);
-        }
+        // Sum it all up
+        strain[elementIdx].axpy(weight, localStrain);
+      }
 
-        // /////////////////////////////////////////////////////////////////////////
-        //   We want the average strain per element.  Therefore we have to divide
-        //   the integral we just computed by the element volume.
-        // /////////////////////////////////////////////////////////////////////////
-        // we know the element is a line, therefore the integration element is the volume
-        FieldVector<double,1> dummyPos(0.5);
-        strain[elementIdx] /= element.geometry().integrationElement(dummyPos);
+      // /////////////////////////////////////////////////////////////////////////
+      //   We want the average strain per element.  Therefore we have to divide
+      //   the integral we just computed by the element volume.
+      // /////////////////////////////////////////////////////////////////////////
+      // we know the element is a line, therefore the integration element is the volume
+      FieldVector<double,1> dummyPos(0.5);
+      strain[elementIdx] /= element.geometry().integrationElement(dummyPos);
     }
-}
+  }
 
-template<class Basis, class LocalInterpolationRule, class RT>
-void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
-          BlockVector<FieldVector<double, blocksize> >& stress) const
-{
+  template<class Basis, class LocalInterpolationRule, class RT>
+  void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
+            BlockVector<FieldVector<double, blocksize> >& stress) const
+  {
     // Get the strain
     getStrain(sol,stress);
 
@@ -377,24 +377,24 @@ getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
     // Linear diagonal constitutive law
     for (size_t i=0; i<stress.size(); i++)
     {
-        for (int j=0; j<3; j++)
-        {
-            stress[i][j]   = (stress[i][j]   - referenceStrain[i][j])   * A_[j];
-            stress[i][j+3] = (stress[i][j+3] - referenceStrain[i][j+3]) * K_[j];
-        }
+      for (int j=0; j<3; j++)
+      {
+        stress[i][j]   = (stress[i][j]   - referenceStrain[i][j])   * A_[j];
+        stress[i][j+3] = (stress[i][j+3] - referenceStrain[i][j+3]) * K_[j];
+      }
     }
-}
+  }
 
-template<class Basis, class LocalInterpolationRule, class RT>
-template <class PatchGridView>
-auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
-                  const std::vector<RigidBodyMotion<double,3> >& sol) const
-{
+  template<class Basis, class LocalInterpolationRule, class RT>
+  template <class PatchGridView>
+  auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
+                    const std::vector<RigidBodyMotion<double,3> >& sol) const
+  {
     const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
 
     if (sol.size()!=indexSet.size(1))
-        DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
+      DUNE_THROW(Exception, "Solution vector doesn't match the grid!");
 
     FieldVector<double,3> canonicalStress(0);
     FieldVector<double,3> canonicalTorque(0);
@@ -402,57 +402,56 @@ getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
     // Loop over the given boundary
     for (auto facet : boundary)
     {
-        // //////////////////////////////////////////////
-        //   Compute force across this boundary face
-        // //////////////////////////////////////////////
+      // //////////////////////////////////////////////
+      //   Compute force across this boundary face
+      // //////////////////////////////////////////////
 
-        double pos = facet.geometryInInside().corner(0);
+      double pos = facet.geometryInInside().corner(0);
 
-        std::vector<RigidBodyMotion<double,3> > localSolution(2);
-        localSolution[0] = sol[indexSet.subIndex(*facet.inside(),0,1)];
-        localSolution[1] = sol[indexSet.subIndex(*facet.inside(),1,1)];
+      std::vector<RigidBodyMotion<double,3> > localSolution(2);
+      localSolution[0] = sol[indexSet.subIndex(*facet.inside(),0,1)];
+      localSolution[1] = sol[indexSet.subIndex(*facet.inside(),1,1)];
 
-        std::vector<RigidBodyMotion<double,3> > localRefConf(2);
-        localRefConf[0] = referenceConfiguration_[indexSet.subIndex(*facet.inside(),0,1)];
-        localRefConf[1] = referenceConfiguration_[indexSet.subIndex(*facet.inside(),1,1)];
+      std::vector<RigidBodyMotion<double,3> > localRefConf(2);
+      localRefConf[0] = referenceConfiguration_[indexSet.subIndex(*facet.inside(),0,1)];
+      localRefConf[1] = referenceConfiguration_[indexSet.subIndex(*facet.inside(),1,1)];
 
-        auto strain          = getStrain(localSolution, *facet.inside(), pos);
-        auto referenceStrain = getStrain(localRefConf, *facet.inside(), pos);
+      auto strain          = getStrain(localSolution, *facet.inside(), pos);
+      auto referenceStrain = getStrain(localRefConf, *facet.inside(), pos);
 
-        FieldVector<double,3> localStress;
-        for (int i=0; i<3; i++)
-            localStress[i] = (strain[i] - referenceStrain[i]) * A_[i];
+      FieldVector<double,3> localStress;
+      for (int i=0; i<3; i++)
+        localStress[i] = (strain[i] - referenceStrain[i]) * A_[i];
 
-        FieldVector<double,3> localTorque;
-        for (int i=0; i<3; i++)
-            localTorque[i] = (strain[i+3] - referenceStrain[i+3]) * K_[i];
+      FieldVector<double,3> localTorque;
+      for (int i=0; i<3; i++)
+        localTorque[i] = (strain[i+3] - referenceStrain[i+3]) * K_[i];
 
-        // Transform stress given with respect to the basis given by the three directors to
-        // the canonical basis of R^3
+      // Transform stress given with respect to the basis given by the three directors to
+      // the canonical basis of R^3
 
-        FieldMatrix<double,3,3> orientationMatrix;
-        sol[indexSet.subIndex(*facet.inside(),facet.indexInInside(),1)].q.matrix(orientationMatrix);
+      FieldMatrix<double,3,3> orientationMatrix;
+      sol[indexSet.subIndex(*facet.inside(),facet.indexInInside(),1)].q.matrix(orientationMatrix);
 
-        orientationMatrix.umv(localStress, canonicalStress);
+      orientationMatrix.umv(localStress, canonicalStress);
 
-        orientationMatrix.umv(localTorque, canonicalTorque);
+      orientationMatrix.umv(localTorque, canonicalTorque);
 
-        // Multiply force times boundary normal to get the transmitted force
-        canonicalStress *= facet.unitOuterNormal(FieldVector<double,0>(0))[0];
-        canonicalTorque *= facet.unitOuterNormal(FieldVector<double,0>(0))[0];
+      // Multiply force times boundary normal to get the transmitted force
+      canonicalStress *= facet.unitOuterNormal(FieldVector<double,0>(0))[0];
+      canonicalTorque *= facet.unitOuterNormal(FieldVector<double,0>(0))[0];
     }
 
     FieldVector<double,6> result;
     for (int i=0; i<3; i++)
     {
-        result[i] = canonicalStress[i];
-        result[i+3] = canonicalTorque[i];
+      result[i] = canonicalStress[i];
+      result[i+3] = canonicalTorque[i];
     }
 
     return result;
-}
+  }
 
 }  // namespace Dune::GFE
 
 #endif
-

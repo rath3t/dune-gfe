@@ -61,7 +61,7 @@ public:
    */
   GramSchmidtSolver(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
                     const Dune::FieldMatrix<field_type,rank,embeddedDim>& basis)
-  : orthonormalBasis_(basis)
+    : orthonormalBasis_(basis)
   {
     // Use the Gram-Schmidt algorithm to compute a basis that is orthonormal
     // with respect to the given matrix.
