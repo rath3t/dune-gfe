@@ -44,14 +44,14 @@ using namespace Indices;
 using ValueType = adouble;
 
 //Types for the mixed space
-using DisplacementVector = std::vector<RealTuple<double,dim>>;
-using RotationVector =  std::vector<Rotation<double,dim>>;
+using DisplacementVector = std::vector<RealTuple<double,dim> >;
+using RotationVector =  std::vector<Rotation<double,dim> >;
 using Vector = TupleVector<DisplacementVector, RotationVector>;
 const int dimCR = Rotation<double,dim>::TangentVector::dimension; //dimCorrectionRotation = Dimension of the correction for rotations
-using CorrectionTypeMixed = MultiTypeBlockVector<BlockVector<FieldVector<double,dim> >, BlockVector<FieldVector<double,dimCR>>>;
+using CorrectionTypeMixed = MultiTypeBlockVector<BlockVector<FieldVector<double,dim> >, BlockVector<FieldVector<double,dimCR> > >;
 
-using MatrixRow0 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dim,dim>>,  BCRSMatrix<FieldMatrix<double,dim,dimCR>>>;
-using MatrixRow1 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dimCR,dim>>, BCRSMatrix<FieldMatrix<double,dimCR,dimCR>>>;
+using MatrixRow0 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dim,dim> >,  BCRSMatrix<FieldMatrix<double,dim,dimCR> > >;
+using MatrixRow1 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dimCR,dim> >, BCRSMatrix<FieldMatrix<double,dimCR,dimCR> > >;
 using MatrixTypeMixed = MultiTypeBlockMatrix<MatrixRow0,MatrixRow1>;
 
 //Types for the Non-mixed space
@@ -87,11 +87,11 @@ int main (int argc, char *argv[])
     composite(
       power<dim>(
         lagrange<1>()
-      ),
+        ),
       power<dim>(
         lagrange<1>()
-      )
-  ));
+        )
+      ));
 
   using CompositeBasis = decltype(compositeBasis);
 
@@ -114,30 +114,30 @@ int main (int argc, char *argv[])
 
   //Mixed space
   CosseratEnergyLocalStiffness<decltype(compositeBasis), dim,adouble> cosseratEnergyMixed(parameters,
-                                                                     nullptr,
-                                                                     nullptr,
-                                                                     nullptr);
+                                                                                          nullptr,
+                                                                                          nullptr,
+                                                                                          nullptr);
   MixedLocalGFEADOLCStiffness<CompositeBasis,
-                              RealTuple<double,dim>,
-                              Rotation<double,dim> > mixedLocalGFEADOLCStiffnessVector(&cosseratEnergyMixed, false);
+      RealTuple<double,dim>,
+      Rotation<double,dim> > mixedLocalGFEADOLCStiffnessVector(&cosseratEnergyMixed, false);
   MixedGFEAssembler<CompositeBasis,
-                    RealTuple<double,dim>,
-                    Rotation<double,dim> > mixedAssemblerVector(compositeBasis, &mixedLocalGFEADOLCStiffnessVector);
+      RealTuple<double,dim>,
+      Rotation<double,dim> > mixedAssemblerVector(compositeBasis, &mixedLocalGFEADOLCStiffnessVector);
 
   MixedLocalGFEADOLCStiffness<CompositeBasis,
-                              RealTuple<double,dim>,
-                              Rotation<double,dim> > mixedLocalGFEADOLCStiffnessScalar(&cosseratEnergyMixed, true);
+      RealTuple<double,dim>,
+      Rotation<double,dim> > mixedLocalGFEADOLCStiffnessScalar(&cosseratEnergyMixed, true);
   MixedGFEAssembler<CompositeBasis,
-                    RealTuple<double,dim>,
-                    Rotation<double,dim> > mixedAssemblerScalar(compositeBasis, &mixedLocalGFEADOLCStiffnessScalar);
-  
+      RealTuple<double,dim>,
+      Rotation<double,dim> > mixedAssemblerScalar(compositeBasis, &mixedLocalGFEADOLCStiffnessScalar);
+
   //Non-mixed space
   using DeformationFEBasis = Dune::Functions::LagrangeBasis<GridView,1>;
 
   CosseratEnergyLocalStiffness<DeformationFEBasis, dim,adouble> cosseratEnergy(parameters,
-                                                                     nullptr,
-                                                                     nullptr,
-                                                                     nullptr);
+                                                                               nullptr,
+                                                                               nullptr,
+                                                                               nullptr);
 
   LocalGeodesicFEADOLCStiffness<DeformationFEBasis,RBM> localGFEADOLCStiffnessVector(&cosseratEnergy, false);
   GeodesicFEAssembler<DeformationFEBasis,RBM> assemblerVector(gridView, localGFEADOLCStiffnessVector);
@@ -151,10 +151,12 @@ int main (int argc, char *argv[])
   auto deformationPowerBasis = makeBasis(
     gridView,
     power<gridDim>(
-        lagrange<1>()
-  ));
+      lagrange<1>()
+      ));
   BlockVector<FieldVector<double,gridDim> > identity(compositeBasis.size({0}));
-  Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,gridDim> x){ return x; });
+  Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,gridDim> x){
+    return x;
+  });
   BlockVector<FieldVector<double,dim> > initialDeformation(compositeBasis.size({0}));
   initialDeformation = 0;
 
@@ -202,13 +204,13 @@ int main (int argc, char *argv[])
 
   if (differenceMixed.frobenius_norm() > 1e-8)
   {
-      std::cerr << "MixedLocalGFEADOLCStiffness: The ADOL-C scalar mode and vector mode produce different Hessians!"  << std::endl;
-      return 1;
+    std::cerr << "MixedLocalGFEADOLCStiffness: The ADOL-C scalar mode and vector mode produce different Hessians!"  << std::endl;
+    return 1;
   }
   if (difference.frobenius_norm() > 1e-8)
   {
-      std::cerr << "LocalGFEADOLCStiffness: The ADOL-C scalar mode and vector mode produce different Hessians!"  << std::endl;
-      return 1;
+    std::cerr << "LocalGFEADOLCStiffness: The ADOL-C scalar mode and vector mode produce different Hessians!"  << std::endl;
+    return 1;
   }
   return 0;
 }

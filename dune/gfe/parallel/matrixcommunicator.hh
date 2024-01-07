@@ -46,7 +46,7 @@ class MatrixCommunicator {
 
 public:
   MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const GridView1& gridView, const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
-  : rowGlobalMapper_(rowGlobalMapper),
+    : rowGlobalMapper_(rowGlobalMapper),
     columnGlobalMapper_(rowGlobalMapper),
     localMapper1_(localMapper1),
     localMapper2_(localMapper2),
@@ -60,7 +60,7 @@ public:
   MatrixCommunicator(const RowGlobalMapper& rowGlobalMapper, const ColumnGlobalMapper& columnGlobalMapper,
                      const GridView1& gridView1, const GridView2& gridView2,
                      const LocalMapper1& localMapper1, const LocalMapper2& localMapper2, const int& root)
-  : rowGlobalMapper_(rowGlobalMapper),
+    : rowGlobalMapper_(rowGlobalMapper),
     columnGlobalMapper_(columnGlobalMapper),
     localMapper1_(localMapper1),
     localMapper2_(localMapper2),

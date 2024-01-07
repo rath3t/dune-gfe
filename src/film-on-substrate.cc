@@ -121,9 +121,9 @@ int main (int argc, char *argv[]) try
 
   //feenableexcept(FE_INVALID);
   Python::runStream()
-        << std::endl << "import sys"
-        << std::endl << "sys.path.append('" << argv[1] << "')"
-        << std::endl;
+    << std::endl << "import sys"
+    << std::endl << "sys.path.append('" << argv[1] << "')"
+    << std::endl;
 
   // parse data file
   ParameterTree parameterSet;
@@ -194,10 +194,10 @@ int main (int argc, char *argv[]) try
   auto pythonAdaptiveRefinementVertices = Python::make_function<bool>(Python::evaluate(lambda));
 
   while (numLevels > 0) {
-    for (auto&& e : elements(grid->leafGridView())){
+    for (auto&& e : elements(grid->leafGridView())) {
       bool refineHere = false;
       for (int i = 0; i < e.geometry().corners(); i++) {
-          refineHere = refineHere || pythonSurfaceShellVertices(e.geometry().corner(i)) || pythonAdaptiveRefinementVertices(e.geometry().corner(i));
+        refineHere = refineHere || pythonSurfaceShellVertices(e.geometry().corner(i)) || pythonAdaptiveRefinementVertices(e.geometry().corner(i));
       }
       grid->mark(refineHere ? 1 : 0, e);
     }
@@ -216,13 +216,13 @@ int main (int argc, char *argv[]) try
   GridView gridView = grid->leafGridView();
 
   /////////////////////////////////////////////////////////////
-  //                      DATA TYPES 
+  //                      DATA TYPES
   /////////////////////////////////////////////////////////////
 
   using namespace Dune::Indices;
 
   typedef std::vector<RealTuple<double,dim> > DisplacementVector;
-  typedef std::vector<Rotation<double,dim>> RotationVector;
+  typedef std::vector<Rotation<double,dim> > RotationVector;
   const int dimRotation = Rotation<double,dim>::embeddedDim;
   typedef TupleVector<DisplacementVector, RotationVector> SolutionType;
 
@@ -236,25 +236,25 @@ int main (int argc, char *argv[]) try
     composite(
       power<dim>(
         lagrange<displacementOrder>()
-      ),
+        ),
       power<dimRotation>(
         lagrange<rotationOrder>()
-      )
-  ));
+        )
+      ));
 
   auto deformationPowerBasis = makeBasis(
     gridView,
     power<dim>(
-        lagrange<displacementOrder>()
-  ));
+      lagrange<displacementOrder>()
+      ));
 
   auto orientationPowerBasis = makeBasis(
-      gridView,
+    gridView,
+    power<dim>(
       power<dim>(
-          power<dim>(
-          lagrange<rotationOrder>()
-      )
-  ));
+        lagrange<rotationOrder>()
+        )
+      ));
 
   typedef Dune::Functions::LagrangeBasis<GridView,displacementOrder> DeformationFEBasis;
   typedef Dune::Functions::LagrangeBasis<GridView,rotationOrder> OrientationFEBasis;
@@ -293,12 +293,12 @@ int main (int argc, char *argv[]) try
   BoundaryPatch<GridView> dirichletBoundaryX(gridView, dirichletVerticesX);
   BoundaryPatch<GridView> dirichletBoundaryY(gridView, dirichletVerticesY);
   BoundaryPatch<GridView> dirichletBoundaryZ(gridView, dirichletVerticesZ);
-  auto neumannBoundary = std::make_shared<BoundaryPatch<GridView>>(gridView, neumannVertices);
+  auto neumannBoundary = std::make_shared<BoundaryPatch<GridView> >(gridView, neumannVertices);
   BoundaryPatch<GridView> surfaceShellBoundary(gridView, surfaceShellVertices);
 
   std::cout << "On rank " << mpiHelper.rank() << ": Dirichlet boundary has [" << dirichletBoundaryX.numFaces() <<
-                                                                         ", " << dirichletBoundaryY.numFaces() <<
-                                                                         ", " << dirichletBoundaryZ.numFaces() <<"] faces\n";
+    ", " << dirichletBoundaryY.numFaces() <<
+    ", " << dirichletBoundaryZ.numFaces() <<"] faces\n";
   std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
   std::cout << "On rank " << mpiHelper.rank() << ": Shell boundary has " << surfaceShellBoundary.numFaces() << " faces\n";
 
@@ -313,7 +313,7 @@ int main (int argc, char *argv[]) try
 
   //Create BitVector matching the tangential space
   const int dimRotationTangent = Rotation<double,dim>::TangentVector::dimension;
-  typedef MultiTypeBlockVector<std::vector<FieldVector<double,dim> >, std::vector<FieldVector<double,dimRotationTangent>> > VectorForBit;
+  typedef MultiTypeBlockVector<std::vector<FieldVector<double,dim> >, std::vector<FieldVector<double,dimRotationTangent> > > VectorForBit;
   typedef Solvers::DefaultBitVector_t<VectorForBit> BitVector;
 
   BitVector dirichletDofs;
@@ -325,7 +325,7 @@ int main (int argc, char *argv[]) try
     dirichletDofs[_0][i][2] = dirichletNodesZ[i][0];
   }
   for (size_t i = 0; i < compositeBasis.size({1}); i++) {
-    for (int j = 0; j < dimRotationTangent; j++){
+    for (int j = 0; j < dimRotationTangent; j++) {
       dirichletDofs[_1][i][j] = not surfaceShellNodes[i][0];
     }
   }
@@ -333,7 +333,7 @@ int main (int argc, char *argv[]) try
   /////////////////////////////////////////////////////////////
   //                      INITIAL DATA
   /////////////////////////////////////////////////////////////
-  
+
   SolutionType x;
   x[_0].resize(compositeBasis.size({0}));
   x[_1].resize(compositeBasis.size({1}));
@@ -345,8 +345,10 @@ int main (int argc, char *argv[]) try
   Dune::Functions::interpolate(deformationPowerBasis, displacement, pythonInitialDeformation);
 
   BlockVector<FieldVector<double,dim> > identity(compositeBasis.size({0}));
-  Dune::Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,dim> x){ return x; });
-  
+  Dune::Functions::interpolate(deformationPowerBasis, identity, [](FieldVector<double,dim> x){
+    return x;
+  });
+
   double max_x = 0;
   double initial_max_x = 0;
   for (int i = 0; i < displacement.size(); i++) {
@@ -354,12 +356,12 @@ int main (int argc, char *argv[]) try
     initial_max_x = std::max(x[_0][i][0], initial_max_x);
     displacement[i] -= identity[i]; //Subtract identity to get the initial displacement as a function
   }
-  auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(deformationPowerBasis, displacement);
+  auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(deformationPowerBasis, displacement);
   //  We need to subsample, because VTK cannot natively display real second-order functions
   SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(displacementOrder-1));
   vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
   vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") + "_0");
-  
+
   /////////////////////////////////////////////////////////////
   //               STRESS-FREE SURFACE SHELL DATA
   /////////////////////////////////////////////////////////////
@@ -368,7 +370,7 @@ int main (int argc, char *argv[]) try
     power<dim>(
       lagrange<stressFreeDataOrder>(),
       blockedInterleaved()
-  ));
+      ));
 
   auto& idSet = grid->globalIdSet();
   GlobalIndexSet<GridView> globalVertexIndexSet(gridView,dim);
@@ -377,9 +379,9 @@ int main (int argc, char *argv[]) try
   if (startFromFile) {
     const std::string pathToGridDeformationFile = parameterSet.get("pathToGridDeformationFile", "");
 
-    std::unordered_map<std::string, FieldVector<double,3>> deformationMap;
+    std::unordered_map<std::string, FieldVector<double,3> > deformationMap;
     std::string line, displacement, entry;
-    if (mpiHelper.rank() == 0) 
+    if (mpiHelper.rank() == 0)
       std::cout << "Reading in deformation file ("  << "order is "  << stressFreeDataOrder  << "): " << pathToGridDeformationFile + parameterSet.get<std::string>("gridDeformationFile") << std::endl;
     // Read grid deformation information from the file specified in the parameter set via gridDeformationFile
 
@@ -404,7 +406,9 @@ int main (int argc, char *argv[]) try
     } else {
       DUNE_THROW(Exception, "Error: Could not open the file containing the deformation vector!");
     }
-    Dune::Functions::interpolate(stressFreeFEBasis, stressFreeShellVector, [](FieldVector<double,dim> x){ return x; });
+    Dune::Functions::interpolate(stressFreeFEBasis, stressFreeShellVector, [](FieldVector<double,dim> x){
+      return x;
+    });
 
     for (auto& entry : stressFreeShellVector) {
       std::stringstream stream;
@@ -418,16 +422,18 @@ int main (int argc, char *argv[]) try
     Dune::Functions::interpolate(stressFreeFEBasis, stressFreeShellVector, gridDeformation);
   }
 
-  auto stressFreeShellFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(stressFreeFEBasis, stressFreeShellVector);
-  
+  auto stressFreeShellFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(stressFreeFEBasis, stressFreeShellVector);
+
   if (parameterSet.hasKey("writeOutStressFreeData") && parameterSet.get<bool>("writeOutStressFreeData")) {
     BlockVector<FieldVector<double,dim> > stressFreeDisplacement(stressFreeFEBasis.size());
-    Dune::Functions::interpolate(stressFreeFEBasis, stressFreeDisplacement, [](FieldVector<double,dim> x){ return (-1.0)*x; });
+    Dune::Functions::interpolate(stressFreeFEBasis, stressFreeDisplacement, [](FieldVector<double,dim> x){
+      return (-1.0)*x;
+    });
 
     for (int i = 0; i < stressFreeFEBasis.size(); i++) {
       stressFreeDisplacement[i] += stressFreeShellVector[i];
     }
-    auto stressFreeDisplacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(stressFreeFEBasis, stressFreeDisplacement);
+    auto stressFreeDisplacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(stressFreeFEBasis, stressFreeDisplacement);
     //Write out the stress-free shell function that was read in
     SubsamplingVTKWriter<GridView> vtkWriterStressFree(gridView, Dune::refinementLevels(1));
     vtkWriterStressFree.addVertexData(stressFreeDisplacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
@@ -459,9 +465,9 @@ int main (int argc, char *argv[]) try
     // ////////////////////////////////////////////////////////////
 
 
-      // A constant vector-valued function, for simple Neumann boundary values
-    std::shared_ptr<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>> neumannFunctionPtr;
-    neumannFunctionPtr = std::make_shared<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>>([&](FieldVector<double,dim> ) {
+    // A constant vector-valued function, for simple Neumann boundary values
+    std::shared_ptr<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)> > neumannFunctionPtr;
+    neumannFunctionPtr = std::make_shared<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)> >([&](FieldVector<double,dim> ) {
       return neumannValues * (-homotopyParameter);
     });
 
@@ -479,43 +485,43 @@ int main (int argc, char *argv[]) try
     //   Create the energy functional
     // /////////////////////////////////////////////////
 
-    std::shared_ptr<Elasticity::LocalDensity<dim,ValueType>> elasticDensity;
+    std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;
     if (parameterSet.get<std::string>("energy") == "stvenantkirchhoff")
-      elasticDensity = std::make_shared<Elasticity::StVenantKirchhoffDensity<dim,ValueType>>(materialParameters);
+      elasticDensity = std::make_shared<Elasticity::StVenantKirchhoffDensity<dim,ValueType> >(materialParameters);
     if (parameterSet.get<std::string>("energy") == "neohooke")
-      elasticDensity = std::make_shared<Elasticity::NeoHookeDensity<dim,ValueType>>(materialParameters);
+      elasticDensity = std::make_shared<Elasticity::NeoHookeDensity<dim,ValueType> >(materialParameters);
     if (parameterSet.get<std::string>("energy") == "hencky")
-      elasticDensity = std::make_shared<Elasticity::HenckyDensity<dim,ValueType>>(materialParameters);
+      elasticDensity = std::make_shared<Elasticity::HenckyDensity<dim,ValueType> >(materialParameters);
     if (parameterSet.get<std::string>("energy") == "exphencky")
-      elasticDensity = std::make_shared<Elasticity::ExpHenckyDensity<dim,ValueType>>(materialParameters);
+      elasticDensity = std::make_shared<Elasticity::ExpHenckyDensity<dim,ValueType> >(materialParameters);
     if (parameterSet.get<std::string>("energy") == "mooneyrivlin")
-      elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType>>(materialParameters);
+      elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType> >(materialParameters);
 
 
     if(!elasticDensity)
       DUNE_THROW(Exception, "Error: Selected energy not available!");
 
-    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim>>>(elasticDensity);
-    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim>>>(neumannBoundary,*neumannFunctionPtr);
+    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(elasticDensity);
+    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,*neumannFunctionPtr);
     auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
-        decltype(stressFreeShellFunction), CompositeBasis, RealTuple<ValueType,dim>, Rotation<ValueType,dim> >>(
-          materialParameters,
-          &surfaceShellBoundary,
-          stressFreeShellFunction,
-          fThickness,
-          fLame);
+        decltype(stressFreeShellFunction), CompositeBasis, RealTuple<ValueType,dim>, Rotation<ValueType,dim> > >(
+      materialParameters,
+      &surfaceShellBoundary,
+      stressFreeShellFunction,
+      fThickness,
+      fLame);
 
-    GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim>> sumEnergy;
+    GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim> > sumEnergy;
     sumEnergy.addLocalEnergy(neumannEnergy);
     sumEnergy.addLocalEnergy(elasticEnergy);
     sumEnergy.addLocalEnergy(surfaceCosseratEnergy);
 
     MixedLocalGFEADOLCStiffness<CompositeBasis,
-                                RealTuple<double,dim>,
-                                Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
+        RealTuple<double,dim>,
+        Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
     MixedGFEAssembler<CompositeBasis,
-                      RealTuple<double,dim>,
-                      Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+        RealTuple<double,dim>,
+        Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
 
     ////////////////////////////////////////////////////////
     //   Set Dirichlet values
@@ -573,7 +579,7 @@ int main (int argc, char *argv[]) try
       for (int j = dim; j < RBM::TangentVector::dimension; j ++)
         dirichletDofsRBM[i][j] = dirichletDofs[_1][i][j-dim];
     }
-    typedef Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim>> GFEAssemblerWrapper;
+    typedef Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim> > GFEAssemblerWrapper;
     GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
 #endif
 
@@ -583,7 +589,7 @@ int main (int argc, char *argv[]) try
 
     if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 #if MIXED_SPACE
-      MixedRiemannianTrustRegionSolver<GridType, CompositeBasis, DeformationFEBasis, RealTuple<double,dim>, OrientationFEBasis, Rotation<double,dim>> solver;
+      MixedRiemannianTrustRegionSolver<GridType, CompositeBasis, DeformationFEBasis, RealTuple<double,dim>, OrientationFEBasis, Rotation<double,dim> > solver;
       solver.setup(*grid,
                    &mixedAssembler,
                    deformationFEBasis,
@@ -633,7 +639,7 @@ int main (int argc, char *argv[]) try
     } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
 
 #if MIXED_SPACE
-    DUNE_THROW(Exception, "Error: There is no MixedRiemannianProximalNewtonSolver!");
+      DUNE_THROW(Exception, "Error: There is no MixedRiemannianProximalNewtonSolver!");
 #else
       RiemannianProximalNewtonSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
       solver.setup(*grid,
@@ -663,12 +669,12 @@ int main (int argc, char *argv[]) try
 
     // Compute the displacement
     for (int i = 0; i < compositeBasis.size({0}); i++) {
-       for (int j = 0; j  < dim; j++) {
+      for (int j = 0; j  < dim; j++) {
         displacement[i][j] = x[_0][i][j];
       }
       displacement[i] -= identity[i];
     }
-    auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim>>(deformationPowerBasis, displacement);
+    auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(deformationPowerBasis, displacement);
 
     //  We need to subsample, because VTK cannot natively display real second-order functions
     SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(displacementOrder-1));
@@ -688,27 +694,29 @@ int main (int argc, char *argv[]) try
   std::string pathToOutput = parameterSet.hasKey("pathToOutput") ?  parameterSet.get<std::string>("pathToOutput") : "./";
   std::string deformationOutput = parameterSet.hasKey("deformationOutput") ?  parameterSet.get<std::string>("deformationOutput") : "deformation";
   std::string rotationOutput = parameterSet.hasKey("rotationOutput") ?  parameterSet.get<std::string>("rotationOutput") : "rotation";
-  
+
   deformationOutput = pathToOutput + deformationOutput;
   rotationOutput = pathToOutput + rotationOutput;
 
   file.open(deformationOutput + ending);
-  for (int i = 0; i < identity.size(); i++){
+  for (int i = 0; i < identity.size(); i++) {
     file << identity[i] << ":" << displacement[i] << "\n";
   }
 
   file.close();
-  
+
   BlockVector<FieldVector<double,dim> > identityRotation(orientationFEBasis.size());
   auto identityRotationPowerBasis = makeBasis(
     gridView,
     power<dim>(
-        lagrange<rotationOrder>()
-  ));
-  Dune::Functions::interpolate(identityRotationPowerBasis, identityRotation, [](FieldVector<double,dim> x){ return x; });
+      lagrange<rotationOrder>()
+      ));
+  Dune::Functions::interpolate(identityRotationPowerBasis, identityRotation, [](FieldVector<double,dim> x){
+    return x;
+  });
 
   file.open(rotationOutput + ending);
-  for (int i = 0; i < identityRotation.size(); i++){
+  for (int i = 0; i < identityRotation.size(); i++) {
     file << identityRotation[i] << ":" << x[_1][i] << "\n";
   }
 
@@ -740,6 +748,7 @@ int main (int argc, char *argv[]) try
     file.close();
   }
 
-} catch (Exception& e) {
-    std::cout << e.what() << std::endl;
+}
+catch (Exception& e) {
+  std::cout << e.what() << std::endl;
 }

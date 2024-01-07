@@ -285,9 +285,9 @@ int main(int argc, char *argv[]) try
     });
 
     auto displacementFunctionInitial = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double, 3> >(deformationPowerBasis,
-                                                                                                                displacementInitial);
+                                                                                                                 displacementInitial);
     auto directorFunctionInitial = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double, 3> >(directorPowerBasis,
-                                                                                                            directorInitial);
+                                                                                                             directorInitial);
     //  We need to subsample, because VTK cannot natively display real second-order functions
     SubsamplingVTKWriter<GridView> vtkWriter(gridView, Dune::refinementLevels(midsurfaceOrder - 1));
     vtkWriter.addVertexData(displacementFunctionInitial, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, 3));
@@ -301,9 +301,9 @@ int main(int argc, char *argv[]) try
 
     // Assembler using ADOL-C
     Dune::GFE::SimoFoxEnergyLocalStiffness<decltype(compositeBasis), LocalFEFunction,adouble> simoFoxEnergyADOLCLocalStiffness(materialParameters,
-                                                                                                    &neumannBoundary,
-                                                                                                    neumannFunction,
-                                                                                                    nullptr, x0);
+                                                                                                                               &neumannBoundary,
+                                                                                                                               neumannFunction,
+                                                                                                                               nullptr, x0);
 
     MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
         RealTuple<double,3>,
@@ -328,8 +328,8 @@ int main(int argc, char *argv[]) try
     BlockVector<FieldVector<double,3> > ddV(deformationPowerBasis.size());
     Functions::interpolate(deformationPowerBasis, ddV, deformationDirichletValues, deformationDirichletDofs);
 
-    for (size_t j = 0; j < x[_0].size(); j++){
-      if (deformationDirichletNodes[j][0]){
+    for (size_t j = 0; j < x[_0].size(); j++) {
+      if (deformationDirichletNodes[j][0]) {
         x[_0][j] = ddV[j];
       }
     }
@@ -339,41 +339,41 @@ int main(int argc, char *argv[]) try
     // /////////////////////////////////////////////////
     if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 
-    MixedRiemannianTrustRegionSolver<Grid,
-        decltype(compositeBasis),
-        MidsurfaceFEBasis, RealTuple<double,3>,
-        DirectorFEBasis, UnitVector<double,3> > solver;
+      MixedRiemannianTrustRegionSolver<Grid,
+          decltype(compositeBasis),
+          MidsurfaceFEBasis, RealTuple<double,3>,
+          DirectorFEBasis, UnitVector<double,3> > solver;
 
-    solver.setup(*grid,
-                 &assembler,
-                 midsurfaceFEBasis,
-                 directorFEBasis,
-                 x,
-                 deformationDirichletDofs,
-                 orientationDirichletDofs,
-                 tolerance,
-                 maxSolverSteps,
-                 initialTrustRegionRadius,
-                 multigridIterations,
-                 mgTolerance,
-                 mu, nu1, nu2,
-                 baseIterations,
-                 baseTolerance,
-                 instrumented);
+      solver.setup(*grid,
+                   &assembler,
+                   midsurfaceFEBasis,
+                   directorFEBasis,
+                   x,
+                   deformationDirichletDofs,
+                   orientationDirichletDofs,
+                   tolerance,
+                   maxSolverSteps,
+                   initialTrustRegionRadius,
+                   multigridIterations,
+                   mgTolerance,
+                   mu, nu1, nu2,
+                   baseIterations,
+                   baseTolerance,
+                   instrumented);
 
-    solver.setScaling(parameterSet.get<FieldVector<double, 5> >("trustRegionScaling"));
+      solver.setScaling(parameterSet.get<FieldVector<double, 5> >("trustRegionScaling"));
 
-    // /////////////////////////////////////////////////////
-    //   Solve!
-    // /////////////////////////////////////////////////////
+      // /////////////////////////////////////////////////////
+      //   Solve!
+      // /////////////////////////////////////////////////////
 
-    solver.setInitialIterate(x);
-    solver.solve();
+      solver.setInitialIterate(x);
+      solver.solve();
 
-    x = solver.getSol();
+      x = solver.getSol();
     } else {
 #if !MIXED_SPACE
-      using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3>>;
+      using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
       std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
       BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
       for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
@@ -384,7 +384,7 @@ int main(int argc, char *argv[]) try
         for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
           dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
       }
-      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<decltype(compositeBasis), MidsurfaceFEBasis, TargetSpace, RealTuple<double, 3>, UnitVector<double,3>>;
+      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<decltype(compositeBasis), MidsurfaceFEBasis, TargetSpace, RealTuple<double, 3>, UnitVector<double,3> >;
       GFEAssemblerWrapper assemblerNotMixed(&assembler, midsurfaceFEBasis);
       RiemannianProximalNewtonSolver<MidsurfaceFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
       solver.setup(*grid,

@@ -9,92 +9,92 @@
 template <class TargetSpace, class WeightType=double>
 class AverageDistanceAssembler
 {
-    typedef typename TargetSpace::ctype ctype;
-    static const int size         = TargetSpace::TangentVector::dimension;
-    static const int embeddedSize = TargetSpace::EmbeddedTangentVector::dimension;
+  typedef typename TargetSpace::ctype ctype;
+  static const int size         = TargetSpace::TangentVector::dimension;
+  static const int embeddedSize = TargetSpace::EmbeddedTangentVector::dimension;
 
 public:
 
-    /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
-     */
-    AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
-                             const std::vector<WeightType>& weights)
-        : coefficients_(coefficients),
-          weights_(weights)
-    {}
+  /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
+   */
+  AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
+                           const std::vector<WeightType>& weights)
+    : coefficients_(coefficients),
+    weights_(weights)
+  {}
 
-    /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
-     *
-     * The weights are given as a vector of length-1 FieldVectors instead of as a
-     * vector of doubles.  The reason is that these weights are actually the values
-     * of Lagrange shape functions, and the dune-localfunction interface returns
-     * shape function values this way.
-     */
-    AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
-                             const std::vector<Dune::FieldVector<WeightType,1> >& weights)
-        : coefficients_(coefficients),
-          weights_(weights.size())
-    {
-        for (size_t i=0; i<weights.size(); i++)
-            weights_[i] = weights[i][0];
+  /** \brief Constructor with given coefficients \f$ v_i \f$ and weights \f$ w_i \f$
+   *
+   * The weights are given as a vector of length-1 FieldVectors instead of as a
+   * vector of doubles.  The reason is that these weights are actually the values
+   * of Lagrange shape functions, and the dune-localfunction interface returns
+   * shape function values this way.
+   */
+  AverageDistanceAssembler(const std::vector<TargetSpace>& coefficients,
+                           const std::vector<Dune::FieldVector<WeightType,1> >& weights)
+    : coefficients_(coefficients),
+    weights_(weights.size())
+  {
+    for (size_t i=0; i<weights.size(); i++)
+      weights_[i] = weights[i][0];
+  }
+
+  ctype value(const TargetSpace& x) const {
+
+    ctype result = 0;
+    for (size_t i=0; i<coefficients_.size(); i++) {
+      ctype dist = TargetSpace::distance(coefficients_[i], x);
+      result += weights_[i]*dist*dist;
     }
 
-    ctype value(const TargetSpace& x) const {
+    return result;
+  }
 
-        ctype result = 0;
-        for (size_t i=0; i<coefficients_.size(); i++) {
-            ctype dist = TargetSpace::distance(coefficients_[i], x);
-            result += weights_[i]*dist*dist;
-        }
+  void assembleEmbeddedGradient(const TargetSpace& x,
+                                typename TargetSpace::EmbeddedTangentVector& gradient) const
+  {
+    gradient = 0;
+    for (size_t i=0; i<coefficients_.size(); i++)
+      gradient.axpy(weights_[i],
+                    TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
+  }
 
-        return result;
-    }
+  void assembleGradient(const TargetSpace& x,
+                        typename TargetSpace::TangentVector& gradient) const
+  {
+    typename TargetSpace::EmbeddedTangentVector embeddedGradient;
+    assembleEmbeddedGradient(x,embeddedGradient);
 
-    void assembleEmbeddedGradient(const TargetSpace& x,
-                          typename TargetSpace::EmbeddedTangentVector& gradient) const
-    {
-        gradient = 0;
-        for (size_t i=0; i<coefficients_.size(); i++)
-            gradient.axpy(weights_[i],
-                          TargetSpace::derivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
-    }
+    Dune::FieldMatrix<ctype,size,embeddedSize> orthonormalFrame = x.orthonormalFrame();
+    orthonormalFrame.mv(embeddedGradient,gradient);
+  }
 
-    void assembleGradient(const TargetSpace& x,
-                          typename TargetSpace::TangentVector& gradient) const
-    {
-        typename TargetSpace::EmbeddedTangentVector embeddedGradient;
-        assembleEmbeddedGradient(x,embeddedGradient);
+  void assembleEmbeddedHessian(const TargetSpace& x,
+                               Dune::SymmetricMatrix<ctype,embeddedSize>& matrix) const
+  {
+    matrix = 0;
+    for (size_t i=0; i<coefficients_.size(); i++)
+      matrix.axpy(weights_[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
+  }
 
-        Dune::FieldMatrix<ctype,size,embeddedSize> orthonormalFrame = x.orthonormalFrame();
-        orthonormalFrame.mv(embeddedGradient,gradient);
-    }
+  // TODO Use a Symmetric matrix for the result
+  void assembleHessian(const TargetSpace& x,
+                       Dune::FieldMatrix<ctype,size,size>& matrix) const
+  {
+    Dune::SymmetricMatrix<ctype,embeddedSize> embeddedHessian;
+    assembleEmbeddedHessian(x,embeddedHessian);
 
-    void assembleEmbeddedHessian(const TargetSpace& x,
-                         Dune::SymmetricMatrix<ctype,embeddedSize>& matrix) const
-    {
-        matrix = 0;
-        for (size_t i=0; i<coefficients_.size(); i++)
-            matrix.axpy(weights_[i], TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i], x));
-    }
+    Dune::FieldMatrix<ctype,size,embeddedSize> frame = x.orthonormalFrame();
 
-    // TODO Use a Symmetric matrix for the result
-    void assembleHessian(const TargetSpace& x,
-                         Dune::FieldMatrix<ctype,size,size>& matrix) const
-    {
-        Dune::SymmetricMatrix<ctype,embeddedSize> embeddedHessian;
-        assembleEmbeddedHessian(x,embeddedHessian);
+    // this is frame * embeddedHessian * frame^T
+    for (int i=0; i<size; i++)
+      for (int j=0; j<size; j++)
+        matrix[i][j] = embeddedHessian.energyScalarProduct(frame[i], frame[j]);
+  }
 
-        Dune::FieldMatrix<ctype,size,embeddedSize> frame = x.orthonormalFrame();
+  const std::vector<TargetSpace> coefficients_;
 
-        // this is frame * embeddedHessian * frame^T
-        for (int i=0; i<size; i++)
-            for (int j=0; j<size; j++)
-                matrix[i][j] = embeddedHessian.energyScalarProduct(frame[i], frame[j]);
-    }
-
-    const std::vector<TargetSpace> coefficients_;
-
-    std::vector<WeightType> weights_;
+  std::vector<WeightType> weights_;
 
 };
 

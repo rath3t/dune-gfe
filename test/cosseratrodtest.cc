@@ -64,7 +64,9 @@ int main (int argc, char *argv[]) try
 
   std::vector<double> referenceConfigurationX(scalarBasis.size());
 
-  auto identity = [](const FieldVector<double,1>& x) { return x; };
+  auto identity = [](const FieldVector<double,1>& x) {
+                    return x;
+                  };
 
   Functions::interpolate(scalarBasis, referenceConfigurationX, identity);
 
@@ -94,7 +96,7 @@ int main (int argc, char *argv[]) try
     power<TargetSpace::TangentVector::dimension>(
       lagrange<order>(),
       blockedInterleaved()
-  ));
+      ));
 
   // Find all boundary dofs
   BoundaryPatch<GridView> dirichletBoundary(gridView,
@@ -135,14 +137,14 @@ int main (int argc, char *argv[]) try
   if (interpolationMethod == "geodesic")
   {
     auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, GeodesicInterpolationRule, adouble> >(gridView,
-                                                                                                           A, J1, J2, E, nu);
+                                                                                                             A, J1, J2, E, nu);
     energy->setReferenceConfiguration(referenceConfiguration);
     localRodEnergy = energy;
   }
   else if (interpolationMethod == "projected")
   {
     auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, ProjectedInterpolationRule, adouble> >(gridView,
-                                                                                                            A, J1, J2, E, nu);
+                                                                                                              A, J1, J2, E, nu);
     energy->setReferenceConfiguration(referenceConfiguration);
     localRodEnergy = energy;
   }
@@ -150,7 +152,7 @@ int main (int argc, char *argv[]) try
     DUNE_THROW(Exception, "Unknown interpolation method " << interpolationMethod << " requested!");
 
   LocalGeodesicFEADOLCStiffness<ScalarBasis,
-                                TargetSpace> localStiffness(localRodEnergy.get());
+      TargetSpace> localStiffness(localRodEnergy.get());
 
   GeodesicFEAssembler<ScalarBasis,TargetSpace> rodAssembler(gridView, localStiffness);
 
@@ -182,7 +184,7 @@ int main (int argc, char *argv[]) try
   solver.solve();
 
   x = solver.getSol();
-        
+
   std::size_t expectedFinalIteration = 4;
   if (solver.getStatistics().finalIteration != expectedFinalIteration)
   {
@@ -200,7 +202,8 @@ int main (int argc, char *argv[]) try
     return 1;
   }
 
-} catch (Exception& e)
+}
+catch (Exception& e)
 {
-    std::cout << e.what() << std::endl;
+  std::cout << e.what() << std::endl;
 }

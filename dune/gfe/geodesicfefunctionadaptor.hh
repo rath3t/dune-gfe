@@ -10,11 +10,11 @@ template <class Basis, class TargetSpace>
 class GeodesicFEFunctionAdaptor
 {
 public:
-/** \brief Refine a grid globally and prolong a given geodesic finite element function
- */
-template <class GridType>
-static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
-{
+  /** \brief Refine a grid globally and prolong a given geodesic finite element function
+   */
+  template <class GridType>
+  static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& x)
+  {
     const int dim = GridType::dimension;
 
     assert(x.size() == grid.size(dim));
@@ -29,7 +29,7 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
     std::map<typename GridType::Traits::LocalIdSet::IdType, TargetSpace> dofMap;
 
     for (const auto& vertex : vertices(grid.leafGridView()))
-        dofMap.insert(std::make_pair(idSet.id(vertex), x[indexSet.index(vertex)]));
+      dofMap.insert(std::make_pair(idSet.id(vertex), x[indexSet.index(vertex)]));
 
 
 
@@ -49,74 +49,74 @@ static void geodesicFEFunctionAdaptor(GridType& grid, std::vector<TargetSpace>& 
 
     for (const auto& element : elements(grid.leafGridView())) {
 
-        // Set up a local gfe function on the father element
-        size_t nFatherDofs = element.father().subEntities(dim);
-        std::vector<TargetSpace> coefficients(nFatherDofs);
+      // Set up a local gfe function on the father element
+      size_t nFatherDofs = element.father().subEntities(dim);
+      std::vector<TargetSpace> coefficients(nFatherDofs);
 
-        for (int i=0; i<nFatherDofs; i++)
-            coefficients[i] = dofMap.find(idSet.subId(element.father(),i,dim))->second;
+      for (int i=0; i<nFatherDofs; i++)
+        coefficients[i] = dofMap.find(idSet.subId(element.father(),i,dim))->second;
 
-        typedef typename P1NodalBasis<typename GridType::LeafGridView>::LocalFiniteElement LocalFiniteElement;
-        LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fatherFunction(p1Basis.getLocalFiniteElement(element),
-                                                                                          coefficients);
+      typedef typename P1NodalBasis<typename GridType::LeafGridView>::LocalFiniteElement LocalFiniteElement;
+      LocalGeodesicFEFunction<dim,double,LocalFiniteElement,TargetSpace> fatherFunction(p1Basis.getLocalFiniteElement(element),
+                                                                                        coefficients);
 
-        // The embedding of this element into the father geometry
-        const auto& geometryInFather = element.geometryInFather();
+      // The embedding of this element into the father geometry
+      const auto& geometryInFather = element.geometryInFather();
 
-        size_t nDofs = element.subEntities(dim);
-        for (int i=0; i<nDofs; i++) {
+      size_t nDofs = element.subEntities(dim);
+      for (int i=0; i<nDofs; i++) {
 
-            if (dofMap.find(idSet.subId(element,i,dim)) != dofMap.end()) {
+        if (dofMap.find(idSet.subId(element,i,dim)) != dofMap.end()) {
 
-                // If the vertex exists on the coarser level we take the value from there.
-                // That should be faster and more accurate than interpolating
-                x[indexSet.subIndex(element,i,dim)] = dofMap[idSet.subId(element,i,dim)];
+          // If the vertex exists on the coarser level we take the value from there.
+          // That should be faster and more accurate than interpolating
+          x[indexSet.subIndex(element,i,dim)] = dofMap[idSet.subId(element,i,dim)];
 
-            } else {
+        } else {
 
-                // Interpolate
-                x[indexSet.subIndex(element,i,dim)] = fatherFunction.evaluate(geometryInFather.corner(i));
-
-            }
+          // Interpolate
+          x[indexSet.subIndex(element,i,dim)] = fatherFunction.evaluate(geometryInFather.corner(i));
 
         }
+
+      }
 
     }
 
 
-}
+  }
 
 
-/** \brief Coordinate function in one variable, constant in the others
+  /** \brief Coordinate function in one variable, constant in the others
 
-    This is used to extract the positions of the Lagrange nodes.
- */
-template <int dim>
-struct CoordinateFunction
+      This is used to extract the positions of the Lagrange nodes.
+   */
+  template <int dim>
+  struct CoordinateFunction
     : public Dune::VirtualFunction<Dune::FieldVector<double,dim>, Dune::FieldVector<double,1> >
-{
+  {
     CoordinateFunction(int d)
-    : d_(d)
+      : d_(d)
     {}
 
     void evaluate(const Dune::FieldVector<double, dim>& x, Dune::FieldVector<double,1>& out) const {
-        out[0] = x[d_];
+      out[0] = x[d_];
     }
 
     //
     int d_;
-};
+  };
 
 
-/** \brief Refine a grid globally and prolong a given geodesic finite element function
- *
- * \tparam order Interpolation order of the function space.  Kinda stupid that I
- *  have to provide this by hand.  Will change...
- */
-template <int order>
-static void higherOrderGFEFunctionAdaptor(Basis& basis,
-                                          typename Basis::GridView::Grid& grid, std::vector<TargetSpace>& x)
-{
+  /** \brief Refine a grid globally and prolong a given geodesic finite element function
+   *
+   * \tparam order Interpolation order of the function space.  Kinda stupid that I
+   *  have to provide this by hand.  Will change...
+   */
+  template <int order>
+  static void higherOrderGFEFunctionAdaptor(Basis& basis,
+                                            typename Basis::GridView::Grid& grid, std::vector<TargetSpace>& x)
+  {
     typedef typename Basis::GridView::Grid GridType;
     const int dim = GridType::dimension;
 
@@ -138,14 +138,14 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
 
     for (; eIt!=eEndIt; ++eIt) {
 
-        const typename Basis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);
-        std::vector<TargetSpace> coefficients(lfe.localCoefficients().size());
+      const typename Basis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);
+      std::vector<TargetSpace> coefficients(lfe.localCoefficients().size());
 
-        for (size_t i=0; i<lfe.localCoefficients().size(); i++)
-            coefficients[i] = x[basis.index(*eIt, i)];
+      for (size_t i=0; i<lfe.localCoefficients().size(); i++)
+        coefficients[i] = x[basis.index(*eIt, i)];
 
-        IdType id = idSet.id(*eIt);
-        dofMap.insert(std::make_pair(id, coefficients));
+      IdType id = idSet.id(*eIt);
+      dofMap.insert(std::make_pair(id, coefficients));
 
     }
 
@@ -167,44 +167,44 @@ static void higherOrderGFEFunctionAdaptor(Basis& basis,
 
     for (eIt=grid.template leafbegin<0>(); eIt!=eEndIt; ++eIt) {
 
-        const typename Basis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);
+      const typename Basis::LocalFiniteElement& lfe = basis.getLocalFiniteElement(*eIt);
 
-        typedef typename Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::FiniteElementType FatherFiniteElementType;
+      typedef typename Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::FiniteElementType FatherFiniteElementType;
 
-        auto fatherLFE = std::unique_ptr<FatherFiniteElementType>(Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::create(eIt->father()->type()));
+      auto fatherLFE = std::unique_ptr<FatherFiniteElementType>(Dune::PQkLocalFiniteElementFactory<double,double,dim,order>::create(eIt->father()->type()));
 
-        // Set up a local gfe function on the father element
-        std::vector<TargetSpace> coefficients = dofMap[idSet.id(*eIt->father())];
+      // Set up a local gfe function on the father element
+      std::vector<TargetSpace> coefficients = dofMap[idSet.id(*eIt->father())];
 
-        LocalGeodesicFEFunction<dim,double,typename Basis::LocalFiniteElement,TargetSpace> fatherFunction(*fatherLFE, coefficients);
+      LocalGeodesicFEFunction<dim,double,typename Basis::LocalFiniteElement,TargetSpace> fatherFunction(*fatherLFE, coefficients);
 
-        // The embedding of this element into the father geometry
-        const typename GridType::template Codim<0>::LocalGeometry& geometryInFather = eIt->geometryInFather();
+      // The embedding of this element into the father geometry
+      const typename GridType::template Codim<0>::LocalGeometry& geometryInFather = eIt->geometryInFather();
 
-        // Generate position of the Lagrange nodes
-        std::vector<Dune::FieldVector<double,dim> > lagrangeNodes(lfe.localBasis().size());
+      // Generate position of the Lagrange nodes
+      std::vector<Dune::FieldVector<double,dim> > lagrangeNodes(lfe.localBasis().size());
 
-        for (int i=0; i<dim; i++) {
-            CoordinateFunction<dim> lFunction(i);
-            std::vector<Dune::FieldVector<double,1> > coordinates;
-            lfe.localInterpolation().interpolate(lFunction, coordinates);
+      for (int i=0; i<dim; i++) {
+        CoordinateFunction<dim> lFunction(i);
+        std::vector<Dune::FieldVector<double,1> > coordinates;
+        lfe.localInterpolation().interpolate(lFunction, coordinates);
 
-            for (size_t j=0; j<coordinates.size(); j++)
-                lagrangeNodes[j][i] = coordinates[j];
+        for (size_t j=0; j<coordinates.size(); j++)
+          lagrangeNodes[j][i] = coordinates[j];
 
-        }
+      }
 
-        for (int i=0; i<lfe.localCoefficients().size(); i++) {
+      for (int i=0; i<lfe.localCoefficients().size(); i++) {
 
-            unsigned int idx = basis.index(*eIt, i);
+        unsigned int idx = basis.index(*eIt, i);
 
-            x[idx] = fatherFunction.evaluate(geometryInFather.global(lagrangeNodes[i]));
+        x[idx] = fatherFunction.evaluate(geometryInFather.global(lagrangeNodes[i]));
 
-        }
+      }
 
     }
 
-}
+  }
 
 };
 

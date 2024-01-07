@@ -25,7 +25,7 @@ namespace Dune::GFE {
   class LocalFiniteElementFactory {
   public:
     static auto get(const typename Basis::LocalView &localView, std::integral_constant<std::size_t, i> iType)
-        -> decltype(localView.tree().child(iType, 0).finiteElement()) {
+    -> decltype(localView.tree().child(iType, 0).finiteElement()) {
       return localView.tree().child(iType, 0).finiteElement();
     }
   };
@@ -52,10 +52,10 @@ namespace Dune::GFE {
    */
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type = double>
   class SimoFoxEnergyLocalStiffness
-      : public Dune::GFE::LocalEnergy<Basis, RealTuple<field_type, 3>,
-                                      UnitVector<field_type, 3>>,  // inheritance to allow usage with LocalGeodesicFEADOLCStiffness
-        public MixedLocalGeodesicFEStiffness<Basis, RealTuple<field_type, 3>,
-                                             UnitVector<field_type, 3>>  // inheritance to allow usage with MixedGFEAssembler
+    : public Dune::GFE::LocalEnergy<Basis, RealTuple<field_type, 3>,
+          UnitVector<field_type, 3> >,                             // inheritance to allow usage with LocalGeodesicFEADOLCStiffness
+      public MixedLocalGeodesicFEStiffness<Basis, RealTuple<field_type, 3>,
+          UnitVector<field_type, 3> >                                    // inheritance to allow usage with MixedGFEAssembler
   {
     // grid types
     typedef typename Basis::GridView GridView;
@@ -69,19 +69,19 @@ namespace Dune::GFE {
 
     // The local finite element type used for midsurface position and displacement interpolation
     using MidSurfaceElement =
-        typename std::result_of<decltype (&LocalFiniteElementFactory<Basis, 0>::get)(typename Basis::LocalView, decltype(Dune::Indices::_0))>::type;
+      typename std::result_of<decltype (&LocalFiniteElementFactory<Basis, 0>::get)(typename Basis::LocalView, decltype(Dune::Indices::_0))>::type;
     // The local finite element type used for the director interpolation
     using DirectorElement =
-        typename std::result_of<decltype (&LocalFiniteElementFactory<Basis, 1>::get)(typename Basis::LocalView, decltype(Dune::Indices::_1))>::type;
+      typename std::result_of<decltype (&LocalFiniteElementFactory<Basis, 1>::get)(typename Basis::LocalView, decltype(Dune::Indices::_1))>::type;
 
     // The local finite element function type to evaluate the midsurface position
-    using LocalMidSurfaceFunctionType = LocalFEFunction<gridDim, DT, MidSurfaceElement, RealTuple<field_type, 3>>;
+    using LocalMidSurfaceFunctionType = LocalFEFunction<gridDim, DT, MidSurfaceElement, RealTuple<field_type, 3> >;
     // The local finite element function type to evaluate the director
-    using LocalDirectorFunctionType = LocalFEFunction<gridDim, DT, DirectorElement, UnitVector<field_type, 3>>;
+    using LocalDirectorFunctionType = LocalFEFunction<gridDim, DT, DirectorElement, UnitVector<field_type, 3> >;
 
     // Extra function type for reference quantities since they are unconditionally doubles, i.e. no ADOL-C types
-    using LocalMidSurfaceReferenceFunctionType = LocalFEFunction<gridDim, DT, MidSurfaceElement, RealTuple<double, 3>>;
-    using LocalDirectorReferenceFunctionType   = LocalFEFunction<gridDim, DT, DirectorElement, UnitVector<double, 3>>;
+    using LocalMidSurfaceReferenceFunctionType = LocalFEFunction<gridDim, DT, MidSurfaceElement, RealTuple<double, 3> >;
+    using LocalDirectorReferenceFunctionType   = LocalFEFunction<gridDim, DT, DirectorElement, UnitVector<double, 3> >;
 
   public:
     /** \brief Constructor with a set of material parameters
@@ -91,15 +91,15 @@ namespace Dune::GFE {
     SimoFoxEnergyLocalStiffness(const Dune::ParameterTree &parameters, const BoundaryPatch<GridView> *neumannBoundary,
                                 const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> neumannFunction,
                                 const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> volumeLoad,
-                                const Dune::TupleVector<std::vector<RealTuple<double, 3>>, std::vector<UnitVector<double, 3>>> &x0)
-        : neumannBoundary_(neumannBoundary),
-          neumannFunction_(neumannFunction),
-          thickness_{parameters.template get<double>("thickness")},  // The sheeqll thickness
-          mu_{parameters.template get<double>("mu")},                // Lame constant 1
-          lambda_{parameters.template get<double>("lambda")},        // Lame constant 2
-          kappa_{parameters.template get<double>("kappa")},          // Shear correction factor
-          midSurfaceRefConfig{x0[Dune::Indices::_0]},
-          directorRefConfig{x0[Dune::Indices::_1]}
+                                const Dune::TupleVector<std::vector<RealTuple<double, 3> >, std::vector<UnitVector<double, 3> > > &x0)
+      : neumannBoundary_(neumannBoundary),
+      neumannFunction_(neumannFunction),
+      thickness_{parameters.template get<double>("thickness")},      // The sheeqll thickness
+      mu_{parameters.template get<double>("mu")},                    // Lame constant 1
+      lambda_{parameters.template get<double>("lambda")},            // Lame constant 2
+      kappa_{parameters.template get<double>("kappa")},              // Shear correction factor
+      midSurfaceRefConfig{x0[Dune::Indices::_0]},
+      directorRefConfig{x0[Dune::Indices::_1]}
     {
       // Calculate the over the thickness preintegrated St.Venant Kirchhoff material matrix, Paper equation 10.1 */
       const double Emodul = mu_ * (3 * lambda_ + 2 * mu_) / (lambda_ + mu_);  // Young's modulus
@@ -123,8 +123,8 @@ namespace Dune::GFE {
     }
 
     /** \brief Assemble the energy for a single element */
-    RT energy(const typename Basis::LocalView &localView, const std::vector<RealTuple<field_type, 3>> &localMidSurfaceConfiguration,
-              const std::vector<UnitVector<field_type, 3>> &localDirectorConfiguration) const override;
+    RT energy(const typename Basis::LocalView &localView, const std::vector<RealTuple<field_type, 3> > &localMidSurfaceConfiguration,
+              const std::vector<UnitVector<field_type, 3> > &localDirectorConfiguration) const override;
 
   private:
     /** \brief A structure that contains all quantities to calculate the Lagrangian strains */
@@ -145,7 +145,7 @@ namespace Dune::GFE {
 
     /** \brief Calculates all kinematic quantities */
     template <typename Element, typename LocalDirectorFunction, typename LocalMidSurfaceFunction, typename LocalDirectorReferenceFunction,
-              typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
+        typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
     static auto kinematicVariablesFactory(const Element &element, const LocalDirectorFunction &directorFunction,
                                           const LocalDirectorReferenceFunction &directorReferenceFunction,
                                           const LocalMidSurfaceFunction &midSurfaceFunction,
@@ -156,7 +156,7 @@ namespace Dune::GFE {
     static Dune::FieldVector<RT, 8> calculateGreenLagrangianStrains(const KinematicVariables &kin);
 
     /** \brief Save all tangent base matrices for all nodes in one place*/
-    Dune::BlockVector<Dune::FieldMatrix<field_type, 2, 3>> directorTangentSpaces;
+    Dune::BlockVector<Dune::FieldMatrix<field_type, 2, 3> > directorTangentSpaces;
 
     /** \brief The Neumann boundary */
     const BoundaryPatch<GridView> *neumannBoundary_;
@@ -180,8 +180,8 @@ namespace Dune::GFE {
     const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, dimworld>)> volumeLoad_;
 
     /** \brief Stores the reference configuration of the midsurface and the director field */
-    const std::vector<RealTuple<double, 3>> &midSurfaceRefConfig;
-    const std::vector<UnitVector<double, 3>> &directorRefConfig;
+    const std::vector<RealTuple<double, 3> > &midSurfaceRefConfig;
+    const std::vector<UnitVector<double, 3> > &directorRefConfig;
   };
 
   /** \brief Calculate the Green-Lagrange strain components for the thickness-integrated setting
@@ -193,7 +193,7 @@ namespace Dune::GFE {
    * Paper Equation 4.10 */
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
   Dune::FieldVector<field_type, 8> SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::calculateGreenLagrangianStrains(
-      const KinematicVariables &kin)
+    const KinematicVariables &kin)
   {
     Dune::FieldVector<RT, 8> egl;
     // membrane
@@ -220,11 +220,11 @@ namespace Dune::GFE {
    */
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
   template <typename Element, typename LocalDirectorFunction, typename LocalMidSurfaceFunction, typename LocalDirectorReferenceFunction,
-            typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
+      typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
   auto SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::kinematicVariablesFactory(
-      const Element &element, const LocalDirectorFunction &directorFunction, const LocalDirectorReferenceFunction &directorReferenceFunction,
-      const LocalMidSurfaceFunction &midSurfaceFunction, const LocalMidSurfaceReferenceFunction &midSurfaceReferenceFunction,
-      const LocalMidSurfaceFunction &midSurfaceDisplacementFunction, const IntegrationPointPosition &quadPos)
+    const Element &element, const LocalDirectorFunction &directorFunction, const LocalDirectorReferenceFunction &directorReferenceFunction,
+    const LocalMidSurfaceFunction &midSurfaceFunction, const LocalMidSurfaceReferenceFunction &midSurfaceReferenceFunction,
+    const LocalMidSurfaceFunction &midSurfaceDisplacementFunction, const IntegrationPointPosition &quadPos)
   {
     KinematicVariables kin{};
 
@@ -243,13 +243,13 @@ namespace Dune::GFE {
 
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
   auto SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::getReferenceLocalConfigurations(
-      const typename Basis::LocalView &localView) const {
+    const typename Basis::LocalView &localView) const {
     using namespace Dune::TypeTree::Indices;
     const int nDofs0 = localView.tree().child(_0, 0).finiteElement().size();
     const int nDofs1 = localView.tree().child(_1, 0).finiteElement().size();
 
-    std::vector<RealTuple<double, 3>> localConfiguration0(nDofs0);
-    std::vector<UnitVector<double, 3>> localConfiguration1(nDofs1);
+    std::vector<RealTuple<double, 3> > localConfiguration0(nDofs0);
+    std::vector<UnitVector<double, 3> > localConfiguration1(nDofs1);
 
     for (int i = 0; i < nDofs0 + nDofs1; i++) {
       int localIndexI = 0;
@@ -276,14 +276,14 @@ namespace Dune::GFE {
    *
    *  The energy is 0.5 * S * E = 0.5 * transpose(E) * Cmat * E, where
    *  S are the stress resultants [membrane forces, bending moments, transverse shear forces]
-   *  E are the components of the Green-Lagrangian strains [membrane strains, bending , tranverse shear]
+   *  E are the components of the Green-Lagrangian strains [membrane strains, bending, transverse shear]
    *  see for details Paper Equation 4.11,4.10 and 10.1
    */
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
   typename SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::RT
   SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::energy(
-      const typename Basis::LocalView &localView, const std::vector<RealTuple<field_type, 3>> &localMidSurfaceConfiguration,
-      const std::vector<UnitVector<field_type, 3>> &localDirectorConfiguration) const
+    const typename Basis::LocalView &localView, const std::vector<RealTuple<field_type, 3> > &localMidSurfaceConfiguration,
+    const std::vector<UnitVector<field_type, 3> > &localDirectorConfiguration) const
   {
     auto element = localView.element();
 
@@ -293,7 +293,7 @@ namespace Dune::GFE {
 
     const auto [localRefMidSurfaceConfiguration, localRefDirectorConfiguration] = getReferenceLocalConfigurations(localView);
 
-    std::vector<RealTuple<field_type, 3>> displacements;
+    std::vector<RealTuple<field_type, 3> > displacements;
     displacements.reserve(localMidSurfaceConfiguration.size());
     for (size_t i = 0; i < localMidSurfaceConfiguration.size(); ++i)
       displacements.emplace_back(localMidSurfaceConfiguration[i].globalCoordinates() - localRefMidSurfaceConfiguration[i].globalCoordinates());
@@ -314,8 +314,8 @@ namespace Dune::GFE {
       const Dune::FieldVector<DT, gridDim> &quadPos = curQuad.position();
 
       const KinematicVariables kin
-          = kinematicVariablesFactory(element, localDirectorFunction, localDirectorReferenceFunction, localMidSurfaceFunction,
-                                      localMidSurfaceReferenceFunction, localMidSurfaceDisplacementFunction, quadPos);
+        = kinematicVariablesFactory(element, localDirectorFunction, localDirectorReferenceFunction, localMidSurfaceFunction,
+                                    localMidSurfaceReferenceFunction, localMidSurfaceDisplacementFunction, quadPos);
 
       const DT integrationElement = element.geometry().integrationElement(quadPos);
       const FieldVector<field_type, 8> Egl = calculateGreenLagrangianStrains(kin);

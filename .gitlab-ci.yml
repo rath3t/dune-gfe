@@ -59,3 +59,21 @@ code-spelling-check:
   image: registry.dune-project.org/docker/ci/debian:11
   script:
   - codespell
+
+# Verify code-formatting rules
+code-formatting-check:
+  stage: .pre
+  # Avoid the global 'before_script'
+  before_script: ""
+  image: registry.dune-project.org/docker/ci/debian:11
+  script:
+    # Format all *.cc and *.hh files using the uncrustify tool
+    # We ignore the return value of 'uncrustify', because it is
+    # apparently unreliable, and returns 'failure' without a reason.
+    - uncrustify -l CPP -c dune-uncrustify.cfg --no-backup `find -name "*.cc" -o -name "*.hh"` || true
+
+    # Did anything change?  That would indicate a violation of the formatting rules
+    # But before, work around an issue where git doesn't recognize the source tree as a git directory.
+    # See https://forum.gitlab.com/t/ci-cd-job-git-diff/76666
+    - git config --global --add safe.directory "$(pwd)"
+    - git diff --exit-code

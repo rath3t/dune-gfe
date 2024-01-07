@@ -18,7 +18,7 @@ class VectorCommunicator {
 
     TransferVectorTuple() {}
     TransferVectorTuple(const size_t& r, const EntryType& e)
-    : globalIndex_(r),
+      : globalIndex_(r),
       value_(e) {}
   };
 
@@ -29,7 +29,7 @@ private:
 
     // Translate vector entries
     for (size_t k=0; k<localVector.size(); k++)
-        localVectorEntries.push_back(TransferVectorTuple(guIndex.index(k), localVector[k]));
+      localVectorEntries.push_back(TransferVectorTuple(guIndex.index(k), localVector[k]));
 
     // Get number of vector entries on each process
     localVectorEntriesSizes = MPIFunctions::shareSizes(communicator_, localVectorEntries.size());
@@ -42,7 +42,7 @@ public:
   VectorCommunicator(const GUIndex& gi,
                      const Communicator& communicator,
                      const int& root)
-  : guIndex(gi), communicator_(communicator), root_rank(root)
+    : guIndex(gi), communicator_(communicator), root_rank(root)
   {}
 
   VectorType reduceAdd(const VectorType& localVector)

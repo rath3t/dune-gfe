@@ -25,24 +25,24 @@ using namespace Dune;
 template <class GridType>
 std::unique_ptr<GridType> makeSingleSimplexGrid()
 {
-    static const int domainDim = GridType::dimension;
-    GridFactory<GridType> factory;
+  static const int domainDim = GridType::dimension;
+  GridFactory<GridType> factory;
 
-    FieldVector<double,domainDim> pos(0);
+  FieldVector<double,domainDim> pos(0);
+  factory.insertVertex(pos);
+
+  for (int i=0; i<domainDim; i++) {
+    pos = 0;
+    pos[i] = 1;
     factory.insertVertex(pos);
+  }
 
-    for (int i=0; i<domainDim; i++) {
-        pos = 0;
-        pos[i] = 1;
-        factory.insertVertex(pos);
-    }
+  std::vector<unsigned int> v(domainDim+1);
+  for (int i=0; i<domainDim+1; i++)
+    v[i] = i;
+  factory.insertElement(GeometryTypes::simplex(domainDim), v);
 
-    std::vector<unsigned int> v(domainDim+1);
-    for (int i=0; i<domainDim+1; i++)
-        v[i] = i;
-    factory.insertElement(GeometryTypes::simplex(domainDim), v);
-
-    return factory.createGrid();
+  return factory.createGrid();
 }
 
 
@@ -53,61 +53,61 @@ std::unique_ptr<GridType> makeSingleSimplexGrid()
 template <class GridType>
 void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficients)
 {
-    ParameterTree materialParameters;
-    materialParameters["thickness"] = "0.1";
-    materialParameters["mu"] = "3.8462e+05";
-    materialParameters["lambda"] = "2.7149e+05";
-    materialParameters["mu_c"] = "3.8462e+05";
-    materialParameters["L_c"] = "0.1";
-    materialParameters["q"] = "2.5";
-    materialParameters["kappa"] = "0.1";
-    materialParameters["b1"] = "1";
-    materialParameters["b2"] = "1";
-    materialParameters["b3"] = "1";
+  ParameterTree materialParameters;
+  materialParameters["thickness"] = "0.1";
+  materialParameters["mu"] = "3.8462e+05";
+  materialParameters["lambda"] = "2.7149e+05";
+  materialParameters["mu_c"] = "3.8462e+05";
+  materialParameters["L_c"] = "0.1";
+  materialParameters["q"] = "2.5";
+  materialParameters["kappa"] = "0.1";
+  materialParameters["b1"] = "1";
+  materialParameters["b2"] = "1";
+  materialParameters["b3"] = "1";
 
-    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> FEBasis;
-    FEBasis feBasis(grid->leafGridView());
+  typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,1> FEBasis;
+  FEBasis feBasis(grid->leafGridView());
 
-    CosseratEnergyLocalStiffness<FEBasis,3> assembler(materialParameters,
-                                                      nullptr,
-                                                      nullptr,
-                                                      nullptr);
-    
-    // compute reference energy
-    auto localView = feBasis.localView();
-    localView.bind(*grid->leafGridView().template begin<0>());
+  CosseratEnergyLocalStiffness<FEBasis,3> assembler(materialParameters,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr);
 
-    double referenceEnergy = assembler.energy(localView,
-                                              coefficients);
-    
-    // rotate the entire configuration
-    std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
-    
-    std::vector<Rotation<double,3> > testRotations;
-    ValueFactory<Rotation<double,3> >::get(testRotations);
+  // compute reference energy
+  auto localView = feBasis.localView();
+  localView.bind(*grid->leafGridView().template begin<0>());
 
-    for (size_t i=0; i<testRotations.size(); i++) {
+  double referenceEnergy = assembler.energy(localView,
+                                            coefficients);
 
-        /////////////////////////////////////////////////////////////////////////
-        //  Multiply the given configuration by the test rotation.
-        //  The energy should remain unchanged.
-        /////////////////////////////////////////////////////////////////////////
-        FieldMatrix<double,3,3> matrix;
-        testRotations[i].matrix(matrix);
-        
-        for (size_t j=0; j<coefficients.size(); j++) {
-            FieldVector<double,3> tmp;
-            matrix.mv(coefficients[j].r, tmp);
-            rotatedCoefficients[j].r = tmp;
-            
-            rotatedCoefficients[j].q = testRotations[i].mult(coefficients[j].q);
-        }
-        
-        double energy = assembler.energy(localView,
-                                         rotatedCoefficients);
-        assert(std::fabs(energy-referenceEnergy)/std::fabs(energy) < 1e-4);
+  // rotate the entire configuration
+  std::vector<TargetSpace> rotatedCoefficients(coefficients.size());
 
+  std::vector<Rotation<double,3> > testRotations;
+  ValueFactory<Rotation<double,3> >::get(testRotations);
+
+  for (size_t i=0; i<testRotations.size(); i++) {
+
+    /////////////////////////////////////////////////////////////////////////
+    //  Multiply the given configuration by the test rotation.
+    //  The energy should remain unchanged.
+    /////////////////////////////////////////////////////////////////////////
+    FieldMatrix<double,3,3> matrix;
+    testRotations[i].matrix(matrix);
+
+    for (size_t j=0; j<coefficients.size(); j++) {
+      FieldVector<double,3> tmp;
+      matrix.mv(coefficients[j].r, tmp);
+      rotatedCoefficients[j].r = tmp;
+
+      rotatedCoefficients[j].q = testRotations[i].mult(coefficients[j].q);
     }
+
+    double energy = assembler.energy(localView,
+                                     rotatedCoefficients);
+    assert(std::fabs(energy-referenceEnergy)/std::fabs(energy) < 1e-4);
+
+  }
 
 }
 
@@ -115,59 +115,59 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 template <int domainDim>
 void testFrameInvariance()
 {
-    std::cout << " --- Testing frame invariance of the Cosserat energy, domain dimension: " << domainDim << " ---" << std::endl;
+  std::cout << " --- Testing frame invariance of the Cosserat energy, domain dimension: " << domainDim << " ---" << std::endl;
 
-    // ////////////////////////////////////////////////////////
-    //   Make a test grid consisting of a single simplex
-    // ////////////////////////////////////////////////////////
+  // ////////////////////////////////////////////////////////
+  //   Make a test grid consisting of a single simplex
+  // ////////////////////////////////////////////////////////
 
-    typedef UGGrid<domainDim> GridType;
-    const std::unique_ptr<GridType> grid = makeSingleSimplexGrid<GridType>();
-    
-    // //////////////////////////////////////////////////////////
-    //  Test whether the energy is invariant under isometries
-    // //////////////////////////////////////////////////////////
+  typedef UGGrid<domainDim> GridType;
+  const std::unique_ptr<GridType> grid = makeSingleSimplexGrid<GridType>();
 
-    std::vector<TargetSpace> testPoints;
-    ValueFactory<TargetSpace>::get(testPoints);
+  // //////////////////////////////////////////////////////////
+  //  Test whether the energy is invariant under isometries
+  // //////////////////////////////////////////////////////////
 
-    // Set up elements of SE(3)
-    std::vector<TargetSpace> coefficients(domainDim+1);
+  std::vector<TargetSpace> testPoints;
+  ValueFactory<TargetSpace>::get(testPoints);
 
-    ::MultiIndex index(domainDim+1, testPoints.size());
-    int numIndices = index.cycle();
+  // Set up elements of SE(3)
+  std::vector<TargetSpace> coefficients(domainDim+1);
 
-    for (int i=0; i<numIndices; i++, ++index) {
-        
-        // Discard all configurations that deform the element to zero area
-        bool identicalPoints = false;
-        for (int j=0; j<domainDim+1; j++)
-          for (int k=0; k<domainDim+1; k++)
-            if (j!=k and (testPoints[index[j]].r - testPoints[index[k]].r).two_norm() < 1e-5)
-              identicalPoints = true;
+  ::MultiIndex index(domainDim+1, testPoints.size());
+  int numIndices = index.cycle();
 
-        if (identicalPoints)
-          continue;
+  for (int i=0; i<numIndices; i++, ++index) {
 
-        for (int j=0; j<domainDim+1; j++)
-            coefficients[j] = testPoints[index[j]];
+    // Discard all configurations that deform the element to zero area
+    bool identicalPoints = false;
+    for (int j=0; j<domainDim+1; j++)
+      for (int k=0; k<domainDim+1; k++)
+        if (j!=k and (testPoints[index[j]].r - testPoints[index[k]].r).two_norm() < 1e-5)
+          identicalPoints = true;
 
-        testEnergy<GridType>(grid.get(), coefficients);
-        
-    }
-    
+    if (identicalPoints)
+      continue;
+
+    for (int j=0; j<domainDim+1; j++)
+      coefficients[j] = testPoints[index[j]];
+
+    testEnergy<GridType>(grid.get(), coefficients);
+
+  }
+
 }
 
 int main(int argc, char** argv)
 {
-    MPIHelper::instance(argc, argv);
+  MPIHelper::instance(argc, argv);
 
-    const int domainDim = 2;
+  const int domainDim = 2;
 
-    //////////////////////////////////////////////////////////////////////////////////////
-    //   Test invariance of the energy functional under rotations
-    //////////////////////////////////////////////////////////////////////////////////////
-    
-    testFrameInvariance<domainDim>();
+  //////////////////////////////////////////////////////////////////////////////////////
+  //   Test invariance of the energy functional under rotations
+  //////////////////////////////////////////////////////////////////////////////////////
+
+  testFrameInvariance<domainDim>();
 
 }

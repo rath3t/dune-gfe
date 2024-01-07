@@ -33,24 +33,24 @@ namespace Dune {
            In the continuum case (domain dimension == world dimension) this is
            \f$ \hat{F} = \nabla m  \f$
            In the case of a shell it is
-          \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
-        */
+           \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
+         */
         FieldMatrix<T,dimworld,dimworld> F;
         for (int i=0; i<dimworld; i++)
-            for (int j=0; j<dim; j++)
-                F[i][j] = deformationGradient[i][j];
+          for (int j=0; j<dim; j++)
+            F[i][j] = deformationGradient[i][j];
 
         for (int i=0; i<dimworld; i++)
-            for (int j=dim; j<dimworld; j++)
-                F[i][j] = R[i][j];
+          for (int j=dim; j<dimworld; j++)
+            F[i][j] = R[i][j];
 
         // U = R^T F
         for (int i=0; i<dimworld; i++)
-            for (int j=0; j<dimworld; j++) {
-                data_[i][j] = 0;
-                for (int k=0; k<dimworld; k++)
-                    data_[i][j] += R[k][i] * F[k][j];
-            }
+          for (int j=0; j<dimworld; j++) {
+            data_[i][j] = 0;
+            for (int k=0; k<dimworld; k++)
+              data_[i][j] += R[k][i] * F[k][j];
+          }
 
       }
 
@@ -65,24 +65,24 @@ namespace Dune {
            In the continuum case (domain dimension == world dimension) this is
            \f$ \hat{F} = \nabla m  \f$
            In the case of a shell it is
-          \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
-        */
+           \f$ \hat{F} = (\nabla m | \overline{R}_3) \f$
+         */
         FieldMatrix<T,dimworld,dimworld> F;
         for (int i=0; i<dimworld; i++)
-            for (int j=0; j<dim; j++)
-                F[i][j] = deformationGradient[i][j];
+          for (int j=0; j<dim; j++)
+            F[i][j] = deformationGradient[i][j];
 
         for (int i=0; i<dimworld; i++)
-            for (int j=dim; j<dimworld; j++)
-                F[i][j] = R[i][j];
+          for (int j=dim; j<dimworld; j++)
+            F[i][j] = R[i][j];
 
         // U = R^T F
         for (int i=0; i<dimworld; i++)
-            for (int j=0; j<dimworld; j++) {
-                data_[i][j] = 0;
-                for (int k=0; k<dimworld; k++)
-                    data_[i][j] += R[k][i] * F[k][j];
-            }
+          for (int j=0; j<dimworld; j++) {
+            data_[i][j] = 0;
+            for (int k=0; k<dimworld; k++)
+              data_[i][j] += R[k][i] * F[k][j];
+          }
 
       }
 

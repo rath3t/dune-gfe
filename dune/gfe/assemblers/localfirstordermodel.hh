@@ -5,24 +5,23 @@
 
 namespace Dune {
 
-namespace GFE {
+  namespace GFE {
 
-template<class Basis, class TargetSpace>
-class LocalFirstOrderModel
-: public Dune::GFE::LocalEnergy<Basis,TargetSpace>
-{
-public:
+    template<class Basis, class TargetSpace>
+    class LocalFirstOrderModel
+      : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
+    {
+    public:
 
-    /** \brief Assemble the element gradient of the energy functional */
-    virtual void assembleGradient(const typename Basis::LocalView& localView,
-                                  const std::vector<TargetSpace>& solution,
-                                  std::vector<typename TargetSpace::TangentVector>& gradient) const = 0;
+      /** \brief Assemble the element gradient of the energy functional */
+      virtual void assembleGradient(const typename Basis::LocalView& localView,
+                                    const std::vector<TargetSpace>& solution,
+                                    std::vector<typename TargetSpace::TangentVector>& gradient) const = 0;
 
-};
+    };
 
-}  // namespace GFE
+  } // namespace GFE
 
 }  // namespace Dune
 
 #endif   // DUNE_GFE_LOCALFIRSTORDERMODEL_HH
-

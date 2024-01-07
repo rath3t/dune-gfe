@@ -52,17 +52,17 @@ namespace Dune {
             int globalIndex;
             switch (codim)
             {
-              case 1:  // vertex dofs
-                globalIndex = globalVertexIndex.index(element.template subEntity<1>(entity));
-                break;
+            case 1 :   // vertex dofs
+              globalIndex = globalVertexIndex.index(element.template subEntity<1>(entity));
+              break;
 
-              case 0:  // element dofs
-                globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
-                              + globalVertexIndex.size(1);
-                break;
+            case 0 :   // element dofs
+              globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
+                            + globalVertexIndex.size(1);
+              break;
 
-              default:
-                DUNE_THROW(Dune::Exception, "Impossible codimension!");
+            default :
+              DUNE_THROW(Dune::Exception, "Impossible codimension!");
             }
 
             localGlobalMap_[localIndex]  = globalIndex;
@@ -92,22 +92,22 @@ namespace Dune {
             int globalIndex;
             switch (codim)
             {
-              case 2:  // vertex dofs
-                globalIndex = globalVertexIndex.index(element.template subEntity<GridView::dimension>(entity));
-                break;
+            case 2 :   // vertex dofs
+              globalIndex = globalVertexIndex.index(element.template subEntity<GridView::dimension>(entity));
+              break;
 
-              case 1:  // edge dofs
-                globalIndex = globalEdgeIndex.index(element.template subEntity<1>(entity)) + globalVertexIndex.size(2);
-                break;
+            case 1 :   // edge dofs
+              globalIndex = globalEdgeIndex.index(element.template subEntity<1>(entity)) + globalVertexIndex.size(2);
+              break;
 
-              case 0:  // element dofs
-                globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
-                              + globalEdgeIndex.size(1)
-                              + globalVertexIndex.size(2);
-                break;
+            case 0 :   // element dofs
+              globalIndex = globalElementIndex.index(element.template subEntity<0>(entity))
+                            + globalEdgeIndex.size(1)
+                            + globalVertexIndex.size(2);
+              break;
 
-              default:
-                DUNE_THROW(Dune::Exception, "Impossible codimension!");
+            default :
+              DUNE_THROW(Dune::Exception, "Impossible codimension!");
             }
 
             localGlobalMap_[localIndex]  = globalIndex;
@@ -139,7 +139,7 @@ namespace Dune {
       for (size_t i=0; i<localView.size(); i++)
       {
         if (localView.tree().finiteElement().localCoefficients().localKey(i).subEntity() == subEntity
-          and localView.tree().finiteElement().localCoefficients().localKey(i).codim() == codim)
+            and localView.tree().finiteElement().localCoefficients().localKey(i).codim() == codim)
         {
           dofFound = true;
           localIndex = localView.index(i);

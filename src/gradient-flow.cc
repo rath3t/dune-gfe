@@ -77,9 +77,9 @@ int main (int argc, char *argv[]) try
 
   //feenableexcept(FE_INVALID);
   Python::runStream()
-      << std::endl << "import sys"
-      << std::endl << "sys.path.append('../../problems/')"
-      << std::endl;
+    << std::endl << "import sys"
+    << std::endl << "sys.path.append('../../problems/')"
+    << std::endl;
 
   typedef std::vector<TargetSpace> SolutionType;
 
@@ -184,7 +184,7 @@ int main (int argc, char *argv[]) try
     power<TargetSpace::CoordinateType::dimension>(
       lagrange<order>(),
       blockedInterleaved()
-  ));
+      ));
 
   Functions::interpolate(powerBasis, v, pythonInitialIterate);
 

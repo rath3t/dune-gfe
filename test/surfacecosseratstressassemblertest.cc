@@ -46,14 +46,14 @@ using ValueType = adouble;
 
 // Surface Shell Boundary
 std::function<bool(FieldVector<double,dim>)> isSurfaceShellBoundary = [](FieldVector<double,dim> coordinate) {
-  return coordinate[2] > 199.99 and coordinate[0] > 49.99 and coordinate[0] < 150.01;
-};
+                                                                        return coordinate[2] > 199.99 and coordinate[0] > 49.99 and coordinate[0] < 150.01;
+                                                                      };
 
 static bool sameEntries(FieldVector<double,3> a,FieldVector<double,3> b) {
   b[1] *= -1;
   b -= a;
   //If a.two_norm > 0, so if there is a displacement at this points: Scale the difference with the length of the vectors
-  return a.two_norm() > 0 ? b.two_norm()/a.two_norm() < 0.05 : b.two_norm() < 0.05; 
+  return a.two_norm() > 0 ? b.two_norm()/a.two_norm() < 0.05 : b.two_norm() < 0.05;
 }
 
 static bool sameEntries(FieldVector<double,4> a,FieldVector<double,4> b) {
@@ -66,7 +66,7 @@ static bool sameEntries(FieldVector<double,4> a,FieldVector<double,4> b) {
 }
 
 template <int d>
-static bool symmetryTest(std::unordered_map<std::string, FieldVector<double,d>> map, double axis) {
+static bool symmetryTest(std::unordered_map<std::string, FieldVector<double,d> > map, double axis) {
   bool isSame = true;
   std::string entry;
   for (auto it = map.begin(); it != map.end(); it++) {
@@ -103,12 +103,12 @@ int main (int argc, char *argv[])
   grid->setRefinementType(GridType::RefinementType::COPY);
 
   int numLevels = 4;
- 
+
   while (numLevels > 0) {
-    for (auto&& e : elements(grid->leafGridView())){
+    for (auto&& e : elements(grid->leafGridView())) {
       bool isSurfaceShell = false;
       for (int i = 0; i < e.geometry().corners(); i++) {
-          isSurfaceShell = isSurfaceShell || isSurfaceShellBoundary(e.geometry().corner(i));
+        isSurfaceShell = isSurfaceShell || isSurfaceShellBoundary(e.geometry().corner(i));
       }
       grid->mark(isSurfaceShell ? 1 : 0,e);
     }
@@ -134,9 +134,9 @@ int main (int argc, char *argv[])
   BoundaryPatch<GridView> surfaceShellBoundary(gridView, surfaceShellVertices);
 
   std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dim>)> fLame = [](Dune::FieldVector<double,dim> x){
-    Dune::FieldVector<double,2> lameConstants {1.24E+07,2.52E+07}; //stiffness = 33
-    return lameConstants;
-  };
+                                                                                      Dune::FieldVector<double,2> lameConstants {1.24E+07,2.52E+07}; //stiffness = 33
+                                                                                      return lameConstants;
+                                                                                    };
 
   /////////////////////////////////////////////////////////////
   //                      FUNCTION SPACE
@@ -146,14 +146,14 @@ int main (int argc, char *argv[])
   auto basisOrderD = makeBasis(
     gridView,
     power<dim>(
-        lagrange<displacementOrder>()
-  ));
+      lagrange<displacementOrder>()
+      ));
 
   auto basisOrderR = makeBasis(
     gridView,
     power<dim>(
-        lagrange<rotationOrder>()
-  ));
+      lagrange<rotationOrder>()
+      ));
 
   /////////////////////////////////////////////////////////////
   //               READ IN TEST DATA
@@ -182,9 +182,13 @@ int main (int argc, char *argv[])
   xInitial.resize(basisOrderD.size());
   DisplacementVector displacement;
   displacement.resize(basisOrderD.size());
-  
-  Functions::interpolate(basisOrderD, x, [](FieldVector<double,dim> x){ return x; });
-  Functions::interpolate(basisOrderD, xInitial, [](FieldVector<double,dim> x){ return x; });
+
+  Functions::interpolate(basisOrderD, x, [](FieldVector<double,dim> x){
+    return x;
+  });
+  Functions::interpolate(basisOrderD, xInitial, [](FieldVector<double,dim> x){
+    return x;
+  });
 
   for (std::size_t i = 0; i < basisOrderD.size(); i++) {
     std::stringstream stream;
@@ -195,12 +199,14 @@ int main (int argc, char *argv[])
     xInitial[i] += initialDeformationMap.at(stream.str());
   }
 
-  using RotationVector = std::vector<Rotation<double,dim>>;
+  using RotationVector = std::vector<Rotation<double,dim> >;
   RotationVector rot;
   rot.resize(basisOrderR.size());
   DisplacementVector xOrderR;
   xOrderR.resize(basisOrderR.size());
-  Functions::interpolate(basisOrderR, xOrderR, [](FieldVector<double,dim> x){ return x; });
+  Functions::interpolate(basisOrderR, xOrderR, [](FieldVector<double,dim> x){
+    return x;
+  });
   for (std::size_t i = 0; i < basisOrderR.size(); i++) {
     std::stringstream stream;
     stream << xOrderR[i];
@@ -227,20 +233,20 @@ int main (int argc, char *argv[])
   /////////////////////////////////////////////////////////////
 
   auto quadOrder = 4;
-  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, Rotation<double,dim>>
-    (basisOrderD, basisOrderR);
+  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, Rotation<double,dim> >
+                           (basisOrderD, basisOrderR);
 
-  std::shared_ptr<Elasticity::LocalDensity<dim,ValueType>> elasticDensity;
+  std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;
   ParameterTree materialParameters;
   materialParameters["mu"] = "2.7191e+4";
   materialParameters["lambda"] = "4.4364e+4";
-  elasticDensity = std::make_shared<Elasticity::StVenantKirchhoffDensity<dim,ValueType>>(materialParameters);
+  elasticDensity = std::make_shared<Elasticity::StVenantKirchhoffDensity<dim,ValueType> >(materialParameters);
 
-  std::vector<FieldMatrix<double,dim,dim>> stressSubstrate1stPiolaKirchhoffTensor;
-  std::vector<FieldMatrix<double,dim,dim>> stressSubstrateCauchyTensor;
-  stressAssembler.assembleSubstrateStress<Elasticity::LocalDensity<dim,ValueType>>(x, elasticDensity.get(), quadOrder, stressSubstrate1stPiolaKirchhoffTensor, stressSubstrateCauchyTensor);
-  std::vector<FieldMatrix<double,dim,dim>> stressShellBiotTensor;
-  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
+  std::vector<FieldMatrix<double,dim,dim> > stressSubstrate1stPiolaKirchhoffTensor;
+  std::vector<FieldMatrix<double,dim,dim> > stressSubstrateCauchyTensor;
+  stressAssembler.assembleSubstrateStress<Elasticity::LocalDensity<dim,ValueType> >(x, elasticDensity.get(), quadOrder, stressSubstrate1stPiolaKirchhoffTensor, stressSubstrateCauchyTensor);
+  std::vector<FieldMatrix<double,dim,dim> > stressShellBiotTensor;
+  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
 
   //Now modify ONE value in the rotation function
   int i = 39787;
@@ -249,13 +255,13 @@ int main (int argc, char *argv[])
   rot[i].matrix(rotationMatrix);
   Dune::MatrixVector::transpose(transposed, rotationMatrix);
   rot[i].set(transposed);
-  std::vector<FieldMatrix<double,dim,dim>> stressShellBiotTensorNotSymmetric;
-  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/0, surfaceShellBoundary, quadOrder, stressShellBiotTensorNotSymmetric);
+  std::vector<FieldMatrix<double,dim,dim> > stressShellBiotTensorNotSymmetric;
+  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensorNotSymmetric);
   // ... and ONE in the displacement function
   x[i] *= 2;
-  std::vector<FieldMatrix<double,dim,dim>> stressSubstrate1stPiolaKirchhoffTensorNotSymmetric;
-  std::vector<FieldMatrix<double,dim,dim>> stressSubstrateCauchyTensorNotSymmetric;
-  stressAssembler.assembleSubstrateStress<Elasticity::LocalDensity<dim,ValueType>>(x, elasticDensity.get(), quadOrder, stressSubstrate1stPiolaKirchhoffTensorNotSymmetric, stressSubstrateCauchyTensorNotSymmetric);
+  std::vector<FieldMatrix<double,dim,dim> > stressSubstrate1stPiolaKirchhoffTensorNotSymmetric;
+  std::vector<FieldMatrix<double,dim,dim> > stressSubstrateCauchyTensorNotSymmetric;
+  stressAssembler.assembleSubstrateStress<Elasticity::LocalDensity<dim,ValueType> >(x, elasticDensity.get(), quadOrder, stressSubstrate1stPiolaKirchhoffTensorNotSymmetric, stressSubstrateCauchyTensorNotSymmetric);
   // ... and make sure that the stress is not symmetric anymore!
   bool substrateModifiedIsNotSymmetric = false;
   bool shellModifiedIsNotSymmetric = false;
@@ -283,7 +289,7 @@ int main (int argc, char *argv[])
 
     auto shell = stressShellBiotTensor[thisIndex];
     auto mirroredShell = stressShellBiotTensor[mirroredIndex];
-    if ((shell.frobenius_norm()-mirroredShell.frobenius_norm())/mirroredShell.frobenius_norm() > 0.05){
+    if ((shell.frobenius_norm()-mirroredShell.frobenius_norm())/mirroredShell.frobenius_norm() > 0.05) {
       std::cerr << "The elements with center " << element.geometry().center()
                 << " and " << elementCenter << " have different Biot stress values (assembled using order 3): " << std::endl
                 << shell << " and " << mirroredShell << ", but should have the same!" << std::endl;

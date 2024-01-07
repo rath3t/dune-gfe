@@ -72,7 +72,7 @@ namespace Dune {
           writer.endPoints();
 
           for (int i=0; i<mpiHelper.size(); i++)
-          writer.addPiece(getParallelPieceName(filename, "", i, mpiHelper.size()));
+            writer.addPiece(getParallelPieceName(filename, "", i, mpiHelper.size()));
 
           // finish main section
           writer.endMain();
@@ -201,7 +201,7 @@ namespace Dune {
           pieceElement->QueryIntAttribute( "NumberOfCells", &numberOfCells );
         }
         else // No vtu file?  So let's try vtp
-          if ((pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "PolyData" )->FirstChildElement( "Piece" )) )
+        if ((pieceElement = doc.FirstChildElement( "VTKFile" )->FirstChildElement( "PolyData" )->FirstChildElement( "Piece" )) )
         {
           pieceElement->QueryIntAttribute( "NumberOfPolys", &numberOfCells );
         }
