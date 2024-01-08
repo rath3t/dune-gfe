@@ -21,8 +21,6 @@
 #include <dune/gfe/parallel/matrixcommunicator.hh>
 #include <dune/gfe/parallel/vectorcommunicator.hh>
 
-#include <dune/gfe/cosseratvtkwriter.hh>
-
 template <class GridType,
     class Basis,
     class Basis0, class TargetSpace0,
@@ -560,16 +558,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
         break;
       }
     }
-#if 0
-    // Output each iterate, to better understand what the algorithm does
-    DuneFunctionsBasis<Basis0> fufemBasis0(assembler_->basis0_);
-    DuneFunctionsBasis<Basis1> fufemBasis1(assembler_->basis1_);
-    std::stringstream iAsAscii;
-    iAsAscii << i+1;
-    CosseratVTKWriter<GridType>::template writeMixed<DuneFunctionsBasis<Basis0>, DuneFunctionsBasis<Basis1> >(fufemBasis0,x_[_0],
-                                                                                                              fufemBasis1,x_[_1],
-                                                                                                              "mixed-cosserat_iterate_" + iAsAscii.str());
-#endif
+
     if (rank==0)
       std::cout << "iteration took " << totalTimer.elapsed() << " sec." << std::endl;
 

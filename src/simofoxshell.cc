@@ -12,18 +12,20 @@
 
 #include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/grid/io/file/gmshreader.hh>
+#include <dune/grid/io/file/vtk/subsamplingvtkwriter.hh>
 #include <dune/grid/uggrid.hh>
 
+#include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/compositebasis.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
+#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/simofoxenergy.hh>
-#include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
