@@ -10,7 +10,7 @@
 #include <dune/gfe/cosseratstrain.hh>
 #include <dune/gfe/densities/localdensity.hh>
 #include <dune/gfe/spaces/realtuple.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/rotation.hh>
 #ifdef PROJECTED_INTERPOLATION
 #include <dune/gfe/localprojectedfefunction.hh>
 #else
@@ -64,9 +64,6 @@ namespace Dune::GFE {
 
       using TargetSpaceDeformation = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
       using TargetSpaceRotation = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
-
-      static_assert( (std::is_same<TargetSpaceDeformation, RigidBodyMotion<RT,gridDim> >::value)
-                     or (std::is_same<TargetSpaceDeformation, RealTuple<RT,gridDim> >::value), "The first TargetSpace of LocalGeodesicIntegralEnergy needs to be RigidBodyMotion or RealTuple!" );
 
       const std::vector<TargetSpaceDeformation>& localDeformationConfiguration = std::get<0>(std::forward_as_tuple(localSolutions ...));
       const std::vector<TargetSpaceRotation>& localOrientationConfiguration = std::get<1>(std::forward_as_tuple(localSolutions ...));

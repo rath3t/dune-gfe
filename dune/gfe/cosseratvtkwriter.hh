@@ -11,7 +11,9 @@
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
 #include <dune/gfe/vtkfile.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 
 /** \brief Write the configuration of a Cosserat material in VTK format */
@@ -22,8 +24,8 @@ class CosseratVTKWriter
   static const int dim = GridType::dimension;
 
   template <typename Basis1, typename Basis2>
-  static void downsample(const Basis1& basis1, const std::vector<RigidBodyMotion<double,3> >& v1,
-                         const Basis2& basis2,       std::vector<RigidBodyMotion<double,3> >& v2)
+  static void downsample(const Basis1& basis1, const std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& v1,
+                         const Basis2& basis2,       std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& v2)
   {
     // Embed v1 into R^7
     std::vector<Dune::FieldVector<double,7> > v1Embedded(v1.size());
@@ -35,10 +37,10 @@ class CosseratVTKWriter
     std::vector<Dune::FieldVector<double,7> > v2Embedded;
     Dune::Functions::interpolate(basis2, v2Embedded, function);
 
-    // Copy back from R^7 into RigidBodyMotions
+    // Copy back from R^7 into ProductManifold
     v2.resize(v2Embedded.size());
     for (size_t i=0; i<v2.size(); i++)
-      v2[i] = RigidBodyMotion<double,3>(v2Embedded[i]);
+      v2[i] = Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >(v2Embedded[i]);
   }
 
   template <typename Basis1, typename Basis2>
@@ -118,11 +120,11 @@ public:
                     const std::string& filename)
   {
     using namespace Dune::TypeTree::Indices;
-    std::vector<RigidBodyMotion<double,3> > xRBM(basis.size());
+    std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > > xRBM(basis.size());
     for (std::size_t i = 0; i < basis.size(); i++) {
       for (int j = 0; j < 3; j ++)   // Displacement part
-        xRBM[i].r[j] = configuration[_0][i][j];
-      xRBM[i].q = configuration[_1][i];      // Rotation part
+        xRBM[i][_0].globalCoordinates()[j] = configuration[_0][i][j];
+      xRBM[i][_1] = configuration[_1][i];      // Rotation part
     }
     write(basis,xRBM,filename);
   }
@@ -134,10 +136,10 @@ public:
                     const std::string& filename)
   {
     using namespace Dune::TypeTree::Indices;
-    std::vector<RigidBodyMotion<double,3> > xRBM(basis.size());
+    std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > > xRBM(basis.size());
     for (std::size_t i = 0; i < basis.size(); i++) {
       for (int j = 0; j < 3; j ++)   // Displacement part
-        xRBM[i].r[j] = configuration[i][j];
+        xRBM[i][_0].globalCoordinates()[j] = configuration[i][j];
     }
     write(basis,xRBM,filename);
   }
@@ -146,9 +148,11 @@ public:
    */
   template <typename Basis>
   static void write(const Basis& basis,
-                    const std::vector<RigidBodyMotion<double,3> >& configuration,
+                    const std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& configuration,
                     const std::string& filename)
   {
+    using namespace Dune::Indices;
+
     assert(basis.size() == configuration.size());
     auto gridView = basis.gridView();
 
@@ -173,7 +177,7 @@ public:
           blockedInterleaved()
           ));
 
-      std::vector<RigidBodyMotion<double,3> > downsampledConfig;
+      std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > > downsampledConfig;
 
       downsample(basis, configuration, blockedP2Basis, downsampledConfig);
 
@@ -198,7 +202,7 @@ public:
     // Enter vertex coordinates
     std::vector<Dune::FieldVector<double, 3> > points(configuration.size());
     for (size_t i=0; i<configuration.size(); i++)
-      points[i] = configuration[i].r;
+      points[i] = configuration[i][_0].globalCoordinates();
 
     vtkFile.points_ = points;
 
@@ -363,7 +367,7 @@ public:
     // Z coordinate for better visualization of wrinkles
     std::vector<double> zCoord(points.size());
     for (size_t i=0; i<configuration.size(); i++)
-      zCoord[i] = configuration[i].r[2];
+      zCoord[i] = configuration[i][_0].globalCoordinates()[2];
 
     vtkFile.zCoord_ = zCoord;
 
@@ -372,7 +376,7 @@ public:
     {
       vtkFile.directors_[i].resize(configuration.size());
       for (size_t j=0; j<configuration.size(); j++)
-        vtkFile.directors_[i][j] = configuration[j].q.director(i);
+        vtkFile.directors_[i][j] = configuration[j][_1].director(i);
     }
 
     // Actually write the VTK file to disk

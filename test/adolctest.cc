@@ -42,15 +42,17 @@ typedef double FDType;
 #include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/localgeodesicfefdstiffness.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
+
+using namespace Dune;
 
 // grid dimension
 const int dim = 2;
 
 // Image space of the geodesic fe functions
-typedef RigidBodyMotion<double,3> TargetSpace;
-
-using namespace Dune;
+using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C
  */
@@ -477,7 +479,7 @@ int main (int argc, char *argv[]) try
   Functions::interpolate(powerBasis, v, identity);
 
   for (size_t i=0; i<x.size(); i++)
-    x[i].r = v[i];
+    x[i][Indices::_0] = v[i];
 #endif
 
   // ////////////////////////////////////////////////////////////

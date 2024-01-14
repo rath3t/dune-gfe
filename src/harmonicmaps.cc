@@ -47,7 +47,7 @@
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/rotation.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
@@ -58,7 +58,6 @@ const int dimworld = 2;
 // Image space of the geodesic fe functions
 // typedef Rotation<double,2> TargetSpace;
 // typedef Rotation<double,3> TargetSpace;
-// typedef RigidBodyMotion<double,3> TargetSpace;
 // typedef UnitVector<double,2> TargetSpace;
 typedef UnitVector<double,3> TargetSpace;
 // typedef UnitVector<double,4> TargetSpace;

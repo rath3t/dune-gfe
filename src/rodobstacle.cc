@@ -19,6 +19,9 @@
 
 #include <dune/gfe/rodwriter.hh>
 #include <dune/gfe/rodassembler.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 
 // 3 (x, y, theta) for a planar rod
@@ -71,7 +74,7 @@ int main (int argc, char *argv[]) try
   // Some types that I need
   typedef BCRSMatrix<FieldMatrix<double, blocksize, blocksize> > MatrixType;
   typedef BlockVector<FieldVector<double, blocksize> >           CorrectionType;
-  typedef std::vector<RigidBodyMotion<double,2> >                SolutionType;
+  typedef std::vector<GFE::ProductManifold<RealTuple<double,2>,Rotation<doublee,2> > > SolutionType;
 
   // parse data file
   ParameterTree parameterSet;
@@ -293,7 +296,7 @@ int main (int argc, char *argv[]) try
 
       SolutionType newIterate = x;
       for (int j=0; j<newIterate.size(); j++)
-        newIterate[j] = RigidBodyMotion<double,2>::exp(newIterate[j], corr[j]);
+        newIterate[j] = exp(newIterate[j], corr[j]);
 
       /** \todo Don't always recompute oldEnergy */
       double oldEnergy = rodAssembler.computeEnergy(x);
@@ -304,7 +307,7 @@ int main (int argc, char *argv[]) try
 
       //  Add correction to the current solution
       for (int j=0; j<x.size(); j++)
-        x[j] = RigidBodyMotion<double,2>::exp(x[j], corr[j]);
+        x[j] = exp(x[j], corr[j]);
 
       // Subtract correction from the current obstacle
       for (int k=0; k<corr.size(); k++)

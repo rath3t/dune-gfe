@@ -13,7 +13,9 @@
 
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/assemblers/nonplanarcosseratshellenergy.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"
@@ -24,7 +26,7 @@ static const int dim = 2;
 static const int dimworld = 3;
 
 using GridType = FoamGrid<dim,dimworld>;
-using TargetSpace = RigidBodyMotion<double,dimworld>;
+using TargetSpace = GFE::ProductManifold<RealTuple<double,dimworld>,Rotation<double,dimworld> >;
 
 //////////////////////////////////////////////////////////
 //   Make a test grid consisting of a single triangle
@@ -102,16 +104,15 @@ double calculateEnergy(const int numLevels, const F1 referenceConfigurationFunct
   BlockVector<FieldVector<double,3> > helperVector2(feBasis.size());
   Dune::Functions::interpolate(deformationPowerBasis, helperVector2, configurationFunction);
   for (std::size_t i = 0; i < feBasis.size(); i++) {
-    for (int j = 0; j < dimworld; j++)
-      sol[i].r[j] = helperVector2[i][j];
+    sol[i][_0].globalCoordinates() = helperVector2[i];
 
     FieldVector<double,4> idRotation = {0, 0, 0, 1};     //set rotation = Id everywhere
     Rotation<double,dimworld> rotation(idRotation);
     FieldMatrix<double,dimworld,dimworld> rotationMatrix(0);
     rotation.matrix(rotationMatrix);
-    sol[i].q.set(rotationMatrix);
-    solTuple[_0][i] = sol[i].r;
-    solTuple[_1][i] = sol[i].q;
+    sol[i][_1].set(rotationMatrix);
+    solTuple[_0][i] = sol[i][_0];
+    solTuple[_1][i] = sol[i][_1];
   }
   CosseratVTKWriter<GridType>::write<FEBasis>(feBasis, solTuple, "configuration_l" + std::to_string(numLevels));
 

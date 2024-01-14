@@ -6,16 +6,20 @@
 
 #include <dune/gfe/assemblers/cosseratrodenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 
 using namespace Dune;
+using namespace Dune::Indices;
 
 
 int main (int argc, char *argv[]) try
 {
-  // Some types that I need
-  typedef std::vector<RigidBodyMotion<double,3> > SolutionType;
+  // Type used for algebraic rod configurations
+  using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
+  using SolutionType = std::vector<TargetSpace>;
 
   // Problem settings
   const int numRodBaseElements = 100;
@@ -40,15 +44,13 @@ int main (int argc, char *argv[]) try
   for (size_t i=0; i<x.size(); i++)
   {
     double s = double(i)/(x.size()-1);
-    x[i].r[0] = 0.1*std::cos(2*M_PI*s);
-    x[i].r[1] = 0.1*std::sin(2*M_PI*s);
-    x[i].r[2] = s;
-    x[i].q = Rotation<double,3>::identity();
+    x[i][_0] = {0.1*std::cos(2*M_PI*s), 0.1*std::sin(2*M_PI*s), s};
+    x[i][_1] = Rotation<double,3>::identity();
     //x[i].q = Quaternion<double>(zAxis, (double(i)*M_PI)/(2*(x.size()-1)) );
   }
 
   FieldVector<double,3> zAxis(0);  zAxis[2]=1;
-  x.back().q = Rotation<double,3>(zAxis, M_PI/4);
+  x.back()[_1] = Rotation<double,3>(zAxis, M_PI/4);
 
   // /////////////////////////////////////////////////////////////////////
   //   Create a second, rotated copy of the configuration
@@ -63,31 +65,29 @@ int main (int argc, char *argv[]) try
 
   for (size_t i=0; i<rotatedX.size(); i++)
   {
-    rotatedX[i].r = rotation.rotate(x[i].r);
-    rotatedX[i].r += displacement;
+    rotatedX[i][_0] = rotation.rotate(x[i][_0].globalCoordinates());
+    rotatedX[i][_0].globalCoordinates() += displacement;
 
-    rotatedX[i].q = rotation.mult(x[i].q);
+    rotatedX[i][_1] = rotation.mult(x[i][_1]);
   }
 
   using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double,
       FEBasis::LocalView::Tree::FiniteElement,
-      RigidBodyMotion<double,3> >;
+      TargetSpace>;
 
   GFE::CosseratRodEnergy<FEBasis,
       GeodesicInterpolationRule,
       double> localRodEnergy(gridView,
                              1,1,1,1e6,0.3);
 
-  std::vector<RigidBodyMotion<double,3> > referenceConfiguration(gridView.size(1));
+  SolutionType referenceConfiguration(gridView.size(1));
 
   for (const auto& vertex : vertices(gridView))
   {
     auto idx = gridView.indexSet().index(vertex);
 
-    referenceConfiguration[idx].r[0] = 0;
-    referenceConfiguration[idx].r[1] = 0;
-    referenceConfiguration[idx].r[2] = vertex.geometry().corner(0)[0];
-    referenceConfiguration[idx].q = Rotation<double,3>::identity();
+    referenceConfiguration[idx][_0] = {0.0, 0.0, vertex.geometry().corner(0)[0]};
+    referenceConfiguration[idx][_1] = Rotation<double,3>::identity();
   }
 
   localRodEnergy.setReferenceConfiguration(referenceConfiguration);

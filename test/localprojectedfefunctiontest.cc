@@ -99,12 +99,6 @@ void testDerivativeTangentiality(const Rotation<double,vectorDim-1>& x,
 {}
 
 // the columns of the derivative must be tangential to the manifold
-template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const RigidBodyMotion<double,3>& x,
-                                 const FieldMatrix<double,vectorDim,domainDim>& derivative)
-{}
-
-// the columns of the derivative must be tangential to the manifold
 template <int domainDim, int vectorDim,typename ... TargetSpaces>
 void testDerivativeTangentiality(const Dune::GFE::ProductManifold<TargetSpaces...>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
@@ -270,7 +264,6 @@ int main()
   test<UnitVector<double,2>,1>(GeometryTypes::line);
   test<UnitVector<double,3>,1>(GeometryTypes::line);
   test<Rotation<double,3>,1>(GeometryTypes::line);
-  test<RigidBodyMotion<double,3>,1>(GeometryTypes::line);
   typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold, 1>(GeometryTypes::line);
 
@@ -283,7 +276,6 @@ int main()
   test<RealTuple<double,3>,2>(GeometryTypes::triangle);
   test<UnitVector<double,3>,2>(GeometryTypes::triangle);
   test<Rotation<double,3>,2>(GeometryTypes::triangle);
-  test<RigidBodyMotion<double,3>,2>(GeometryTypes::triangle);
   typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold, 2>(GeometryTypes::triangle);
 
@@ -295,7 +287,6 @@ int main()
   test<UnitVector<double,2>,2>(GeometryTypes::quadrilateral);
   test<UnitVector<double,3>,2>(GeometryTypes::quadrilateral);
   test<Rotation<double,3>,2>(GeometryTypes::quadrilateral);
-  test<RigidBodyMotion<double,3>,2>(GeometryTypes::quadrilateral);
   typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold, 2>(GeometryTypes::quadrilateral);
 

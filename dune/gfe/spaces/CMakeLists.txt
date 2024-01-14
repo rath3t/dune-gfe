@@ -5,7 +5,6 @@ install(FILES
         productmanifold.hh
         quaternion.hh
         realtuple.hh
-        rigidbodymotion.hh
         rotation.hh
         unitvector.hh
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/gfe/spaces)

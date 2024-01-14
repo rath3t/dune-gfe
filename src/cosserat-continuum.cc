@@ -70,7 +70,9 @@
 #include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
 #include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 #endif
 
 #if HAVE_DUNE_VTK
@@ -79,6 +81,8 @@
 
 #include <dune/gmsh4/gmsh4reader.hh>
 #include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
+
+using namespace Dune;
 
 // grid dimension
 const int dim = GRID_DIM;
@@ -94,10 +98,9 @@ const int rotationOrder = GFE_ORDER;
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
 
 // Image space of the geodesic fe functions
-using TargetSpace = RigidBodyMotion<double, 3>;
+using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 #endif
 
-using namespace Dune;
 
 int main (int argc, char *argv[]) try
 {
@@ -381,8 +384,8 @@ int main (int argc, char *argv[]) try
 
     for (size_t i=0; i<x.size(); i++) {
       auto vTargetSpace = TargetSpace(v[i]);
-      x[_0][i] = vTargetSpace.r;
-      x[_1][i] = vTargetSpace.q;
+      x[_0][i] = vTargetSpace[_0];
+      x[_1][i] = vTargetSpace[_1];
     }
   }
 #endif
@@ -523,16 +526,16 @@ int main (int argc, char *argv[]) try
       x = solver.getSol();
 #else
       //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
-      //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a RigidBodyMotion
-      //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
+      //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a ProductManifold.
+      //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
       std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
       BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
       for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
         for (int j = 0; j < 3; j ++) {       // Displacement part
-          xTargetSpace[i].r[j] = x[_0][i][j];
+          xTargetSpace[i][_0].globalCoordinates()[j] = x[_0][i][j];
           dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
         }
-        xTargetSpace[i].q = x[_1][i];       // Rotation part
+        xTargetSpace[i][_1] = x[_1][i];       // Rotation part
         for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
           dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
       }
@@ -575,8 +578,8 @@ int main (int argc, char *argv[]) try
         xTargetSpace = solver.getSol();
       }
       for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
-        x[_0][i] = xTargetSpace[i].r;
-        x[_1][i] = xTargetSpace[i].q;
+        x[_0][i] = xTargetSpace[i][_0];
+        x[_1][i] = xTargetSpace[i][_1];
       }
 #endif
     } else {     //dim != dimworld
@@ -623,16 +626,16 @@ int main (int argc, char *argv[]) try
       x = solver.getSol();
 #else
       //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
-      //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a RigidBodyMotion
-      //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
+      //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a ProductManifold.
+      //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
       std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
       BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
       for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
         for (int j = 0; j < 3; j ++) {       // Displacement part
-          xTargetSpace[i].r[j] = x[_0][i][j];
+          xTargetSpace[i][_0].globalCoordinates()[j] = x[_0][i][j];
           dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
         }
-        xTargetSpace[i].q = x[_1][i];       // Rotation part
+        xTargetSpace[i][_1] = x[_1][i];       // Rotation part
         for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
           dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
       }
@@ -676,8 +679,8 @@ int main (int argc, char *argv[]) try
       }
 
       for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
-        x[_0][i] = xTargetSpace[i].r;
-        x[_1][i] = xTargetSpace[i].q;
+        x[_0][i] = xTargetSpace[i][_0];
+        x[_1][i] = xTargetSpace[i][_1];
       }
 #endif
     }

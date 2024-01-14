@@ -6,7 +6,7 @@
 #include <dune/gfe/spaces/hyperbolichalfspacepoint.hh>
 #include <dune/gfe/spaces/orthogonalmatrix.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
@@ -174,13 +174,15 @@ public:
 
 /** \brief A class that creates sets of values of various types, to be used in unit tests
  *
- * This is the specialization for RigidBodyMotion<3>
+ * This is the specialization for a ProductManifold<RealTuple,Rotation>
  */
 template <>
-class ValueFactory<RigidBodyMotion<double,3> >
+class ValueFactory<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >
 {
 public:
-  static void get(std::vector<RigidBodyMotion<double,3> >& values) {
+  static void get(std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& values) {
+
+    using namespace Dune::Indices;
 
     std::vector<RealTuple<double,3> > rValues;
     ValueFactory<RealTuple<double,3> >::get(rValues);
@@ -194,7 +196,10 @@ public:
 
     // Set up elements of SE(3)
     for (int i=0; i<nTestPoints; i++)
-      values[i] = RigidBodyMotion<double,3>(rValues[i].globalCoordinates(),qValues[i]);
+    {
+      values[i][_0] = rValues[i];
+      values[i][_1] = qValues[i];
+    }
 
   }
 

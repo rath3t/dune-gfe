@@ -303,7 +303,6 @@ int main()
   test<UnitVector<double,2>,1>(GeometryTypes::simplex(1));
   test<UnitVector<double,3>,1>(GeometryTypes::simplex(1));
   test<Rotation<double,3>,1>(GeometryTypes::simplex(1));
-  test<RigidBodyMotion<double,3>,1>(GeometryTypes::simplex(1));
   typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold,1>(GeometryTypes::simplex(1));
 
@@ -315,7 +314,6 @@ int main()
   test<UnitVector<double,2>,2>(GeometryTypes::simplex(2));
   test<UnitVector<double,3>,2>(GeometryTypes::simplex(2));
   test<Rotation<double,3>,2>(GeometryTypes::simplex(2));
-  test<RigidBodyMotion<double,3>,2>(GeometryTypes::simplex(2));
   typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold,2>(GeometryTypes::simplex(2));
 
@@ -327,7 +325,6 @@ int main()
   test<UnitVector<double,2>,2>(GeometryTypes::cube(2));
   test<UnitVector<double,3>,2>(GeometryTypes::cube(2));
   test<Rotation<double,3>,2>(GeometryTypes::cube(2));
-  test<RigidBodyMotion<double,3>,2>(GeometryTypes::cube(2));
   typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold,2>(GeometryTypes::cube(2));
 

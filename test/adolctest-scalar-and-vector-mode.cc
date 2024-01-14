@@ -55,7 +55,7 @@ using MatrixRow1 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dimCR,dim>
 using MatrixTypeMixed = MultiTypeBlockMatrix<MatrixRow0,MatrixRow1>;
 
 //Types for the Non-mixed space
-using RBM = RigidBodyMotion<double, dim>;
+using RBM = GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> >;
 using RBMVector = std::vector<RBM>;
 const static int blocksize = RBM::TangentVector::dimension;
 using CorrectionType = BlockVector<FieldVector<double, blocksize> >;
@@ -170,7 +170,7 @@ int main (int argc, char *argv[])
       initialDeformation[i][j] = std::cos(identity[i][j]);
     initialDeformation[i][2] = identity[i][0]*identity[i][0];
     x[_0][i] = initialDeformation[i];
-    xRBM[i].r = initialDeformation[i];
+    xRBM[i][_0] = initialDeformation[i];
   }
 
   //////////////////////////////////////////////////////////////////////////////

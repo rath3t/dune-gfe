@@ -1,5 +1,8 @@
 # Master
 
+- The `RigidBodyMotion` class has been removed.  Please use
+  `ProductManifold<RealTuple,Rotation>` from now on.
+
 - Building the module requires CMake version 3.16 now, to be in line
   with the current core modules.
 

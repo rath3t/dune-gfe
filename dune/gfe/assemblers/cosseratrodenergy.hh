@@ -17,15 +17,17 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 namespace Dune::GFE {
 
   template<class Basis, class LocalInterpolationRule, class RT>
   class CosseratRodEnergy
-    : public LocalEnergy<Basis, RigidBodyMotion<RT,3> >
+    : public LocalEnergy<Basis, ProductManifold<RealTuple<RT,3>,Rotation<RT,3> > >
   {
-    typedef RigidBodyMotion<RT,3> TargetSpace;
+    using TargetSpace = ProductManifold<RealTuple<RT,3>,Rotation<RT,3> >;
 
     // grid types
     using GridView = typename Basis::GridView;
@@ -50,7 +52,7 @@ namespace Dune::GFE {
        The referenceConfiguration is not a variable, and we don't
        want to use `adouble` for it.
      */
-    std::vector<RigidBodyMotion<double,3> > referenceConfiguration_;
+    std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > referenceConfiguration_;
 
   public:
 
@@ -99,13 +101,13 @@ namespace Dune::GFE {
 
     /** \brief Set the stress-free configuration
      */
-    void setReferenceConfiguration(const std::vector<RigidBodyMotion<double,3> >& referenceConfiguration) {
+    void setReferenceConfiguration(const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& referenceConfiguration) {
       referenceConfiguration_ = referenceConfiguration;
     }
 
     /** \brief Compute local element energy */
     virtual RT energy (const typename Basis::LocalView& localView,
-                       const std::vector<RigidBodyMotion<RT,3> >& localSolution) const override;
+                       const std::vector<TargetSpace>& localSolution) const override;
 
     /** \brief Get the rod strain at one point in the rod
      *
@@ -121,16 +123,16 @@ namespace Dune::GFE {
      * \tparam Number This is a member template because the method has to work for double and adouble
      */
     template<class Number>
-    auto getStress(const std::vector<RigidBodyMotion<Number,3> >& localSolution,
+    auto getStress(const std::vector<ProductManifold<RealTuple<Number,3>,Rotation<Number,3> > >& localSolution,
                    const Entity& element,
                    const FieldVector<double,1>& pos) const;
 
     /** \brief Get average strain for each element */
-    void getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
+    void getStrain(const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol,
                    BlockVector<FieldVector<double, blocksize> >& strain) const;
 
     /** \brief Get average stress for each element */
-    void getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
+    void getStress(const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol,
                    BlockVector<FieldVector<double, blocksize> >& stress) const;
 
     /** \brief Return resultant force across boundary in canonical coordinates
@@ -138,14 +140,14 @@ namespace Dune::GFE {
        \note Linear run-time in the size of the grid */
     template <class PatchGridView>
     auto getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
-                           const std::vector<RigidBodyMotion<double,3> >& sol) const;
+                           const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol) const;
 
   protected:
 
-    std::vector<RigidBodyMotion<double,3> > getLocalReferenceConfiguration(const typename Basis::LocalView& localView) const
+    std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > getLocalReferenceConfiguration(const typename Basis::LocalView& localView) const
     {
       unsigned int numOfBaseFct = localView.size();
-      std::vector<RigidBodyMotion<double,3> > localReferenceConfiguration(numOfBaseFct);
+      std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localReferenceConfiguration(numOfBaseFct);
 
       for (size_t i=0; i<numOfBaseFct; i++)
         localReferenceConfiguration[i] = referenceConfiguration_[localView.index(i)];
@@ -170,7 +172,7 @@ namespace Dune::GFE {
   template<class Basis, class LocalInterpolationRule, class RT>
   RT CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
   energy(const typename Basis::LocalView& localView,
-         const std::vector<RigidBodyMotion<RT,3> >& localCoefficients) const
+         const std::vector<TargetSpace>& localCoefficients) const
   {
     const auto& localFiniteElement = localView.tree().finiteElement();
     LocalInterpolationRule localConfiguration(localFiniteElement, localCoefficients);
@@ -179,8 +181,8 @@ namespace Dune::GFE {
 
     RT energy = 0;
 
-    std::vector<RigidBodyMotion<double,3> > localReferenceCoefficients = getLocalReferenceConfiguration(localView);
-    using InactiveLocalInterpolationRule = typename LocalInterpolationRule::template rebind<RigidBodyMotion<double,3> >::other;
+    std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localReferenceCoefficients = getLocalReferenceConfiguration(localView);
+    using InactiveLocalInterpolationRule = typename LocalInterpolationRule::template rebind<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >::other;
     InactiveLocalInterpolationRule localReferenceConfiguration(localFiniteElement, localReferenceCoefficients);
 
     // ///////////////////////////////////////////////////////////////////////////////
@@ -268,15 +270,17 @@ namespace Dune::GFE {
     // /////////////////////////////////////////////
 
     // Strain defined on each element
+    using namespace Dune::Indices;
+
     // Part I: the shearing and stretching strain
     FieldVector<Number, 6> strain(0);
-    strain[0] = r_s * value.q.director(0);    // shear strain
-    strain[1] = r_s * value.q.director(1);    // shear strain
-    strain[2] = r_s * value.q.director(2);    // stretching strain
+    strain[0] = r_s * value[_1].director(0);    // shear strain
+    strain[1] = r_s * value[_1].director(1);    // shear strain
+    strain[2] = r_s * value[_1].director(2);    // stretching strain
 
     // Part II: the Darboux vector
 
-    FieldVector<Number,3> u = darboux<Number>(value.q, q_s);
+    FieldVector<Number,3> u = darboux<Number>(value[_1], q_s);
     strain[3] = u[0];
     strain[4] = u[1];
     strain[5] = u[2];
@@ -287,7 +291,7 @@ namespace Dune::GFE {
   template<class Basis, class LocalInterpolationRule, class RT>
   template <class Number>
   auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-  getStress(const std::vector<RigidBodyMotion<Number,3> >& localSolution,
+  getStress(const std::vector<ProductManifold<RealTuple<Number,3>,Rotation<Number,3> > >& localSolution,
             const Entity& element,
             const FieldVector<double, 1>& pos) const
   {
@@ -309,7 +313,7 @@ namespace Dune::GFE {
 
   template<class Basis, class LocalInterpolationRule, class RT>
   void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-  getStrain(const std::vector<RigidBodyMotion<double,3> >& sol,
+  getStrain(const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol,
             BlockVector<FieldVector<double, blocksize> >& strain) const
   {
     const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
@@ -330,7 +334,7 @@ namespace Dune::GFE {
       Dune::LagrangeSimplexLocalFiniteElement<double, double, 1, 1> localFiniteElement;
       int numOfBaseFct = localFiniteElement.localCoefficients().size();
 
-      std::vector<RigidBodyMotion<double,3> > localSolution(2);
+      std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localSolution(2);
 
       for (int i=0; i<numOfBaseFct; i++)
         localSolution[i] = sol[indexSet.subIndex(element,i,1)];
@@ -364,7 +368,7 @@ namespace Dune::GFE {
 
   template<class Basis, class LocalInterpolationRule, class RT>
   void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
-  getStress(const std::vector<RigidBodyMotion<double,3> >& sol,
+  getStress(const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol,
             BlockVector<FieldVector<double, blocksize> >& stress) const
   {
     // Get the strain
@@ -389,7 +393,7 @@ namespace Dune::GFE {
   template <class PatchGridView>
   auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
   getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
-                    const std::vector<RigidBodyMotion<double,3> >& sol) const
+                    const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol) const
   {
     const typename GridView::Traits::IndexSet& indexSet = this->basis_.gridView().indexSet();
 
@@ -408,11 +412,11 @@ namespace Dune::GFE {
 
       double pos = facet.geometryInInside().corner(0);
 
-      std::vector<RigidBodyMotion<double,3> > localSolution(2);
+      std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localSolution(2);
       localSolution[0] = sol[indexSet.subIndex(*facet.inside(),0,1)];
       localSolution[1] = sol[indexSet.subIndex(*facet.inside(),1,1)];
 
-      std::vector<RigidBodyMotion<double,3> > localRefConf(2);
+      std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localRefConf(2);
       localRefConf[0] = referenceConfiguration_[indexSet.subIndex(*facet.inside(),0,1)];
       localRefConf[1] = referenceConfiguration_[indexSet.subIndex(*facet.inside(),1,1)];
 

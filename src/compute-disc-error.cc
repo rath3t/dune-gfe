@@ -222,7 +222,7 @@ void measureDiscreteEOC(const GridView gridView,
   auto localReferenceSolution = localFunction(referenceSolution);
   auto localNumericalSolution = localFunction(numericalSolution);
 
-  if (std::is_same<TargetSpace,RigidBodyMotion<double,3> >::value)
+  if (std::is_same<TargetSpace,GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >::value)
   {
     double deformationL2ErrorSquared = 0;
     double orientationL2ErrorSquared = 0;
@@ -852,9 +852,9 @@ int main (int argc, char *argv[]) try
                                                parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
-      measureEOC<GridType,RigidBodyMotion<double,2> >(grid,
-                                                      referenceGrid,
-                                                      parameterSet);
+      measureEOC<GridType,GFE::ProductManifold<RealTuple<double,2>,Rotation<double,2> > >(grid,
+                                                                                          referenceGrid,
+                                                                                          parameterSet);
 #endif
     } else
       DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
@@ -878,9 +878,9 @@ int main (int argc, char *argv[]) try
                                                parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
-      measureEOC<GridType,RigidBodyMotion<double,3> >(grid,
-                                                      referenceGrid,
-                                                      parameterSet);
+      measureEOC<GridType,GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >(grid,
+                                                                                          referenceGrid,
+                                                                                          parameterSet);
     } else
       DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
     break;
@@ -904,9 +904,9 @@ int main (int argc, char *argv[]) try
                                                parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
-      measureEOC<GridType,RigidBodyMotion<double,4> >(grid,
-                                                      referenceGrid,
-                                                      parameterSet);
+      measureEOC<GridType,GFE::ProductManifold<RealTuple<double,4>,Rotation<double,4> > >(grid,
+                                                                                          referenceGrid,
+                                                                                          parameterSet);
 #endif
     } else
       DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
