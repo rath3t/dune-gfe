@@ -69,7 +69,7 @@
 #include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
 #include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 #endif
 
 #include <dune/istl/multitypeblockvector.hh>
@@ -564,18 +564,18 @@ int main (int argc, char *argv[]) try
         x[_1][i].set(dOV[i]);
 
 #if !MIXED_SPACE
-    //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
-    //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a RigidBodyMotion
-    //Therefore, x and the dirichletDofs are converted to a RigidBodyMotion structure, as well as the Hessian and Gradient that are returned by the assembler
-    typedef RigidBodyMotion<double, dim> RBM;
+    //The MixedRiemannianTrustRegionSolver can treat the Deformation and Orientation Space as separate ones
+    //The RiemannianTrustRegionSolver can only treat the Deformation and Rotation together in a ProductManifold
+    //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
+    using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
     std::vector<RBM> xRBM(compositeBasis.size({0}));
     BitSetVector<RBM::TangentVector::dimension> dirichletDofsRBM(compositeBasis.size({0}), false);
     for (int i = 0; i < compositeBasis.size({0}); i++) {
       for (int j = 0; j < dim; j ++) { // Displacement part
-        xRBM[i].r[j] = x[_0][i][j];
+        xRBM[i][_0].globalCoordinates()[j] = x[_0][i][j];
         dirichletDofsRBM[i][j] = dirichletDofs[_0][i][j];
       }
-      xRBM[i].q = x[_1][i]; // Rotation part
+      xRBM[i][_1] = x[_1][i]; // Rotation part
       for (int j = dim; j < RBM::TangentVector::dimension; j ++)
         dirichletDofsRBM[i][j] = dirichletDofs[_1][i][j-dim];
     }
@@ -632,8 +632,8 @@ int main (int argc, char *argv[]) try
       solver.solve();
       xRBM = solver.getSol();
       for (int i = 0; i < xRBM.size(); i++) {
-        x[_0][i] = xRBM[i].r;
-        x[_1][i] = xRBM[i].q;
+        x[_0][i] = xRBM[i][_0];
+        x[_1][i] = xRBM[i][_1];
       }
 #endif
     } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
@@ -655,8 +655,8 @@ int main (int argc, char *argv[]) try
       solver.solve();
       xRBM = solver.getSol();
       for (int i = 0; i < xRBM.size(); i++) {
-        x[_0][i] = xRBM[i].r;
-        x[_1][i] = xRBM[i].q;
+        x[_0][i] = xRBM[i][_0];
+        x[_1][i] = xRBM[i][_1];
       }
 #endif
     }

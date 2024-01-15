@@ -22,16 +22,19 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
-typedef RigidBodyMotion<double,3> TargetSpace;
+using namespace Dune;
+using namespace Dune::Indices;
+
+using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
 
 // Approximation order of the finite element space
 constexpr int order = 2;
-
-using namespace Dune;
 
 int main (int argc, char *argv[]) try
 {
@@ -70,15 +73,13 @@ int main (int argc, char *argv[]) try
 
   Functions::interpolate(scalarBasis, referenceConfigurationX, identity);
 
-  using Configuration = std::vector<RigidBodyMotion<double,3> >;
+  using Configuration = std::vector<TargetSpace>;
   Configuration referenceConfiguration(scalarBasis.size());
 
   for (std::size_t i=0; i<referenceConfiguration.size(); i++)
   {
-    referenceConfiguration[i].r[0] = 0;
-    referenceConfiguration[i].r[1] = 0;
-    referenceConfiguration[i].r[2] = referenceConfigurationX[i];
-    referenceConfiguration[i].q = Rotation<double,3>::identity();
+    referenceConfiguration[i][_0] = {0.0, 0.0, referenceConfigurationX[i]};
+    referenceConfiguration[i][_1] = Rotation<double,3>::identity();
   }
 
   // Select the reference configuration as initial iterate
@@ -114,12 +115,12 @@ int main (int argc, char *argv[]) try
     }
 
   // Set Dirichlet values
-  x[rightBoundaryDof].r = {1,0,0};
+  x[rightBoundaryDof][_0] = {1,0,0};
 
   FieldVector<double,3> axis = {1,0,0};
   double angle = 0;
 
-  x[rightBoundaryDof].q = Rotation<double,3>(axis, M_PI*angle/180);
+  x[rightBoundaryDof][_1] = Rotation<double,3>(axis, M_PI*angle/180);
 
   //////////////////////////////////////////////
   //  Create the energy and assembler
@@ -160,7 +161,7 @@ int main (int argc, char *argv[]) try
   //   Create a solver for the rod problem
   /////////////////////////////////////////////
 
-  RiemannianTrustRegionSolver<ScalarBasis,RigidBodyMotion<double,3> > solver;
+  RiemannianTrustRegionSolver<ScalarBasis,TargetSpace> solver;
 
   solver.setup(grid,
                &rodAssembler,

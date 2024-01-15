@@ -598,12 +598,21 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
 
     if (solved) {
       if (this->verbosity_ == NumProc::FULL and rank==0)
-        if (normType_ == ErrorNormType::infinity)
+      {
+        switch (normType_)
+        {
+        case ErrorNormType::infinity :
           std::cout << "infinity norm of the correction: " << corrGlobalNorm << std::endl;
-        else if (normType_ == ErrorNormType::H1semi)
+          break;
+
+        case ErrorNormType::H1semi :
           std::cout << "H1-semi norm of the correction: " << corrGlobalNorm << std::endl;
-        else
+          break;
+
+        default :
           DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
+        }
+      }
 
       if (corrGlobalNorm < this->tolerance_ && corrGlobalNorm < trustRegion.radius()*smallestScalingParameter) {
         if (this->verbosity_ == NumProc::FULL and rank==0)

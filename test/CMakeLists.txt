@@ -12,7 +12,6 @@ set(TESTS
   localprojectedfefunctiontest
   orthogonalmatrixtest
   polardecompositiontest
-  rigidbodymotiontest
   rotationtest
   svdtest
   targetspacetest

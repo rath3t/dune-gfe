@@ -13,7 +13,9 @@
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 #include <dune/gfe/tensor3.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include <dune/curvedgeometry/curvedgeometry.hh>
 #include <dune/localfunctions/lagrange/lfecache.hh>
@@ -35,7 +37,7 @@ namespace Dune::GFE {
     using Entity = typename GridView::template Codim<0>::Entity ;
     using RBM0 = RealTuple<RT,GridView::dimensionworld> ;
     using RBM1 = Rotation<RT,GridView::dimensionworld> ;
-    using RBM = RigidBodyMotion<RT,GridView::dimensionworld> ;
+    using RBM = ProductManifold<RBM0,RBM1> ;
 
     constexpr static int dimWorld = GridView::dimensionworld;
     constexpr static int gridDim = GridView::dimension;
@@ -60,7 +62,7 @@ namespace Dune::GFE {
       //
       // So, DR[i][j][k] contains \partial R_ij / \partial k
       Tensor3<RT, dimWorld, dimWorld, 4> dd_dq;
-      value.q.getFirstDerivativesOfDirectors(dd_dq);
+      value[Indices::_1].getFirstDerivativesOfDirectors(dd_dq);
 
       derivative_rotation = RT(0);
       for (int i=0; i<dimWorld; i++)
@@ -144,8 +146,8 @@ namespace Dune::GFE {
       std::vector<RBM> localSolutionRBM(localSolution0.size());
       for (int i = 0; i < localSolution0.size(); i++) {
         for (int j = 0; j < dimWorld; j++)
-          localSolutionRBM[i].r[j] = localSolution0[i][j];
-        localSolutionRBM[i].q = localSolution1[i];
+          localSolutionRBM[i][_0][j] = localSolution0[i][j];
+        localSolutionRBM[i][_1] = localSolution1[i];
       }
       typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM> LocalGFEFunctionType;
       LocalGFEFunctionType localGeodesicFEFunction(deformationLocalFiniteElement,localSolutionRBM);
@@ -232,7 +234,7 @@ namespace Dune::GFE {
           //////////////////////////////////////////////////////////
 
           Dune::FieldMatrix<RT,dimWorld,dimWorld> R;
-          value.q.matrix(R);
+          value[_1].matrix(R);
           auto rt = Dune::GFE::transpose(R);
 
           Tensor3<RT,dimWorld,dimWorld,boundaryDim> derivative_rotation;

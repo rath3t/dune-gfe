@@ -39,16 +39,20 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
-typedef RigidBodyMotion<double,3> TargetSpace;
+using namespace Dune;
+using namespace Dune::Indices;
+
+using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
 
 // Approximation order of the finite element space
 constexpr int order = 2;
 
-using namespace Dune;
 
 int main (int argc, char *argv[]) try
 {
@@ -112,15 +116,13 @@ int main (int argc, char *argv[]) try
 
   Functions::interpolate(scalarBasis, referenceConfigurationX, identity);
 
-  using Configuration = std::vector<RigidBodyMotion<double,3> >;
+  using Configuration = std::vector<TargetSpace>;
   Configuration referenceConfiguration(scalarBasis.size());
 
   for (std::size_t i=0; i<referenceConfiguration.size(); i++)
   {
-    referenceConfiguration[i].r[0] = 0;
-    referenceConfiguration[i].r[1] = 0;
-    referenceConfiguration[i].r[2] = referenceConfigurationX[i];
-    referenceConfiguration[i].q = Rotation<double,3>::identity();
+    referenceConfiguration[i][_0] = {0, 0, referenceConfigurationX[i]};
+    referenceConfiguration[i][_1] = Rotation<double,3>::identity();
   }
 
   // Select the reference configuration as initial iterate
@@ -157,18 +159,18 @@ int main (int argc, char *argv[]) try
     }
 
   // Set Dirichlet values
-  x[rightBoundaryDof].r = parameterSet.get<FieldVector<double,3> >("dirichletValue");
+  x[rightBoundaryDof][_0] = parameterSet.get<FieldVector<double,3> >("dirichletValue");
 
   auto axis = parameterSet.get<FieldVector<double,3> >("dirichletAxis");
   double angle = parameterSet.get<double>("dirichletAngle");
 
-  x[rightBoundaryDof].q = Rotation<double,3>(axis, M_PI*angle/180);
+  x[rightBoundaryDof][_1] = Rotation<double,3>(axis, M_PI*angle/180);
 
   // backup for error measurement later
   std::cout << "Right boundary orientation:" << std::endl;
-  std::cout << "director 0:  " << x[rightBoundaryDof].q.director(0) << std::endl;
-  std::cout << "director 1:  " << x[rightBoundaryDof].q.director(1) << std::endl;
-  std::cout << "director 2:  " << x[rightBoundaryDof].q.director(2) << std::endl;
+  std::cout << "director 0:  " << x[rightBoundaryDof][_1].director(0) << std::endl;
+  std::cout << "director 1:  " << x[rightBoundaryDof][_1].director(1) << std::endl;
+  std::cout << "director 2:  " << x[rightBoundaryDof][_1].director(2) << std::endl;
 
   //////////////////////////////////////////////
   //  Create the energy and assembler
@@ -207,7 +209,7 @@ int main (int argc, char *argv[]) try
   //   Create a solver for the rod problem
   /////////////////////////////////////////////
 
-  RiemannianTrustRegionSolver<ScalarBasis,RigidBodyMotion<double,3> > rodSolver;
+  RiemannianTrustRegionSolver<ScalarBasis,TargetSpace> rodSolver;
 
   rodSolver.setup(grid,
                   &rodAssembler,
@@ -253,7 +255,7 @@ int main (int argc, char *argv[]) try
   // The rod displacement field
   BlockVector<FieldVector<double,3> > displacement(worldBasis.size());
   for (std::size_t i=0; i<x.size(); i++)
-    displacement[i] = x[i].r;
+    displacement[i] = x[i][_0].globalCoordinates();
 
   std::vector<double> xEmbedding;
   Functions::interpolate(scalarBasis, xEmbedding, [](FieldVector<double,1> x){
@@ -277,7 +279,7 @@ int main (int argc, char *argv[]) try
   {
     director[i].resize(worldBasis.size());
     for (std::size_t j=0; j<x.size(); j++)
-      director[i][j] = x[j].q.director(i);
+      director[i][j] = x[j][_1].director(i);
 
     directorFunction[i] = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, std::move(director[i]));
     vtkWriter.addPointData(*directorFunction[i], "director " + std::to_string(i), 3);

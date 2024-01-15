@@ -30,6 +30,9 @@
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
 
@@ -64,7 +67,7 @@ using MatrixRow1 = MultiTypeBlockVector<BCRSMatrix<FieldMatrix<double,dimCR,dim>
 using MatrixType = MultiTypeBlockMatrix<MatrixRow0,MatrixRow1>;
 
 //Types for the Non-mixed space
-using RBM = RigidBodyMotion<double, dim>;
+using RBM = GFE::ProductManifold<RealTuple<double,dim>,Rotation<double, dim> >;
 const static int blocksize = RBM::TangentVector::dimension;
 using CorrectionTypeWrapped = BlockVector<FieldVector<double, blocksize> >;
 using MatrixTypeWrapped = BCRSMatrix<FieldMatrix<double, blocksize, blocksize> >;
@@ -150,7 +153,6 @@ int main (int argc, char *argv[])
       RealTuple<double,dim>,
       Rotation<double,dim> > mixedAssembler(compositeBasis, &mixedLocalGFEADOLCStiffness);
 
-  using RBM = RigidBodyMotion<double, dim>;
   using DeformationFEBasis = Functions::LagrangeBasis<GridView,displacementOrder>;
   DeformationFEBasis deformationFEBasis(gridView);
   using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim> >;
@@ -179,10 +181,8 @@ int main (int argc, char *argv[])
     for (int j = 0; j < gridDim; j++)
       initialDeformation[i][j] = identity[i][j];
     x[_0][i] = initialDeformation[i];
-    for (int j = 0; j < dim; j ++) { // Displacement part
-      xRBM[i].r[j] = x[_0][i][j];
-    }
-    xRBM[i].q = x[_1][i]; // Rotation part
+    xRBM[i][_0] = x[_0][i];
+    xRBM[i][_1] = x[_1][i]; // Rotation part
   }
 
   //////////////////////////////////////////////////////////////////////////////

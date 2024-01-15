@@ -7,11 +7,13 @@
 
 #include <dune/matrix-vector/crossproduct.hh>
 
-#include <dune/gfe/rigidbodymotion.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 
 #include <dune/gfe/rodassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 /** \brief A factory class that implements various ways to create rod configurations
  */
@@ -33,7 +35,7 @@ public:
      \param[in] n The number of vertices
    */
   template <int dim>
-  void create(std::vector<RigidBodyMotion<double,dim> >& rod,
+  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > >& rod,
               const Dune::FieldVector<double,3>& beginning, const Dune::FieldVector<double,3>& end)
   {
     // Compute the correct orientation
@@ -54,7 +56,9 @@ public:
       orientation = Rotation<double,3>(axis, angle);
 
     // Set the values
-    create(rod, RigidBodyMotion<double,dim>(beginning,orientation), RigidBodyMotion<double,dim>(end,orientation));
+    create(rod,
+           Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > (beginning,orientation),
+           Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > (end,orientation));
   }
 
 
@@ -63,9 +67,9 @@ public:
      \param[out] rod The new rod
    */
   template <int spaceDim>
-  void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
-              const RigidBodyMotion<double,spaceDim>& beginning,
-              const RigidBodyMotion<double,spaceDim>& end)
+  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> >  >& rod,
+              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & beginning,
+              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & end)
   {
 
     static const int dim = GridView::dimension;  // de facto: 1
@@ -106,8 +110,8 @@ public:
      \param[out] rod The new rod
    */
   template <int spaceDim>
-  void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
-              const RigidBodyMotion<double,spaceDim>& value)
+  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> >  >& rod,
+              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & value)
   {
     rod.resize(gridView_.size(1));
     std::fill(rod.begin(), rod.end(), value);
@@ -119,7 +123,7 @@ public:
       \param[in,out] rod The new rod
    */
   template <int spaceDim>
-  void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod)
+  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > >& rod)
   {
     static const int dim = GridView::dimension;      // de facto: 1
     assert(gridView_.size(dim)==rod.size());
@@ -133,7 +137,7 @@ public:
 
     double min =  std::numeric_limits<double>::max();
     double max = -std::numeric_limits<double>::max();
-    RigidBodyMotion<double,spaceDim> beginning, end;
+    Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > beginning, end;
 
     for (; vIt != vEndIt; ++vIt) {
       if (vIt->geometry().corner(0)[0] < min) {
@@ -174,10 +178,10 @@ public:
      \param[out] rod The new rod
    */
   template <int spaceDim>
-  void create(std::vector<RigidBodyMotion<double,spaceDim> >& rod,
+  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > >& rod,
               double radius, double E, double nu,
-              const RigidBodyMotion<double,spaceDim>& beginning,
-              const RigidBodyMotion<double,spaceDim>& end)
+              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & beginning,
+              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & end)
   {
 
     // Make Dirichlet bitfields for the rods as well
@@ -207,7 +211,7 @@ public:
     rod.back() = end;
 
     // Trust--Region solver
-    RiemannianTrustRegionSolver<RodP1Basis, RigidBodyMotion<double,spaceDim> > rodSolver;
+    RiemannianTrustRegionSolver<RodP1Basis, Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > > rodSolver;
     rodSolver.setup(gridView_.grid(), &assembler, rod,
                     rodDirichletNodes,
                     1e-10, 100, // TR tolerance and iterations

@@ -412,8 +412,6 @@ int main() try
   test<Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > >();
   test<Dune::GFE::ProductManifold<Rotation<double,3>,UnitVector<double,5> > >();
 
-  // Test the RigidBodyMotion class
-  test<RigidBodyMotion<double,3> >();
   //
   //     test<HyperbolicHalfspacePoint<double,2> >();
 

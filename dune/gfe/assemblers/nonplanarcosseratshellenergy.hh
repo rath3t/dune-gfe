@@ -21,8 +21,9 @@
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
-#include <dune/gfe/spaces/unitvector.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #if HAVE_DUNE_CURVEDGEOMETRY
 #include <dune/curvedgeometry/curvedgeometry.hh>
@@ -38,7 +39,7 @@
  */
 template<class Basis, int dim, class field_type, class StressFreeStateGridFunction>
 class NonplanarCosseratShellEnergy
-  : public Dune::GFE::LocalEnergy<Basis,RigidBodyMotion<field_type,dim> >,
+  : public Dune::GFE::LocalEnergy<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >,
     public MixedLocalGeodesicFEStiffness<Basis,
         RealTuple<field_type,dim>,
         Rotation<field_type,dim> >
@@ -46,7 +47,7 @@ class NonplanarCosseratShellEnergy
   // grid types
   typedef typename Basis::GridView GridView;
   typedef typename GridView::ctype DT;
-  typedef RigidBodyMotion<field_type,dim> TargetSpace;
+  typedef Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > TargetSpace;
   typedef typename TargetSpace::ctype RT;
   typedef typename GridView::template Codim<0>::Entity Entity;
 
@@ -191,12 +192,14 @@ public:
 };
 
 template <class Basis, int dim, class field_type, class StressFreeStateGridFunction>
-[[deprecated("Use an std::vector<RealTuple<field_type,dim>> and an std::vector<Rotation<field_type,dim>> together with the MixedGFEAssembler and the GFEAssemblerWrapper instead of std::vector<RigidBodyMotion<field_type,dim>>.")]]
+[[deprecated("Use an std::vector<RealTuple<field_type,dim>> and an std::vector<Rotation<field_type,dim>> together with the MixedGFEAssembler and the GFEAssemblerWrapper instead of std::vector<Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> >>.")]]
 typename NonplanarCosseratShellEnergy<Basis, dim, field_type, StressFreeStateGridFunction>::RT
 NonplanarCosseratShellEnergy<Basis,dim,field_type, StressFreeStateGridFunction>::
 energy(const typename Basis::LocalView& localView,
-       const std::vector<RigidBodyMotion<field_type,dim> >& localSolution) const
+       const std::vector<Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >& localSolution) const
 {
+  using namespace Dune::Indices;
+
   // The element geometry
   auto element = localView.element();
 
@@ -240,7 +243,7 @@ energy(const typename Basis::LocalView& localView,
     const DT integrationElement = geometry.integrationElement(quadPos);
 
     // The value of the local function
-    RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
+    Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > value = localGeodesicFEFunction.evaluate(quadPos);
 
     // The derivative of the local function w.r.t. the coordinate system of the tangent space
     auto derivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
@@ -251,11 +254,17 @@ energy(const typename Basis::LocalView& localView,
     //////////////////////////////////////////////////////////
 
     Dune::FieldMatrix<field_type,dim,dim> R;
-    value.q.matrix(R);
+    value[_1].matrix(R);
     auto RT = Dune::GFE::transpose(R);
 
+    // Extract the orientation derivative
+    Dune::FieldMatrix<field_type,4,gridDim> orientationDerivative;
+    for (size_t i=0; i<4; ++i)
+      for (size_t j=0; j<gridDim; ++j)
+        orientationDerivative[i][j] = derivative[3+i][j];
+
     //Derivative of the rotation w.r.t. the coordinate system of the tangent space
-    Tensor3<field_type,3,3,gridDim> DR = value.quaternionTangentToMatrixTangent(derivative);
+    Tensor3<field_type,3,3,gridDim> DR = value[_1].quaternionTangentToMatrixTangent(orientationDerivative);
 
     //////////////////////////////////////////////////////////
     //  Fundamental forms and curvature
@@ -389,7 +398,7 @@ energy(const typename Basis::LocalView& localView,
 
     // Only translational dofs are affected by the volume load
     for (size_t i=0; i<volumeLoadDensity.size(); i++)
-      energy += (volumeLoadDensity[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+      energy += (volumeLoadDensity[i] * value[_0].globalCoordinates()[i]) * quad[pt].weight() * integrationElement;
   }
 
 
@@ -415,14 +424,14 @@ energy(const typename Basis::LocalView& localView,
       const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
 
       // The value of the local function
-      RigidBodyMotion<field_type,dim> value = localGeodesicFEFunction.evaluate(quadPos);
+      Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > value = localGeodesicFEFunction.evaluate(quadPos);
 
       // Value of the Neumann data at the current position
       Dune::FieldVector<double,3> neumannValue = neumannFunction_(it.geometry().global(quad[pt].position()));
 
       // Only translational dofs are affected by the Neumann force
       for (size_t i=0; i<neumannValue.size(); i++)
-        energy += (neumannValue[i] * value.r[i]) * quad[pt].weight() * integrationElement;
+        energy += (neumannValue[i] * value[_0].globalCoordinates()[i]) * quad[pt].weight() * integrationElement;
     }
   }
 

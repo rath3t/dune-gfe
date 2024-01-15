@@ -10,7 +10,9 @@
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
 #include <dune/gfe/localquickanddirtyfefunction.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/tensorssd.hh>
@@ -551,18 +553,17 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
 
 
 /** \brief A function defined by simplicial geodesic interpolation
-           from the reference element to a RigidBodyMotion.
+           from the reference element to a ProductManifold<RealTuple,Rotation>.
 
    This is a specialization for speeding up the code.
-   We use that a RigidBodyMotion is a product manifold.
 
    \tparam dim Dimension of the reference element
    \tparam ctype Type used for coordinates on the reference element
  */
 template <int dim, class ctype, class LocalFiniteElement, class field_type>
-class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<field_type,3> >
+class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement, Dune::GFE::ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> > >
 {
-  typedef RigidBodyMotion<field_type,3> TargetSpace;
+  using TargetSpace = Dune::GFE::ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> >;
 
   typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
   static const int embeddedDim = EmbeddedTangentVector::dimension;
@@ -583,14 +584,15 @@ public:
     : localFiniteElement_(localFiniteElement),
     translationCoefficients_(coefficients.size())
   {
+    using namespace Dune::Indices;
     assert(localFiniteElement.localBasis().size() == coefficients.size());
 
     for (size_t i=0; i<coefficients.size(); i++)
-      translationCoefficients_[i] = coefficients[i].r;
+      translationCoefficients_[i] = coefficients[i][_0].globalCoordinates();
 
     std::vector<Rotation<field_type,3> > orientationCoefficients(coefficients.size());
     for (size_t i=0; i<coefficients.size(); i++)
-      orientationCoefficients[i] = coefficients[i].q;
+      orientationCoefficients[i] = coefficients[i][_1];
 
     orientationFEFunction_ = std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> >(localFiniteElement,orientationCoefficients));
 
@@ -618,17 +620,19 @@ public:
   /** \brief Evaluate the function */
   TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
   {
+    using namespace Dune::Indices;
+
     TargetSpace result;
 
     // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
     std::vector<Dune::FieldVector<ctype,1> > w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
 
-    result.r = 0;
+    result[_0] = Dune::FieldVector<field_type,3>(0.0);
     for (size_t i=0; i<w.size(); i++)
-      result.r.axpy(w[i][0], translationCoefficients_[i]);
+      result[_0].globalCoordinates().axpy(w[i][0], translationCoefficients_[i]);
 
-    result.q = orientationFEFunction_->evaluate(local);
+    result[_1] = orientationFEFunction_->evaluate(local);
     return result;
   }
 
@@ -661,6 +665,8 @@ public:
   DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                     const TargetSpace& q) const
   {
+    using namespace Dune::Indices;
+
     DerivativeType result(0);
 
     // get translation part
@@ -672,7 +678,7 @@ public:
         result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
 
     // get orientation part
-    Dune::FieldMatrix<field_type,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local,q.q);
+    Dune::FieldMatrix<field_type,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local,q[_1]);
     for (int i=0; i<4; i++)
       for (int j=0; j<dim; j++)
         result[3+i][j] = qResult[i][j];
@@ -777,9 +783,7 @@ private:
    */
   const LocalFiniteElement& localFiniteElement_;
 
-  // The two factors of a RigidBodyMotion
-  //LocalGeodesicFEFunction<dim,ctype,RealTuple<3> > translationFEFunction_;
-
+  // Coefficients for the two factors of the product manifold
   std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
   std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > orientationFEFunction_;

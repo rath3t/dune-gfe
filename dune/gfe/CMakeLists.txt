@@ -1,7 +1,6 @@
 #install headers
 install(FILES
         averagedistanceassembler.hh
-        averageinterface.hh
         cosseratstrain.hh
         cosseratvtkreader.hh
         cosseratvtkwriter.hh

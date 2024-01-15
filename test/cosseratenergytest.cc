@@ -8,15 +8,18 @@
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/gfe/assemblers/cosseratenergystiffness.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 #include "multiindex.hh"
 #include "valuefactory.hh"
 
-typedef RigidBodyMotion<double,3> TargetSpace;
-
 using namespace Dune;
+using namespace Dune::Indices;
 
+
+using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
 // ////////////////////////////////////////////////////////
 //   Make a test grid consisting of a single simplex
@@ -97,10 +100,10 @@ void testEnergy(const GridType* grid, const std::vector<TargetSpace>& coefficien
 
     for (size_t j=0; j<coefficients.size(); j++) {
       FieldVector<double,3> tmp;
-      matrix.mv(coefficients[j].r, tmp);
-      rotatedCoefficients[j].r = tmp;
+      matrix.mv(coefficients[j][_0].globalCoordinates(), tmp);
+      rotatedCoefficients[j][_0].globalCoordinates() = tmp;
 
-      rotatedCoefficients[j].q = testRotations[i].mult(coefficients[j].q);
+      rotatedCoefficients[j][_1] = testRotations[i].mult(coefficients[j][_1]);
     }
 
     double energy = assembler.energy(localView,
@@ -143,7 +146,7 @@ void testFrameInvariance()
     bool identicalPoints = false;
     for (int j=0; j<domainDim+1; j++)
       for (int k=0; k<domainDim+1; k++)
-        if (j!=k and (testPoints[index[j]].r - testPoints[index[k]].r).two_norm() < 1e-5)
+        if (j!=k and (testPoints[index[j]][_0].globalCoordinates() - testPoints[index[k]][_0].globalCoordinates()).two_norm() < 1e-5)
           identicalPoints = true;
 
     if (identicalPoints)

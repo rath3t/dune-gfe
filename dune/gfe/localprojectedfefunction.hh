@@ -11,7 +11,7 @@
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/polardecomposition.hh>
 #include <dune/gfe/spaces/realtuple.hh>
-#include <dune/gfe/spaces/rigidbodymotion.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
 namespace Dune {
@@ -414,10 +414,10 @@ namespace Dune {
      * \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
      */
     template <int dim, class ctype, class LocalFiniteElement, class field_type>
-    class LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,RigidBodyMotion<field_type,3> >
+    class LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
     {
     public:
-      typedef RigidBodyMotion<field_type,3> TargetSpace;
+      using TargetSpace = ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >;
     private:
       typedef typename TargetSpace::ctype RT;
 
@@ -441,13 +441,14 @@ namespace Dune {
         translationCoefficients_(coefficients.size())
       {
         assert(localFiniteElement.localBasis().size() == coefficients.size());
+        using namespace Dune::Indices;
 
         for (size_t i=0; i<coefficients.size(); i++)
-          translationCoefficients_[i] = coefficients[i].r;
+          translationCoefficients_[i] = coefficients[i][_0].globalCoordinates();
 
         std::vector<Rotation<field_type,3> > orientationCoefficients(coefficients.size());
         for (size_t i=0; i<coefficients.size(); i++)
-          orientationCoefficients[i] = coefficients[i].q;
+          orientationCoefficients[i] = coefficients[i][_1];
 
         orientationFunction_ = std::make_unique<LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
       }
@@ -474,17 +475,19 @@ namespace Dune {
       /** \brief Evaluate the function */
       TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
       {
-        RigidBodyMotion<field_type,3> result;
+        using namespace Dune::Indices;
+
+        TargetSpace result;
 
         // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
         std::vector<Dune::FieldVector<ctype,1> > w;
         localFiniteElement_.localBasis().evaluateFunction(local,w);
 
-        result.r = 0;
+        result[_0] = FieldVector<field_type,3>(0.0);
         for (size_t i=0; i<w.size(); i++)
-          result.r.axpy(w[i][0], translationCoefficients_[i]);
+          result[_0].globalCoordinates().axpy(w[i][0], translationCoefficients_[i]);
 
-        result.q = orientationFunction_->evaluate(local);
+        result[_1] = orientationFunction_->evaluate(local);
 
         return result;
       }
@@ -506,6 +509,8 @@ namespace Dune {
       DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                         const TargetSpace& q) const
       {
+        using namespace Dune::Indices;
+
         DerivativeType result(0);
 
         // get translation part
@@ -517,7 +522,7 @@ namespace Dune {
             result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
 
         // get orientation part
-        Dune::FieldMatrix<field_type,4,dim> qResult = orientationFunction_->evaluateDerivative(local,q.q);
+        Dune::FieldMatrix<field_type,4,dim> qResult = orientationFunction_->evaluateDerivative(local,q[_1]);
 
         for (int i=0; i<4; i++)
           for (int j=0; j<dim; j++)
