@@ -161,6 +161,9 @@ protected:
   /** \brief If set to true we log convergence speed and other stuff */
   bool instrumented_;
 
+  /** \brief Output path for instrumented log */
+  std::string instrumentedPath_ = "/tmp";
+
   /** \brief Norm type used for stopping criterion (default is infinity norm) */
   enum class ErrorNormType {infinity, H1semi} normType_ = ErrorNormType::infinity;
 
