@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/timer.hh>
 
@@ -41,6 +42,15 @@ setup(const GridType& grid,
     normType_ = ErrorNormType::H1semi;
   else
     DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
+
+  instrumentedPath_ = parameterSet.get("instrumentedPath", "/tmp");
+
+  // create 'intrumented' folder and 'mgHistory' subfolder if it does not exist.
+  if (!(std::filesystem::exists(instrumentedPath_)))
+  {
+    std::filesystem::create_directory(instrumentedPath_);
+    std::filesystem::create_directory(instrumentedPath_ + "/mgHistory");
+  }
 
   setup(grid,
         assembler,
@@ -151,7 +161,7 @@ setup(const GridType& grid,
   // Write all intermediate solutions, if requested
   if (instrumented_
       && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get()))
-    dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get())->historyBuffer_ = "tmp/mgHistory";
+    dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get())->historyBuffer_ = instrumentedPath_ + "/mgHistory";
 
   // ////////////////////////////////////////////////////////////
   //    Create Hessian matrix and its occupation structure
@@ -526,8 +536,9 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
 
     if (instrumented_) {
 
-      char iFilename[100];
-      sprintf(iFilename, "tmp/intermediateSolution_%04ld", i);
+      char iFilename[200];
+      sprintf(iFilename, (instrumentedPath_ + "/mgHistory/intermediatesolution_%04d").c_str(), i);
+
 
       FILE* fpIterate = fopen(iFilename, "wb");
       if (!fpIterate)
