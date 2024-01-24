@@ -58,6 +58,7 @@ code-spelling-check:
   image: registry.dune-project.org/docker/ci/debian:11
   script:
   - codespell
+    --ignore-words-list numer
 
 # Verify code-formatting rules
 code-formatting-check:
