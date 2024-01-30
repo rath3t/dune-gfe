@@ -227,16 +227,16 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
         auto col = localView.index(localIndexCol);
 
         if (row[0]==0 and col[0]==0)
-          hessian[_0][_0][row[1]][col[1]] += localStiffness_->A00_[i][j];
+          hessian[_0][_0][row[1]][col[1]] += localStiffness_->A_[_0][_0][i][j];
 
         if (row[0]==0 and col[0]==1)
-          hessian[_0][_1][row[1]][col[1]] += localStiffness_->A01_[i][j-nDofs0];
+          hessian[_0][_1][row[1]][col[1]] += localStiffness_->A_[_0][_1][i][j-nDofs0];
 
         if (row[0]==1 and col[0]==0)
-          hessian[_1][_0][row[1]][col[1]] += localStiffness_->A10_[i-nDofs0][j];
+          hessian[_1][_0][row[1]][col[1]] += localStiffness_->A_[_1][_0][i-nDofs0][j];
 
         if (row[0]==1 and col[0]==1)
-          hessian[_1][_1][row[1]][col[1]] += localStiffness_->A11_[i-nDofs0][j-nDofs0];
+          hessian[_1][_1][row[1]][col[1]] += localStiffness_->A_[_1][_1][i-nDofs0][j-nDofs0];
       }
 
       // Add local gradient to global gradient

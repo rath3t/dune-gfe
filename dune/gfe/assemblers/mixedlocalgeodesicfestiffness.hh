@@ -2,7 +2,9 @@
 #define DUNE_GFE_MIXEDLOCALGEODESICFESTIFFNESS_HH
 
 #include <dune/common/fmatrix.hh>
+
 #include <dune/istl/matrix.hh>
+#include <dune/istl/multitypeblockmatrix.hh>
 
 
 /** \brief Abstract base class for second-order energy approximations on one grid element
@@ -21,8 +23,8 @@ class MixedLocalGeodesicFEStiffness
 public:
 
   //! Dimension of a tangent space
-  constexpr static int deformationBlocksize = DeformationTargetSpace::TangentVector::dimension;
-  constexpr static int orientationBlocksize = OrientationTargetSpace::TangentVector::dimension;
+  constexpr static int blocksize0 = DeformationTargetSpace::TangentVector::dimension;
+  constexpr static int blocksize1 = OrientationTargetSpace::TangentVector::dimension;
 
   /** \brief Assemble the local stiffness matrix at the current position
    */
@@ -40,12 +42,13 @@ public:
                      const std::vector<DeformationTargetSpace>& localDeformationConfiguration,
                      const std::vector<OrientationTargetSpace>& localOrientationConfiguration) const = 0;
 
-  // assembled data
-  Dune::Matrix<Dune::FieldMatrix<RT, deformationBlocksize, deformationBlocksize> > A00_;
-  Dune::Matrix<Dune::FieldMatrix<RT, deformationBlocksize, orientationBlocksize> > A01_;
-  Dune::Matrix<Dune::FieldMatrix<RT, orientationBlocksize, deformationBlocksize> > A10_;
-  Dune::Matrix<Dune::FieldMatrix<RT, orientationBlocksize, orientationBlocksize> > A11_;
+  // assembled tangent matrix
+  using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize0> >,
+      Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize1> > >;
+  using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize0> >,
+      Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize1> > >;
 
+  Dune::MultiTypeBlockMatrix<Row0, Row1> A_;
 };
 
 #endif

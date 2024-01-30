@@ -351,7 +351,9 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   // For the detailed explanation of the following see: Absil, Mahoney, Trumpf, "An extrinsic look
   // at the Riemannian Hessian".
 
-  this->A00_.setSize(nDofs0,nDofs0);
+  using namespace Dune::Indices;
+
+  this->A_[_0][_0].setSize(nDofs0,nDofs0);
 
   for (size_t col=0; col<nDofs0; col++) {
 
@@ -365,14 +367,14 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian00[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize0; subRow++)
-          this->A00_[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          this->A_[_0][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
 
   }
 
-  this->A01_.setSize(nDofs0,nDofs1);
+  this->A_[_0][_1].setSize(nDofs0,nDofs1);
 
   for (size_t col=0; col<nDofs1; col++) {
 
@@ -386,14 +388,14 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian01[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize0; subRow++)
-          this->A01_[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          this->A_[_0][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
 
   }
 
-  this->A10_.setSize(nDofs1,nDofs0);
+  this->A_[_1][_0].setSize(nDofs1,nDofs0);
 
   for (size_t col=0; col<nDofs0; col++) {
 
@@ -407,14 +409,14 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian10[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize1; subRow++)
-          this->A10_[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          this->A_[_1][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
 
   }
 
-  this->A11_.setSize(nDofs1,nDofs1);
+  this->A_[_1][_1].setSize(nDofs1,nDofs1);
 
   for (size_t col=0; col<nDofs1; col++) {
 
@@ -428,7 +430,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian11[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize1; subRow++)
-          this->A11_[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          this->A_[_1][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
@@ -460,7 +462,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       typename TargetSpace0::TangentVector tmp2;
       orthonormalFrame0[row].mv(tmp1,tmp2);
 
-      this->A00_[row][row][subRow] += tmp2;
+      this->A_[_0][_0][row][row][subRow] += tmp2;
     }
 
   }
@@ -475,7 +477,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       typename TargetSpace1::TangentVector tmp2;
       orthonormalFrame1[row].mv(tmp1,tmp2);
 
-      this->A11_[row][row][subRow] += tmp2;
+      this->A_[_1][_1][row][row][subRow] += tmp2;
     }
 
   }
