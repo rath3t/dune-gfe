@@ -3,7 +3,6 @@
 
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/elasticity/assemblers/localenergy.hh>
