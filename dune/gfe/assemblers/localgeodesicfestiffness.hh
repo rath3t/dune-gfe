@@ -39,8 +39,7 @@ public:
                      const std::vector<TargetSpace>& localSolution) const = 0;
 
   /** \brief Assemble the element gradient of the energy functional
-
-     The default implementation in this class uses a finite difference approximation */
+   */
   virtual void assembleGradient(const typename Basis::LocalView& localView,
                                 const std::vector<TargetSpace>& solution,
                                 std::vector<typename TargetSpace::TangentVector>& gradient) const = 0;

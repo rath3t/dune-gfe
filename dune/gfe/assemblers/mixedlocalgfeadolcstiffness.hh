@@ -53,16 +53,7 @@ public:
   virtual RT energy (const typename Basis::LocalView& localView,
                      const std::vector<TargetSpace0>& localConfiguration0,
                      const std::vector<TargetSpace1>& localConfiguration1) const;
-#if 0
-  /** \brief Assemble the element gradient of the energy functional
 
-     This uses the automatic differentiation toolbox ADOL_C.
-   */
-  virtual void assembleGradient(const Entity& element,
-                                const LocalFiniteElement& localFiniteElement,
-                                const std::vector<TargetSpace>& solution,
-                                std::vector<typename TargetSpace::TangentVector>& gradient) const;
-#endif
   /** \brief Assemble the local stiffness matrix at the current position
 
      This uses the automatic differentiation toolbox ADOL_C.
@@ -133,60 +124,9 @@ energy(const typename Basis::LocalView& localView,
   energy >>= pureEnergy;
 
   trace_off();
-#if 0
-  size_t tape_stats[STAT_SIZE];
-  tapestats(1,tape_stats);               // reading of tape statistics
-  cout<<"maxlive "<<tape_stats[NUM_MAX_LIVES]<<"\n";
-  cout<<"tay_stack_size "<<tape_stats[TAY_STACK_SIZE]<<"\n";
-  cout<<"total number of operations "<<tape_stats[NUM_OPERATIONS]<<"\n";
-  // ..... print other tape stats
-#endif
+
   return pureEnergy;
 }
-
-#if 0
-template <class GridView, class LocalFiniteElement, class TargetSpace>
-void LocalGeodesicFEADOLCStiffness<GridView, LocalFiniteElement, TargetSpace>::
-assembleGradient(const Entity& element,
-                 const LocalFiniteElement& localFiniteElement,
-                 const std::vector<TargetSpace>& localSolution,
-                 std::vector<typename TargetSpace::TangentVector>& localGradient) const
-{
-  // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
-  energy(element, localFiniteElement, localSolution);
-
-  // Compute the actual gradient
-  size_t nDofs = localSolution.size();
-  size_t nDoubles = nDofs*embeddedBlocksize;
-  std::vector<double> xp(nDoubles);
-  int idx=0;
-  for (size_t i=0; i<nDofs; i++)
-    for (size_t j=0; j<embeddedBlocksize; j++)
-      xp[idx++] = localSolution[i].globalCoordinates()[j];
-
-  // Compute gradient
-  std::vector<double> g(nDoubles);
-  gradient(1,nDoubles,xp.data(),g.data());                    // gradient evaluation
-
-  // Copy into Dune type
-  std::vector<typename TargetSpace::EmbeddedTangentVector> localEmbeddedGradient(localSolution.size());
-
-  idx=0;
-  for (size_t i=0; i<nDofs; i++)
-    for (size_t j=0; j<embeddedBlocksize; j++)
-      localEmbeddedGradient[i][j] = g[idx++];
-
-  //     std::cout << "localEmbeddedGradient:\n";
-  //     for (size_t i=0; i<nDofs; i++)
-  //       std::cout << localEmbeddedGradient[i] << std::endl;
-
-  // Express gradient in local coordinate system
-  for (size_t i=0; i<nDofs; i++) {
-    Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> orthonormalFrame = localSolution[i].orthonormalFrame();
-    orthonormalFrame.mv(localEmbeddedGradient[i],localGradient[i]);
-  }
-}
-#endif
 
 // ///////////////////////////////////////////////////////////
 //   Compute gradient and Hessian together

@@ -60,11 +60,7 @@ public:
                                           Dune::BlockVector<Dune::FieldVector<double, blocksize1> >& gradient1,
                                           MatrixType& hessian,
                                           bool computeOccupationPattern=true) const;
-#if 0
-  /** \brief Assemble the gradient */
-  virtual void assembleGradient(const std::vector<TargetSpace>& sol,
-                                Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
-#endif
+
   /** \brief Compute the energy of a deformation state */
   virtual double computeEnergy(const std::vector<TargetSpace0>& configuration0,
                                const std::vector<TargetSpace1>& configuration1) const;
@@ -254,47 +250,6 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
   }
 }
-
-#if 0
-template <class Basis, class TargetSpace>
-void GeodesicFEAssembler<Basis,TargetSpace>::
-assembleGradient(const std::vector<TargetSpace>& sol,
-                 Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
-{
-  if (sol.size()!=basis_.size())
-    DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
-
-  grad.resize(sol.size());
-  grad = 0;
-
-  ElementIterator it    = basis_.getGridView().template begin<0,Dune::Interior_Partition>();
-  ElementIterator endIt = basis_.getGridView().template end<0,Dune::Interior_Partition>();
-
-  // Loop over all elements
-  for (; it!=endIt; ++it) {
-
-    // A 1d grid has two vertices
-    const int nDofs = basis_.getLocalFiniteElement(*it).localBasis().size();
-
-    // Extract local solution
-    std::vector<TargetSpace> localSolution(nDofs);
-
-    for (int i=0; i<nDofs; i++)
-      localSolution[i] = sol[basis_.index(*it,i)];
-
-    // Assemble local gradient
-    std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
-
-    localStiffness_->assembleGradient(*it, basis_.getLocalFiniteElement(*it), localSolution, localGradient);
-
-    // Add to global gradient
-    for (int i=0; i<nDofs; i++)
-      grad[basis_.index(*it,i)] += localGradient[i];
-
-  }
-
-}
-#endif
 
 template <class Basis, class TargetSpace0, class TargetSpace1>
 double MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>::

@@ -52,14 +52,6 @@ public:
   /** \brief Assemble the local tangent matrix and gradient at the current position
 
      This implementation uses finite-difference approximations
-
-     The formula for the Riemannian Hessian has been taken from Absil, Mahony, Sepulchre:
-     'Optimization algorithms on matrix manifolds', page 107.  There it says that
-     \f[
-      \langle Hess f(x)[\xi], \eta \rangle
-          = \frac 12 \frac{d^2}{dt^2} \Big(f(\exp_x(t(\xi + \eta))) - f(\exp_x(t\xi)) - f(\exp_x(t\eta))\Big)\Big|_{t=0}.
-     \f]
-     We compute that using a finite difference approximation.
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const std::vector<TargetSpace>& localSolution,
