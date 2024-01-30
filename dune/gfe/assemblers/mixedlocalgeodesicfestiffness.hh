@@ -15,14 +15,8 @@ class MixedLocalGeodesicFEStiffness
   using DeformationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
   using OrientationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
 
-  // grid types
-  typedef typename Basis::GridView GridView;
-  typedef typename GridView::ctype DT;
-  typedef typename DeformationTargetSpace::ctype RT;
-  typedef typename GridView::template Codim<0>::Entity Entity;
-
-  // some other sizes
-  constexpr static int gridDim = GridView::dimension;
+  // Number type
+  typedef typename TargetSpace::ctype RT;
 
 public:
 

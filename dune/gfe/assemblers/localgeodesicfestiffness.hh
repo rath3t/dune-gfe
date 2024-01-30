@@ -10,14 +10,8 @@ template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness
   : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
 {
-  // grid types
-  typedef typename Basis::GridView GridView;
-  typedef typename GridView::ctype DT;
+  // Number type
   typedef typename TargetSpace::ctype RT;
-  typedef typename GridView::template Codim<0>::Entity Entity;
-
-  // some other sizes
-  constexpr static int gridDim = GridView::dimension;
 
 public:
 
