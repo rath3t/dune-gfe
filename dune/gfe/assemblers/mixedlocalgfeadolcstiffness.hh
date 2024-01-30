@@ -71,7 +71,7 @@ public:
                                           const std::vector<TargetSpace0>& localConfiguration0,
                                           const std::vector<TargetSpace1>& localConfiguration1,
                                           std::vector<typename TargetSpace0::TangentVector>& localGradient0,
-                                          std::vector<typename TargetSpace1::TangentVector>& localGradient1);
+                                          std::vector<typename TargetSpace1::TangentVector>& localGradient1) override;
 
   const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0, ATargetSpace1>* localEnergy_;
   const bool adolcScalarMode_;
