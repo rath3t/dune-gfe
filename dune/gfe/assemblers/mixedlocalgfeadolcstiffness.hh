@@ -13,12 +13,13 @@
 #include <dune/istl/matrix.hh>
 
 #include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
 template<class Basis, class TargetSpace0, class TargetSpace1>
 class MixedLocalGFEADOLCStiffness
-  : public MixedLocalGeodesicFEStiffness<Basis,TargetSpace0,TargetSpace1>
+  : public MixedLocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >
 {
   // grid types
   typedef typename Basis::GridView GridView;
@@ -43,8 +44,8 @@ public:
   constexpr static int embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension;
   constexpr static int embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension;
 
-  MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0,
-      ATargetSpace1>* energy, bool adolcScalarMode = false)
+  MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<ATargetSpace0,
+      ATargetSpace1> >* energy, bool adolcScalarMode = false)
     : localEnergy_(energy),
     adolcScalarMode_(adolcScalarMode)
   {}
@@ -64,7 +65,7 @@ public:
                                           std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                                           std::vector<typename TargetSpace1::TangentVector>& localGradient1) override;
 
-  const MixedLocalGeodesicFEStiffness<Basis, ATargetSpace0, ATargetSpace1>* localEnergy_;
+  const MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
   const bool adolcScalarMode_;
 };
 

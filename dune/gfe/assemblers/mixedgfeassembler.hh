@@ -36,15 +36,13 @@ public:
       Dune::MultiTypeBlockVector<MatrixBlock10,MatrixBlock11> > MatrixType;
   const Basis basis_;
 
-  MixedLocalGeodesicFEStiffness<Basis,
-      TargetSpace0,
-      TargetSpace1>* localStiffness_;
+  MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >* localStiffness_;
 
 public:
 
   /** \brief Constructor for a given grid */
   MixedGFEAssembler(const Basis& basis,
-                    MixedLocalGeodesicFEStiffness<Basis, TargetSpace0, TargetSpace1>* localStiffness)
+                    MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0, TargetSpace1> >* localStiffness)
     : basis_(basis),
     localStiffness_(localStiffness)
   {}

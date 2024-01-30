@@ -18,7 +18,7 @@ namespace Dune::GFE {
   template<class Basis, class ... TargetSpaces>
   class SumEnergy
     : public Dune::GFE::LocalEnergy<Basis, TargetSpaces...>,
-      public MixedLocalGeodesicFEStiffness<Basis, TargetSpaces...>
+      public MixedLocalGeodesicFEStiffness<Basis, ProductManifold<TargetSpaces...> >
       //Inheriting from MixedLocalGeodesicFEStiffness is hack, and will be replaced eventually; once MixedLocalGFEADOLCStiffness
       //will be removed and its functionality will be included in LocalGeodesicFEADOLCStiffness this is not needed anymore!
 

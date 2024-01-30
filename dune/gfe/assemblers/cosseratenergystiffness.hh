@@ -72,9 +72,7 @@ public:
 template<class Basis, int dim, class field_type=double>
 class CosseratEnergyLocalStiffness
   : public Dune::GFE::LocalEnergy<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >,
-    public MixedLocalGeodesicFEStiffness<Basis,
-        RealTuple<field_type,dim>,
-        Rotation<field_type,dim> >
+    public MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >
 {
   // grid types
   typedef typename Basis::GridView GridView;

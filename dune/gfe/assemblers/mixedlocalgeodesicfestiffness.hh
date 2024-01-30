@@ -5,9 +5,16 @@
 #include <dune/istl/matrix.hh>
 
 
-template<class Basis, class DeformationTargetSpace, class OrientationTargetSpace>
+/** \brief Abstract base class for second-order energy approximations on one grid element
+ *
+ * \tparam TargetSpace The space we map into.  MUST be a ProductManifold with two factors
+ */
+template<class Basis, class TargetSpace>
 class MixedLocalGeodesicFEStiffness
 {
+  using DeformationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
+  using OrientationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
+
   // grid types
   typedef typename Basis::GridView GridView;
   typedef typename GridView::ctype DT;

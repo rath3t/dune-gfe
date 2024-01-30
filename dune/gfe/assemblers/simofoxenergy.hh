@@ -54,8 +54,8 @@ namespace Dune::GFE {
   class SimoFoxEnergyLocalStiffness
     : public Dune::GFE::LocalEnergy<Basis, RealTuple<field_type, 3>,
           UnitVector<field_type, 3> >,                             // inheritance to allow usage with LocalGeodesicFEADOLCStiffness
-      public MixedLocalGeodesicFEStiffness<Basis, RealTuple<field_type, 3>,
-          UnitVector<field_type, 3> >                                    // inheritance to allow usage with MixedGFEAssembler
+      public MixedLocalGeodesicFEStiffness<Basis, ProductManifold<RealTuple<field_type, 3>,
+          UnitVector<field_type, 3> > >                                    // inheritance to allow usage with MixedGFEAssembler
   {
     // grid types
     typedef typename Basis::GridView GridView;
