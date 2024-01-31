@@ -38,6 +38,10 @@ namespace Dune::GFE {
 
     constexpr static int gridDim = GridView::dimension;
 
+    static_assert(sizeof...(TargetSpaces) == 2, "LocalGeodesicIntegralEnergy needs two TargetSpaces!");
+    using TargetSpaceDeformation = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
+    using TargetSpaceRotation = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
+
   public:
 
     /** \brief Constructor with a Dune::Elasticity::LocalDensity
@@ -48,7 +52,7 @@ namespace Dune::GFE {
 
     /** \brief Constructor with a Dune::GFE::LocalDensity
      */
-    LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<gridDim,RT,DT> >& ld)
+    LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,ProductManifold<TargetSpaces...> > >& ld)
       : localDensityGFE_(ld)
     {}
 
@@ -60,10 +64,6 @@ namespace Dune::GFE {
     {
       const auto& element = localView.element();
 
-      static_assert(sizeof...(TargetSpaces) > 1, "LocalGeodesicIntegralEnergy needs at least two TargetSpace!");
-
-      using TargetSpaceDeformation = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
-      using TargetSpaceRotation = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
 
       const std::vector<TargetSpaceDeformation>& localDeformationConfiguration = std::get<0>(std::forward_as_tuple(localSolutions ...));
       const std::vector<TargetSpaceRotation>& localOrientationConfiguration = std::get<1>(std::forward_as_tuple(localSolutions ...));
@@ -142,7 +142,7 @@ namespace Dune::GFE {
 
   protected:
     const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT> > localDensityElasticity_ = nullptr;
-    const std::shared_ptr<GFE::LocalDensity<gridDim,RT,DT> > localDensityGFE_ = nullptr;
+    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,ProductManifold<TargetSpaces...> > > localDensityGFE_ = nullptr;
   };
 
 }  // namespace Dune::GFE
