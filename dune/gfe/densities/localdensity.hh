@@ -16,7 +16,19 @@ namespace Dune::GFE {
   class LocalDensity
   {
     using field_type = typename TargetSpace::field_type;
+    using DerivativeType = FieldMatrix<field_type,TargetSpace::EmbeddedTangentVector::dimension,Position::size()>;
+
   public:
+
+    /** \brief Evaluation with the current position, the deformation function, the deformation gradient, the rotation and the rotation gradient
+     *
+     * \param x The current position
+     * \param value The deformation at the current position
+     * \param derivative The derivative of the deformation at the current position
+     */
+    virtual field_type operator() (const Position& x,
+                                   const TargetSpace& value,
+                                   const DerivativeType& derivative) const = 0;
 
     /** \brief Evaluation with the current position, the deformation function, the deformation gradient, the rotation and the rotation gradient
      *
@@ -25,12 +37,18 @@ namespace Dune::GFE {
      * \param deformationDerivative The derivative of the deformation at the current position
      * \param orientationValue The orientation at the current position
      * \param orientationDerivative The derivative of the orientation at the current position
+     *
+     * \deprecated This is still used by Cosserat models, but shell be removed
+     * of the method above eventually.
      */
     virtual field_type operator() (const Position& x,
                                    const RealTuple<field_type,3>& deformation,
                                    const FieldMatrix<field_type,3,3>& gradient,
                                    const Rotation<field_type,3>& rotation,
-                                   const FieldMatrix<field_type, 4, 3>& rotationGradient) const = 0;
+                                   const FieldMatrix<field_type, 4, 3>& rotationGradient) const
+    {
+      std::terminate();
+    }
 
   };
 

@@ -110,6 +110,18 @@ namespace Dune::GFE {
                                   + b2_ * GFE::skew(wryness).frobenius_norm2() + b3_ * GFE::traceSquared(wryness));
     }
 
+    /** \brief Evaluate the density
+     *
+     * \todo Currently this method is only here to please the compiler.
+     * Eventually, it will replace the other operator()-implementation.
+     */
+    virtual field_type operator() (const Position& x,
+                                   const GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >& value,
+                                   const FieldMatrix<field_type,7,gridDim>& derivative) const override
+    {
+      DUNE_THROW(NotImplemented, "!");
+    }
+
     /** \brief Evaluation with the current position, the deformation value and its derivative, the orientation value and its derivative
      *
      * \param x The current position
