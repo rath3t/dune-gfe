@@ -9,6 +9,7 @@
 
 #include <dune/common/typetraits.hh>
 #include <dune/common/bitsetvector.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/io/file/gmshreader.hh>
@@ -119,7 +120,11 @@ int main (int argc, char *argv[])
 
   BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
   BitSetVector<TargetSpace::TangentVector::dimension> dirichletNodes(powerBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundary,tangentBasis,dirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary,tangentBasis,dirichletNodes);
+#endif
 
   ////////////////////////////
   //  Initial iterate

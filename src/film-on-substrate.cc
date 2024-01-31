@@ -306,10 +306,17 @@ int main (int argc, char *argv[]) try
   BitSetVector<1> dirichletNodesY(compositeBasis.size({0}),false);
   BitSetVector<1> dirichletNodesZ(compositeBasis.size({0}),false);
   BitSetVector<1> surfaceShellNodes(compositeBasis.size({1}),false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundaryX,deformationFEBasis,dirichletNodesX);
+  Fufem::markBoundaryPatchDofs(dirichletBoundaryY,deformationFEBasis,dirichletNodesY);
+  Fufem::markBoundaryPatchDofs(dirichletBoundaryZ,deformationFEBasis,dirichletNodesZ);
+  Fufem::markBoundaryPatchDofs(surfaceShellBoundary,orientationFEBasis,surfaceShellNodes);
+#else
   constructBoundaryDofs(dirichletBoundaryX,deformationFEBasis,dirichletNodesX);
   constructBoundaryDofs(dirichletBoundaryY,deformationFEBasis,dirichletNodesY);
   constructBoundaryDofs(dirichletBoundaryZ,deformationFEBasis,dirichletNodesZ);
   constructBoundaryDofs(surfaceShellBoundary,orientationFEBasis,surfaceShellNodes);
+#endif
 
   //Create BitVector matching the tangential space
   const int dimRotationTangent = Rotation<double,dim>::TangentVector::dimension;

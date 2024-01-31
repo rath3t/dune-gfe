@@ -166,7 +166,11 @@ int main (int argc, char *argv[]) try
   BoundaryPatch<GridType::LeafGridView> dirichletBoundary(grid->leafGridView(), dirichletVertices);
 
   BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundary,feBasis,dirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+#endif
 
   ////////////////////////////
   //   Initial iterate

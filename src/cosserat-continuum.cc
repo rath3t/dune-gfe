@@ -34,6 +34,7 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 #include <dune/common/tuplevector.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
@@ -307,7 +308,11 @@ int main (int argc, char *argv[]) try
             << " faces and " << neumannVertices.count() << " degrees of freedom.\n";
 
   BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(neumannBoundary,deformationFEBasis,neumannNodes);
+#else
   constructBoundaryDofs(neumannBoundary,deformationFEBasis,neumannNodes);
+#endif
 
   for (size_t i=0; i<deformationFEBasis.size(); i++) {
     FieldVector<bool,3> isDirichlet;
