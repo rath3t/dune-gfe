@@ -26,7 +26,8 @@ public:
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const std::vector<TargetSpace>& localSolution,
-                                          std::vector<typename TargetSpace::TangentVector>& localGradient) = 0;
+                                          std::vector<typename TargetSpace::TangentVector>& localGradient,
+                                          Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> >& localHessian) const = 0;
 
   /** \brief Compute the energy at the current configuration */
   virtual RT energy (const typename Basis::LocalView& localView,
@@ -37,10 +38,6 @@ public:
   virtual void assembleGradient(const typename Basis::LocalView& localView,
                                 const std::vector<TargetSpace>& solution,
                                 std::vector<typename TargetSpace::TangentVector>& gradient) const = 0;
-
-  // assembled data
-  Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> > A_;
-
 };
 
 #endif

@@ -47,7 +47,7 @@ public:
 
   /** \brief Compute the energy at the current configuration */
   virtual RT energy (const typename Basis::LocalView& localView,
-                     const std::vector<TargetSpace>& localSolution) const;
+                     const std::vector<TargetSpace>& localSolution) const override;
 
   /** \brief Assemble the element gradient of the energy functional
 
@@ -55,7 +55,7 @@ public:
    */
   virtual void assembleGradient(const typename Basis::LocalView& localView,
                                 const std::vector<TargetSpace>& solution,
-                                std::vector<typename TargetSpace::TangentVector>& gradient) const;
+                                std::vector<typename TargetSpace::TangentVector>& gradient) const override;
 
   /** \brief Assemble the local stiffness matrix at the current position
 
@@ -63,7 +63,8 @@ public:
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const std::vector<TargetSpace>& localSolution,
-                                          std::vector<typename TargetSpace::TangentVector>& localGradient);
+                                          std::vector<typename TargetSpace::TangentVector>& localGradient,
+                                          Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> >& localHessian) const override;
 
   const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
   const bool adolcScalarMode_;
@@ -166,7 +167,8 @@ template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const std::vector<TargetSpace>& localSolution,
-                           std::vector<typename TargetSpace::TangentVector>& localGradient)
+                           std::vector<typename TargetSpace::TangentVector>& localGradient,
+                           Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> >& localHessian) const
 {
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
   energy(localView, localSolution);
@@ -302,7 +304,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
   typedef typename TargetSpace::TangentVector TangentVector;
 
-  this->A_.setSize(nDofs,nDofs);
+  localHessian.setSize(nDofs,nDofs);
 
   for (size_t col=0; col<nDofs; col++) {
 
@@ -316,7 +318,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize; subRow++)
-          this->A_[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          localHessian[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
@@ -343,7 +345,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       TangentVector tmp2;
       orthonormalFrame[row].mv(tmp1,tmp2);
 
-      this->A_[row][row][subRow] += tmp2;
+      localHessian[row][row][subRow] += tmp2;
     }
 
   }

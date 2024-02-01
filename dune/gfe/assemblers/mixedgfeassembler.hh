@@ -194,10 +194,20 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
     std::vector<Dune::FieldVector<double,blocksize0> > localGradient0(nDofs0);
     std::vector<Dune::FieldVector<double,blocksize1> > localGradient1(nDofs1);
 
+    using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize0> >,
+    Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize1> > >;
+    using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize0> >,
+    Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize1> > >;
+
+    using HessianType = Dune::MultiTypeBlockMatrix<Row0, Row1>;
+
+    HessianType localHessian;
+
     // setup local matrix and gradient
     localStiffness_->assembleGradientAndHessian(localView,
                                                 localConfiguration0, localConfiguration1,
-                                                localGradient0, localGradient1);
+                                                localGradient0, localGradient1,
+                                                localHessian);
 
     // Add element matrix to global stiffness matrix
     for (int i=0; i<nDofs0+nDofs1; i++)
@@ -227,16 +237,16 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
         auto col = localView.index(localIndexCol);
 
         if (row[0]==0 and col[0]==0)
-          hessian[_0][_0][row[1]][col[1]] += localStiffness_->A_[_0][_0][i][j];
+          hessian[_0][_0][row[1]][col[1]] += localHessian[_0][_0][i][j];
 
         if (row[0]==0 and col[0]==1)
-          hessian[_0][_1][row[1]][col[1]] += localStiffness_->A_[_0][_1][i][j-nDofs0];
+          hessian[_0][_1][row[1]][col[1]] += localHessian[_0][_1][i][j-nDofs0];
 
         if (row[0]==1 and col[0]==0)
-          hessian[_1][_0][row[1]][col[1]] += localStiffness_->A_[_1][_0][i-nDofs0][j];
+          hessian[_1][_0][row[1]][col[1]] += localHessian[_1][_0][i-nDofs0][j];
 
         if (row[0]==1 and col[0]==1)
-          hessian[_1][_1][row[1]][col[1]] += localStiffness_->A_[_1][_1][i-nDofs0][j-nDofs0];
+          hessian[_1][_1][row[1]][col[1]] += localHessian[_1][_1][i-nDofs0][j-nDofs0];
       }
 
       // Add local gradient to global gradient

@@ -168,9 +168,10 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
       localSolution[i] = sol[localView.index(i)];
 
     std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
+    Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > localHessian(numOfBaseFct,numOfBaseFct);
 
     // setup local matrix and gradient
-    localStiffness_->assembleGradientAndHessian(localView, localSolution, localGradient);
+    localStiffness_->assembleGradientAndHessian(localView, localSolution, localGradient, localHessian);
 
     // Add element matrix to global stiffness matrix
     for(int i=0; i<numOfBaseFct; i++) {
@@ -180,7 +181,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
       for (int j=0; j<numOfBaseFct; j++ ) {
 
         auto col = localView.index(j);
-        hessian[row][col] += localStiffness_->A_[i][j];
+        hessian[row][col] += localHessian[i][j];
 
       }
     }

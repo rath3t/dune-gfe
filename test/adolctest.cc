@@ -580,14 +580,16 @@ int main (int argc, char *argv[]) try
 
     localGFEADOLCStiffness.assembleGradientAndHessian(localView,
                                                       localSolution,
-                                                      localRiemannianADGradient);
+                                                      localRiemannianADGradient,
+                                                      localRiemannianADHessian);
 
     localGFEFDStiffness.assembleGradientAndHessian(localView,
                                                    localSolution,
-                                                   localRiemannianFDGradient);
+                                                   localRiemannianFDGradient,
+                                                   localRiemannianFDHessian);
 
     // compare
-    compareMatrices(localGFEADOLCStiffness.A_, "Riemannian AD", localGFEFDStiffness.A_, "Riemannian FD");
+    compareMatrices(localRiemannianADHessian, "Riemannian AD", localRiemannianFDHessian, "Riemannian FD");
 
   }
 

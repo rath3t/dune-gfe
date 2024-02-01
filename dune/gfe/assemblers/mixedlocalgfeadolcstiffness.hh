@@ -34,6 +34,9 @@ class MixedLocalGFEADOLCStiffness
   // some other sizes
   constexpr static int gridDim = GridView::dimension;
 
+  using Base = MixedLocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >;
+  using HessianType = typename Base::HessianType;
+
 public:
 
   //! Dimension of a tangent space
@@ -63,7 +66,8 @@ public:
                                           const std::vector<TargetSpace0>& localConfiguration0,
                                           const std::vector<TargetSpace1>& localConfiguration1,
                                           std::vector<typename TargetSpace0::TangentVector>& localGradient0,
-                                          std::vector<typename TargetSpace1::TangentVector>& localGradient1) override;
+                                          std::vector<typename TargetSpace1::TangentVector>& localGradient1,
+                                          HessianType& localHessian) override;
 
   const MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
   const bool adolcScalarMode_;
@@ -140,7 +144,8 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const std::vector<TargetSpace0>& localConfiguration0,
                            const std::vector<TargetSpace1>& localConfiguration1,
                            std::vector<typename TargetSpace0::TangentVector>& localGradient0,
-                           std::vector<typename TargetSpace1::TangentVector>& localGradient1)
+                           std::vector<typename TargetSpace1::TangentVector>& localGradient1,
+                           HessianType& localHessian)
 {
   int rank = Dune::MPIHelper::getCommunication().rank();
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
@@ -353,7 +358,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
   using namespace Dune::Indices;
 
-  this->A_[_0][_0].setSize(nDofs0,nDofs0);
+  localHessian[_0][_0].setSize(nDofs0,nDofs0);
 
   for (size_t col=0; col<nDofs0; col++) {
 
@@ -367,14 +372,14 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian00[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize0; subRow++)
-          this->A_[_0][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          localHessian[_0][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
 
   }
 
-  this->A_[_0][_1].setSize(nDofs0,nDofs1);
+  localHessian[_0][_1].setSize(nDofs0,nDofs1);
 
   for (size_t col=0; col<nDofs1; col++) {
 
@@ -388,14 +393,14 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian01[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize0; subRow++)
-          this->A_[_0][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          localHessian[_0][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
 
   }
 
-  this->A_[_1][_0].setSize(nDofs1,nDofs0);
+  localHessian[_1][_0].setSize(nDofs1,nDofs0);
 
   for (size_t col=0; col<nDofs0; col++) {
 
@@ -409,14 +414,14 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian10[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize1; subRow++)
-          this->A_[_1][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          localHessian[_1][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
 
   }
 
-  this->A_[_1][_1].setSize(nDofs1,nDofs1);
+  localHessian[_1][_1].setSize(nDofs1,nDofs1);
 
   for (size_t col=0; col<nDofs1; col++) {
 
@@ -430,7 +435,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian11[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize1; subRow++)
-          this->A_[_1][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          localHessian[_1][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
@@ -462,7 +467,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       typename TargetSpace0::TangentVector tmp2;
       orthonormalFrame0[row].mv(tmp1,tmp2);
 
-      this->A_[_0][_0][row][row][subRow] += tmp2;
+      localHessian[_0][_0][row][row][subRow] += tmp2;
     }
 
   }
@@ -477,7 +482,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       typename TargetSpace1::TangentVector tmp2;
       orthonormalFrame1[row].mv(tmp1,tmp2);
 
-      this->A_[_1][_1][row][row][subRow] += tmp2;
+      localHessian[_1][_1][row][row][subRow] += tmp2;
     }
 
   }

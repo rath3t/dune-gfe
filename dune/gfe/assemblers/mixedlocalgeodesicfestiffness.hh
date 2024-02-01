@@ -26,13 +26,22 @@ public:
   constexpr static int blocksize0 = DeformationTargetSpace::TangentVector::dimension;
   constexpr static int blocksize1 = OrientationTargetSpace::TangentVector::dimension;
 
+  // Type of the local Hessian
+  using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize0> >,
+      Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize1> > >;
+  using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize0> >,
+      Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize1> > >;
+
+  using HessianType = Dune::MultiTypeBlockMatrix<Row0, Row1>;
+
   /** \brief Assemble the local stiffness matrix at the current position
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const std::vector<DeformationTargetSpace>& localDisplacementConfiguration,
                                           const std::vector<OrientationTargetSpace>& localOrientationConfiguration,
                                           std::vector<typename DeformationTargetSpace::TangentVector>& localDeformationGradient,
-                                          std::vector<typename OrientationTargetSpace::TangentVector>& localOrientationGradient)
+                                          std::vector<typename OrientationTargetSpace::TangentVector>& localOrientationGradient,
+                                          HessianType& hessian)
   {
     DUNE_THROW(Dune::NotImplemented, "!");
   }
@@ -42,13 +51,6 @@ public:
                      const std::vector<DeformationTargetSpace>& localDeformationConfiguration,
                      const std::vector<OrientationTargetSpace>& localOrientationConfiguration) const = 0;
 
-  // assembled tangent matrix
-  using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize0> >,
-      Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize1> > >;
-  using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize0> >,
-      Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize1> > >;
-
-  Dune::MultiTypeBlockMatrix<Row0, Row1> A_;
 };
 
 #endif
