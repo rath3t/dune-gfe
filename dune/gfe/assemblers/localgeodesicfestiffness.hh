@@ -6,6 +6,27 @@
 
 #include <dune/gfe/assemblers/localfirstordermodel.hh>
 
+namespace Dune::GFE
+{
+  namespace Impl
+  {
+    template<class TargetSpace>
+    class LocalStiffnessTypes
+    {
+      // Number type
+      typedef typename TargetSpace::ctype RT;
+
+      //! Dimension of a tangent space
+      constexpr static auto blocksize = TargetSpace::TangentVector::dimension;
+
+    public:
+
+      // Type of the local Hessian
+      using Hessian = Matrix<FieldMatrix<RT, blocksize, blocksize> >;
+    };
+  }
+}
+
 template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness
   : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
@@ -27,7 +48,7 @@ public:
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const std::vector<TargetSpace>& localSolution,
                                           std::vector<typename TargetSpace::TangentVector>& localGradient,
-                                          Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> >& localHessian) const = 0;
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
 
   /** \brief Compute the energy at the current configuration */
   virtual RT energy (const typename Basis::LocalView& localView,

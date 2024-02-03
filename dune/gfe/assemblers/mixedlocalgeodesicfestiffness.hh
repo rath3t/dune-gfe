@@ -6,6 +6,35 @@
 #include <dune/istl/matrix.hh>
 #include <dune/istl/multitypeblockmatrix.hh>
 
+namespace Dune::GFE
+{
+  namespace Impl
+  {
+    template<class TargetSpace>
+    class MixedLocalStiffnessTypes
+    {
+      // Number type
+      typedef typename TargetSpace::ctype RT;
+
+      using DeformationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
+      using OrientationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
+
+      //! Dimension of a tangent space
+      constexpr static int blocksize0 = DeformationTargetSpace::TangentVector::dimension;
+      constexpr static int blocksize1 = OrientationTargetSpace::TangentVector::dimension;
+
+    public:
+
+      // Type of the local Hessian
+      using Row0 = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize0, blocksize0> >,
+          Matrix<FieldMatrix<RT, blocksize0, blocksize1> > >;
+      using Row1 = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize1, blocksize0> >,
+          Matrix<FieldMatrix<RT, blocksize1, blocksize1> > >;
+
+      using MixedHessian = Dune::MultiTypeBlockMatrix<Row0, Row1>;
+    };
+  }
+}
 
 /** \brief Abstract base class for second-order energy approximations on one grid element
  *
@@ -26,14 +55,6 @@ public:
   constexpr static int blocksize0 = DeformationTargetSpace::TangentVector::dimension;
   constexpr static int blocksize1 = OrientationTargetSpace::TangentVector::dimension;
 
-  // Type of the local Hessian
-  using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize0> >,
-      Dune::Matrix<Dune::FieldMatrix<RT, blocksize0, blocksize1> > >;
-  using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize0> >,
-      Dune::Matrix<Dune::FieldMatrix<RT, blocksize1, blocksize1> > >;
-
-  using HessianType = Dune::MultiTypeBlockMatrix<Row0, Row1>;
-
   /** \brief Assemble the local stiffness matrix at the current position
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
@@ -41,7 +62,7 @@ public:
                                           const std::vector<OrientationTargetSpace>& localOrientationConfiguration,
                                           std::vector<typename DeformationTargetSpace::TangentVector>& localDeformationGradient,
                                           std::vector<typename OrientationTargetSpace::TangentVector>& localOrientationGradient,
-                                          HessianType& hessian)
+                                          typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::MixedHessian& localHessian)
   {
     DUNE_THROW(Dune::NotImplemented, "!");
   }

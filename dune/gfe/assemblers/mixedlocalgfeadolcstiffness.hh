@@ -34,8 +34,7 @@ class MixedLocalGFEADOLCStiffness
   // some other sizes
   constexpr static int gridDim = GridView::dimension;
 
-  using Base = MixedLocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >;
-  using HessianType = typename Base::HessianType;
+  using HessianType = typename Dune::GFE::Impl::MixedLocalStiffnessTypes<Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >::MixedHessian;
 
 public:
 

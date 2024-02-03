@@ -195,9 +195,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
     std::vector<Dune::FieldVector<double,blocksize1> > localGradient1(nDofs1);
 
     using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize0> >,
-    Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize1> > >;
+        Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize1> > >;
     using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize0> >,
-    Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize1> > >;
+        Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize1> > >;
 
     using HessianType = Dune::MultiTypeBlockMatrix<Row0, Row1>;
 
