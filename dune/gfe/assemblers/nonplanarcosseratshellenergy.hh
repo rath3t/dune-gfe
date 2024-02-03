@@ -93,7 +93,7 @@ public:
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
-             const std::vector<TargetSpace>& localSolution) const;
+             const std::vector<TargetSpace>& localSolution) const override;
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
