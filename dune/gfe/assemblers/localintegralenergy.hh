@@ -29,12 +29,13 @@ namespace Dune::GFE {
    */
   template<class Basis, class ... TargetSpaces>
   class LocalIntegralEnergy
-    : public Dune::GFE::LocalEnergy<Basis,TargetSpaces...>
+    : public Dune::GFE::LocalEnergy<Basis,ProductManifold<TargetSpaces...> >
   {
+    using TargetSpace = ProductManifold<TargetSpaces...>;
     using LocalView = typename Basis::LocalView;
     using GridView = typename LocalView::GridView;
     using DT = typename GridView::Grid::ctype;
-    using RT = typename GFE::LocalEnergy<Basis,TargetSpaces...>::RT;
+    using RT = typename GFE::LocalEnergy<Basis,TargetSpace>::RT;
 
     constexpr static int gridDim = GridView::dimension;
 
@@ -60,15 +61,20 @@ namespace Dune::GFE {
 
     /** \brief Assemble the energy for a single element */
     RT energy(const typename Basis::LocalView& localView,
-              const std::vector<TargetSpaces>& ... localSolutions) const
+              const std::vector<TargetSpace>& localSolutions) const
+    {
+      DUNE_THROW(NotImplemented, "!");
+    }
+
+    RT energy (const typename Basis::LocalView& localView,
+               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
     {
       const auto& element = localView.element();
 
-
-      const std::vector<TargetSpaceDeformation>& localDeformationConfiguration = std::get<0>(std::forward_as_tuple(localSolutions ...));
-      const std::vector<TargetSpaceRotation>& localOrientationConfiguration = std::get<1>(std::forward_as_tuple(localSolutions ...));
-
       using namespace Indices;
+      const std::vector<TargetSpaceDeformation>& localDeformationConfiguration = coefficients[_0];
+      const std::vector<TargetSpaceRotation>& localOrientationConfiguration = coefficients[_1];
+
       // composite Basis: grab the finite element of the first child
       const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
       const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();

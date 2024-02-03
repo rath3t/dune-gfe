@@ -143,6 +143,12 @@ public:
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const override;
 
+  RT energy (const typename Basis::LocalView& localView,
+             const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
+
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<RealTuple<field_type,dim> >& localDisplacementConfiguration,

@@ -26,6 +26,12 @@ public:
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const override;
 
+  virtual RT energy (const typename Basis::LocalView& localView,
+                     const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
+
 };
 
 template <class Basis, class LocalInterpolationRule, class TargetSpace>

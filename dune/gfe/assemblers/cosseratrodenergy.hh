@@ -109,6 +109,12 @@ namespace Dune::GFE {
     virtual RT energy (const typename Basis::LocalView& localView,
                        const std::vector<TargetSpace>& localSolution) const override;
 
+    virtual RT energy (const typename Basis::LocalView& localView,
+                       const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+    {
+      DUNE_THROW(NotImplemented, "!");
+    }
+
     /** \brief Get the rod strain at one point in the rod
      *
      * \tparam Number This is a member template because the method has to work for double and adouble

@@ -42,6 +42,12 @@ public:
     return localEnergy_->energy(localView,localSolution);
   }
 
+  RT energy (const typename Basis::LocalView& localView,
+             const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
+
   /** \brief Assemble the element gradient of the energy functional
 
      The default implementation in this class uses a finite difference approximation */

@@ -3,16 +3,43 @@
 
 #include <vector>
 
+#include <dune/common/tuplevector.hh>
+
+#include <dune/gfe/spaces/productmanifold.hh>
+
 namespace Dune {
+
+  namespace GFE:: Impl
+  {
+    /** \brief A class exporting container types for coefficient sets
+     *
+     * This generic template handles TargetSpaces that are not product manifolds.
+     */
+    template <class TargetSpace>
+    struct LocalEnergyTypes
+    {
+      using Coefficients = std::vector<TargetSpace>;
+      using CompositeCoefficients = TupleVector<std::vector<TargetSpace> >;
+    };
+
+    /** \brief A class exporting container types for coefficient sets -- specialization for product manifolds
+     */
+    template <class ... Factors>
+    struct LocalEnergyTypes<ProductManifold<Factors...> >
+    {
+      using Coefficients = std::vector<ProductManifold<Factors...> >;
+      using CompositeCoefficients = TupleVector<std::vector<Factors>... >;
+    };
+  }
 
   namespace GFE {
 
     /** \brief Base class for energies defined by integrating over one grid element */
-    template<class Basis, class ... TargetSpaces>
+    template<class Basis, class TargetSpace>
     class LocalEnergy
     {
     public:
-      using RT = typename std::common_type<typename TargetSpaces::ctype...>::type;
+      using RT = typename TargetSpace::ctype;
 
       /** \brief Compute the energy
        *
@@ -21,7 +48,14 @@ namespace Dune {
        */
       virtual RT
       energy (const typename Basis::LocalView& localView,
-              const std::vector<TargetSpaces>& ... localSolution) const = 0;
+              const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& coefficients) const = 0;
+
+      /** \brief ProductManifolds: Compute the energy from coefficients in separate containers
+       * for each factor
+       */
+      virtual RT
+      energy (const typename Basis::LocalView& localView,
+              const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const = 0;
 
       /** Empty virtual default destructor
        *

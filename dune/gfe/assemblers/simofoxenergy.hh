@@ -52,11 +52,13 @@ namespace Dune::GFE {
    */
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type = double>
   class SimoFoxEnergyLocalStiffness
-    : public Dune::GFE::LocalEnergy<Basis, RealTuple<field_type, 3>,
-          UnitVector<field_type, 3> >,                             // inheritance to allow usage with LocalGeodesicFEADOLCStiffness
+    : public Dune::GFE::LocalEnergy<Basis, ProductManifold<RealTuple<field_type, 3>,
+          UnitVector<field_type, 3> > >,                             // inheritance to allow usage with LocalGeodesicFEADOLCStiffness
       public MixedLocalGeodesicFEStiffness<Basis, ProductManifold<RealTuple<field_type, 3>,
           UnitVector<field_type, 3> > >                                    // inheritance to allow usage with MixedGFEAssembler
   {
+    using TargetSpace = ProductManifold<RealTuple<field_type, 3>, UnitVector<field_type, 3> >;
+
     // grid types
     typedef typename Basis::GridView GridView;
     typedef typename GridView::ctype DT;
@@ -120,6 +122,19 @@ namespace Dune::GFE {
       // transverse shear
       const double fac3 = kappa_ * thickness_ * Emodul * 0.5 / (1 + nu);
       CMat_[6][6] = CMat_[7][7] = fac3;
+    }
+
+    /** \brief Assemble the energy for a single element */
+    RT energy(const typename Basis::LocalView &localView,
+              const std::vector<TargetSpace> &localConfiguration) const override
+    {
+      DUNE_THROW(NotImplemented, "!");
+    }
+
+    RT energy (const typename Basis::LocalView& localView,
+               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+    {
+      DUNE_THROW(NotImplemented, "!");
     }
 
     /** \brief Assemble the energy for a single element */
