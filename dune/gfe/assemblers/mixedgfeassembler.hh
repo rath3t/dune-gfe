@@ -286,8 +286,9 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
     const int nDofs0 = localView.tree().child(_0,0).finiteElement().size();
     const int nDofs1 = localView.tree().child(_1,0).finiteElement().size();
 
-    std::vector<TargetSpace0> localConfiguration0(nDofs0);
-    std::vector<TargetSpace1> localConfiguration1(nDofs1);
+    Dune::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > localConfiguration;
+    localConfiguration[_0].resize(nDofs0);
+    localConfiguration[_1].resize(nDofs1);
 
     for (int i=0; i<nDofs0+nDofs1; i++)
     {
@@ -305,14 +306,13 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
       // The CompositeBasis number is contained in multiIndex[0]
       // multiIndex[1] contains the actual index
       if (multiIndex[0] == 0)
-        localConfiguration0[i] = configuration0[multiIndex[1]];
+        localConfiguration[_0][i] = configuration0[multiIndex[1]];
       else if (multiIndex[0] == 1)
-        localConfiguration1[i-nDofs0] = configuration1[multiIndex[1]];
+        localConfiguration[_1][i-nDofs0] = configuration1[multiIndex[1]];
     }
 
     energy += localStiffness_->energy(localView,
-                                      localConfiguration0,
-                                      localConfiguration1);
+                                      localConfiguration);
 
   }
 

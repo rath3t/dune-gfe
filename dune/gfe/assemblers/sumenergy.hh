@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 
 namespace Dune::GFE {
 
@@ -17,11 +16,7 @@ namespace Dune::GFE {
 
   template<class Basis, class ... TargetSpaces>
   class SumEnergy
-    : public Dune::GFE::LocalEnergy<Basis, ProductManifold<TargetSpaces...> >,
-      public MixedLocalGeodesicFEStiffness<Basis, ProductManifold<TargetSpaces...> >
-      //Inheriting from MixedLocalGeodesicFEStiffness is hack, and will be replaced eventually; once MixedLocalGFEADOLCStiffness
-      //will be removed and its functionality will be included in LocalGeodesicFEADOLCStiffness this is not needed anymore!
-
+    : public Dune::GFE::LocalEnergy<Basis, ProductManifold<TargetSpaces...> >
   {
     using TargetSpace = ProductManifold<TargetSpaces...>;
 
@@ -57,16 +52,6 @@ namespace Dune::GFE {
       RT sum = 0.;
       for ( const auto& localEnergy : localEnergies_ )
         sum += localEnergy->energy(localView, coefficients);
-
-      return sum;
-    }
-
-    RT energy(const typename Basis::LocalView& localView,
-              const std::vector<TargetSpaces>& ... localSolution) const override
-    {
-      RT sum = 0.;
-      for ( const auto& localEnergy : localEnergies_ )
-        sum += localEnergy->energy(localView, TupleVector<std::vector<TargetSpaces>...>(localSolution ...));
 
       return sum;
     }

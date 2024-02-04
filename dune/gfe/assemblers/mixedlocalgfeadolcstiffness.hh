@@ -21,6 +21,8 @@ template<class Basis, class TargetSpace0, class TargetSpace1>
 class MixedLocalGFEADOLCStiffness
   : public MixedLocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >
 {
+  using TargetSpace = Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1>;
+
   // grid types
   typedef typename Basis::GridView GridView;
   typedef typename GridView::ctype DT;
@@ -28,13 +30,14 @@ class MixedLocalGFEADOLCStiffness
   typedef typename GridView::template Codim<0>::Entity Entity;
 
   // The 'active' target spaces, i.e., the number type is replaced by adouble
+  using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
   typedef typename TargetSpace0::template rebind<adouble>::other ATargetSpace0;
   typedef typename TargetSpace1::template rebind<adouble>::other ATargetSpace1;
 
   // some other sizes
   constexpr static int gridDim = GridView::dimension;
 
-  using HessianType = typename Dune::GFE::Impl::MixedLocalStiffnessTypes<Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >::MixedHessian;
+  using HessianType = typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::MixedHessian;
 
 public:
 
@@ -46,16 +49,30 @@ public:
   constexpr static int embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension;
   constexpr static int embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension;
 
-  MixedLocalGFEADOLCStiffness(const MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<ATargetSpace0,
-      ATargetSpace1> >* energy, bool adolcScalarMode = false)
+  MixedLocalGFEADOLCStiffness(const Dune::GFE::LocalEnergy<Basis,ATargetSpace>* energy, bool adolcScalarMode = false)
     : localEnergy_(energy),
     adolcScalarMode_(adolcScalarMode)
   {}
 
   /** \brief Compute the energy at the current configuration */
   virtual RT energy (const typename Basis::LocalView& localView,
-                     const std::vector<TargetSpace0>& localConfiguration0,
-                     const std::vector<TargetSpace1>& localConfiguration1) const;
+                     const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::Coefficients& localConfiguration) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
+
+
+  /** \brief Compute the energy at the current configuration */
+  virtual RT energy (const typename Basis::LocalView& localView,
+                     const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localConfiguration) const override;
+
+  /** \brief Assemble the element gradient of the energy functional */
+  void assembleGradient(const typename Basis::LocalView& localView,
+                        const std::vector<TargetSpace>& solution,
+                        std::vector<typename TargetSpace::TangentVector>& gradient) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
 
   /** \brief Assemble the local stiffness matrix at the current position
 
@@ -68,7 +85,7 @@ public:
                                           std::vector<typename TargetSpace1::TangentVector>& localGradient1,
                                           HessianType& localHessian) override;
 
-  const MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
+  const Dune::GFE::LocalEnergy<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
   const bool adolcScalarMode_;
 };
 
@@ -77,14 +94,16 @@ template <class Basis, class TargetSpace0, class TargetSpace1>
 typename MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::RT
 MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
 energy(const typename Basis::LocalView& localView,
-       const std::vector<TargetSpace0>& localConfiguration0,
-       const std::vector<TargetSpace1>& localConfiguration1) const
+       const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localConfiguration) const
 {
+  using namespace Dune::Indices;
+
   int rank = Dune::MPIHelper::getCommunication().rank();
   double pureEnergy;
 
-  std::vector<ATargetSpace0> localAConfiguration0(localConfiguration0.size());
-  std::vector<ATargetSpace1> localAConfiguration1(localConfiguration1.size());
+  Dune::TupleVector<std::vector<ATargetSpace0>, std::vector<ATargetSpace1> > localAConfiguration;
+  localAConfiguration[_0].resize(localConfiguration[_0].size());
+  localAConfiguration[_1].resize(localConfiguration[_1].size());
 
   trace_on(rank);
 
@@ -100,27 +119,26 @@ energy(const typename Basis::LocalView& localView,
 
   // The following variable cannot be declared inside of the loop, or ADOL-C will report wrong results
   // (Presumably because several independent variables use the same memory location.)
-  std::vector<typename ATargetSpace0::CoordinateType> aRaw0(localConfiguration0.size());
-  for (size_t i=0; i<localConfiguration0.size(); i++) {
-    typename TargetSpace0::CoordinateType raw = localConfiguration0[i].globalCoordinates();
+  std::vector<typename ATargetSpace0::CoordinateType> aRaw0(localConfiguration[_0].size());
+  for (size_t i=0; i<localConfiguration[_0].size(); i++) {
+    typename TargetSpace0::CoordinateType raw = localConfiguration[_0][i].globalCoordinates();
     for (size_t j=0; j<raw.size(); j++)
       aRaw0[i][j] <<= raw[j];
-    localAConfiguration0[i] = aRaw0[i];    // may contain a projection onto M -- needs to be done in adouble
+    localAConfiguration[_0][i] = aRaw0[i];    // may contain a projection onto M -- needs to be done in adouble
   }
 
-  std::vector<typename ATargetSpace1::CoordinateType> aRaw1(localConfiguration1.size());
-  for (size_t i=0; i<localConfiguration1.size(); i++) {
-    typename TargetSpace1::CoordinateType raw = localConfiguration1[i].globalCoordinates();
+  std::vector<typename ATargetSpace1::CoordinateType> aRaw1(localConfiguration[_1].size());
+  for (size_t i=0; i<localConfiguration[_1].size(); i++) {
+    typename TargetSpace1::CoordinateType raw = localConfiguration[_1][i].globalCoordinates();
     for (size_t j=0; j<raw.size(); j++)
       aRaw1[i][j] <<= raw[j];
-    localAConfiguration1[i] = aRaw1[i];    // may contain a projection onto M -- needs to be done in adouble
+    localAConfiguration[_1][i] = aRaw1[i];    // may contain a projection onto M -- needs to be done in adouble
   }
 
-  using namespace Dune::TypeTree::Indices;
   try {
-    energy = localEnergy_->energy(localView,
-                                  localAConfiguration0,
-                                  localAConfiguration1);
+
+    energy = localEnergy_->energy(localView, localAConfiguration);
+
   } catch (Dune::Exception &e) {
     trace_off();
     throw e;
@@ -147,8 +165,14 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            HessianType& localHessian)
 {
   int rank = Dune::MPIHelper::getCommunication().rank();
+
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
-  energy(localView, localConfiguration0, localConfiguration1);
+  using namespace Dune::Indices;
+  typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients localConfiguration;
+  localConfiguration[_0] = localConfiguration0;
+  localConfiguration[_1] = localConfiguration1;
+
+  energy(localView, localConfiguration);
 
   /////////////////////////////////////////////////////////////////
   // Compute the gradient.  It is needed to transform the Hessian

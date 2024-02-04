@@ -11,7 +11,6 @@
 #include <dune/geometry/quadraturerules.hh>
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
@@ -52,10 +51,8 @@ namespace Dune::GFE {
    */
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type = double>
   class SimoFoxEnergyLocalStiffness
-    : public Dune::GFE::LocalEnergy<Basis, ProductManifold<RealTuple<field_type, 3>,
-          UnitVector<field_type, 3> > >,                             // inheritance to allow usage with LocalGeodesicFEADOLCStiffness
-      public MixedLocalGeodesicFEStiffness<Basis, ProductManifold<RealTuple<field_type, 3>,
-          UnitVector<field_type, 3> > >                                    // inheritance to allow usage with MixedGFEAssembler
+    : public LocalEnergy<Basis, ProductManifold<RealTuple<field_type, 3>,
+          UnitVector<field_type, 3> > >
   {
     using TargetSpace = ProductManifold<RealTuple<field_type, 3>, UnitVector<field_type, 3> >;
 
@@ -132,14 +129,7 @@ namespace Dune::GFE {
     }
 
     RT energy (const typename Basis::LocalView& localView,
-               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
-    {
-      DUNE_THROW(NotImplemented, "!");
-    }
-
-    /** \brief Assemble the energy for a single element */
-    RT energy(const typename Basis::LocalView &localView, const std::vector<RealTuple<field_type, 3> > &localMidSurfaceConfiguration,
-              const std::vector<UnitVector<field_type, 3> > &localDirectorConfiguration) const override;
+               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override;
 
   private:
     /** \brief A structure that contains all quantities to calculate the Lagrangian strains */
@@ -297,12 +287,15 @@ namespace Dune::GFE {
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
   typename SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::RT
   SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::energy(
-    const typename Basis::LocalView &localView, const std::vector<RealTuple<field_type, 3> > &localMidSurfaceConfiguration,
-    const std::vector<UnitVector<field_type, 3> > &localDirectorConfiguration) const
+    const typename Basis::LocalView &localView,
+    const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients &localConfiguration) const
   {
+    using namespace Dune::Indices;
+    const auto& localMidSurfaceConfiguration = localConfiguration[_0];
+    const auto& localDirectorConfiguration = localConfiguration[_1];
+
     auto element = localView.element();
 
-    using namespace Dune::Indices;
     const auto &midSurfaceElement = LocalFiniteElementFactory<Basis, 0>::get(localView, _0);
     const auto &directorElement   = LocalFiniteElementFactory<Basis, 1>::get(localView, _1);
 

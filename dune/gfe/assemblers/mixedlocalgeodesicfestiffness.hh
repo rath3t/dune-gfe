@@ -6,6 +6,8 @@
 #include <dune/istl/matrix.hh>
 #include <dune/istl/multitypeblockmatrix.hh>
 
+#include <dune/gfe/assemblers/localfirstordermodel.hh>
+
 namespace Dune::GFE
 {
   namespace Impl
@@ -42,6 +44,7 @@ namespace Dune::GFE
  */
 template<class Basis, class TargetSpace>
 class MixedLocalGeodesicFEStiffness
+  : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
 {
   using DeformationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
   using OrientationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
@@ -66,12 +69,6 @@ public:
   {
     DUNE_THROW(Dune::NotImplemented, "!");
   }
-
-  /** \brief Compute the energy at the current configuration */
-  virtual RT energy (const typename Basis::LocalView& localView,
-                     const std::vector<DeformationTargetSpace>& localDeformationConfiguration,
-                     const std::vector<OrientationTargetSpace>& localOrientationConfiguration) const = 0;
-
 };
 
 #endif

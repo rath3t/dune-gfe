@@ -20,7 +20,6 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
@@ -39,8 +38,7 @@
  */
 template<class Basis, int dim, class field_type, class StressFreeStateGridFunction>
 class NonplanarCosseratShellEnergy
-  : public Dune::GFE::LocalEnergy<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >,
-    public MixedLocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >
+  : public Dune::GFE::LocalEnergy<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >
 {
   // grid types
   typedef typename Basis::GridView GridView;
@@ -96,15 +94,7 @@ public:
              const std::vector<TargetSpace>& localSolution) const override;
 
   RT energy (const typename Basis::LocalView& localView,
-             const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
-  {
-    DUNE_THROW(Dune::NotImplemented, "!");
-  }
-
-  /** \brief Assemble the energy for a single element */
-  RT energy (const typename Basis::LocalView& localView,
-             const std::vector<RealTuple<field_type,dim> >& localDisplacementConfiguration,
-             const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const override;
+             const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override;
 
   /*  Sources:
       Birsan 2019: Derivation of a refined six-parameter shell model, equation (111)
@@ -446,15 +436,14 @@ template <class Basis, int dim, class field_type, class StressFreeStateGridFunct
 typename NonplanarCosseratShellEnergy<Basis, dim, field_type, StressFreeStateGridFunction>::RT
 NonplanarCosseratShellEnergy<Basis,dim,field_type, StressFreeStateGridFunction>::
 energy(const typename Basis::LocalView& localView,
-       const std::vector<RealTuple<field_type,dim> >& localDeformationConfiguration,
-       const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const
+       const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localConfiguration) const
 {
   // The element geometry
   auto element = localView.element();
 
   // The set of shape functions on this element
 
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
   const auto& deformationLocalFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
   const auto& orientationLocalFiniteElement = LocalFiniteElementFactory<Basis,1>::get(localView,_1);
 
@@ -478,8 +467,8 @@ energy(const typename Basis::LocalView& localView,
   ////////////////////////////////////////////////////////////////////////////////////
   typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
   typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
-  LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
-  LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
+  LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localConfiguration[_0]);
+  LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localConfiguration[_1]);
 
   RT energy = 0;
 

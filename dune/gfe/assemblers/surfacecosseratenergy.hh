@@ -10,7 +10,7 @@
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
