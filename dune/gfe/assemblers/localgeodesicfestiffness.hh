@@ -12,6 +12,7 @@ namespace Dune::GFE
   {
     template<class TargetSpace>
     class LocalStiffnessTypes
+      : public LocalFirstOrderModelTypes<TargetSpace>
     {
       // Number type
       typedef typename TargetSpace::ctype RT;
@@ -31,23 +32,14 @@ template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness
   : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
 {
-  // Number type
-  typedef typename TargetSpace::ctype RT;
-
 public:
-
-  //! Dimension of a tangent space
-  constexpr static int blocksize = TargetSpace::TangentVector::dimension;
-
-  //! Dimension of the embedding space
-  constexpr static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
   /** \brief Assemble the local gradient and stiffness matrix at the current position
 
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const std::vector<TargetSpace>& localSolution,
-                                          std::vector<typename TargetSpace::TangentVector>& localGradient,
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
 };
 
