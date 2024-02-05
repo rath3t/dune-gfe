@@ -14,6 +14,7 @@ namespace Dune::GFE
   {
     template<class TargetSpace>
     class MixedLocalStiffnessTypes
+      : public LocalFirstOrderModelTypes<TargetSpace>
     {
       // Number type
       typedef typename TargetSpace::ctype RT;
@@ -61,14 +62,10 @@ public:
   /** \brief Assemble the local stiffness matrix at the current position
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const std::vector<DeformationTargetSpace>& localDisplacementConfiguration,
-                                          const std::vector<OrientationTargetSpace>& localOrientationConfiguration,
+                                          const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
                                           std::vector<typename DeformationTargetSpace::TangentVector>& localDeformationGradient,
                                           std::vector<typename OrientationTargetSpace::TangentVector>& localOrientationGradient,
-                                          typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::MixedHessian& localHessian)
-  {
-    DUNE_THROW(Dune::NotImplemented, "!");
-  }
+                                          typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::MixedHessian& localHessian) const = 0;
 };
 
 #endif

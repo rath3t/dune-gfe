@@ -169,8 +169,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
     // nDofs1 are the degrees of freedom for *one* subspacebasis of the power basis of the rotational part
     // this is why the indices (_0,0) and (_1,0) are used: _0 takes the whole displacement part and _1 the whole rotational part; and 0 the first subspacebasis respectively
     // Extract local solution
-    std::vector<TargetSpace0> localConfiguration0(nDofs0);
-    std::vector<TargetSpace1> localConfiguration1(nDofs1);
+    Dune::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > localConfiguration;
+    localConfiguration[_0].resize(nDofs0);
+    localConfiguration[_1].resize(nDofs1);
 
     for (int i=0; i<nDofs0+nDofs1; i++)
     {
@@ -186,9 +187,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
       //CompositeBasis number is contained in multiIndex[0], the Subspacebasis is contained in multiIndex[2]
       //multiIndex[1] contains the actual index
       if (multiIndex[0] == 0)
-        localConfiguration0[i] = configuration0[multiIndex[1]];
+        localConfiguration[_0][i] = configuration0[multiIndex[1]];
       else if (multiIndex[0] == 1)
-        localConfiguration1[i-nDofs0] = configuration1[multiIndex[1]];
+        localConfiguration[_1][i-nDofs0] = configuration1[multiIndex[1]];
     }
 
     std::vector<Dune::FieldVector<double,blocksize0> > localGradient0(nDofs0);
@@ -205,7 +206,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
     // setup local matrix and gradient
     localStiffness_->assembleGradientAndHessian(localView,
-                                                localConfiguration0, localConfiguration1,
+                                                localConfiguration,
                                                 localGradient0, localGradient1,
                                                 localHessian);
 
@@ -282,7 +283,7 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
     localView.bind(element);
 
     // Number of degrees of freedom on this element
-    using namespace Dune::TypeTree::Indices;
+    using namespace Dune::Indices;
     const int nDofs0 = localView.tree().child(_0,0).finiteElement().size();
     const int nDofs1 = localView.tree().child(_1,0).finiteElement().size();
 

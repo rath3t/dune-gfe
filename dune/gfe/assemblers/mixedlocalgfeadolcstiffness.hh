@@ -79,11 +79,10 @@ public:
      This uses the automatic differentiation toolbox ADOL_C.
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const std::vector<TargetSpace0>& localConfiguration0,
-                                          const std::vector<TargetSpace1>& localConfiguration1,
+                                          const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
                                           std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                                           std::vector<typename TargetSpace1::TangentVector>& localGradient1,
-                                          HessianType& localHessian) override;
+                                          HessianType& localHessian) const override;
 
   const Dune::GFE::LocalEnergy<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
   const bool adolcScalarMode_;
@@ -158,19 +157,15 @@ energy(const typename Basis::LocalView& localView,
 template <class Basis, class TargetSpace0, class TargetSpace1>
 void MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                           const std::vector<TargetSpace0>& localConfiguration0,
-                           const std::vector<TargetSpace1>& localConfiguration1,
+                           const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
                            std::vector<typename TargetSpace0::TangentVector>& localGradient0,
                            std::vector<typename TargetSpace1::TangentVector>& localGradient1,
-                           HessianType& localHessian)
+                           HessianType& localHessian) const
 {
   int rank = Dune::MPIHelper::getCommunication().rank();
 
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
   using namespace Dune::Indices;
-  typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients localConfiguration;
-  localConfiguration[_0] = localConfiguration0;
-  localConfiguration[_1] = localConfiguration1;
 
   energy(localView, localConfiguration);
 
@@ -180,43 +175,43 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   /////////////////////////////////////////////////////////////////
 
   // Compute the actual gradient
-  size_t nDofs0 = localConfiguration0.size();
-  size_t nDofs1 = localConfiguration1.size();
+  size_t nDofs0 = localConfiguration[_0].size();
+  size_t nDofs1 = localConfiguration[_1].size();
   size_t nDoubles = nDofs0*embeddedBlocksize0 + nDofs1*embeddedBlocksize1;
 
   std::vector<double> xp(nDoubles);
   int idx=0;
-  for (size_t i=0; i<localConfiguration0.size(); i++)
+  for (size_t i=0; i<localConfiguration[_0].size(); i++)
     for (size_t j=0; j<embeddedBlocksize0; j++)
-      xp[idx++] = localConfiguration0[i].globalCoordinates()[j];
+      xp[idx++] = localConfiguration[_0][i].globalCoordinates()[j];
 
-  for (size_t i=0; i<localConfiguration1.size(); i++)
+  for (size_t i=0; i<localConfiguration[_1].size(); i++)
     for (size_t j=0; j<embeddedBlocksize1; j++)
-      xp[idx++] = localConfiguration1[i].globalCoordinates()[j];
+      xp[idx++] = localConfiguration[_1][i].globalCoordinates()[j];
 
   // Compute gradient
   std::vector<double> g(nDoubles);
   gradient(rank,nDoubles,xp.data(),g.data());                    // gradient evaluation
 
   // Copy into Dune type
-  std::vector<typename TargetSpace0::EmbeddedTangentVector> localEmbeddedGradient0(localConfiguration0.size());
-  std::vector<typename TargetSpace1::EmbeddedTangentVector> localEmbeddedGradient1(localConfiguration1.size());
+  std::vector<typename TargetSpace0::EmbeddedTangentVector> localEmbeddedGradient0(localConfiguration[_0].size());
+  std::vector<typename TargetSpace1::EmbeddedTangentVector> localEmbeddedGradient1(localConfiguration[_1].size());
 
   idx=0;
-  for (size_t i=0; i<localConfiguration0.size(); i++) {
+  for (size_t i=0; i<localConfiguration[_0].size(); i++) {
     for (size_t j=0; j<embeddedBlocksize0; j++)
       localEmbeddedGradient0[i][j] = g[idx++];
 
     // Express gradient in local coordinate system
-    localConfiguration0[i].orthonormalFrame().mv(localEmbeddedGradient0[i],localGradient0[i]);
+    localConfiguration[_0][i].orthonormalFrame().mv(localEmbeddedGradient0[i],localGradient0[i]);
   }
 
-  for (size_t i=0; i<localConfiguration1.size(); i++) {
+  for (size_t i=0; i<localConfiguration[_1].size(); i++) {
     for (size_t j=0; j<embeddedBlocksize1; j++)
       localEmbeddedGradient1[i][j] = g[idx++];
 
     // Express gradient in local coordinate system
-    localConfiguration1[i].orthonormalFrame().mv(localEmbeddedGradient1[i],localGradient1[i]);
+    localConfiguration[_1][i].orthonormalFrame().mv(localEmbeddedGradient1[i],localGradient1[i]);
   }
 
   /////////////////////////////////////////////////////////////////
@@ -249,12 +244,12 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   std::vector<Dune::FieldMatrix<RT,blocksize0,embeddedBlocksize0> > orthonormalFrame0(nDofs0);
 
   for (size_t i=0; i<nDofs0; i++)
-    orthonormalFrame0[i] = localConfiguration0[i].orthonormalFrame();
+    orthonormalFrame0[i] = localConfiguration[_0][i].orthonormalFrame();
 
   std::vector<Dune::FieldMatrix<RT,blocksize1,embeddedBlocksize1> > orthonormalFrame1(nDofs1);
 
   for (size_t i=0; i<nDofs1; i++)
-    orthonormalFrame1[i] = localConfiguration1[i].orthonormalFrame();
+    orthonormalFrame1[i] = localConfiguration[_1][i].orthonormalFrame();
 
   Dune::Matrix<Dune::FieldMatrix<double,blocksize0, embeddedBlocksize0> > embeddedHessian00(nDofs0,nDofs0);
   Dune::Matrix<Dune::FieldMatrix<double,blocksize0, embeddedBlocksize1> > embeddedHessian01(nDofs0,nDofs1);
@@ -473,11 +468,11 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   // Project embedded gradient onto normal space
   std::vector<typename TargetSpace0::EmbeddedTangentVector> projectedGradient0(nDofs0);
   for (size_t i=0; i<nDofs0; i++)
-    projectedGradient0[i] = localConfiguration0[i].projectOntoNormalSpace(localEmbeddedGradient0[i]);
+    projectedGradient0[i] = localConfiguration[_0][i].projectOntoNormalSpace(localEmbeddedGradient0[i]);
 
   std::vector<typename TargetSpace1::EmbeddedTangentVector> projectedGradient1(nDofs1);
   for (size_t i=0; i<nDofs1; i++)
-    projectedGradient1[i] = localConfiguration1[i].projectOntoNormalSpace(localEmbeddedGradient1[i]);
+    projectedGradient1[i] = localConfiguration[_1][i].projectOntoNormalSpace(localEmbeddedGradient1[i]);
 
   // The Weingarten map has only diagonal entries
   for (size_t row=0; row<nDofs0; row++) {
@@ -485,7 +480,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     for (size_t subRow=0; subRow<blocksize0; subRow++) {
 
       typename TargetSpace0::EmbeddedTangentVector z = orthonormalFrame0[row][subRow];
-      typename TargetSpace0::EmbeddedTangentVector tmp1 = localConfiguration0[row].weingarten(z,projectedGradient0[row]);
+      typename TargetSpace0::EmbeddedTangentVector tmp1 = localConfiguration[_0][row].weingarten(z,projectedGradient0[row]);
 
       typename TargetSpace0::TangentVector tmp2;
       orthonormalFrame0[row].mv(tmp1,tmp2);
@@ -500,7 +495,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     for (size_t subRow=0; subRow<blocksize1; subRow++) {
 
       typename TargetSpace1::EmbeddedTangentVector z = orthonormalFrame1[row][subRow];
-      typename TargetSpace1::EmbeddedTangentVector tmp1 = localConfiguration1[row].weingarten(z,projectedGradient1[row]);
+      typename TargetSpace1::EmbeddedTangentVector tmp1 = localConfiguration[_1][row].weingarten(z,projectedGradient1[row]);
 
       typename TargetSpace1::TangentVector tmp2;
       orthonormalFrame1[row].mv(tmp1,tmp2);
