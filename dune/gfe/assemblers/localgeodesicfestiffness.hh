@@ -49,16 +49,6 @@ public:
                                           const std::vector<TargetSpace>& localSolution,
                                           std::vector<typename TargetSpace::TangentVector>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
-
-  /** \brief Compute the energy at the current configuration */
-  virtual RT energy (const typename Basis::LocalView& localView,
-                     const std::vector<TargetSpace>& localSolution) const = 0;
-
-  /** \brief Assemble the element gradient of the energy functional
-   */
-  virtual void assembleGradient(const typename Basis::LocalView& localView,
-                                const std::vector<TargetSpace>& solution,
-                                std::vector<typename TargetSpace::TangentVector>& gradient) const = 0;
 };
 
 #endif
