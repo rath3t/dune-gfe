@@ -97,10 +97,10 @@ const int rotationOrder = GFE_ORDER;
 
 #if !MIXED_SPACE
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
+#endif
 
 // Image space of the geodesic fe functions
 using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
-#endif
 
 
 int main (int argc, char *argv[]) try
@@ -497,9 +497,9 @@ int main (int argc, char *argv[]) try
                                                                                   &neumannBoundary,
                                                                                   neumannFunction,
                                                                                   volumeLoad);
-      MixedLocalGFEADOLCStiffness<CompositeBasis,
-          RealTuple<double,3>,
-          Rotation<double,3> > localGFEADOLCStiffness(&localCosseratEnergy, adolcScalarMode);
+
+      MixedLocalGFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(&localCosseratEnergy,
+                                                                                     adolcScalarMode);
       MixedGFEAssembler<CompositeBasis,
           RealTuple<double,3>,
           Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
@@ -588,7 +588,7 @@ int main (int argc, char *argv[]) try
       }
 #endif
     } else {     //dim != dimworld
-      using StiffnessType = MixedLocalGFEADOLCStiffness<CompositeBasis, RealTuple<double,3>, Rotation<double,3> >;
+      using StiffnessType = MixedLocalGFEADOLCStiffness<CompositeBasis, TargetSpace>;
       std::shared_ptr<StiffnessType> localGFEStiffness;
 
 #if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2

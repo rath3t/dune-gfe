@@ -17,35 +17,22 @@
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
-template<class Basis, class TargetSpace0, class TargetSpace1>
+template<class Basis, class TargetSpace>
 class MixedLocalGFEADOLCStiffness
-  : public LocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >
+  : public LocalGeodesicFEStiffness<Basis,TargetSpace>
 {
-  using TargetSpace = Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1>;
-
   // grid types
   typedef typename Basis::GridView GridView;
   typedef typename GridView::ctype DT;
-  typedef typename TargetSpace0::ctype RT;
-  typedef typename GridView::template Codim<0>::Entity Entity;
+  typedef typename TargetSpace::ctype RT;
 
   // The 'active' target spaces, i.e., the number type is replaced by adouble
   using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
-  typedef typename TargetSpace0::template rebind<adouble>::other ATargetSpace0;
-  typedef typename TargetSpace1::template rebind<adouble>::other ATargetSpace1;
 
   // some other sizes
   constexpr static int gridDim = GridView::dimension;
 
 public:
-
-  //! Dimension of a tangent space
-  constexpr static int blocksize0 = TargetSpace0::TangentVector::dimension;
-  constexpr static int blocksize1 = TargetSpace1::TangentVector::dimension;
-
-  //! Dimension of the embedding space
-  constexpr static int embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension;
-  constexpr static int embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension;
 
   MixedLocalGFEADOLCStiffness(const Dune::GFE::LocalEnergy<Basis,ATargetSpace>* energy, bool adolcScalarMode = false)
     : localEnergy_(energy),
@@ -89,26 +76,32 @@ public:
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override;
 
-  const Dune::GFE::LocalEnergy<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
+  const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
   const bool adolcScalarMode_;
 };
 
 
-template <class Basis, class TargetSpace0, class TargetSpace1>
-typename MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::RT
-MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
+template <class Basis, class TargetSpace>
+typename MixedLocalGFEADOLCStiffness<Basis, TargetSpace>::RT
+MixedLocalGFEADOLCStiffness<Basis, TargetSpace>::
 energy(const typename Basis::LocalView& localView,
        const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localConfiguration) const
 {
   using namespace Dune::Indices;
 
   int rank = Dune::MPIHelper::getCommunication().rank();
-  double pureEnergy;
+
+  using TargetSpace0 = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
+  using TargetSpace1 = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
+
+  using ATargetSpace0 = typename TargetSpace0::template rebind<adouble>::other;
+  using ATargetSpace1 = typename TargetSpace1::template rebind<adouble>::other;
 
   Dune::TupleVector<std::vector<ATargetSpace0>, std::vector<ATargetSpace1> > localAConfiguration;
   localAConfiguration[_0].resize(localConfiguration[_0].size());
   localAConfiguration[_1].resize(localConfiguration[_1].size());
 
+  double pureEnergy;
   trace_on(rank);
 
   adouble energy = 0;
@@ -159,8 +152,8 @@ energy(const typename Basis::LocalView& localView,
 //   To compute the Hessian we need to compute the gradient anyway, so we may
 //   as well return it.  This saves assembly time.
 // ///////////////////////////////////////////////////////////
-template <class Basis, class TargetSpace0, class TargetSpace1>
-void MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
+template <class Basis, class TargetSpace>
+void MixedLocalGFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
                            typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
@@ -177,6 +170,16 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   // Compute the gradient.  It is needed to transform the Hessian
   // into the correct coordinates.
   /////////////////////////////////////////////////////////////////
+
+  //! Dimension of the embedding space
+  using TargetSpace0 = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
+  using TargetSpace1 = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
+
+  constexpr static int blocksize0 = TargetSpace0::TangentVector::dimension;
+  constexpr static int blocksize1 = TargetSpace1::TangentVector::dimension;
+
+  constexpr static int embeddedBlocksize0 = TargetSpace0::EmbeddedTangentVector::dimension;
+  constexpr static int embeddedBlocksize1 = TargetSpace1::EmbeddedTangentVector::dimension;
 
   // Compute the actual gradient
   size_t nDofs0 = localConfiguration[_0].size();

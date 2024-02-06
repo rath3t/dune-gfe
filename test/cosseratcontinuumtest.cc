@@ -208,8 +208,7 @@ int main (int argc, char *argv[])
   sumEnergy.addLocalEnergy(neumannEnergy);
 
   MixedLocalGFEADOLCStiffness<CompositeBasis,
-      RealTuple<double,dim>,
-      Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
+      GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
       Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);

@@ -147,8 +147,7 @@ int main (int argc, char *argv[])
                                                                                      neumannFunction,
                                                                                      nullptr);
   MixedLocalGFEADOLCStiffness<CompositeBasis,
-      RealTuple<double,dim>,
-      Rotation<double,dim> > mixedLocalGFEADOLCStiffness(&cosseratEnergy);
+      GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > mixedLocalGFEADOLCStiffness(&cosseratEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
       Rotation<double,dim> > mixedAssembler(compositeBasis, &mixedLocalGFEADOLCStiffness);

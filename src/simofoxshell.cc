@@ -320,9 +320,10 @@ int main(int argc, char *argv[]) try
                                                                                                                                neumannFunction,
                                                                                                                                nullptr, x0);
 
+    using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
+
     MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
-        RealTuple<double,3>,
-        UnitVector<double,3> > localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
+        TargetSpace> localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
 
     MixedGFEAssembler<decltype(compositeBasis),
         RealTuple<double,3>, UnitVector<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
@@ -388,7 +389,6 @@ int main(int argc, char *argv[]) try
       x = solver.getSol();
     } else {
 #if !MIXED_SPACE
-      using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
       std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
       BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
       for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {

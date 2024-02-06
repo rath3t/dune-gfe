@@ -518,14 +518,14 @@ int main (int argc, char *argv[]) try
       fThickness,
       fLame);
 
+    using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
+
     GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim> > sumEnergy;
     sumEnergy.addLocalEnergy(neumannEnergy);
     sumEnergy.addLocalEnergy(elasticEnergy);
     sumEnergy.addLocalEnergy(surfaceCosseratEnergy);
 
-    MixedLocalGFEADOLCStiffness<CompositeBasis,
-        RealTuple<double,dim>,
-        Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
+    MixedLocalGFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
     MixedGFEAssembler<CompositeBasis,
         RealTuple<double,dim>,
         Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
@@ -574,7 +574,6 @@ int main (int argc, char *argv[]) try
     //The MixedRiemannianTrustRegionSolver can treat the Deformation and Orientation Space as separate ones
     //The RiemannianTrustRegionSolver can only treat the Deformation and Rotation together in a ProductManifold
     //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
-    using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
     std::vector<RBM> xRBM(compositeBasis.size({0}));
     BitSetVector<RBM::TangentVector::dimension> dirichletDofsRBM(compositeBasis.size({0}), false);
     for (int i = 0; i < compositeBasis.size({0}); i++) {
