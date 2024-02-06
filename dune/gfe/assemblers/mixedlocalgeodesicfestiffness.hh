@@ -47,24 +47,12 @@ template<class Basis, class TargetSpace>
 class MixedLocalGeodesicFEStiffness
   : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
 {
-  using DeformationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
-  using OrientationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
-
-  // Number type
-  typedef typename TargetSpace::ctype RT;
-
 public:
-
-  //! Dimension of a tangent space
-  constexpr static int blocksize0 = DeformationTargetSpace::TangentVector::dimension;
-  constexpr static int blocksize1 = OrientationTargetSpace::TangentVector::dimension;
-
   /** \brief Assemble the local stiffness matrix at the current position
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
-                                          std::vector<typename DeformationTargetSpace::TangentVector>& localDeformationGradient,
-                                          std::vector<typename OrientationTargetSpace::TangentVector>& localOrientationGradient,
+                                          typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
                                           typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::MixedHessian& localHessian) const = 0;
 };
 

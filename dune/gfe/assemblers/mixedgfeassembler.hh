@@ -192,8 +192,10 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
         localConfiguration[_1][i-nDofs0] = configuration1[multiIndex[1]];
     }
 
-    std::vector<Dune::FieldVector<double,blocksize0> > localGradient0(nDofs0);
-    std::vector<Dune::FieldVector<double,blocksize1> > localGradient1(nDofs1);
+    Dune::TupleVector<std::vector<Dune::FieldVector<double,blocksize0> >,
+        std::vector<Dune::FieldVector<double,blocksize1> > > localGradient;
+    localGradient[_0].resize(nDofs0);
+    localGradient[_1].resize(nDofs1);
 
     using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize0> >,
         Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize1> > >;
@@ -207,7 +209,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
     // setup local matrix and gradient
     localStiffness_->assembleGradientAndHessian(localView,
                                                 localConfiguration,
-                                                localGradient0, localGradient1,
+                                                localGradient,
                                                 localHessian);
 
     // Add element matrix to global stiffness matrix
@@ -252,9 +254,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
       // Add local gradient to global gradient
       if (row[0] == 0)
-        gradient0[row[1]] += localGradient0[i];
+        gradient0[row[1]] += localGradient[_0][i];
       else
-        gradient1[row[1]] += localGradient1[i-nDofs0];
+        gradient1[row[1]] += localGradient[_1][i-nDofs0];
     }
 
   }

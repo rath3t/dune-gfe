@@ -16,6 +16,7 @@ namespace Dune::GFE
       : public LocalEnergyTypes<TargetSpace>
     {
       using Gradient = std::vector<typename TargetSpace::TangentVector>;
+      using CompositeGradient = TupleVector<std::vector<typename TargetSpace::TangentVector> >;
     };
 
     /** \brief A class exporting container types for sets of tangent vectors -- specialization for product manifolds
@@ -25,6 +26,7 @@ namespace Dune::GFE
       : public LocalEnergyTypes<ProductManifold<Factors...> >
     {
       using Gradient = std::vector<typename ProductManifold<Factors...>::TangentVector>;
+      using CompositeGradient = TupleVector<std::vector<typename Factors::TangentVector>... >;
     };
 
   }  // namespace Impl

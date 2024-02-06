@@ -80,8 +80,7 @@ public:
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
-                                          std::vector<typename TargetSpace0::TangentVector>& localGradient0,
-                                          std::vector<typename TargetSpace1::TangentVector>& localGradient1,
+                                          typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
                                           HessianType& localHessian) const override;
 
   const Dune::GFE::LocalEnergy<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
@@ -158,8 +157,7 @@ template <class Basis, class TargetSpace0, class TargetSpace1>
 void MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
-                           std::vector<typename TargetSpace0::TangentVector>& localGradient0,
-                           std::vector<typename TargetSpace1::TangentVector>& localGradient1,
+                           typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
                            HessianType& localHessian) const
 {
   int rank = Dune::MPIHelper::getCommunication().rank();
@@ -203,7 +201,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       localEmbeddedGradient0[i][j] = g[idx++];
 
     // Express gradient in local coordinate system
-    localConfiguration[_0][i].orthonormalFrame().mv(localEmbeddedGradient0[i],localGradient0[i]);
+    localConfiguration[_0][i].orthonormalFrame().mv(localEmbeddedGradient0[i],localGradient[_0][i]);
   }
 
   for (size_t i=0; i<localConfiguration[_1].size(); i++) {
@@ -211,7 +209,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       localEmbeddedGradient1[i][j] = g[idx++];
 
     // Express gradient in local coordinate system
-    localConfiguration[_1][i].orthonormalFrame().mv(localEmbeddedGradient1[i],localGradient1[i]);
+    localConfiguration[_1][i].orthonormalFrame().mv(localEmbeddedGradient1[i],localGradient[_1][i]);
   }
 
   /////////////////////////////////////////////////////////////////
