@@ -7,7 +7,7 @@
 #include <dune/istl/matrix.hh>
 #include <dune/istl/multitypeblockmatrix.hh>
 
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 
 
 /** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces
@@ -36,13 +36,13 @@ public:
       Dune::MultiTypeBlockVector<MatrixBlock10,MatrixBlock11> > MatrixType;
   const Basis basis_;
 
-  MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >* localStiffness_;
+  LocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >* localStiffness_;
 
 public:
 
   /** \brief Constructor for a given grid */
   MixedGFEAssembler(const Basis& basis,
-                    MixedLocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0, TargetSpace1> >* localStiffness)
+                    LocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0, TargetSpace1> >* localStiffness)
     : basis_(basis),
     localStiffness_(localStiffness)
   {}

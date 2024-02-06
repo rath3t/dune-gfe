@@ -45,7 +45,7 @@ public:
   RT energy (const typename Basis::LocalView& localView,
              const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
   {
-    DUNE_THROW(Dune::NotImplemented, "!");
+    return localEnergy_->energy(localView,coefficients);
   }
 
   /** \brief Assemble the element gradient of the energy functional
@@ -64,6 +64,17 @@ public:
                                           std::vector<typename TargetSpace::TangentVector>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override;
 
+  /** \brief Assemble the local tangent matrix and gradient at the current position
+
+     This implementation uses finite-difference approximations
+   */
+  virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localSolution,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
 
   const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
 

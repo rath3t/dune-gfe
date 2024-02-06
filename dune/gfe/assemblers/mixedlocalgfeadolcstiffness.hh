@@ -12,14 +12,14 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
 
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
 template<class Basis, class TargetSpace0, class TargetSpace1>
 class MixedLocalGFEADOLCStiffness
-  : public MixedLocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >
+  : public LocalGeodesicFEStiffness<Basis,Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >
 {
   using TargetSpace = Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1>;
 
@@ -36,8 +36,6 @@ class MixedLocalGFEADOLCStiffness
 
   // some other sizes
   constexpr static int gridDim = GridView::dimension;
-
-  using HessianType = typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::MixedHessian;
 
 public:
 
@@ -74,14 +72,22 @@ public:
     DUNE_THROW(Dune::NotImplemented, "!");
   }
 
+  virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
+
   /** \brief Assemble the local stiffness matrix at the current position
 
      This uses the automatic differentiation toolbox ADOL_C.
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
-                                          typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
-                                          HessianType& localHessian) const override;
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override;
 
   const Dune::GFE::LocalEnergy<Basis, Dune::GFE::ProductManifold<ATargetSpace0, ATargetSpace1> >* localEnergy_;
   const bool adolcScalarMode_;
@@ -156,9 +162,9 @@ energy(const typename Basis::LocalView& localView,
 template <class Basis, class TargetSpace0, class TargetSpace1>
 void MixedLocalGFEADOLCStiffness<Basis, TargetSpace0, TargetSpace1>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                           const typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
-                           typename Dune::GFE::Impl::MixedLocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
-                           HessianType& localHessian) const
+                           const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
+                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const
 {
   int rank = Dune::MPIHelper::getCommunication().rank();
 

@@ -63,17 +63,27 @@ public:
      This uses the automatic differentiation toolbox ADOL_C.
    */
   virtual void assembleGradient(const typename Basis::LocalView& localView,
-                                const std::vector<TargetSpace>& solution,
-                                std::vector<typename TargetSpace::TangentVector>& gradient) const override;
+                                const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
+                                typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& gradient) const override;
 
   /** \brief Assemble the local stiffness matrix at the current position
 
      This uses the automatic differentiation toolbox ADOL_C.
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const std::vector<TargetSpace>& localSolution,
-                                          std::vector<typename TargetSpace::TangentVector>& localGradient,
-                                          Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> >& localHessian) const override;
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override;
+
+  /** \brief Assemble the local stiffness matrix at the current position
+   */
+  virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
 
   const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
   const bool adolcScalarMode_;
@@ -130,8 +140,8 @@ energy(const typename Basis::LocalView& localView,
 template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradient(const typename Basis::LocalView& localView,
-                 const std::vector<TargetSpace>& localSolution,
-                 std::vector<typename TargetSpace::TangentVector>& localGradient) const
+                 const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& localSolution,
+                 typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient) const
 {
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
   energy(localView, localSolution);
@@ -175,9 +185,9 @@ assembleGradient(const typename Basis::LocalView& localView,
 template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                           const std::vector<TargetSpace>& localSolution,
-                           std::vector<typename TargetSpace::TangentVector>& localGradient,
-                           Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> >& localHessian) const
+                           const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& localSolution,
+                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
+                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const
 {
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
   energy(localView, localSolution);
