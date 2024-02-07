@@ -28,7 +28,6 @@
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
@@ -146,7 +145,7 @@ int main (int argc, char *argv[])
                                                                                      &neumannBoundary,
                                                                                      neumannFunction,
                                                                                      nullptr);
-  MixedLocalGFEADOLCStiffness<CompositeBasis,
+  LocalGeodesicFEADOLCStiffness<CompositeBasis,
       GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > mixedLocalGFEADOLCStiffness(&cosseratEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,

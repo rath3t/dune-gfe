@@ -56,7 +56,7 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/nonplanarcosseratshellenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
@@ -498,8 +498,8 @@ int main (int argc, char *argv[]) try
                                                                                   neumannFunction,
                                                                                   volumeLoad);
 
-      MixedLocalGFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(&localCosseratEnergy,
-                                                                                     adolcScalarMode);
+      LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(&localCosseratEnergy,
+                                                                                       adolcScalarMode);
       MixedGFEAssembler<CompositeBasis,
           RealTuple<double,3>,
           Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
@@ -588,7 +588,7 @@ int main (int argc, char *argv[]) try
       }
 #endif
     } else {     //dim != dimworld
-      using StiffnessType = MixedLocalGFEADOLCStiffness<CompositeBasis, TargetSpace>;
+      using StiffnessType = LocalGeodesicFEADOLCStiffness<CompositeBasis, TargetSpace>;
       std::shared_ptr<StiffnessType> localGFEStiffness;
 
 #if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2

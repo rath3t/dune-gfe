@@ -25,7 +25,7 @@
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/dunepython.hh>
 
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/simofoxenergy.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) try
 
     using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
 
-    MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
+    LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
         TargetSpace> localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
 
     MixedGFEAssembler<decltype(compositeBasis),

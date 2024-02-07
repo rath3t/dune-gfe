@@ -58,7 +58,7 @@
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/assemblers/surfacecosseratenergy.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
@@ -525,7 +525,7 @@ int main (int argc, char *argv[]) try
     sumEnergy.addLocalEnergy(elasticEnergy);
     sumEnergy.addLocalEnergy(surfaceCosseratEnergy);
 
-    MixedLocalGFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
+    LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
     MixedGFEAssembler<CompositeBasis,
         RealTuple<double,dim>,
         Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);

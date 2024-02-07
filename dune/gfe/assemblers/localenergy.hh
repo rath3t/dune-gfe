@@ -18,6 +18,8 @@ namespace Dune {
     template <class TargetSpace>
     struct LocalEnergyTypes
     {
+      constexpr static bool isProductManifold = false;
+
       using Coefficients = std::vector<TargetSpace>;
       using CompositeCoefficients = TupleVector<std::vector<TargetSpace> >;
     };
@@ -27,6 +29,8 @@ namespace Dune {
     template <class ... Factors>
     struct LocalEnergyTypes<ProductManifold<Factors...> >
     {
+      constexpr static bool isProductManifold = true;
+
       using Coefficients = std::vector<ProductManifold<Factors...> >;
       using CompositeCoefficients = TupleVector<std::vector<Factors>... >;
     };

@@ -22,7 +22,7 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
@@ -207,7 +207,7 @@ int main (int argc, char *argv[])
   sumEnergy.addLocalEnergy(bulkCosseratEnergy);
   sumEnergy.addLocalEnergy(neumannEnergy);
 
-  MixedLocalGFEADOLCStiffness<CompositeBasis,
+  LocalGeodesicFEADOLCStiffness<CompositeBasis,
       GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
