@@ -165,7 +165,7 @@ private:
   const LocalMapper1& localMapper1_;
   const LocalMapper2& localMapper2_;
 
-  const typename GridView1::CollectiveCommunication& communicator_;
+  const typename GridView1::Communication& communicator_;
   int root_rank;
 
   std::vector<typename RowGlobalMapper::Index> localToGlobal1_;

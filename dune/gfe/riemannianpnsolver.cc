@@ -80,9 +80,9 @@ setup(const GridType& grid,
 
   globalMapper_ = std::make_unique<GlobalMapper>(grid_->leafGridView());
   // Transfer all Dirichlet data to the master processor
-  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
-                                                                                                                                        grid_->leafGridView().comm(),
-                                                                                                                                        0);
+  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::Communication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
+                                                                                                                              grid_->leafGridView().comm(),
+                                                                                                                              0);
   auto globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.reduceCopy(dirichletNodes));
 #else
   auto globalDirichletNodes = new Dune::BitSetVector<blocksize>(dirichletNodes);
@@ -198,9 +198,9 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
   MatrixType stiffnessMatrix;
   // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
 #if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
-  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*globalMapper_,
-                                                                                                                        grid_->leafGridView().comm(),
-                                                                                                                        0);
+  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::Communication, CorrectionType> vectorComm(*globalMapper_,
+                                                                                                              grid_->leafGridView().comm(),
+                                                                                                              0);
   LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
   MatrixCommunicator<GlobalMapper,
       typename GridType::LeafGridView,
