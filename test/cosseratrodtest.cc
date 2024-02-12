@@ -6,6 +6,7 @@
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
 #include <dune/common/bitsetvector.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/onedgrid.hh>
 
@@ -103,7 +104,11 @@ int main (int argc, char *argv[]) try
   BoundaryPatch<GridView> dirichletBoundary(gridView,
                                             true);    // true: The entire boundary is Dirichlet boundary
   BitSetVector<TargetSpace::TangentVector::dimension> dirichletNodes(tangentBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundary,tangentBasis,dirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary,tangentBasis,dirichletNodes);
+#endif
 
   // Find the dof on the right boundary
   std::size_t rightBoundaryDof;

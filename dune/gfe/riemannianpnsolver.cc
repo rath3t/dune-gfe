@@ -90,9 +90,9 @@ setup(const GridType& grid,
 
   globalMapper_ = std::make_unique<GlobalMapper>(grid_->leafGridView());
   // Transfer all Dirichlet data to the master processor
-  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
-                                                                                                                                        grid_->leafGridView().comm(),
-                                                                                                                                        0);
+  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::Communication, Dune::BitSetVector<blocksize> > vectorComm(*globalMapper_,
+                                                                                                                              grid_->leafGridView().comm(),
+                                                                                                                              0);
   auto globalDirichletNodes = new Dune::BitSetVector<blocksize>(vectorComm.reduceCopy(dirichletNodes));
 #else
   auto globalDirichletNodes = new Dune::BitSetVector<blocksize>(dirichletNodes);
@@ -208,9 +208,9 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
   MatrixType stiffnessMatrix;
   // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
 #if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
-  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::CollectiveCommunication, CorrectionType> vectorComm(*globalMapper_,
-                                                                                                                        grid_->leafGridView().comm(),
-                                                                                                                        0);
+  VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::Communication, CorrectionType> vectorComm(*globalMapper_,
+                                                                                                              grid_->leafGridView().comm(),
+                                                                                                              0);
   LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
   MatrixCommunicator<GlobalMapper,
       typename GridType::LeafGridView,
@@ -419,12 +419,19 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
 
     if (solved) {
       if (this->verbosity_ == NumProc::FULL && rank==0)
-        if (normType_ == ErrorNormType::infinity)
+        switch (normType_)
+        {
+        case ErrorNormType::infinity :
           std::cout << "infinity norm of the correction: " << corrGlobalNorm << std::endl;
-        else if (normType_ == ErrorNormType::H1semi)
+          break;
+
+        case ErrorNormType::H1semi :
           std::cout << "H1-semi norm of the correction: " << corrGlobalNorm << std::endl;
-        else
+          break;
+
+        default :
           DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
+        }
 
       if (corrGlobalNorm < this->tolerance_ && corrGlobalNorm < 1/regularization) {
         if (this->verbosity_ == NumProc::FULL and rank==0)

@@ -3,26 +3,25 @@
 
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/elasticity/assemblers/localenergy.hh>
 
 namespace Dune::GFE {
-  /**
-     \brief Assembles the Neumann energy for a single element on the Neumann Boundary using the Neumann Function.
-
-           This class works similarly to the class Dune::Elasticity::NeumannEnergy, where Dune::Elasticity::NeumannEnergy extends
-           Dune::Elasticity::LocalEnergy and Dune::GFE::NeumannEnergy extends Dune::GFE::LocalEnergy.
+  /** \brief Integrate a density over a part of the domain boundary
+   *
+   * This is typically used to implement Neumann boundary conditions.  Hence the name.
    */
   template<class Basis, class ... TargetSpaces>
   class NeumannEnergy
-    : public Dune::GFE::LocalEnergy<Basis,TargetSpaces...>
+    : public Dune::GFE::LocalEnergy<Basis,ProductManifold<TargetSpaces...> >
   {
+    using TargetSpace = ProductManifold<TargetSpaces...>;
+
     using LocalView = typename Basis::LocalView;
     using GridView = typename LocalView::GridView;
     using DT = typename GridView::Grid::ctype;
-    using RT = typename Dune::GFE::LocalEnergy<Basis,TargetSpaces...>::RT;
+    using RT = typename Dune::GFE::LocalEnergy<Basis,TargetSpace>::RT;
 
     constexpr static int dim = GridView::dimension;
 
@@ -39,13 +38,18 @@ namespace Dune::GFE {
 
     /** \brief Assemble the energy for a single element */
     RT energy(const typename Basis::LocalView& localView,
-              const std::vector<TargetSpaces>& ... localSolutions) const
+              const std::vector<TargetSpace>& localSolutions) const
     {
-      static_assert(sizeof...(TargetSpaces) > 0, "NeumannEnergy needs at least one TargetSpace!");
+      DUNE_THROW(NotImplemented, "!");
+    }
 
+    RT energy (const typename Basis::LocalView& localView,
+               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+    {
       using namespace Dune::Indices;
+      // TODO: Remove the hard-coded first factor space!
       using TargetSpace = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
-      const std::vector<TargetSpace>& localSolution = std::get<0>(std::forward_as_tuple(localSolutions ...));
+      const std::vector<TargetSpace>& localSolution = coefficients[_0];
 
       const auto& localFiniteElement = localView.tree().child(_0,0).finiteElement();
       const auto& element = localView.element();

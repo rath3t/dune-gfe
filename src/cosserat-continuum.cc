@@ -34,6 +34,7 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 #include <dune/common/tuplevector.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
@@ -55,7 +56,7 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/nonplanarcosseratshellenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
@@ -96,10 +97,10 @@ const int rotationOrder = GFE_ORDER;
 
 #if !MIXED_SPACE
 static_assert(displacementOrder==rotationOrder, "displacement and rotation order do not match!");
+#endif
 
 // Image space of the geodesic fe functions
 using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
-#endif
 
 
 int main (int argc, char *argv[]) try
@@ -307,7 +308,11 @@ int main (int argc, char *argv[]) try
             << " faces and " << neumannVertices.count() << " degrees of freedom.\n";
 
   BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(neumannBoundary,deformationFEBasis,neumannNodes);
+#else
   constructBoundaryDofs(neumannBoundary,deformationFEBasis,neumannNodes);
+#endif
 
   for (size_t i=0; i<deformationFEBasis.size(); i++) {
     FieldVector<bool,3> isDirichlet;
@@ -492,9 +497,9 @@ int main (int argc, char *argv[]) try
                                                                                   &neumannBoundary,
                                                                                   neumannFunction,
                                                                                   volumeLoad);
-      MixedLocalGFEADOLCStiffness<CompositeBasis,
-          RealTuple<double,3>,
-          Rotation<double,3> > localGFEADOLCStiffness(&localCosseratEnergy, adolcScalarMode);
+
+      LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(&localCosseratEnergy,
+                                                                                       adolcScalarMode);
       MixedGFEAssembler<CompositeBasis,
           RealTuple<double,3>,
           Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
@@ -583,7 +588,7 @@ int main (int argc, char *argv[]) try
       }
 #endif
     } else {     //dim != dimworld
-      using StiffnessType = MixedLocalGFEADOLCStiffness<CompositeBasis, RealTuple<double,3>, Rotation<double,3> >;
+      using StiffnessType = LocalGeodesicFEADOLCStiffness<CompositeBasis, TargetSpace>;
       std::shared_ptr<StiffnessType> localGFEStiffness;
 
 #if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2

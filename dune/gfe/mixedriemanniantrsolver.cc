@@ -528,7 +528,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
 
       recomputeGradientHessian = true;
 
-    } else if (solvedByInnerSolver && (oldEnergy-energy) / modelDecrease > 0.01
+    } else if ((solvedByInnerSolver && (oldEnergy-energy) / modelDecrease > 0.01)
                || std::abs(oldEnergy-energy) < 1e-12) {
       // successful iteration
       x_ = newIterate;

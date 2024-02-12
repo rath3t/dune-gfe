@@ -13,6 +13,7 @@
 #include <dune/common/bitsetvector.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/uggrid.hh>
 #include <dune/grid/utility/structuredgridfactory.hh>
@@ -230,8 +231,11 @@ int main (int argc, char *argv[])
   BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
 
   BitSetVector<blocksize> dirichletNodes(feBasis.size(), false);
-
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundary,feBasis,dirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary,feBasis,dirichletNodes);
+#endif
 
   // //////////////////////////
   //   Initial iterate

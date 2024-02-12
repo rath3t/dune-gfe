@@ -14,7 +14,6 @@
 #endif
 
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
 #ifdef PROJECTED_INTERPOLATION
 #include <dune/gfe/localprojectedfefunction.hh>
 #else
@@ -71,10 +70,7 @@ public:
 
 template<class Basis, int dim, class field_type=double>
 class CosseratEnergyLocalStiffness
-  : public Dune::GFE::LocalEnergy<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >,
-    public MixedLocalGeodesicFEStiffness<Basis,
-        RealTuple<field_type,dim>,
-        Rotation<field_type,dim> >
+  : public Dune::GFE::LocalEnergy<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > >
 {
   // grid types
   typedef typename Basis::GridView GridView;
@@ -145,10 +141,8 @@ public:
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const override;
 
-  /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
-             const std::vector<RealTuple<field_type,dim> >& localDisplacementConfiguration,
-             const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const override;
+             const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override;
 
   /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
    * the first equation of (4.4) in Neff's paper from 2006: A geometrically exact planar Cosserat shell model with microstructure: Existence of minimizers for zero Cosserat couple modulus
@@ -497,8 +491,7 @@ template <class Basis, int dim, class field_type>
 typename CosseratEnergyLocalStiffness<Basis,dim,field_type>::RT
 CosseratEnergyLocalStiffness<Basis,dim,field_type>::
 energy(const typename Basis::LocalView& localView,
-       const std::vector<RealTuple<field_type,dim> >& localDeformationConfiguration,
-       const std::vector<Rotation<field_type,dim> >& localOrientationConfiguration) const
+       const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localConfiguration) const
 {
   auto element = localView.element();
 
@@ -515,14 +508,14 @@ energy(const typename Basis::LocalView& localView,
   typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> >
     LocalDeformationGFEFunctionType;
 #endif
-  LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
+  LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localConfiguration[_0]);
 
 #ifdef PROJECTED_INTERPOLATION
   typedef Dune::GFE::LocalProjectedFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
 #else
   typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
 #endif
-  LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
+  LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localConfiguration[_1]);
 
   // \todo Implement smarter quadrature rule selection for more efficiency, i.e., less evaluations of the Rotation GFE function
   int quadOrder = deformationLocalFiniteElement.localBasis().order() * ((element.type().isSimplex()) ? 1 : gridDim);

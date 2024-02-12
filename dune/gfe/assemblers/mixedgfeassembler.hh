@@ -7,7 +7,7 @@
 #include <dune/istl/matrix.hh>
 #include <dune/istl/multitypeblockmatrix.hh>
 
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 
 
 /** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces
@@ -36,15 +36,13 @@ public:
       Dune::MultiTypeBlockVector<MatrixBlock10,MatrixBlock11> > MatrixType;
   const Basis basis_;
 
-  MixedLocalGeodesicFEStiffness<Basis,
-      TargetSpace0,
-      TargetSpace1>* localStiffness_;
+  LocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >* localStiffness_;
 
 public:
 
   /** \brief Constructor for a given grid */
   MixedGFEAssembler(const Basis& basis,
-                    MixedLocalGeodesicFEStiffness<Basis, TargetSpace0, TargetSpace1>* localStiffness)
+                    LocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0, TargetSpace1> >* localStiffness)
     : basis_(basis),
     localStiffness_(localStiffness)
   {}
@@ -60,11 +58,7 @@ public:
                                           Dune::BlockVector<Dune::FieldVector<double, blocksize1> >& gradient1,
                                           MatrixType& hessian,
                                           bool computeOccupationPattern=true) const;
-#if 0
-  /** \brief Assemble the gradient */
-  virtual void assembleGradient(const std::vector<TargetSpace>& sol,
-                                Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const;
-#endif
+
   /** \brief Compute the energy of a deformation state */
   virtual double computeEnergy(const std::vector<TargetSpace0>& configuration0,
                                const std::vector<TargetSpace1>& configuration1) const;
@@ -175,8 +169,9 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
     // nDofs1 are the degrees of freedom for *one* subspacebasis of the power basis of the rotational part
     // this is why the indices (_0,0) and (_1,0) are used: _0 takes the whole displacement part and _1 the whole rotational part; and 0 the first subspacebasis respectively
     // Extract local solution
-    std::vector<TargetSpace0> localConfiguration0(nDofs0);
-    std::vector<TargetSpace1> localConfiguration1(nDofs1);
+    Dune::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > localConfiguration;
+    localConfiguration[_0].resize(nDofs0);
+    localConfiguration[_1].resize(nDofs1);
 
     for (int i=0; i<nDofs0+nDofs1; i++)
     {
@@ -192,18 +187,30 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
       //CompositeBasis number is contained in multiIndex[0], the Subspacebasis is contained in multiIndex[2]
       //multiIndex[1] contains the actual index
       if (multiIndex[0] == 0)
-        localConfiguration0[i] = configuration0[multiIndex[1]];
+        localConfiguration[_0][i] = configuration0[multiIndex[1]];
       else if (multiIndex[0] == 1)
-        localConfiguration1[i-nDofs0] = configuration1[multiIndex[1]];
+        localConfiguration[_1][i-nDofs0] = configuration1[multiIndex[1]];
     }
 
-    std::vector<Dune::FieldVector<double,blocksize0> > localGradient0(nDofs0);
-    std::vector<Dune::FieldVector<double,blocksize1> > localGradient1(nDofs1);
+    Dune::TupleVector<std::vector<Dune::FieldVector<double,blocksize0> >,
+        std::vector<Dune::FieldVector<double,blocksize1> > > localGradient;
+    localGradient[_0].resize(nDofs0);
+    localGradient[_1].resize(nDofs1);
+
+    using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize0> >,
+        Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize1> > >;
+    using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize0> >,
+        Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize1> > >;
+
+    using HessianType = Dune::MultiTypeBlockMatrix<Row0, Row1>;
+
+    HessianType localHessian;
 
     // setup local matrix and gradient
     localStiffness_->assembleGradientAndHessian(localView,
-                                                localConfiguration0, localConfiguration1,
-                                                localGradient0, localGradient1);
+                                                localConfiguration,
+                                                localGradient,
+                                                localHessian);
 
     // Add element matrix to global stiffness matrix
     for (int i=0; i<nDofs0+nDofs1; i++)
@@ -233,68 +240,27 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
         auto col = localView.index(localIndexCol);
 
         if (row[0]==0 and col[0]==0)
-          hessian[_0][_0][row[1]][col[1]] += localStiffness_->A00_[i][j];
+          hessian[_0][_0][row[1]][col[1]] += localHessian[_0][_0][i][j];
 
         if (row[0]==0 and col[0]==1)
-          hessian[_0][_1][row[1]][col[1]] += localStiffness_->A01_[i][j-nDofs0];
+          hessian[_0][_1][row[1]][col[1]] += localHessian[_0][_1][i][j-nDofs0];
 
         if (row[0]==1 and col[0]==0)
-          hessian[_1][_0][row[1]][col[1]] += localStiffness_->A10_[i-nDofs0][j];
+          hessian[_1][_0][row[1]][col[1]] += localHessian[_1][_0][i-nDofs0][j];
 
         if (row[0]==1 and col[0]==1)
-          hessian[_1][_1][row[1]][col[1]] += localStiffness_->A11_[i-nDofs0][j-nDofs0];
+          hessian[_1][_1][row[1]][col[1]] += localHessian[_1][_1][i-nDofs0][j-nDofs0];
       }
 
       // Add local gradient to global gradient
       if (row[0] == 0)
-        gradient0[row[1]] += localGradient0[i];
+        gradient0[row[1]] += localGradient[_0][i];
       else
-        gradient1[row[1]] += localGradient1[i-nDofs0];
+        gradient1[row[1]] += localGradient[_1][i-nDofs0];
     }
 
   }
 }
-
-#if 0
-template <class Basis, class TargetSpace>
-void GeodesicFEAssembler<Basis,TargetSpace>::
-assembleGradient(const std::vector<TargetSpace>& sol,
-                 Dune::BlockVector<Dune::FieldVector<double, blocksize> >& grad) const
-{
-  if (sol.size()!=basis_.size())
-    DUNE_THROW(Dune::Exception, "Solution vector doesn't match the grid!");
-
-  grad.resize(sol.size());
-  grad = 0;
-
-  ElementIterator it    = basis_.getGridView().template begin<0,Dune::Interior_Partition>();
-  ElementIterator endIt = basis_.getGridView().template end<0,Dune::Interior_Partition>();
-
-  // Loop over all elements
-  for (; it!=endIt; ++it) {
-
-    // A 1d grid has two vertices
-    const int nDofs = basis_.getLocalFiniteElement(*it).localBasis().size();
-
-    // Extract local solution
-    std::vector<TargetSpace> localSolution(nDofs);
-
-    for (int i=0; i<nDofs; i++)
-      localSolution[i] = sol[basis_.index(*it,i)];
-
-    // Assemble local gradient
-    std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
-
-    localStiffness_->assembleGradient(*it, basis_.getLocalFiniteElement(*it), localSolution, localGradient);
-
-    // Add to global gradient
-    for (int i=0; i<nDofs; i++)
-      grad[basis_.index(*it,i)] += localGradient[i];
-
-  }
-
-}
-#endif
 
 template <class Basis, class TargetSpace0, class TargetSpace1>
 double MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>::
@@ -319,12 +285,13 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
     localView.bind(element);
 
     // Number of degrees of freedom on this element
-    using namespace Dune::TypeTree::Indices;
+    using namespace Dune::Indices;
     const int nDofs0 = localView.tree().child(_0,0).finiteElement().size();
     const int nDofs1 = localView.tree().child(_1,0).finiteElement().size();
 
-    std::vector<TargetSpace0> localConfiguration0(nDofs0);
-    std::vector<TargetSpace1> localConfiguration1(nDofs1);
+    Dune::TupleVector<std::vector<TargetSpace0>, std::vector<TargetSpace1> > localConfiguration;
+    localConfiguration[_0].resize(nDofs0);
+    localConfiguration[_1].resize(nDofs1);
 
     for (int i=0; i<nDofs0+nDofs1; i++)
     {
@@ -342,14 +309,13 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
       // The CompositeBasis number is contained in multiIndex[0]
       // multiIndex[1] contains the actual index
       if (multiIndex[0] == 0)
-        localConfiguration0[i] = configuration0[multiIndex[1]];
+        localConfiguration[_0][i] = configuration0[multiIndex[1]];
       else if (multiIndex[0] == 1)
-        localConfiguration1[i-nDofs0] = configuration1[multiIndex[1]];
+        localConfiguration[_1][i-nDofs0] = configuration1[multiIndex[1]];
     }
 
     energy += localStiffness_->energy(localView,
-                                      localConfiguration0,
-                                      localConfiguration1);
+                                      localConfiguration);
 
   }
 

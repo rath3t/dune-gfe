@@ -3,51 +3,96 @@
 
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/matrix.hh>
+#include <dune/istl/multitypeblockmatrix.hh>
 
 #include <dune/gfe/assemblers/localfirstordermodel.hh>
+
+namespace Dune::GFE
+{
+  namespace Impl
+  {
+    /** \brief A class exporting container types for sets local Hesse matrices
+     *
+     * This generic template handles TargetSpaces that are not product manifolds.
+     */
+    template<class TargetSpace>
+    class LocalStiffnessTypes
+      : public LocalFirstOrderModelTypes<TargetSpace>
+    {
+      // Number type
+      typedef typename TargetSpace::ctype RT;
+
+      //! Dimension of a tangent space
+      constexpr static auto blocksize = TargetSpace::TangentVector::dimension;
+
+    public:
+
+      // Type of the local Hessian
+      using Hessian = Matrix<FieldMatrix<RT, blocksize, blocksize> >;
+
+      using Row = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize, blocksize> > >;
+      using CompositeHessian = MultiTypeBlockMatrix<Row>;
+    };
+
+    /** \brief A class exporting container types for sets local Hesse matrices
+     *
+     * This is the specialization for product manifolds.
+     */
+    template<class ... Factors>
+    class LocalStiffnessTypes<ProductManifold<Factors...> >
+      : public LocalFirstOrderModelTypes<ProductManifold<Factors...> >
+    {
+      using TargetSpace = ProductManifold<Factors...>;
+
+      // Number type
+      typedef typename ProductManifold<Factors...>::ctype RT;
+
+      using DeformationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_0])>;
+      using OrientationTargetSpace = std::decay_t<decltype(std::declval<TargetSpace>()[Dune::Indices::_1])>;
+
+      // Dimension of the product tangent space
+      constexpr static auto blocksize = TargetSpace::TangentVector::dimension;
+
+      // Dimensions of the individual factor tangent spaces
+      constexpr static auto blocksize0 = DeformationTargetSpace::TangentVector::dimension;
+      constexpr static auto blocksize1 = OrientationTargetSpace::TangentVector::dimension;
+
+    public:
+
+      // Type of the local Hessian
+      using Hessian = Matrix<FieldMatrix<RT, blocksize, blocksize> >;
+
+      // Type of the local Hessian
+      using Row0 = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize0, blocksize0> >,
+          Matrix<FieldMatrix<RT, blocksize0, blocksize1> > >;
+      using Row1 = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize1, blocksize0> >,
+          Matrix<FieldMatrix<RT, blocksize1, blocksize1> > >;
+
+      using CompositeHessian = MultiTypeBlockMatrix<Row0, Row1>;
+    };
+  }
+}
 
 template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness
   : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
 {
-  // grid types
-  typedef typename Basis::GridView GridView;
-  typedef typename GridView::ctype DT;
-  typedef typename TargetSpace::ctype RT;
-  typedef typename GridView::template Codim<0>::Entity Entity;
-
-  // some other sizes
-  constexpr static int gridDim = GridView::dimension;
-
 public:
-
-  //! Dimension of a tangent space
-  constexpr static int blocksize = TargetSpace::TangentVector::dimension;
-
-  //! Dimension of the embedding space
-  constexpr static int embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
   /** \brief Assemble the local gradient and stiffness matrix at the current position
 
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const std::vector<TargetSpace>& localSolution,
-                                          std::vector<typename TargetSpace::TangentVector>& localGradient) = 0;
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
 
-  /** \brief Compute the energy at the current configuration */
-  virtual RT energy (const typename Basis::LocalView& localView,
-                     const std::vector<TargetSpace>& localSolution) const = 0;
-
-  /** \brief Assemble the element gradient of the energy functional
-
-     The default implementation in this class uses a finite difference approximation */
-  virtual void assembleGradient(const typename Basis::LocalView& localView,
-                                const std::vector<TargetSpace>& solution,
-                                std::vector<typename TargetSpace::TangentVector>& gradient) const = 0;
-
-  // assembled data
-  Dune::Matrix<Dune::FieldMatrix<RT,blocksize,blocksize> > A_;
-
+  /** \brief Assemble the local gradient and stiffness matrix at the current position -- Composite version
+   */
+  virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const = 0;
 };
 
 #endif

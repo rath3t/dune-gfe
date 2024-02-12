@@ -42,6 +42,12 @@ public:
     return localEnergy_->energy(localView,localSolution);
   }
 
+  RT energy (const typename Basis::LocalView& localView,
+             const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+  {
+    return localEnergy_->energy(localView,coefficients);
+  }
+
   /** \brief Assemble the element gradient of the energy functional
 
      The default implementation in this class uses a finite difference approximation */
@@ -52,19 +58,23 @@ public:
   /** \brief Assemble the local tangent matrix and gradient at the current position
 
      This implementation uses finite-difference approximations
-
-     The formula for the Riemannian Hessian has been taken from Absil, Mahony, Sepulchre:
-     'Optimization algorithms on matrix manifolds', page 107.  There it says that
-     \f[
-      \langle Hess f(x)[\xi], \eta \rangle
-          = \frac 12 \frac{d^2}{dt^2} \Big(f(\exp_x(t(\xi + \eta))) - f(\exp_x(t\xi)) - f(\exp_x(t\eta))\Big)\Big|_{t=0}.
-     \f]
-     We compute that using a finite difference approximation.
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const std::vector<TargetSpace>& localSolution,
-                                          std::vector<typename TargetSpace::TangentVector>& localGradient) override;
+                                          std::vector<typename TargetSpace::TangentVector>& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override;
 
+  /** \brief Assemble the local tangent matrix and gradient at the current position
+
+     This implementation uses finite-difference approximations
+   */
+  virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
+                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localSolution,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
 
   const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
 
@@ -139,15 +149,16 @@ template <class Basis, class TargetSpace, class field_type>
 void LocalGeodesicFEFDStiffness<Basis, TargetSpace, field_type>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const std::vector<TargetSpace>& localSolution,
-                           std::vector<typename TargetSpace::TangentVector>& localGradient)
+                           std::vector<typename TargetSpace::TangentVector>& localGradient,
+                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const
 {
   // Number of degrees of freedom for this element
   size_t nDofs = localSolution.size();
 
   // Clear assemble data
-  this->A_.setSize(nDofs, nDofs);
+  localHessian.setSize(nDofs, nDofs);
 
-  this->A_ = 0;
+  localHessian = 0;
 
 #ifdef MULTIPRECISION
   const field_type eps = 1e-10;
@@ -253,9 +264,9 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
           field_type foo = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
 #ifdef MULTIPRECISION
-          this->A_[i][j][i2][j2] = this->A_[j][i][j2][i2] = foo.template convert_to<double>();
+          localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = foo.template convert_to<double>();
 #else
-          this->A_[i][j][i2][j2] = this->A_[j][i][j2][i2] = foo;
+          localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = foo;
 #endif
         }
       }

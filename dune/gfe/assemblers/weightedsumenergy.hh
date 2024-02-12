@@ -48,6 +48,11 @@ public:
     return energy;
   }
 
+  RT energy (const typename Basis::LocalView& localView,
+             const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
 };
 
 #endif

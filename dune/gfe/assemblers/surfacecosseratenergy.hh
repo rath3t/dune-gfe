@@ -4,14 +4,13 @@
 #include <dune/common/indices.hh>
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/fufem/functions/virtualgridfunction.hh>
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/cosseratstrain.hh>
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/assemblers/mixedlocalgeodesicfestiffness.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
@@ -29,11 +28,12 @@ namespace Dune::GFE {
    */
   template<class CurvedGeometryGridFunction, class Basis, class ... TargetSpaces>
   class SurfaceCosseratEnergy
-    : public Dune::GFE::LocalEnergy<Basis, TargetSpaces...>
+    : public Dune::GFE::LocalEnergy<Basis, ProductManifold<TargetSpaces...> >
   {
+    using TargetSpace = ProductManifold<TargetSpaces...>;
     using GridView = typename Basis::GridView;
     using DT = typename GridView::ctype ;
-    using RT = typename Dune::GFE::LocalEnergy<Basis, TargetSpaces...>::RT ;
+    using RT = typename Dune::GFE::LocalEnergy<Basis, TargetSpace>::RT ;
     using Entity = typename GridView::template Codim<0>::Entity ;
     using RBM0 = RealTuple<RT,GridView::dimensionworld> ;
     using RBM1 = Rotation<RT,GridView::dimensionworld> ;
@@ -104,6 +104,19 @@ namespace Dune::GFE {
       b1_ = parameters.template get<double>("b1");
       b2_ = parameters.template get<double>("b2");
       b3_ = parameters.template get<double>("b3");
+    }
+
+    /** \brief Assemble the energy for a single element */
+    RT energy(const typename Basis::LocalView& localView,
+              const std::vector<TargetSpace>& localSolutions) const
+    {
+      DUNE_THROW(NotImplemented, "!");
+    }
+
+    RT energy (const typename Basis::LocalView& localView,
+               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+    {
+      DUNE_THROW(NotImplemented, "!");
     }
 
     RT energy(const typename Basis::LocalView& localView,

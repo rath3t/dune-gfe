@@ -2,9 +2,11 @@
 #define DUNE_GFE_HARMONICENERGY_HH
 
 #include <dune/common/fmatrix.hh>
+#include <dune/common/fvector.hh>
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/densities/harmonicdensity.hh>
 
 template<class Basis, class LocalInterpolationRule, class TargetSpace>
 class HarmonicEnergy
@@ -24,6 +26,12 @@ public:
   RT energy (const typename Basis::LocalView& localView,
              const std::vector<TargetSpace>& localSolution) const override;
 
+  virtual RT energy (const typename Basis::LocalView& localView,
+                     const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+  {
+    DUNE_THROW(Dune::NotImplemented, "!");
+  }
+
 };
 
 template <class Basis, class LocalInterpolationRule, class TargetSpace>
@@ -32,6 +40,8 @@ HarmonicEnergy<Basis, LocalInterpolationRule, TargetSpace>::
 energy(const typename Basis::LocalView& localView,
        const std::vector<TargetSpace>& localSolution) const
 {
+  Dune::GFE::HarmonicDensity<Dune::FieldVector<DT,gridDim>,TargetSpace> density;
+
   RT energy = 0;
 
   const auto& localFiniteElement = localView.tree().finiteElement();
@@ -51,27 +61,24 @@ energy(const typename Basis::LocalView& localView,
 
     const auto integrationElement = element.geometry().integrationElement(quadPos);
 
-    const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+    const auto jacobianInverse = element.geometry().jacobianInverse(quadPos);
 
     auto weight = quad[pt].weight() * integrationElement;
 
     // The derivative of the local function defined on the reference element
-    auto referenceDerivative = localInterpolationRule.evaluateDerivative(quadPos);
 
-    // Compute the Frobenius norm squared of the derivative.  This is the correct term
-    // if both domain and target space use the metric inherited from an embedding.
-    for (size_t i=0; i<jacobianInverseTransposed.N(); i++)
-      for (int j=0; j<TargetSpace::embeddedDim; j++)
-      {
-        RT entry = 0;
-        for (size_t k=0; k<jacobianInverseTransposed.M(); k++)
-          entry += jacobianInverseTransposed[i][k] * referenceDerivative[j][k];
-        energy += weight * entry * entry;
-      }
+    // Function value at the point where we are evaluating the derivative
+    // (not needed by the energy, but needed to compute the derivative)
+    TargetSpace q = localInterpolationRule.evaluate(quadPos);
 
+    // Compute the derivative
+    auto referenceDerivative = localInterpolationRule.evaluateDerivative(quadPos, q);
+    auto derivative = referenceDerivative * jacobianInverse;
+
+    energy += weight * density(quadPos,q,derivative);
   }
 
-  return 0.5 * energy;
+  return energy;
 }
 
 #endif

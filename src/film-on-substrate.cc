@@ -58,7 +58,7 @@
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/assemblers/surfacecosseratenergy.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
@@ -306,10 +306,17 @@ int main (int argc, char *argv[]) try
   BitSetVector<1> dirichletNodesY(compositeBasis.size({0}),false);
   BitSetVector<1> dirichletNodesZ(compositeBasis.size({0}),false);
   BitSetVector<1> surfaceShellNodes(compositeBasis.size({1}),false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundaryX,deformationFEBasis,dirichletNodesX);
+  Fufem::markBoundaryPatchDofs(dirichletBoundaryY,deformationFEBasis,dirichletNodesY);
+  Fufem::markBoundaryPatchDofs(dirichletBoundaryZ,deformationFEBasis,dirichletNodesZ);
+  Fufem::markBoundaryPatchDofs(surfaceShellBoundary,orientationFEBasis,surfaceShellNodes);
+#else
   constructBoundaryDofs(dirichletBoundaryX,deformationFEBasis,dirichletNodesX);
   constructBoundaryDofs(dirichletBoundaryY,deformationFEBasis,dirichletNodesY);
   constructBoundaryDofs(dirichletBoundaryZ,deformationFEBasis,dirichletNodesZ);
   constructBoundaryDofs(surfaceShellBoundary,orientationFEBasis,surfaceShellNodes);
+#endif
 
   //Create BitVector matching the tangential space
   const int dimRotationTangent = Rotation<double,dim>::TangentVector::dimension;
@@ -511,14 +518,14 @@ int main (int argc, char *argv[]) try
       fThickness,
       fLame);
 
+    using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
+
     GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim> > sumEnergy;
     sumEnergy.addLocalEnergy(neumannEnergy);
     sumEnergy.addLocalEnergy(elasticEnergy);
     sumEnergy.addLocalEnergy(surfaceCosseratEnergy);
 
-    MixedLocalGFEADOLCStiffness<CompositeBasis,
-        RealTuple<double,dim>,
-        Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
+    LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
     MixedGFEAssembler<CompositeBasis,
         RealTuple<double,dim>,
         Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
@@ -567,7 +574,6 @@ int main (int argc, char *argv[]) try
     //The MixedRiemannianTrustRegionSolver can treat the Deformation and Orientation Space as separate ones
     //The RiemannianTrustRegionSolver can only treat the Deformation and Rotation together in a ProductManifold
     //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
-    using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
     std::vector<RBM> xRBM(compositeBasis.size({0}));
     BitSetVector<RBM::TangentVector::dimension> dirichletDofsRBM(compositeBasis.size({0}), false);
     for (int i = 0; i < compositeBasis.size({0}); i++) {

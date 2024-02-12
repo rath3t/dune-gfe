@@ -9,16 +9,18 @@
 #include <dune/gfe/cosseratstrain.hh>
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/densities/localdensity.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 
 namespace Dune::GFE {
 
-  template<class field_type = double, class ctype = double>
+  template<class Position, class field_type>
   class BulkCosseratDensity final
-    : public GFE::LocalDensity<3,field_type,ctype>
+    : public GFE::LocalDensity<Position, GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
   {
   private:
-    // gridDim = 3 - this can be hardwired here, because BulkCosseratDensity only works for 3d->3d problems
-    static const int gridDim = 3;
+    // BulkCosseratDensity only works for 3d->3d problems
+    static_assert(Position::size()==3);
+    static const int gridDim = Position::size();
     static const int embeddedDim = Rotation<field_type,gridDim>::embeddedDim;
     using OrientationDerivativeType = FieldMatrix<field_type, embeddedDim, gridDim>;
 
@@ -108,6 +110,18 @@ namespace Dune::GFE {
                                   + b2_ * GFE::skew(wryness).frobenius_norm2() + b3_ * GFE::traceSquared(wryness));
     }
 
+    /** \brief Evaluate the density
+     *
+     * \todo Currently this method is only here to please the compiler.
+     * Eventually, it will replace the other operator()-implementation.
+     */
+    virtual field_type operator() (const Position& x,
+                                   const GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >& value,
+                                   const FieldMatrix<field_type,7,gridDim>& derivative) const override
+    {
+      DUNE_THROW(NotImplemented, "!");
+    }
+
     /** \brief Evaluation with the current position, the deformation value and its derivative, the orientation value and its derivative
      *
      * \param x The current position
@@ -116,7 +130,7 @@ namespace Dune::GFE {
      * \param orientationValue The orientation at the current position
      * \param orientationDerivative The derivative of the orientation at the current position
      */
-    field_type operator() (const FieldVector<ctype,gridDim>& x,
+    field_type operator() (const Position& x,
                            const RealTuple<field_type,gridDim>& deformationValue,
                            const FieldMatrix<field_type,gridDim,gridDim>& deformationDerivative,
                            const Rotation<field_type,gridDim>& orientationValue,

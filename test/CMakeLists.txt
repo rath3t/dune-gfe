@@ -1,6 +1,5 @@
 set(TESTS
   adolctest
-  adolctest-scalar-and-vector-mode
   averagedistanceassemblertest
   cosseratenergytest
   cosseratrodenergytest

@@ -22,7 +22,7 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
@@ -185,13 +185,11 @@ int main (int argc, char *argv[])
   // ////////////////////////////
 
   ParameterTree parameters;
-  parameters["thickness"] = "0.1";
   parameters["mu"] = "1";
   parameters["lambda"] = "1";
   parameters["mu_c"] = "1";
   parameters["L_c"] = "0.1";
   parameters["q"] = "2";
-  parameters["kappa"] = "1";
   parameters["b1"] = "1";
   parameters["b2"] = "1";
   parameters["b3"] = "1";
@@ -202,14 +200,13 @@ int main (int argc, char *argv[])
 
   GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dim>,Rotation<adouble,dim> > sumEnergy;
   auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
-  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<adouble,double> >(parameters);
+  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<FieldVector<double,dim>,adouble> >(parameters);
   auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(bulkCosseratDensity);
   sumEnergy.addLocalEnergy(bulkCosseratEnergy);
   sumEnergy.addLocalEnergy(neumannEnergy);
 
-  MixedLocalGFEADOLCStiffness<CompositeBasis,
-      RealTuple<double,dim>,
-      Rotation<double,dim> > localGFEADOLCStiffness(&sumEnergy);
+  LocalGeodesicFEADOLCStiffness<CompositeBasis,
+      GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
       Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);

@@ -44,6 +44,12 @@ namespace Dune {
       RT energy (const typename Basis::LocalView& localView,
                  const std::vector<TargetSpace>& localConfiguration) const override;
 
+      RT energy (const typename Basis::LocalView& localView,
+                 const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
+      {
+        DUNE_THROW(NotImplemented, "!");
+      }
+
       field_type h_;
       field_type kappa_;
     };

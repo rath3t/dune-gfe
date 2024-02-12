@@ -9,6 +9,7 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 #include <dune/common/tuplevector.hh>
+#include <dune/common/version.hh>
 
 #include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/grid/io/file/gmshreader.hh>
@@ -24,7 +25,7 @@
 #include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/dunepython.hh>
 
-#include <dune/gfe/assemblers/mixedlocalgfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/simofoxenergy.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
@@ -198,10 +199,18 @@ int main(int argc, char *argv[]) try
     std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
 
   BitSetVector<1> deformationDirichletNodes(midsurfaceFEBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundary, midsurfaceFEBasis, deformationDirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary, midsurfaceFEBasis, deformationDirichletNodes);
+#endif
 
   BitSetVector<1> neumannNodes(midsurfaceFEBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(neumannBoundary, directorFEBasis, neumannNodes);
+#else
   constructBoundaryDofs(neumannBoundary, directorFEBasis, neumannNodes);
+#endif
 
   BitSetVector<3> deformationDirichletDofs(midsurfaceFEBasis.size(), false);
   for (size_t i = 0; i < midsurfaceFEBasis.size(); i++)
@@ -210,7 +219,11 @@ int main(int argc, char *argv[]) try
         deformationDirichletDofs[i][j] = true;
 
   BitSetVector<1> orientationDirichletNodes(directorFEBasis.size(), false);
+#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
+  Fufem::markBoundaryPatchDofs(dirichletBoundary, directorFEBasis, orientationDirichletNodes);
+#else
   constructBoundaryDofs(dirichletBoundary, directorFEBasis, orientationDirichletNodes);
+#endif
 
   BitSetVector<2> orientationDirichletDofs(directorFEBasis.size(), false);
   for (size_t i = 0; i < directorFEBasis.size(); i++)
@@ -307,9 +320,10 @@ int main(int argc, char *argv[]) try
                                                                                                                                neumannFunction,
                                                                                                                                nullptr, x0);
 
-    MixedLocalGFEADOLCStiffness<decltype(compositeBasis),
-        RealTuple<double,3>,
-        UnitVector<double,3> > localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
+    using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
+
+    LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
+        TargetSpace> localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
 
     MixedGFEAssembler<decltype(compositeBasis),
         RealTuple<double,3>, UnitVector<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
@@ -375,7 +389,6 @@ int main(int argc, char *argv[]) try
       x = solver.getSol();
     } else {
 #if !MIXED_SPACE
-      using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
       std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
       BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
       for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
