@@ -11,11 +11,6 @@
 #include <dune/gfe/densities/localdensity.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
-#ifdef PROJECTED_INTERPOLATION
-#include <dune/gfe/localprojectedfefunction.hh>
-#else
-#include <dune/gfe/localgeodesicfefunction.hh>
-#endif
 
 #include <dune/elasticity/materials/localdensity.hh>
 
@@ -24,9 +19,10 @@ namespace Dune::GFE {
   /** \brief An energy given as an integral over a density
    *
    * \tparam Basis The scalar finite element basis used to construct the interpolation rule
+   * \tparam LocalInterpolationRule The rule that turns coefficients into functions
    * \tparam TargetSpace The space that the geometric finite element function maps into
    */
-  template<class Basis, class TargetSpace>
+  template<class Basis, class LocalInterpolationRule, class TargetSpace>
   class LocalIntegralEnergy
     : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
   {
@@ -78,13 +74,9 @@ namespace Dune::GFE {
       const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
       const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
 
-#ifdef PROJECTED_INTERPOLATION
-      using LocalDeformationGFEFunctionType = GFE::LocalProjectedFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<RT,gridDim> >;
-      using LocalOrientationGFEFunctionType = GFE::LocalProjectedFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<RT,gridDim> >;
-#else
-      using LocalDeformationGFEFunctionType = LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<RT,gridDim> >;
-      using LocalOrientationGFEFunctionType = LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<RT,gridDim> >;
-#endif
+      using LocalDeformationGFEFunctionType = typename std::tuple_element<0, LocalInterpolationRule>::type;
+      using LocalOrientationGFEFunctionType = typename std::tuple_element<1, LocalInterpolationRule>::type;
+
       LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
       LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
 

@@ -508,7 +508,13 @@ int main (int argc, char *argv[]) try
 
     using ActiveRigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
 
-    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ActiveRigidBodyMotion> >(elasticDensity);
+    // Select which type of geometric interpolation to use
+    using LocalDeformationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<adouble,dim> >;
+    using LocalOrientationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<adouble,dim> >;
+
+    using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
+
+    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ActiveRigidBodyMotion> >(elasticDensity);
     auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,*neumannFunctionPtr);
     auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
         decltype(stressFreeShellFunction), CompositeBasis, RealTuple<ValueType,dim>, Rotation<ValueType,dim> > >(
