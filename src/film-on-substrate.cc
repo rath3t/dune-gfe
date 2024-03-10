@@ -508,7 +508,9 @@ int main (int argc, char *argv[]) try
     if(!elasticDensity)
       DUNE_THROW(Exception, "Error: Selected energy not available!");
 
-    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(elasticDensity);
+    using ActiveRigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
+
+    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ActiveRigidBodyMotion> >(elasticDensity);
     auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,*neumannFunctionPtr);
     auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
         decltype(stressFreeShellFunction), CompositeBasis, RealTuple<ValueType,dim>, Rotation<ValueType,dim> > >(

@@ -21,27 +21,21 @@
 
 namespace Dune::GFE {
 
-  /**
-     \brief Assembles the elastic energy for a single element integrating the localdensity over one element.
-
-           This class works similarly to the class Dune::Elasticity::LocalIntegralEnergy, where Dune::Elasticity::LocalIntegralEnergy extends
-           Dune::Elasticity::LocalEnergy and Dune::GFE::LocalIntegralEnergy extends Dune::GFE::LocalEnergy.
+  /** \brief An energy given as an integral over a density
+   *
+   * \tparam Basis The scalar finite element basis used to construct the interpolation rule
+   * \tparam TargetSpace The space that the geometric finite element function maps into
    */
-  template<class Basis, class ... TargetSpaces>
+  template<class Basis, class TargetSpace>
   class LocalIntegralEnergy
-    : public Dune::GFE::LocalEnergy<Basis,ProductManifold<TargetSpaces...> >
+    : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
   {
-    using TargetSpace = ProductManifold<TargetSpaces...>;
     using LocalView = typename Basis::LocalView;
     using GridView = typename LocalView::GridView;
     using DT = typename GridView::Grid::ctype;
     using RT = typename GFE::LocalEnergy<Basis,TargetSpace>::RT;
 
     constexpr static int gridDim = GridView::dimension;
-
-    static_assert(sizeof...(TargetSpaces) == 2, "LocalGeodesicIntegralEnergy needs two TargetSpaces!");
-    using TargetSpaceDeformation = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
-    using TargetSpaceRotation = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
 
   public:
 
@@ -53,7 +47,7 @@ namespace Dune::GFE {
 
     /** \brief Constructor with a Dune::GFE::LocalDensity
      */
-    LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,ProductManifold<TargetSpaces...> > >& ld)
+    LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> >& ld)
       : localDensityGFE_(ld)
     {}
 
@@ -69,6 +63,11 @@ namespace Dune::GFE {
     RT energy (const typename Basis::LocalView& localView,
                const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
     {
+      // TODO: Cosserat materials are hard-wired here for historical reasons.
+      static_assert(TargetSpace::size() == 2, "LocalGeodesicIntegralEnergy needs two TargetSpaces!");
+      using TargetSpaceDeformation = typename std::tuple_element<0, TargetSpace>::type;
+      using TargetSpaceRotation = typename std::tuple_element<1, TargetSpace>::type;
+
       const auto& element = localView.element();
 
       using namespace Indices;
@@ -148,7 +147,7 @@ namespace Dune::GFE {
 
   protected:
     const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT> > localDensityElasticity_ = nullptr;
-    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,ProductManifold<TargetSpaces...> > > localDensityGFE_ = nullptr;
+    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> > localDensityGFE_ = nullptr;
   };
 
 }  // namespace Dune::GFE

@@ -333,7 +333,9 @@ int main (int argc, char *argv[])
   std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;
   elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType> >(materialParameters);
 
-  auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(elasticDensity);
+  using ActiveRigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
+
+  auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ActiveRigidBodyMotion> >(elasticDensity);
   auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,neumannFunction);
 
   auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<

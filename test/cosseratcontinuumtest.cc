@@ -198,15 +198,17 @@ int main (int argc, char *argv[])
   //  Create an assembler
   // ////////////////////////////
 
+  using RigidBodyMotion = GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> >;
+  using ARigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>,Rotation<adouble,dim> >;
+
   GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dim>,Rotation<adouble,dim> > sumEnergy;
   auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
   auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<FieldVector<double,dim>,adouble> >(parameters);
-  auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(bulkCosseratDensity);
+  auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ARigidBodyMotion> >(bulkCosseratDensity);
   sumEnergy.addLocalEnergy(bulkCosseratEnergy);
   sumEnergy.addLocalEnergy(neumannEnergy);
 
-  LocalGeodesicFEADOLCStiffness<CompositeBasis,
-      GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > localGFEADOLCStiffness(&sumEnergy);
+  LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
       Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
