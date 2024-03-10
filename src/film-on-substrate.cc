@@ -262,7 +262,6 @@ int main (int argc, char *argv[]) try
   OrientationFEBasis orientationFEBasis(gridView);
 
   using CompositeBasis = decltype(compositeBasis);
-  using LocalView = typename CompositeBasis::LocalView;
 
   /////////////////////////////////////////////////////////////
   //                      BOUNDARY DATA
@@ -358,7 +357,7 @@ int main (int argc, char *argv[]) try
 
   double max_x = 0;
   double initial_max_x = 0;
-  for (int i = 0; i < displacement.size(); i++) {
+  for (std::size_t i = 0; i < displacement.size(); i++) {
     x[_0][i] = displacement[i]; //Copy over the initial deformation to the deformation part of x
     initial_max_x = std::max(x[_0][i][0], initial_max_x);
     displacement[i] -= identity[i]; //Subtract identity to get the initial displacement as a function
@@ -379,7 +378,6 @@ int main (int argc, char *argv[]) try
       blockedInterleaved()
       ));
 
-  auto& idSet = grid->globalIdSet();
   GlobalIndexSet<GridView> globalVertexIndexSet(gridView,dim);
   BlockVector<FieldVector<double,dim> > stressFreeShellVector(stressFreeFEBasis.size());
 
@@ -437,7 +435,7 @@ int main (int argc, char *argv[]) try
       return (-1.0)*x;
     });
 
-    for (int i = 0; i < stressFreeFEBasis.size(); i++) {
+    for (std::size_t i = 0; i < stressFreeFEBasis.size(); i++) {
       stressFreeDisplacement[i] += stressFreeShellVector[i];
     }
     auto stressFreeDisplacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dim> >(stressFreeFEBasis, stressFreeDisplacement);
@@ -537,11 +535,11 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////
 
     BitSetVector<RealTuple<double,dim>::TangentVector::dimension> deformationDirichletDofs(dirichletDofs[_0].size(), false);
-    for(int i = 0; i < dirichletDofs[_0].size(); i++)
+    for (std::size_t i = 0; i < dirichletDofs[_0].size(); i++)
       for (int j = 0; j < RealTuple<double,dim>::TangentVector::dimension; j++)
         deformationDirichletDofs[i][j] = dirichletDofs[_0][i][j];
     BitSetVector<Rotation<double,dim>::TangentVector::dimension> orientationDirichletDofs(dirichletDofs[_1].size(), false);
-    for(int i = 0; i < dirichletDofs[_1].size(); i++)
+    for (std::size_t i = 0; i < dirichletDofs[_1].size(); i++)
       for (int j = 0; j < Rotation<double,dim>::TangentVector::dimension; j++)
         orientationDirichletDofs[i][j] = dirichletDofs[_1][i][j];
 
@@ -561,14 +559,14 @@ int main (int argc, char *argv[]) try
     BlockVector<FieldMatrix<double,targetDim,targetDim> > dOV;
     Dune::Functions::interpolate(orientationPowerBasis, dOV, rotationalDirichletValues);
 
-    for (int i = 0; i < compositeBasis.size({0}); i++) {
+    for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
       FieldVector<double,3> x0i = x[_0][i].globalCoordinates();
       for (int j=0; j<3; j++)
         if (deformationDirichletDofs[i][j])
           x0i[j] = ddV[i][j];
       x[_0][i] = x0i;
     }
-    for (int i = 0; i < compositeBasis.size({1}); i++)
+    for (std::size_t i = 0; i < compositeBasis.size({1}); i++)
       if (dirichletDofs[_1][i][0])
         x[_1][i].set(dOV[i]);
 
@@ -578,7 +576,7 @@ int main (int argc, char *argv[]) try
     //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
     std::vector<RBM> xRBM(compositeBasis.size({0}));
     BitSetVector<RBM::TangentVector::dimension> dirichletDofsRBM(compositeBasis.size({0}), false);
-    for (int i = 0; i < compositeBasis.size({0}); i++) {
+    for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
       for (int j = 0; j < dim; j ++) { // Displacement part
         xRBM[i][_0].globalCoordinates()[j] = x[_0][i][j];
         dirichletDofsRBM[i][j] = dirichletDofs[_0][i][j];
@@ -639,7 +637,7 @@ int main (int argc, char *argv[]) try
       solver.setInitialIterate(xRBM);
       solver.solve();
       xRBM = solver.getSol();
-      for (int i = 0; i < xRBM.size(); i++) {
+      for (std::size_t i = 0; i < xRBM.size(); i++) {
         x[_0][i] = xRBM[i][_0];
         x[_1][i] = xRBM[i][_1];
       }
@@ -662,7 +660,7 @@ int main (int argc, char *argv[]) try
       solver.setInitialIterate(xRBM);
       solver.solve();
       xRBM = solver.getSol();
-      for (int i = 0; i < xRBM.size(); i++) {
+      for (std::size_t i = 0; i < xRBM.size(); i++) {
         x[_0][i] = xRBM[i][_0];
         x[_1][i] = xRBM[i][_1];
       }
@@ -676,7 +674,7 @@ int main (int argc, char *argv[]) try
     /////////////////////////////////
 
     // Compute the displacement
-    for (int i = 0; i < compositeBasis.size({0}); i++) {
+    for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
       for (int j = 0; j  < dim; j++) {
         displacement[i][j] = x[_0][i][j];
       }
@@ -689,7 +687,7 @@ int main (int argc, char *argv[]) try
     vtkWriter.addVertexData(displacementFunction, VTK::FieldInfo("displacement", VTK::FieldInfo::Type::scalar, dim));
     vtkWriter.write(resultPath + "finite-strain_homotopy_" + parameterSet.get<std::string>("energy") + "_" + std::to_string(neumannValues[0]) + "_" + std::to_string(i+1));
   }
-  for (int i = 0; i < x[_0].size(); i++) {
+  for (std::size_t i = 0; i < x[_0].size(); i++) {
     max_x = std::max(x[_0][i][0], max_x);
   }
 
@@ -707,7 +705,7 @@ int main (int argc, char *argv[]) try
   rotationOutput = pathToOutput + rotationOutput;
 
   file.open(deformationOutput + ending);
-  for (int i = 0; i < identity.size(); i++) {
+  for (std::size_t i = 0; i < identity.size(); i++) {
     file << identity[i] << ":" << displacement[i] << "\n";
   }
 
@@ -724,7 +722,7 @@ int main (int argc, char *argv[]) try
   });
 
   file.open(rotationOutput + ending);
-  for (int i = 0; i < identityRotation.size(); i++) {
+  for (std::size_t i = 0; i < identityRotation.size(); i++) {
     file << identityRotation[i] << ":" << x[_1][i] << "\n";
   }
 
