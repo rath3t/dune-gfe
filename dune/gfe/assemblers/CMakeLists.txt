@@ -5,7 +5,6 @@ install(FILES
         cosseratrodenergy.hh
         geodesicfeassembler.hh
         geodesicfeassemblerwrapper.hh
-        harmonicenergy.hh
         l2distancesquaredenergy.hh
         localenergy.hh
         localfirstordermodel.hh

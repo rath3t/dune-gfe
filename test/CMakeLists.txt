@@ -5,7 +5,6 @@ set(TESTS
   cosseratrodenergytest
   cosseratrodtest
   embeddedglobalgfefunctiontest
-  harmonicenergytest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
   localprojectedfefunctiontest

@@ -42,9 +42,10 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/assemblers/harmonicenergy.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/chiralskyrmionenergy.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
+#include <dune/gfe/densities/harmonicdensity.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>
@@ -277,10 +278,12 @@ int main (int argc, char *argv[])
   std::string energy = parameterSet.get<std::string>("energy");
   if (energy == "harmonic")
   {
+    auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, ATargetSpace> >();
+
     if (parameterSet["interpolationMethod"] == "geodesic")
-      localEnergy.reset(new HarmonicEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace>);
+      localEnergy.reset(new GFE::LocalIntegralEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace>(harmonicDensity));
     else if (parameterSet["interpolationMethod"] == "projected")
-      localEnergy.reset(new HarmonicEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace>);
+      localEnergy.reset(new GFE::LocalIntegralEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace>(harmonicDensity));
     else
       DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
