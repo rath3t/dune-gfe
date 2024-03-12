@@ -16,8 +16,10 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
+#if HAVE_DUNE_CURVEDGEOMETRY
 #include <dune/curvedgeometry/curvedgeometry.hh>
 #include <dune/localfunctions/lagrange/lfecache.hh>
+#endif
 
 namespace Dune::GFE {
   /** \brief Assembles the cosserat energy on the given boundary for a single element.
@@ -114,25 +116,14 @@ namespace Dune::GFE {
     }
 
     RT energy (const typename Basis::LocalView& localView,
-               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override
-    {
-      DUNE_THROW(NotImplemented, "!");
-    }
-
-    RT energy(const typename Basis::LocalView& localView,
-              const std::vector<TargetSpaces>& ... localSolutions) const
+               const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localCoefficients) const override
     {
       static_assert(sizeof...(TargetSpaces) == 2, "SurfaceCosseratEnergy needs exactly two TargetSpaces!");
 
       using namespace Dune::Indices;
-      using TargetSpace0 = typename std::tuple_element<0, std::tuple<TargetSpaces...> >::type;
-      const std::vector<TargetSpace0>& localSolution0 = std::get<0>(std::forward_as_tuple(localSolutions ...));
-      using TargetSpace1 = typename std::tuple_element<1, std::tuple<TargetSpaces...> >::type;
-      const std::vector<TargetSpace1>& localSolution1 = std::get<1>(std::forward_as_tuple(localSolutions ...));
 
       // The element geometry
       auto element = localView.element();
-      auto gridView = localView.globalBasis().gridView();
 
       ////////////////////////////////////////////////////////////////////////////////////
       //  Set up the local nonlinear finite element function
@@ -141,26 +132,18 @@ namespace Dune::GFE {
 
       // The set of shape functions on this element
       const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
+#if MIXED_SPACE
       const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
 
-      // to construct a local GFE function, in case they are the shape functions are the same, we can use use one GFE-Function
-#if MIXED_SPACE
-      std::vector<RBM0> localSolutionRBM0(localSolution0.size());
-      std::vector<RBM1> localSolutionRBM1(localSolution1.size());
-      for (int i = 0; i < localSolution0.size(); i++)
-        localSolutionRBM0[i] = localSolution0[i];
-      for (int i = 0; i< localSolution1.size(); i++)
-        localSolutionRBM1[i] = localSolution1[i];
       typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM0> LocalGFEFunctionType0;
       typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), RBM1> LocalGFEFunctionType1;
-      LocalGFEFunctionType0 localGeodesicFEFunction0(deformationLocalFiniteElement,localSolutionRBM0);
-      LocalGFEFunctionType1 localGeodesicFEFunction1(orientationLocalFiniteElement,localSolutionRBM1);
+      LocalGFEFunctionType0 localGeodesicFEFunction0(deformationLocalFiniteElement,localCoefficients[_0]);
+      LocalGFEFunctionType1 localGeodesicFEFunction1(orientationLocalFiniteElement,localCoefficients[_1]);
 #else
-      std::vector<RBM> localSolutionRBM(localSolution0.size());
-      for (int i = 0; i < localSolution0.size(); i++) {
-        for (int j = 0; j < dimWorld; j++)
-          localSolutionRBM[i][_0][j] = localSolution0[i][j];
-        localSolutionRBM[i][_1] = localSolution1[i];
+      std::vector<RBM> localSolutionRBM(localCoefficients[_0].size());
+      for (std::size_t i = 0; i < localCoefficients[_0].size(); i++) {
+        localSolutionRBM[i][_0] = localCoefficients[_0][i];
+        localSolutionRBM[i][_1] = localCoefficients[_1][i];
       }
       typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM> LocalGFEFunctionType;
       LocalGFEFunctionType localGeodesicFEFunction(deformationLocalFiniteElement,localSolutionRBM);
@@ -172,6 +155,7 @@ namespace Dune::GFE {
         if (not shellBoundary_->contains(it))
           continue;
 
+#if HAVE_DUNE_CURVEDGEOMETRY
         auto localGridFunction = localFunction(curvedGeometryGridFunction_);
         auto curvedGeometryGridFunctionOrder = deformationLocalFiniteElement.localBasis().order();//curvedGeometryGridFunction_.basis().localView().tree().child(0).finiteElement().localBasis().order();
         localGridFunction.bind(element);
@@ -186,6 +170,9 @@ namespace Dune::GFE {
                                           [localGridFunction, localGeometry=it.geometryInInside()](const auto& local) {
                                           return localGridFunction(localGeometry.global(local));
           }, curvedGeometryGridFunctionOrder);
+#else
+        const auto& boundaryGeometry = it.geometry();
+#endif
 
         auto quadOrder = (it.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
                                                   : deformationLocalFiniteElement.localBasis().order() * boundaryDim;
@@ -211,16 +198,14 @@ namespace Dune::GFE {
 
 #if MIXED_SPACE
           // The value of the local function
-          RBM0 value0 = localGeodesicFEFunction0.evaluate(quadPos);
-          RBM1 value1 = localGeodesicFEFunction1.evaluate(quadPos);
+          value[_0] = localGeodesicFEFunction0.evaluate(quadPos);
+          value[_1] = localGeodesicFEFunction1.evaluate(quadPos);
+
           // The derivatives of the local functions
-          auto derivative0 = localGeodesicFEFunction0.evaluateDerivative(quadPos,value0);
-          auto derivative1 = localGeodesicFEFunction1.evaluateDerivative(quadPos,value1);
+          auto derivative0 = localGeodesicFEFunction0.evaluateDerivative(quadPos,value[_0]);
+          auto derivative1 = localGeodesicFEFunction1.evaluateDerivative(quadPos,value[_1]);
 
           // Put the value and the derivatives together from the separated values
-          for (int i = 0; i < RBM0::dim; i++)
-            value.r[i] = value0[i];
-          value.q = value1;
           for (int j = 0; j < dimWorld; j++) {
             for (int i = 0; i < RBM0::embeddedDim; i++) {
               derivative[i][j] = derivative0[i][j];
@@ -300,8 +285,16 @@ namespace Dune::GFE {
               c += aScalar * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
 
           // Second fundamental form: The derivative of the normal field
+#if HAVE_DUNE_CURVEDGEOMETRY
           auto b = boundaryGeometry.normalGradient(quad[pt].position());
           b *= (-1);
+#else
+          // If we do not have the dune-curvedgeometry module then we have to assume
+          // that the boundary is flat.  This may not be true, but there is currently
+          // no way to get this information from the dune-grid grid interface.
+          // TODO: Fix this once the grid interface is extended.
+          FieldMatrix<DT,dimWorld,dimWorld> b(0);
+#endif
 
           // Mean curvatue
           auto H = 0.5 * Dune::GFE::trace(b);

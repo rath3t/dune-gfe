@@ -16,6 +16,20 @@ set(TESTS
   targetspacetest
 )
 
+# TODO: Make this compile and run without dune-parmg.
+# The module is not really used.
+if (dune-parmg_FOUND)
+dune_add_test(NAME "filmonsubstratetest"
+              SOURCES filmonsubstratetest.cc
+              COMPILE_DEFINITIONS "MIXED_SPACE=0"
+              TIMEOUT 1200)
+
+dune_add_test(NAME "filmonsubstratetest-mixed"
+              SOURCES filmonsubstratetest.cc
+              COMPILE_DEFINITIONS "MIXED_SPACE=1"
+              TIMEOUT 1200)
+endif()
+
 if (dune-curvedgrid_FOUND)
   set(TESTS test-cylinder ${TESTS})
 endif()
