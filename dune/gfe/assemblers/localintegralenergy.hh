@@ -51,7 +51,7 @@ namespace Dune::GFE {
 
     /** \brief Assemble the energy for a single element */
     RT energy(const typename Basis::LocalView& localView,
-              const std::vector<TargetSpace>& localConfiguration) const
+              const std::vector<TargetSpace>& localConfiguration) const override
     {
       RT energy = 0;
 
