@@ -1,6 +1,5 @@
 #install headers
 install(FILES
-        chiralskyrmionenergy.hh
         cosseratenergystiffness.hh
         cosseratrodenergy.hh
         geodesicfeassembler.hh

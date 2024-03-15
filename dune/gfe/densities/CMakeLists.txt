@@ -1,6 +1,7 @@
 #install headers
 install(FILES
         bulkcosseratdensity.hh
+        chiralskyrmiondensity.hh
         cosseratshelldensity.hh
         harmonicdensity.hh
         localdensity.hh
