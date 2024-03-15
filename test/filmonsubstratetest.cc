@@ -345,7 +345,7 @@ int main (int argc, char *argv[])
   auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,neumannFunction);
 
   auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
-      decltype(stressFreeShellFunction), CompositeBasis, RealTuple<ValueType,dim>, Rotation<ValueType,dim> > >(
+      decltype(stressFreeShellFunction), CompositeBasis, ActiveRigidBodyMotion> >(
     materialParameters,
     &surfaceShellBoundary,
     stressFreeShellFunction,

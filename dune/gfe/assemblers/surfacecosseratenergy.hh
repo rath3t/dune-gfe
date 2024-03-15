@@ -6,39 +6,32 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
-#include <dune/gfe/cosseratstrain.hh>
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/densities/cosseratshelldensity.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
-#include <dune/gfe/spaces/realtuple.hh>
-#include <dune/gfe/spaces/rotation.hh>
 
 #if HAVE_DUNE_CURVEDGEOMETRY
 #include <dune/curvedgeometry/curvedgeometry.hh>
 #include <dune/localfunctions/lagrange/lfecache.hh>
 #endif
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
   /** \brief Assembles the cosserat energy on the given boundary for a single element.
    *
    * \tparam CurvedGeometryGridFunction Type of the grid function that gives the geometry of the deformed surface
    * \tparam Basis Type of the Basis used for assembling
-   * \tparam TargetSpaces The List of TargetSpaces - SurfaceCosseratEnergy needs exactly two TargetSpaces!
+   * \tparam TargetSpace Currently this is required to be a ProductManifold with two factors
    */
-  template<class CurvedGeometryGridFunction, class Basis, class ... TargetSpaces>
+  template<class CurvedGeometryGridFunction, class Basis, class TargetSpace>
   class SurfaceCosseratEnergy
-    : public Dune::GFE::LocalEnergy<Basis, ProductManifold<TargetSpaces...> >
+    : public Dune::GFE::LocalEnergy<Basis, TargetSpace>
   {
-    using TargetSpace = ProductManifold<TargetSpaces...>;
     using GridView = typename Basis::GridView;
     using DT = typename GridView::ctype ;
     using RT = typename Dune::GFE::LocalEnergy<Basis, TargetSpace>::RT ;
-    using RBM0 = RealTuple<RT,GridView::dimensionworld> ;
-    using RBM1 = Rotation<RT,GridView::dimensionworld> ;
-    using RBM = ProductManifold<RBM0,RBM1> ;
 
     constexpr static int dimWorld = GridView::dimensionworld;
     constexpr static int gridDim = GridView::dimension;
@@ -74,13 +67,16 @@ namespace Dune::GFE {
     RT energy (const typename Basis::LocalView& localView,
                const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localCoefficients) const override
     {
-      static_assert(sizeof...(TargetSpaces) == 2, "SurfaceCosseratEnergy needs exactly two TargetSpaces!");
+      static_assert(TargetSpace::size() == 2, "SurfaceCosseratEnergy needs exactly two TargetSpaces!");
 
       using namespace Dune::Indices;
 
       ////////////////////////////////////////////////////////////////////////////////////
       //  Set up the local nonlinear finite element function
       ////////////////////////////////////////////////////////////////////////////////////
+
+      using RBM0 = typename std::tuple_element<0,TargetSpace>::type;
+      using RBM1 = typename std::tuple_element<1,TargetSpace>::type;
 
       // The set of shape functions on this element
       const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
@@ -95,13 +91,14 @@ namespace Dune::GFE {
 
       const auto element = localView.element();
 
-      for (auto&& it : intersections(shellBoundary_->gridView(), element)) {
+      for (auto&& it : intersections(shellBoundary_->gridView(), element))
+      {
         if (not shellBoundary_->contains(it))
           continue;
 
 #if HAVE_DUNE_CURVEDGEOMETRY
         auto localGridFunction = localFunction(curvedGeometryGridFunction_);
-        auto curvedGeometryGridFunctionOrder = deformationLocalFiniteElement.localBasis().order();//curvedGeometryGridFunction_.basis().localView().tree().child(0).finiteElement().localBasis().order();
+        auto curvedGeometryGridFunctionOrder = deformationLocalFiniteElement.localBasis().order();
         localGridFunction.bind(element);
         auto referenceElement = Dune::referenceElement<DT,boundaryDim>(it.type());
 
@@ -122,21 +119,22 @@ namespace Dune::GFE {
                                                   : deformationLocalFiniteElement.localBasis().order() * boundaryDim;
 
         const auto& quad = Dune::QuadratureRules<DT, boundaryDim>::rule(it.type(), quadOrder);
-        for (size_t pt=0; pt<quad.size(); pt++) {
 
+        for (auto&& qp : quad)
+        {
           // Local position of the quadrature point
-          const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());;
+          const auto& quadPos = it.geometryInInside().global(qp.position());
 
           // Global position of the quadrature point
-          auto quadPosGlobal = it.geometry().global(quad[pt].position());
+          auto quadPosGlobal = it.geometry().global(qp.position());
 
-          const DT integrationElement = boundaryGeometry.integrationElement(quad[pt].position());
+          const DT integrationElement = boundaryGeometry.integrationElement(qp.position());
 
-          RBM value;
-          Dune::FieldMatrix<RT, RBM::embeddedDim, dimWorld> derivative;
-          Dune::FieldMatrix<RT, RBM::embeddedDim, boundaryDim> derivative2D;
+          FieldMatrix<RT, TargetSpace::embeddedDim, dimWorld> derivative;
+          FieldMatrix<RT, TargetSpace::embeddedDim, boundaryDim> derivative2D;
 
           // The value of the local functions
+          TargetSpace value;
           value[_0] = localGeodesicFEFunction0.evaluate(quadPos);
           value[_1] = localGeodesicFEFunction1.evaluate(quadPos);
 
@@ -165,7 +163,7 @@ namespace Dune::GFE {
           // First fundamental form
           FieldMatrix<double,dimWorld,dimWorld> aCovariant;
 
-          const auto jacobianTransposed = boundaryGeometry.jacobianTransposed(quad[pt].position());
+          const auto jacobianTransposed = boundaryGeometry.jacobianTransposed(qp.position());
 
           for (int i=0; i<2; i++)
             aCovariant[i] = jacobianTransposed[i];
@@ -175,7 +173,7 @@ namespace Dune::GFE {
 
           // Second fundamental form: The derivative of the normal field
 #if HAVE_DUNE_CURVEDGEOMETRY
-          auto normalGradient = boundaryGeometry.normalGradient(quad[pt].position());
+          auto normalGradient = boundaryGeometry.normalGradient(qp.position());
 #else
           // If we do not have the dune-curvedgeometry module then we have to assume
           // that the boundary is flat.  This may not be true, but there is currently
@@ -193,7 +191,7 @@ namespace Dune::GFE {
                                               normalGradient,
                                               value,
                                               derivative2D);
-          energy += quad[pt].weight() * integrationElement * energyDensity;
+          energy += qp.weight() * integrationElement * energyDensity;
         }
       }
 
