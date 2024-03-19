@@ -8,7 +8,7 @@ This module contains implementations of various geometric finite element methods
 The GitLab CI system of this module (in the file `.gitlab-ci.yml`) includes a job
 that checks for proper code formatting.   The CI system
 uses the tool [uncrustify](https://github.com/uncrustify/uncrustify) to enforce the rules, guided by
-the configuration file `dune-uncrustify.org` in the `dune-gfe` module source directory.
+the configuration file `dune-uncrustify.cfg` in the `dune-gfe` module source directory.
 
 CI testing of the code formatting means that any merge request will fail CI
 testing if it introduces code changes that violate the formatting rules.
