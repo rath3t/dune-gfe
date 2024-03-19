@@ -27,6 +27,7 @@
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/densities/bulkcosseratdensity.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #include <dune/gfe/neumannenergy.hh>
 
@@ -198,15 +199,24 @@ int main (int argc, char *argv[])
   //  Create an assembler
   // ////////////////////////////
 
+  using RigidBodyMotion = GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> >;
+  using ARigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>,Rotation<adouble,dim> >;
+
   GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dim>,Rotation<adouble,dim> > sumEnergy;
   auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
+
+  // Select which type of geometric interpolation to use
+  using LocalDeformationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<adouble,dim> >;
+  using LocalOrientationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<adouble,dim> >;
+
+  using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
+
   auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<FieldVector<double,dim>,adouble> >(parameters);
-  auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(bulkCosseratDensity);
+  auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ARigidBodyMotion> >(bulkCosseratDensity);
   sumEnergy.addLocalEnergy(bulkCosseratEnergy);
   sumEnergy.addLocalEnergy(neumannEnergy);
 
-  LocalGeodesicFEADOLCStiffness<CompositeBasis,
-      GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > localGFEADOLCStiffness(&sumEnergy);
+  LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
       Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);

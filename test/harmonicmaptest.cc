@@ -25,8 +25,9 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/assemblers/harmonicenergy.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
+#include <dune/gfe/densities/harmonicdensity.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
@@ -151,8 +152,9 @@ int main (int argc, char *argv[])
   //using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
+  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, ATargetSpace> >();
   //std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<HarmonicEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace> >();
-  std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<HarmonicEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace> >();
+  std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace> >(harmonicDensity);
 
   LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy.get());
 

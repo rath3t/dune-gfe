@@ -485,4 +485,27 @@ namespace Dune::GFE
     std::tuple<TargetSpaces ...> data_;
   };
 }
+
+namespace std
+{
+  /** \brief Make std::tuple_element work for ProductManifold
+   *
+   * As a container it is essentially a std::tuple after all.
+   */
+  template <size_t i, typename ... Args>
+  struct tuple_element<i,Dune::GFE::ProductManifold<Args...> >
+  {
+    using type = typename std::tuple_element<i, std::tuple<Args...> >::type;
+  };
+
+  /** \brief Make std::tuple_size work for ProductManifold
+   *
+   * As a container it is essentially a std::tuple after all.
+   */
+  template <typename ... Args>
+  struct tuple_size<Dune::GFE::ProductManifold<Args...> >
+    : std::integral_constant<std::size_t, sizeof...(Args)>
+  {};
+}
+
 #endif

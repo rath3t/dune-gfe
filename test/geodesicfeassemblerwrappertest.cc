@@ -24,7 +24,6 @@
 
 #include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
-#include <dune/gfe/assemblers/harmonicenergy.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>

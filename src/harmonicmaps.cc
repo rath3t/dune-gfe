@@ -42,9 +42,10 @@
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/assemblers/harmonicenergy.hh>
-#include <dune/gfe/assemblers/chiralskyrmionenergy.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
+#include <dune/gfe/densities/chiralskyrmiondensity.hh>
+#include <dune/gfe/densities/harmonicdensity.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>
@@ -268,39 +269,37 @@ int main (int argc, char *argv[])
   // ////////////////////////////////////////////////////////////
 
   typedef TargetSpace::rebind<adouble>::other ATargetSpace;
-  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
-  using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
-  // Assembler using ADOL-C
-  std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy;
-
+  // First, the energy density
   std::string energy = parameterSet.get<std::string>("energy");
+
+  using LocalCoordinate = GridType::Codim<0>::Entity::Geometry::LocalCoordinate;
+  std::shared_ptr<GFE::LocalDensity<LocalCoordinate,ATargetSpace> > density;
+
   if (energy == "harmonic")
   {
-    if (parameterSet["interpolationMethod"] == "geodesic")
-      localEnergy.reset(new HarmonicEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace>);
-    else if (parameterSet["interpolationMethod"] == "projected")
-      localEnergy.reset(new HarmonicEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace>);
-    else
-      DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
-
-  } else if (energy == "chiral_skyrmion")
+    density = std::make_shared<GFE::HarmonicDensity<LocalCoordinate, ATargetSpace> >();
+  }
+  else if (energy == "chiral_skyrmion")
   {
-    //       // Doesn't work: we are not inside of a template
-    //       if constexpr (std::is_same<TargetSpace, UnitVector<double,3> >::value)
-    //       {
-    if (parameterSet["interpolationMethod"] == "geodesic")
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, GeodesicInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
-    else if (parameterSet["interpolationMethod"] == "projected")
-      localEnergy.reset(new GFE::ChiralSkyrmionEnergy<FEBasis, ProjectedInterpolationRule, adouble>(parameterSet.sub("energyParameters")));
-    else
-      DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
-    //       } else
-    //         DUNE_THROW(Exception, "Build program with TargetSpace = UnitVector<3> for the ChiralSkyrmion energy!");
-
+    density = std::make_shared<GFE::ChiralSkyrmionDensity<LocalCoordinate, adouble> >(parameterSet.sub("energyParameters"));
   } else
     DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");
 
+  // Next: The local energy, i.e., the integral of the density over one element
+  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+
+  std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy;
+
+  if (parameterSet["interpolationMethod"] == "geodesic")
+    localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace> >(density);
+  else if (parameterSet["interpolationMethod"] == "projected")
+    localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace> >(density);
+  else
+    DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
+
+  // Compute local tangent problems by applying ADOL-C directly to the energy on the element
   LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy.get());
 
   GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
