@@ -15,7 +15,6 @@
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
-#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
 #include <dune/fufem/boundarypatch.hh>
 
@@ -25,9 +24,7 @@
 #include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
-#include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
@@ -50,8 +47,6 @@ const int rotationOrder = 2;
 using namespace Dune;
 using namespace Indices;
 
-//differentiation method: ADOL-C
-using ValueType = adouble;
 
 //Types for the mixed space
 using DisplacementVector = std::vector<RealTuple<double,dim> >;
