@@ -16,12 +16,9 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/cholmodsolver.hh>
 
-#include "riemanniantrsolver.hh"
-#include <dune/grid/utility/globalindexset.hh>
-#include <dune/gfe/parallel/globalmapper.hh>
-#include <dune/gfe/parallel/globalp1mapper.hh>
-#include <dune/gfe/parallel/globalp2mapper.hh>
-#include <dune/gfe/parallel/p2mapper.hh>
+#include <dune/gfe/assemblers/geodesicfeassembler.hh>
+#include <dune/gfe/parallel/mapperfactory.hh>
+
 
 /** \brief Riemannian proximal-newton solver for geodesic finite-element problems */
 template <class Basis, class TargetSpace, class Assembler = GeodesicFEAssembler<Basis,TargetSpace> >
@@ -44,8 +41,8 @@ class RiemannianProximalNewtonSolver
   typedef std::vector<TargetSpace>                                               SolutionType;
 
 #if HAVE_MPI
-  typedef typename MapperFactory<Basis>::GlobalMapper GlobalMapper;
-  typedef typename MapperFactory<Basis>::LocalMapper LocalMapper;
+  typedef typename Dune::GFE::MapperFactory<Basis>::GlobalMapper GlobalMapper;
+  typedef typename Dune::GFE::MapperFactory<Basis>::LocalMapper LocalMapper;
 #endif
 
   /** \brief Records information about the last run of the RiemannianProximalNewtonSolver
