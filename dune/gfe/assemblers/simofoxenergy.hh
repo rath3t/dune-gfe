@@ -3,9 +3,7 @@
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/parametertree.hh>
-#if DUNE_VERSION_GTE(DUNE_COMMON, 2, 8)
 #include <dune/common/transpose.hh>
-#endif
 #include <dune/common/tuplevector.hh>
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/geometry/quadraturerules.hh>

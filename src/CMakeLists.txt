@@ -1,20 +1,16 @@
 set(programs compute-disc-error
+             film-on-substrate-stress-plot
              gradient-flow
              harmonicmaps
+             rod3d
              simofoxshell)
 #            rodobstacle)
-if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
-  set (programs rod3d ${programs})
-endif()
-if (${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.8)
-  set(programs film-on-substrate-stress-plot ${programs})
-endif()
 
 foreach(_program ${programs})
   add_executable(${_program} ${_program}.cc)
 endforeach()
 
-if (dune-parmg_FOUND AND dune-curvedgeometry_FOUND AND ${DUNE_ELASTICITY_VERSION} VERSION_GREATER_EQUAL 2.8)
+if (dune-parmg_FOUND AND dune-curvedgeometry_FOUND)
   add_executable("film-on-substrate" film-on-substrate.cc)
   set_property(TARGET "film-on-substrate" APPEND PROPERTY COMPILE_DEFINITIONS "WORLD_DIM=3;  LFE_ORDER=2; GFE_ORDER=2")
 	set(programs film-on-substrate ${programs})
@@ -49,10 +45,5 @@ set(programs cosserat-continuum-3d-in-3d-2-1 ${programs})
 foreach(_program ${programs})
   target_link_dune_default_libraries(${_program})
   add_dune_pythonlibs_flags(${_program})
-  if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
-    target_link_libraries(${_program} PUBLIC tinyxml2)
-  else()
-    target_link_libraries(${_program} tinyxml2)
-  endif()
-#  target_compile_options(${_program} PRIVATE "-fpermissive")
+  target_link_libraries(${_program} PUBLIC tinyxml2)
 endforeach()

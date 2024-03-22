@@ -9,10 +9,6 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
-#if DUNE_VERSION_LT(DUNE_COMMON, 2, 9)
-#include <dune/matrix-vector/transpose.hh>
-#endif
-
 #include <dune/gfe/assemblers/localenergy.hh>
 #ifdef PROJECTED_INTERPOLATION
 #include <dune/gfe/localprojectedfefunction.hh>
@@ -269,17 +265,10 @@ public:
 
     Dune::FieldMatrix<field_type,3,3> wryness(0);
 
-#if DUNE_VERSION_LT(DUNE_COMMON, 2, 9)
-    Dune::FieldMatrix<field_type,dim,dim> transposeR;
-    Dune::MatrixVector::transpose(R,transposeR);
-    auto axialVectorx1 = SkewMatrix<field_type,3>(transposeR*dRx1).axial();
-    auto axialVectorx2 = SkewMatrix<field_type,3>(transposeR*dRx2).axial();
-    auto axialVectorx3 = SkewMatrix<field_type,3>(transposeR*dRx3).axial();
-#else
     auto axialVectorx1 = SkewMatrix<field_type,3>(transpose(R)*dRx1).axial();
     auto axialVectorx2 = SkewMatrix<field_type,3>(transpose(R)*dRx2).axial();
     auto axialVectorx3 = SkewMatrix<field_type,3>(transpose(R)*dRx3).axial();
-#endif
+
     for (int i=0; i<3; i++) {
       wryness[i][0] = axialVectorx1[i];
       wryness[i][1] = axialVectorx2[i];

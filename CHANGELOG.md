@@ -1,5 +1,8 @@
 # Master
 
+- Building `dune-gfe` now requires Dune 2.9 or newer. Older configurations
+  have not gotten CI-tested for quite a while, anyway.
+
 - The `RigidBodyMotion` class has been removed.  Please use
   `ProductManifold<RealTuple,Rotation>` from now on.
 

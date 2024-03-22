@@ -11,6 +11,7 @@ set(TESTS
   orthogonalmatrixtest
   polardecompositiontest
   rotationtest
+  surfacecosseratstressassemblertest
   svdtest
   targetspacetest
 )
@@ -33,10 +34,6 @@ if (dune-curvedgrid_FOUND)
   set(TESTS test-cylinder ${TESTS})
 endif()
 
-if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
-  set(TESTS surfacecosseratstressassemblertest ${TESTS})
-endif()
-
 if(dune-foamgrid_FOUND)
   set(TESTS nonplanarcosseratenergytest ${TESTS})
 endif()
@@ -47,17 +44,13 @@ foreach(_test ${TESTS})
 endforeach()
 
 # Run distributed tests
-if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.8)
 dune_add_test(SOURCES harmonicmaptest.cc
               MPI_RANKS 1 4
               TIMEOUT 600
               CMAKE_GUARD MPI_FOUND)
-endif()
 
-if (${DUNE_COMMON_VERSION} VERSION_GREATER_EQUAL 2.9)
-  dune_add_test(SOURCES cosseratcontinuumtest.cc
+dune_add_test(SOURCES cosseratcontinuumtest.cc
               TIMEOUT 600)
-endif()
 
 dune_add_test(SOURCES geodesicfeassemblerwrappertest.cc
               MPI_RANKS 1 4

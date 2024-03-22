@@ -11,16 +11,9 @@
 #include <dune/fufem/assemblers/localassemblers/massassembler.hh>
 #include <dune/fufem/assemblers/basisinterpolationmatrixassembler.hh>
 
-#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
-// Using a cholmod solver as the inner solver, available only since 2.8
-#include <dune/solvers/solvers/cholmodsolver.hh>
-#else
-// Using a umfpack solver as the inner solver
-#include <dune/solvers/solvers/umfpacksolver.hh>
-#endif
-
 #include <dune/solvers/norms/twonorm.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
+#include <dune/solvers/solvers/cholmodsolver.hh>
 
 // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
 #if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
@@ -132,12 +125,8 @@ setup(const GridType& grid,
   //////////////////////////////////////////////////////////////////
   //   Create the inner solver using a cholmod solver
   //////////////////////////////////////////////////////////////////
-#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
+
   innerSolver_ = std::make_shared<Dune::Solvers::CholmodSolver<MatrixType,CorrectionType> >();
-#else
-  std::cout << "using umfpacksolver" << std::endl;
-  innerSolver_ = std::make_shared<Dune::Solvers::UMFPackSolver<MatrixType,CorrectionType> >();
-#endif
   innerSolver_->setIgnore(*globalDirichletNodes);
 
   // //////////////////////////////////////////////////////////////////////////////////////
