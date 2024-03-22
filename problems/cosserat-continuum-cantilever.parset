@@ -20,6 +20,9 @@ numLevels = 1
 # Number of homotopy steps for the Dirichlet boundary conditions
 numHomotopySteps = 1
 
+# Solver type: trustRegion or proximalNewton
+solvertype = trustRegion
+
 # Tolerance of the trust region solver
 tolerance = 1e-3
 
