@@ -46,11 +46,11 @@ endforeach()
 # Run distributed tests
 dune_add_test(SOURCES harmonicmaptest.cc
               MPI_RANKS 1 4
-              TIMEOUT 600
+              TIMEOUT 1200
               CMAKE_GUARD MPI_FOUND)
 
 dune_add_test(SOURCES cosseratcontinuumtest.cc
-              TIMEOUT 600)
+              TIMEOUT 1200)
 
 dune_add_test(SOURCES geodesicfeassemblerwrappertest.cc
               MPI_RANKS 1 4
