@@ -5,9 +5,7 @@
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/version.hh>
-#if DUNE_VERSION_GTE(DUNE_COMMON, 2, 8)
 #include <dune/common/transpose.hh>
-#endif
 
 #include <dune/istl/matrix.hh>
 #include <dune/geometry/quadraturerules.hh>
@@ -255,12 +253,7 @@ namespace Dune::GFE {
     auto value = localInterpolation.evaluate(pos);
 
     auto referenceDerivative = localInterpolation.evaluateDerivative(pos);
-#if DUNE_VERSION_GTE(DUNE_COMMON, 2, 8)
     auto derivative = referenceDerivative * transpose(jit);
-#else
-    auto derivative = referenceDerivative;
-    derivative *= jit[0][0];
-#endif
 
     using Number = std::decay_t<decltype(derivative[0][0])>;
     FieldVector<Number,3> r_s = {derivative[0][0], derivative[1][0], derivative[2][0]};

@@ -471,8 +471,7 @@ int main (int argc, char *argv[]) try
 
 
     // A constant vector-valued function, for simple Neumann boundary values
-    std::shared_ptr<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)> > neumannFunctionPtr;
-    neumannFunctionPtr = std::make_shared<std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)> >([&](FieldVector<double,dim> ) {
+    auto neumannFunctionPtr = std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<double,dim>)>([&](FieldVector<double,dim> ) {
       return neumannValues * (-homotopyParameter);
     });
 
@@ -515,7 +514,7 @@ int main (int argc, char *argv[]) try
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 
     auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ActiveRigidBodyMotion> >(elasticDensity);
-    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,*neumannFunctionPtr);
+    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,neumannFunctionPtr);
     auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
         decltype(stressFreeShellFunction), CompositeBasis, ActiveRigidBodyMotion> >(
       materialParameters,

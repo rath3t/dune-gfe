@@ -14,11 +14,7 @@
 #include <dune/solvers/common/boxconstraint.hh>
 #include <dune/solvers/norms/h1seminorm.hh>
 #include <dune/solvers/solvers/iterativesolver.hh>
-#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
 #include <dune/solvers/solvers/cholmodsolver.hh>
-#else
-#include <dune/solvers/solvers/umfpacksolver.hh>
-#endif
 
 #include "riemanniantrsolver.hh"
 #include <dune/grid/utility/globalindexset.hh>
@@ -144,11 +140,8 @@ protected:
   const Assembler* assembler_;
 
   /** \brief The solver for the quadratic inner problems */
-#if DUNE_VERSION_GTE(DUNE_SOLVERS, 2, 8)
   std::shared_ptr<typename Dune::Solvers::CholmodSolver<MatrixType,CorrectionType> > innerSolver_;
-#else
-  std::shared_ptr<typename Dune::Solvers::UMFPackSolver<MatrixType,CorrectionType> > innerSolver_;
-#endif
+
   /** \brief The Dirichlet nodes */
   const Dune::BitSetVector<blocksize>* ignoreNodes_;
 

@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <dune/common/fvector.hh>
-#include <dune/common/version.hh>
 
 #include <dune/geometry/type.hh>
 
@@ -177,11 +176,6 @@ namespace Dune {
 
       auto derivativeOfProjection = TargetSpace::derivativeOfProjection(embeddedInterpolation);
 
-#if ! DUNE_VERSION_GTE(DUNE_ISTL, 2, 9)
-      if constexpr (std::is_same_v<decltype(derivativeOfProjection), ScaledIdentityMatrix<RT,embeddedDim> >)
-        return derivativeOfProjection.scalar()*derivative;
-      else
-#endif
       return derivativeOfProjection*derivative;
     }
 
