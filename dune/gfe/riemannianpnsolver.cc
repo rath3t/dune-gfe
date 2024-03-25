@@ -15,11 +15,8 @@
 #include <dune/solvers/norms/h1seminorm.hh>
 #include <dune/solvers/solvers/cholmodsolver.hh>
 
-// The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
 #include <dune/gfe/parallel/matrixcommunicator.hh>
 #include <dune/gfe/parallel/vectorcommunicator.hh>
-#endif
 
 template <class Basis, class TargetSpace, class Assembler>
 void RiemannianProximalNewtonSolver<Basis, TargetSpace, Assembler>::
@@ -75,8 +72,7 @@ setup(const GridType& grid,
   instrumented_             = instrumented;
   ignoreNodes_              = &dirichletNodes;
 
-  // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
+#if HAVE_MPI
   //////////////////////////////////////////////////////////////////
   //  Create global numbering for matrix and vector transfer
   //////////////////////////////////////////////////////////////////
@@ -104,8 +100,7 @@ setup(const GridType& grid,
 
   operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localA), laplaceStiffness);
 
-  // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
+#if HAVE_MPI
   LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
 
   MatrixCommunicator<GlobalMapper,
@@ -139,8 +134,7 @@ setup(const GridType& grid,
 
   operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localMassMatrix), massStiffness);
 
-  // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
+#if HAVE_MPI
   auto massMatrix = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localMassMatrix));
 #else
   auto massMatrix = std::make_shared<ScalarMatrixType>(localMassMatrix);
@@ -195,8 +189,8 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
   bool recomputeGradientHessian = true;
   CorrectionType rhs, rhs_global;
   MatrixType stiffnessMatrix;
-  // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
+
+#if HAVE_MPI
   VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::Communication, CorrectionType> vectorComm(*globalMapper_,
                                                                                                               grid_->leafGridView().comm(),
                                                                                                               0);
@@ -242,8 +236,7 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
       rhs *= -1;              // The right hand side is the _negative_ gradient
 
       // Transfer vector data
-      // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
+#if HAVE_MPI
       rhs_global = vectorComm.reduceAdd(rhs);
 #else
       rhs_global = rhs;
@@ -261,8 +254,7 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
         std::cout << "Overall assembly took " << gradientTimer.elapsed() << " sec." << std::endl;
       totalAssemblyTime += gradientTimer.elapsed();
 
-      // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
+#if HAVE_MPI
       stiffnessMatrix = matrixComm.reduceAdd(*hessianMatrix_);
 #else
       stiffnessMatrix = *hessianMatrix_;
@@ -307,8 +299,7 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
     if (grid_->comm().size()>1 and rank==0)
       std::cout << "Transfer solution back to root process ..." << std::endl;
 
-    // The VectorCommunicator and MatrixCommunicator work only for GRID_DIM == WORLD_DIM == 2 or GRID_DIM == WORLD_DIM == 3
-#if HAVE_MPI && (!defined(GRID_DIM)or (defined(GRID_DIM) && GRID_DIM < 3)) && (!defined(WORLD_DIM)or (defined(WORLD_DIM) && WORLD_DIM < 3))
+#if HAVE_MPI
     solved = grid_->comm().min(solved);
     if (solved) {
       corr = vectorComm.scatter(corr_global);
