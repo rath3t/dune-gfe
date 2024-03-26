@@ -64,6 +64,7 @@
 #include <dune/gfe/assemblers/sumenergy.hh>
 
 #if MIXED_SPACE
+#include <dune/gfe/mixedriemannianpnsolver.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #else
 #include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
@@ -650,7 +651,18 @@ int main (int argc, char *argv[]) try
     } else { //parameterSet.get<std::string>("solvertype") == "proximalNewton"
 
 #if MIXED_SPACE
-      DUNE_THROW(Exception, "Error: There is no MixedRiemannianProximalNewtonSolver!");
+      GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, RealTuple<double,dim>, OrientationFEBasis, Rotation<double,dim>, BitVector> solver;
+      solver.setup(*grid,
+                   &mixedAssembler,
+                   x,
+                   dirichletDofs,
+                   tolerance,
+                   maxSolverSteps,
+                   initialRegularization,
+                   instrumented);
+      solver.setInitialIterate(x);
+      solver.solve();
+      x = solver.getSol();
 #else
       RiemannianProximalNewtonSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
       solver.setup(*grid,

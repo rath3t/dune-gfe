@@ -17,46 +17,8 @@
 #include <dune/solvers/solvers/loopsolver.hh>
 
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
-#include <dune/grid/utility/globalindexset.hh>
-#include <dune/gfe/parallel/globalmapper.hh>
-#include <dune/gfe/parallel/globalp1mapper.hh>
-#include <dune/gfe/parallel/globalp2mapper.hh>
-#include <dune/gfe/parallel/p2mapper.hh>
+#include <dune/gfe/parallel/mapperfactory.hh>
 
-/** \brief Assign GlobalMapper and LocalMapper types to a dune-fufem FunctionSpaceBasis */
-template <typename Basis>
-struct MapperFactory
-{};
-
-/** \brief Specialization for LagrangeBasis<1> */
-template <typename GridView>
-struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,1> >
-{
-  typedef Dune::GlobalP1Mapper<Dune::Functions::LagrangeBasis<GridView,1> > GlobalMapper;
-  typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
-  static LocalMapper createLocalMapper(const GridView& gridView)
-  {
-    return LocalMapper(gridView, Dune::mcmgVertexLayout());
-  }
-};
-
-template <typename GridView>
-struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,2> >
-{
-  typedef Dune::GlobalP2Mapper<Dune::Functions::LagrangeBasis<GridView,2> > GlobalMapper;
-  typedef P2BasisMapper<GridView> LocalMapper;
-  static LocalMapper createLocalMapper(const GridView& gridView)
-  {
-    return LocalMapper(gridView);
-  }
-};
-
-/** \brief Specialization for LagrangeBasis<3> */
-template <typename GridView>
-struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,3> >
-{
-  // Error: we don't currently have a global P3 mapper
-};
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class Basis, class TargetSpace, class Assembler = GeodesicFEAssembler<Basis,TargetSpace> >
@@ -79,8 +41,8 @@ class RiemannianTrustRegionSolver
   typedef std::vector<TargetSpace>                                               SolutionType;
 
 #if HAVE_MPI
-  typedef typename MapperFactory<Basis>::GlobalMapper GlobalMapper;
-  typedef typename MapperFactory<Basis>::LocalMapper LocalMapper;
+  typedef typename Dune::GFE::MapperFactory<Basis>::GlobalMapper GlobalMapper;
+  typedef typename Dune::GFE::MapperFactory<Basis>::LocalMapper LocalMapper;
 #endif
 
   /** \brief Records information about the last run of the RiemannianTrustRegionSolver

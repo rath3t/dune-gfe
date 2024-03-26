@@ -53,6 +53,11 @@ dune_add_test(SOURCES geodesicfeassemblerwrappertest.cc
               TIMEOUT 600
               CMAKE_GUARD MPI_FOUND)
 
+dune_add_test(SOURCES mixedriemannianpnsolvertest.cc
+              MPI_RANKS 1 4
+              TIMEOUT 600
+              CMAKE_GUARD MPI_FOUND)
+
 # Copy the example grid used for testing into the build dir
 file(COPY grids/irregular-square.msh DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/grids)
 

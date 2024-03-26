@@ -61,7 +61,7 @@ initialDeformation = "x"
 #  Solver parameters
 #############################################
 
-# Inner solver, cholmod or multigrid
+# Solver type: trustRegion or proximalNewton
 solvertype = trustRegion
 
 # Number of homotopy steps for the Dirichlet boundary conditions

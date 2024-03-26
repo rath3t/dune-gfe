@@ -43,6 +43,8 @@
 #include <dune/foamgrid/foamgrid.hh>
 #endif
 
+#include <dune/istl/multitypeblockvector.hh>
+
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/compositebasis.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
@@ -66,6 +68,7 @@
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 
 #if MIXED_SPACE
+#include <dune/gfe/mixedriemannianpnsolver.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #else
 #include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
@@ -504,31 +507,65 @@ int main (int argc, char *argv[]) try
           RealTuple<double,3>,
           Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
 #if MIXED_SPACE
-      MixedRiemannianTrustRegionSolver<GridType,
-          CompositeBasis,
-          DeformationFEBasis, RealTuple<double,3>,
-          OrientationFEBasis, Rotation<double,3> > solver;
-      solver.setup(*grid,
-                   &mixedAssembler,
-                   deformationFEBasis,
-                   orientationFEBasis,
-                   x,
-                   deformationDirichletDofs,
-                   orientationDirichletDofs, tolerance,
-                   maxSolverSteps,
-                   initialTrustRegionRadius,
-                   multigridIterations,
-                   mgTolerance,
-                   mu, nu1, nu2,
-                   baseIterations,
-                   baseTolerance,
-                   instrumented);
+      if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
+      {
 
-      solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
+        MixedRiemannianTrustRegionSolver<GridType,
+            CompositeBasis,
+            DeformationFEBasis, RealTuple<double,3>,
+            OrientationFEBasis, Rotation<double,3> > solver;
+        solver.setup(*grid,
+                     &mixedAssembler,
+                     deformationFEBasis,
+                     orientationFEBasis,
+                     x,
+                     deformationDirichletDofs,
+                     orientationDirichletDofs, tolerance,
+                     maxSolverSteps,
+                     initialTrustRegionRadius,
+                     multigridIterations,
+                     mgTolerance,
+                     mu, nu1, nu2,
+                     baseIterations,
+                     baseTolerance,
+                     instrumented);
 
-      solver.setInitialIterate(x);
-      solver.solve();
-      x = solver.getSol();
+        solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
+
+        solver.setInitialIterate(x);
+        solver.solve();
+        x = solver.getSol();
+      }
+      else
+      {
+        //Create BitVector matching the tangential space
+        const int dimRotationTangent = Rotation<double,3>::TangentVector::dimension;
+        using VectorForBit = MultiTypeBlockVector<std::vector<FieldVector<double,3> >, std::vector<FieldVector<double,dimRotationTangent> > >;
+        using BitVector = Solvers::DefaultBitVector_t<VectorForBit>;
+        BitVector dirichletDofs;
+        dirichletDofs[_0].resize(compositeBasis.size({0}));
+        dirichletDofs[_1].resize(compositeBasis.size({1}));
+        for (size_t i = 0; i < compositeBasis.size({0}); i++) {
+          for (size_t j = 0; j < 3; j++)
+            dirichletDofs[_0][i][j] = deformationDirichletDofs[i][j];
+        }
+        for (size_t i = 0; i < compositeBasis.size({1}); i++) {
+          for (int j = 0; j < dimRotationTangent; j++)
+            dirichletDofs[_1][i][j] = orientationDirichletDofs[i][j];
+        }
+        GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, RealTuple<double,3>, OrientationFEBasis, Rotation<double,3>, BitVector> solver;
+        solver.setup(*grid,
+                     &mixedAssembler,
+                     x,
+                     dirichletDofs,
+                     tolerance,
+                     maxSolverSteps,
+                     initialRegularization,
+                     instrumented);
+        solver.setInitialIterate(x);
+        solver.solve();
+        x = solver.getSol();
+      }
 #else
       //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
       //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a ProductManifold.

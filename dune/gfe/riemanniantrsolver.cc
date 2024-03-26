@@ -164,7 +164,7 @@ setup(const GridType& grid,
   operatorAssembler.assembleBulk(Dune::Fufem::istlMatrixBackend(localA), laplaceStiffness);
 
 #if HAVE_MPI
-  LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
+  LocalMapper localMapper = Dune::GFE::MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
 
   MatrixCommunicator<GlobalMapper,
       typename GridType::LeafGridView,
@@ -384,7 +384,7 @@ void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
   VectorCommunicator<GlobalMapper, typename GridType::LeafGridView::Communication, CorrectionType> vectorComm(*globalMapper_,
                                                                                                               grid_->leafGridView().comm(),
                                                                                                               0);
-  LocalMapper localMapper = MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
+  LocalMapper localMapper = Dune::GFE::MapperFactory<Basis>::createLocalMapper(grid_->leafGridView());
   MatrixCommunicator<GlobalMapper,
       typename GridType::LeafGridView,
       typename GridType::LeafGridView,
