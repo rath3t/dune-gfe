@@ -121,7 +121,7 @@ namespace Dune {
       if constexpr (conformingFlag)
         return TargetSpace::projectOnto(c);
       else
-        return (RealTuple<ctype, TargetSpace::CoordinateType::dimension>)c;
+        return (RealTuple<RT, TargetSpace::CoordinateType::dimension>)c;
 
     }
 
