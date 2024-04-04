@@ -314,12 +314,38 @@ void Dune::GFE::MixedRiemannianProximalNewtonSolver<MixedBasis,Basis0,TargetSpac
       } else {
         energy = grid_->comm().sum(energy);
 
-        // compute the model decrease
-        // It is $ m(x) - m(x+s) = -<g,s> - 0.5 <s, Hs>
-        // Note that rhs = -g
-        CorrectionType tmp(corr);
-        hessianMatrix_->mv(corr,tmp);
-        modelDecrease = rhs*corr - 0.5 * (corr*tmp);
+        /**
+         * Compute the model decrease.
+         * The lifted quadratic model function defined on the Tangent space of the manifold at the
+         * iterate $x_k$ is given by
+         *
+         *      m(s) := J(x_k) + <Grad J(x_k),s> + 0.5 <(Hess J(x_k)s, s> + 0.5 * \mu_k <s,s>   [QM]
+         *
+         * where
+         * J      : energy functional
+         * Grad J : Riemannian Gradient
+         * Hess J : Riemannian Hessian
+         * \mu_k  : regularization parameter
+         *
+         * We compute the correction 'corr' as minimizer of the quadratic model function [QM] by
+         * solving the assoc. Newton-System:
+         *
+         * (Hess J(x_k) + \mu_k * I) = - Grad J(x_k)    [NS]
+         *
+         * With the identity matrix $I$.
+         * So far we only use the scalar-product <*,*> inherited from the ambient Euclidean space of
+         * the (embedded) manifold.
+         *
+         * The model decrease is given by the difference
+         *
+         * m(0) - m(corr) = - <Grad J(x_k),corr> - 0.5 <(Hess J(x_k)corr, corr> - 0.5 * \mu_k <corr,corr>
+         *                = - 0.5 * <Grad J(x_k),corr>
+         *
+         * The last line is due to the fact that 'corr' actually solves the Newton-system [NS].
+         *
+         * Note that rhs = -g corresponds to the (negative) Riemannian Gradient '- Grad J(x_k)'.
+         */
+        modelDecrease = 0.5 * (rhs*corr);
         modelDecrease = grid_->comm().sum(modelDecrease);
 
         double relativeModelDecrease = modelDecrease / std::fabs(energy);
