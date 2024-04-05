@@ -231,10 +231,10 @@ int main (int argc, char *argv[]) try
 
   }
 
-  // //////////////////////////////
+  return 0;
 }
-catch (Exception& e) {
-
+catch (Exception& e)
+{
   std::cout << e.what() << std::endl;
-
+  return 1;
 }
