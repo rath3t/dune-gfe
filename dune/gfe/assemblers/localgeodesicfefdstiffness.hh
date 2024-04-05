@@ -53,7 +53,7 @@ public:
      The default implementation in this class uses a finite difference approximation */
   virtual void assembleGradient(const typename Basis::LocalView& localView,
                                 const std::vector<TargetSpace>& solution,
-                                std::vector<typename TargetSpace::TangentVector>& gradient) const override;
+                                std::vector<field_type>& gradient) const override;
 
   /** \brief Assemble the local tangent matrix and gradient at the current position
 
@@ -61,7 +61,7 @@ public:
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const std::vector<TargetSpace>& localSolution,
-                                          std::vector<typename TargetSpace::TangentVector>& localGradient,
+                                          std::vector<field_type>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override;
 
   /** \brief Assemble the local tangent matrix and gradient at the current position
@@ -70,7 +70,7 @@ public:
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localSolution,
-                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          std::vector<field_type>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override
   {
     DUNE_THROW(Dune::NotImplemented, "!");
@@ -84,7 +84,7 @@ template <class Basis, class TargetSpace, class field_type>
 void LocalGeodesicFEFDStiffness<Basis, TargetSpace, field_type>::
 assembleGradient(const typename Basis::LocalView& localView,
                  const std::vector<TargetSpace>& localSolution,
-                 std::vector<typename TargetSpace::TangentVector>& localGradient) const
+                 std::vector<field_type>& localGradient) const
 {
 
   // ///////////////////////////////////////////////////////////
@@ -125,9 +125,9 @@ assembleGradient(const typename Basis::LocalView& localView,
 
       field_type foo = (localEnergy_->energy(localView,forwardSolution) - localEnergy_->energy(localView, backwardSolution)) / (2*eps);
 #ifdef MULTIPRECISION
-      localGradient[i][j] = foo.template convert_to<double>();
+      localGradient[i*blocksize+j] = foo.template convert_to<double>();
 #else
-      localGradient[i][j] = foo;
+      localGradient[i*blocksize+j] = foo;
 #endif
 
     }
@@ -149,7 +149,7 @@ template <class Basis, class TargetSpace, class field_type>
 void LocalGeodesicFEFDStiffness<Basis, TargetSpace, field_type>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const std::vector<TargetSpace>& localSolution,
-                           std::vector<typename TargetSpace::TangentVector>& localGradient,
+                           std::vector<field_type>& localGradient,
                            typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const
 {
   // Number of degrees of freedom for this element
@@ -212,16 +212,16 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   //   Compute gradient by finite-difference approximation
   //////////////////////////////////////////////////////////////
 
-  localGradient.resize(localSolution.size());
+  localGradient.resize(nDofs*blocksize);
 
   for (size_t i=0; i<localSolution.size(); i++)
     for (int j=0; j<blocksize; j++)
     {
       field_type foo = (forwardEnergy[i][j] - backwardEnergy[i][j]) / (2*eps);
 #ifdef MULTIPRECISION
-      localGradient[i][j] = foo.template convert_to<double>();
+      localGradient[i*blocksize+j] = foo.template convert_to<double>();
 #else
-      localGradient[i][j] = foo;
+      localGradient[i*blocksize+j] = foo;
 #endif
     }
 

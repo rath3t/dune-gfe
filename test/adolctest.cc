@@ -572,8 +572,8 @@ int main (int argc, char *argv[]) try
     compareMatrices(localADHessian, "AD scalar", localADVMHessian, "AD vector");
 
     // Assemble Riemannian derivatives
-    std::vector<Dune::FieldVector<double,blocksize> > localRiemannianADGradient(numOfBaseFct);
-    std::vector<Dune::FieldVector<double,blocksize> > localRiemannianFDGradient(numOfBaseFct);
+    std::vector<double> localRiemannianADGradient(numOfBaseFct*blocksize);
+    std::vector<double> localRiemannianFDGradient(numOfBaseFct*blocksize);
 
     Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianADHessian;
     Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianFDHessian;

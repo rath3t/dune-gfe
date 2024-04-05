@@ -17,7 +17,7 @@ namespace Dune::GFE
      */
     template<class TargetSpace>
     class LocalStiffnessTypes
-      : public LocalFirstOrderModelTypes<TargetSpace>
+      : public LocalEnergyTypes<TargetSpace>
     {
       // Number type
       typedef typename TargetSpace::ctype RT;
@@ -40,7 +40,7 @@ namespace Dune::GFE
      */
     template<class ... Factors>
     class LocalStiffnessTypes<ProductManifold<Factors...> >
-      : public LocalFirstOrderModelTypes<ProductManifold<Factors...> >
+      : public LocalEnergyTypes<ProductManifold<Factors...> >
     {
       using TargetSpace = ProductManifold<Factors...>;
 
@@ -84,14 +84,14 @@ public:
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
-                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
+                                          std::vector<double>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
 
   /** \brief Assemble the local gradient and stiffness matrix at the current position -- Composite version
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
-                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          std::vector<double>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const = 0;
 };
 

@@ -54,7 +54,7 @@ public:
    */
   virtual void assembleGradient(const typename Basis::LocalView& localView,
                                 const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
-                                typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& gradient) const override;
+                                std::vector<double>& gradient) const override;
 
   /** \brief Assemble the local stiffness matrix at the current position
 
@@ -62,14 +62,14 @@ public:
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
-                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
+                                          std::vector<double>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override;
 
   /** \brief Assemble the local stiffness matrix at the current position
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
                                           const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
-                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                                          std::vector<double>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override;
 
   const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
@@ -204,7 +204,7 @@ template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradient(const typename Basis::LocalView& localView,
                  const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& localSolution,
-                 typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient) const
+                 std::vector<double>& localGradient) const
 {
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
   energy(localView, localSolution);
@@ -250,7 +250,7 @@ template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& localSolution,
-                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Gradient& localGradient,
+                           std::vector<double>& localGradient,
                            typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const
 {
   // Tape energy computation.  We may not have to do this every time, but it's comparatively cheap.
@@ -287,8 +287,10 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
   // Express gradient in local coordinate system
   for (size_t i=0; i<nDofs; i++) {
-    Dune::FieldMatrix<RT,blocksize,embeddedBlocksize> orthonormalFrame = localSolution[i].orthonormalFrame();
-    orthonormalFrame.mv(localEmbeddedGradient[i],localGradient[i]);
+    typename TargetSpace::TangentVector tmp;
+    localSolution[i].orthonormalFrame().mv(localEmbeddedGradient[i],tmp);
+    for (size_t j=0; j<blocksize; j++)
+      localGradient[i*blocksize+j] = tmp[j];
   }
 
   /////////////////////////////////////////////////////////////////
@@ -445,7 +447,7 @@ template <class Basis, class TargetSpace>
 void LocalGeodesicFEADOLCStiffness<Basis, TargetSpace>::
 assembleGradientAndHessian(const typename Basis::LocalView& localView,
                            const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& localConfiguration,
-                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeGradient& localGradient,
+                           std::vector<double>& localGradient,
                            typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const
 {
   using namespace Dune::Indices;
@@ -456,7 +458,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     //static_assert(localConfiguration.size()==1);
     return assembleGradientAndHessian(localView,
                                       localConfiguration[_0],
-                                      localGradient[_0],
+                                      localGradient,
                                       localHessian[_0][_0]);
   }
   else
@@ -513,15 +515,25 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         localEmbeddedGradient0[i][j] = g[idx++];
 
       // Express gradient in local coordinate system
-      localConfiguration[_0][i].orthonormalFrame().mv(localEmbeddedGradient0[i],localGradient[_0][i]);
+      typename TargetSpace0::TangentVector tmp;
+      localConfiguration[_0][i].orthonormalFrame().mv(localEmbeddedGradient0[i],tmp);
+
+      for (size_t j=0; j<blocksize0; j++)
+        localGradient[i*blocksize0+j] = tmp[j];
     }
+
+    auto offset = localConfiguration[_0].size()*blocksize0;
 
     for (size_t i=0; i<localConfiguration[_1].size(); i++) {
       for (size_t j=0; j<embeddedBlocksize1; j++)
         localEmbeddedGradient1[i][j] = g[idx++];
 
       // Express gradient in local coordinate system
-      localConfiguration[_1][i].orthonormalFrame().mv(localEmbeddedGradient1[i],localGradient[_1][i]);
+      typename TargetSpace1::TangentVector tmp;
+      localConfiguration[_1][i].orthonormalFrame().mv(localEmbeddedGradient1[i],tmp);
+
+      for (size_t j=0; j<blocksize1; j++)
+        localGradient[offset + i*blocksize1 + j] = tmp[j];
     }
 
     /////////////////////////////////////////////////////////////////
