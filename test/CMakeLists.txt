@@ -1,10 +1,10 @@
 set(TESTS
-  adolctest
   averagedistanceassemblertest
   cosseratenergytest
   cosseratrodenergytest
   cosseratrodtest
   embeddedglobalgfefunctiontest
+  localadolcstiffnesstest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
   localprojectedfefunctiontest
