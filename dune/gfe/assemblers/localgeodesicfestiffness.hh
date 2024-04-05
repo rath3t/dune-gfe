@@ -28,10 +28,9 @@ namespace Dune::GFE
     public:
 
       // Type of the local Hessian
-      using Hessian = Matrix<FieldMatrix<RT, blocksize, blocksize> >;
+      using Hessian = Matrix<double>;
 
-      using Row = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize, blocksize> > >;
-      using CompositeHessian = MultiTypeBlockMatrix<Row>;
+      using CompositeHessian = FieldMatrix<Matrix<double>,1,1>;
     };
 
     /** \brief A class exporting container types for sets local Hesse matrices
@@ -60,15 +59,10 @@ namespace Dune::GFE
     public:
 
       // Type of the local Hessian
-      using Hessian = Matrix<FieldMatrix<RT, blocksize, blocksize> >;
+      using Hessian = Matrix<double>;
 
       // Type of the local Hessian
-      using Row0 = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize0, blocksize0> >,
-          Matrix<FieldMatrix<RT, blocksize0, blocksize1> > >;
-      using Row1 = MultiTypeBlockVector<Matrix<FieldMatrix<RT, blocksize1, blocksize0> >,
-          Matrix<FieldMatrix<RT, blocksize1, blocksize1> > >;
-
-      using CompositeHessian = MultiTypeBlockMatrix<Row0, Row1>;
+      using CompositeHessian = FieldMatrix<Matrix<double>,2,2>;
     };
   }
 }

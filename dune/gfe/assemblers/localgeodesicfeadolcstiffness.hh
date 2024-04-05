@@ -390,7 +390,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
   typedef typename TargetSpace::TangentVector TangentVector;
 
-  localHessian.setSize(nDofs,nDofs);
+  localHessian.setSize(nDofs*blocksize,nDofs*blocksize);
 
   for (size_t col=0; col<nDofs; col++) {
 
@@ -404,7 +404,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         embeddedHessian[row][col].mv(z,semiEmbeddedProduct);
 
         for (int subRow=0; subRow<blocksize; subRow++)
-          localHessian[row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+          localHessian[row*blocksize+subRow][col*blocksize+subCol] = semiEmbeddedProduct[subRow];
       }
 
     }
@@ -431,7 +431,8 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
       TangentVector tmp2;
       orthonormalFrame[row].mv(tmp1,tmp2);
 
-      localHessian[row][row][subRow] += tmp2;
+      for (size_t subCol=0; subCol<blocksize; subCol++)
+        localHessian[row*blocksize+subRow][row*blocksize+subCol] += tmp2[subCol];
     }
 
   }
@@ -698,7 +699,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
     using namespace Dune::Indices;
 
-    localHessian[_0][_0].setSize(nDofs0,nDofs0);
+    localHessian[_0][_0].setSize(nDofs0*blocksize0, nDofs0*blocksize0);
 
     for (size_t col=0; col<nDofs0; col++)
     {
@@ -713,12 +714,12 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
           embeddedHessian00[row][col].mv(z,semiEmbeddedProduct);
 
           for (int subRow=0; subRow<blocksize0; subRow++)
-            localHessian[_0][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+            localHessian[_0][_0][row*blocksize0+subRow][col*blocksize0 + subCol] = semiEmbeddedProduct[subRow];
         }
       }
     }
 
-    localHessian[_0][_1].setSize(nDofs0,nDofs1);
+    localHessian[_0][_1].setSize(nDofs0*blocksize0, nDofs1*blocksize1);
 
     for (size_t col=0; col<nDofs1; col++)
     {
@@ -733,12 +734,12 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
           embeddedHessian01[row][col].mv(z,semiEmbeddedProduct);
 
           for (int subRow=0; subRow<blocksize0; subRow++)
-            localHessian[_0][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+            localHessian[_0][_1][row*blocksize0+subRow][col*blocksize1+subCol] = semiEmbeddedProduct[subRow];
         }
       }
     }
 
-    localHessian[_1][_0].setSize(nDofs1,nDofs0);
+    localHessian[_1][_0].setSize(nDofs1*blocksize1, nDofs0*blocksize0);
 
     for (size_t col=0; col<nDofs0; col++)
     {
@@ -752,12 +753,12 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
           embeddedHessian10[row][col].mv(z,semiEmbeddedProduct);
 
           for (int subRow=0; subRow<blocksize1; subRow++)
-            localHessian[_1][_0][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+            localHessian[_1][_0][row*blocksize1+subRow][col*blocksize0+subCol] = semiEmbeddedProduct[subRow];
         }
       }
     }
 
-    localHessian[_1][_1].setSize(nDofs1,nDofs1);
+    localHessian[_1][_1].setSize(nDofs1*blocksize1, nDofs1*blocksize1);
 
     for (size_t col=0; col<nDofs1; col++)
     {
@@ -772,7 +773,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
           embeddedHessian11[row][col].mv(z,semiEmbeddedProduct);
 
           for (int subRow=0; subRow<blocksize1; subRow++)
-            localHessian[_1][_1][row][col][subRow][subCol] = semiEmbeddedProduct[subRow];
+            localHessian[_1][_1][row*blocksize1+subRow][col*blocksize1+subCol] = semiEmbeddedProduct[subRow];
         }
       }
     }
@@ -802,7 +803,8 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         typename TargetSpace0::TangentVector tmp2;
         orthonormalFrame0[row].mv(tmp1,tmp2);
 
-        localHessian[_0][_0][row][row][subRow] += tmp2;
+        for (size_t subCol=0; subCol<blocksize0; subCol++)
+          localHessian[_0][_0][row*blocksize0+subRow][row*blocksize0+subCol] += tmp2[subCol];
       }
     }
 
@@ -816,7 +818,8 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
         typename TargetSpace1::TangentVector tmp2;
         orthonormalFrame1[row].mv(tmp1,tmp2);
 
-        localHessian[_1][_1][row][row][subRow] += tmp2;
+        for (size_t subCol=0; subCol<blocksize1; subCol++)
+          localHessian[_1][_1][row*blocksize1+subRow][row*blocksize1+subCol] += tmp2[subCol];
       }
     }
   }

@@ -156,7 +156,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
   size_t nDofs = localSolution.size();
 
   // Clear assemble data
-  localHessian.setSize(nDofs, nDofs);
+  localHessian.setSize(nDofs*blocksize, nDofs*blocksize);
 
   localHessian = 0;
 
@@ -264,9 +264,9 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
 
           field_type foo = 0.5 * (forwardValue - 2*centerValue + backwardValue) / (eps*eps);
 #ifdef MULTIPRECISION
-          localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = foo.template convert_to<double>();
+          localHessian[i*blocksize+i2][j*blocksize+j2] = localHessian[j*blocksize+j2][i*blocksize+i2] = foo.template convert_to<double>();
 #else
-          localHessian[i][j][i2][j2] = localHessian[j][i][j2][i2] = foo;
+          localHessian[i*blocksize+i2][j*blocksize+j2] = localHessian[j*blocksize+j2][i*blocksize+i2] = foo;
 #endif
         }
       }

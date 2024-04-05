@@ -194,12 +194,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
     std::vector<double> localGradient(nDofs0*blocksize0 + nDofs1*blocksize1);
 
-    using Row0 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize0> >,
-        Dune::Matrix<Dune::FieldMatrix<double, blocksize0, blocksize1> > >;
-    using Row1 = Dune::MultiTypeBlockVector<Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize0> >,
-        Dune::Matrix<Dune::FieldMatrix<double, blocksize1, blocksize1> > >;
-
-    using HessianType = Dune::MultiTypeBlockMatrix<Row0, Row1>;
+    using HessianType = Dune::FieldMatrix<Dune::Matrix<double>,2,2>;
 
     HessianType localHessian;
 
@@ -237,16 +232,25 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
         auto col = localView.index(localIndexCol);
 
         if (row[0]==0 and col[0]==0)
-          hessian[_0][_0][row[1]][col[1]] += localHessian[_0][_0][i][j];
+          for (std::size_t ii=0; ii<blocksize0; ii++)
+            for (std::size_t jj=0; jj<blocksize0; jj++)
+              hessian[_0][_0][row[1]][col[1]][ii][jj] += localHessian[_0][_0][i*blocksize0+ii][j*blocksize0+jj];
 
         if (row[0]==0 and col[0]==1)
-          hessian[_0][_1][row[1]][col[1]] += localHessian[_0][_1][i][j-nDofs0];
+          for (std::size_t ii=0; ii<blocksize0; ii++)
+            for (std::size_t jj=0; jj<blocksize1; jj++)
+              hessian[_0][_1][row[1]][col[1]][ii][jj] += localHessian[_0][_1][i*blocksize0+ii][(j-nDofs0)*blocksize1+jj];
 
         if (row[0]==1 and col[0]==0)
-          hessian[_1][_0][row[1]][col[1]] += localHessian[_1][_0][i-nDofs0][j];
+          for (std::size_t ii=0; ii<blocksize1; ii++)
+            for (std::size_t jj=0; jj<blocksize0; jj++)
+              hessian[_1][_0][row[1]][col[1]][ii][jj] += localHessian[_1][_0][(i-nDofs0)*blocksize1+ii][j*blocksize0+jj];
 
         if (row[0]==1 and col[0]==1)
-          hessian[_1][_1][row[1]][col[1]] += localHessian[_1][_1][i-nDofs0][j-nDofs0];
+          for (std::size_t ii=0; ii<blocksize1; ii++)
+            for (std::size_t jj=0; jj<blocksize1; jj++)
+              hessian[_1][_1][row[1]][col[1]][ii][jj] += localHessian[_1][_1][(i-nDofs0)*blocksize1+ii][(j-nDofs0)*
+                                                                                                        blocksize1+jj];
       }
 
       // Add local gradient to global gradient

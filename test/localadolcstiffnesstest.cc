@@ -55,9 +55,8 @@ const int dim = 2;
 using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
 // Compare two matrices
-template <int N>
-void compareMatrices(const Matrix<FieldMatrix<double,N,N> >& matrixA, std::string nameA,
-                     const Matrix<FieldMatrix<double,N,N> >& matrixB, std::string nameB)
+void compareMatrices(const Matrix<double>& matrixA, std::string nameA,
+                     const Matrix<double>& matrixB, std::string nameB)
 {
   double maxAbsDifference = -1;
   double maxRelDifference = -1;
@@ -66,22 +65,18 @@ void compareMatrices(const Matrix<FieldMatrix<double,N,N> >& matrixA, std::strin
 
     for (size_t j=0; j<matrixA.M(); j++ ) {
 
-      for (size_t ii=0; ii<matrixA[i][j].N(); ii++)
-        for (size_t jj=0; jj<matrixA[i][j].M(); jj++)
-        {
-          double valueA = matrixA[i][j][ii][jj];
-          double valueB = matrixB[i][j][ii][jj];
+      const double valueA = matrixA[i][j];
+      const double valueB = matrixB[i][j];
 
-          double absDifference = valueA - valueB;
-          double relDifference = std::abs(absDifference) / std::abs(valueA);
-          maxAbsDifference = std::max(maxAbsDifference, std::abs(absDifference));
-          if (not std::isinf(relDifference))
-            maxRelDifference = std::max(maxRelDifference, relDifference);
+      double absDifference = valueA - valueB;
+      double relDifference = std::abs(absDifference) / std::abs(valueA);
+      maxAbsDifference = std::max(maxAbsDifference, std::abs(absDifference));
+      if (not std::isinf(relDifference))
+        maxRelDifference = std::max(maxRelDifference, relDifference);
 
-          if (relDifference > 1)
-            std::cout << i << ", " << j << "   " << ii << ", " << jj
-                      << ",       " << nameA << ": " << valueA << ",           " << nameB << ": " << valueB << std::endl;
-        }
+      if (relDifference > 1)
+        std::cout << i << ", " << j << "   ,       "
+                  << nameA << ": " << valueA << ",           " << nameB << ": " << valueB << std::endl;
     }
   }
 
@@ -213,8 +208,8 @@ int main (int argc, char *argv[]) try
     std::vector<double> localRiemannianADGradient(numOfBaseFct*blocksize);
     std::vector<double> localRiemannianFDGradient(numOfBaseFct*blocksize);
 
-    Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianADHessian;
-    Matrix<FieldMatrix<double,blocksize,blocksize> > localRiemannianFDHessian;
+    Matrix<double> localRiemannianADHessian;
+    Matrix<double> localRiemannianFDHessian;
 
     localGFEADOLCStiffness.assembleGradientAndHessian(localView,
                                                       localSolution,
