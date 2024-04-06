@@ -5,33 +5,6 @@
 
 namespace Dune::GFE
 {
-  namespace Impl
-  {
-    /** \brief A class exporting container types for sets of tangent vectors
-     *
-     * This generic template handles TargetSpaces that are not product manifolds.
-     */
-    template <class TargetSpace>
-    struct LocalFirstOrderModelTypes
-      : public LocalEnergyTypes<TargetSpace>
-    {
-      using Gradient = std::vector<typename TargetSpace::TangentVector>;
-      using CompositeGradient = TupleVector<std::vector<typename TargetSpace::TangentVector> >;
-    };
-
-    /** \brief A class exporting container types for sets of tangent vectors -- specialization for product manifolds
-     */
-    template <class ... Factors>
-    struct LocalFirstOrderModelTypes<ProductManifold<Factors...> >
-      : public LocalEnergyTypes<ProductManifold<Factors...> >
-    {
-      using Gradient = std::vector<typename ProductManifold<Factors...>::TangentVector>;
-      using CompositeGradient = TupleVector<std::vector<typename Factors::TangentVector>... >;
-    };
-
-  }  // namespace Impl
-
-
   /** \brief Base class for problems that have an energy and a first derivative
    */
   template<class Basis, class TargetSpace>
@@ -42,8 +15,8 @@ namespace Dune::GFE
 
     /** \brief Assemble the element gradient of the energy functional */
     virtual void assembleGradient(const typename Basis::LocalView& localView,
-                                  const typename Impl::LocalFirstOrderModelTypes<TargetSpace>::Coefficients& coefficients,
-                                  typename Impl::LocalFirstOrderModelTypes<TargetSpace>::Gradient& gradient) const = 0;
+                                  const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& coefficients,
+                                  std::vector<double>& gradient) const = 0;
 
   };
 

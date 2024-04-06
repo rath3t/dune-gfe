@@ -167,8 +167,8 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
     for (int i=0; i<numOfBaseFct; i++)
       localSolution[i] = sol[localView.index(i)];
 
-    std::vector<Dune::FieldVector<double,blocksize> > localGradient(numOfBaseFct);
-    Dune::Matrix<Dune::FieldMatrix<double,blocksize,blocksize> > localHessian(numOfBaseFct,numOfBaseFct);
+    std::vector<double> localGradient(numOfBaseFct*blocksize);
+    Dune::Matrix<double> localHessian(numOfBaseFct*blocksize, numOfBaseFct*blocksize);
 
     // setup local matrix and gradient
     localStiffness_->assembleGradientAndHessian(localView, localSolution, localGradient, localHessian);
@@ -181,14 +181,18 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
       for (int j=0; j<numOfBaseFct; j++ ) {
 
         auto col = localView.index(j);
-        hessian[row][col] += localHessian[i][j];
+
+        for (std::size_t ii=0; ii<blocksize; ii++)
+          for (std::size_t jj=0; jj<blocksize; jj++)
+            hessian[row][col][ii][jj] += localHessian[i*blocksize+ii][j*blocksize+jj];
 
       }
     }
 
     // Add local gradient to global gradient
     for (int i=0; i<numOfBaseFct; i++)
-      gradient[localView.index(i)] += localGradient[i];
+      for (int j=0; j<blocksize; j++)
+        gradient[localView.index(i)][j] += localGradient[i*blocksize + j];
 
   }
 
@@ -223,13 +227,14 @@ assembleGradient(const std::vector<TargetSpace>& sol,
       localSolution[i] = sol[localView.index(i)];
 
     // Assemble local gradient
-    std::vector<Dune::FieldVector<double,blocksize> > localGradient(nDofs);
+    std::vector<double> localGradient(nDofs*blocksize);
 
     localStiffness_->assembleGradient(localView, localSolution, localGradient);
 
     // Add to global gradient
     for (size_t i=0; i<nDofs; i++)
-      grad[localView.index(i)[0]] += localGradient[i];
+      for (size_t j=0; j<blocksize; j++)
+        grad[localView.index(i)[0]][j] += localGradient[i*blocksize+j];
   }
 
 }
