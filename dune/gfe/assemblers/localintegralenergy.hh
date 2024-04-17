@@ -156,6 +156,10 @@ namespace Dune::GFE {
             // The value of the local rotation
             Rotation<RT,gridDim>  orientationValue = localOrientationGFEFunction.evaluate(quadPos);
 
+            ProductManifold<RealTuple<RT,gridDim>,Rotation<RT,gridDim> > value;
+            value[_0] = deformationValue;
+            value[_1] = orientationValue;
+
             // The derivative of the rotation defined on the reference element
             typename LocalOrientationGFEFunctionType::DerivativeType orientationReferenceDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,orientationValue);
 
@@ -164,11 +168,20 @@ namespace Dune::GFE {
             for (size_t comp=0; comp<orientationReferenceDerivative.N(); comp++)
               jacobianInverseTransposed.mv(orientationReferenceDerivative[comp], orientationDerivative[comp]);
 
+            // Copy the two derivatives into a joint matrix object
+            // TODO: I am not sure about this.  May the densities should get the
+            // separate derivatives.
+            FieldMatrix<RT,deformationDerivative.rows+orientationDerivative.rows, deformationDerivative.cols> derivative;
+
+            for (int i=0; i<deformationDerivative.rows; i++)
+              derivative[i] = deformationDerivative[i];
+
+            for (int i=0; i<orientationDerivative.rows; i++)
+              derivative[i+deformationDerivative.rows] = orientationDerivative[i];
+
             energy += weightWithintegrationElement * (*localDensityGFE_)(x,
-                                                                         deformationValue,
-                                                                         deformationDerivative,
-                                                                         orientationValue,
-                                                                         orientationDerivative);
+                                                                         value,
+                                                                         derivative);
           }
         }
       }

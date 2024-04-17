@@ -22,7 +22,6 @@ namespace Dune::GFE {
     static_assert(Position::size()==3);
     static const int gridDim = Position::size();
     static const int embeddedDim = Rotation<field_type,gridDim>::embeddedDim;
-    using OrientationDerivativeType = FieldMatrix<field_type, embeddedDim, gridDim>;
 
     static FieldMatrix<field_type,gridDim,gridDim> curl(const Tensor3<field_type,gridDim,gridDim,gridDim>& DR)
     {
@@ -111,38 +110,28 @@ namespace Dune::GFE {
     }
 
     /** \brief Evaluate the density
-     *
-     * \todo Currently this method is only here to please the compiler.
-     * Eventually, it will replace the other operator()-implementation.
      */
     virtual field_type operator() (const Position& x,
                                    const GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >& value,
                                    const FieldMatrix<field_type,7,gridDim>& derivative) const override
     {
-      DUNE_THROW(NotImplemented, "!");
-    }
+      using namespace Dune::Indices;
 
-    /** \brief Evaluation with the current position, the deformation value and its derivative, the orientation value and its derivative
-     *
-     * \param x The current position
-     * \param deformationValue The deformation at the current position
-     * \param deformationDerivative The derivative of the deformation at the current position
-     * \param orientationValue The orientation at the current position
-     * \param orientationDerivative The derivative of the orientation at the current position
-     */
-    field_type operator() (const Position& x,
-                           const RealTuple<field_type,gridDim>& deformationValue,
-                           const FieldMatrix<field_type,gridDim,gridDim>& deformationDerivative,
-                           const Rotation<field_type,gridDim>& orientationValue,
-                           const OrientationDerivativeType& orientationDerivative) const
-    {
       field_type strainEnergyDensity = 0;
+
+      /////////////////////////////////////////////////////////
+      //  Extract derivatives of the factor spaces
+      /////////////////////////////////////////////////////////
+
+      FieldMatrix<field_type,3,3> deformationDerivative = {derivative[0], derivative[1], derivative[2]};
+      FieldMatrix<field_type,4,3> orientationDerivative = {derivative[3], derivative[4], derivative[5], derivative[6]};
+
       /////////////////////////////////////////////////////////
       // compute U, the Cosserat strain
       /////////////////////////////////////////////////////////
 
       FieldMatrix<field_type,gridDim,gridDim> R;
-      orientationValue.matrix(R);
+      value[_1].matrix(R);
 
       GFE::CosseratStrain<field_type,gridDim,gridDim> U(deformationDerivative,R);
 
@@ -150,7 +139,7 @@ namespace Dune::GFE {
       //  Transfer the derivative of the rotation into matrix coordinates
       ////////////////////////////////////////////////////////////////////
 
-      Tensor3<field_type,3,3,gridDim> DR = orientationValue.quaternionTangentToMatrixTangent(orientationDerivative);
+      Tensor3<field_type,3,3,gridDim> DR = value[_1].quaternionTangentToMatrixTangent(orientationDerivative);
       strainEnergyDensity = quadraticEnergy(U);
 
     #ifdef CURVATURE_WITH_WRYNESS
