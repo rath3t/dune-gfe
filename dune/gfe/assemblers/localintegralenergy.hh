@@ -7,12 +7,10 @@
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/cosseratstrain.hh>
+#include <dune/gfe/densities/duneelasticitydensity.hh>
 #include <dune/gfe/densities/localdensity.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
-
-#include <dune/elasticity/materials/localdensity.hh>
 
 namespace Dune::GFE {
 
@@ -34,12 +32,6 @@ namespace Dune::GFE {
     constexpr static int gridDim = GridView::dimension;
 
   public:
-
-    /** \brief Constructor with a Dune::Elasticity::LocalDensity
-     */
-    LocalIntegralEnergy(const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT> >& ld)
-      : localDensityElasticity_(ld)
-    {}
 
     /** \brief Constructor with a Dune::GFE::LocalDensity
      */
@@ -149,9 +141,35 @@ namespace Dune::GFE {
           for (size_t comp=0; comp<deformationReferenceDerivative.N(); comp++)
             jacobianInverseTransposed.mv(deformationReferenceDerivative[comp], deformationDerivative[comp]);
 
+          typename LocalOrientationGFEFunctionType::DerivativeType orientationDerivative;
+
           // Integrate the energy density
-          if (localDensityElasticity_)
-            energy += weightWithintegrationElement * (*localDensityElasticity_)(x, deformationDerivative);
+          // We do a special-casing for DuneElasticityDensity:
+          // Of that one we know that it does not actually depend on the rotation.
+          using DEDensity = DuneElasticityDensity<FieldVector<DT,gridDim>,TargetSpace,0>;
+          std::shared_ptr<DEDensity> duneElasticityDensity = std::dynamic_pointer_cast<DEDensity>(localDensityGFE_);
+          if (duneElasticityDensity)
+          {
+            // Dummy local rotation value
+            ProductManifold<RealTuple<RT,gridDim>,Rotation<RT,gridDim> > value;
+            value[_0] = deformationValue;
+            value[_1] = TargetSpaceRotation::identity();
+
+            // Copy the two derivatives into a joint matrix object
+            // TODO: I am not sure about this.  May the densities should get the
+            // separate derivatives.
+            FieldMatrix<RT,deformationDerivative.rows+orientationDerivative.rows, deformationDerivative.cols> derivative;
+
+            for (int i=0; i<deformationDerivative.rows; i++)
+              derivative[i] = deformationDerivative[i];
+
+            for (int i=0; i<orientationDerivative.rows; i++)
+              derivative[i+deformationDerivative.rows] = 0.0;
+
+            energy += weightWithintegrationElement * (*duneElasticityDensity)(x,
+                                                                              value,
+                                                                              derivative);
+          }
           else if (localDensityGFE_) {
             // The value of the local rotation
             Rotation<RT,gridDim>  orientationValue = localOrientationGFEFunction.evaluate(quadPos);
@@ -164,7 +182,6 @@ namespace Dune::GFE {
             typename LocalOrientationGFEFunctionType::DerivativeType orientationReferenceDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,orientationValue);
 
             // The derivative of the rotation defined on the actual element
-            typename LocalOrientationGFEFunctionType::DerivativeType orientationDerivative;
             for (size_t comp=0; comp<orientationReferenceDerivative.N(); comp++)
               jacobianInverseTransposed.mv(orientationReferenceDerivative[comp], orientationDerivative[comp]);
 
@@ -190,8 +207,7 @@ namespace Dune::GFE {
     }
 
   protected:
-    const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT> > localDensityElasticity_ = nullptr;
-    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> > localDensityGFE_ = nullptr;
+    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> > localDensityGFE_;
   };
 
 }  // namespace Dune::GFE

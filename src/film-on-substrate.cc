@@ -62,6 +62,7 @@
 #include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/assemblers/surfacecosseratenergy.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
+#include <dune/gfe/densities/duneelasticitydensity.hh>
 
 #if MIXED_SPACE
 #include <dune/gfe/mixedriemannianpnsolver.hh>
@@ -508,13 +509,17 @@ int main (int argc, char *argv[]) try
 
     using ActiveRigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
 
+    // Wrap dune-elasticity density as dune-gfe density
+    auto elasticDensityWrapped = std::make_shared<GFE::DuneElasticityDensity<FieldVector<double,dim>,ActiveRigidBodyMotion,0> >(elasticDensity);
+
+
     // Select which type of geometric interpolation to use
     using LocalDeformationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<adouble,dim> >;
     using LocalOrientationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<adouble,dim> >;
 
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 
-    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ActiveRigidBodyMotion> >(elasticDensity);
+    auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ActiveRigidBodyMotion> >(elasticDensityWrapped);
     auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,neumannFunctionPtr);
     auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
         decltype(stressFreeShellFunction), CompositeBasis, ActiveRigidBodyMotion> >(
