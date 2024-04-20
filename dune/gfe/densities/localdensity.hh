@@ -30,6 +30,25 @@ namespace Dune::GFE {
                                    const TargetSpace& value,
                                    const DerivativeType& derivative) const = 0;
 
+    /** \brief Whether the density depends on the 'value' parameter
+     *
+     * If TargetSpace is a ProductManifold, then this method returns the information
+     * for one factor space only.
+     *
+     * \param factor The factor space that is being asked about.
+     *   The default value -1 means: Does any of the factors depend on the value?
+     */
+    virtual bool dependsOnValue(int factor=-1) const = 0;
+
+    /** \brief Whether the density depends on the 'derivative' parameter
+     *
+     * If TargetSpace is a ProductManifold, then this method returns the information
+     * for one factor space only.
+     *
+     * \param factor The factor space that is being asked about
+     *   The default value -1 means: Does any of the factors depend on the derivative?
+     */
+    virtual bool dependsOnDerivative(int factor=-1) const = 0;
   };
 
 }  // namespace Dune::GFE

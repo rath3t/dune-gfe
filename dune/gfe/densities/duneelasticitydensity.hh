@@ -56,6 +56,18 @@ namespace Dune::GFE
       return (*elasticityDensity_)(x, factorDerivative);
     }
 
+    /** \brief The density depends on the value */
+    virtual bool dependsOnValue([[maybe_unused]] int factor=-1) const override
+    {
+      return false;
+    }
+
+    /** \brief The density does not depend on the derivative */
+    virtual bool dependsOnDerivative([[maybe_unused]] int factor=-1) const override
+    {
+      return factor==-1 || factor==index;
+    }
+
   private:
     const std::shared_ptr<Elasticity::LocalDensity<dim,field_type,ctype> > elasticityDensity_;
   };

@@ -30,6 +30,19 @@ namespace Dune::GFE
     {
       return 0.5 * derivative.frobenius_norm2();
     }
+
+    /** \brief The density does not depend on the value */
+    virtual bool dependsOnValue([[maybe_unused]] int factor=-1) const override
+    {
+      return false;
+    }
+
+    /** \brief The density depends on the derivative */
+    virtual bool dependsOnDerivative([[maybe_unused]] int factor=-1) const override
+    {
+      return true;
+    }
+
   };
 
 }  // namespace Dune:GFE

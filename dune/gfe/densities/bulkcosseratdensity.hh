@@ -161,6 +161,20 @@ namespace Dune::GFE {
       return strainEnergyDensity;
     }
 
+    /** \brief The density depends on the microrotation value, but not on the deformation
+     */
+    virtual bool dependsOnValue(int factor=-1) const override
+    {
+      return factor==-1 || factor==1;
+    }
+
+    /** \brief The density depends on the deformation gradient and on the microrotation gradient
+     */
+    virtual bool dependsOnDerivative([[maybe_unused]] int factor=-1) const override
+    {
+      return true;
+    }
+
     /** \brief Lame constants */
     double mu_, lambda_;
 
