@@ -157,6 +157,9 @@ protected:
   /** \brief Norm type used for stopping criterion (default is infinity norm) */
   enum class ErrorNormType {infinity, H1semi} normType_ = ErrorNormType::infinity;
 
+  /** \brief Norm type used for regularization term (default is Euclidean) */
+  enum class RegularizationNormType {Euclidean, H1semi, H1, L2} regNormType_ = RegularizationNormType::Euclidean;
+
   /** \brief Store information about solver runs for unit testing */
   Statistics statistics_;
 
