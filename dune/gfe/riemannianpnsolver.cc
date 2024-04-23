@@ -109,14 +109,12 @@ setup(const GridType& grid,
       ScalarMatrixType,
       LocalMapper,
       LocalMapper> matrixComm(*globalMapper_, grid_->leafGridView(), localMapper, localMapper, 0);
-  if (instrumented_) {
-    auto A = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localA));
+
+  auto A = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localA));
 #else
-  if (instrumented_) {
-    auto A = std::make_shared<ScalarMatrixType>(localA);
+  auto A = std::make_shared<ScalarMatrixType>(localA);
 #endif
-    h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
-  }
+  h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
   //////////////////////////////////////////////////////////////////
   //   Create the inner solver using a cholmod solver
   //////////////////////////////////////////////////////////////////
