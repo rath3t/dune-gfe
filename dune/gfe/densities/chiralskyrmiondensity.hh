@@ -69,6 +69,18 @@ namespace Dune::GFE
       return density;
     }
 
+    /** \brief The density depends on the value */
+    virtual bool dependsOnValue([[maybe_unused]] int factor=-1) const override
+    {
+      return true;
+    }
+
+    /** \brief The density depends on the derivative */
+    virtual bool dependsOnDerivative([[maybe_unused]] int factor=-1) const override
+    {
+      return true;
+    }
+
   private:
     field_type h_;
     field_type kappa_;

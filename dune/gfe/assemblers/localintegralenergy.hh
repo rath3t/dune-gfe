@@ -2,17 +2,12 @@
 #define DUNE_GFE_ASSEMBLERS_LOCALINTEGRALENERGY_HH
 
 #include <dune/common/fmatrix.hh>
-#include <dune/common/fmatrixev.hh>
 
 #include <dune/geometry/quadraturerules.hh>
 
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/cosseratstrain.hh>
 #include <dune/gfe/densities/localdensity.hh>
-#include <dune/gfe/spaces/realtuple.hh>
-#include <dune/gfe/spaces/rotation.hh>
 
-#include <dune/elasticity/materials/localdensity.hh>
 
 namespace Dune::GFE {
 
@@ -35,16 +30,10 @@ namespace Dune::GFE {
 
   public:
 
-    /** \brief Constructor with a Dune::Elasticity::LocalDensity
-     */
-    LocalIntegralEnergy(const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT> >& ld)
-      : localDensityElasticity_(ld)
-    {}
-
     /** \brief Constructor with a Dune::GFE::LocalDensity
      */
     LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> >& ld)
-      : localDensityGFE_(ld)
+      : localDensity_(ld)
     {}
 
   private:
@@ -75,16 +64,18 @@ namespace Dune::GFE {
 
           const auto integrationElement = element.geometry().integrationElement(quadPos);
 
-          const auto jacobianInverse = element.geometry().jacobianInverse(quadPos);
+          const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
 
           // Function value at the quadrature point
+          // This is always needed: Either directly, or to compute the derivative below
           TargetSpace q = localInterpolationRule.evaluate(quadPos);
 
           // The derivative of the finite element function at the quadrature point
-          auto referenceDerivative = localInterpolationRule.evaluateDerivative(quadPos, q);
-          auto derivative = referenceDerivative * jacobianInverse;
+          typename LocalInterpolationRule::DerivativeType derivative;
+          if (localDensity_->dependsOnDerivative())
+            derivative = localInterpolationRule.evaluateDerivative(quadPos, q) * geometryJacobianInverse;
 
-          energy += qp.weight() * integrationElement * (*localDensityGFE_)(quadPos,q,derivative);
+          energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,q,derivative);
         }
       }
 
@@ -98,78 +89,73 @@ namespace Dune::GFE {
 
       if constexpr (Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
       {
-        // TODO: Cosserat materials are hard-wired here for historical reasons.
-        static_assert(TargetSpace::size() == 2, "LocalGeodesicIntegralEnergy needs two TargetSpaces!");
-        using TargetSpaceDeformation = typename std::tuple_element<0, TargetSpace>::type;
-        using TargetSpaceRotation = typename std::tuple_element<1, TargetSpace>::type;
+        static_assert(TargetSpace::size() == 2,
+                      "LocalIntegralEnergy only implemented for product spaces with two factors!");
 
         const auto& element = localView.element();
 
         using namespace Indices;
-        const std::vector<TargetSpaceDeformation>& localDeformationConfiguration = coefficients[_0];
-        const std::vector<TargetSpaceRotation>& localOrientationConfiguration = coefficients[_1];
 
         // composite Basis: grab the finite element of the first child
-        const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
-        const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
+        const auto& localFiniteElement0 = localView.tree().child(_0,0).finiteElement();
+        const auto& localFiniteElement1 = localView.tree().child(_1,0).finiteElement();
 
-        using LocalDeformationGFEFunctionType = typename std::tuple_element<0, LocalInterpolationRule>::type;
-        using LocalOrientationGFEFunctionType = typename std::tuple_element<1, LocalInterpolationRule>::type;
+        using LocalGFEFunctionType0 = typename std::tuple_element<0, LocalInterpolationRule>::type;
+        using LocalGFEFunctionType1 = typename std::tuple_element<1, LocalInterpolationRule>::type;
 
-        LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localDeformationConfiguration);
-        LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localOrientationConfiguration);
+        LocalGFEFunctionType0 localGFEFunction0(localFiniteElement0, coefficients[_0]);
+        LocalGFEFunctionType1 localGFEFunction1(localFiniteElement1, coefficients[_1]);
 
-
-        int quadOrder = (element.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
-                                                 : deformationLocalFiniteElement.localBasis().order() * gridDim;
+        int quadOrder = (element.type().isSimplex()) ? localFiniteElement0.localBasis().order()
+                                                 : localFiniteElement0.localBasis().order() * gridDim;
 
         const auto& quad = QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
         for (size_t pt=0; pt<quad.size(); pt++)
         {
           // Local position of the quadrature point
-          const FieldVector<DT,gridDim>& quadPos = quad[pt].position();
+          const auto& quadPos = quad[pt].position();
 
           auto x = element.geometry().global(quadPos);
 
           const DT integrationElement = element.geometry().integrationElement(quadPos);
 
-          const auto jacobianInverseTransposed = element.geometry().jacobianInverseTransposed(quadPos);
+          const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
 
           DT weightWithintegrationElement = quad[pt].weight() * integrationElement;
 
-          // The value of the local deformation
-          RealTuple<RT,gridDim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
+          // Compute the required values of the interpolation function
+          // A value is needed either directly, or for computing the derivative.
+          TargetSpace value;
+          if (localDensity_->dependsOnValue(0) || localDensity_->dependsOnDerivative(0))
+            value[_0] = localGFEFunction0.evaluate(quadPos);
+          if (localDensity_->dependsOnValue(1) || localDensity_->dependsOnDerivative(1))
+            value[_1] = localGFEFunction1.evaluate(quadPos);
 
-          // The derivative of the deformation defined on the reference element
-          typename LocalDeformationGFEFunctionType::DerivativeType deformationReferenceDerivative = localDeformationGFEFunction.evaluateDerivative(quadPos,deformationValue);
+          // Compute the derivatives of the interpolation function factors
+          typename LocalGFEFunctionType0::DerivativeType derivative0;
+          typename LocalGFEFunctionType1::DerivativeType derivative1;
 
-          // The derivative of the deformation defined on the actual element
-          typename LocalDeformationGFEFunctionType::DerivativeType deformationDerivative;
-          for (size_t comp=0; comp<deformationReferenceDerivative.N(); comp++)
-            jacobianInverseTransposed.mv(deformationReferenceDerivative[comp], deformationDerivative[comp]);
+          if (localDensity_->dependsOnDerivative(0))
+            derivative0 = localGFEFunction0.evaluateDerivative(quadPos,value[_0]) * geometryJacobianInverse;
 
-          // Integrate the energy density
-          if (localDensityElasticity_)
-            energy += weightWithintegrationElement * (*localDensityElasticity_)(x, deformationDerivative);
-          else if (localDensityGFE_) {
-            // The value of the local rotation
-            Rotation<RT,gridDim>  orientationValue = localOrientationGFEFunction.evaluate(quadPos);
+          if (localDensity_->dependsOnDerivative(1))
+            derivative1 = localGFEFunction1.evaluateDerivative(quadPos,value[_1]) * geometryJacobianInverse;
 
-            // The derivative of the rotation defined on the reference element
-            typename LocalOrientationGFEFunctionType::DerivativeType orientationReferenceDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,orientationValue);
+          // Copy the two derivatives into a joint matrix object
+          // TODO: I am not sure about this.  May the densities should get the
+          // separate derivatives.
+          FieldMatrix<RT,derivative0.rows+derivative1.rows, derivative0.cols> derivative;
 
-            // The derivative of the rotation defined on the actual element
-            typename LocalOrientationGFEFunctionType::DerivativeType orientationDerivative;
-            for (size_t comp=0; comp<orientationReferenceDerivative.N(); comp++)
-              jacobianInverseTransposed.mv(orientationReferenceDerivative[comp], orientationDerivative[comp]);
+          for (int i=0; i<derivative0.rows; i++)
+            derivative[i] = derivative0[i];
 
-            energy += weightWithintegrationElement * (*localDensityGFE_)(x,
-                                                                         deformationValue,
-                                                                         deformationDerivative,
-                                                                         orientationValue,
-                                                                         orientationDerivative);
-          }
+          for (int i=0; i<derivative1.rows; i++)
+            derivative[i+derivative0.rows] = derivative1[i];
+
+          energy += weightWithintegrationElement * (*localDensity_)(x,
+                                                                    value,
+                                                                    derivative);
         }
       }
 
@@ -177,8 +163,7 @@ namespace Dune::GFE {
     }
 
   protected:
-    const std::shared_ptr<Elasticity::LocalDensity<gridDim,RT,DT> > localDensityElasticity_ = nullptr;
-    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> > localDensityGFE_ = nullptr;
+    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> > localDensity_;
   };
 
 }  // namespace Dune::GFE

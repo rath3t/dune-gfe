@@ -30,26 +30,25 @@ namespace Dune::GFE {
                                    const TargetSpace& value,
                                    const DerivativeType& derivative) const = 0;
 
-    /** \brief Evaluation with the current position, the deformation function, the deformation gradient, the rotation and the rotation gradient
+    /** \brief Whether the density depends on the 'value' parameter
      *
-     * \param x The current position
-     * \param deformationValue The deformation at the current position
-     * \param deformationDerivative The derivative of the deformation at the current position
-     * \param orientationValue The orientation at the current position
-     * \param orientationDerivative The derivative of the orientation at the current position
+     * If TargetSpace is a ProductManifold, then this method returns the information
+     * for one factor space only.
      *
-     * \deprecated This is still used by Cosserat models, but shell be removed
-     * of the method above eventually.
+     * \param factor The factor space that is being asked about.
+     *   The default value -1 means: Does any of the factors depend on the value?
      */
-    virtual field_type operator() (const Position& x,
-                                   const RealTuple<field_type,3>& deformation,
-                                   const FieldMatrix<field_type,3,3>& gradient,
-                                   const Rotation<field_type,3>& rotation,
-                                   const FieldMatrix<field_type, 4, 3>& rotationGradient) const
-    {
-      std::terminate();
-    }
+    virtual bool dependsOnValue(int factor=-1) const = 0;
 
+    /** \brief Whether the density depends on the 'derivative' parameter
+     *
+     * If TargetSpace is a ProductManifold, then this method returns the information
+     * for one factor space only.
+     *
+     * \param factor The factor space that is being asked about
+     *   The default value -1 means: Does any of the factors depend on the derivative?
+     */
+    virtual bool dependsOnDerivative(int factor=-1) const = 0;
   };
 
 }  // namespace Dune::GFE
