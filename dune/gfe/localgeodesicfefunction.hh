@@ -567,7 +567,7 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
 }
 
 
-/** \brief A function defined by simplicial geodesic interpolation
+/** \brief A function defined by geodesic interpolation
            from the reference element to a ProductManifold<RealTuple,Rotation>.
 
    This is a specialization for speeding up the code.
