@@ -4,6 +4,7 @@ set(TESTS
   cosseratrodenergytest
   cosseratrodtest
   embeddedglobalgfefunctiontest
+  interpolationderivativestest
   localadolcstiffnesstest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
