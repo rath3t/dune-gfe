@@ -28,16 +28,16 @@ namespace Dune::GFE {
 
     //!
     typedef Dune::FieldMatrix<double, blocksize, blocksize> MatrixBlock;
-    typedef typename MixedGFEAssembler<Basis, MixedSpace0, MixedSpace1>::MatrixType MatrixType;
+    typedef typename MixedGFEAssembler<Basis, TargetSpace>::MatrixType MatrixType;
 
   protected:
-    MixedGFEAssembler<Basis, MixedSpace0, MixedSpace1>* mixedAssembler_;
+    MixedGFEAssembler<Basis, TargetSpace>* mixedAssembler_;
 
   public:
     const ScalarBasis& basis_;
 
     /** \brief Constructor for a given grid */
-    GeodesicFEAssemblerWrapper(MixedGFEAssembler<Basis, MixedSpace0, MixedSpace1>* mixedAssembler, ScalarBasis& basis)
+    GeodesicFEAssemblerWrapper(MixedGFEAssembler<Basis, TargetSpace>* mixedAssembler, ScalarBasis& basis)
       : mixedAssembler_(mixedAssembler),
       basis_(basis)
     {

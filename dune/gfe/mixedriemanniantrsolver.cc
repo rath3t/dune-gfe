@@ -27,7 +27,7 @@ template <class GridType,
     class Basis1, class TargetSpace1>
 void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,TargetSpace1>::
 setup(const GridType& grid,
-      const MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>* assembler,
+      const MixedGFEAssembler<Basis, TargetSpace>* assembler,
       const Basis0& tmpBasis0,
       const Basis1& tmpBasis1,
       const SolutionType& x,

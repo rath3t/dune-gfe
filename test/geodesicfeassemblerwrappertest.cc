@@ -141,9 +141,7 @@ int main (int argc, char *argv[])
                                                                                      nullptr);
   LocalGeodesicFEADOLCStiffness<CompositeBasis,
       GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > mixedLocalGFEADOLCStiffness(&cosseratEnergy);
-  MixedGFEAssembler<CompositeBasis,
-      RealTuple<double,dim>,
-      Rotation<double,dim> > mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
+  MixedGFEAssembler<CompositeBasis,RBM> mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
 
   using DeformationFEBasis = Functions::LagrangeBasis<GridView,displacementOrder>;
   DeformationFEBasis deformationFEBasis(gridView);

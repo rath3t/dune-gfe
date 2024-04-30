@@ -31,6 +31,8 @@ namespace Dune::GFE
   {
     using GridType = typename MixedBasis::GridView::Grid;
 
+    using TargetSpace = ProductManifold<TargetSpace0,TargetSpace1>;
+
     const static int blocksize0 = TargetSpace0::TangentVector::dimension;
     const static int blocksize1 = TargetSpace1::TangentVector::dimension;
 
@@ -64,7 +66,7 @@ namespace Dune::GFE
     {}
 
     void setup(const GridType& grid,
-               const MixedGFEAssembler<MixedBasis, TargetSpace0, TargetSpace1>* assembler,
+               const MixedGFEAssembler<MixedBasis, TargetSpace>* assembler,
                const SolutionType& x,
                const BitVector& dirichletNodes,
                double tolerance,
@@ -105,7 +107,7 @@ namespace Dune::GFE
     std::unique_ptr<MatrixType> hessianMatrix_;
 
     /** \brief The assembler for the material law */
-    const MixedGFEAssembler<MixedBasis, TargetSpace0, TargetSpace1>* assembler_;
+    const MixedGFEAssembler<MixedBasis, TargetSpace>* assembler_;
 
     /** \brief The solver for the quadratic inner problems */
     std::shared_ptr<Solvers::CholmodSolver<MatrixType, CorrectionType, BitVector> > innerSolver_;

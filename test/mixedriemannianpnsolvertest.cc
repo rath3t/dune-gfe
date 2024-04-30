@@ -172,9 +172,7 @@ int main (int argc, char *argv[])
 
   LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> mixedLocalGFEADOLCStiffness(&cosseratEnergy);
 
-  MixedGFEAssembler<CompositeBasis,
-      RealTuple<double,dim>,
-      Rotation<double,dim> > mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
+  MixedGFEAssembler<CompositeBasis, RBM> mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
 
   using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim> >;
   GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);

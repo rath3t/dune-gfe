@@ -12,7 +12,7 @@ template <class MixedBasis,
     class BitVector>
 void Dune::GFE::MixedRiemannianProximalNewtonSolver<MixedBasis,Basis0,TargetSpace0,Basis1,TargetSpace1,BitVector>::
 setup(const GridType& grid,
-      const MixedGFEAssembler<MixedBasis, TargetSpace0, TargetSpace1>* assembler,
+      const MixedGFEAssembler<MixedBasis, TargetSpace>* assembler,
       const SolutionType& x,
       const BitVector& dirichletNodes,
       double tolerance,

@@ -537,9 +537,7 @@ int main (int argc, char *argv[]) try
     sumEnergy.addLocalEnergy(surfaceCosseratEnergy);
 
     LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
-    MixedGFEAssembler<CompositeBasis,
-        RealTuple<double,dim>,
-        Rotation<double,dim> > mixedAssembler(compositeBasis, localGFEADOLCStiffness);
+    MixedGFEAssembler<CompositeBasis,RBM> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
     ////////////////////////////////////////////////////////
     //   Set Dirichlet values
