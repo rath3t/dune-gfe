@@ -505,7 +505,7 @@ int main (int argc, char *argv[]) try
                                                                                        adolcScalarMode);
       MixedGFEAssembler<CompositeBasis,
           RealTuple<double,3>,
-          Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+          Rotation<double,3> > mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 #if MIXED_SPACE
       if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
       {
@@ -639,7 +639,7 @@ int main (int argc, char *argv[]) try
 #endif
       MixedGFEAssembler<CompositeBasis,
           RealTuple<double,3>,
-          Rotation<double,3> > mixedAssembler(compositeBasis, localGFEStiffness.get());
+          Rotation<double,3> > mixedAssembler(compositeBasis, localGFEStiffness);
 #if MIXED_SPACE
       MixedRiemannianTrustRegionSolver<GridType,
           CompositeBasis,

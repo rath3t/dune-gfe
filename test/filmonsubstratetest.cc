@@ -366,7 +366,7 @@ int main (int argc, char *argv[])
   LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
-      Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+      Rotation<double,dim> > mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
   ////////////////////////////////////////////////////////
   //   Set Dirichlet values

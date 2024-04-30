@@ -326,7 +326,7 @@ int main(int argc, char *argv[]) try
         TargetSpace> localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
 
     MixedGFEAssembler<decltype(compositeBasis),
-        RealTuple<double,3>, UnitVector<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
+        RealTuple<double,3>, UnitVector<double,3> > assembler(compositeBasis, localGFEADOLCStiffness);
     ////////////////////////////////////////////////////////
     //   Set Dirichlet values
     ////////////////////////////////////////////////////////

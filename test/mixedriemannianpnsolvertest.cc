@@ -174,7 +174,7 @@ int main (int argc, char *argv[])
 
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
-      Rotation<double,dim> > mixedAssembler(compositeBasis, &mixedLocalGFEADOLCStiffness);
+      Rotation<double,dim> > mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
 
   using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim> >;
   GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);

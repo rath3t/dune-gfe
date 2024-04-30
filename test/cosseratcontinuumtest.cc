@@ -219,7 +219,7 @@ int main (int argc, char *argv[])
   LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> localGFEADOLCStiffness(&sumEnergy);
   MixedGFEAssembler<CompositeBasis,
       RealTuple<double,dim>,
-      Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+      Rotation<double,dim> > mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
   MixedRiemannianTrustRegionSolver<GridType,
       CompositeBasis,

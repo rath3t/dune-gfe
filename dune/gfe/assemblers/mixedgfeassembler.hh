@@ -7,6 +7,8 @@
 #include <dune/istl/matrix.hh>
 #include <dune/istl/multitypeblockmatrix.hh>
 
+#include <dune/solvers/common/wrapownshare.hh>
+
 #include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 
 
@@ -17,6 +19,9 @@ class MixedGFEAssembler {
 
   typedef typename Basis::GridView GridView;
   typedef typename GridView::template Codim<0>::template Partition<Dune::Interior_Partition>::Iterator ElementIterator;
+  using TargetSpace = Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1>;
+  using LocalStiffness = LocalGeodesicFEStiffness<Basis, TargetSpace>;
+
 
   //! Dimension of the grid.
   constexpr static int gridDim = GridView::dimension;
@@ -36,9 +41,17 @@ public:
       Dune::MultiTypeBlockVector<MatrixBlock10,MatrixBlock11> > MatrixType;
   const Basis basis_;
 
-  LocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >* localStiffness_;
+  std::shared_ptr<LocalStiffness> localStiffness_;
 
 public:
+
+  /** \brief Constructor for a given basis */
+  template <class LocalStiffnessT>
+  MixedGFEAssembler(const Basis& basis,
+                    LocalStiffnessT&& localStiffness)
+    : basis_(basis),
+    localStiffness_(Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness)))
+  {}
 
   /** \brief Constructor for a given grid */
   MixedGFEAssembler(const Basis& basis,
