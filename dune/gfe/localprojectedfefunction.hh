@@ -333,6 +333,13 @@ namespace Dune {
         assert(localFiniteElement_.localBasis().size() == coefficients_.size());
       }
 
+      /** \brief Rebind the FEFunction to another TargetSpace */
+      template<class U>
+      struct rebind
+      {
+        using other = LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,U>;
+      };
+
       /** \brief The number of Lagrange points */
       unsigned int size() const
       {
