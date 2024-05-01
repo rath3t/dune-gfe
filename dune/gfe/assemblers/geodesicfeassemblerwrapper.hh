@@ -12,9 +12,12 @@ namespace Dune::GFE {
       It reimplements the same methods as these two and transfers the structure of the gradient and the Hessian
    */
 
-  template <class Basis, class ScalarBasis, class TargetSpace, class MixedSpace0, class MixedSpace1>
+  template <class Basis, class ScalarBasis, class TargetSpace>
   class
     GeodesicFEAssemblerWrapper {
+
+    using MixedSpace0 = std::tuple_element_t<0,TargetSpace>;
+    using MixedSpace1 = std::tuple_element_t<1,TargetSpace>;
 
     typedef typename Basis::GridView GridView;
 
@@ -42,9 +45,6 @@ namespace Dune::GFE {
       basis_(basis)
     {
       hessianMixed_ = std::make_unique<MatrixType>();
-      // The two spaces from the mixed version need to have the same embeddedDim as the Target Space
-      assert(MixedSpace0::embeddedDim + MixedSpace1::embeddedDim == TargetSpace::embeddedDim);
-      assert(blocksize0 + blocksize1 == blocksize);
     }
 
     /** \brief Assemble the tangent stiffness matrix and the functional gradient together
@@ -69,14 +69,14 @@ namespace Dune::GFE {
     }
 
   private:
-    Dune::TupleVector<std::vector<MixedSpace0>,std::vector<MixedSpace1> > splitVector(const std::vector<TargetSpace>& sol) const;
+    auto splitVector(const std::vector<TargetSpace>& sol) const;
     std::unique_ptr<MatrixType> hessianMixed_;
   }; // end class
 } //end namespace
 
 
-template <class Basis, class ScalarBasis, class TargetSpace, class MixedSpace0, class MixedSpace1>
-Dune::TupleVector<std::vector<MixedSpace0>,std::vector<MixedSpace1> > Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace,MixedSpace0,MixedSpace1>::
+template <class Basis, class ScalarBasis, class TargetSpace>
+auto Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace>::
 splitVector(const std::vector<TargetSpace>& sol) const {
   using namespace Indices;
   // Split the solution into the Deformation and the Rotational part
@@ -92,8 +92,8 @@ splitVector(const std::vector<TargetSpace>& sol) const {
   return solutionSplit;
 }
 
-template <class Basis, class ScalarBasis, class TargetSpace, class MixedSpace0, class MixedSpace1>
-void Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace,MixedSpace0,MixedSpace1>::
+template <class Basis, class ScalarBasis, class TargetSpace>
+void Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace>::
 getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
 {
   auto n = basis_.size();
@@ -112,8 +112,8 @@ getNeighborsPerVertex(Dune::MatrixIndexSet& nb) const
   nb = nb00;
 }
 
-template <class Basis, class ScalarBasis, class TargetSpace, class MixedSpace0, class MixedSpace1>
-void Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace,MixedSpace0,MixedSpace1>::
+template <class Basis, class ScalarBasis, class TargetSpace>
+void Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace>::
 assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
                            Dune::BlockVector<Dune::FieldVector<double, blocksize> >& gradient,
                            Dune::BCRSMatrix<MatrixBlock>& hessian,
@@ -184,8 +184,8 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
   }
 }
 
-template <class Basis, class ScalarBasis, class TargetSpace, class MixedSpace0, class MixedSpace1>
-double Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace,MixedSpace0,MixedSpace1>::
+template <class Basis, class ScalarBasis, class TargetSpace>
+double Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace>::
 computeEnergy(const std::vector<TargetSpace>& sol) const
 {
   using namespace Dune::TypeTree::Indices;
