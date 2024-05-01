@@ -496,12 +496,12 @@ int main (int argc, char *argv[]) try
         x[_1][i].set(dOV[i]);
 
     if (dim==dimworld) {
-      CosseratEnergyLocalStiffness<CompositeBasis, 3,adouble> localCosseratEnergy(materialParameters,
-                                                                                  &neumannBoundary,
-                                                                                  neumannFunction,
-                                                                                  volumeLoad);
+      auto localCosseratEnergy = std::make_shared<CosseratEnergyLocalStiffness<CompositeBasis, 3,adouble> > (materialParameters,
+                                                                                                             &neumannBoundary,
+                                                                                                             neumannFunction,
+                                                                                                             volumeLoad);
 
-      LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(&localCosseratEnergy,
+      LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(localCosseratEnergy,
                                                                                        adolcScalarMode);
       MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 #if MIXED_SPACE
@@ -627,13 +627,13 @@ int main (int argc, char *argv[]) try
       std::shared_ptr<StiffnessType> localGFEStiffness;
 
 #if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2
-      NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> localCosseratEnergy(materialParameters,
-                                                                                                      &creator,
-                                                                                                      &neumannBoundary,
-                                                                                                      neumannFunction,
-                                                                                                      volumeLoad);
+      auto localCosseratEnergy = std::make_shared<NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> >(materialParameters,
+                                                                                                                                &creator,
+                                                                                                                                &neumannBoundary,
+                                                                                                                                neumannFunction,
+                                                                                                                                volumeLoad);
 
-      localGFEStiffness = std::make_shared<StiffnessType>(&localCosseratEnergy, adolcScalarMode);
+      localGFEStiffness = std::make_shared<StiffnessType>(localCosseratEnergy, adolcScalarMode);
 #endif
       MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEStiffness);
 #if MIXED_SPACE

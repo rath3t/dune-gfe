@@ -135,12 +135,12 @@ int main (int argc, char *argv[])
                            return values_;
                          };
 
-  CosseratEnergyLocalStiffness<decltype(compositeBasis), dim,adouble> cosseratEnergy(parameters,
-                                                                                     &neumannBoundary,
-                                                                                     neumannFunction,
-                                                                                     nullptr);
+  auto cosseratEnergy = std::make_shared<CosseratEnergyLocalStiffness<decltype(compositeBasis), dim,adouble> >(parameters,
+                                                                                                               &neumannBoundary,
+                                                                                                               neumannFunction,
+                                                                                                               nullptr);
   LocalGeodesicFEADOLCStiffness<CompositeBasis,
-      GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > mixedLocalGFEADOLCStiffness(&cosseratEnergy);
+      GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > > mixedLocalGFEADOLCStiffness(cosseratEnergy);
   MixedGFEAssembler<CompositeBasis,RBM> mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
 
   using DeformationFEBasis = Functions::LagrangeBasis<GridView,displacementOrder>;

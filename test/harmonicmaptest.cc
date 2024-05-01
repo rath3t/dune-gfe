@@ -164,7 +164,7 @@ int main (int argc, char *argv[])
 
   std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, InterpolationRule, ATargetSpace> >(harmonicDensity);
 
-  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy.get());
+  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy);
 
   GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 
