@@ -352,6 +352,21 @@ namespace Dune {
         return localFiniteElement_.type();
       }
 
+      /** \brief The scalar finite element used as the interpolation weights
+       *
+       * \note This method was added for InterpolationDerivatives, which needs it
+       * to construct a copy of a LocalGeodesicFEFunction with ADOL-C's adouble
+       * number type.  This is not optimal, because the localFiniteElement
+       * really is an implementation detail of LocalGeodesicFEFunction and
+       * should not be needed just to copy an entire object.  Other non-Euclidean
+       * interpolation rules may not have such a finite element at all.
+       * Therefore, this method may disappear again eventually.
+       */
+      const LocalFiniteElement& localFiniteElement() const
+      {
+        return localFiniteElement_;
+      }
+
       /** \brief Evaluate the function */
       TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
       {
