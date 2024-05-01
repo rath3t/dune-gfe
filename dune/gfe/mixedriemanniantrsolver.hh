@@ -20,6 +20,7 @@
 #include <dune/solvers/iterationsteps/mmgstep.hh>
 
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType,
@@ -33,6 +34,8 @@ class MixedRiemannianTrustRegionSolver
   const static int blocksize1 = TargetSpace1::TangentVector::dimension;
 
   const static int gridDim = GridType::dimension;
+
+  using TargetSpace = Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1>;
 
   // Centralize the field type here
   typedef double field_type;
@@ -73,7 +76,7 @@ public:
 
   /** \brief Set up the solver using a monotone multigrid method as the inner solver */
   void setup(const GridType& grid,
-             const MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>* assembler,
+             const MixedGFEAssembler<Basis, TargetSpace>* assembler,
              const Basis0& basis0,
              const Basis1& basis1,
              const SolutionType& x,
@@ -152,7 +155,7 @@ protected:
   std::unique_ptr<MatrixType> hessianMatrix_;
 
   /** \brief The assembler for the material law */
-  const MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>* assembler_;
+  const MixedGFEAssembler<Basis, TargetSpace>* assembler_;
 
   /** \brief TEMPORARY: The two separate matrices */
   std::unique_ptr<Basis0> basis0_;

@@ -503,9 +503,7 @@ int main (int argc, char *argv[]) try
 
       LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(&localCosseratEnergy,
                                                                                        adolcScalarMode);
-      MixedGFEAssembler<CompositeBasis,
-          RealTuple<double,3>,
-          Rotation<double,3> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+      MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 #if MIXED_SPACE
       if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
       {
@@ -582,7 +580,7 @@ int main (int argc, char *argv[]) try
           dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
       }
 
-      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace, RealTuple<double, 3>, Rotation<double,3> >;
+      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace>;
       GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
       if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
         RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
@@ -637,9 +635,7 @@ int main (int argc, char *argv[]) try
 
       localGFEStiffness = std::make_shared<StiffnessType>(&localCosseratEnergy, adolcScalarMode);
 #endif
-      MixedGFEAssembler<CompositeBasis,
-          RealTuple<double,3>,
-          Rotation<double,3> > mixedAssembler(compositeBasis, localGFEStiffness.get());
+      MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEStiffness);
 #if MIXED_SPACE
       MixedRiemannianTrustRegionSolver<GridType,
           CompositeBasis,
@@ -682,7 +678,7 @@ int main (int argc, char *argv[]) try
           dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
       }
 
-      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace, RealTuple<double, 3>, Rotation<double,3> >;
+      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace>;
       GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
       if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
         RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;

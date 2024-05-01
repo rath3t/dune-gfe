@@ -325,8 +325,7 @@ int main(int argc, char *argv[]) try
     LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
         TargetSpace> localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
 
-    MixedGFEAssembler<decltype(compositeBasis),
-        RealTuple<double,3>, UnitVector<double,3> > assembler(compositeBasis, &localGFEADOLCStiffness);
+    MixedGFEAssembler<decltype(compositeBasis),TargetSpace> assembler(compositeBasis, localGFEADOLCStiffness);
     ////////////////////////////////////////////////////////
     //   Set Dirichlet values
     ////////////////////////////////////////////////////////
@@ -399,7 +398,7 @@ int main(int argc, char *argv[]) try
         for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
           dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
       }
-      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<decltype(compositeBasis), MidsurfaceFEBasis, TargetSpace, RealTuple<double, 3>, UnitVector<double,3> >;
+      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<decltype(compositeBasis), MidsurfaceFEBasis, TargetSpace>;
       GFEAssemblerWrapper assemblerNotMixed(&assembler, midsurfaceFEBasis);
       RiemannianProximalNewtonSolver<MidsurfaceFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
       solver.setup(*grid,

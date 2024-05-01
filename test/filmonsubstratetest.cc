@@ -364,9 +364,7 @@ int main (int argc, char *argv[])
   sumEnergy.addLocalEnergy(surfaceCosseratEnergy);
 
   LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
-  MixedGFEAssembler<CompositeBasis,
-      RealTuple<double,dim>,
-      Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+  MixedGFEAssembler<CompositeBasis,RBM> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
   ////////////////////////////////////////////////////////
   //   Set Dirichlet values
@@ -394,7 +392,7 @@ int main (int argc, char *argv[])
     for (int j = dim; j < RBM::TangentVector::dimension; j ++)
       dirichletDofsRBM[i][j] = dirichletDofs[_1][i][j-dim];
   }
-  typedef GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM, RealTuple<double, dim>, Rotation<double,dim> > GFEAssemblerWrapper;
+  typedef GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM> GFEAssemblerWrapper;
   GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
 #endif
 

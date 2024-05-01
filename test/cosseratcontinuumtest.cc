@@ -217,9 +217,7 @@ int main (int argc, char *argv[])
   sumEnergy.addLocalEnergy(neumannEnergy);
 
   LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> localGFEADOLCStiffness(&sumEnergy);
-  MixedGFEAssembler<CompositeBasis,
-      RealTuple<double,dim>,
-      Rotation<double,dim> > mixedAssembler(compositeBasis, &localGFEADOLCStiffness);
+  MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
   MixedRiemannianTrustRegionSolver<GridType,
       CompositeBasis,

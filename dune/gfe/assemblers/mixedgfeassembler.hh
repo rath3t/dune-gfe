@@ -7,16 +7,23 @@
 #include <dune/istl/matrix.hh>
 #include <dune/istl/multitypeblockmatrix.hh>
 
+#include <dune/solvers/common/wrapownshare.hh>
+
 #include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 
 
 /** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces
  */
-template <class Basis, class TargetSpace0, class TargetSpace1>
+template <class Basis, class TargetSpace>
 class MixedGFEAssembler {
 
   typedef typename Basis::GridView GridView;
   typedef typename GridView::template Codim<0>::template Partition<Dune::Interior_Partition>::Iterator ElementIterator;
+
+  using TargetSpace0 = std::tuple_element_t<0,TargetSpace>;
+  using TargetSpace1 = std::tuple_element_t<1,TargetSpace>;
+  using LocalStiffness = LocalGeodesicFEStiffness<Basis, TargetSpace>;
+
 
   //! Dimension of the grid.
   constexpr static int gridDim = GridView::dimension;
@@ -36,9 +43,17 @@ public:
       Dune::MultiTypeBlockVector<MatrixBlock10,MatrixBlock11> > MatrixType;
   const Basis basis_;
 
-  LocalGeodesicFEStiffness<Basis, Dune::GFE::ProductManifold<TargetSpace0,TargetSpace1> >* localStiffness_;
+  std::shared_ptr<LocalStiffness> localStiffness_;
 
 public:
+
+  /** \brief Constructor for a given basis */
+  template <class LocalStiffnessT>
+  MixedGFEAssembler(const Basis& basis,
+                    LocalStiffnessT&& localStiffness)
+    : basis_(basis),
+    localStiffness_(Dune::Solvers::wrap_own_share<LocalStiffness>(std::forward<LocalStiffnessT>(localStiffness)))
+  {}
 
   /** \brief Constructor for a given grid */
   MixedGFEAssembler(const Basis& basis,
@@ -73,8 +88,8 @@ public:
 
 
 
-template <class Basis, class TargetSpace0, class TargetSpace1>
-void MixedGFEAssembler<Basis,TargetSpace0,TargetSpace1>::
+template <class Basis, class TargetSpace>
+void MixedGFEAssembler<Basis,TargetSpace>::
 getMatrixPattern(Dune::MatrixIndexSet& nb00,
                  Dune::MatrixIndexSet& nb01,
                  Dune::MatrixIndexSet& nb10,
@@ -121,8 +136,8 @@ getMatrixPattern(Dune::MatrixIndexSet& nb00,
 
 }
 
-template <class Basis, class TargetSpace0, class TargetSpace1>
-void MixedGFEAssembler<Basis,TargetSpace0,TargetSpace1>::
+template <class Basis, class TargetSpace>
+void MixedGFEAssembler<Basis,TargetSpace>::
 assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
                            const std::vector<TargetSpace1>& configuration1,
                            Dune::BlockVector<Dune::FieldVector<double, blocksize0> >& gradient0,
@@ -265,8 +280,8 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
   }
 }
 
-template <class Basis, class TargetSpace0, class TargetSpace1>
-double MixedGFEAssembler<Basis, TargetSpace0, TargetSpace1>::
+template <class Basis, class TargetSpace>
+double MixedGFEAssembler<Basis, TargetSpace>::
 computeEnergy(const std::vector<TargetSpace0>& configuration0,
               const std::vector<TargetSpace1>& configuration1) const
 {
