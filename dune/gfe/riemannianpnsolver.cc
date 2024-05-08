@@ -33,6 +33,18 @@ setup(const GridType& grid,
   else
     DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
 
+
+  if(parameterSet.get("regularizationNorm", "Euclidean") == "Euclidean")
+    regNormType_ = RegularizationNormType::Euclidean;
+  else if(parameterSet.get("regularizationNorm", "H1") == "H1")
+    regNormType_ = RegularizationNormType::H1;
+  else if(parameterSet.get("regularizationNorm", "H1Semi") == "H1Semi")
+    regNormType_ = RegularizationNormType::H1Semi;
+  else if(parameterSet.get("regularizationNorm", "L2") == "L2")
+    regNormType_ = RegularizationNormType::L2;
+  else
+    DUNE_THROW(Dune::Exception, "Unknown norm type for regularization!");
+
   instrumentedPath_ = parameterSet.get("instrumentedPath", "/tmp");
 
   // create 'intrumented' folder and 'mgHistory' subfolder if it does not exist.
@@ -109,14 +121,12 @@ setup(const GridType& grid,
       ScalarMatrixType,
       LocalMapper,
       LocalMapper> matrixComm(*globalMapper_, grid_->leafGridView(), localMapper, localMapper, 0);
-  if (instrumented_) {
-    auto A = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localA));
+
+  auto A = std::make_shared<ScalarMatrixType>(matrixComm.reduceAdd(localA));
 #else
-  if (instrumented_) {
-    auto A = std::make_shared<ScalarMatrixType>(localA);
+  auto A = std::make_shared<ScalarMatrixType>(localA);
 #endif
-    h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
-  }
+  h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
   //////////////////////////////////////////////////////////////////
   //   Create the inner solver using a cholmod solver
   //////////////////////////////////////////////////////////////////
@@ -269,10 +279,44 @@ void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
 
     if (rank==0)
     {
-      // Add the regularization - Identity Matrix for now
-      for (std::size_t i=0; i<stiffnessMatrix.N(); i++)
-        for(int j=0; j<blocksize; j++)
-          stiffnessMatrix[i][i][j][j] += regularization/scaling_[j];
+
+      if (regNormType_ == RegularizationNormType::Euclidean)
+      {
+        if (this->verbosity_ == NumProc::FULL && rank==0)
+          std::cout << "use Euclidean Norm regularization" << std::endl;
+        for (std::size_t i=0; i<stiffnessMatrix.N(); i++)
+          for(int j=0; j<blocksize; j++)
+            stiffnessMatrix[i][i][j][j] += regularization/scaling_[j];
+      }
+      else if (regNormType_ == RegularizationNormType::H1semi)
+      {
+        if (this->verbosity_ == NumProc::FULL && rank==0)
+          std::cout << "use H1-Semi Norm regularization" << std::endl;
+        for (std::size_t i=0; i<stiffnessMatrix.N(); i++)
+          for (auto && [v,index] : sparseRange(stiffnessMatrix[i]))
+            for(int j=0; j<blocksize; j++)
+              v[j][j] += (*(h1SemiNorm_->matrix_))[i][index][0][0] * regularization/scaling_[j];
+      }
+      else if (regNormType_ == RegularizationNormType::H1)
+      {
+        if (this->verbosity_ == NumProc::FULL && rank==0)
+          std::cout << "use H1 Norm regularization" << std::endl;
+        for (std::size_t i=0; i<stiffnessMatrix.N(); i++)
+          for (auto && [v,index] : sparseRange(stiffnessMatrix[i]))
+            for(int j=0; j<blocksize; j++)
+              v[j][j] += ((*(h1SemiNorm_->matrix_))[i][index][0][0] + (*(l2Norm_->matrix_))[i][index][0][0]  ) * regularization/scaling_[j];
+      }
+      else if (regNormType_ == RegularizationNormType::L2)
+      {
+        if (this->verbosity_ == NumProc::FULL && rank==0)
+          std::cout << "use L2 Norm regularization" << std::endl;
+        for (std::size_t i=0; i<stiffnessMatrix.N(); i++)
+          for (auto && [v,index] : sparseRange(stiffnessMatrix[i]))
+            for(int j=0; j<blocksize; j++)
+              v[j][j] += (*(l2Norm_->matrix_))[i][index][0][0] * regularization/scaling_[j];
+      }
+      else
+        DUNE_THROW(Dune::Exception, "Unknown norm type for regularization!");
 
       innerSolver_->setProblem(stiffnessMatrix,corr_global,rhs_global);
       innerSolver_->preprocess();
