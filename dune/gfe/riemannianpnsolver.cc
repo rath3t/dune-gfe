@@ -28,7 +28,7 @@ setup(const GridType& grid,
 {
   if(parameterSet.get("norm", "infinity") == "infinity")
     normType_ = ErrorNormType::infinity;
-  else if(parameterSet.get("norm", "infinity") == "H1-Semi")
+  else if(parameterSet.get("norm", "infinity") == "H1semi")
     normType_ = ErrorNormType::H1semi;
   else
     DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
@@ -36,11 +36,11 @@ setup(const GridType& grid,
 
   if(parameterSet.get("regularizationNorm", "Euclidean") == "Euclidean")
     regNormType_ = RegularizationNormType::Euclidean;
-  else if(parameterSet.get("regularizationNorm", "H1") == "H1")
+  else if(parameterSet.get("regularizationNorm", "Euclidean") == "H1")
     regNormType_ = RegularizationNormType::H1;
-  else if(parameterSet.get("regularizationNorm", "H1Semi") == "H1Semi")
-    regNormType_ = RegularizationNormType::H1Semi;
-  else if(parameterSet.get("regularizationNorm", "L2") == "L2")
+  else if(parameterSet.get("regularizationNorm", "Euclidean") == "H1semi")
+    regNormType_ = RegularizationNormType::H1semi;
+  else if(parameterSet.get("regularizationNorm", "Euclidean") == "L2")
     regNormType_ = RegularizationNormType::L2;
   else
     DUNE_THROW(Dune::Exception, "Unknown norm type for regularization!");
