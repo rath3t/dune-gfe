@@ -1,10 +1,6 @@
 #ifndef DUNE_GFE_ASSEMBLERS_LOCALINTEGRALSTIFFNESS_HH
 #define DUNE_GFE_ASSEMBLERS_LOCALINTEGRALSTIFFNESS_HH
 
-#include <adolc/adolc.h>
-
-#include <dune/fufem/utilities/adolcnamespaceinjections.hh>
-
 #include <dune/common/fmatrix.hh>
 #include <dune/common/tuplevector.hh>
 
@@ -52,28 +48,15 @@ namespace Dune::GFE
     using GridView                    = typename Basis::GridView;
     using DT                          = typename GridView::ctype;
     using RT                          = typename TargetSpace::ctype;
-    using ATargetSpace                = typename TargetSpace::template rebind<adouble>::other;
     using TargetSpaceCoordinate      = typename TargetSpace::CoordinateType;
     // TODO: Take this from the interpolation rule
     using TargetSpaceDerivativeType  = FieldMatrix<double, embeddedBlocksize, gridDim>;
 
     using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
 
-    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,ATargetSpace> >& ld)
+    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> >& ld)
       : localDensity_(ld)
-    {
-      densityTangent_ = myalloc3(m,m,1);
-
-      // Initialize directions field
-      for (int j=0; j<m; j++)
-        for (int i=0; i<m; i++)
-          densityTangent_[i][j][0] = i == j ? 1.0 : 0.0;
-    }
-
-    virtual ~LocalIntegralStiffness()
-    {
-      myfree3(densityTangent_);
-    }
+    {}
 
     virtual RT
     energy(const typename Basis::LocalView& localView,
@@ -309,71 +292,19 @@ namespace Dune::GFE
                          Matrix<double>& hessianDensity) const
     {
       auto x = localView.element().geometry().global(qp.position());
-      trace_on(tapeNumber);
 
-      int idx=0;
-      // Construct vector containing the two dependent variables, this is where we evaluate the tape
-      // * interpolationValueGlobalCoordinates
-      // * interpolationDerivative
-      std::vector<double> xp(m);
-
-      typename ATargetSpace::CoordinateType aInterpolationValueGlobalCoordinates;
-
-      using ATargetSpaceDerivativeType = FieldMatrix<adouble, embeddedBlocksize, gridDim>;
-      ATargetSpaceDerivativeType aInterpolationDerivative;
-
-      for (size_t i = 0; i<embeddedBlocksize; i++)
-      {
-        aInterpolationValueGlobalCoordinates[i] <<= interpolationValueGlobalCoordinates[i];
-        xp[idx++] = interpolationValueGlobalCoordinates[i];
-      }
-
-      for (size_t i = 0; i<embeddedBlocksize; i++)
-        for (size_t j = 0; j<gridDim; j++) {
-          aInterpolationDerivative[i][j] <<= interpolationDerivative[i][j];
-          xp[idx++] = interpolationDerivative[i][j];
-        }
-
-      adouble density = (*localDensity_)(x, aInterpolationValueGlobalCoordinates, aInterpolationDerivative);
-
-      double pureDensity;
-      density >>= pureDensity;
-
-      trace_off();
-
-      const auto n = m;
-      const auto q = m;
-
-      double*** Yppp = myalloc3(1,q,1);   /* results of hov_wk_forward  */
-      double*** Zppp = myalloc3(q,n,2);   /* result of hos_ov_reverse */
-
-      double Upp[2] = {1.0, 0.0};
-      double* UppPtr[2] = {Upp, Upp+1};
-
-      // Compute first derivatives in forward mode
-      double value;   // The density value, as computed by hov_wk_forward
-      hov_wk_forward(tapeNumber, 1, n, 1, 2, q, xp.data(), densityTangent_, &value, Yppp);
-
-      for (int i=0; i<m; i++)
-        derivativeDensity[i] = Yppp[0][i][0];
-
-      // Compute second derivatives in reverse mode
-      hos_ov_reverse(tapeNumber, 1, n, 1, q, UppPtr, Zppp);
-
-      for (int i = 0; i < q; ++i)
-        for (int j = 0; j < n; ++j)
-          hessianDensity[j][i] = Zppp[i][j][1];
-
-      myfree3(Zppp);
-      myfree3(Yppp);
+      double valueDensity; // Not used
+      TargetSpace interpolationValue = interpolationValueGlobalCoordinates;
+      localDensity_->derivatives(x,
+                                 interpolationValue,
+                                 interpolationDerivative,
+                                 valueDensity,
+                                 derivativeDensity,
+                                 hessianDensity);
     }
 
     // The density that is being integrated over
-    const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,ATargetSpace> > localDensity_ = nullptr;
-
-    // Dense matrix containing the directions that the derivatives of the density
-    // will be computed in.
-    double*** densityTangent_;
+    const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> > localDensity_ = nullptr;
   };
 
 
@@ -411,30 +342,16 @@ namespace Dune::GFE
     using GridView                    = typename Basis::GridView;
     using DT                          = typename GridView::ctype;
     using RT                          = typename TargetSpace0::ctype;
-    using ATargetSpace                = typename TargetSpace::template rebind<adouble>::other;
-    using ATargetSpace0               = typename TargetSpace0::template rebind<adouble>::other;
-    using ATargetSpace1               = typename TargetSpace1::template rebind<adouble>::other;
     using TargetSpace0Coordinate      = typename TargetSpace0::CoordinateType;
     using TargetSpace1Coordinate      = typename TargetSpace1::CoordinateType;
-    using ATargetSpaceDerivativeType   = FieldMatrix<adouble, embeddedBlocksize0+embeddedBlocksize1, gridDim>;
     using TargetSpace0DerivativeType  = FieldMatrix<double, embeddedBlocksize0, gridDim>;
     using TargetSpace1DerivativeType  = FieldMatrix<double, embeddedBlocksize1, gridDim>;
 
     using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
 
-    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,ATargetSpace> >& ld)
-      : localDensity_(ld),
-      densityTangentData_(std::make_unique<double[]>(m*m))
-    {
-      for (size_t i=0; i<m; i++)
-        densityTangent_[i] = densityTangentData_.get() + i*m;
-
-      // Initialize directions field
-      for (int j=0; j<m; j++)
-        for (int i=0; i<m; i++)
-          densityTangent_[i][j] = i == j ? 1.0 : 0.0;
-    }
-
+    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> >& ld)
+      : localDensity_(ld)
+    {}
 
     virtual ~LocalIntegralStiffness() {}
 
@@ -484,15 +401,7 @@ namespace Dune::GFE
                                             typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override;
 
   protected:
-    const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,ATargetSpace> > localDensity_ = nullptr;
-
-
-    // Dense matrix containing the directions that the derivatives of the density
-    // will be computed in.
-    std::unique_ptr<double[]> densityTangentData_;
-
-    // Array of pointers to the first entry of each row
-    double* densityTangent_[m];
+    const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> > localDensity_ = nullptr;
 
   private:
 
@@ -520,65 +429,30 @@ namespace Dune::GFE
       using namespace Dune::Indices;
       auto x = localView.element().geometry().global(qp.position());
 
-      trace_on(tapeNumber);
+      double valueDensity; // Not used
 
-      int idx=0;
-      // Construct vector containing the four dependent variables, this is where we evaluate the tape
-      // Dependent variables:
-      // * deformationValueGlobalCoordinates
-      // * deformationDerivative
-      // * orientationValueGlobalCoordinates
-      // * orientationDerivative
-      std::vector<double> xp(m);
+      TargetSpace interpolationValue;
+      interpolationValue[_0] = deformationValueGlobalCoordinates;
+      interpolationValue[_1] = orientationValueGlobalCoordinates;
 
-      // Attention: Keep the order of the 4 for-loops below as they are, this is the "order" of the dependent variables, the derivatives are ordered in the same way!
-      ATargetSpace aValue;
-      typename ATargetSpace0::CoordinateType aDeformationValueGlobalCoordinates;
-      typename ATargetSpace1::CoordinateType aOrientationValueGlobalCoordinates;
+      using TargetSpaceDerivative = FieldMatrix<double, embeddedBlocksize0 + embeddedBlocksize1, gridDim>;
 
-      ATargetSpaceDerivativeType aDerivative;
+      TargetSpaceDerivative interpolationDerivative;
 
-      for (size_t i = 0; i<embeddedBlocksize0; i++)
-      {
-        aDeformationValueGlobalCoordinates[i] <<= deformationValueGlobalCoordinates[i];
-        aValue[_0] = aDeformationValueGlobalCoordinates;
-        xp[idx++] = deformationValueGlobalCoordinates[i];
-      }
+      std::size_t i = 0;
 
-      for (size_t i = 0; i<embeddedBlocksize0; i++)
-        for (size_t j = 0; j<gridDim; j++) {
-          aDerivative[i][j] <<= deformationDerivative[i][j];
-          xp[idx++] = deformationDerivative[i][j];
-        }
+      for (auto && row : deformationDerivative)
+        interpolationDerivative[i++] = row;
 
-      for (size_t i = 0; i<embeddedBlocksize1; i++)
-      {
-        aOrientationValueGlobalCoordinates[i] <<= orientationValueGlobalCoordinates[i];
-        aValue[_1] = aOrientationValueGlobalCoordinates;
-        xp[idx++] = orientationValueGlobalCoordinates[i];
-      }
+      for (auto && row : orientationDerivative)
+        interpolationDerivative[i++] = row;
 
-      for (size_t i = 0; i<embeddedBlocksize1; i++)
-        for (size_t j = 0; j<gridDim; j++) {
-          aDerivative[embeddedBlocksize0+i][j] <<= orientationDerivative[i][j];
-          xp[idx++] = orientationDerivative[i][j];
-        }
-
-      adouble density = (*localDensity_)(x, aValue.globalCoordinates(), aDerivative);
-
-      double pureDensity;
-      density >>= pureDensity;
-
-      trace_off();
-
-      // TODO: Remove this reverse call just for the gradient
-      gradient(tapeNumber,m,xp.data(),derivativeDensity.data());
-
-      double* hessianDensityRows[m];
-      for (int i=0; i<m; i++)
-        hessianDensityRows[i] = hessianDensity[i].data();
-
-      hess_mat(tapeNumber,m,m,xp.data(),(double**)densityTangent_,hessianDensityRows);
+      localDensity_->derivatives(x,
+                                 interpolationValue,
+                                 interpolationDerivative,
+                                 valueDensity,
+                                 derivativeDensity,
+                                 hessianDensity);
     }
 
   };
