@@ -101,7 +101,8 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
   std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,TargetSpace> > localIntegralStiffness;
 
   using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
-  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<LocalCoordinate,ATargetSpace> >();
+  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<LocalCoordinate,TargetSpace> >();
+  auto harmonicDensityA = std::make_shared<GFE::HarmonicDensity<LocalCoordinate,ATargetSpace> >();
 
   if constexpr (interpolationType==Geodesic)
   {
@@ -117,7 +118,7 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
         ATargetSpace>;
 
     // Assemble using the old assembler
-    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensity);
+    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensityA);
 
     auto localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
     assemblerADOLC = std::make_shared<GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
@@ -139,7 +140,7 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
         ATargetSpace>;
 
     // Assemble using the old assembler
-    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensity);
+    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensityA);
 
     auto localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
     assemblerADOLC = std::make_shared<GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
@@ -333,7 +334,7 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
     assemblerADOLC = std::make_shared<MixedGFEAssembler<CompositeBasis,RigidBodyMotion> >(compositeBasis, localGFEADOLCStiffness);
 
     // Assemble using the new assembler
-    localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<CompositeBasis,LocalInterpolationRule,RigidBodyMotion> >(aBulkCosseratDensity);
+    localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<CompositeBasis,LocalInterpolationRule,RigidBodyMotion> >(bulkCosseratDensity);
   }
   else
   {
@@ -357,7 +358,7 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
     assemblerADOLC = std::make_shared<MixedGFEAssembler<CompositeBasis,RigidBodyMotion> >(compositeBasis, localGFEADOLCStiffness);
 
     // Assemble using the new assembler
-    localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<CompositeBasis,LocalInterpolationRule,RigidBodyMotion> >(aBulkCosseratDensity);
+    localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<CompositeBasis,LocalInterpolationRule,RigidBodyMotion> >(bulkCosseratDensity);
   }
 
   MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssemblerSmart(compositeBasis,

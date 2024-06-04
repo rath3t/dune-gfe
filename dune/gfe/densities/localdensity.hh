@@ -3,6 +3,9 @@
 
 #include <dune/common/fmatrix.hh>
 
+#include <adolc/adalloc.h>
+#include <adolc/adolc.h>
+
 namespace Dune::GFE {
 
   /** \brief A base class for energy densities to be evaluated in an integral energy
@@ -14,6 +17,7 @@ namespace Dune::GFE {
   class LocalDensity
   {
     using field_type = typename TargetSpace::field_type;
+    using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
     using DerivativeType = FieldMatrix<field_type,TargetSpace::EmbeddedTangentVector::dimension,Position::size()>;
 
   public:
@@ -27,6 +31,9 @@ namespace Dune::GFE {
     virtual field_type operator() (const Position& x,
                                    const typename TargetSpace::CoordinateType& value,
                                    const DerivativeType& derivative) const = 0;
+
+    // Construct a copy of this density but using 'adouble' as the number type
+    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const = 0;
 
     /** \brief Whether the density depends on the 'value' parameter
      *

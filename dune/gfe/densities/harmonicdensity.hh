@@ -16,6 +16,8 @@ namespace Dune::GFE
     constexpr static auto dim = Position::size();
     constexpr static auto embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
+    using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
+
   public:
 
     /** \brief Evaluate the density
@@ -29,6 +31,12 @@ namespace Dune::GFE
                                    const FieldMatrix<field_type,embeddedBlocksize,dim>& derivative) const override
     {
       return 0.5 * derivative.frobenius_norm2();
+    }
+
+    // Construct a copy of this density but using 'adouble' as the number type
+    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    {
+      return std::make_unique<HarmonicDensity<Position,ATargetSpace> >();
     }
 
     /** \brief The density does not depend on the value */
