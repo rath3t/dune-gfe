@@ -33,6 +33,34 @@ namespace Dune::GFE
       return 0.5 * derivative.frobenius_norm2();
     }
 
+    /** \brief Compute value, first and second derivatives of the density
+     */
+    virtual void derivatives(const Position& x,
+                             const TargetSpace& value,
+                             const FieldMatrix<field_type,embeddedBlocksize,dim>& derivative,
+                             field_type& densityValue,
+                             std::vector<field_type>& densityGradient,
+                             Matrix<field_type>& densityHessian) const
+    {
+      // Compute value of the density
+      densityValue = 0.5 * derivative.frobenius_norm2();
+
+      // Compute gradient of the density
+      std::size_t count = 0;
+      for (int i=0; i<embeddedBlocksize; i++)
+        densityGradient[count++] = 0;
+
+      for (int i=0; i<derivative.rows; i++)
+        for (std::size_t j=0; j<derivative.cols; j++)
+          densityGradient[count++] = derivative[i][j];
+
+      // Compute Hessian of the density
+      densityHessian = 0;
+
+      for (std::size_t i=embeddedBlocksize; i<densityHessian.N(); i++)
+        densityHessian[i][i] = 1.0;
+    }
+
     // Construct a copy of this density but using 'adouble' as the number type
     virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
     {
