@@ -10,6 +10,8 @@
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/densities/localdensity.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
 
 namespace Dune::GFE {
 
