@@ -97,7 +97,7 @@ namespace Dune {
       auto evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const;
 
       /** \brief Get the i'th base coefficient. */
-      TargetSpace coefficient(int i) const
+      const TargetSpace& coefficient(int i) const
       {
         return coefficients_[i];
       }
@@ -438,7 +438,7 @@ namespace Dune {
       }
 
       /** \brief Get the i'th base coefficient. */
-      TargetSpace coefficient(int i) const
+      const TargetSpace& coefficient(int i) const
       {
         return coefficients_[i];
       }
@@ -484,6 +484,7 @@ namespace Dune {
       LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
                                const std::vector<TargetSpace>& coefficients)
         : localFiniteElement_(localFiniteElement),
+        coefficients_(coefficients),
         translationCoefficients_(coefficients.size())
       {
         assert(localFiniteElement.localBasis().size() == coefficients.size());
@@ -578,9 +579,9 @@ namespace Dune {
       }
 
       /** \brief Get the i'th base coefficient. */
-      TargetSpace coefficient(int i) const
+      const TargetSpace& coefficient(int i) const
       {
-        return TargetSpace(translationCoefficients_[i],orientationFunction_->coefficient(i));
+        return coefficients_[i];
       }
     private:
 
@@ -589,6 +590,11 @@ namespace Dune {
        */
       const LocalFiniteElement& localFiniteElement_;
 
+      // The coefficients of this interpolation rule
+      std::vector<TargetSpace> coefficients_;
+
+      // The coefficients again.  Yes, we store it twice:  To evaluate the interpolation rule efficiently
+      // we need access to the coefficients for the various factor spaces separately.
       std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
       std::unique_ptr<LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type, 3> > > orientationFunction_;

@@ -118,7 +118,7 @@ public:
                                                     DerivativeOfGradientWRTCoefficientType& result) const;
 
   /** \brief Get the i'th base coefficient. */
-  TargetSpace coefficient(int i) const
+  const TargetSpace& coefficient(int i) const
   {
     return coefficients_[i];
   }
@@ -597,6 +597,7 @@ public:
   LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
                           const std::vector<TargetSpace>& coefficients)
     : localFiniteElement_(localFiniteElement),
+    coefficients_(coefficients),
     translationCoefficients_(coefficients.size())
   {
     using namespace Dune::Indices;
@@ -787,10 +788,10 @@ public:
           derivative[3+i][3+j][k] = qDerivative[i][j][k];
   }
 
-  TargetSpace coefficient(int i) const {
-    return TargetSpace(translationCoefficients_[i],orientationFEFunction_->coefficient(i));
-
+  const TargetSpace& coefficient(int i) const {
+    return coefficients_[i];
   }
+
 private:
 
   /** \brief The scalar local finite element, which provides the weighting factors
@@ -798,7 +799,11 @@ private:
    */
   const LocalFiniteElement& localFiniteElement_;
 
-  // Coefficients for the two factors of the product manifold
+  // The coefficients of this interpolation rule
+  std::vector<TargetSpace> coefficients_;
+
+  // The coefficients again.  Yes, we store it twice:  To evaluate the interpolation rule efficiently
+  // we need access to the coefficients for the various factor spaces separately.
   std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
   std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > orientationFEFunction_;
