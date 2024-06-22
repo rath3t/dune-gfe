@@ -20,11 +20,11 @@ namespace Dune::GFE {
 
   public:
 
-    /** \brief Evaluation with the current position, the deformation function, the deformation gradient, the rotation and the rotation gradient
+    /** \brief Evaluate the density for a given value and first derivative
      *
      * \param x The current position
-     * \param value The deformation at the current position
-     * \param derivative The derivative of the deformation at the current position
+     * \param value The value of the integrand at x
+     * \param derivative The derivative of the integrand at x
      */
     virtual field_type operator() (const Position& x,
                                    const TargetSpace& value,
