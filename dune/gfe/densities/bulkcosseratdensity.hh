@@ -112,7 +112,7 @@ namespace Dune::GFE {
     /** \brief Evaluate the density
      */
     virtual field_type operator() (const Position& x,
-                                   const GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >& value,
+                                   const typename GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >::CoordinateType& value,
                                    const FieldMatrix<field_type,7,gridDim>& derivative) const override
     {
       using namespace Dune::Indices;
@@ -120,8 +120,10 @@ namespace Dune::GFE {
       field_type strainEnergyDensity = 0;
 
       /////////////////////////////////////////////////////////
-      //  Extract derivatives of the factor spaces
+      //  Extract value and derivatives of the factor spaces
       /////////////////////////////////////////////////////////
+
+      Rotation<field_type,3> rotationValue(FieldVector<field_type,4>{value[3], value[4], value[5], value[6]});
 
       FieldMatrix<field_type,3,3> deformationDerivative = {derivative[0], derivative[1], derivative[2]};
       FieldMatrix<field_type,4,3> orientationDerivative = {derivative[3], derivative[4], derivative[5], derivative[6]};
@@ -131,7 +133,7 @@ namespace Dune::GFE {
       /////////////////////////////////////////////////////////
 
       FieldMatrix<field_type,gridDim,gridDim> R;
-      value[_1].matrix(R);
+      rotationValue.matrix(R);
 
       GFE::CosseratStrain<field_type,gridDim,gridDim> U(deformationDerivative,R);
 
@@ -139,7 +141,7 @@ namespace Dune::GFE {
       //  Transfer the derivative of the rotation into matrix coordinates
       ////////////////////////////////////////////////////////////////////
 
-      Tensor3<field_type,3,3,gridDim> DR = value[_1].quaternionTangentToMatrixTangent(orientationDerivative);
+      Tensor3<field_type,3,3,gridDim> DR = rotationValue.quaternionTangentToMatrixTangent(orientationDerivative);
       strainEnergyDensity = quadraticEnergy(U);
 
     #ifdef CURVATURE_WITH_WRYNESS

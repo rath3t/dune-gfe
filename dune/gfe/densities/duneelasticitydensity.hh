@@ -41,7 +41,7 @@ namespace Dune::GFE
      * \param derivative The derivative at the current position
      */
     virtual field_type operator() (const Position& x,
-                                   const TargetSpace& value,
+                                   const typename TargetSpace::CoordinateType& value,
                                    const FieldMatrix<field_type,embeddedBlocksize,dim>& derivative) const override
     {
       // 'derivative' is the derivative of the entire TargetSpace point x.

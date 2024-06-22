@@ -75,7 +75,7 @@ namespace Dune::GFE {
           if (localDensity_->dependsOnDerivative())
             derivative = localInterpolationRule.evaluateDerivative(quadPos, q) * geometryJacobianInverse;
 
-          energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,q,derivative);
+          energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,q.globalCoordinates(),derivative);
         }
       }
 
@@ -154,7 +154,7 @@ namespace Dune::GFE {
             derivative[i+derivative0.rows] = derivative1[i];
 
           energy += weightWithintegrationElement * (*localDensity_)(x,
-                                                                    value,
+                                                                    value.globalCoordinates(),
                                                                     derivative);
         }
       }

@@ -27,7 +27,7 @@ namespace Dune::GFE {
      * \param derivative The derivative of the integrand at x
      */
     virtual field_type operator() (const Position& x,
-                                   const TargetSpace& value,
+                                   const typename TargetSpace::CoordinateType& value,
                                    const DerivativeType& derivative) const = 0;
 
     /** \brief Whether the density depends on the 'value' parameter
