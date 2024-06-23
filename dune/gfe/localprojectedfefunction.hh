@@ -36,10 +36,6 @@ namespace Dune {
       typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
       static const int embeddedDim = EmbeddedTangentVector::dimension;
 
-      static const int spaceDim = TargetSpace::TangentVector::dimension;
-
-      constexpr static bool conformingFlag = conforming;
-
     public:
 
       /** \brief The type used for derivatives */
@@ -118,7 +114,7 @@ namespace Dune {
       for (size_t i=0; i<coefficients_.size(); i++)
         c.axpy(w[i][0], coefficients_[i].globalCoordinates());
 
-      if constexpr (conformingFlag)
+      if constexpr (conforming)
         return TargetSpace::projectOnto(c);
       else
         return (RealTuple<RT, TargetSpace::CoordinateType::dimension>)c;
@@ -130,7 +126,7 @@ namespace Dune {
     LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
     evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
-      if constexpr(conformingFlag)
+      if constexpr(conforming)
       {
         // the function value at the point where we are evaluating the derivative
         TargetSpace q = evaluate(local);
@@ -195,8 +191,6 @@ namespace Dune {
 
       typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
       static const int embeddedDim = EmbeddedTangentVector::dimension;
-
-      static const int spaceDim = TargetSpace::TangentVector::dimension;
 
       /**
        * \param A The argument of the projection
@@ -417,8 +411,6 @@ namespace Dune {
 
       typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
       static const int embeddedDim = EmbeddedTangentVector::dimension;
-
-      static const int spaceDim = TargetSpace::TangentVector::dimension;
 
     public:
 
