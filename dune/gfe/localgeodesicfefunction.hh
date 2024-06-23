@@ -93,6 +93,10 @@ public:
   DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                     const TargetSpace& q) const;
 
+  /** \brief Evaluate the value and the derivative of the interpolation function
+   */
+  std::pair<TargetSpace,DerivativeType> evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+
   /** \brief Evaluate the derivative of the function value with respect to a coefficient */
   void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                int coefficient,
@@ -301,6 +305,17 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
 
   }
 
+  return result;
+}
+
+template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
+std::pair<TargetSpace,typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType>
+LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+{
+  std::pair<TargetSpace,DerivativeType> result;
+  result.first = evaluate(local);
+  result.second = evaluateDerivative(local,result.first);
   return result;
 }
 

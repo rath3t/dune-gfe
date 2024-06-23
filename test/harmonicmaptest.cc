@@ -149,12 +149,20 @@ int main (int argc, char *argv[])
   //////////////////////////////////////////////////////////////
 
   using ATargetSpace = TargetSpace::rebind<adouble>::other;
-  //using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
-  using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+
+#if GEODESICINTERPOLATION
+  using InterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+#else
+#if CONFORMING
+  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace,true>;
+#else
+  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace,false>;
+#endif
+#endif
 
   auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, ATargetSpace> >();
-  //std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<HarmonicEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace> >();
-  std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace> >(harmonicDensity);
+
+  std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, InterpolationRule, ATargetSpace> >(harmonicDensity);
 
   LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy.get());
 
@@ -188,7 +196,16 @@ int main (int argc, char *argv[])
 
   x = solver.getSol();
 
+#if GEODESICINTERPOLATION
+  std::size_t expectedFinalIteration = 8;
+#else
+#if CONFORMING
   std::size_t expectedFinalIteration = 10;
+#else
+  std::size_t expectedFinalIteration = 6;
+#endif
+#endif
+
   if (solver.getStatistics().finalIteration != expectedFinalIteration)
   {
     std::cerr << "Trust-region solver did " << solver.getStatistics().finalIteration+1
@@ -196,7 +213,15 @@ int main (int argc, char *argv[])
     return 1;
   }
 
+#if GEODESICINTERPOLATION
+  double expectedEnergy = 12.3154833;
+#else
+#if CONFORMING
   double expectedEnergy = 12.2927849;
+#else
+  double expectedEnergy = 0.436857464;
+#endif
+#endif
   if ( std::abs(solver.getStatistics().finalEnergy - expectedEnergy) > 1e-7)
   {
     std::cerr << std::setprecision(9);

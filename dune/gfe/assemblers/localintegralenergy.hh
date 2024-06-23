@@ -66,16 +66,35 @@ namespace Dune::GFE {
 
           const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
 
-          // Function value at the quadrature point
-          // This is always needed: Either directly, or to compute the derivative below
-          TargetSpace q = localInterpolationRule.evaluate(quadPos);
-
-          // The derivative of the finite element function at the quadrature point
-          typename LocalInterpolationRule::DerivativeType derivative;
-          if (localDensity_->dependsOnDerivative())
-            derivative = localInterpolationRule.evaluateDerivative(quadPos, q) * geometryJacobianInverse;
-
-          energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,q.globalCoordinates(),derivative);
+          if (localDensity_->dependsOnValue())
+          {
+            if (localDensity_->dependsOnDerivative())
+            {
+              auto [value, derivative] = localInterpolationRule.evaluateValueAndDerivative(quadPos);
+              derivative = derivative * geometryJacobianInverse;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),derivative);
+            }
+            else
+            {
+              auto value = localInterpolationRule.evaluate(quadPos);
+              typename LocalInterpolationRule::DerivativeType dummyDerivative;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),dummyDerivative);
+            }
+          }
+          else
+          {
+            if (localDensity_->dependsOnDerivative())
+            {
+              typename TargetSpace::CoordinateType dummyValue;
+              auto derivative = localInterpolationRule.evaluateDerivative(quadPos);
+              derivative = derivative * geometryJacobianInverse;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,dummyValue,derivative);
+            }
+            else
+            {
+              // Density does not depend on anything.  That's rather pointless, but not an error.
+            }
+          }
         }
       }
 
