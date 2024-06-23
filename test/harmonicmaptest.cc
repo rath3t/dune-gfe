@@ -54,7 +54,7 @@ int main (int argc, char *argv[])
   // read solver settings
   const double tolerance                = 1e-6;
   const int maxTrustRegionSteps         = 1000;
-  const double initialTrustRegionRadius = 1;
+  const double initialTrustRegionRadius = 0.25;
   const int multigridIterations         = 200;
   const int baseIterations              = 100;
   const double mgTolerance              = 1e-10;
@@ -188,7 +188,7 @@ int main (int argc, char *argv[])
 
   x = solver.getSol();
 
-  std::size_t expectedFinalIteration = 12;
+  std::size_t expectedFinalIteration = 10;
   if (solver.getStatistics().finalIteration != expectedFinalIteration)
   {
     std::cerr << "Trust-region solver did " << solver.getStatistics().finalIteration+1
