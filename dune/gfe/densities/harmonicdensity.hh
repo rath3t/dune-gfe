@@ -25,7 +25,7 @@ namespace Dune::GFE
      * \param derivative The derivative of the deformation at the current position
      */
     virtual field_type operator() (const Position& x,
-                                   const TargetSpace& value,
+                                   const typename TargetSpace::CoordinateType& value,
                                    const FieldMatrix<field_type,embeddedBlocksize,dim>& derivative) const override
     {
       return 0.5 * derivative.frobenius_norm2();

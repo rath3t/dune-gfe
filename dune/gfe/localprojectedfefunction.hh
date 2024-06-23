@@ -36,10 +36,6 @@ namespace Dune {
       typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
       static const int embeddedDim = EmbeddedTangentVector::dimension;
 
-      static const int spaceDim = TargetSpace::TangentVector::dimension;
-
-      constexpr static bool conformingFlag = conforming;
-
     public:
 
       /** \brief The type used for derivatives */
@@ -85,9 +81,20 @@ namespace Dune {
       /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
        *        \param local Local coordinates in the reference element where to evaluate the derivative
        *        \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
+       *
+       * \note This method is only usable in the conforming setting, because it requires the caller
+       * to hand over the interpolation value as a TargetSpace object.
        */
       DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
                                         const TargetSpace& q) const;
+
+      /** \brief Evaluate the value and the derivative of the interpolation function
+       *
+       * \return A std::pair containing the value and the first derivative of the interpolation function.
+       * If the interpolation is conforming then the first member of the pair will be a TargetSpace.
+       * Otherwise it will be a RealTuple.
+       */
+      auto evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const;
 
       /** \brief Get the i'th base coefficient. */
       TargetSpace coefficient(int i) const
@@ -118,7 +125,7 @@ namespace Dune {
       for (size_t i=0; i<coefficients_.size(); i++)
         c.axpy(w[i][0], coefficients_[i].globalCoordinates());
 
-      if constexpr (conformingFlag)
+      if constexpr (conforming)
         return TargetSpace::projectOnto(c);
       else
         return (RealTuple<RT, TargetSpace::CoordinateType::dimension>)c;
@@ -130,7 +137,7 @@ namespace Dune {
     LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
     evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
     {
-      if constexpr(conformingFlag)
+      if constexpr(conforming)
       {
         // the function value at the point where we are evaluating the derivative
         TargetSpace q = evaluate(local);
@@ -179,6 +186,55 @@ namespace Dune {
       return derivativeOfProjection*derivative;
     }
 
+    template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
+    auto
+    LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
+    evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    {
+      // Construct the type of the result -- it depends on whether the interpolation
+      // is conforming or not.
+      using Value = std::conditional_t<conforming,TargetSpace,RealTuple<RT,embeddedDim> >;
+
+      std::pair<Value,DerivativeType> result;
+
+      ///////////////////////////////////////////////////////////
+      //  Compute the value of the interpolation function
+      ///////////////////////////////////////////////////////////
+
+      std::vector<Dune::FieldVector<ctype,1> > w;
+      localFiniteElement_.localBasis().evaluateFunction(local,w);
+
+      typename TargetSpace::CoordinateType embeddedInterpolation(0);
+      for (size_t i=0; i<coefficients_.size(); i++)
+        embeddedInterpolation.axpy(w[i][0], coefficients_[i].globalCoordinates());
+
+      if constexpr (conforming)
+        result.first = TargetSpace::projectOnto(embeddedInterpolation);
+      else
+        result.first = (RealTuple<RT, TargetSpace::CoordinateType::dimension>)embeddedInterpolation;
+
+      ///////////////////////////////////////////////////////////
+      //  Compute the derivative of the interpolation function
+      ///////////////////////////////////////////////////////////
+
+      // Compute the interpolation in the surrounding space
+      std::vector<Dune::FieldMatrix<ctype,1,dim> > wDer;
+      localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
+
+      result.second = 0.0;
+      for (size_t i=0; i<embeddedDim; i++)
+        for (size_t j=0; j<dim; j++)
+          for (size_t k=0; k<coefficients_.size(); k++)
+            result.second[i][j] += wDer[k][0][j] * coefficients_[k].globalCoordinates()[i];
+
+      // The derivative of the projection onto the manifold
+      if constexpr(conforming)
+        result.second = TargetSpace::derivativeOfProjection(embeddedInterpolation) * result.second;
+
+      return result;
+    }
+
+
     /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold -- specialization for SO(3)
      *
      * \tparam dim Dimension of the reference element
@@ -195,8 +251,6 @@ namespace Dune {
 
       typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
       static const int embeddedDim = EmbeddedTangentVector::dimension;
-
-      static const int spaceDim = TargetSpace::TangentVector::dimension;
 
       /**
        * \param A The argument of the projection
@@ -417,8 +471,6 @@ namespace Dune {
 
       typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
       static const int embeddedDim = EmbeddedTangentVector::dimension;
-
-      static const int spaceDim = TargetSpace::TangentVector::dimension;
 
     public:
 

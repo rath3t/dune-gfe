@@ -39,8 +39,20 @@ foreach(_test ${TESTS})
   target_compile_options(${_test} PRIVATE -g)
 endforeach()
 
+dune_add_test(NAME harmonicmaptest-geodesic
+              SOURCES harmonicmaptest.cc
+              COMPILE_DEFINITIONS "GEODESICINTERPOLATION=1; CONFORMING=1"
+              TIMEOUT 1200)
+
+dune_add_test(NAME harmonicmaptest-projected
+              SOURCES harmonicmaptest.cc
+              COMPILE_DEFINITIONS "GEODESICINTERPOLATION=0; CONFORMING=1"
+              TIMEOUT 1200)
+
 # Run distributed tests
-dune_add_test(SOURCES harmonicmaptest.cc
+dune_add_test(NAME harmonicmaptest-projected-nonconforming
+              SOURCES harmonicmaptest.cc
+              COMPILE_DEFINITIONS "GEODESICINTERPOLATION=0; CONFORMING=0"
               MPI_RANKS 1 4
               TIMEOUT 1200
               CMAKE_GUARD MPI_FOUND)

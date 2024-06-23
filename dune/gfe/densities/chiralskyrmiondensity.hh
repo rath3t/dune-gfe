@@ -40,7 +40,7 @@ namespace Dune::GFE
      * \param derivative The derivative of the deformation at the current position
      */
     virtual field_type operator() (const Position& x,
-                                   const TargetSpace& value,
+                                   const typename TargetSpace::CoordinateType& value,
                                    const Derivative& derivative) const override
     {
       //////////////////////////////////////////////////////////////
@@ -56,13 +56,12 @@ namespace Dune::GFE
       // derivative[a][b] contains the partial derivative of m_a in the direction x_b
       FieldVector<field_type, 3> curl = {derivative[2][1], -derivative[2][0], derivative[1][0]-derivative[0][1]};
 
-      FieldVector<field_type, 3> v = value.globalCoordinates();
-
-      density += kappa_ * (v * curl);
+      density += kappa_ * (value * curl);
 
       //////////////////////////////////////////////////////////////
       //  Zeeman interaction term
       //////////////////////////////////////////////////////////////
+      FieldVector<field_type, 3> v = value;
       v[2] -= 1;   // subtract e_3
       density += 0.5 * h_ * v.two_norm2();
 
