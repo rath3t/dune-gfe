@@ -59,7 +59,7 @@ setup(const GridType& grid,
         x,
         dirichletNodes,
         parameterSet.get<double>("tolerance"),
-        parameterSet.get<int>("maxProximalNewtonSteps "),
+        parameterSet.get<int>("maxProximalNewtonSteps"),
         parameterSet.get<double>("initialRegularization"),
         parameterSet.get<bool>("instrumented", 0));
 }
