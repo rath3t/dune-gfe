@@ -81,8 +81,8 @@ namespace Dune::GFE
     }
 
   private:
-    field_type h_;
-    field_type kappa_;
+    double h_;
+    double kappa_;
   };
 
 }  // namespace Dune::GFE
