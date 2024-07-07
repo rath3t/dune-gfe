@@ -2,8 +2,6 @@
 #define DUNE_GFE_DENSITIES_LOCALDENSITY_HH
 
 #include <dune/common/fmatrix.hh>
-#include <dune/gfe/spaces/realtuple.hh>
-#include <dune/gfe/spaces/rotation.hh>
 
 namespace Dune::GFE {
 

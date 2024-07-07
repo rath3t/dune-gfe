@@ -358,12 +358,12 @@ int main (int argc, char *argv[])
 
   using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
 
-  GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim> > sumEnergy;
-  sumEnergy.addLocalEnergy(neumannEnergy);
-  sumEnergy.addLocalEnergy(elasticEnergy);
-  sumEnergy.addLocalEnergy(surfaceCosseratEnergy);
+  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim> > >();
+  sumEnergy->addLocalEnergy(neumannEnergy);
+  sumEnergy->addLocalEnergy(elasticEnergy);
+  sumEnergy->addLocalEnergy(surfaceCosseratEnergy);
 
-  LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(&sumEnergy);
+  LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(sumEnergy);
   MixedGFEAssembler<CompositeBasis,RBM> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
   ////////////////////////////////////////////////////////

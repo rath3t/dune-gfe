@@ -5,7 +5,6 @@
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/version.hh>
-#include <dune/common/transpose.hh>
 
 #include <dune/istl/matrix.hh>
 #include <dune/geometry/quadraturerules.hh>
@@ -248,12 +247,11 @@ namespace Dune::GFE {
             const Entity& element,
             const FieldVector<double,1>& pos) const
   {
-    const auto jit = element.geometry().jacobianInverseTransposed(pos);
+    const auto geometryJacobianInverse = element.geometry().jacobianInverse(pos);
 
     auto value = localInterpolation.evaluate(pos);
 
-    auto referenceDerivative = localInterpolation.evaluateDerivative(pos);
-    auto derivative = referenceDerivative * transpose(jit);
+    auto derivative = localInterpolation.evaluateDerivative(pos) * geometryJacobianInverse;
 
     using Number = std::decay_t<decltype(derivative[0][0])>;
     FieldVector<Number,3> r_s = {derivative[0][0], derivative[1][0], derivative[2][0]};

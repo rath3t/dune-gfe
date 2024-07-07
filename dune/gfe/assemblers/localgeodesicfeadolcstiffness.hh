@@ -35,7 +35,7 @@ public:
   //! Dimension of a tangent space
   constexpr static int blocksize = TargetSpace::TangentVector::dimension;
 
-  LocalGeodesicFEADOLCStiffness(const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* energy, bool adolcScalarMode = false)
+  LocalGeodesicFEADOLCStiffness(std::shared_ptr<const Dune::GFE::LocalEnergy<Basis, ATargetSpace> > energy, bool adolcScalarMode = false)
     : localEnergy_(energy),
     adolcScalarMode_(adolcScalarMode)
   {}
@@ -72,7 +72,7 @@ public:
                                           std::vector<double>& localGradient,
                                           typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override;
 
-  const Dune::GFE::LocalEnergy<Basis, ATargetSpace>* localEnergy_;
+  std::shared_ptr<const Dune::GFE::LocalEnergy<Basis, ATargetSpace> > localEnergy_;
   const bool adolcScalarMode_;
 };
 

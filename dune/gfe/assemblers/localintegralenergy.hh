@@ -141,7 +141,7 @@ namespace Dune::GFE {
 
           const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
 
-          DT weightWithintegrationElement = quad[pt].weight() * integrationElement;
+          DT weightWithIntegrationElement = quad[pt].weight() * integrationElement;
 
           // Compute the required values of the interpolation function
           // A value is needed either directly, or for computing the derivative.
@@ -172,7 +172,7 @@ namespace Dune::GFE {
           for (int i=0; i<derivative1.rows; i++)
             derivative[i+derivative0.rows] = derivative1[i];
 
-          energy += weightWithintegrationElement * (*localDensity_)(x,
+          energy += weightWithIntegrationElement * (*localDensity_)(x,
                                                                     value.globalCoordinates(),
                                                                     derivative);
         }

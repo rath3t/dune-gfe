@@ -206,7 +206,7 @@ int main (int argc, char *argv[]) try
     DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
   LocalGeodesicFEADOLCStiffness<ScalarBasis,
-      TargetSpace> localStiffness(localRodEnergy.get());
+      TargetSpace> localStiffness(localRodEnergy);
 
   GeodesicFEAssembler<ScalarBasis,TargetSpace> rodAssembler(gridView, localStiffness);
 

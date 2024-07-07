@@ -218,7 +218,7 @@ int main (int argc, char *argv[]) try
 
   auto sumEnergy = std::make_shared< WeightedSumEnergy<FEBasis, ATargetSpace> >(addends, weights);
 
-  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy.get());
+  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy);
 
   GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 

@@ -439,32 +439,15 @@ public:
 
   /** \brief Project tangent vector of R^n onto the normal space space */
   EmbeddedTangentVector projectOntoNormalSpace(const EmbeddedTangentVector& v) const {
-
-    EmbeddedTangentVector result;
-
-    T sp = 0;
-    for (int i=0; i<N; i++)
-      sp += v[i] * data_[i];
-
-    for (int i=0; i<N; i++)
-      result[i] = sp * data_[i];
-
-    return result;
+    return (v*data_) * data_;
   }
 
-  /** \brief The Weingarten map */
+  /** \brief The Weingarten map
+   *
+   * The Weingarten map computes the derivative of a normal vector v with respect to a tangent vector z.
+   */
   EmbeddedTangentVector weingarten(const EmbeddedTangentVector& z, const EmbeddedTangentVector& v) const {
-
-    EmbeddedTangentVector result;
-
-    T sp = 0;
-    for (int i=0; i<N; i++)
-      sp += v[i] * data_[i];
-
-    for (int i=0; i<N; i++)
-      result[i] = -sp * z[i];
-
-    return result;
+    return -(v*data_) * z;
   }
 
   static UnitVector<T,N> projectOnto(const CoordinateType& p)

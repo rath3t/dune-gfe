@@ -315,15 +315,18 @@ int main(int argc, char *argv[]) try
     }
 
     // Assembler using ADOL-C
-    Dune::GFE::SimoFoxEnergyLocalStiffness<decltype(compositeBasis), LocalFEFunction,adouble> simoFoxEnergyADOLCLocalStiffness(materialParameters,
-                                                                                                                               &neumannBoundary,
-                                                                                                                               neumannFunction,
-                                                                                                                               nullptr, x0);
+    auto simoFoxEnergyLocalStiffness
+      = std::make_shared<GFE::SimoFoxEnergyLocalStiffness<decltype(compositeBasis),
+        LocalFEFunction,
+        adouble> > (materialParameters,
+                    &neumannBoundary,
+                    neumannFunction,
+                    nullptr, x0);
 
     using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
 
     LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
-        TargetSpace> localGFEADOLCStiffness(&simoFoxEnergyADOLCLocalStiffness);
+        TargetSpace> localGFEADOLCStiffness(simoFoxEnergyLocalStiffness);
 
     MixedGFEAssembler<decltype(compositeBasis),TargetSpace> assembler(compositeBasis, localGFEADOLCStiffness);
     ////////////////////////////////////////////////////////
