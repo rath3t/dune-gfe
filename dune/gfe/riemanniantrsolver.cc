@@ -36,7 +36,7 @@ setup(const GridType& grid,
 {
   if(parameterSet.get("norm", "infinity") == "infinity")
     normType_ = ErrorNormType::infinity;
-  else if(parameterSet.get("norm", "infinity") == "H1-Semi")
+  else if(parameterSet.get("norm", "infinity") == "H1semi")
     normType_ = ErrorNormType::H1semi;
   else
     DUNE_THROW(Dune::Exception, "Unknown norm type for stopping criterion!");
