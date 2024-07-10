@@ -39,7 +39,7 @@ using namespace Dune;
 using namespace Dune::Indices;
 using namespace Functions::BasisFactory;
 
-enum InterpolationType {Geodesic, ProjectionBased};
+enum InterpolationType {Geodesic, ProjectionBased, Nonconforming};
 
 
 template <class GridView, InterpolationType interpolationType>
@@ -128,16 +128,20 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
   }
   else
   {
-    std::cout << "Using projection-based interpolation" << std::endl;
+    if (interpolationType==ProjectionBased)
+      std::cout << "Using projection-based interpolation" << std::endl;
+    else
+      std::cout << "Using nonconforming interpolation" << std::endl;
+
     using LocalInterpolationRule = GFE::LocalProjectedFEFunction<dim,
         typename GridView::ctype,
         decltype(feBasis.localView().tree().finiteElement()),
-        TargetSpace>;
+        TargetSpace, interpolationType!=Nonconforming>;
 
     using ALocalInterpolationRule = GFE::LocalProjectedFEFunction<dim,
         typename GridView::ctype,
         decltype(feBasis.localView().tree().finiteElement()),
-        ATargetSpace>;
+        ATargetSpace, interpolationType!=Nonconforming>;
 
     // Assemble using the old assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensityA);
@@ -523,6 +527,7 @@ int main (int argc, char *argv[])
   // TODO: Use test framework
   testHarmonicMapIntoSphere<GridView,Geodesic>(test, gridView);
   testHarmonicMapIntoSphere<GridView,ProjectionBased>(test, gridView);
+  testHarmonicMapIntoSphere<GridView,Nonconforming>(test, gridView);
 
   testCosseratBulkModel<GridView,Geodesic>(test, gridView);
   testCosseratBulkModel<GridView,ProjectionBased>(test, gridView);

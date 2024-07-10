@@ -698,6 +698,327 @@ namespace Dune::GFE
     }
   };
 
+  /** \brief Compute derivatives of nonconforming interpolation with respect to the coefficients
+   *
+   * This is the specialization of the InterpolationDerivatives class for the nonconforming
+   * interpolation.  No matter what the target space is, the interpolation is always
+   * Euclidean in the surrounding space.
+   */
+  template <int gridDim, typename ctype, typename LocalFiniteElement, typename TargetSpace>
+  class InterpolationDerivatives<LocalProjectedFEFunction<gridDim, ctype, LocalFiniteElement, TargetSpace, false> >
+  {
+    using LocalInterpolationRule = LocalProjectedFEFunction<gridDim, ctype, LocalFiniteElement, TargetSpace, false>;
+    using CoordinateType = typename TargetSpace::CoordinateType;
+
+    constexpr static auto blocksize = TargetSpace::TangentVector::dimension;
+    constexpr static auto embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
+
+    //////////////////////////////////////////////////////////////////////
+    //  Data members
+    //////////////////////////////////////////////////////////////////////
+
+    const LocalInterpolationRule& localInterpolationRule_;
+
+    // Whether derivatives of the interpolation value are to be computed
+    const bool doValue_;
+
+    // Whether derivatives of the derivative of the interpolation
+    // with respect to space are to be computed
+    const bool doDerivative_;
+
+    // Values of all scalar shape functions at the point we are bound to
+    std::vector<FieldVector<double,1> > shapeFunctionValues_;
+
+    // Gradients of all scalar shape functions at the point we are bound to
+    // TODO: The second dimension must be WorldDim
+    std::vector<FieldMatrix<double,1,gridDim> > shapeFunctionGradients_;
+
+    // TODO: Don't hardcode FieldMatrix
+    std::vector<FieldMatrix<double,blocksize,embeddedBlocksize> > orthonormalFrames_;
+
+  public:
+    InterpolationDerivatives(const LocalInterpolationRule& localInterpolationRule,
+                             bool doValue, bool doDerivative)
+      : localInterpolationRule_(localInterpolationRule)
+      , doValue_(doValue)
+      , doDerivative_(doDerivative)
+    {
+      // Precompute the orthonormal frames
+      orthonormalFrames_.resize(localInterpolationRule_.size());
+
+      for (size_t i=0; i<localInterpolationRule_.size(); ++i)
+        orthonormalFrames_[i] = localInterpolationRule_.coefficient(i).orthonormalFrame();
+    }
+
+    /** \brief Bind the objects to a particular evaluation point
+     *
+     * In particular, this computes the value of the interpolation function at that point,
+     * and the derivative at that point with respect to space.  The default implementation
+     * uses ADOL-C to tape these evaluations.  That is required for the evaluateDerivatives
+     * method below to be able to compute the derivatives with respect to the coefficients.
+     *
+     *  \param[in]  tapeNumber      Number of the ADOL-C tape, not used by this specialization
+     *  \param[in]  localPos        Local position where the FE function is evaluated
+     *  \param[out] value           The function value at the local configuration
+     *  \param[out] derivative      The derivative of the interpolation function
+     *                              with respect to the evaluation point
+     */
+    template <typename Element>
+    void bind(short tapeNumber,
+              const Element& element,
+              const typename Element::Geometry::LocalCoordinate& localPos,
+              typename TargetSpace::CoordinateType& valueGlobalCoordinates,
+              typename LocalInterpolationRule::DerivativeType& derivative)
+    {
+      const auto geometryJacobianInverse = element.geometry().jacobianInverse(localPos);
+
+      const auto& scalarFiniteElement = localInterpolationRule_.localFiniteElement();
+      const auto& localBasis = scalarFiniteElement.localBasis();
+
+      // Get shape function values
+      localBasis.evaluateFunction(localPos, shapeFunctionValues_);
+
+      // Get shape function Jacobians
+      localBasis.evaluateJacobian(localPos, shapeFunctionGradients_);
+
+      for (auto& gradient : shapeFunctionGradients_)
+        gradient = gradient * geometryJacobianInverse;
+
+      std::fill(valueGlobalCoordinates.begin(), valueGlobalCoordinates.end(), 0.0);
+      for (size_t i=0; i<shapeFunctionValues_.size(); i++)
+        valueGlobalCoordinates.axpy(shapeFunctionValues_[i][0],
+                                    localInterpolationRule_.coefficient(i).globalCoordinates());
+
+      // Derivatives
+      for (size_t i=0; i<localInterpolationRule_.size(); i++)
+        for (int j=0; j<TargetSpace::CoordinateType::dimension; j++)
+          derivative[j].axpy(localInterpolationRule_.coefficient(i).globalCoordinates()[j],
+                             shapeFunctionGradients_[i][0]);
+    }
+
+    /** \brief Compute first and second derivatives of the FE interpolation
+     *
+     * This code assumes that `bind` has been called before.
+     *
+     *  \param[in]  tapeNumber            The tape number to be used by ADOL-C. Not used by this specialization
+     *  \param[in]  weights               Vector of weights that the second derivative is contracted with
+     *  \param[out] embeddedFirstDerivative       Derivative of the FE interpolation wrt the coefficients
+     *  \param[out] firstDerivative       Derivative of the FE interpolation wrt the coefficients
+     *  \param[out] secondDerivative      Second derivative of the FE interpolation,
+     *                                    contracted with the weight vector
+     */
+    void evaluateDerivatives(short tapeNumber,
+                             const double* weights,
+                             Matrix<double>& embeddedFirstDerivative,
+                             Matrix<double>& firstDerivative,
+                             Matrix<FieldMatrix<double,blocksize,blocksize> >& secondDerivative) const
+    {
+      const size_t nDofs = localInterpolationRule_.size();
+
+      ////////////////////////////////////////////////////////////////////
+      //  The first derivative of the finite element interpolation
+      ////////////////////////////////////////////////////////////////////
+
+      Matrix<double> partialDerivative(embeddedFirstDerivative.N(), embeddedFirstDerivative.M());
+      partialDerivative = 0.0;
+
+      // First derivatives of the function value wrt to the FE coefficients
+      for (size_t i=0; i<nDofs; ++i)
+        for (int j=0; j<embeddedBlocksize; ++j)
+          partialDerivative[j][i*embeddedBlocksize+j] = shapeFunctionValues_[i][0];
+
+      // First derivatives of the function gradient wrt to the FE coefficients
+      for (size_t i=0; i<nDofs; ++i)
+        for (int j=0; j<embeddedBlocksize; ++j)
+          for (int k=0; k<gridDim; ++k)
+            partialDerivative[embeddedBlocksize + j*gridDim + k][i*embeddedBlocksize+j] = shapeFunctionGradients_[i][0][k];
+
+      // Euclidean derivative: Derivatives in the direction of the projected canonical vectors
+      for (std::size_t j=0; j<nDofs; ++j)
+      {
+        for (int k=0; k<embeddedBlocksize; k++)
+        {
+          // k-th canonical unit vector
+          FieldVector<double,embeddedBlocksize> direction(0);
+          direction[k] = 1.0;
+
+          // Project it onto tangent space at the j-th coefficient
+          auto projectedDirection = localInterpolationRule_.coefficient(j).projectOntoTangentSpace(direction);
+
+          // The interpolation value
+          if (doValue_)
+          {
+            for (size_t i=0; i<CoordinateType::size(); ++i)
+            {
+              // Alias name, for shorter notation
+              auto& entry = embeddedFirstDerivative[i][j*embeddedBlocksize+k];
+
+              entry = 0;
+
+              for (int l=0; l<embeddedBlocksize; l++)
+                entry += projectedDirection[l] * partialDerivative[i][j*embeddedBlocksize+l];
+            }
+          }
+
+          // The interpolation derivative with respect to space
+          if (doDerivative_)
+          {
+            for (size_t alpha=0; alpha<CoordinateType::size(); alpha++)
+            {
+              for (size_t beta=0; beta<gridDim; beta++)
+              {
+                // Alias name, for shorter notation
+                auto& entry = embeddedFirstDerivative[CoordinateType::size() + alpha*gridDim+beta][j*embeddedBlocksize+k];
+
+                entry = 0;
+
+                for (int l=0; l<embeddedBlocksize; l++)
+                  entry += projectedDirection[l] * partialDerivative[CoordinateType::size() + alpha*gridDim+beta][j*embeddedBlocksize+l];
+              }
+            }
+          }
+        }
+      }
+
+      // Riemannian derivative: Derivatives in the directions of the orthonormal frame vectors
+      for (std::size_t j=0; j<nDofs; ++j)
+      {
+        for (int k=0; k<blocksize; k++)
+        {
+          // k-th canonical unit tangent vector
+          FieldVector<double,embeddedBlocksize> direction = orthonormalFrames_[j][k];
+
+          // The interpolation value
+          if (doValue_)
+          {
+            for (size_t i=0; i<CoordinateType::size(); ++i)
+            {
+              // Alias name, for shorter notation
+              auto& entry = firstDerivative[i][j*blocksize+k];
+
+              entry = 0;
+
+              for (int l=0; l<embeddedBlocksize; l++)
+                entry += direction[l] * partialDerivative[i][j*embeddedBlocksize+l];
+            }
+          }
+
+          // The interpolation derivative with respect to space
+          if (doDerivative_)
+          {
+            for (size_t alpha=0; alpha<CoordinateType::size(); alpha++)
+            {
+              for (size_t beta=0; beta<gridDim; beta++)
+              {
+                // Alias name, for shorter notation
+                auto& entry = firstDerivative[CoordinateType::size() + alpha*gridDim+beta][j*blocksize+k];
+
+                entry = 0;
+
+                for (int l=0; l<embeddedBlocksize; l++)
+                  entry += direction[l] * partialDerivative[CoordinateType::size() + alpha*gridDim+beta][j*embeddedBlocksize+l];
+              }
+            }
+          }
+        }
+      }
+
+      ////////////////////////////////////////////////////////////////////
+      //  The second derivative of the finite element interpolation
+      ////////////////////////////////////////////////////////////////////
+
+      // From this, compute the Hessian with respect to the manifold (which we assume here is embedded
+      // isometrically in a Euclidean space.
+      // For the detailed explanation of the following see: Absil, Mahoney, Trumpf, "An extrinsic look
+      // at the Riemannian Hessian".
+
+      if (!doDerivative_)
+        return;
+
+      secondDerivative = 0;
+
+
+      //////////////////////////////////////////////////////////////////////////
+      //  The projection of the Euclidean first derivative of the finite element interpolation
+      //  onto the normal space of the unit sphere.
+      //////////////////////////////////////////////////////////////////////////
+
+      Matrix<double> normalFirstDerivative(embeddedFirstDerivative.N(), nDofs);
+
+      for (std::size_t j=0; j<nDofs; ++j)
+      {
+        // The space is a sphere.  Therefore the normal at a point x is x itself.
+        const auto& direction = localInterpolationRule_.coefficient(j).globalCoordinates();
+
+        // The interpolation value
+        if (doValue_)
+        {
+          for (size_t i=0; i<CoordinateType::size(); ++i)
+          {
+            // Alias name, for shorter notation
+            auto& entry = normalFirstDerivative[i][j];
+
+            entry = 0;
+
+            for (int l=0; l<embeddedBlocksize; l++)
+              entry += direction[l] * partialDerivative[i][j*embeddedBlocksize+l];
+          }
+        }
+
+        // The interpolation derivative with respect to space
+        if (doDerivative_)
+        {
+          for (size_t alpha=0; alpha<CoordinateType::size(); alpha++)
+          {
+            for (size_t beta=0; beta<gridDim; beta++)
+            {
+              // Alias name, for shorter notation
+              auto& entry = normalFirstDerivative[CoordinateType::size() + alpha*gridDim+beta][j];
+
+              entry = 0;
+
+              for (int l=0; l<embeddedBlocksize; l++)
+                entry += direction[l] * partialDerivative[CoordinateType::size() + alpha*gridDim+beta][j*embeddedBlocksize+l];
+            }
+          }
+        }
+      }
+
+      // Project Euclidean gradient onto the normal space
+      Matrix<FieldMatrix<double,1,embeddedBlocksize> > projectedGradient(embeddedFirstDerivative.N(),nDofs);
+
+      for (size_t i=0; i<embeddedFirstDerivative.N(); i++)
+        for (size_t j=0; j<nDofs; j++)
+          projectedGradient[i][j][0] = normalFirstDerivative[i][j] * localInterpolationRule_.coefficient(j).globalCoordinates();
+
+      //////////////////////////////////////////////////////////////////////////////////////
+      //  Further correction due to non-planar configuration space
+      //  + \mathfrak{A}_x(z,P^\orth_x \partial f)
+      //////////////////////////////////////////////////////////////////////////////////////
+
+      // The configuration space is a product of spheres.  Therefore the Weingarten map
+      // has only block-diagonal entries.
+      for (size_t row=0; row<nDofs; row++)
+      {
+        for (size_t subRow=0; subRow<blocksize; subRow++)
+        {
+          typename TargetSpace::EmbeddedTangentVector z = orthonormalFrames_[row][subRow];
+
+          for (size_t i=0; i<embeddedFirstDerivative.N(); i++)
+          {
+            auto tmp1 = localInterpolationRule_.coefficient(row).weingarten(z,projectedGradient[i][row][0]);
+
+            typename TargetSpace::TangentVector tmp2;
+            orthonormalFrames_[row].mv(tmp1,tmp2);
+
+            for (size_t subCol=0; subCol<blocksize; subCol++)
+              secondDerivative[row][row][subRow][subCol] += weights[i]* tmp2[subCol];
+          }
+        }
+      }
+    }
+  };
+
   /** \brief Compute derivatives of projection-based interpolation to UnitVector with respect to the coefficients
    *
    * This is the specialization of the InterpolationDerivatives class for the UnitVector target space
