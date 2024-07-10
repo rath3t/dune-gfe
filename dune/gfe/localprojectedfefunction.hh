@@ -241,8 +241,8 @@ namespace Dune {
      * \tparam ctype Type used for coordinates on the reference element
      * \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
      */
-    template <int dim, class ctype, class LocalFiniteElement, class field_type>
-    class LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> >
+    template <int dim, class ctype, class LocalFiniteElement, class field_type, bool conforming>
+    class LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3>,conforming>
     {
     public:
       typedef Rotation<field_type,3> TargetSpace;
@@ -455,6 +455,42 @@ namespace Dune {
             for (size_t i=0; i<3; i++)
               for (size_t j=0; j<3; j++)
                 result[dir0][dir1] += derivativeOfMatrixToQuaternion[dir0][i][j] * intermediateResult[dir1][i][j];
+
+        return result;
+      }
+
+      /** \brief Evaluate the value and the derivative of the interpolation function
+       *
+       * \return A std::pair containing the value and the first derivative of the interpolation function.
+       * If the interpolation is conforming then the first member of the pair will be a TargetSpace.
+       * Otherwise it will be a RealTuple.
+       */
+      auto evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+      {
+        // Construct the type of the result -- it depends on whether the interpolation
+        // is conforming or not.
+        using Value = std::conditional_t<conforming,TargetSpace,RealTuple<RT,embeddedDim> >;
+
+        std::pair<Value,DerivativeType> result;
+
+        // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
+        std::vector<Dune::FieldVector<ctype,1> > w;
+        localFiniteElement_.localBasis().evaluateFunction(local,w);
+
+        // Interpolate in R^{3x3}
+        FieldMatrix<field_type,3,3> interpolatedMatrix(0);
+        for (size_t i=0; i<coefficients_.size(); i++)
+        {
+          FieldMatrix<field_type,3,3> coefficientAsMatrix;
+          coefficients_[i].matrix(coefficientAsMatrix);
+          interpolatedMatrix.axpy(w[i][0], coefficientAsMatrix);
+        }
+
+        // Project back onto SO(3)
+        static_assert(conforming, "Nonconforming interpolation into SO(3) is not implemented!");
+        result.first.set(Dune::GFE::PolarDecomposition()(interpolatedMatrix));
+
+        result.second = evaluateDerivative(local, result.first);
 
         return result;
       }
