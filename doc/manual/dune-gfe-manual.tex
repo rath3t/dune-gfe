@@ -1,0 +1,849 @@
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage{amssymb, amsmath, amsthm}
+\usepackage{bbold}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{orcidlink}
+\usepackage{colonequals}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{mathrsfs}
+
+\usepackage{algorithm2e}
+
+% Bibliography settings
+%---------------------------
+\usepackage[style=ext-numeric,
+            maxbibnames=99,  % Never write 'et al.' in a bibliography
+            maxcitenames=99,  % Never write 'et al.' in a citation
+            giveninits=true, % Abbreviate first names
+            sortcites=true,  % Sort citations when there are more than one
+            backend=biber]{biblatex}
+\addbibresource{dune-gfe-manual.bib}
+
+% Transform certain titles to "sentence case".  Needs an ext- style.
+% See https://tex.stackexchange.com/questions/22980/sentence-case-for-titles-in-biblatex
+\DeclareFieldFormat
+[article,inbook,incollection,inproceedings,patent,thesis,unpublished]
+{titlecase:title}{\MakeSentenceCase*{#1}}
+
+% Put a thin space between two consecutive initials
+\renewrobustcmd*{\bibinitdelim}{\,}
+
+% Settings for the listings package
+%--------------------------------------
+
+\usepackage{listings}
+\lstset{language=[11]{c++},
+         basicstyle=\small\ttfamily,
+         commentstyle=\textit,
+         columns=flexible,keepspaces=true,
+         showstringspaces=false,      % no special string spaces
+         escapeinside={/*@}{@*/}
+        }
+
+% How to include ranges of an external source code file
+\lstset{rangeprefix=//\ \{\ ,% curly left brace plus space, all in a C++-style comment
+        rangesuffix=\ \},% space plus curly right brace
+        numberstyle=\footnotesize,  % font size for numbers
+        includerangemarker=false}  % Do not show the range markers
+
+\definecolor{interfacecolor}{rgb}{0.95,0.95,1}
+\definecolor{interfaceclasscolor}{rgb}{0.98,0.81,0.81}
+\definecolor{cmakecommandcolor}{rgb}{0.2,0.8,0.8}
+\lstdefinestyle{Example}{}
+\lstdefinestyle{Interface}{backgroundcolor=\color{interfacecolor},frame=single}
+\lstdefinestyle{InterfaceClass}{backgroundcolor=\color{interfaceclasscolor},frame=single}
+\lstdefinestyle{CMakeCommand}{backgroundcolor=\color{cmakecommandcolor},frame=single}
+
+\newcommand{\cpp}[1]{\lstinline[basicstyle=\ttfamily]!#1!}
+
+\lstnewenvironment{cppinterface}[1][]{\lstset{style=Interface}}{}
+\lstnewenvironment{cppinterfaceclass}[1][]{\lstset{style=InterfaceClass}}{}
+
+% For typesetting Dune module names
+\newcommand{\dunemodule}[1]{\texttt{#1}}
+
+%  Custom environments
+%---------------------------------
+
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+
+
+
+\usepackage{todonotes}
+\newcommand{\todosander}[1]{\todo[inline,color=white,author=OS,caption={}]{#1}}
+
+\usepackage{float}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+
+\usepackage{multirow}
+\usepackage{changes}
+\usepackage{hyperref}
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\N}{\mathbb N}
+
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+
+% Identity matrix
+\newcommand{\identity}{\mathbb{1}}
+\newcommand{\Tref}{{T_\textnormal{ref}}}
+
+
+\DeclareMathOperator{\dist}{dist}
+\DeclareMathOperator{\SOdrei}{SO(3)}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+%%  All graphics files may be in this subdirectory
+\graphicspath{{gfx/}}
+
+
+
+\title{The dune-gfe manual}
+\author{Oliver Sander}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ \dunemodule{dune-gfe} is a module in the \textsc{Dune} ecosystem that implements
+ various geometric finite element (GFE) methods.
+ This document collects miscellaneous technical information about the implementation.
+\end{abstract}
+
+\section{Geometric finite elements}
+
+Let $\Omega$ and $M$ be smooth manifolds.  Geometric finite elements provide approximations for maps
+$v : \Omega \to M$ by suitably generalizing piecewise polynomials.  For this,
+$\Omega$ is discretized by a grid $\mathcal{T}$ with elements $T$.
+These elements can be simplices, (hyper-)cubes, or more exotic shapes.
+For details about the construction of geometric finite elements see
+\cite{sander:2010,sander:2012,sander:2015,grohs_hardering_sander_sprecher:2019,hardering_sander:2020}.
+
+\subsection{Representation of target manifolds}
+\label{sec:representation_of_manifolds}
+
+Currently, the module assumes that $M$ is embedded into $\R^n$.  In other words,
+elements of $M$ are stored as points in $\R^n$. In the code, these coordinates
+are typically called \emph{global coordinates}, and they are available via the
+\cpp{globalCoordinates()} method. For tangent vectors there are two representations:
+One can either store tangent vectors as vectors in $\R^n$ as well.  In this case
+they are referred to as \emph{embedded} in the code. The fact that they must be
+tangent to $M \subset \R^n$ is then only implicitly assumed.  Alternatively,
+one can represent a tangent vector at $p \in M$ in the orthonormal basis of $T_p M$
+given by the \cpp{orthonormalFrame()} method.
+
+
+\subsection{Variational problems}
+
+So far, all problems studied using \dunemodule{dune-gfe} have been variational.
+By this we mean that the problem takes the form of an energy functional
+\begin{equation*}
+ J : H(\Omega;M) \to \R,
+\end{equation*}
+where $H(\Omega;M)$ is a suitable space of functions mapping $\Omega$ to $M$.
+Solutions $u$ of the problem are local minimizers of this functional.
+
+Typically, such variational GFE problems are described by an energy density
+\begin{equation*}
+ f : \Omega \times TM \to \R,
+\end{equation*}
+and the energy takes the form
+\begin{equation}
+\label{eq:integral_energy}
+ J(v)
+ \colonequals
+ \int_\Omega f(x, v(x), \nabla v(x))\,dx.
+\end{equation}
+(We disregard the case of densities depending on higher derivatives.)
+
+
+\section{Efficient assembly of the tangent problems}
+
+To minimize the functional $J$ in a GFE space requires first and second derivatives
+of the energy $J$.%
+%
+\footnote{Gradient-descent methods would require first derivatives only, but \dunemodule{dune-gfe}
+is geared towards second-order methods.}
+%
+The second derivative will be a sparse symmetric matrix
+(the \emph{Hesse} or \emph{tangent} matrix).  As in the case of classical
+finite elements, it can be assembled by considering the integral~\eqref{eq:integral_energy}
+element by element, and appropriately summing up the element-wise contributions.
+
+We now consider a single element $T$ of a grid of $\Omega$.
+A GFE discretization approximates $u$ on $T$ by a function $u_h : T \to M$
+that is constructed from interpolating a set of $m$ values $u_1,\dots,u_m \in M$
+to a function on $T$. In the following we write $u_h(u_1,\dots,u_m,\cdot)$ to denote
+the function obtained by interpolating the coefficients $u_1,\dots,u_m$, and
+$u_h(u_1,\dots,u_m,x)$ for the value of that function at $x \in T$. Similarly,
+we will write $\nabla u_h$ for the derivative of the interpolation function
+with respect to $x$. We can therefore consider the energy on $T$ as a
+function on $M^m$:
+\begin{align*}
+ E & \; : M^m \to \R
+ \\
+ E(u_1,\dots,u_m)
+ & \colonequals
+ \int_T f\big(x, u_h(u_1,\dots,u_m,x), \nabla u_h(u_1,\dots,u_m,x) \big)\,dx.
+\end{align*}
+As usual the integral is approximated by a quadrature rule.  We therefore replace it
+by the sum
+\begin{align}
+\label{eq:integral_energy_quadrature}
+ E(u_1,\dots,u_m)
+ \approx
+ \sum_{(\omega,x) \in Q} f\big(x, u_h(u_1,\dots,u_m,x), \nabla u_h(u_1,\dots,u_m,x) \big),
+\end{align}
+where $Q$ is a suitable quadrature rule with weights $\omega_1,\dots,\omega_{\abs{Q}} \in \R$
+and points $x_1,\dots,x_{\abs{Q}} \in T$.
+
+\subsection{Euclidean vs.\ Riemannian derivatives}
+
+For Newton-type methods one needs the gradient and Hessian of the functional $E$.
+However, as the energy $E$ is defined on a Riemannian manifold (the product manifold
+$M^m$), we need the Riemannian derivatives instead of the standard Euclidean ones
+\cite{absil}.
+
+Conceptually, computing the first and second Riemannian derivatives consists of two steps.
+Let first
+\begin{equation*}
+ \bar{E} : (\R^n)^m \to \R
+\end{equation*}
+be any smooth extension of $E$ from the manifold $M^m$ into the surrounding space $(\R^m)^n$,
+and let $\bar{\nabla} \bar{E}$ and $\bar{\nabla}^2 \bar{E}$ be the standard Euclidean
+gradient and Hesse matrix of $E$, respectively. It is well-known (see, e.g., \cite{})
+that the Riemannian gradient can be obtained from the Euclidean one by an orthogonal
+projection of $\bar{\nabla}\bar{E}$ onto the tangent space of $M^m$
+\begin{equation}
+\label{eq:gradient_riemannian_from_euclidean}
+ \nabla E(u_1,\dots,u_m)
+ =
+ \mathcal{P}_{(u_1,\dots,u_m)} \bar{\nabla}\bar{E}(u_1,\dots,u_m),
+\end{equation}
+where for any $(u_1,\dots,u_m) \in M^m$, $\mathcal{P}_{(u_1,\dots,u_m)}$ shall denote
+the orthogonal projection from $T_{(u_1,\dots,u_m)}(\R^m)^n$ onto $T_{(u_1,\dots,u_m)} M^m$.
+Since $M^m$ is a product manifold, the projection operator $\mathcal{P}_{(u_1,\dots,u_m)}$
+is actually a separate projection for each factor space $\mathcal{P}_{u_1}, \dots, \mathcal{P}_{u_m}$.
+
+In~\cite{absil_mahony_trumpf:2013}, \citeauthor{absil_mahony_trumpf:2013} showed a
+corresponding formula for computing the Riemannian Hessian from the Euclidean one
+\begin{align}
+\label{eq:hessian_riemannian_from_euclidean}
+ \operatorname{Hess} E(u_1,\dots,u_m)[z]
+ & =
+ \mathcal{P}_{(u_1,\dots,u_m)} \bar{\nabla}^2 \bar{E}(u_1,\dots,u_m) z
+ \\
+ \nonumber
+ & \quad
+ + \mathfrak{A}_{(u_1,\dots,u_m)}(z, \mathcal{P}^\perp_{(u_1,\dots,u_m)}).
+\end{align}
+Here $\mathfrak{A}_{(u_1,\dots,u_m)}$ is the Weingarten map of $M^m$ at $(u_1,\dots,u_m)$,
+which encodes information about the curvature of embedded submanifolds.
+\begin{definition}[Weingarten map]
+ The Weingarten map of the submanifold $M$ at $x$ is the operator $\mathfrak{A}_x$
+ that takes as arguments a tangent vector $z \in T_x M$ and a normal vector $v \in T^\perp_x M$
+ and returns the tangent vector $\mathfrak{A}_x (z, v) = -\mathcal{P}_xD_z V$,
+ where $V$ is any local extension of $v$ to a normal vector field on $M$.
+\end{definition}
+\todosander{Definition von $D_z$ fehlt.}
+\todosander{Show that this is always a symmetric matrix!}
+\todosander{Note: For this construction we need the \emph{embedded} gradient!}
+
+
+\subsection{Direct assembly of the Euclidean gradient and Hessian}
+\label{sec:direct_assembly}
+
+We first show how to compute the Euclidean gradient and Hesse matrix.
+The \dunemodule{dune-gfe} code always computes the two together, because
+computing them is expensive, and computing the second derivative almost
+always produces the first one as a by-product.
+The easiest way is to use ADOL-C to compute the tangent problems by feeding
+the entire quadrature loop~\eqref{eq:integral_energy_quadrature} as a
+single function, and have it
+compute the first and second derivatives using the \cpp{jacobian} and
+\cpp{hessian2} methods.%
+%
+\footnote{Always use ADOL-C's vector mode for the second derivatives.
+ It is much faster than scalar mode.}
+%
+This is implemented in the class \cpp{LocalGeodesicFEADOLCStiffness}.
+(along with the modifications of Chapter~\ref{sec:euclidean_to_riemannian} that turn
+the Euclidean derivatives into Riemannian ones.)
+It works, and has been used successfully for all my publications up and
+including \cite{nebel_sander_birsan_neff:2023}.
+
+\subsection{Computing Euclidean derivatives by separating the interpolation from the density}
+
+The approach of Chapter~\ref{sec:direct_assembly} is simple but slow.
+A part of the slowness is intrinsic: Due to the nonlinear nature of the
+GFE interpolation, and the fact that in many cases it cannot be given explicitly,
+deriving energies that involve such interpolations is an expensive task.
+Run-time can be saved, however, by differentiating the density $f$ and the interpolation function $u_h$
+separately. This is what the \cpp{LocalIntegralStiffness} class implements.
+Let
+\begin{equation*}
+ \bar{\nabla} \bar{E}(u_1,\dots,u_m) \in \R^{mn}
+\end{equation*}
+be the Euclidean gradient of $\bar{E}$ at $u_1, \dots, u_m \in \R^n$, and
+\begin{equation*}
+ \bar{\nabla}^2 \bar{E}(u_1,\dots,u_m) \in \R^{mn \times mn}
+\end{equation*}
+the corresponding Hesse matrix.  With the chain rule we get
+\begin{equation*}
+ \bar{\nabla} \bar{E}(u_1,\dots,u_m)
+ =
+ \sum_{(x,\omega) \in Q} \mathcal{J}^T_{u_h,x} \nabla f(x, u_h(x), \nabla u_h(x)).
+\end{equation*}
+Here,
+\begin{equation*}
+ \mathcal J_{u_h,x}
+ \colonequals
+ \begin{pmatrix}
+    \frac{\partial u_h(x)}{\partial u_1}, \dots \frac{\partial u_h(x)}{\partial u_m} \\
+    \frac{\partial \nabla u_h(x)}{\partial u_1},
+        \dots, \frac{\partial \nabla u_h(x)}{\partial u_m}
+ \end{pmatrix}
+ \in
+ \R^{(n+dn) \times mn}
+\end{equation*}
+is the Jacobi matrix of the GFE interpolation $(u_1,\dots, u_m) \mapsto (u_h(x), \nabla u_h(x))$
+for fixed $x \in T$, and
+\begin{equation*}
+ \nabla f(x, u_h(x), \nabla u_h(x))
+ \in
+ \R^{n+dn}
+\end{equation*}
+is the derivative of the density with respect to the second and third argument.
+
+To understand the sizes of these objects, note that a pair $(u_h(x),\nabla u_h(x))$
+can be interpreted as a vector in $\R^n \times \R^{dn} \simeq \R^{n+dn}$
+(with $d = \dim \Omega$), and the tuple of coefficients $u_1,\dots,u_m$
+can be interpreted as a vector in $\R^{mn}$.
+
+Likewise, for the second derivative of $E$ we get
+\begin{align*}
+ \bar{\nabla}^2 \bar{E}(u_1,\dots,u_m)
+ & =
+ \sum_{(x,\omega) \in Q} \mathcal J_{u_h,x}^T \nabla^2 f(x,u_h(x),\nabla u_h(x)) \mathcal{J}_{u_h,x}
+ \\
+ %
+ & \qquad \qquad +
+ \sum_{(x,\omega) \in Q} \nabla f(x,u_h(x),\nabla u_h(x)) \mathcal H_{u_h,x}.
+\end{align*}
+where
+\begin{align*}
+ (\mathcal{H}_{u_h,x})_{ijk}
+ \colonequals
+ \frac{\partial^2 (u_h(x))_i}{\partial (u_{j/n})_{j \operatorname{mod} n} \partial (u_{k/n})_{k \operatorname{mod} n}}
+ \qquad
+ i = 1,\dots,n
+ \qquad
+ j,k = 1, \dots, mn
+ \shortintertext{and}
+ (\mathcal{H}_{u_h,x})_{ijk}
+ \colonequals
+ \frac{\partial^2 (\nabla u_h(x))_i}{\partial (u_{j/n})_{j \operatorname{mod} n} \partial (u_{k/n})_{k \operatorname{mod} n}}
+ \qquad
+ i = n+1,\dots,n+dn
+ \quad
+ j,k = 1, \dots, mn
+\end{align*}
+The product of the vector $\nabla f$ and the three-indices-object $\mathcal H_{u_h,x}$
+is to be interpreted as a contraction with respect to the first index of $\mathcal H_{u_h,x}$:
+\begin{equation*}
+ (\nabla f \mathcal H_{u_h,x})_{jk}
+ \colonequals
+ \sum_{i=1}^{n+dn}
+ (\nabla f)_i (\mathcal H_{u_h,x})_{ijk}
+ \in
+ \R^{mn \times mn}.
+\end{equation*}
+
+In this representation, the derivatives of $f$ and of $u_h$ are separated and
+can be computed separately. When done right this saves quite a bit of run-time.
+
+\subsection{From Euclidean to Riemannian derivatives}
+\label{sec:euclidean_to_riemannian}
+
+In the second step the Euclidean gradient and Hessian are modified according to
+\eqref{eq:gradient_riemannian_from_euclidean} and~\eqref{eq:hessian_riemannian_from_euclidean},
+respectively, to obtain the Riemannian counterparts.
+Calling this a second step is a conceptual distinction, because the code
+does not actually compute the Euclidean Hessian before modifying it.
+\todosander{Explain why!}
+For the gradient, this modification is simply the multiplication from the left
+with the projection operator $\mathcal{P}$. In practice, two things happen:
+Applying the projection operator to a vector in $T_x M \simeq \R^n$ produces a
+vector that is tangent to $M$, but still represented as a vector in $\R^n$
+(in \dunemodule{dune-gfe} parlance: an embedded tangent vector,
+see Chapter~\ref{sec:representation_of_manifolds}).
+
+\todosander{Den Rest schreiben!}
+
+\subsection{Computing the derivatives $\mathcal{H}$ and $\mathcal{H}$ of the geometric interpolation}
+
+\begin{remark}
+ $\mathcal H$ is an object with three indices, which is potentially memory- and
+ time-consuming to compute and store.  Note, however, that what is needed is not
+ $\mathcal H$ itself but its contraction with the vector $\nabla f(x,u_h(x),\nabla u_h(x))$.
+ AD systems that implement reverse-mode AD (such as ADOL-C) can compute this
+ contracted second derivative directly (in fact, such contractions is all they can compute).
+ The vector to contract with is called \emph{adjoint} in AD parlance.
+ (Specifically, \dunemodule{dune-gfe} uses the \texttt{hos\_ov\_reverse} method).
+ No full third-order object is ever computed.
+\end{remark}
+
+\begin{remark}
+ If the target manifold $M$ happens to be the Euclidean space, then
+ \begin{equation*}
+  u_h(x) = \sum_i u_i \varphi_i(x)
+ \end{equation*}
+ for a set of shape functions $\varphi_i$.  While Euclidean spaces by themselves
+ are not interesting in a GFE context, they do appear frequently as factors in
+ larger spaces (e.g., Cosserat problems typically use $M = \R^3 \times SO(3)$.
+
+ \todosander{Hier nur den skalaren Fall erklären?  Besser nicht...}
+ Consequently, in that case
+ \begin{align*}
+  \mathcal{J} = \Big( \varphi_1(x), \dots, \varphi_m(x), \nabla \varphi_1(x), \dots \nabla \varphi_m(x)\Big)
+ \end{align*}
+ and
+ \begin{equation*}
+  \mathcal{H} = 0.
+ \end{equation*}
+ The method that computes $\mathcal J$ and $\mathcal H$ is therefore specialized
+ for this case, and hand-codes these expressions.  In my experience, the time gained
+ by not using AD for this case is rather small, though.
+\end{remark}
+
+\begin{remark}
+ If $M$ is a product space, then $\mathcal J$ and $\mathcal H$ are block diagonal.
+ This must be exploited by the implementation.
+\end{remark}
+
+\begin{remark}
+ Besides the trivial case $M = \R^n$, the computation of $\mathcal J$ and $\mathcal H$
+ can also be hand-implemented for other cases.  One example is projection-based
+ interpolation for the spheres $M = S^{n-1}$.
+\end{remark}
+
+
+\section{The derivatives of projection-based interpolation in the sphere}
+
+For the projection-based interpolation mapping into the unit sphere, the derivatives
+required by the geometric finite element method can be computed by hand
+with reasonable effort. The \dunemodule{dune-gfe} module contains these hand-coded
+derivatives because they are faster than computing the derivatives with ADOL-C.
+
+We document here the expressions for the derivatives. They are implemented in the file
+\texttt{interpolationderivatives.hh}, in a specialization of the class
+\cpp{InterpolationDerivatives}.
+
+Let $\varphi_i : T \to \R$ be a set of weight functions that sum up to~$1$
+everywhere, and let $v_1,\dots,v_m \in S^{n-1} \subset \R^n$ be values
+on the unit sphere.  Recall that the projection-based interpolation at
+a point $\xi \in T$ is
+\begin{equation*}
+ I(v_1,\dots,v_m;\xi)
+ \colonequals
+ P(\omega(\xi)),
+\end{equation*}
+where
+\begin{equation*}
+ \omega(\xi) \colonequals \sum_{i=1}^m \varphi_i(\xi)v_i
+\end{equation*}
+is the Euclidean interpolation between the values $v_1,\dots,v_m$, and
+\begin{equation*}
+ P : \R^n \to S^{n-1}
+ \qquad
+ P(x) \colonequals \frac{x}{\abs{x}}
+\end{equation*}
+is the radial projection onto the unit sphere.
+
+\begin{remark}
+ While this is the definition of projection-based interpolation as given in articles
+ such as~\cite{grohs_hardering_sander_sprecher:2019} and \cite{hardering_sander:2020},
+ the code currently implements something subtly different.  Specifically, the
+ copy constructor and assignment operators of \texttt{UnitVector} project their
+ arguments to $S^{n-1}$, which changes the definition of $\omega(\xi)$ given above to
+ \begin{equation*}
+  \omega(\xi)
+  \colonequals
+  \sum_{i=1}^m \varphi_i(\xi) \frac{v_i}{\abs{v_i}}.
+ \end{equation*}
+ While this does not change the value of the projection-based interpolation as long as
+ the input values $v_1,\dots,v_m$ really do have unit length, the chain rule makes
+ additional terms appear in the derivative.
+
+ I am not actually convinced that having the copy constructor and assignment perform
+ a projection is a good idea, and I may change this in the future.
+\end{remark}
+
+
+\subsection{Derivatives of the projection onto the sphere}
+
+By the chain rule, derivatives of $I$ involve derivatives of the projection operator~$P$.
+We therefore start by computing these derivatives.
+
+Before starting, note that for any $N \in \mathbb{Z}$ and $j=1,\dots,n$
+\begin{equation*}
+ \frac{\partial}{\partial x_j} \abs{x}^N
+ =
+ \frac{\partial}{\partial x_j} \Big( \sum_k x_k^2 \Big)^{\frac{N}{2}}
+ =
+ \frac{N}{2} \abs{x}^{N-2} \sum_k \frac{\partial}{\partial x_j} x_k^2
+ =
+ N x_j \abs{x}^{N-2}.
+\end{equation*}
+
+\subsubsection{Partial derivatives}
+
+The partial derivatives do not actually appear in the implementation, but they are
+an instructive intermediate step.
+
+\paragraph{First derivatives}
+
+The Jacobian of $P$ is the matrix
+ \begin{equation*}
+  (\nabla P)_{ij}
+  =
+  \frac{\partial}{\partial x_j} \frac{x_i}{\abs{x}}
+  =
+  \frac{\frac{\partial x_i}{\partial x_j}\abs{x} - x_i \frac{\partial}{\partial x_j} \abs{x}}{\abs{x}^2}
+  =
+  \delta_{ij} \frac{1}{\abs{x}} - \frac{x_i x_j}{\abs{x}^3}.
+ \end{equation*}
+
+\paragraph{Second derivatives}
+The second derivative is the third-order tensor
+\begin{align*}
+ (\nabla^2 P)_{ijk}
+ & =
+ \frac{\partial}{\partial x_j \partial x_k} \frac{x_i}{\abs{x}}
+ \\
+ & =
+ \frac{\partial}{\partial x_k} \Big[ \frac{\delta_{ij}}{\abs{x}} - \frac{x_i x_j}{\abs{x}^3} \Big]
+ \\
+ & =
+ \delta_{ij} \frac{\partial}{\partial x_k} \frac{1}{\abs{x}}
+   - \frac{\partial}{\partial x_k}\Big( x_i x_j \frac{1}{\abs{x}^3} \Big)
+ \\
+ & =
+ -\delta_{ij} \frac{x_k}{\abs{x}^3} - \delta_{ik} x_j \frac{1}{\abs{x}^3}
+   - \delta_{jk} x_i \frac{1}{\abs{x}^3} + 3 x_i x_j \frac{x_k}{\abs{x}^5}
+ \\
+ & =
+ - \Big( \delta_{ij}x_k + \delta_{ik}x_j + \delta_{jk}x_i\Big) \frac{1}{\abs{x}^3}
+ + 3 \frac{x_i x_j x_k}{\abs{x}^5}.
+\end{align*}
+
+
+\paragraph{Third derivatives}
+
+The third derivative is a fourth-order object
+\begin{align*}
+ (\nabla^3 P)_{ijkl}
+ & =
+ \frac{\partial}{\partial x_l}
+ \bigg[ - \Big( \delta_{ij}x_k + \delta_{ik}x_j + \delta_{jk}x_i\Big) \frac{1}{\abs{x}^3}
+ + 3 \frac{x_i x_j x_k}{\abs{x}^5} \bigg]
+ \\
+ & =
+ (-\delta_{ij}\delta_{kl} - \delta_{ik}\delta_{jl} - \delta_{jk} \delta_{il}) \frac{1}{\abs{x}^3}
+ + (-\delta_{ij}x_k - \delta_{ik}x_j - \delta_{jk}x_i)(-3)\frac{x_l}{\abs{x}^5}
+ \\
+ & \qquad
+ + 3\Big(\frac{\delta_{il} x_j x_k}{\abs{x}^5} + \frac{\delta_{jl} x_i x_k}{\abs{x}^5}
+   + \frac{\delta_{kl} x_i x_j}{\abs{x}^5} + x_i x_j x_k (-5) \frac{x_l}{\abs{x}^7} \Big)
+ \\
+ & =
+ (\delta_{ij}\delta_{kl} + \delta_{ik}\delta_{jl} + \delta_{jk} \delta_{il}) \frac{-1}{\abs{x}^3}
+ \\
+ & \qquad
+ + \frac{3}{\abs{x}^5} \Big[ \delta_{ij}x_k x_l + \delta_{ik}x_jx_l + \delta_{jk}x_ix_l
+   + \delta_{il} x_j x_k + \delta_{jl} x_i x_k + \delta_{kl}x_i x_j \Big]
+ \\
+ & \qquad
+ + x_i x_j x_k x_l \frac{-15}{\abs{x}^7}.
+\end{align*}
+
+\subsubsection{Directional derivatives and contractions}
+
+As can be seen below, the final derivative formulas use the derivatives of $P$
+by contracting it with different vectors.  These contractions can be computed
+relatively cheaply, because the derivatives of $P$ consist only of diagonal
+and low-rank terms.
+
+\paragraph{First derivative}
+
+Let $w \in \R^n$ be an adjoint vector and $\delta^1 \in \R^n$ a direction.  Then
+(with Einstein summation)
+\begin{equation*}
+ \nabla P[w,\delta^1]
+ =
+ (\nabla P)_{ij} w_i \delta^1_j
+ =
+ \frac{\langle w,\delta^1\rangle}{\abs{x}} - \frac{\langle w,x\rangle \langle \delta^1,x\rangle}{\abs{x}^3}.
+\end{equation*}
+
+\paragraph{Second derivative}
+
+Let $w \in \R^n$ be an adjoint vector, and $\delta^1, \delta^2 \in \R^n$ directions.
+Then
+\begin{align*}
+ \nabla^2P[w,\delta^1,\delta^2]
+ & =
+ (\nabla^2 P)_{ijk} w_i \delta^1_j \delta^2_k
+ \\
+ & =
+ \big(\langle w, \delta^1 \rangle \langle x,\delta^2 \rangle
+    + \langle w, \delta^2 \rangle \langle x,\delta^1 \rangle
+    + \langle \delta^1, \delta^2\rangle \langle w,x \rangle \big)\frac{-1}{\abs{x}}
+ + 3\langle w,x \rangle \langle \delta^1,x \rangle \langle \delta^2,x \rangle \frac{3}{\abs{x}^5}.
+\end{align*}
+
+
+TODO: WIRD DIE FOLGENDE GEMISCHTE VARIANTE EVENTUELL GEBRAUCHT?
+\begin{align*}
+ (w \nabla^2 P)_{jk}
+ & =
+ \sum_{i=1}^n w_i (\nabla^2 P)_{ijk}
+ \\
+ & =
+ w_i\bigg[- \Big( \delta_{ij}x_k + \delta_{ik}x_j + \delta_{jk}x_i\Big) \frac{1}{\abs{x}^3}
+ + 3 \frac{x_i x_j x_k}{\abs{x}^5} \bigg]
+ \\
+ & =
+ \big( - w_j x_k - w_kx_j - \langle w,x\rangle \delta_{jk}\big)\frac{1}{\abs{x}}
+ + 3\langle w,x \rangle \frac{x_j x_k}{\abs{x}^5}.
+\end{align*}
+
+\paragraph{Third derivative}
+
+Let $w \in \R^n$ be an adjoint vector, and $\delta^1, \delta^2, \delta^3 \in \R^n$ directions.
+Then
+\begin{align*}
+ \nabla^3P[w,\delta^1,\delta^2,\delta^3]
+ & =
+ (\nabla^3 P)_{ijkl} w_i \delta^1_j \delta^2_k \delta^3_l
+ \\
+ & =
+ \big(\langle w, \delta^1 \rangle \langle \delta^2,\delta^3 \rangle
+    + \langle w, \delta^2 \rangle \langle \delta^1,\delta^3 \rangle
+    + \langle w, \delta^3 \rangle \langle \delta^1,\delta^2 \rangle \big)
+    \frac{-1}{\abs{x}^3}
+ \\
+ & \qquad
+ \Big( \langle w,\delta^1 \rangle \langle x, \delta^2 \rangle \langle x, \delta^3 \rangle
+  + \langle w,\delta^2 \rangle \langle w, \delta^2 \rangle \langle w, \delta^3 \rangle
+  + \langle \delta^1,\delta^2 \rangle \langle x, w \rangle \langle x, \delta^3 \rangle
+  \\
+ & \qquad
+  + \langle w,\delta^3 \rangle \langle x, \delta^2 \rangle \langle x, \delta^1 \rangle
+  + \langle \delta^1,\delta^3 \rangle \langle w, x \rangle \langle x, \delta^2 \rangle
+  + \langle \delta^2,\delta^3 \rangle \langle w, x \rangle \langle x, \delta^1 \rangle \Big)
+ \frac{3}{\abs{x}^5}
+ \\
+  & \qquad
+ \langle w,x \rangle \langle \delta^1,x \rangle \langle \delta^2,x \rangle \langle \delta^3,x \rangle
+ \frac{-15}{\abs{x}^7}.
+\end{align*}
+
+Actually we know that at least some of the directions are orthogonal, but this is not
+currently used by the code.
+
+TODO: WIRD DIE FOLGENDE GEMISCHTE VARIANTE EVENTUELL GEBRAUCHT?
+The contraction with a vector $w \in \R^n$ is
+\begin{align*}
+ w_i (\nabla^3 P)_{ijkl}
+ & =
+ \big( w_j \delta_{kl} + w_k \delta_{jl} + w_l \delta_{jk} \big) \frac{-1}{\abs{x}^3}
+ \\
+ & \quad
+ + \frac{3}{\abs{x}^5}
+ \Big[ w_j x_k x_l + w_k x_j x_l + \langle w,x \rangle x_l \delta_{jk} + w_l x_j x_k
+    + \langle w,x \rangle \delta_{jl} x_k + \langle w,x \rangle \delta_{kl} x_j \Big]
+ \\
+ & \quad
+ - \frac{15}{\abs{x}^7} \langle w,x \rangle x_j x_k x_l.
+\end{align*}
+
+
+
+\subsection{Derivatives of the interpolation value}
+
+We now compute the derivatives of
+\begin{equation*}
+ I(v_1,\dots,v_m; \xi)
+ =
+ P(\omega(\xi))
+ =
+ P\Big(\sum_{i=1}^m v_i \varphi_i(\xi)\Big)
+\end{equation*}
+with respect to the coefficients $v_j$, for fixed $\xi$.
+
+\subsubsection{Partial derivatives}
+
+We begin with partial derivatives.  Interpret the $k$-th coefficient $v_k$
+as a vector in $\R^n$.
+
+Then the partial derivative is a third-order object: We compute the first derivative
+of the $\alpha$-th component of the vector $P(\omega) \in S^{n-1} \subset \R^n$
+with respect to the $l$-th component of the $k$-th data point $v_k$
+\begin{align*}
+ \frac{\partial}{\partial v_k^l} \big( P (v) \big)_\alpha
+ & =
+ \frac{\partial P(v)_\alpha}{\partial v^m} \cdot \frac{\partial v^m}{\partial v_k^l}
+ \\
+ & =
+ (\nabla P(v))_{\alpha m} \cdot \frac{\partial v^m}{\partial v_k^l}
+ \\
+ & =
+ (\nabla P(v))_{\alpha m} \cdot \delta_{ml} \varphi_k
+ =
+ (\nabla P(v))_{\alpha l} \varphi_k.
+\end{align*}
+
+The code numbers all coefficient components $v_{1,1},\dots,v_{m,n}$ with a single
+flat index. Therefore, as a data structure the derivative is a matrix
+with $n$ rows and $mn$ columns.
+
+\bigskip
+
+The second derivative is
+\begin{equation*}
+ \frac{\partial^2}{\partial v_j \partial v_k} I(v_1,\dots,v_m;\xi)
+ =
+ \frac{\partial}{\partial v_k} \nabla P(v) \varphi_j (\xi)
+ =
+ \varphi_k \nabla^2 P(v) \varphi_j.
+\end{equation*}
+In index notation, this is an object with five indices
+\begin{equation*}
+ \frac{\partial}{\partial v_\gamma^\delta} \frac{\partial}{\partial v_k^l} \big(P(v)\big)_\alpha
+ =
+ \frac{\partial}{\partial v_\gamma^\delta} \Big[ (\nabla P)_{\alpha l} \varphi_k \Big]
+ =
+ (\nabla^2 P)_{\alpha l \delta} \varphi_k \varphi_\gamma.
+\end{equation*}
+
+
+
+\subsection{Derivatives of the derivative with respect to $\xi$}
+
+\begin{equation*}
+ \nabla I(v;\xi)
+ =
+ \frac{\partial}{\partial \xi} I(v;\xi)
+ =
+ \nabla P(v) \sum_{i=1}^m v_i \nabla \varphi_i
+ =
+ \nabla P(v) \nabla v.
+\end{equation*}
+This is a matrix with entries
+\begin{align*}
+ (\nabla I)_{\alpha \beta}
+ & =
+ \frac{\partial \big(P(v)\big)_\alpha}{\partial \xi_\beta}
+ \\
+ & =
+ \frac{\partial P(v)_\alpha}{\partial v^m} \cdot \frac{\partial v^m}{\partial \xi_\beta}
+ \\
+ & =
+ \frac{\partial P(v)_\alpha}{\partial v^m} \cdot \frac{\partial \sum_i v_i^m \varphi_i(\xi)}{\partial \xi_\beta}
+ \\
+ & =
+ \frac{\partial P(v)_\alpha}{\partial v^m} \cdot \sum_i v_i^m \frac{\partial \varphi_i(\xi)}{\partial \xi_\beta}
+\end{align*}
+
+
+
+The first derivative of this with respect to a coefficients is
+\begin{equation*}
+ \frac{\partial^2}{\partial \xi \partial v_j} I(v_1,\dots,v_m;\xi)
+ =
+ \frac{\partial}{\partial v_j} \Big[ \nabla P(v) \sum_{i=1}^m v_i \nabla \varphi_i \Big]
+ =
+ \varphi_j \nabla^2P(v) \sum_{i=1}^m v_i \nabla \varphi_i + \nabla P(v) \nabla \varphi_j
+\end{equation*}
+
+In coefficients:
+\begin{align*}
+ \frac{\partial^2 I}{\partial \xi_\beta \partial_i^j}
+ & =
+ \frac{\partial}{\partial v_i^j} \Big[ (\nabla P(v))_{\alpha m} \cdot (\nabla v^m)_\beta \Big]
+ \\
+ & =
+ \Big( \frac{\partial}{\partial v_i^j} (\nabla P(v))_{\alpha m} \Big) \cdot (\nabla v^m)_\beta
+ +
+ (\nabla P(v))_{\alpha m} \cdot \Big( \frac{\partial}{\partial v_i^j} (\nabla v^m)_\beta \Big)
+ \\
+ & =
+ \big( \nabla^2 P(v) \big)_{\alpha m j} \cdot \varphi_i \cdot ( \nabla v^m)_\beta
+ +
+ (\nabla P(v))_{\alpha m} \cdot \delta_{jm} (\nabla \varphi_i)\beta
+ \\
+ & =
+ \big( \nabla^2 P(v) \big)_{\alpha m j} \cdot \varphi_i \cdot ( \nabla v^m)_\beta
+ +
+ (\nabla P(v))_{\alpha j} \cdot (\nabla \varphi_i)\beta.
+\end{align*}
+
+
+The second derivative is
+\begin{align*}
+ \frac{\partial^3}{\partial \xi \partial v_j \partial v_k} I(v_1,\dots,v_m;\xi)
+ & =
+ \frac{\partial}{\partial v_k} \Big[ \varphi_j \nabla^2P(v) \sum_{i=1}^m v_i \nabla \varphi_i + \nabla P(v) \nabla \varphi_j \Big] \\
+ & =
+ \varphi_j \nabla^3 P(v) \varphi_k \nabla v + \varphi_k \nabla^2 P(v) \nabla \varphi_k + \nabla^2P(v) \varphi_k \nabla \varphi_j.
+\end{align*}
+
+In coefficients:
+
+\begin{align*}
+ \frac{\partial^3 I_\alpha}{\partial \xi_\beta \partial v_i^j \partial v_k^l}
+ & =
+ \frac{\partial}{\partial v_k^l} \Big[ \big(\nabla^2 P(v)\big)_{amj} \varphi_i \Big] \cdot (\nabla v^m)_\beta
+ \\
+ & \qquad
+ + \big(\nabla^2 P(v)\big)_{\alpha m j} \varphi_i \frac{\partial}{\partial v_k^l} (\nabla v^m)_\beta
+ \\
+ & \qquad
+ + \frac{\partial}{\partial v_k^l} \Big[ \big(\nabla P(v)\big)_{\alpha m} \Big]
+  \cdot \delta_{jm} \cdot (\nabla \varphi_i)_\beta
+ \\
+ & =
+ \big(\nabla^3 P(v) \big)_{\alpha m j l} \varphi_i \varphi_k \cdot \frac{\partial v^m}{\partial \xi_\beta}
+ \\
+ & \qquad
+ + \big(\nabla^2 P(v) \big)_{\alpha m j} \varphi_i \cdot \delta_{ml} \frac{\partial \varphi_k}{\partial \xi_\beta}
+ + \big(\nabla^2 P(v) \big)_{\alpha m l} \varphi_k \cdot \delta_{mj} \frac{\partial \varphi_i}{\partial \xi_\beta}
+ \\
+ & =
+ \big(\nabla^3 P(v) \big)_{\alpha m j l} \varphi_i \varphi_k \cdot \frac{\partial v^m}{\partial \xi_\beta}
+ + \big(\nabla^2 P(v) \big)_{\alpha j l}
+ \Big [\varphi_i \cdot \frac{\partial \varphi_k}{\partial \xi_\beta}
+ + \varphi_k \cdot \frac{\partial \varphi_i}{\partial \xi_\beta} \Big]
+\end{align*}
+
+
+
+
+\printbibliography
+
+\end{document}

@@ -4,9 +4,11 @@ set(TESTS
   cosseratrodenergytest
   cosseratrodtest
   embeddedglobalgfefunctiontest
+  interpolationderivativestest
   localadolcstiffnesstest
   localgeodesicfefunctiontest
   localgfetestfunctiontest
+  localintegralstiffnesstest
   localprojectedfefunctiontest
   orthogonalmatrixtest
   polardecompositiontest

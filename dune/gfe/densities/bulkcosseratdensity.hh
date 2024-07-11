@@ -25,6 +25,9 @@ namespace Dune::GFE {
     static const int gridDim = Position::size();
     static const int embeddedDim = Rotation<field_type,gridDim>::embeddedDim;
 
+    // The target space with 'adouble' as the number type
+    using ATargetSpace = GFE::ProductManifold<RealTuple<adouble,3>,Rotation<adouble,3> >;
+
     static FieldMatrix<field_type,gridDim,gridDim> curl(const Tensor3<field_type,gridDim,gridDim,gridDim>& DR)
     {
       FieldMatrix<field_type,gridDim,gridDim> result;
@@ -62,6 +65,12 @@ namespace Dune::GFE {
       b2_ = parameters.template get<double>("b2");
       b3_ = parameters.template get<double>("b3");
     }
+
+    /** \brief Constructor with a set of material parameters
+     */
+    BulkCosseratDensity(double mu, double lambda, double mu_c, double L_c, double q, const std::array<double,3>& b)
+      : mu_(mu), lambda_(lambda), mu_c_(mu_c), L_c_(L_c), q_(q), b1_(b[0]), b2_(b[1]), b3_(b[2])
+    {}
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
      * the first equation of (4.4) in Neff's paper from 2006: A geometrically exact planar Cosserat shell model with microstructure: Existence of minimizers for zero Cosserat couple modulus
@@ -163,6 +172,12 @@ namespace Dune::GFE {
     #endif
 
       return strainEnergyDensity;
+    }
+
+    // Construct a copy of this density but using 'adouble' as the number type
+    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    {
+      return std::make_unique<BulkCosseratDensity<Position,adouble> >(mu_, lambda_, mu_c_, L_c_, q_, std::array<double,3>{b1_, b2_, b3_});
     }
 
     /** \brief The density depends on the microrotation value, but not on the deformation

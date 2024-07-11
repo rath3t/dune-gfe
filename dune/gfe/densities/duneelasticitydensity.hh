@@ -26,12 +26,20 @@ namespace Dune::GFE
     constexpr static auto dim = Position::size();
     constexpr static auto embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
+    using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
+
   public:
 
     /** \brief Constructor with a Dune::Elasticity::LocalDensity
      */
     DuneElasticityDensity(const std::shared_ptr<Elasticity::LocalDensity<dim,field_type,ctype> >& elasticityDensity)
       : elasticityDensity_(elasticityDensity)
+    {}
+
+    /** \brief Constructor with a Dune::Elasticity::LocalDensity
+     */
+    DuneElasticityDensity(std::unique_ptr<Elasticity::LocalDensity<dim,field_type,ctype> >&& elasticityDensity)
+      : elasticityDensity_(std::shared_ptr<Elasticity::LocalDensity<dim,field_type,ctype> >(elasticityDensity.release()))
     {}
 
     /** \brief Evaluate the density
@@ -56,13 +64,23 @@ namespace Dune::GFE
       return (*elasticityDensity_)(x, factorDerivative);
     }
 
-    /** \brief The density depends on the value */
+    // Construct a copy of this density but using 'adouble' as the number type
+    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    {
+      // The active dune-elasticity density
+      auto activeDensity = elasticityDensity_->makeActiveDensity();
+
+      // Wrap it as a dune-gfe density
+      return std::make_unique<DuneElasticityDensity<Position,ATargetSpace,index> >(std::move(activeDensity));
+    }
+
+    /** \brief The density does not depend on the value */
     virtual bool dependsOnValue([[maybe_unused]] int factor=-1) const override
     {
       return false;
     }
 
-    /** \brief The density does not depend on the derivative */
+    /** \brief The density does depend on the derivative */
     virtual bool dependsOnDerivative([[maybe_unused]] int factor=-1) const override
     {
       return factor==-1 || factor==index;

@@ -11,6 +11,7 @@ install(FILES
         gfedifferencenormsquared.hh
         globalgfefunction.hh
         gramschmidtsolver.hh
+        interpolationderivatives.hh
         linearalgebra.hh
         localgeodesicfefunction.hh
         localgfetestfunctionbasis.hh

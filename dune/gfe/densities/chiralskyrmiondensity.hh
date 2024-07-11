@@ -1,6 +1,8 @@
 #ifndef DUNE_GFE_DENSITIES_CHIRALSKYRMIONDENSITY_HH
 #define DUNE_GFE_DENSITIES_CHIRALSKYRMIONDENSITY_HH
 
+#include <adolc/adouble.h>
+
 #include <dune/common/fmatrix.hh>
 #include <dune/common/parametertree.hh>
 
@@ -22,6 +24,8 @@ namespace Dune::GFE
     using TargetSpace = UnitVector<field_type,3>;
     using Derivative = FieldMatrix<field_type, TargetSpace::embeddedDim, Position::size()>;
 
+    using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
+
   public:
 
     ChiralSkyrmionDensity(const Dune::ParameterTree& parameters)
@@ -29,6 +33,10 @@ namespace Dune::GFE
       h_     = parameters.template get<double>("h");
       kappa_ = parameters.template get<double>("kappa");
     }
+
+    ChiralSkyrmionDensity(double h, double kappa)
+      : h_(h), kappa_(kappa)
+    {}
 
     //! Dimension of a tangent space
     constexpr static int blocksize = TargetSpace::TangentVector::dimension;
@@ -66,6 +74,12 @@ namespace Dune::GFE
       density += 0.5 * h_ * v.two_norm2();
 
       return density;
+    }
+
+    // Construct a copy of this density but using 'adouble' as the number type
+    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    {
+      return std::make_unique<ChiralSkyrmionDensity<Position,adouble> >(h_, kappa_);
     }
 
     /** \brief The density depends on the value */

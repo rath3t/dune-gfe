@@ -1,0 +1,20 @@
+*.aux
+*.log
+*.gz
+*.toc
+*.out
+*.upa
+*.bcf
+*.run.xml
+*.bbl
+*.blg
+*.sublime-*
+*.tdo
+*.upb
+*.fdb_latexmk
+*.fls
+*.loc
+*.soc
+
+# Final documents
+dune-gfe-manual.pdf

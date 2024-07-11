@@ -28,11 +28,15 @@ class LocalGfeTestFunctionBasis;
    \tparam dim Dimension of the reference element
    \tparam ctype Type used for coordinates on the reference element
    \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
-   \tparam TargetSpace The manifold that the function takes its values in
+   \tparam TS TargetSpace: The manifold that the function takes its values in
  */
-template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
+template <int dim, class ctype, class LocalFiniteElement, class TS>
 class LocalGeodesicFEFunction
 {
+public:
+  using TargetSpace = TS;
+
+private:
   typedef typename TargetSpace::ctype RT;
 
   typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
@@ -78,6 +82,21 @@ public:
   Dune::GeometryType type() const
   {
     return localFiniteElement_.type();
+  }
+
+  /** \brief The scalar finite element used as the interpolation weights
+   *
+   * \note This method was added for InterpolationDerivatives, which needs it
+   * to construct a copy of a LocalGeodesicFEFunction with ADOL-C's adouble
+   * number type.  This is not optimal, because the localFiniteElement
+   * really is an implementation detail of LocalGeodesicFEFunction and
+   * should not be needed just to copy an entire object.  Other non-Euclidean
+   * interpolation rules may not have such a finite element at all.
+   * Therefore, this method may disappear again eventually.
+   */
+  const LocalFiniteElement& localFiniteElement() const
+  {
+    return localFiniteElement_;
   }
 
   /** \brief Evaluate the function */
@@ -567,7 +586,7 @@ evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>
 }
 
 
-/** \brief A function defined by simplicial geodesic interpolation
+/** \brief A function defined by geodesic interpolation
            from the reference element to a ProductManifold<RealTuple,Rotation>.
 
    This is a specialization for speeding up the code.
