@@ -285,7 +285,7 @@ void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,
   //   Trust-Region Solver
   // /////////////////////////////////////////////////////
 
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
 
   double oldEnergy = assembler_->computeEnergy(x_[_0], x_[_1]);
   oldEnergy = mpiHelper.getCommunication().sum(oldEnergy);

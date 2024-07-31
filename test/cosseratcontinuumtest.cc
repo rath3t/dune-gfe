@@ -83,7 +83,7 @@ int main (int argc, char *argv[])
   // ///////////////////////////////////////////
   //  Construct all needed function space bases
   // ///////////////////////////////////////////
-  using namespace TypeTree::Indices;
+  using namespace Dune::Indices;
   using namespace Functions::BasisFactory;
 
   const int dimRotation = Rotation<double,dim>::embeddedDim;

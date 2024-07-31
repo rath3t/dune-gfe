@@ -198,7 +198,7 @@ energy(const typename Basis::LocalView& localView,
   auto element = localView.element();
 
   // The set of shape functions on this element
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
   const auto& localFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
 
 #if HAVE_DUNE_CURVEDGEOMETRY

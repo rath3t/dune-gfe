@@ -247,7 +247,7 @@ namespace Dune::GFE {
   template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
   auto SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::getReferenceLocalConfigurations(
     const typename Basis::LocalView &localView) const {
-    using namespace Dune::TypeTree::Indices;
+    using namespace Dune::Indices;
     const int nDofs0 = localView.tree().child(_0, 0).finiteElement().size();
     const int nDofs1 = localView.tree().child(_1, 0).finiteElement().size();
 

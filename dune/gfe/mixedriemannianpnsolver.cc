@@ -97,7 +97,7 @@ void Dune::GFE::MixedRiemannianProximalNewtonSolver<MixedBasis,Basis0,TargetSpac
   //   Proximal Newton Solver
   // /////////////////////////////////////////////////////
 
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
 
   Dune::Timer energyTimer;
   double oldEnergy = assembler_->computeEnergy(x_[_0], x_[_1]);

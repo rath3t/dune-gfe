@@ -339,7 +339,7 @@ energy(const typename Basis::LocalView& localView,
 
   auto element = localView.element();
 
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
   const auto& localFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
 #ifdef PROJECTED_INTERPOLATION
   typedef Dune::GFE::LocalProjectedFEFunction<gridDim, DT, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
@@ -486,7 +486,7 @@ energy(const typename Basis::LocalView& localView,
 
   RT energy = 0;
 
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
   const auto& deformationLocalFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
   const auto& orientationLocalFiniteElement = LocalFiniteElementFactory<Basis,1>::get(localView,_1);
 

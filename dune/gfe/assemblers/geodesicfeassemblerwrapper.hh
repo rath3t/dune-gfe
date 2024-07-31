@@ -119,7 +119,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace>& sol,
                            Dune::BCRSMatrix<MatrixBlock>& hessian,
                            bool computeOccupationPattern) const
 {
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
   auto n = basis_.size();
 
   // Get a split up version of the input
@@ -188,7 +188,7 @@ template <class Basis, class ScalarBasis, class TargetSpace>
 double Dune::GFE::GeodesicFEAssemblerWrapper<Basis, ScalarBasis, TargetSpace>::
 computeEnergy(const std::vector<TargetSpace>& sol) const
 {
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
   auto solutionSplit = splitVector(sol);
   return mixedAssembler_->computeEnergy(solutionSplit[_0], solutionSplit[_1]);
 }

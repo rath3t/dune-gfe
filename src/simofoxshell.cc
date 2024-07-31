@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) try
     << std::endl << "sys.path.append(os.getcwd() + '/../../problems/')"
     << std::endl;
 
-  using namespace TypeTree::Indices;
+  using namespace Dune::Indices;
   using SolutionType = TupleVector<std::vector<RealTuple<double,3> >, std::vector<UnitVector<double,3> > >;
 
   // parse data file

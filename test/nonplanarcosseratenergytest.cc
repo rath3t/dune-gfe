@@ -78,7 +78,7 @@ double calculateEnergy(const int numLevels, const F1 referenceConfigurationFunct
   FEBasis feBasis(gridView);
 
   using namespace Dune::Functions::BasisFactory;
-  using namespace Dune::TypeTree::Indices;
+  using namespace Dune::Indices;
 
   auto deformationPowerBasis = makeBasis(
     gridView,

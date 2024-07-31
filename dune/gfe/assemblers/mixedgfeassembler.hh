@@ -154,7 +154,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
 
     getMatrixPattern(pattern00, pattern01, pattern10, pattern11);
 
-    using namespace Dune::TypeTree::Indices;
+    using namespace Dune::Indices;
     pattern00.exportIdx(hessian[_0][_0]);
     pattern01.exportIdx(hessian[_0][_1]);
     pattern10.exportIdx(hessian[_1][_0]);
@@ -175,7 +175,7 @@ assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
   {
     // Bind the local FE basis view to the current element
     localView.bind(element);
-    using namespace Dune::TypeTree::Indices;
+    using namespace Dune::Indices;
 
     const int nDofs0 = localView.tree().child(_0,0).finiteElement().size();
     const int nDofs1 = localView.tree().child(_1,0).finiteElement().size();

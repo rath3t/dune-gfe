@@ -119,7 +119,7 @@ public:
                         std::vector<Rotation<double,3> > >& configuration,
                     const std::string& filename)
   {
-    using namespace Dune::TypeTree::Indices;
+    using namespace Dune::Indices;
     std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > > xRBM(basis.size());
     for (std::size_t i = 0; i < basis.size(); i++) {
       for (int j = 0; j < 3; j ++)   // Displacement part
@@ -135,7 +135,7 @@ public:
                     const VectorType& configuration,
                     const std::string& filename)
   {
-    using namespace Dune::TypeTree::Indices;
+    using namespace Dune::Indices;
     std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > > xRBM(basis.size());
     for (std::size_t i = 0; i < basis.size(); i++) {
       for (int j = 0; j < 3; j ++)   // Displacement part
