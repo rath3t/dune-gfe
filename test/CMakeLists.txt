@@ -1,3 +1,6 @@
+# Path to the example grid files in dune-grid
+add_definitions(-DDUNE_GRID_EXAMPLE_GRIDS_PATH=\"${DUNE_GRID_EXAMPLE_GRIDS_PATH}\")
+
 set(TESTS
   averagedistanceassemblertest
   cosseratenergytest
@@ -11,6 +14,7 @@ set(TESTS
   localintegralstiffnesstest
   localprojectedfefunctiontest
   orthogonalmatrixtest
+  planarcosseratshelltest
   polardecompositiontest
   rotationtest
   surfacecosseratstressassemblertest
