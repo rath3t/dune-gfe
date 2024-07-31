@@ -10,7 +10,9 @@
 namespace Dune::GFE {
   /** \brief Integrate a density over a part of the domain boundary
    *
-   * This is typically used to implement Neumann boundary conditions.  Hence the name.
+   * This is typically used to implement Neumann boundary conditions for Cosserat materials.
+   * Essentially it works only for that: It is implicitly assumed that the target space
+   * is a product, and that the first factor is a RealTuple.
    */
   template<class Basis, class ... TargetSpaces>
   class NeumannEnergy
@@ -25,13 +27,16 @@ namespace Dune::GFE {
 
     constexpr static int dim = GridView::dimension;
 
+    // TODO: Remove the hard-coded first factor space!
+    using WorldVector = typename std::tuple_element_t<0, std::tuple<TargetSpaces...> >::EmbeddedTangentVector;
+
   public:
 
     /** \brief Constructor with a set of material parameters
      * \param parameters The material parameters
      */
     NeumannEnergy(const std::shared_ptr<BoundaryPatch<GridView> >& neumannBoundary,
-                  std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<DT,dim>)> neumannFunction)
+                  std::function<WorldVector(Dune::FieldVector<DT,dim>)> neumannFunction)
       : neumannBoundary_(neumannBoundary),
       neumannFunction_(neumannFunction)
     {}
@@ -77,9 +82,9 @@ namespace Dune::GFE {
           std::vector<Dune::FieldVector<DT,1> > shapeFunctionValues;
           localFiniteElement.localBasis().evaluateFunction(quadPos, shapeFunctionValues);
 
-          Dune::FieldVector<RT,dim> value(0);
+          WorldVector value(0);
           for (size_t i=0; i<localFiniteElement.size(); i++)
-            for (int j=0; j<dim; j++)
+            for (int j=0; j<WorldVector::dimension; j++)
               value[j] += shapeFunctionValues[i] * localSolution[i][j];
 
           // Value of the Neumann data at the current position
@@ -101,7 +106,7 @@ namespace Dune::GFE {
     const std::shared_ptr<BoundaryPatch<GridView> > neumannBoundary_;
 
     /** \brief The function implementing the Neumann data */
-    std::function<Dune::FieldVector<double,dim>(Dune::FieldVector<DT,dim>)> neumannFunction_;
+    std::function<WorldVector(Dune::FieldVector<DT,dim>)> neumannFunction_;
   };
 }  // namespace Dune::GFE
 
