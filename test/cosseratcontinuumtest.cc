@@ -1,7 +1,5 @@
 #include <config.h>
 
-#include <array>
-
 // Includes for the ADOL-C automatic differentiation library
 // Need to come before (almost) all others.
 #include <adolc/adouble.h>
