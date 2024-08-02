@@ -2,7 +2,7 @@
 #  Grid parameters
 #############################################
 
-structuredGrid = true
+structuredGrid = cube
 lower = 0  -0.005
 upper = 0.1 0.005
 elements = 10 1
@@ -21,7 +21,7 @@ numHomotopySteps = 24
 tolerance = 1e-8
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 200
+maxSolverSteps = 200
 
 solverScaling = 1 1 1 1 1 1
 
@@ -80,6 +80,12 @@ q = 2
 # Shear correction factor
 kappa = 1
 
+# TODO: These three parameters are not actually used,
+# but the current implementation requires them nevertheless.
+b1 = 1
+b2 = 1
+b3 = 1
+
 []
 
 #############################################
@@ -90,7 +96,8 @@ problem = twisted-strip
 
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
-dirichletVerticesPredicate = "x[0] < 0.001 or x[0] > 0.0999"
+dirichletVerticesPredicate = "[x[0] < 0.001 or x[0] > 0.0999, x[0] < 0.001 or x[0] > 0.0999, x[0] < 0.001 or x[0] > 0.0999]"
+dirichletRotationVerticesPredicate = "x[0] < 0.001 or x[0] > 0.0999"
 
 # Initial deformation
 initialDeformation = "[x[0], x[1], 0]"
