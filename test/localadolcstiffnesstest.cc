@@ -175,14 +175,14 @@ int main (int argc, char *argv[]) try
   ///////////////////////////////////////////////////////////////////////
 
   // Assembler using ADOL-C
-  auto cosseratLocalEnergy = std::make_shared<CosseratEnergyLocalStiffness<FEBasis, 3,adouble> >(materialParameters, nullptr, nullptr, nullptr);
+  auto cosseratLocalEnergy = std::make_shared<CosseratEnergyLocalStiffness<FEBasis, 3,adouble> >(materialParameters);
 
   LocalGeodesicFEADOLCStiffness<FEBasis,
       TargetSpace> localGFEADOLCStiffness(cosseratLocalEnergy);
 
   // Assembler using finite differences
   CosseratEnergyLocalStiffness<FEBasis, 3,FDType>
-  cosseratEnergyFDLocalStiffness(materialParameters, nullptr, nullptr, nullptr);
+  cosseratEnergyFDLocalStiffness(materialParameters);
   LocalGeodesicFEFDStiffness<FEBasis,
       TargetSpace,
       FDType> localGFEFDStiffness(&cosseratEnergyFDLocalStiffness);

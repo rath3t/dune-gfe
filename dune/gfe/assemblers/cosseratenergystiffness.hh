@@ -100,6 +100,39 @@ public:
   /** \brief Constructor with a set of material parameters
    * \param parameters The material parameters
    */
+  CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters)
+  {
+    // The shell thickness // only relevant for dim == 2
+    thickness_ = parameters.template get<double>("thickness");
+
+    // Lame constants
+    mu_ = parameters.template get<double>("mu");
+    lambda_ = parameters.template get<double>("lambda");
+
+    // Cosserat couple modulus
+    mu_c_ = parameters.template get<double>("mu_c");
+
+    // Length scale parameter
+    L_c_ = parameters.template get<double>("L_c");
+
+    // Curvature exponent
+    q_ = parameters.template get<double>("q");
+
+    // Shear correction factor // only relevant for dim == 2
+    kappa_ = parameters.template get<double>("kappa");
+
+    // Curvature parameters
+    b1_ = parameters.template get<double>("b1");
+    b2_ = parameters.template get<double>("b2");
+    b3_ = parameters.template get<double>("b3");
+  }
+
+  /** \brief Constructor with material parameters and external loads
+   * \param parameters The material parameters
+   * \param neumannBoundary The part of the boundary where a surface load is applied
+   * \param neumannFunction Surface load density
+   * \param volumeLoad Volume load density
+   */
   CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters,
                                const BoundaryPatch<GridView>* neumannBoundary,
                                const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction,
@@ -317,7 +350,7 @@ public:
   double b1_, b2_, b3_;
 
   /** \brief The Neumann boundary */
-  const BoundaryPatch<GridView>* neumannBoundary_;
+  const BoundaryPatch<GridView>* neumannBoundary_ = nullptr;
 
   /** \brief The function implementing the Neumann data */
   const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction_;
