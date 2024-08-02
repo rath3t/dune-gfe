@@ -120,6 +120,11 @@ int main (int argc, char *argv[]) try
     std::cout << "MIXED_SPACE = 0" << std::endl;
     #endif
   }
+
+  // Check for appropriate number of command line arguments
+  if (argc < 3)
+    DUNE_THROW(Exception, "Usage: ./cosserat-continuum <python path> <parameter file>");
+
   // Start Python interpreter
   Python::start();
   Python::Reference main = Python::import("__main__");
@@ -137,9 +142,6 @@ int main (int argc, char *argv[]) try
 
   // parse data file
   ParameterTree parameterSet;
-  if (argc < 3)
-    DUNE_THROW(Exception, "Usage: ./cosserat-continuum <python path> <parameter file>");
-
   ParameterTreeParser::readINITree(argv[2], parameterSet);
 
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
