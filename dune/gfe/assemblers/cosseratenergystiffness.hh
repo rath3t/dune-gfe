@@ -1,6 +1,14 @@
 #ifndef COSSERAT_ENERGY_LOCAL_STIFFNESS_HH
 #define COSSERAT_ENERGY_LOCAL_STIFFNESS_HH
 
+#define DONT_USE_CURL
+
+//#define QUADRATIC_2006 //only relevant for gridDim == 3
+// Use the formula for the quadratic membrane energy (first equation of (4.4)) in Neff's paper from 2006: A geometrically exact planar Cosserat shell model with microstructure: Existence of minimizers for zero Cosserat couple modulus
+// instead of the equation (2.27) of 2019: Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature
+
+//#define QUADRATIC_MEMBRANE_ENERGY //only relevant for gridDim == 2
+
 #include <dune/common/fmatrix.hh>
 #include <dune/common/parametertree.hh>
 #include <dune/common/version.hh>
@@ -10,6 +18,7 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/densities/bulkcosseratdensity.hh>
 #ifdef PROJECTED_INTERPOLATION
 #include <dune/gfe/localprojectedfefunction.hh>
 #else
@@ -21,16 +30,6 @@
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
-
-#define DONT_USE_CURL
-
-#define CURVATURE_WITH_WRYNESS //only relevant for gridDim == 3
-
-//#define QUADRATIC_2006 //only relevant for gridDim == 3
-// Use the formula for the quadratic membrane energy (first equation of (4.4)) in Neff's paper from 2006: A geometrically exact planar Cosserat shell model with microstructure: Existence of minimizers for zero Cosserat couple modulus
-// instead of the equation (2.27) of 2019: Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature
-
-//#define QUADRATIC_MEMBRANE_ENERGY //only relevant for gridDim == 2
 
 /** \brief Get LocalFiniteElements from a localView, for different tree depths of the local view
  *
@@ -101,6 +100,7 @@ public:
    * \param parameters The material parameters
    */
   CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters)
+  : bulkDensity_(parameters)
   {
     // The shell thickness // only relevant for dim == 2
     thickness_ = parameters.template get<double>("thickness");
@@ -120,11 +120,6 @@ public:
 
     // Shear correction factor // only relevant for dim == 2
     kappa_ = parameters.template get<double>("kappa");
-
-    // Curvature parameters
-    b1_ = parameters.template get<double>("b1");
-    b2_ = parameters.template get<double>("b2");
-    b3_ = parameters.template get<double>("b3");
   }
 
   /** \brief Constructor with material parameters and external loads
@@ -137,7 +132,8 @@ public:
                                const BoundaryPatch<GridView>* neumannBoundary,
                                const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction,
                                const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad)
-    : neumannBoundary_(neumannBoundary),
+    : bulkDensity_(parameters),
+    neumannBoundary_(neumannBoundary),
     neumannFunction_(neumannFunction),
     volumeLoad_(volumeLoad)
   {
@@ -159,11 +155,6 @@ public:
 
     // Shear correction factor // only relevant for dim == 2
     kappa_ = parameters.template get<double>("kappa");
-
-    // Curvature parameters
-    b1_ = parameters.template get<double>("b1");
-    b2_ = parameters.template get<double>("b2");
-    b3_ = parameters.template get<double>("b3");
   }
 
   /** \brief Assemble the energy for a single element */
@@ -283,37 +274,6 @@ public:
 #endif
   }
 
-  RT curvatureWithWryness(const Dune::FieldMatrix<field_type,dim,dim>& R, const Tensor3<field_type,3,3,gridDim>& DR) const
-  {
-    // construct Wryness tensor \Gamma as in "Refined dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
-    Dune::FieldMatrix<field_type,3,3> dRx1(0);     //Derivative of R with respect to x1
-    Dune::FieldMatrix<field_type,3,3> dRx2(0);     //Derivative of R with respect to x2
-    Dune::FieldMatrix<field_type,3,3> dRx3(0);     //Derivative of R with respect to x3, this of course only exists if gridDim = 3 (then dim = 3 also, because dim >= gridDim, always)
-    for (int i=0; i<3; i++)
-      for (int j=0; j<3; j++) {
-        dRx1[i][j] = DR[i][j][0];
-        dRx2[i][j] = DR[i][j][1];
-        dRx3[i][j] = gridDim == 3 ? DR[i][j][2] : 0;
-      }
-
-    Dune::FieldMatrix<field_type,3,3> wryness(0);
-
-    auto axialVectorx1 = SkewMatrix<field_type,3>(transpose(R)*dRx1).axial();
-    auto axialVectorx2 = SkewMatrix<field_type,3>(transpose(R)*dRx2).axial();
-    auto axialVectorx3 = SkewMatrix<field_type,3>(transpose(R)*dRx3).axial();
-
-    for (int i=0; i<3; i++) {
-      wryness[i][0] = axialVectorx1[i];
-      wryness[i][1] = axialVectorx2[i];
-      wryness[i][2] = gridDim == 3 ? axialVectorx3[i] : 0;
-    }
-
-    // The choice for the Frobenius norm here is b1=b2=1 and b3 = 1/3
-    return mu_ * L_c_ * L_c_ * (b1_ * Dune::GFE::dev(Dune::GFE::sym(wryness)).frobenius_norm2()
-                                + b2_ * Dune::GFE::skew(wryness).frobenius_norm2() + b3_ * Dune::GFE::traceSquared(wryness));
-  }
-
-
   RT bendingEnergy(const Dune::FieldMatrix<field_type,dim,dim>& R, const Tensor3<field_type,3,3,gridDim>& DR) const
   {
     // left-multiply the derivative of the third director (in DR[][2][]) with R^T
@@ -327,6 +287,9 @@ public:
            + mu_c_ * Dune::GFE::skew(RT_DR3).frobenius_norm2()
            + mu_*lambda_/(2*mu_+lambda_) * Dune::GFE::traceSquared(RT_DR3);
   }
+
+  /** The energy density if the grid is three-dimensional */
+  Dune::GFE::BulkCosseratDensity<Dune::FieldVector<double,3>,field_type> bulkDensity_;
 
   /** \brief The shell thickness */
   double thickness_;
@@ -345,9 +308,6 @@ public:
 
   /** \brief Shear correction factor */
   double kappa_;
-
-  /** \brief Curvature parameters */
-  double b1_, b2_, b3_;
 
   /** \brief The Neumann boundary */
   const BoundaryPatch<GridView>* neumannBoundary_ = nullptr;
@@ -434,7 +394,7 @@ energy(const typename Basis::LocalView& localView,
     Tensor3<field_type,3,3,gridDim> DR = value[_1].quaternionTangentToMatrixTangent(orientationDerivative);
 
     // Add the local energy density
-    if (gridDim==2) {
+    if constexpr (gridDim==2) {
 #ifdef QUADRATIC_MEMBRANE_ENERGY
       //energy += weight * thickness_ * quadraticMembraneEnergy(U.matrix());
       energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
@@ -444,13 +404,10 @@ energy(const typename Basis::LocalView& localView,
 #endif
       energy += weight * thickness_ * curvatureEnergy(DR);
       energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
-    } else if (gridDim==3) {
-      energy += weight * quadraticMembraneEnergy(U);
-#ifdef CURVATURE_WITH_WRYNESS
-      energy += weight * curvatureWithWryness(R,DR);
-#else
-      energy += weight * curvatureEnergy(DR);
-#endif
+    } else if constexpr (gridDim==3) {
+      energy += weight * bulkDensity_(quadPos,
+                                      value.globalCoordinates(),
+                                      derivative);
     } else
       DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
 
@@ -559,6 +516,10 @@ energy(const typename Basis::LocalView& localView,
     RealTuple<field_type,dim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
     Rotation<field_type,dim>  orientationValue = localOrientationGFEFunction.evaluate(quadPos);
 
+    TargetSpace value;
+    value[_0] = deformationValue;
+    value[_1] = orientationValue;
+
     // The derivative of the local function defined on the reference element
     typename LocalDeformationGFEFunctionType::DerivativeType deformationReferenceDerivative = localDeformationGFEFunction.evaluateDerivative(quadPos,deformationValue);
     typename LocalOrientationGFEFunctionType::DerivativeType orientationReferenceDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,orientationValue);
@@ -572,6 +533,16 @@ energy(const typename Basis::LocalView& localView,
 
     for (size_t comp=0; comp<orientationReferenceDerivative.N(); comp++)
       jacobianInverseTransposed.mv(orientationReferenceDerivative[comp], orientationDerivative[comp]);
+
+    // The derivative of both factors together
+    typename Dune::FieldMatrix<field_type,deformationDerivative.N() + orientationDerivative.N(), gridDim> derivative(0);
+
+    size_t rowCount = 0;
+    for (auto&& row : deformationDerivative)
+      derivative[rowCount++] = row;
+
+    for (auto&& row : orientationDerivative)
+      derivative[rowCount++] = row;
 
     /////////////////////////////////////////////////////////
     // compute U, the Cosserat strain
@@ -592,7 +563,7 @@ energy(const typename Basis::LocalView& localView,
     Tensor3<field_type,3,3,gridDim> DR = orientationValue.quaternionTangentToMatrixTangent(orientationDerivative);
 
     // Add the local energy density
-    if (gridDim==2) {
+    if constexpr (gridDim==2) {
 #ifdef QUADRATIC_MEMBRANE_ENERGY
       //energy += weight * thickness_ * quadraticMembraneEnergy(U.matrix());
       energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
@@ -601,13 +572,10 @@ energy(const typename Basis::LocalView& localView,
 #endif
       energy += weight * thickness_ * curvatureEnergy(DR);
       energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
-    } else if (gridDim==3) {
-      energy += weight * quadraticMembraneEnergy(U);
-#ifdef CURVATURE_WITH_WRYNESS
-      energy += weight * curvatureWithWryness(R,DR);
-#else
-      energy += weight * curvatureEnergy(DR);
-#endif
+    } else if constexpr (gridDim==3) {
+      energy += weight * bulkDensity_(quadPos,
+                                      value.globalCoordinates(),
+                                      derivative);
     } else
       DUNE_THROW(Dune::NotImplemented, "CosseratEnergyStiffness for 1d grids");
 
