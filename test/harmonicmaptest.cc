@@ -24,7 +24,7 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localintegralstiffness.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/densities/harmonicdensity.hh>
@@ -148,23 +148,20 @@ int main (int argc, char *argv[])
   //  Create an assembler for the Harmonic Energy Functional
   //////////////////////////////////////////////////////////////
 
-  using ATargetSpace = TargetSpace::rebind<adouble>::other;
 
 #if GEODESICINTERPOLATION
-  using InterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using InterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #else
 #if CONFORMING
-  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace,true>;
+  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace,true>;
 #else
-  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace,false>;
+  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace,false>;
 #endif
 #endif
 
-  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, ATargetSpace> >();
+  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, TargetSpace> >();
 
-  std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, InterpolationRule, ATargetSpace> >(harmonicDensity);
-
-  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy);
+  GFE::LocalIntegralStiffness<FEBasis,InterpolationRule,TargetSpace> localGFEADOLCStiffness(harmonicDensity);
 
   GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 

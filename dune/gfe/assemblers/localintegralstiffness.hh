@@ -60,10 +60,65 @@ namespace Dune::GFE
 
     virtual RT
     energy(const typename Basis::LocalView& localView,
-           const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& coefficients) const override
+           const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& localCoefficients) const override
     {
-      DUNE_THROW(NotImplemented,"Energy method not implemented!");
-      return 0;
+      RT energy = 0;
+
+      if constexpr (not Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
+      {
+        const auto& localFiniteElement = localView.tree().finiteElement();
+        LocalInterpolationRule localInterpolationRule(localFiniteElement,localCoefficients);
+
+        int quadOrder = (localFiniteElement.type().isSimplex())
+           ? (localFiniteElement.localBasis().order()-1) * 2
+           : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
+
+        const auto element = localView.element();
+
+        const auto& quad = QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
+
+        for (auto&& qp : quad)
+        {
+          // Local position of the quadrature point
+          const auto& quadPos = qp.position();
+
+          const auto integrationElement = element.geometry().integrationElement(quadPos);
+
+          const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
+
+          if (localDensity_->dependsOnValue())
+          {
+            if (localDensity_->dependsOnDerivative())
+            {
+              auto [value, derivative] = localInterpolationRule.evaluateValueAndDerivative(quadPos);
+              derivative = derivative * geometryJacobianInverse;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),derivative);
+            }
+            else
+            {
+              auto value = localInterpolationRule.evaluate(quadPos);
+              typename LocalInterpolationRule::DerivativeType dummyDerivative;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),dummyDerivative);
+            }
+          }
+          else
+          {
+            if (localDensity_->dependsOnDerivative())
+            {
+              typename TargetSpace::CoordinateType dummyValue;
+              auto derivative = localInterpolationRule.evaluateDerivative(quadPos);
+              derivative = derivative * geometryJacobianInverse;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,dummyValue,derivative);
+            }
+            else
+            {
+              // Density does not depend on anything.  That's rather pointless, but not an error.
+            }
+          }
+        }
+      }
+
+      return energy;
     }
 
     /** \brief ProductManifolds: Compute the energy from coefficients in separate containers
@@ -122,6 +177,11 @@ namespace Dune::GFE
 
       const auto& element = localView.element();
 
+      // The range of input variables that the density depends on
+      const size_t begin = (localDensity_->dependsOnValue()) ? 0 : TargetSpace::CoordinateType::dimension;
+      const size_t end = (localDensity_->dependsOnDerivative()) ? m : TargetSpace::CoordinateType::dimension;
+
+      // The quadrature rule
       int quadOrder = (localFiniteElement.type().isSimplex())
            ? (localFiniteElement.localBasis().order()-1) * 2
            : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
@@ -182,20 +242,16 @@ namespace Dune::GFE
         // Store the Euclidean gradient for the conversion from the Euclidean to the Riemannian Hesse matrix.
         for (size_t i = 0; i < nDofs; i++)
           for (size_t ii=0; ii<embeddedBlocksize; ++ii)
-            for (size_t j = 0; j < m; j++)
+            for (size_t j = begin; j < end; j++)
               localEmbeddedGradient[i][ii] += densityGradient[j] * interpolationGradient[j][i*embeddedBlocksize+ii];
 
         for (size_t i = 0; i < nDofs*blocksize; i++)
-          for (size_t j = 0; j < m; j++)
+          for (size_t j = begin; j < end; j++)
             localGradient[i] += densityGradient[j] * interpolationGradientShort[j][i];
 
         ///////////////////////////////////////////////////////////////////////
         //  Chain rule to construct Hessian
         ///////////////////////////////////////////////////////////////////////
-
-        // The range of input variables that the density depends on
-        const size_t begin = (localDensity_->dependsOnValue()) ? 0 : TargetSpace::CoordinateType::dimension;
-        const size_t end = (localDensity_->dependsOnDerivative()) ? m : TargetSpace::CoordinateType::dimension;
 
         // tmp = hessianDensity * interpolationGradientShort
         Matrix<double> tmp(m,nDofs*blocksize);
