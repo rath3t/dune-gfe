@@ -60,10 +60,65 @@ namespace Dune::GFE
 
     virtual RT
     energy(const typename Basis::LocalView& localView,
-           const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& coefficients) const override
+           const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& localCoefficients) const override
     {
-      DUNE_THROW(NotImplemented,"Energy method not implemented!");
-      return 0;
+      RT energy = 0;
+
+      if constexpr (not Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
+      {
+        const auto& localFiniteElement = localView.tree().finiteElement();
+        LocalInterpolationRule localInterpolationRule(localFiniteElement,localCoefficients);
+
+        int quadOrder = (localFiniteElement.type().isSimplex())
+           ? (localFiniteElement.localBasis().order()-1) * 2
+           : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
+
+        const auto element = localView.element();
+
+        const auto& quad = QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
+
+        for (auto&& qp : quad)
+        {
+          // Local position of the quadrature point
+          const auto& quadPos = qp.position();
+
+          const auto integrationElement = element.geometry().integrationElement(quadPos);
+
+          const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
+
+          if (localDensity_->dependsOnValue())
+          {
+            if (localDensity_->dependsOnDerivative())
+            {
+              auto [value, derivative] = localInterpolationRule.evaluateValueAndDerivative(quadPos);
+              derivative = derivative * geometryJacobianInverse;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),derivative);
+            }
+            else
+            {
+              auto value = localInterpolationRule.evaluate(quadPos);
+              typename LocalInterpolationRule::DerivativeType dummyDerivative;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),dummyDerivative);
+            }
+          }
+          else
+          {
+            if (localDensity_->dependsOnDerivative())
+            {
+              typename TargetSpace::CoordinateType dummyValue;
+              auto derivative = localInterpolationRule.evaluateDerivative(quadPos);
+              derivative = derivative * geometryJacobianInverse;
+              energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,dummyValue,derivative);
+            }
+            else
+            {
+              // Density does not depend on anything.  That's rather pointless, but not an error.
+            }
+          }
+        }
+      }
+
+      return energy;
     }
 
     /** \brief ProductManifolds: Compute the energy from coefficients in separate containers
