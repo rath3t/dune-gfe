@@ -177,6 +177,11 @@ namespace Dune::GFE
 
       const auto& element = localView.element();
 
+      // The range of input variables that the density depends on
+      const size_t begin = (localDensity_->dependsOnValue()) ? 0 : TargetSpace::CoordinateType::dimension;
+      const size_t end = (localDensity_->dependsOnDerivative()) ? m : TargetSpace::CoordinateType::dimension;
+
+      // The quadrature rule
       int quadOrder = (localFiniteElement.type().isSimplex())
            ? (localFiniteElement.localBasis().order()-1) * 2
            : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
@@ -237,20 +242,16 @@ namespace Dune::GFE
         // Store the Euclidean gradient for the conversion from the Euclidean to the Riemannian Hesse matrix.
         for (size_t i = 0; i < nDofs; i++)
           for (size_t ii=0; ii<embeddedBlocksize; ++ii)
-            for (size_t j = 0; j < m; j++)
+            for (size_t j = begin; j < end; j++)
               localEmbeddedGradient[i][ii] += densityGradient[j] * interpolationGradient[j][i*embeddedBlocksize+ii];
 
         for (size_t i = 0; i < nDofs*blocksize; i++)
-          for (size_t j = 0; j < m; j++)
+          for (size_t j = begin; j < end; j++)
             localGradient[i] += densityGradient[j] * interpolationGradientShort[j][i];
 
         ///////////////////////////////////////////////////////////////////////
         //  Chain rule to construct Hessian
         ///////////////////////////////////////////////////////////////////////
-
-        // The range of input variables that the density depends on
-        const size_t begin = (localDensity_->dependsOnValue()) ? 0 : TargetSpace::CoordinateType::dimension;
-        const size_t end = (localDensity_->dependsOnDerivative()) ? m : TargetSpace::CoordinateType::dimension;
 
         // tmp = hessianDensity * interpolationGradientShort
         Matrix<double> tmp(m,nDofs*blocksize);
