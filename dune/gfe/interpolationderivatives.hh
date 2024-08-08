@@ -813,6 +813,9 @@ namespace Dune::GFE
                              Matrix<double>& firstDerivative,
                              Matrix<FieldMatrix<double,blocksize,blocksize> >& secondDerivative) const
     {
+      constexpr size_t valueSize = TargetSpace::CoordinateType::dimension;
+      constexpr size_t derivativeSize = TargetSpace::CoordinateType::dimension * gridDim;
+
       const size_t nDofs = localInterpolationRule_.size();
 
       ////////////////////////////////////////////////////////////////////
@@ -985,9 +988,13 @@ namespace Dune::GFE
       }
 
       // Project Euclidean gradient onto the normal space
+      // The range of input variables that the density depends on
+      const size_t begin = (doValue_) ? 0 : valueSize;
+      const size_t end = (doDerivative_) ? valueSize + derivativeSize : valueSize;
+
       Matrix<FieldMatrix<double,1,embeddedBlocksize> > projectedGradient(embeddedFirstDerivative.N(),nDofs);
 
-      for (size_t i=0; i<embeddedFirstDerivative.N(); i++)
+      for (size_t i=begin; i<end; i++)
         for (size_t j=0; j<nDofs; j++)
           projectedGradient[i][j][0] = normalFirstDerivative[i][j] * localInterpolationRule_.coefficient(j).globalCoordinates();
 
@@ -1004,7 +1011,7 @@ namespace Dune::GFE
         {
           typename TargetSpace::EmbeddedTangentVector z = orthonormalFrames_[row][subRow];
 
-          for (size_t i=0; i<embeddedFirstDerivative.N(); i++)
+          for (size_t i=begin; i<end; i++)
           {
             auto tmp1 = localInterpolationRule_.coefficient(row).weingarten(z,projectedGradient[i][row][0]);
 
