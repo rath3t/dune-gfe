@@ -471,12 +471,11 @@ int main (int argc, char *argv[]) try
     //   Set Dirichlet values
     ////////////////////////////////////////////////////////
 
-    Python::Reference dirichletValuesClass = Python::import(parameterSet.get<std::string>("problem") + "-dirichlet-values");
+    // Dirichlet boundary value function, depending on the homotopy parameter
+    Python::Callable dirichletValuesPythonClass = pyModule.get("DirichletValues");
 
-    Python::Callable C = dirichletValuesClass.get("DirichletValues");
-
-    // Call a constructor.
-    Python::Reference dirichletValuesPythonObject = C(homotopyParameter);
+    // Construct with a particular value of the homotopy parameter
+    Python::Reference dirichletValuesPythonObject = dirichletValuesPythonClass(homotopyParameter);
 
     // Extract object member functions as Dune functions
     auto deformationDirichletValues = Python::make_function<FieldVector<double,3> >   (dirichletValuesPythonObject.get("deformation"));

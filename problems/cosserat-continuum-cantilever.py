@@ -106,12 +106,26 @@ parameterSet.materialParameters.b3 = 1
 #  Boundary values
 #############################################
 
-parameterSet.problem = "cantilever"
-
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
 parameterSet.dirichletVerticesPredicate = "[x[0] < 0.01, x[0] < 0.01, x[0] < 0.01]"
 parameterSet.dirichletRotationVerticesPredicate = "x[0] < 0.01"
+
+### The actual Dirichlet values
+class DirichletValues:
+    def __init__(self, homotopyParameter):
+        self.homotopyParameter = homotopyParameter
+
+    def deformation(self, x):
+        # Dirichlet b.c. simply clamp the shell in the reference configuration
+        out = [x[0], x[1], 0]
+
+        return out
+
+
+    def orientation(self, x):
+        rotation = [[1,0,0], [0, 1, 0], [0, 0, 1]]
+        return rotation
 
 ###  Python predicate specifying all Neumann grid vertices
 # x is the vertex coordinate

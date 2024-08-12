@@ -102,12 +102,26 @@ parameterSet.materialParameters.b3 = 1
 #  Boundary values
 #############################################
 
-parameterSet.problem = "wong-pellegrino"
-
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
 parameterSet.dirichletVerticesPredicate = "[x[1] < 0.0001 or x[1] > 0.128 - 0.0001, x[1] < 0.0001 or x[1] > 0.128 - 0.0001, x[1] < 0.0001 or x[1] > 0.128 - 0.0001]"
 parameterSet.dirichletRotationVerticesPredicate = "x[1] < 0.0001 or x[1] > 0.128 - 0.0001"
+
+### The actual Dirichlet values
+class DirichletValues:
+    def __init__(self, homotopyParameter):
+        self.homotopyParameter = homotopyParameter
+
+    def deformation(self, x):
+        out = [x[0], x[1], 0]
+        if x[1] >  0.128-1e-4 :
+            out[0] += 0.003 * self.homotopyParameter
+            out[1] += 0.0005
+        return out
+
+    def orientation(self, x):
+        rotation = [[1,0,0], [0, 1, 0], [0, 0, 1]]
+        return rotation
 
 # Initial deformation
 #parameterSet.startFromFile = True
