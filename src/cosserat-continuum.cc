@@ -127,7 +127,7 @@ int main (int argc, char *argv[]) try
 
   // Start Python interpreter
   Python::start();
-  Python::Reference main = Python::import("__main__");
+  auto pyMain = Python::main();
   Python::run("import math");
 
   //feenableexcept(FE_INVALID);
@@ -136,13 +136,12 @@ int main (int argc, char *argv[]) try
     << std::endl << "sys.path.append('" << argv[1] << "')"
     << std::endl;
 
-  using namespace TypeTree::Indices;
-  using SolutionType = TupleVector<std::vector<RealTuple<double,3> >,
-      std::vector<Rotation<double,3> > >;
-
   // parse data file
+  auto pyModule = pyMain.import(argv[2]);
+
+  // Get main parameter set
   ParameterTree parameterSet;
-  ParameterTreeParser::readINITree(argv[2], parameterSet);
+  pyModule.get("parameterSet").toC(parameterSet);
 
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
@@ -163,6 +162,10 @@ int main (int argc, char *argv[]) try
   const bool instrumented               = parameterSet.get<bool>("instrumented");
   const bool adolcScalarMode            = parameterSet.get<bool>("adolcScalarMode", false);
   const std::string resultPath          = parameterSet.get("resultPath", "");
+
+  using namespace Dune::Indices;
+  using SolutionType = TupleVector<std::vector<RealTuple<double,3> >,
+      std::vector<Rotation<double,3> > >;
 
   // ///////////////////////////////////////
   //    Create the grid
