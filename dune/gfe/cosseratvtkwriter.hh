@@ -17,11 +17,11 @@
 
 
 /** \brief Write the configuration of a Cosserat material in VTK format */
-template <class GridType>
+template <class GridView>
 class CosseratVTKWriter
 {
 
-  static const int dim = GridType::dimension;
+  static const int dim = GridView::dimension;
 
   template <typename Basis1, typename Basis2>
   static void downsample(const Basis1& basis1, const std::vector<Dune::GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& v1,
@@ -80,7 +80,7 @@ class CosseratVTKWriter
     s << 's' << std::setw(4) << std::setfill('0') << commSize << '-';
     s << 'p' << std::setw(4) << std::setfill('0') << commRank << '-';
     s << name;
-    if(GridType::dimension > 1)
+    if(GridView::dimension > 1)
       s << ".vtu";
     else
       s << ".vtp";
@@ -103,7 +103,7 @@ class CosseratVTKWriter
     }
     s << 's' << std::setw(4) << std::setfill('0') << commSize << '-';
     s << name;
-    if(GridType::dimension > 1)
+    if(GridView::dimension > 1)
       s << ".pvtu";
     else
       s << ".pvtp";

@@ -114,7 +114,7 @@ double calculateEnergy(const int numLevels, const F1 referenceConfigurationFunct
     solTuple[_0][i] = sol[i][_0];
     solTuple[_1][i] = sol[i][_1];
   }
-  CosseratVTKWriter<GridType>::write<FEBasis>(feBasis, solTuple, "configuration_l" + std::to_string(numLevels));
+  CosseratVTKWriter<decltype(gridView)>::write<FEBasis>(feBasis, solTuple, "configuration_l" + std::to_string(numLevels));
 
   double energy = 0;
   // A view on the FE basis on a single element

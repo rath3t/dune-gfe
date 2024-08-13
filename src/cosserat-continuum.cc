@@ -413,14 +413,14 @@ int main (int argc, char *argv[]) try
 
   // Output initial iterate (of homotopy loop)
   if (dim == 2 && dimworld == 2) {
-    CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
+    CosseratVTKWriter<GridView>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
                                                                                    orientationFEBasis,x[_1],
                                                                                    resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
   } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
-    CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
+    CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
 #else
-    CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
+    CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
 #endif
   } else if (dim == 3 && dimworld == 3) {
 
@@ -735,14 +735,14 @@ int main (int argc, char *argv[]) try
     iAsAscii << i+1;
 
     if (dim == 2 && dimworld == 2) {
-      CosseratVTKWriter<GridType>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
+      CosseratVTKWriter<GridView>::writeMixed<DeformationFEBasis,OrientationFEBasis>(deformationFEBasis,x[_0],
                                                                                      orientationFEBasis,x[_1],
                                                                                      resultPath + "cosserat_homotopy_" + iAsAscii.str());
     } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
-      CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
+      CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
 #else
-      CosseratVTKWriter<GridType>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
+      CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
 #endif
     } else if (dim == 3 && dimworld == 3) {
 

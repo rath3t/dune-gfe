@@ -294,7 +294,7 @@ int main (int argc, char *argv[]) try
 #else
   std::cout << "Falling back to legacy file writing.  Get dune-vtk for better results" << std::endl;
   // Fall-back solution for users without dune-vtk
-  CosseratVTKWriter<GridType>::write<ScalarBasis>(scalarBasis,x, resultPath + "rod3d-result");
+  CosseratVTKWriter<GridView>::write<ScalarBasis>(scalarBasis,x, resultPath + "rod3d-result");
 #endif
 
 }
