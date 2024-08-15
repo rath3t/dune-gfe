@@ -6,9 +6,14 @@
 #include <dune/grid/io/file/vtk/vtkwriter.hh>
 #include <dune/grid/io/file/vtk/pvtuwriter.hh>
 
+#include <dune/istl/bvector.hh>
+
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
+
+#include <dune/vtk/vtkwriter.hh>
+#include <dune/vtk/datacollectors/lagrangedatacollector.hh>
 
 #include <dune/gfe/vtkfile.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
@@ -383,184 +388,63 @@ public:
     vtkFile.write(filename);
   }
 
-  /** \brief Write a configuration given with respect to a scalar function space basis
+  /** \brief Write a Cosserat configuration as VTK file
+   *
+   * The microrotation field will be represented as the three director fields
+   *
+   * \param directorBasis The basis that will be used to represent director fields
+   * \param order The polynomial order that the data will have in the VTK file
    */
-  template <typename DisplacementBasis, typename OrientationBasis>
-  static void writeMixed(const DisplacementBasis& displacementBasis,
-                         const std::vector<RealTuple<double,3> >& deformationConfiguration,
-                         const OrientationBasis& orientationBasis,
-                         const std::vector<Rotation<double,3> >& orientationConfiguration,
-                         const std::string& filename)
+  template <typename DisplacementFunction, typename DirectorBasis>
+  static void write(const GridView& gridView,
+                    const DisplacementFunction& displacement,
+                    const DirectorBasis& directorBasis,
+                    const std::vector<Rotation<double,3> >& orientationConfiguration,
+                    int order,
+                    const std::string& filename)
   {
-    assert(displacementBasis.size() == deformationConfiguration.size());
-    assert(orientationBasis.size()  == orientationConfiguration.size());
-    auto gridView = displacementBasis.gridView();
+    using namespace Dune;
 
-    // Determine order of the displacement basis
-    auto localView = displacementBasis.localView();
-    localView.bind(*gridView.template begin<0>());
-    int order = localView.tree().finiteElement().localBasis().order();
+    // Create a writer object
+#if DUNE_VERSION_GTE(DUNE_VTK, 2, 10)
+    auto vtkWriter = Vtk::UnstructuredGridWriter(Vtk::LagrangeDataCollector(gridView,order));
+#else
+    Vtk::LagrangeDataCollector<GridView> dataCollector(gridView, order);
+    auto vtkWriter = VtkUnstructuredGridWriter(dataCollector);
+#endif
 
-    // We only do P2 spaces at the moment
-    if (order != 2 and order != 3)
+    // Attach the displacement field
+    vtkWriter.addPointData(displacement, Dune::VTK::FieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 3));
+
+    // Attach the director fields
+    BlockVector<FieldVector<double,3> > director0(orientationConfiguration.size());
+    BlockVector<FieldVector<double,3> > director1(orientationConfiguration.size());
+    BlockVector<FieldVector<double,3> > director2(orientationConfiguration.size());
+
+    for (size_t i=0; i<orientationConfiguration.size(); i++)
     {
-      std::cout << "Warning: CosseratVTKWriter only supports P2 spaces -- skipping" << std::endl;
-      return;
-    }
+      FieldMatrix<double,3,3> rotationMatrix;
+      orientationConfiguration[i].matrix(rotationMatrix);
 
-    std::vector<RealTuple<double,3> > displacementConfiguration = deformationConfiguration;
-
-    if (order == 3)
-    {
-      using namespace Dune::Functions::BasisFactory;
-
-      auto p2DeformationBasis = makeBasis(
-        gridView,
-        power<3>(
-          lagrange<2>(),
-          blockedInterleaved()
-          ));
-
-      // resample to 2nd order -- vtk can't do anything higher
-      std::vector<RealTuple<double,3> > p2DeformationConfiguration;
-
-      downsample(displacementBasis, displacementConfiguration,
-                 p2DeformationBasis, p2DeformationConfiguration);
-
-      displacementConfiguration = p2DeformationConfiguration;
-    }
-
-    std::string fullfilename = filename + ".vtu";
-
-    // Prepend rank and communicator size to the filename, if there are more than one process
-    if (gridView.comm().size() > 1)
-      fullfilename = getParallelPieceName(filename, "", gridView.comm().rank(), gridView.comm().size());
-
-    // Write the pvtu file that ties together the different parts
-    if (gridView.comm().size() > 1 && gridView.comm().rank()==0)
-    {
-      std::ofstream pvtuOutFile(getParallelName(filename, "", gridView.comm().size()));
-      Dune::VTK::PVTUWriter writer(pvtuOutFile, Dune::VTK::unstructuredGrid);
-
-      writer.beginMain();
-
-      //writer.beginPointData();
-      //writer.addArray<float>("director0", 3);
-      //writer.addArray<float>("director1", 3);
-      //writer.addArray<float>("director2", 3);
-      //writer.addArray<float>("zCoord", 1);
-      //writer.endPointData();
-
-      // dump point coordinates
-      writer.beginPoints();
-      writer.addArray("Coordinates", 3, Dune::VTK::Precision::float32);
-      writer.endPoints();
-
-      for (int i=0; i<gridView.comm().size(); i++)
-        writer.addPiece(getParallelPieceName(filename, "", i, gridView.comm().size()));
-
-      // finish main section
-      writer.endMain();
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////
-    //  Write the actual vtu file
-    /////////////////////////////////////////////////////////////////////////////////
-
-    // Stupid: I can't directly get the number of Interior_Partition elements
-    size_t numElements = std::distance(gridView.template begin<0, Dune::Interior_Partition>(),
-                                       gridView.template end<0, Dune::Interior_Partition>());
-
-    std::ofstream outFile(fullfilename);
-
-    // Write header
-    outFile << "<?xml version=\"1.0\"?>" << std::endl;
-    outFile << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
-    outFile << "  <UnstructuredGrid>" << std::endl;
-    outFile << "    <Piece NumberOfCells=\"" << numElements << "\" NumberOfPoints=\"" << displacementConfiguration.size() << "\">" << std::endl;
-
-    // Write vertex coordinates
-    outFile << "      <Points>" << std::endl;
-    outFile << "        <DataArray type=\"Float32\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
-    for (size_t i=0; i<displacementConfiguration.size(); i++)
-      outFile << "          " << displacementConfiguration[i] << std::endl;
-    outFile << "        </DataArray>" << std::endl;
-    outFile << "      </Points>" << std::endl;
-
-    // Write elements
-    outFile << "      <Cells>" << std::endl;
-
-    outFile << "         <DataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-
-    for (const auto& element : elements(gridView, Dune::Partitions::interior))
-    {
-      localView.bind(element);
-
-      outFile << "          ";
-      if (element.type().isQuadrilateral())
+      // Extract the directors, i.e., the columns of the matrix
+      for (size_t j=0; j<3; j++)
       {
-        outFile << localView.index(0) << " ";
-        outFile << localView.index(2) << " ";
-        outFile << localView.index(8) << " ";
-        outFile << localView.index(6) << " ";
-
-        outFile << localView.index(1) << " ";
-        outFile << localView.index(5) << " ";
-        outFile << localView.index(7) << " ";
-        outFile << localView.index(3) << " ";
-
-        outFile << std::endl;
+        director0[i][j] = rotationMatrix[j][0];
+        director1[i][j] = rotationMatrix[j][1];
+        director2[i][j] = rotationMatrix[j][2];
       }
     }
-    outFile << "         </DataArray>" << std::endl;
 
-    outFile << "         <DataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-    size_t offsetCounter = 0;
-    for (const auto& element : elements(gridView))
-    {
-      outFile << "          ";
-      if (element.type().isQuadrilateral())
-        offsetCounter += 8;
-      outFile << offsetCounter << std::endl;
-    }
-    outFile << "         </DataArray>" << std::endl;
+    auto director0Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(directorBasis, director0);
+    auto director1Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(directorBasis, director1);
+    auto director2Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(directorBasis, director2);
 
-    outFile << "         <DataArray type=\"UInt8\" Name=\"types\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-    for (const auto& element : elements(gridView))
-    {
-      outFile << "          ";
-      if (element.type().isQuadrilateral())
-        outFile << "23" << std::endl;
-    }
-    outFile << "         </DataArray>" << std::endl;
+    vtkWriter.addPointData(director0Function, Dune::VTK::FieldInfo("director0", Dune::VTK::FieldInfo::Type::vector, 3));
+    vtkWriter.addPointData(director1Function, Dune::VTK::FieldInfo("director1", Dune::VTK::FieldInfo::Type::vector, 3));
+    vtkWriter.addPointData(director2Function, Dune::VTK::FieldInfo("director2", Dune::VTK::FieldInfo::Type::vector, 3));
 
-    outFile << "      </Cells>" << std::endl;
-#if 0
-    // Point data
-    outFile << "      <PointData Scalars=\"zCoord\" Vectors=\"director0\">" << std::endl;
-
-    // Z coordinate for better visualization of wrinkles
-    outFile << "        <DataArray type=\"Float32\" Name=\"zCoord\" NumberOfComponents=\"1\" format=\"ascii\">" << std::endl;
-    for (size_t i=0; i<configuration.size(); i++)
-      outFile << "          " << configuration[i].r[2] << std::endl;
-    outFile << "        </DataArray>" << std::endl;
-
-    // The three director fields
-    for (size_t i=0; i<3; i++)
-    {
-      outFile << "        <DataArray type=\"Float32\" Name=\"director" << i <<"\" NumberOfComponents=\"3\" format=\"ascii\">" << std::endl;
-      for (size_t j=0; j<configuration.size(); j++)
-        outFile << "          " << configuration[j].q.director(i) << std::endl;
-      outFile << "        </DataArray>" << std::endl;
-    }
-
-    outFile << "      </PointData>" << std::endl;
-#endif
-    // Write footer
-    outFile << "    </Piece>" << std::endl;
-    outFile << "  </UnstructuredGrid>" << std::endl;
-    outFile << "</VTKFile>" << std::endl;
-
+    // Write the file
+    vtkWriter.write(filename);
   }
 
 };
