@@ -187,7 +187,7 @@ int main (int argc, char *argv[]) try
   std::string structuredGridType = parameterSet["structuredGrid"];
   if (structuredGridType == "cube") {
     if (dim!=dimworld)
-      DUNE_THROW(GridError, "Please use FoamGrid and read in a grid for problems with dim != dimworld.");
+      DUNE_THROW(GridError, "Structured grids are only supported if dim != dimworld.");
 
     lower = parameterSet.get<FieldVector<double,dimworld> >("lower");
     upper = parameterSet.get<FieldVector<double,dimworld> >("upper");
