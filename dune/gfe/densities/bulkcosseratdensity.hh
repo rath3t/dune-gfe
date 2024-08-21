@@ -126,8 +126,6 @@ namespace Dune::GFE {
                                    const typename GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >::CoordinateType& value,
                                    const FieldMatrix<field_type,7,gridDim>& derivative) const override
     {
-      using namespace Dune::Indices;
-
       field_type strainEnergyDensity = 0;
 
       /////////////////////////////////////////////////////////
@@ -136,17 +134,17 @@ namespace Dune::GFE {
 
       Rotation<field_type,3> rotationValue(FieldVector<field_type,4>{value[3], value[4], value[5], value[6]});
 
-      FieldMatrix<field_type,3,3> deformationDerivative = {derivative[0], derivative[1], derivative[2]};
-      FieldMatrix<field_type,4,3> orientationDerivative = {derivative[3], derivative[4], derivative[5], derivative[6]};
+      FieldMatrix<field_type,3,gridDim> deformationDerivative = {derivative[0], derivative[1], derivative[2]};
+      FieldMatrix<field_type,4,gridDim> orientationDerivative = {derivative[3], derivative[4], derivative[5], derivative[6]};
 
       /////////////////////////////////////////////////////////
       // compute U, the Cosserat strain
       /////////////////////////////////////////////////////////
 
-      FieldMatrix<field_type,gridDim,gridDim> R;
+      FieldMatrix<field_type,3,3> R;
       rotationValue.matrix(R);
 
-      GFE::CosseratStrain<field_type,gridDim,gridDim> U(deformationDerivative,R);
+      GFE::CosseratStrain<field_type,3,gridDim> U(deformationDerivative,R);
 
       /////////////////////////////////////////////////////////////////////
       //  Transfer the derivative of the rotation into matrix coordinates
