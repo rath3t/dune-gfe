@@ -108,12 +108,17 @@ parameterSet.dirichletVerticesPredicate = "[x[1] < 0.0001 or x[1] > 0.128 - 0.00
 parameterSet.dirichletRotationVerticesPredicate = "x[1] < 0.0001 or x[1] > 0.128 - 0.0001"
 
 ### The actual Dirichlet values
+# With 'homotopyParameter==0', this class gives the initial iterate
 class DirichletValues:
     def __init__(self, homotopyParameter):
         self.homotopyParameter = homotopyParameter
 
     def deformation(self, x):
-        out = [x[0], x[1], 0]
+        if self.homotopyParameter<0.01:
+            out = [x[0] + 0.003*x[1] / 0.128, x[1], 0.002*math.cos(1e4*x[0])]
+        else:
+            out = [x[0], x[1], 0]
+
         if x[1] >  0.128-1e-4 :
             out[0] += 0.003 * self.homotopyParameter
             out[1] += 0.0005
@@ -126,4 +131,3 @@ class DirichletValues:
 # Initial deformation
 #parameterSet.startFromFile = True
 parameterSet.initialIterateFilename = "cosserat_iterate_2.vtu"
-parameterSet.initialDeformation = "[x[0] + 0.003*x[1] / 0.128, x[1], 0.002*math.cos(1e4*x[0])]"

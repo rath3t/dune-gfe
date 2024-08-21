@@ -112,6 +112,7 @@ parameterSet.dirichletVerticesPredicate = "[x[0] < 0.01, x[0] < 0.01, x[0] < 0.0
 parameterSet.dirichletRotationVerticesPredicate = "x[0] < 0.01"
 
 ### The actual Dirichlet values
+# With 'homotopyParameter==0', this class gives the initial iterate
 class DirichletValues:
     def __init__(self, homotopyParameter):
         self.homotopyParameter = homotopyParameter
@@ -133,9 +134,6 @@ parameterSet.neumannVerticesPredicate = "x[0] > 99.99"
 
 ###  Neumann values
 parameterSet.neumannValues = "0 0 3"
-
-# Initial deformation
-parameterSet.initialDeformation = "[x[0], x[1], 0]"
 
 #parameterSet.startFromFile = yes
 #parameterSet.initialIterateFilename = initial_iterate.vtu

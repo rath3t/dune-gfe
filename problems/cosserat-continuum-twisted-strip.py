@@ -109,6 +109,7 @@ parameterSet.dirichletVerticesPredicate = "[x[0] < 0.001 or x[0] > 0.0999, x[0] 
 parameterSet.dirichletRotationVerticesPredicate = "x[0] < 0.001 or x[0] > 0.0999"
 
 ### The actual Dirichlet values
+# With 'homotopyParameter==0', this class gives the initial iterate
 class DirichletValues:
     def __init__(self, homotopyParameter):
         self.homotopyParameter = homotopyParameter
@@ -134,8 +135,5 @@ class DirichletValues:
 
         rotation = [[1,0,0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]]
         return rotation
-
-# Initial deformation
-parameterSet.initialDeformation = "[x[0], x[1], 0]"
 
 

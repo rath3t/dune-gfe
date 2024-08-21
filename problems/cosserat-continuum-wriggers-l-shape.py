@@ -104,6 +104,7 @@ parameterSet.dirichletVerticesPredicate = "[x[0] < 1, x[0] < 1, x[0] < 1]"
 parameterSet.dirichletRotationVerticesPredicate = "x[0] < 1"
 
 ### The actual Dirichlet values
+# With 'homotopyParameter==0', this class gives the initial iterate
 class DirichletValues:
     def __init__(self, homotopyParameter):
         self.homotopyParameter = homotopyParameter
@@ -134,6 +135,7 @@ parameterSet.neumannValues =  "0.09 0 0"
 #parameterSet.initialDeformation = "[x[0], x[1], 0 if (x[0] < 225 or x[1] < -15) else 0.001*(x[0]-225)*(x[1]+15)]"
 ##parameterSet.initialDeformation = "[x[0], x[1], 0]"
 
+# Overrides the configuration given by the 'DirichletValues' class
 parameterSet.startFromFile = True
 parameterSet.initialIterateGridFilename = "wriggers-L-shape_99_mm.msh"
 parameterSet.initialIterateFilename = "initial-wriggers-l-shape.vtu"

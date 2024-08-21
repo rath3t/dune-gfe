@@ -356,19 +356,33 @@ int main (int argc, char *argv[]) try
   // //////////////////////////
 
   SolutionType x;
-
   x[_0].resize(compositeBasis.size({0}));
-
-  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("initialDeformation") + std::string(")");
-  auto pythonInitialDeformation = Python::make_function<FieldVector<double,3> >(Python::evaluate(lambda));
-
-  std::vector<FieldVector<double,3> > v;
-  Functions::interpolate(deformationPowerBasis, v, pythonInitialDeformation);
-
-  for (size_t i=0; i<x[_0].size(); i++)
-    x[_0][i] = v[i];
-
   x[_1].resize(compositeBasis.size({1}));
+
+  // Load the initial configuration from the Python options file
+  // Yes, the Python class really is called 'DirichletValues'.
+  // We use that class both for the initial iterate and the Dirichlet values
+  Python::Callable initialConfigurationPythonClass = pyModule.get("DirichletValues");
+
+  // Construct an object
+  Python::Reference initialConfigurationPythonObject = initialConfigurationPythonClass(0.0 /* homotopy parameter*/);
+
+  // Extract object member functions as Dune functions
+  auto initialDeformationFunction = Python::make_function<FieldVector<double,3> >   (initialConfigurationPythonObject.get("deformation"));
+  auto initialOrientationFunction = Python::make_function<FieldMatrix<double,3,3> > (initialConfigurationPythonObject.get("orientation"));
+
+  BlockVector<FieldVector<double,3> > ddV;
+  Functions::interpolate(deformationPowerBasis, ddV, initialDeformationFunction);
+
+  BlockVector<FieldMatrix<double,3,3> > dOV;
+  Functions::interpolate(orientationMatrixBasis, dOV, initialOrientationFunction);
+
+  for (std::size_t i = 0; i < compositeBasis.size({0}); i++)
+    x[_0][i] = ddV[i];
+
+  for (std::size_t i = 0; i < compositeBasis.size({1}); i++)
+    x[_1][i].set(dOV[i]);
+
 #if !MIXED_SPACE
   if (parameterSet.hasKey("startFromFile"))
   {
