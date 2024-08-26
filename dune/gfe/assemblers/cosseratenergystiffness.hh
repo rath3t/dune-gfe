@@ -19,6 +19,7 @@
 
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/densities/bulkcosseratdensity.hh>
+#include <dune/gfe/densities/planarcosseratshelldensity.hh>
 #ifdef PROJECTED_INTERPOLATION
 #include <dune/gfe/localprojectedfefunction.hh>
 #else
@@ -78,49 +79,15 @@ class CosseratEnergyLocalStiffness
   constexpr static int gridDim = GridView::dimension;
   constexpr static int dimworld = GridView::dimensionworld;
 
-  /** \brief Compute the (row-wise) curl of a matrix R \f$
-      \param DR The partial derivatives of the matrix R
-   */
-  static Dune::FieldMatrix<field_type,dim,dim> curl(const Tensor3<field_type,dim,dim,dim>& DR)
-  {
-    Dune::FieldMatrix<field_type,dim,dim> result;
-
-    for (int i=0; i<dim; i++) {
-      result[i][0] = DR[i][2][1] - DR[i][1][2];
-      result[i][1] = DR[i][0][2] - DR[i][2][0];
-      result[i][2] = DR[i][1][0] - DR[i][0][1];
-    }
-
-    return result;
-  }
-
 public:
 
   /** \brief Constructor with a set of material parameters
    * \param parameters The material parameters
    */
   CosseratEnergyLocalStiffness(const Dune::ParameterTree& parameters)
-  : bulkDensity_(parameters)
-  {
-    // The shell thickness // only relevant for dim == 2
-    thickness_ = parameters.template get<double>("thickness");
-
-    // Lame constants
-    mu_ = parameters.template get<double>("mu");
-    lambda_ = parameters.template get<double>("lambda");
-
-    // Cosserat couple modulus
-    mu_c_ = parameters.template get<double>("mu_c");
-
-    // Length scale parameter
-    L_c_ = parameters.template get<double>("L_c");
-
-    // Curvature exponent
-    q_ = parameters.template get<double>("q");
-
-    // Shear correction factor // only relevant for dim == 2
-    kappa_ = parameters.template get<double>("kappa");
-  }
+    : bulkDensity_(parameters),
+    planarCosseratShellDensity_(parameters)
+  {}
 
   /** \brief Constructor with material parameters and external loads
    * \param parameters The material parameters
@@ -133,29 +100,11 @@ public:
                                const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction,
                                const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad)
     : bulkDensity_(parameters),
+    planarCosseratShellDensity_(parameters),
     neumannBoundary_(neumannBoundary),
     neumannFunction_(neumannFunction),
     volumeLoad_(volumeLoad)
-  {
-    // The shell thickness // only relevant for dim == 2
-    thickness_ = parameters.template get<double>("thickness");
-
-    // Lame constants
-    mu_ = parameters.template get<double>("mu");
-    lambda_ = parameters.template get<double>("lambda");
-
-    // Cosserat couple modulus
-    mu_c_ = parameters.template get<double>("mu_c");
-
-    // Length scale parameter
-    L_c_ = parameters.template get<double>("L_c");
-
-    // Curvature exponent
-    q_ = parameters.template get<double>("q");
-
-    // Shear correction factor // only relevant for dim == 2
-    kappa_ = parameters.template get<double>("kappa");
-  }
+  {}
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
@@ -164,150 +113,11 @@ public:
   RT energy (const typename Basis::LocalView& localView,
              const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override;
 
-  /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
-   * the first equation of (4.4) in Neff's paper from 2006: A geometrically exact planar Cosserat shell model with microstructure: Existence of minimizers for zero Cosserat couple modulus
-   * OR: the equation (2.27) of 2019: Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature
-   */
-  RT quadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
-  {
-    Dune::FieldMatrix<field_type,3,3> UMinus1 = U.matrix();
-    for (int i=0; i<dim; i++)
-      UMinus1[i][i] -= 1;
-
-    return mu_ * Dune::GFE::sym(UMinus1).frobenius_norm2()
-           + mu_c_ * Dune::GFE::skew(UMinus1).frobenius_norm2()
-#ifdef QUADRATIC_2006
-           + (mu_*lambda_)/(2*mu_ + lambda_) * Dune::GFE::traceSquared(UMinus1);      // Dune::GFE::traceSquared(UMinus1) = Dune::GFE::traceSquared(Dune::GFE::sym(UMinus1))
-#else
-           + lambda_/2 * Dune::GFE::traceSquared(UMinus1);      // Dune::GFE::traceSquared(UMinus1) = Dune::GFE::traceSquared(Dune::GFE::sym(UMinus1))
-#endif
-  }
-
-  /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
-   * the second equation of (4.4) in Neff's paper
-   */
-  RT longQuadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
-  {
-    RT result = 0;
-
-    // shear-stretch energy
-    Dune::FieldMatrix<field_type,dim-1,dim-1> sym2x2;
-    for (int i=0; i<dim-1; i++)
-      for (int j=0; j<dim-1; j++)
-        sym2x2[i][j] = 0.5 * (U.matrix()[i][j] + U.matrix()[j][i]) - (i==j);
-
-    result += mu_ * sym2x2.frobenius_norm2();
-
-    // first order drill energy
-    Dune::FieldMatrix<field_type,dim-1,dim-1> skew2x2;
-    for (int i=0; i<dim-1; i++)
-      for (int j=0; j<dim-1; j++)
-        skew2x2[i][j] = 0.5 * (U.matrix()[i][j] - U.matrix()[j][i]);
-
-    result += mu_c_ * skew2x2.frobenius_norm2();
-
-
-    // classical transverse shear energy
-    result += kappa_ * (mu_ + mu_c_)/2 * (U.matrix()[2][0]*U.matrix()[2][0] + U.matrix()[2][1]*U.matrix()[2][1]);
-
-    // elongational stretch energy
-    result += mu_*lambda_ / (2*mu_ + lambda_) * traceSquared(sym2x2);
-
-    return result;
-  }
-
-  /** \brief Energy for large-deformation problems (private communication by Patrizio Neff)
-   */
-  RT nonquadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
-  {
-    Dune::FieldMatrix<field_type,3,3> UMinus1 = U.matrix();
-    for (int i=0; i<dim; i++)
-      UMinus1[i][i] -= 1;
-
-    RT detU = U.determinant();
-
-    return mu_ * Dune::GFE::sym(UMinus1).frobenius_norm2() + mu_c_ * Dune::GFE::skew(UMinus1).frobenius_norm2()
-           + (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
-  }
-
-  /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
-   * the second equation of (4.4) in Neff's paper
-   */
-  RT longNonquadraticMembraneEnergy(const Dune::GFE::CosseratStrain<field_type,3,gridDim>& U) const
-  {
-    RT result = 0;
-
-    // shear-stretch energy
-    Dune::FieldMatrix<field_type,dim-1,dim-1> sym2x2;
-    for (int i=0; i<dim-1; i++)
-      for (int j=0; j<dim-1; j++)
-        sym2x2[i][j] = 0.5 * (U.matrix()[i][j] + U.matrix()[j][i]) - (i==j);
-
-    result += mu_ * sym2x2.frobenius_norm2();
-
-    // first order drill energy
-    Dune::FieldMatrix<field_type,dim-1,dim-1> skew2x2;
-    for (int i=0; i<dim-1; i++)
-      for (int j=0; j<dim-1; j++)
-        skew2x2[i][j] = 0.5 * (U.matrix()[i][j] - U.matrix()[j][i]);
-
-    result += mu_c_ * skew2x2.frobenius_norm2();
-
-
-    // classical transverse shear energy
-    result += kappa_ * (mu_ + mu_c_)/2 * (U.matrix()[2][0]*U.matrix()[2][0] + U.matrix()[2][1]*U.matrix()[2][1]);
-
-    // elongational stretch energy
-    RT detU = U.determinant();
-    result += (mu_*lambda_)/(2*mu_ + lambda_) * 0.5 * ((detU-1)*(detU-1) + (1.0/detU -1)*(1.0/detU -1));
-
-    return result;
-  }
-
-  RT curvatureEnergy(const Tensor3<field_type,3,3,gridDim>& DR) const
-  {
-    using std::pow;
-#ifdef DONT_USE_CURL
-    return mu_ * pow(L_c_ * L_c_ * DR.frobenius_norm2(),q_/2.0);
-#else
-    return mu_ * pow(L_c_ * L_c_ * curl(DR).frobenius_norm2(),q_/2.0);
-#endif
-  }
-
-  RT bendingEnergy(const Dune::FieldMatrix<field_type,dim,dim>& R, const Tensor3<field_type,3,3,gridDim>& DR) const
-  {
-    // left-multiply the derivative of the third director (in DR[][2][]) with R^T
-    Dune::FieldMatrix<field_type,3,3> RT_DR3(0);
-    for (int i=0; i<3; i++)
-      for (int j=0; j<gridDim; j++)
-        for (int k=0; k<3; k++)
-          RT_DR3[i][j] += R[k][i] * DR[k][2][j];
-
-    return mu_ * Dune::GFE::sym(RT_DR3).frobenius_norm2()
-           + mu_c_ * Dune::GFE::skew(RT_DR3).frobenius_norm2()
-           + mu_*lambda_/(2*mu_+lambda_) * Dune::GFE::traceSquared(RT_DR3);
-  }
-
   /** The energy density if the grid is three-dimensional */
   Dune::GFE::BulkCosseratDensity<Dune::FieldVector<double,3>,field_type> bulkDensity_;
 
-  /** \brief The shell thickness */
-  double thickness_;
-
-  /** \brief Lame constants */
-  double mu_, lambda_;
-
-  /** \brief Cosserat couple modulus, preferably 0 */
-  double mu_c_;
-
-  /** \brief Length scale parameter */
-  double L_c_;
-
-  /** \brief Curvature exponent */
-  double q_;
-
-  /** \brief Shear correction factor */
-  double kappa_;
+  /** The energy density if the grid is two-dimensional */
+  Dune::GFE::PlanarCosseratShellDensity<Dune::FieldVector<double,2>,field_type> planarCosseratShellDensity_;
 
   /** \brief The Neumann boundary */
   const BoundaryPatch<GridView>* neumannBoundary_ = nullptr;
@@ -395,15 +205,9 @@ energy(const typename Basis::LocalView& localView,
 
     // Add the local energy density
     if constexpr (gridDim==2) {
-#ifdef QUADRATIC_MEMBRANE_ENERGY
-      //energy += weight * thickness_ * quadraticMembraneEnergy(U.matrix());
-      energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
-#else
-      //energy += weight * thickness_ * nonquadraticMembraneEnergy(U);
-      energy += weight * thickness_ * longNonquadraticMembraneEnergy(U);
-#endif
-      energy += weight * thickness_ * curvatureEnergy(DR);
-      energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
+      energy += weight * planarCosseratShellDensity_(quadPos,
+                                                     value.globalCoordinates(),
+                                                     derivative);
     } else if constexpr (gridDim==3) {
       energy += weight * bulkDensity_(quadPos,
                                       value.globalCoordinates(),
@@ -564,14 +368,9 @@ energy(const typename Basis::LocalView& localView,
 
     // Add the local energy density
     if constexpr (gridDim==2) {
-#ifdef QUADRATIC_MEMBRANE_ENERGY
-      //energy += weight * thickness_ * quadraticMembraneEnergy(U.matrix());
-      energy += weight * thickness_ * longQuadraticMembraneEnergy(U);
-#else
-      energy += weight * thickness_ * nonquadraticMembraneEnergy(U);
-#endif
-      energy += weight * thickness_ * curvatureEnergy(DR);
-      energy += weight * std::pow(thickness_,3) / 12.0 * bendingEnergy(R,DR);
+      energy += weight * planarCosseratShellDensity_(quadPos,
+                                                     value.globalCoordinates(),
+                                                     derivative);
     } else if constexpr (gridDim==3) {
       energy += weight * bulkDensity_(quadPos,
                                       value.globalCoordinates(),

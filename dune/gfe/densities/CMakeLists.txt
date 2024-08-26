@@ -6,4 +6,5 @@ install(FILES
         duneelasticitydensity.hh
         harmonicdensity.hh
         localdensity.hh
+        planarcosseratshelldensity.hh
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/gfe/densities)
