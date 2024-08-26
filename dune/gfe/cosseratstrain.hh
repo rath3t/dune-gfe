@@ -88,6 +88,12 @@ namespace Dune {
 
       T determinant() const
       {
+        // If dim==2 we know that the last column is the identity matrix.
+        // Hence the determinant is equal to the determinant of the
+        // upper left 2x2 sub-block.
+        if (dim==2)
+          return data_[0][0]*data_[1][1] - data_[1][0]*data_[0][1];
+
         return data_.determinant();
       }
 
