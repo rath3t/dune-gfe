@@ -258,8 +258,8 @@ public:
     adouble x = a.data_ * b.data_ / (a.data_.two_norm()*b.data_.two_norm());
 
     // paranoia:  if the argument is just eps larger than 1 acos returns NaN
-    using std::min;
-    x = min(x,1.0);
+    using std::fmin;
+    x = fmin(x,1.0);
 
     // Special implementation that remains AD-differentiable near x==1
     return arcCosSquared(x);
