@@ -23,7 +23,9 @@ public:
   Tensor3(const T& c)
   {
     for (int i=0; i<N1; i++)
-      (*this)[i] = c;
+      for (int j=0; j<N2; j++)
+        for (int k=0; k<N3; k++)
+          (*this)[i][j][k] = c;
   }
 
   T infinity_norm() const
