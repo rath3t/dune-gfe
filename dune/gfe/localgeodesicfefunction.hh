@@ -721,6 +721,16 @@ public:
     return result;
   }
 
+  /** \brief Evaluate the value and the derivative of the interpolation function
+   */
+  std::pair<TargetSpace,DerivativeType> evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+  {
+    std::pair<TargetSpace,DerivativeType> result;
+    result.first = evaluate(local);
+    result.second = evaluateDerivative(local,result.first);
+    return result;
+  }
+
   /** \brief Evaluate the derivative of the function value with respect to a coefficient */
   void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
                                                int coefficient,
