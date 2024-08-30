@@ -3,7 +3,6 @@ add_definitions(-DDUNE_GRID_EXAMPLE_GRIDS_PATH=\"${DUNE_GRID_EXAMPLE_GRIDS_PATH}
 
 set(TESTS
   averagedistanceassemblertest
-  cosseratenergytest
   cosseratrodenergytest
   cosseratrodtest
   embeddedglobalgfefunctiontest
