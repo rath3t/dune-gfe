@@ -37,11 +37,11 @@ typedef double FDType;
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
 
-#include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/localgeodesicfefdstiffness.hh>
+#include <dune/gfe/densities/planarcosseratshelldensity.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
@@ -104,12 +104,25 @@ int main (int argc, char *argv[]) try
   typedef GridType::LeafGridView GridView;
   GridView gridView = grid.leafGridView();
 
+  ///////////////////////////////////////////////
+  // Construct the basis for the tangent spaces
+  ///////////////////////////////////////////////
   typedef Functions::LagrangeBasis<GridView,1> FEBasis;
   FEBasis feBasis(gridView);
 
-  // /////////////////////////////////////////
-  //   Read Dirichlet values
-  // /////////////////////////////////////////
+  using namespace Functions::BasisFactory;
+
+  const int dimRotation = Rotation<double,3>::TangentVector::dimension;
+
+  auto tangentBasis = makeBasis(
+    gridView,
+    power<3+dimRotation>(
+      lagrange<1>()
+      )
+    );
+
+  using TangentBasis = decltype(tangentBasis);
+
 
   // //////////////////////////
   //   Initial iterate
@@ -139,7 +152,6 @@ int main (int argc, char *argv[]) try
                   };
 
   std::vector<FieldVector<double,3> > v;
-  using namespace Functions::BasisFactory;
 
   auto powerBasis = makeBasis(
     gridView,
@@ -165,35 +177,54 @@ int main (int argc, char *argv[]) try
   materialParameters["L_c"] = "1";
   materialParameters["q"] = "2";
   materialParameters["kappa"] = "1";
-  materialParameters["b1"] = "1";
-  materialParameters["b2"] = "1";
-  materialParameters["b3"] = "1";
 
 
-  ///////////////////////////////////////////////////////////////////////
-  //  Assemblers for the Riemannian derivatives
-  ///////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////
+  //  Assembler using ADOL-C
+  //////////////////////////////////////////////////////
 
-  // Assembler using ADOL-C
-  auto cosseratLocalEnergy = std::make_shared<CosseratEnergyLocalStiffness<FEBasis, 3,adouble> >(materialParameters);
+  // The 'active' target spaces, i.e., the number type is replaced by adouble
+  using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
 
-  LocalGeodesicFEADOLCStiffness<FEBasis,
-      TargetSpace> localGFEADOLCStiffness(cosseratLocalEnergy);
+  // Select geometric finite element interpolation method
+  using AInterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
-  // Assembler using finite differences
-  CosseratEnergyLocalStiffness<FEBasis, 3,FDType>
-  cosseratEnergyFDLocalStiffness(materialParameters);
-  LocalGeodesicFEFDStiffness<FEBasis,
+  auto activeDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, adouble> >(materialParameters);
+
+  auto activeCosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,AInterpolationRule,ATargetSpace> >(activeDensity);
+
+  // The actual assembler
+  LocalGeodesicFEADOLCStiffness<TangentBasis,
+      TargetSpace> localGFEADOLCStiffness(activeCosseratLocalEnergy);
+
+  //////////////////////////////////////////////////////
+  //  Assembler using finite differences
+  //////////////////////////////////////////////////////
+
+  // Select geometric finite element interpolation method
+  using InterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+
+  auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, double> >(materialParameters);
+
+  auto cosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,InterpolationRule,TargetSpace> >(cosseratDensity);
+
+  // The actual assembler
+  LocalGeodesicFEFDStiffness<TangentBasis,
       TargetSpace,
-      FDType> localGFEFDStiffness(&cosseratEnergyFDLocalStiffness);
+      FDType> localGFEFDStiffness(cosseratLocalEnergy.get());
 
-  // Compute and compare matrices
+  ////////////////////////////////////////////////////////
+  //  Compute and compare tangent matrices
+  ////////////////////////////////////////////////////////
   for (const auto& element : Dune::elements(gridView))
   {
     std::cout << "  ++++  element " << gridView.indexSet().index(element) << " ++++" << std::endl;
 
     auto localView     = feBasis.localView();
     localView.bind(element);
+
+    auto tangentLocalView = tangentBasis.localView();
+    tangentLocalView.bind(element);
 
     const int numOfBaseFct = localView.size();
 
@@ -210,12 +241,12 @@ int main (int argc, char *argv[]) try
     Matrix<double> localRiemannianADHessian;
     Matrix<double> localRiemannianFDHessian;
 
-    localGFEADOLCStiffness.assembleGradientAndHessian(localView,
+    localGFEADOLCStiffness.assembleGradientAndHessian(tangentLocalView,
                                                       localSolution,
                                                       localRiemannianADGradient,
                                                       localRiemannianADHessian);
 
-    localGFEFDStiffness.assembleGradientAndHessian(localView,
+    localGFEFDStiffness.assembleGradientAndHessian(tangentLocalView,
                                                    localSolution,
                                                    localRiemannianFDGradient,
                                                    localRiemannianFDHessian);

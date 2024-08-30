@@ -2,6 +2,7 @@
 #define DUNE_GFE_ASSEMBLERS_LOCALINTEGRALENERGY_HH
 
 #include <dune/common/fmatrix.hh>
+#include <dune/common/version.hh>
 
 #include <dune/geometry/quadraturerules.hh>
 
@@ -10,6 +11,34 @@
 
 
 namespace Dune::GFE {
+
+#if ! DUNE_VERSION_GTE(DUNE_LOCALFUNCTIONS, 2, 10)
+  namespace Impl
+  {
+    template <class Basis>
+    class LocalFiniteElementFactory
+    {
+    public:
+      static auto get(const typename Basis::LocalView& localView)
+      -> decltype(localView.tree().child(0).finiteElement())
+      {
+        return localView.tree().child(0).finiteElement();
+      }
+    };
+
+    /** \brief Specialize for scalar bases, here we cannot call tree().child() */
+    template <class GridView, int order>
+    class LocalFiniteElementFactory<Dune::Functions::LagrangeBasis<GridView,order> >
+    {
+    public:
+      static auto get(const typename Dune::Functions::LagrangeBasis<GridView,order>::LocalView& localView)
+      -> decltype(localView.tree().finiteElement())
+      {
+        return localView.tree().finiteElement();
+      }
+    };
+  }
+#endif
 
   /** \brief An energy given as an integral over a density
    *
@@ -44,9 +73,27 @@ namespace Dune::GFE {
     {
       RT energy = 0;
 
-      if constexpr (not Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
+      if constexpr (Basis::LocalView::Tree::isLeaf || Basis::LocalView::Tree::isPower)
       {
-        const auto& localFiniteElement = localView.tree().finiteElement();
+#if DUNE_VERSION_GTE(DUNE_LOCALFUNCTIONS, 2, 10)
+        // Get an appropriate scalar local finite element, to construct the interpolation rule with
+        // TODO: This is not a good design, for several reasons:
+        // * The interpolation rule could want to have state beyond what we know here.
+        //   It should therefore be constructed outside of the LocalIntegralEnergy class
+        // * I don't really see why Basis should be allowed to be scalar-valued
+        //   to begin with, but a lot of code still currently does that.
+        auto lfeGetter = [&localView]()
+                         {
+                           if constexpr (Basis::LocalView::Tree::isPower)
+                             return localView.tree().child(0).finiteElement();
+                           else
+                             return localView.tree().finiteElement();
+                         };
+
+        const auto& localFiniteElement = lfeGetter();
+#else
+        const auto& localFiniteElement = Impl::LocalFiniteElementFactory<Basis>::get(localView);
+#endif
         LocalInterpolationRule localInterpolationRule(localFiniteElement,localConfiguration);
 
         int quadOrder = (localFiniteElement.type().isSimplex())
@@ -97,6 +144,11 @@ namespace Dune::GFE {
           }
         }
       }
+      else
+      {
+        // You need a scalar basis or a power basis when calling this method.
+        std::abort();
+      }
 
       return energy;
     }
@@ -106,7 +158,7 @@ namespace Dune::GFE {
     {
       RT energy = 0;
 
-      if constexpr (Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
+      if constexpr (Impl::LocalEnergyTypes<TargetSpace>::isProductManifold && Basis::LocalView::Tree::isComposite)
       {
         static_assert(TargetSpace::size() == 2,
                       "LocalIntegralEnergy only implemented for product spaces with two factors!");
@@ -177,6 +229,8 @@ namespace Dune::GFE {
                                                                     derivative);
         }
       }
+      else
+        DUNE_THROW(Dune::NotImplemented, "Non-product manifold or non-composite basis");
 
       return energy;
     }
