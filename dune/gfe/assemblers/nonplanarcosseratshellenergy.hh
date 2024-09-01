@@ -15,7 +15,6 @@
 #include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
 #endif
 
-#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/tensor3.hh>
@@ -28,6 +27,44 @@
 #include <dune/curvedgeometry/curvedgeometry.hh>
 #include <dune/localfunctions/lagrange/lfecache.hh>
 #endif
+
+namespace Dune::GFE
+{
+  namespace Impl
+  {
+    /** \brief Get LocalFiniteElements from a localView, for different tree depths of the local view
+     *
+     * We instantiate the CosseratEnergyLocalStiffness class with two different kinds of Basis:
+     * A scalar one and a composite one that combines two scalar ones.  But code for accessing the
+     * finite elements in the basis tree only work for one kind of basis, not for the other.
+     * To allow both kinds of basis in a single class we need this trickery below.
+     */
+    template <class Basis, std::size_t i>
+    class NonplanarCosseratShellLocalFiniteElementFactory
+    {
+    public:
+      static auto get(const typename Basis::LocalView& localView,
+                      std::integral_constant<std::size_t, i> iType)
+      -> decltype(localView.tree().child(iType,0).finiteElement())
+      {
+        return localView.tree().child(iType,0).finiteElement();
+      }
+    };
+
+    /** \brief Specialize for scalar bases, here we cannot call tree().child() */
+    template <class GridView, int order, std::size_t i>
+    class NonplanarCosseratShellLocalFiniteElementFactory<Dune::Functions::LagrangeBasis<GridView,order>,i>
+    {
+    public:
+      static auto get(const typename Dune::Functions::LagrangeBasis<GridView,order>::LocalView& localView,
+                      std::integral_constant<std::size_t, i> iType)
+      -> decltype(localView.tree().finiteElement())
+      {
+        return localView.tree().finiteElement();
+      }
+    };
+  }
+}
 
 /** \brief Assembles the cosserat energy for a single element.
  *
@@ -199,7 +236,7 @@ energy(const typename Basis::LocalView& localView,
 
   // The set of shape functions on this element
   using namespace Dune::Indices;
-  const auto& localFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
+  const auto& localFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView,_0);
 
 #if HAVE_DUNE_CURVEDGEOMETRY
   // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
@@ -444,8 +481,8 @@ energy(const typename Basis::LocalView& localView,
   // The set of shape functions on this element
 
   using namespace Dune::Indices;
-  const auto& deformationLocalFiniteElement = LocalFiniteElementFactory<Basis,0>::get(localView,_0);
-  const auto& orientationLocalFiniteElement = LocalFiniteElementFactory<Basis,1>::get(localView,_1);
+  const auto& deformationLocalFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView,_0);
+  const auto& orientationLocalFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,1>::get(localView,_1);
 
 #if HAVE_DUNE_CURVEDGEOMETRY
   // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
