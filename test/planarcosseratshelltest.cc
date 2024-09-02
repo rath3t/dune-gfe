@@ -20,9 +20,10 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
-#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
+#include <dune/gfe/densities/planarcosseratshelldensity.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #include <dune/gfe/neumannenergy.hh>
@@ -185,24 +186,36 @@ int main (int argc, char *argv[])
   parameters["L_c"] = "0.06";
   parameters["q"] = "2";
   parameters["kappa"] = "1";         // Shear correction factor
-  // TODO: Remove the following three parameters. They are not actually used by the model
-  parameters["b1"] = "1";
-  parameters["b2"] = "1";
-  parameters["b3"] = "1";
 
   //////////////////////////////
   //  Create an assembler
   //////////////////////////////
 
+  // The target space, with 'double' and 'adouble' as number types
   using RigidBodyMotion = GFE::ProductManifold<RealTuple<double,dimworld>,Rotation<double,dimworld> >;
+  using ARigidBodyMotion = typename RigidBodyMotion::template rebind<adouble>::other;
 
+  // The total energy
   auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dimworld>,Rotation<adouble,dimworld> > >();
-  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dimworld>, Rotation<adouble,dimworld> > >(neumannBoundary,neumannFunction);
 
-  auto planarCosseratShellEnergy = std::make_shared<CosseratEnergyLocalStiffness<CompositeBasis, dimworld, adouble> >(parameters);
+  // The Cosserat shell energy
+  using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
+  using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
+
+  using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
+      LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
+
+  auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, adouble> >(parameters);
+
+  auto planarCosseratShellEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis,AInterpolationRule,ARigidBodyMotion> >(cosseratDensity);
+
   sumEnergy->addLocalEnergy(planarCosseratShellEnergy);
+
+  // The Neumann surface load term
+  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dimworld>, Rotation<adouble,dimworld> > >(neumannBoundary,neumannFunction);
   sumEnergy->addLocalEnergy(neumannEnergy);
 
+  // The assembler
   LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> localGFEADOLCStiffness(sumEnergy);
   MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
