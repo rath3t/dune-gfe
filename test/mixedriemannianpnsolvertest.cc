@@ -20,12 +20,16 @@
 #include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/grid/uggrid.hh>
 
-#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/assemblers/geodesicfeassemblerwrapper.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/sumenergy.hh>
+#include <dune/gfe/densities/planarcosseratshelldensity.hh>
+#include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/mixedriemannianpnsolver.hh>
+#include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/riemannianpnsolver.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
@@ -116,7 +120,7 @@ int main (int argc, char *argv[])
     dirichletVertices[indexSet.index(vertex)] = isDirichlet(vertex.geometry().corner(0));
   }
 
-  BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
+  auto neumannBoundary = std::make_shared<BoundaryPatch<GridView> >(gridView, neumannVertices);
   BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
 
   BitSetVector<1> dirichletNodes(compositeBasis.size({0}),false);
@@ -153,25 +157,40 @@ int main (int argc, char *argv[])
   parameters["q"] = "2";
   parameters["kappa"] = "1";
 
-  parameters["b1"] = "1";
-  parameters["b2"] = "1";
-  parameters["b3"] = "1";
-
 
   FieldVector<double,dim> values_ = {3e4,2e4,1e4};
   auto neumannFunction = [&](FieldVector<double, gridDim>){
                            return values_;
                          };
 
-  auto cosseratEnergy = std::make_shared<CosseratEnergyLocalStiffness<decltype(compositeBasis), dim, ValueType> >(parameters,
-                                                                                                                  &neumannBoundary,
-                                                                                                                  neumannFunction,
-                                                                                                                  nullptr);
+  // The target space, with 'double' and 'adouble' as number types
+  using RBM = GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> >;
+  using ARBM = typename RBM::template rebind<adouble>::other;
 
-  using RBM = GFE::ProductManifold<RealTuple<double,dim>, Rotation<double, dim> >;
+  // The total energy
+  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dim>,Rotation<adouble,dim> > >();
 
-  LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> mixedLocalGFEADOLCStiffness(cosseratEnergy);
+  // The Cosserat shell energy
+  using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
+  using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
 
+  using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<gridDim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
+      LocalGeodesicFEFunction<gridDim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
+
+  auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, adouble> >(parameters);
+
+  auto planarCosseratShellEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis,AInterpolationRule,ARBM> >(cosseratDensity);
+
+  sumEnergy->addLocalEnergy(planarCosseratShellEnergy);
+
+  // The Neumann surface load term
+  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
+  sumEnergy->addLocalEnergy(neumannEnergy);
+
+  // The local assembler
+  LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> mixedLocalGFEADOLCStiffness(sumEnergy);
+
+  // The global assembler
   MixedGFEAssembler<CompositeBasis, RBM> mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
 
   using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM>;
