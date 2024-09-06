@@ -5,7 +5,8 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
-#include <dune/elasticity/assemblers/localenergy.hh>
+#include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
 
 namespace Dune::GFE {
   /** \brief Integrate a density over a part of the domain boundary
