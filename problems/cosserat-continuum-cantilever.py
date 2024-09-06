@@ -95,12 +95,6 @@ parameterSet.materialParameters.q = 2
 # Shear correction factor
 parameterSet.materialParameters.kappa = 1
 
-# TODO: These three parameters are not actually used,
-# but the current implementation requires them nevertheless.
-parameterSet.materialParameters.b1 = 1
-parameterSet.materialParameters.b2 = 1
-parameterSet.materialParameters.b3 = 1
-
 
 #############################################
 #  Boundary values

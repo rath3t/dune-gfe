@@ -58,14 +58,18 @@
 
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
+#include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
-#include <dune/gfe/assemblers/cosseratenergystiffness.hh>
+#include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/nonplanarcosseratshellenergy.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/cosseratvtkreader.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/sumenergy.hh>
+#include <dune/gfe/densities/bulkcosseratdensity.hh>
+#include <dune/gfe/densities/planarcosseratshelldensity.hh>
 
 #if MIXED_SPACE
 #include <dune/gfe/mixedriemannianpnsolver.hh>
@@ -105,6 +109,21 @@ static_assert(displacementOrder==rotationOrder, "displacement and rotation order
 // Image space of the geodesic fe functions
 using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
+// Method to construct a density that matches the grid dimension.
+// This cannot be done inside the 'main' method, because 'constexpr if' only works
+// when its argument depends on a template parameter.
+template <typename LocalCoordinate>
+auto createDensity(const ParameterTree& materialParameters)
+{
+  if constexpr (LocalCoordinate::size()==2)
+  {
+    return std::make_shared<GFE::PlanarCosseratShellDensity<LocalCoordinate, adouble> >(materialParameters);
+  }
+  else
+  {
+    return std::make_shared<GFE::BulkCosseratDensity<LocalCoordinate, adouble> >(materialParameters);
+  }
+}
 
 int main (int argc, char *argv[]) try
 {
@@ -322,16 +341,16 @@ int main (int argc, char *argv[]) try
     neumannVertices[indexSet.index(vertex)] = isNeumann;
   }
 
-  BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
+  auto neumannBoundary = std::make_shared<BoundaryPatch<GridView> >(gridView, neumannVertices);
 
-  std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary.numFaces()
+  std::cout << "On rank " << mpiHelper.rank() << ": Neumann boundary has " << neumannBoundary->numFaces()
             << " faces and " << neumannVertices.count() << " degrees of freedom.\n";
 
   BitSetVector<1> neumannNodes(deformationFEBasis.size(), false);
 #if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
-  Fufem::markBoundaryPatchDofs(neumannBoundary,deformationFEBasis,neumannNodes);
+  Fufem::markBoundaryPatchDofs(*neumannBoundary,deformationFEBasis,neumannNodes);
 #else
-  constructBoundaryDofs(neumannBoundary,deformationFEBasis,neumannNodes);
+  constructBoundaryDofs(*neumannBoundary,deformationFEBasis,neumannNodes);
 #endif
 
   for (size_t i=0; i<deformationFEBasis.size(); i++) {
@@ -485,7 +504,14 @@ int main (int argc, char *argv[]) try
                              return nV;
                            };
 
+    if (parameterSet.get<std::string>("volumeLoadPythonFunction", "zero-volume-load") != "zero-volume-load")
+    {
+      std::cerr << "cosserat-continuum.cc: Volume loads are not fully implemented yet." << std::endl;
+      std::abort();
+    }
+
     Python::Reference volumeLoadClass = Python::import(parameterSet.get<std::string>("volumeLoadPythonFunction", "zero-volume-load"));
+
     Python::Callable volumeLoadCallable = volumeLoadClass.get("VolumeLoad");
 
     // Call a constructor
@@ -532,14 +558,37 @@ int main (int argc, char *argv[]) try
         x[_1][i].set(dOV[i]);
 
     if (dim==dimworld) {
-      auto localCosseratEnergy = std::make_shared<CosseratEnergyLocalStiffness<CompositeBasis, 3,adouble> > (materialParameters,
-                                                                                                             &neumannBoundary,
-                                                                                                             neumannFunction,
-                                                                                                             volumeLoad);
+      auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,3>,Rotation<adouble,3> > >();
 
-      LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(localCosseratEnergy,
+      // The Cosserat shell energy
+      using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
+      using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
+
+      using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
+          LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
+
+      using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
+
+      using LocalCoordinate = typename GridType::Codim<0>::Entity::Geometry::LocalCoordinate;
+      auto cosseratDensity = createDensity<LocalCoordinate>(materialParameters);
+
+      auto localCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis,AInterpolationRule,ATargetSpace> >(cosseratDensity);
+
+      sumEnergy->addLocalEnergy(localCosseratEnergy);
+
+      // The Neumann surface load term
+      auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,3>, Rotation<adouble,3> > >(neumannBoundary,neumannFunction);
+      sumEnergy->addLocalEnergy(neumannEnergy);
+
+      // The local assembler
+      LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy,
                                                                                        adolcScalarMode);
+
       MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
+
+      ////////////////////////////////////////////
+      //  Set up the solver
+      ////////////////////////////////////////////
 #if MIXED_SPACE
       if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
       {
@@ -665,7 +714,7 @@ int main (int argc, char *argv[]) try
 #if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2
       auto localCosseratEnergy = std::make_shared<NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> >(materialParameters,
                                                                                                                                 &creator,
-                                                                                                                                &neumannBoundary,
+                                                                                                                                neumannBoundary.get(),
                                                                                                                                 neumannFunction,
                                                                                                                                 volumeLoad);
 

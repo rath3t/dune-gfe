@@ -158,7 +158,9 @@ namespace Dune::GFE {
     {
       RT energy = 0;
 
-      if constexpr (Impl::LocalEnergyTypes<TargetSpace>::isProductManifold && Basis::LocalView::Tree::isComposite)
+      if constexpr (Impl::LocalEnergyTypes<TargetSpace>::isProductManifold
+                    && Basis::LocalView::Tree::isComposite
+                    && gridDim==GridView::dimensionworld) // TODO: Implement the case gridDim!=dimworld
       {
         static_assert(TargetSpace::size() == 2,
                       "LocalIntegralEnergy only implemented for product spaces with two factors!");
@@ -230,7 +232,7 @@ namespace Dune::GFE {
         }
       }
       else
-        DUNE_THROW(Dune::NotImplemented, "Non-product manifold or non-composite basis");
+        DUNE_THROW(Dune::NotImplemented, "Non-product manifold or non-composite basis or gridDim!=dimworld");
 
       return energy;
     }

@@ -27,6 +27,7 @@ namespace Dune::GFE {
     using RT = typename Dune::GFE::LocalEnergy<Basis,TargetSpace>::RT;
 
     constexpr static int dim = GridView::dimension;
+    constexpr static int dimworld = GridView::dimensionworld;
 
     // TODO: Remove the hard-coded first factor space!
     using WorldVector = typename std::tuple_element_t<0, std::tuple<TargetSpaces...> >::EmbeddedTangentVector;
@@ -37,7 +38,7 @@ namespace Dune::GFE {
      * \param parameters The material parameters
      */
     NeumannEnergy(const std::shared_ptr<BoundaryPatch<GridView> >& neumannBoundary,
-                  std::function<WorldVector(Dune::FieldVector<DT,dim>)> neumannFunction)
+                  std::function<WorldVector(Dune::FieldVector<DT,dimworld>)> neumannFunction)
       : neumannBoundary_(neumannBoundary),
       neumannFunction_(neumannFunction)
     {}
@@ -107,7 +108,7 @@ namespace Dune::GFE {
     const std::shared_ptr<BoundaryPatch<GridView> > neumannBoundary_;
 
     /** \brief The function implementing the Neumann data */
-    std::function<WorldVector(Dune::FieldVector<DT,dim>)> neumannFunction_;
+    std::function<WorldVector(Dune::FieldVector<DT,dimworld>)> neumannFunction_;
   };
 }  // namespace Dune::GFE
 

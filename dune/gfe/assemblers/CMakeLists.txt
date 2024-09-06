@@ -1,6 +1,5 @@
 #install headers
 install(FILES
-        cosseratenergystiffness.hh
         cosseratrodenergy.hh
         geodesicfeassembler.hh
         geodesicfeassemblerwrapper.hh
