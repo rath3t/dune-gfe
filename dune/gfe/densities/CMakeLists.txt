@@ -3,6 +3,7 @@ install(FILES
         bulkcosseratdensity.hh
         chiralskyrmiondensity.hh
         cosseratshelldensity.hh
+        cosseratvolumeloaddensity.hh
         duneelasticitydensity.hh
         harmonicdensity.hh
         localdensity.hh

@@ -69,6 +69,7 @@
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/densities/bulkcosseratdensity.hh>
+#include <dune/gfe/densities/cosseratvolumeloaddensity.hh>
 #include <dune/gfe/densities/planarcosseratshelldensity.hh>
 
 #if MIXED_SPACE
@@ -498,12 +499,6 @@ int main (int argc, char *argv[]) try
                              return nV;
                            };
 
-    if (parameterSet.get<std::string>("volumeLoadPythonFunction", "zero-volume-load") != "zero-volume-load")
-    {
-      std::cerr << "cosserat-continuum.cc: Volume loads are not fully implemented yet." << std::endl;
-      std::abort();
-    }
-
     Python::Reference volumeLoadClass = Python::import(parameterSet.get<std::string>("volumeLoadPythonFunction", "zero-volume-load"));
 
     Python::Callable volumeLoadCallable = volumeLoadClass.get("VolumeLoad");
@@ -573,6 +568,16 @@ int main (int argc, char *argv[]) try
       // The Neumann surface load term
       auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,3>, Rotation<adouble,3> > >(neumannBoundary,neumannFunction);
       sumEnergy->addLocalEnergy(neumannEnergy);
+
+      // The volume load term
+      // TODO: There is a bug here: The volumeLoad function is currently defined in global coordinates,
+      // but the density expects it to be in local coordinates with respect to the element being
+      // integrated over.  I have to think about where the binding should happen.
+      // Practically, the bug does not really show, because all our volume loads
+      // are constant in space anyway.
+      auto volumeLoadDensity = std::make_shared<GFE::CosseratVolumeLoadDensity<LocalCoordinate,adouble> >(volumeLoad);
+      auto volumeLoadEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, AInterpolationRule, ATargetSpace> >(volumeLoadDensity);
+      sumEnergy->addLocalEnergy(volumeLoadEnergy);
 
       // The local assembler
       LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy,
