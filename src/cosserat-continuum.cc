@@ -546,48 +546,69 @@ int main (int argc, char *argv[]) try
       if (orientationDirichletDofs[i][0])
         x[_1][i].set(dOV[i]);
 
+    ////////////////////////////////////////////////////////////////
+    //  Build the assembler for the tangent problems
+    ////////////////////////////////////////////////////////////////
+
+    // Construct the interpolation rule, i.e., the geometric finite element
+    using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
+    using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
+
+    using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
+        LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
+
+    using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
+
+    using LocalCoordinate = typename GridType::Codim<0>::Entity::Geometry::LocalCoordinate;
+
+    // The energy on one element
+    auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,3>,Rotation<adouble,3> > >();
+
     if (dim==dimworld) {
-      auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,3>,Rotation<adouble,3> > >();
-
-      // The Cosserat shell energy
-      using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
-      using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
-
-      using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
-          LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
-
-      using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
-
-      using LocalCoordinate = typename GridType::Codim<0>::Entity::Geometry::LocalCoordinate;
       auto cosseratDensity = createDensity<LocalCoordinate>(materialParameters);
 
       auto localCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis,AInterpolationRule,ATargetSpace> >(cosseratDensity);
 
       sumEnergy->addLocalEnergy(localCosseratEnergy);
+    }
+    else
+    {
+      static_assert((dim==dimworld) || (dim==2 && dimworld==3),
+                    "For dim!=dimworld, only the case dim==2 and dimworld==3 is supported!");
 
-      // The Neumann surface load term
-      auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,3>, Rotation<adouble,3> > >(neumannBoundary,neumannFunction);
-      sumEnergy->addLocalEnergy(neumannEnergy);
+      auto localCosseratEnergy
+        = std::make_shared<NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> >(materialParameters,
+                                                                                                         &creator);
 
-      // The volume load term
-      // TODO: There is a bug here: The volumeLoad function is currently defined in global coordinates,
-      // but the density expects it to be in local coordinates with respect to the element being
-      // integrated over.  I have to think about where the binding should happen.
-      // Practically, the bug does not really show, because all our volume loads
-      // are constant in space anyway.
-      auto volumeLoadDensity = std::make_shared<GFE::CosseratVolumeLoadDensity<LocalCoordinate,adouble> >(volumeLoad);
-      auto volumeLoadEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, AInterpolationRule, ATargetSpace> >(volumeLoadDensity);
-      sumEnergy->addLocalEnergy(volumeLoadEnergy);
+      sumEnergy->addLocalEnergy(localCosseratEnergy);
+    }
 
-      // The local assembler
-      LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy,
-                                                                                       adolcScalarMode);
+    // The Neumann surface load term
+    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,3>, Rotation<adouble,3> > >(neumannBoundary,neumannFunction);
+    sumEnergy->addLocalEnergy(neumannEnergy);
 
-      MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
+    // The volume load term
+    // TODO: There is a bug here: The volumeLoad function is currently defined in global coordinates,
+    // but the density expects it to be in local coordinates with respect to the element being
+    // integrated over.  I have to think about where the binding should happen.
+    // Practically, the bug does not really show, because all our volume loads
+    // are constant in space anyway.
+    auto volumeLoadDensity = std::make_shared<GFE::CosseratVolumeLoadDensity<LocalCoordinate,adouble> >(volumeLoad);
+    auto volumeLoadEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, AInterpolationRule, ATargetSpace> >(volumeLoadDensity);
+    sumEnergy->addLocalEnergy(volumeLoadEnergy);
 
-      ////////////////////////////////////////////
-      //  Set up the solver
-      ////////////////////////////////////////////
+    // The local assembler
+    LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy,
+                                                                                     adolcScalarMode);
+
+    MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
+
+    ////////////////////////////////////////////
+    //  Set up the solver
+    ////////////////////////////////////////////
+    // TODO: There is no need why the solver setup code should depend on the grid dimension
+    if (dim==dimworld)
+    {
 #if MIXED_SPACE
       if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
       {
@@ -707,19 +728,6 @@ int main (int argc, char *argv[]) try
       }
 #endif
     } else {     //dim != dimworld
-      using StiffnessType = LocalGeodesicFEADOLCStiffness<CompositeBasis, TargetSpace>;
-      std::shared_ptr<StiffnessType> localGFEStiffness;
-
-#if HAVE_DUNE_CURVEDGEOMETRY && WORLD_DIM == 3 && GRID_DIM == 2
-      auto localCosseratEnergy = std::make_shared<NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> >(materialParameters,
-                                                                                                                                &creator,
-                                                                                                                                neumannBoundary.get(),
-                                                                                                                                neumannFunction,
-                                                                                                                                volumeLoad);
-
-      localGFEStiffness = std::make_shared<StiffnessType>(localCosseratEnergy, adolcScalarMode);
-#endif
-      MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEStiffness);
 #if MIXED_SPACE
       MixedRiemannianTrustRegionSolver<GridType,
           CompositeBasis,

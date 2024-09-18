@@ -124,11 +124,7 @@ double calculateEnergy(const FlatGridView& flatGridView,
       double,
       GridGeometry>;
 
-  ShellEnergy nonplanarCosseratShellEnergy(materialParameters,
-                                           &curvedGridGeometry,
-                                           nullptr,
-                                           nullptr,
-                                           nullptr);
+  ShellEnergy nonplanarCosseratShellEnergy(materialParameters, &curvedGridGeometry);
 
   ///////////////////////////////////////////////////
   //  Compute the energy

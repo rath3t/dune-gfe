@@ -95,14 +95,8 @@ public:
    * \param stressFreeStateGridFunction Pointer to a parametrization representing the Cosserat shell in a stress-free state
    */
   NonplanarCosseratShellEnergy(const Dune::ParameterTree& parameters,
-                               const StressFreeStateGridFunction* stressFreeStateGridFunction,
-                               const BoundaryPatch<GridView>* neumannBoundary,
-                               const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction,
-                               const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad)
-    : stressFreeStateGridFunction_(stressFreeStateGridFunction),
-    neumannBoundary_(neumannBoundary),
-    neumannFunction_(neumannFunction),
-    volumeLoad_(volumeLoad)
+                               const StressFreeStateGridFunction* stressFreeStateGridFunction)
+    : stressFreeStateGridFunction_(stressFreeStateGridFunction)
   {
     // The shell thickness
     thickness_ = parameters.template get<double>("thickness");
@@ -211,15 +205,6 @@ public:
 
   /** \brief The geometry of the reference deformation used for assembling */
   const StressFreeStateGridFunction* stressFreeStateGridFunction_;
-
-  /** \brief The Neumann boundary */
-  const BoundaryPatch<GridView>* neumannBoundary_;
-
-  /** \brief The function implementing the Neumann data */
-  const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> neumannFunction_;
-
-  /** \brief The function implementing a volume load */
-  const std::function<Dune::FieldVector<double,3>(Dune::FieldVector<double,dimworld>)> volumeLoad_;
 };
 
 template <class Basis, int dim, class field_type, class StressFreeStateGridFunction>
@@ -416,54 +401,6 @@ energy(const typename Basis::LocalView& localView,
 
     // Add energy density
     energy += quad[pt].weight() * integrationElement * energyDensity;
-
-    ///////////////////////////////////////////////////////////
-    // Volume load contribution
-    ///////////////////////////////////////////////////////////
-
-    if (not volumeLoad_)
-      continue;
-
-    // Value of the volume load density at the current position
-    Dune::FieldVector<double,3> volumeLoadDensity = volumeLoad_(geometry.global(quad[pt].position()));
-
-    // Only translational dofs are affected by the volume load
-    for (size_t i=0; i<volumeLoadDensity.size(); i++)
-      energy += (volumeLoadDensity[i] * value[_0].globalCoordinates()[i]) * quad[pt].weight() * integrationElement;
-  }
-
-
-  //////////////////////////////////////////////////////////////////////////////
-  //   Assemble boundary contributions
-  //////////////////////////////////////////////////////////////////////////////
-
-  if (not neumannFunction_)
-    return energy;
-
-  for (auto&& it : intersections(neumannBoundary_->gridView(),element) )
-  {
-    if (not neumannBoundary_ or not neumannBoundary_->contains(it))
-      continue;
-
-    const auto& quad = Dune::QuadratureRules<DT, gridDim-1>::rule(it.type(), quadOrder);
-
-    for (size_t pt=0; pt<quad.size(); pt++)
-    {
-      // Local position of the quadrature point
-      const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());
-
-      const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
-
-      // The value of the local function
-      Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > value = localGeodesicFEFunction.evaluate(quadPos);
-
-      // Value of the Neumann data at the current position
-      Dune::FieldVector<double,3> neumannValue = neumannFunction_(it.geometry().global(quad[pt].position()));
-
-      // Only translational dofs are affected by the Neumann force
-      for (size_t i=0; i<neumannValue.size(); i++)
-        energy += (neumannValue[i] * value[_0].globalCoordinates()[i]) * quad[pt].weight() * integrationElement;
-    }
   }
 
   return energy;
@@ -659,54 +596,6 @@ energy(const typename Basis::LocalView& localView,
 
     // Add energy density
     energy += quad[pt].weight() * integrationElement * energyDensity;
-
-    ///////////////////////////////////////////////////////////
-    // Volume load contribution
-    ///////////////////////////////////////////////////////////
-
-    if (not volumeLoad_)
-      continue;
-
-    // Value of the volume load density at the current position
-    Dune::FieldVector<double,3> volumeLoadDensity = volumeLoad_(geometry.global(quad[pt].position()));
-
-    // Only translational dofs are affected by the volume load
-    for (size_t i=0; i<volumeLoadDensity.size(); i++)
-      energy += (volumeLoadDensity[i] * deformationValue[i]) * quad[pt].weight() * integrationElement;
-  }
-
-
-  //////////////////////////////////////////////////////////////////////////////
-  //   Assemble boundary contributions
-  //////////////////////////////////////////////////////////////////////////////
-
-  if (not neumannFunction_)
-    return energy;
-
-  for (auto&& it : intersections(neumannBoundary_->gridView(),element) )
-  {
-    if (not neumannBoundary_ or not neumannBoundary_->contains(it))
-      continue;
-
-    const auto& quad = Dune::QuadratureRules<DT, gridDim-1>::rule(it.type(), quadOrder);
-
-    for (size_t pt=0; pt<quad.size(); pt++)
-    {
-      // Local position of the quadrature point
-      const Dune::FieldVector<DT,gridDim>& quadPos = it.geometryInInside().global(quad[pt].position());
-
-      const DT integrationElement = it.geometry().integrationElement(quad[pt].position());
-
-      // The value of the local function
-      RealTuple<field_type,dim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
-
-      // Value of the Neumann data at the current position
-      Dune::FieldVector<double,3> neumannValue = neumannFunction_(it.geometry().global(quad[pt].position()));
-
-      // Only translational dofs are affected by the Neumann force
-      for (size_t i=0; i<neumannValue.size(); i++)
-        energy += (neumannValue[i] * deformationValue[i]) * quad[pt].weight() * integrationElement;
-    }
   }
 
   return energy;
