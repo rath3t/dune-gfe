@@ -606,129 +606,10 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////
     //  Set up the solver
     ////////////////////////////////////////////
-    // TODO: There is no need why the solver setup code should depend on the grid dimension
-    if (dim==dimworld)
+
+#if MIXED_SPACE
+    if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
     {
-#if MIXED_SPACE
-      if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
-      {
-
-        MixedRiemannianTrustRegionSolver<GridType,
-            CompositeBasis,
-            DeformationFEBasis, RealTuple<double,3>,
-            OrientationFEBasis, Rotation<double,3> > solver;
-        solver.setup(*grid,
-                     &mixedAssembler,
-                     deformationFEBasis,
-                     orientationFEBasis,
-                     x,
-                     deformationDirichletDofs,
-                     orientationDirichletDofs, tolerance,
-                     maxSolverSteps,
-                     initialTrustRegionRadius,
-                     multigridIterations,
-                     mgTolerance,
-                     mu, nu1, nu2,
-                     baseIterations,
-                     baseTolerance,
-                     instrumented);
-
-        solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
-
-        solver.setInitialIterate(x);
-        solver.solve();
-        x = solver.getSol();
-      }
-      else
-      {
-        //Create BitVector matching the tangential space
-        const int dimRotationTangent = Rotation<double,3>::TangentVector::dimension;
-        using VectorForBit = MultiTypeBlockVector<std::vector<FieldVector<double,3> >, std::vector<FieldVector<double,dimRotationTangent> > >;
-        using BitVector = Solvers::DefaultBitVector_t<VectorForBit>;
-        BitVector dirichletDofs;
-        dirichletDofs[_0].resize(compositeBasis.size({0}));
-        dirichletDofs[_1].resize(compositeBasis.size({1}));
-        for (size_t i = 0; i < compositeBasis.size({0}); i++) {
-          for (size_t j = 0; j < 3; j++)
-            dirichletDofs[_0][i][j] = deformationDirichletDofs[i][j];
-        }
-        for (size_t i = 0; i < compositeBasis.size({1}); i++) {
-          for (int j = 0; j < dimRotationTangent; j++)
-            dirichletDofs[_1][i][j] = orientationDirichletDofs[i][j];
-        }
-        GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, RealTuple<double,3>, OrientationFEBasis, Rotation<double,3>, BitVector> solver;
-        solver.setup(*grid,
-                     &mixedAssembler,
-                     x,
-                     dirichletDofs,
-                     tolerance,
-                     maxSolverSteps,
-                     initialRegularization,
-                     instrumented);
-        solver.setInitialIterate(x);
-        solver.solve();
-        x = solver.getSol();
-      }
-#else
-      //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
-      //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a ProductManifold.
-      //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
-      std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
-      BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
-      for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
-        for (int j = 0; j < 3; j ++) {       // Displacement part
-          xTargetSpace[i][_0].globalCoordinates()[j] = x[_0][i][j];
-          dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
-        }
-        xTargetSpace[i][_1] = x[_1][i];       // Rotation part
-        for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
-          dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
-      }
-
-      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace>;
-      GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
-      if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
-        RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
-        solver.setup(*grid,
-                     &assembler,
-                     xTargetSpace,
-                     dirichletDofsTargetSpace,
-                     tolerance,
-                     maxSolverSteps,
-                     initialTrustRegionRadius,
-                     multigridIterations,
-                     mgTolerance,
-                     mu, nu1, nu2,
-                     baseIterations,
-                     baseTolerance,
-                     instrumented);
-
-        solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
-        solver.setInitialIterate(xTargetSpace);
-        solver.solve();
-        xTargetSpace = solver.getSol();
-      } else {
-        RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
-        solver.setup(*grid,
-                     &assembler,
-                     xTargetSpace,
-                     dirichletDofsTargetSpace,
-                     tolerance,
-                     maxSolverSteps,
-                     initialRegularization,
-                     instrumented);
-        solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
-        solver.setInitialIterate(xTargetSpace);
-        solver.solve();
-        xTargetSpace = solver.getSol();
-      }
-      for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
-        x[_0][i] = xTargetSpace[i][_0];
-        x[_1][i] = xTargetSpace[i][_1];
-      }
-#endif
-    } else {     //dim != dimworld
-#if MIXED_SPACE
       MixedRiemannianTrustRegionSolver<GridType,
           CompositeBasis,
           DeformationFEBasis, RealTuple<double,3>,
@@ -754,66 +635,98 @@ int main (int argc, char *argv[]) try
       solver.setInitialIterate(x);
       solver.solve();
       x = solver.getSol();
-#else
-      //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
-      //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a ProductManifold.
-      //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
-      std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
-      BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
-      for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
-        for (int j = 0; j < 3; j ++) {       // Displacement part
-          xTargetSpace[i][_0].globalCoordinates()[j] = x[_0][i][j];
-          dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
-        }
-        xTargetSpace[i][_1] = x[_1][i];       // Rotation part
-        for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
-          dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
-      }
-
-      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace>;
-      GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
-      if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
-        RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
-        solver.setup(*grid,
-                     &assembler,
-                     xTargetSpace,
-                     dirichletDofsTargetSpace,
-                     tolerance,
-                     maxSolverSteps,
-                     initialTrustRegionRadius,
-                     multigridIterations,
-                     mgTolerance,
-                     mu, nu1, nu2,
-                     baseIterations,
-                     baseTolerance,
-                     instrumented);
-
-        solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
-        solver.setInitialIterate(xTargetSpace);
-        solver.solve();
-        xTargetSpace = solver.getSol();
-      } else {       //parameterSet.get<std::string>("solvertype") == "proximalNewton"
-        RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
-        solver.setup(*grid,
-                     &assembler,
-                     xTargetSpace,
-                     dirichletDofsTargetSpace,
-                     tolerance,
-                     maxSolverSteps,
-                     initialRegularization,
-                     instrumented);
-        solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
-        solver.setInitialIterate(xTargetSpace);
-        solver.solve();
-        xTargetSpace = solver.getSol();
-      }
-
-      for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
-        x[_0][i] = xTargetSpace[i][_0];
-        x[_1][i] = xTargetSpace[i][_1];
-      }
-#endif
     }
+    else
+    {
+      //Create BitVector matching the tangential space
+      const int dimRotationTangent = Rotation<double,3>::TangentVector::dimension;
+      using VectorForBit = MultiTypeBlockVector<std::vector<FieldVector<double,3> >, std::vector<FieldVector<double,dimRotationTangent> > >;
+      using BitVector = Solvers::DefaultBitVector_t<VectorForBit>;
+      BitVector dirichletDofs;
+      dirichletDofs[_0].resize(compositeBasis.size({0}));
+      dirichletDofs[_1].resize(compositeBasis.size({1}));
+      for (size_t i = 0; i < compositeBasis.size({0}); i++)
+      {
+        for (size_t j = 0; j < 3; j++)
+          dirichletDofs[_0][i][j] = deformationDirichletDofs[i][j];
+      }
+      for (size_t i = 0; i < compositeBasis.size({1}); i++)
+      {
+        for (int j = 0; j < dimRotationTangent; j++)
+          dirichletDofs[_1][i][j] = orientationDirichletDofs[i][j];
+      }
+      GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, RealTuple<double,3>, OrientationFEBasis, Rotation<double,3>, BitVector> solver;
+      solver.setup(*grid,
+                   &mixedAssembler,
+                   x,
+                   dirichletDofs,
+                   tolerance,
+                   maxSolverSteps,
+                   initialRegularization,
+                   instrumented);
+      solver.setInitialIterate(x);
+      solver.solve();
+      x = solver.getSol();
+    }
+#else
+    //The MixedRiemannianTrustRegionSolver can treat the Displacement and Orientation Space as separate ones
+    //The RiemannianTrustRegionSolver can only treat the Displacement and Rotation together in a ProductManifold.
+    //Therefore, x and the dirichletDofs are converted to a ProductManifold structure, as well as the Hessian and Gradient that are returned by the assembler
+    std::vector<TargetSpace> xTargetSpace(compositeBasis.size({0}));
+    BitSetVector<TargetSpace::TangentVector::dimension> dirichletDofsTargetSpace(compositeBasis.size({0}), false);
+    for (std::size_t i = 0; i < compositeBasis.size({0}); i++) {
+      for (int j = 0; j < 3; j ++) {         // Displacement part
+        xTargetSpace[i][_0].globalCoordinates()[j] = x[_0][i][j];
+        dirichletDofsTargetSpace[i][j] = deformationDirichletDofs[i][j];
+      }
+      xTargetSpace[i][_1] = x[_1][i];         // Rotation part
+      for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
+        dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
+    }
+
+    using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace>;
+    GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
+    if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
+      RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+      solver.setup(*grid,
+                   &assembler,
+                   xTargetSpace,
+                   dirichletDofsTargetSpace,
+                   tolerance,
+                   maxSolverSteps,
+                   initialTrustRegionRadius,
+                   multigridIterations,
+                   mgTolerance,
+                   mu, nu1, nu2,
+                   baseIterations,
+                   baseTolerance,
+                   instrumented);
+
+      solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
+      solver.setInitialIterate(xTargetSpace);
+      solver.solve();
+      xTargetSpace = solver.getSol();
+    } else {
+      RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+      solver.setup(*grid,
+                   &assembler,
+                   xTargetSpace,
+                   dirichletDofsTargetSpace,
+                   tolerance,
+                   maxSolverSteps,
+                   initialRegularization,
+                   instrumented);
+      solver.setScaling(parameterSet.get<FieldVector<double,6> >("solverScaling"));
+      solver.setInitialIterate(xTargetSpace);
+      solver.solve();
+      xTargetSpace = solver.getSol();
+    }
+    for (std::size_t i = 0; i < xTargetSpace.size(); i++) {
+      x[_0][i] = xTargetSpace[i][_0];
+      x[_1][i] = xTargetSpace[i][_1];
+    }
+#endif
+
     // Output result of each homotopy step
 
     // Compute the displacement from the deformation, because that's more easily visualized
