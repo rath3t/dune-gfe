@@ -98,12 +98,41 @@ namespace Dune::GFE
   public:
 
     /** \brief Constructor with a set of material parameters
-     * \param parameters The material parameters
-     * \param shellBoundary The shellBoundary contains the faces where the cosserat energy is assembled
-     * \param curvedGeometryGridFunction The curvedGeometryGridFunction gives the geometry of the shell in stress-free state.
-              When assembling, we deform the intersections using the curvedGeometryGridFunction and then use the deformed geometries.
-     * \param thicknessF The shell thickness parameter, given as a function and evaluated at each quadrature point
-     * \param lameF The Lame parameters, given as a function and evaluated at each quadrature point
+     * \param parameters The material parameters, including the shell thickness
+     */
+    CosseratShellDensity(const Dune::ParameterTree& parameters)
+    {
+      // Make a constant function of the given scalar value for the thickness
+      auto thicknessValue = parameters.template get<double>("thickness");
+
+      thicknessF_ = [thicknessValue](const FieldVector<double,dimWorld>& x){return thicknessValue;};
+
+      // Same for the Lamé parameters
+      double mu = parameters.template get<double>("mu");
+      double lambda = parameters.template get<double>("lambda");
+
+      lameF_ = [mu,lambda](const FieldVector<double,dimWorld>& x)
+               -> FieldVector<double,2>
+               {
+                 return {mu,lambda};
+               };
+
+      // Cosserat couple modulus
+      mu_c_ = parameters.template get<double>("mu_c");
+
+      // Length scale parameter
+      L_c_ = parameters.template get<double>("L_c");
+
+      // Curvature parameters
+      b1_ = parameters.template get<double>("b1");
+      b2_ = parameters.template get<double>("b2");
+      b3_ = parameters.template get<double>("b3");
+    }
+
+    /** \brief Constructor with space-dependent thickness and Lamé parameters
+     * \param parameters The constant-in-space material parameters
+     * \param thickness The shell thickness parameter, as a function of 3d space
+     * \param lame The Lamé parameters, as a function of 3d space
      */
     CosseratShellDensity(const Dune::ParameterTree& parameters,
                          const std::function<double(Dune::FieldVector<double,dimWorld>)> thickness,
