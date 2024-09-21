@@ -93,6 +93,32 @@ namespace Dune::GFE
                                  + b2_ * GFE::skew(S).frobenius_norm2() + b3_ * GFE::traceSquared(S));
     }
 
+    /*  Sources:
+        Birsan 2019: Derivation of a refined six-parameter shell model, equation (111)
+        Birsan 2021: Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126)
+     */
+    field_type W_Coss(const FieldMatrix<field_type,3,3>& S,
+                      const FieldMatrix<double,3,3>& a,
+                      const Dune::FieldVector<double,3>& n0,
+                      double mu, double lambda) const
+    {
+      return W_Coss_mixt(S,S,a,n0,mu,lambda);
+    }
+
+    field_type W_Coss_mixt(const FieldMatrix<field_type,3,3>& S,
+                           const FieldMatrix<field_type,3,3>& T,
+                           const FieldMatrix<double,3,3>& a,
+                           const FieldVector<double,3>& n0,
+                           double mu, double lambda) const
+    {
+      auto planarPart = W_mixt(a*S,a*T,mu,lambda);
+      FieldVector<field_type, 3> n0S;
+      FieldVector<field_type, 3> n0T;
+      S.mtv(n0, n0S);
+      T.mtv(n0, n0T);
+      field_type normalPart = 2*mu*mu_c_* n0S * n0T /(mu + mu_c_);
+      return planarPart + normalPart;
+    }
 
 
   public:
@@ -127,6 +153,9 @@ namespace Dune::GFE
       b1_ = parameters.template get<double>("b1");
       b2_ = parameters.template get<double>("b2");
       b3_ = parameters.template get<double>("b3");
+
+      // Indicator to use the alternative energy W_Coss from Birsan 2021:
+      useAlternativeEnergyWCoss_ = parameters.template get<bool>("useAlternativeEnergyWCoss", false);
     }
 
     /** \brief Constructor with space-dependent thickness and Lamé parameters
@@ -150,6 +179,9 @@ namespace Dune::GFE
       b1_ = parameters.template get<double>("b1");
       b2_ = parameters.template get<double>("b2");
       b3_ = parameters.template get<double>("b3");
+
+      // Indicator to use the alternative energy W_Coss from Birsan 2021:
+      useAlternativeEnergyWCoss_ = parameters.template get<bool>("useAlternativeEnergyWCoss", false);
     }
 
     /** \brief Evaluation with the current position, the deformation function, the deformation gradient, the rotation and the rotation gradient
@@ -263,10 +295,21 @@ namespace Dune::GFE
       //////////////////////////////////////////////////////////
 
       // The membrane density
-      auto density = (thickness - K*Dune::power(thickness,3) / 12.0) * W_m(Ee, mu, lambda);
-      density += (Dune::power(thickness,3) / 12.0 - K * Dune::power(thickness,5) / 80.0)*W_m(Ee*b + c*Ke, mu, lambda);
-      density += Dune::power(thickness,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke, mu, lambda);
-      density += Dune::power(thickness,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b, mu, lambda);
+      field_type density = 0;
+      if (useAlternativeEnergyWCoss_)
+      {
+        density += (thickness - K*Dune::power(thickness,3) / 12.0) * W_Coss(Ee, a, aContravariant[2], mu, lambda)
+                   + (Dune::power(thickness,3) / 12.0 - K * Dune::power(thickness,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2], mu, lambda)
+                   + Dune::power(thickness,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2], mu, lambda)
+                   + Dune::power(thickness,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2], mu, lambda);
+      }
+      else
+      {
+        density += (thickness - K*Dune::power(thickness,3) / 12.0) * W_m(Ee, mu, lambda);
+        density += (Dune::power(thickness,3) / 12.0 - K * Dune::power(thickness,5) / 80.0)*W_m(Ee*b + c*Ke, mu, lambda);
+        density += Dune::power(thickness,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke, mu, lambda);
+        density += Dune::power(thickness,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b, mu, lambda);
+      }
 
       // The bending density
       density += (thickness - K*Dune::power(thickness,3) / 12.0) * W_curv(Ke, mu)
@@ -295,6 +338,10 @@ namespace Dune::GFE
     /** \brief Curvature parameters */
     double b1_, b2_, b3_;
 
+
+    /** \brief Whether to use the alternative energy W_Coss from Birsan 2021:
+               "Alternative derivation of the higher-order constitutive model for six-parameter elastic shells", equations (119) and (126). */
+    bool useAlternativeEnergyWCoss_;
   };
 
 }  // namespace Dune::GFE
