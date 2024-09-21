@@ -70,6 +70,7 @@
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/densities/bulkcosseratdensity.hh>
 #include <dune/gfe/densities/cosseratvolumeloaddensity.hh>
+#include <dune/gfe/densities/cosseratshelldensity.hh>
 #include <dune/gfe/densities/planarcosseratshelldensity.hh>
 
 #if MIXED_SPACE
@@ -108,19 +109,39 @@ static_assert(displacementOrder==rotationOrder, "displacement and rotation order
 // Image space of the geodesic fe functions
 using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
-// Method to construct a density that matches the grid dimension.
+// Method to construct a Cosserat energy that matches the grid dimension.
 // This cannot be done inside the 'main' method, because 'constexpr if' only works
 // when its argument depends on a template parameter.
-template <typename LocalCoordinate>
-auto createDensity(const ParameterTree& materialParameters)
+//
+// TODO: Do we really need the 'creator' argument?
+template <typename Basis, typename InterpolationRule, typename TargetSpace, typename Creator>
+auto createCosseratEnergy(const ParameterTree& materialParameters,
+                          const Creator creator)
 {
-  if constexpr (LocalCoordinate::size()==2)
+  using GridView = typename Basis::GridView;
+  constexpr auto dim = GridView::dimension;
+  constexpr auto dimworld = GridView::dimensionworld;
+
+  using LocalCoordinate = typename GridView::template Codim<0>::Entity::Geometry::LocalCoordinate;
+
+  if constexpr (dim==2 && dimworld==2)
   {
-    return std::make_shared<GFE::PlanarCosseratShellDensity<LocalCoordinate, adouble> >(materialParameters);
+    auto density = std::make_shared<GFE::PlanarCosseratShellDensity<LocalCoordinate, adouble> >(materialParameters);
+
+    return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(density);
+  }
+  else if constexpr (LocalCoordinate::size()==2 && dimworld==3)
+  {
+    using GlobalCoordinate = typename GridView::template Codim<0>::Entity::Geometry::GlobalCoordinate;
+    auto density = std::make_shared<GFE::CosseratShellDensity<GlobalCoordinate, adouble> >(materialParameters);
+
+    return std::make_shared<NonplanarCosseratShellEnergy<Basis, 3, adouble, decltype(creator)> >(materialParameters, &creator);
   }
   else
   {
-    return std::make_shared<GFE::BulkCosseratDensity<LocalCoordinate, adouble> >(materialParameters);
+    auto density = std::make_shared<GFE::BulkCosseratDensity<LocalCoordinate, adouble> >(materialParameters);
+
+    return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(density);
   }
 }
 
@@ -564,24 +585,11 @@ int main (int argc, char *argv[]) try
     // The energy on one element
     auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,3>,Rotation<adouble,3> > >();
 
-    if (dim==dimworld) {
-      auto cosseratDensity = createDensity<LocalCoordinate>(materialParameters);
+    // The actual Cosserat energy
+    auto localCosseratEnergy = createCosseratEnergy<CompositeBasis,AInterpolationRule,ATargetSpace,decltype(creator)>(materialParameters,
+                                                                                                                      creator);
 
-      auto localCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis,AInterpolationRule,ATargetSpace> >(cosseratDensity);
-
-      sumEnergy->addLocalEnergy(localCosseratEnergy);
-    }
-    else
-    {
-      static_assert((dim==dimworld) || (dim==2 && dimworld==3),
-                    "For dim!=dimworld, only the case dim==2 and dimworld==3 is supported!");
-
-      auto localCosseratEnergy
-        = std::make_shared<NonplanarCosseratShellEnergy<CompositeBasis, 3, adouble, decltype(creator)> >(materialParameters,
-                                                                                                         &creator);
-
-      sumEnergy->addLocalEnergy(localCosseratEnergy);
-    }
+    sumEnergy->addLocalEnergy(localCosseratEnergy);
 
     // The Neumann surface load term
     auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,3>, Rotation<adouble,3> > >(neumannBoundary,neumannFunction);
