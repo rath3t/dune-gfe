@@ -135,7 +135,7 @@ auto createCosseratEnergy(const ParameterTree& materialParameters,
     using GlobalCoordinate = typename GridView::template Codim<0>::Entity::Geometry::GlobalCoordinate;
     auto density = std::make_shared<GFE::CosseratShellDensity<GlobalCoordinate, adouble> >(materialParameters);
 
-    return std::make_shared<NonplanarCosseratShellEnergy<Basis, 3, adouble, decltype(creator)> >(materialParameters, &creator);
+    return std::make_shared<NonplanarCosseratShellEnergy<Basis, 3, adouble, decltype(creator)> >(density, &creator);
   }
   else
   {

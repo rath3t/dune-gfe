@@ -16,9 +16,9 @@
 #endif
 
 #include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/densities/cosseratshelldensity.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/tensor3.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
@@ -88,37 +88,19 @@ class NonplanarCosseratShellEnergy
   constexpr static int gridDim = GridView::dimension;
   constexpr static int dimworld = GridView::dimensionworld;
 
+  using Position = typename GridView::template Codim<0>::Entity::Geometry::GlobalCoordinate;
+
 public:
 
   /** \brief Constructor with a set of material parameters
    * \param parameters                  The material parameters
    * \param stressFreeStateGridFunction Pointer to a parametrization representing the Cosserat shell in a stress-free state
    */
-  NonplanarCosseratShellEnergy(const Dune::ParameterTree& parameters,
+  NonplanarCosseratShellEnergy(const std::shared_ptr<Dune::GFE::CosseratShellDensity<Position,field_type> >& density,
                                const StressFreeStateGridFunction* stressFreeStateGridFunction)
-    : stressFreeStateGridFunction_(stressFreeStateGridFunction)
-  {
-    // The shell thickness
-    thickness_ = parameters.template get<double>("thickness");
-
-    // Lame constants
-    mu_ = parameters.template get<double>("mu");
-    lambda_ = parameters.template get<double>("lambda");
-
-    // Cosserat couple modulus
-    mu_c_ = parameters.template get<double>("mu_c");
-
-    // Length scale parameter
-    L_c_ = parameters.template get<double>("L_c");
-
-    // Curvature parameters
-    b1_ = parameters.template get<double>("b1");
-    b2_ = parameters.template get<double>("b2");
-    b3_ = parameters.template get<double>("b3");
-
-    // Indicator to use the alternative energy W_Coss from Birsan 2021:
-    useAlternativeEnergyWCoss_ = parameters.template get<bool>("useAlternativeEnergyWCoss", false);
-  }
+    : stressFreeStateGridFunction_(stressFreeStateGridFunction),
+    density_(density)
+  {}
 
   /** \brief Assemble the energy for a single element */
   RT energy (const typename Basis::LocalView& localView,
@@ -126,50 +108,6 @@ public:
 
   RT energy (const typename Basis::LocalView& localView,
              const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override;
-
-  /*  Sources:
-      Birsan 2019: Derivation of a refined six-parameter shell model, equation (111)
-      Birsan 2021: Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126)
-   */
-  RT W_Coss(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<double,3,3>& a, const Dune::FieldVector<double,3>& n0) const
-  {
-    return W_Coss_mixt(S,S,a,n0);
-  }
-
-  RT W_Coss_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T, const Dune::FieldMatrix<double,3,3>& a, const Dune::FieldVector<double,3>& n0) const
-  {
-    auto planarPart = W_mixt(a*S,a*T);
-    Dune::FieldVector<field_type, 3> n0S;
-    Dune::FieldVector<field_type, 3> n0T;
-    S.mtv(n0, n0S);
-    T.mtv(n0, n0T);
-    field_type normalPart = 2*mu_*mu_c_* n0S * n0T /(mu_ + mu_c_);
-    return planarPart + normalPart;
-  }
-
-  RT W_m(const Dune::FieldMatrix<field_type,3,3>& S) const
-  {
-    return W_mixt(S,S);
-  }
-
-  RT W_mixt(const Dune::FieldMatrix<field_type,3,3>& S, const Dune::FieldMatrix<field_type,3,3>& T) const
-  {
-    return mu_ * Dune::GFE::frobeniusProduct(Dune::GFE::sym(S), Dune::GFE::sym(T))
-           + mu_c_ * Dune::GFE::frobeniusProduct(Dune::GFE::skew(S), Dune::GFE::skew(T))
-           + lambda_ * mu_ / (lambda_ + 2*mu_) * Dune::GFE::trace(S) * Dune::GFE::trace(T);
-  }
-
-  RT W_mp(const Dune::FieldMatrix<field_type,3,3>& S) const
-  {
-    return mu_ * Dune::GFE::sym(S).frobenius_norm2() + mu_c_ * Dune::GFE::skew(S).frobenius_norm2() + lambda_ * 0.5 * Dune::GFE::traceSquared(S);
-  }
-
-  //For b1 = b2 = 1 and b3 = 1/3, this reduces to S.frobenius_norm2()
-  RT W_curv(const Dune::FieldMatrix<field_type,3,3>& S) const
-  {
-    return mu_ * L_c_ * L_c_ * (b1_ * Dune::GFE::dev(Dune::GFE::sym(S)).frobenius_norm2()
-                                + b2_ * Dune::GFE::skew(S).frobenius_norm2() + b3_ * Dune::GFE::traceSquared(S));
-  }
 
 #if HAVE_DUNE_GMSH4
   static int getOrder(const Dune::Gmsh4::LagrangeGridCreator<typename GridView::Grid>* lagrangeGridCreator)
@@ -184,31 +122,14 @@ public:
     return gridFunction->basis().preBasis().subPreBasis().order();
   }
 
-  /** \brief The shell thickness */
-  double thickness_;
-
-  /** \brief Lame constants */
-  double mu_, lambda_;
-
-  /** \brief Cosserat couple modulus */
-  double mu_c_;
-
-  /** \brief Length scale parameter */
-  double L_c_;
-
-  /** \brief Curvature parameters */
-  double b1_, b2_, b3_;
-
-  /** \brief Indicator to use the alternative energy W_Coss from Birsan 2021:
-             Alternative derivation of the higher-order constitudtive model for six-parameter elastic shells, equations (119) and (126). */
-  bool useAlternativeEnergyWCoss_;
-
   /** \brief The geometry of the reference deformation used for assembling */
   const StressFreeStateGridFunction* stressFreeStateGridFunction_;
+
+  /** \brief The energy density of a Cosserat shell with nonplanar reference configuration */
+  const std::shared_ptr<Dune::GFE::CosseratShellDensity<Position,field_type> > density_;
 };
 
 template <class Basis, int dim, class field_type, class StressFreeStateGridFunction>
-[[deprecated("Use an std::vector<RealTuple<field_type,dim>> and an std::vector<Rotation<field_type,dim>> together with the MixedGFEAssembler and the GFEAssemblerWrapper instead of std::vector<Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> >>.")]]
 typename NonplanarCosseratShellEnergy<Basis, dim, field_type, StressFreeStateGridFunction>::RT
 NonplanarCosseratShellEnergy<Basis,dim,field_type, StressFreeStateGridFunction>::
 energy(const typename Basis::LocalView& localView,
@@ -256,6 +177,9 @@ energy(const typename Basis::LocalView& localView,
     // Local position of the quadrature point
     const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
 
+    // Global position of the quadrature point
+    auto quadPosGlobal = element.geometry().global(quadPos);
+
     const DT integrationElement = geometry.integrationElement(quadPos);
 
     // The value of the local function
@@ -264,29 +188,10 @@ energy(const typename Basis::LocalView& localView,
     // The derivative of the local function w.r.t. the coordinate system of the tangent space
     auto derivative = localGeodesicFEFunction.evaluateDerivative(quadPos,value);
 
-    //////////////////////////////////////////////////////////
-    //  The rotation and its derivative
-    //  Note: we need it in matrix coordinates
-    //////////////////////////////////////////////////////////
+    ////////////////////////////////
+    //  First fundamental form
+    ////////////////////////////////
 
-    Dune::FieldMatrix<field_type,dim,dim> R;
-    value[_1].matrix(R);
-    auto RT = Dune::GFE::transpose(R);
-
-    // Extract the orientation derivative
-    Dune::FieldMatrix<field_type,4,gridDim> orientationDerivative;
-    for (size_t i=0; i<4; ++i)
-      for (size_t j=0; j<gridDim; ++j)
-        orientationDerivative[i][j] = derivative[3+i][j];
-
-    //Derivative of the rotation w.r.t. the coordinate system of the tangent space
-    Tensor3<field_type,3,3,gridDim> DR = value[_1].quaternionTangentToMatrixTangent(orientationDerivative);
-
-    //////////////////////////////////////////////////////////
-    //  Fundamental forms and curvature
-    //////////////////////////////////////////////////////////
-
-    // First fundamental form
     Dune::FieldMatrix<double,3,3> aCovariant;
 
     // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
@@ -304,100 +209,23 @@ energy(const typename Basis::LocalView& localView,
     aCovariant[2] = Dune::MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
     aCovariant[2] /= aCovariant[2].two_norm();
 
-    auto aContravariant = aCovariant;
-    aContravariant.invert();
-    // The contravariant base vectors are the *columns* of the inverse of the covariant matrix
-    // To get an easier access to the columns, we use the transpose of the contravariant matrix
-    aContravariant = Dune::GFE::transpose(aContravariant);
-
-    Dune::FieldMatrix<double,3,3> a(0);
-    for (int alpha=0; alpha<gridDim; alpha++)
-      a += Dune::GFE::dyadicProduct(aCovariant[alpha], aContravariant[alpha]);
-
-    auto a00 = aCovariant[0] * aCovariant[0];
-    auto a01 = aCovariant[0] * aCovariant[1];
-    auto a10 = aCovariant[1] * aCovariant[0];
-    auto a11 = aCovariant[1] * aCovariant[1];
-    auto aScalar = std::sqrt(a00*a11 - a10*a01);
-
-    // Alternator tensor
-    Dune::FieldMatrix<int,2,2> eps = {{0,1},{-1,0}};
-    Dune::FieldMatrix<double,3,3> c(0);
-
-    for (int alpha=0; alpha<2; alpha++)
-      for (int beta=0; beta<2; beta++)
-        c += aScalar * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
-
-    Dune::FieldMatrix<double,3,3> b(0);
 #if HAVE_DUNE_CURVEDGEOMETRY
-    // In case dune-curvedgeometry is not installed, we assume the second fundamental form b
-    // ( (-1) * the derivative of the normal field, evaluated at each quadrature point) is zero!
-    auto grad_s_n = geometry.normalGradient(quad[pt].position());
-    grad_s_n *= (-1);
-    for (int i = 0; i < dimworld; i++)
-      for (int j = 0; j < dimworld; j++)
-        b[i][j] = grad_s_n[i][j];
+    const auto normalGradient = geometry.normalGradient(quad[pt].position());
+#else
+    // Assume that the geometry is flat if DUNE_CURVEDGEOMETRY is not present.
+    // TODO: This is not always true!
+    Dune::FieldMatrix<double,3,3> normalGradient(0);
 #endif
-
-    // Mean curvatue
-    auto H = 0.5 * Dune::GFE::trace(b);
-
-    // Gauss curvature, calculated with the normalGradient in the euclidean coordinate system
-    // see e.g. formula (3.5) in "Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
-    auto bSquared = b*b;
-    auto K = 2*H*H - 0.5*Dune::GFE::trace(bSquared);
-
-    //////////////////////////////////////////////////////////
-    //  Strain tensors
-    //////////////////////////////////////////////////////////
-
-    // Elastic shell strain
-    Dune::FieldMatrix<field_type,3,3> Ee(0);
-    Dune::FieldMatrix<field_type,3,3> grad_s_m(0);
-    for (int alpha=0; alpha<gridDim; alpha++)
-    {
-      Dune::FieldVector<field_type,3> vec;
-      for (int i=0; i<3; i++)
-        vec[i] = derivative[i][alpha];
-      grad_s_m += Dune::GFE::dyadicProduct(vec, aContravariant[alpha]);
-    }
-
-    Ee = RT * grad_s_m - a;
-
-    // Elastic shell bending-curvature strain, e.g. formula (4.56) in "Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
-    Dune::FieldMatrix<field_type,3,3> Ke(0);
-    for (int alpha=0; alpha<gridDim; alpha++)
-    {
-      Dune::FieldMatrix<field_type,3,3> tmp;
-      for (int i=0; i<3; i++)
-        for (int j=0; j<3; j++)
-          tmp[i][j] = DR[i][j][alpha];
-      auto tmp2 = RT * tmp;
-      Ke += Dune::GFE::dyadicProduct(SkewMatrix<field_type,3>(tmp2).axial(), aContravariant[alpha]);
-    }
 
     //////////////////////////////////////////////////////////
     // Add the local energy density
     //////////////////////////////////////////////////////////
 
-    // Add the membrane energy density
-    field_type energyDensity = 0;
-    if (useAlternativeEnergyWCoss_) {
-      energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_Coss(Ee, a, aContravariant[2])
-                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2])
-                       + Dune::power(thickness_,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2])
-                       + Dune::power(thickness_,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2]);
-    } else {
-      energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_m(Ee)
-                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
-                       + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
-                       + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
-    }
-
-    // Add the bending energy density
-    energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_curv(Ke)
-                     + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_curv(Ke*b)
-                     + Dune::power(thickness_,5) / 80.0 * W_curv(Ke*b*b);
+    const auto energyDensity = (*density_)(quadPosGlobal,
+                                           aCovariant,
+                                           normalGradient,
+                                           value,
+                                           derivative);
 
     // Add energy density
     energy += quad[pt].weight() * integrationElement * energyDensity;
@@ -456,27 +284,28 @@ energy(const typename Basis::LocalView& localView,
     // Local position of the quadrature point
     const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
 
+    // Global position of the quadrature point
+    auto quadPosGlobal = element.geometry().global(quadPos);
+
     const DT integrationElement = geometry.integrationElement(quadPos);
 
     // The value of the local function
-    RealTuple<field_type,dim> deformationValue = localDeformationGFEFunction.evaluate(quadPos);
-    Rotation<field_type,dim>  orientationValue = localOrientationGFEFunction.evaluate(quadPos);
+    TargetSpace value;
+    value[_0] = localDeformationGFEFunction.evaluate(quadPos);
+    value[_1] = localOrientationGFEFunction.evaluate(quadPos);
 
     // The derivative of the local function w.r.t. the coordinate system of the tangent space
-    typename LocalDeformationGFEFunctionType::DerivativeType deformationDerivative = localDeformationGFEFunction.evaluateDerivative(quadPos,deformationValue);
-    typename LocalOrientationGFEFunctionType::DerivativeType orientationDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,orientationValue);
+    auto deformationDerivative = localDeformationGFEFunction.evaluateDerivative(quadPos,value[_0]);
+    auto orientationDerivative = localOrientationGFEFunction.evaluateDerivative(quadPos,value[_1]);
 
-    //////////////////////////////////////////////////////////
-    //  The rotation and its derivative
-    //  Note: we need it in matrix coordinates
-    //////////////////////////////////////////////////////////
+    // Concatenate the two derivative matrices
+    Dune::FieldMatrix<RT, TargetSpace::embeddedDim, gridDim> derivative;
 
-    Dune::FieldMatrix<field_type,dim,dim> R;
-    orientationValue.matrix(R);
-    auto RT = Dune::GFE::transpose(R);
+    for (int i=0; i<deformationDerivative.rows; ++i)
+      derivative[i] = deformationDerivative[i];
 
-    //Derivative of the rotation w.r.t. the coordinate system of the tangent space
-    Tensor3<field_type,3,3,gridDim> DR = orientationValue.quaternionTangentToMatrixTangent(orientationDerivative);
+    for (int i=0; i<orientationDerivative.rows; ++i)
+      derivative[i+deformationDerivative.rows] = orientationDerivative[i];
 
     //////////////////////////////////////////////////////////
     //  Fundamental forms and curvature
@@ -499,100 +328,23 @@ energy(const typename Basis::LocalView& localView,
     aCovariant[2] = Dune::MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
     aCovariant[2] /= aCovariant[2].two_norm();
 
-
-    auto aContravariant = aCovariant;
-    aContravariant.invert();
-    // The contravariant base vectors are the *columns* of the inverse of the covariant matrix
-    // To get an easier access to the columns, we use the transpose of the contravariant matrix
-    aContravariant = Dune::GFE::transpose(aContravariant);
-
-    Dune::FieldMatrix<double,3,3> a(0);
-    for (int alpha=0; alpha<gridDim; alpha++)
-      a += Dune::GFE::dyadicProduct(aCovariant[alpha], aContravariant[alpha]);
-
-    auto a00 = aCovariant[0] * aCovariant[0];
-    auto a01 = aCovariant[0] * aCovariant[1];
-    auto a10 = aCovariant[1] * aCovariant[0];
-    auto a11 = aCovariant[1] * aCovariant[1];
-    auto aScalar = std::sqrt(a00*a11 - a10*a01);
-
-    // Alternator tensor
-    Dune::FieldMatrix<int,2,2> eps = {{0,1},{-1,0}};
-    Dune::FieldMatrix<double,3,3> c(0);
-
-    for (int alpha=0; alpha<2; alpha++)
-      for (int beta=0; beta<2; beta++)
-        c += aScalar * eps[alpha][beta] * Dune::GFE::dyadicProduct(aContravariant[alpha], aContravariant[beta]);
-
-    Dune::FieldMatrix<double,3,3> b(0);
 #if HAVE_DUNE_CURVEDGEOMETRY
-    // In case dune-curvedgeometry is not installed, we assume the second fundamental form b
-    // ( (-1) * the derivative of the normal field, evaluated at each quadrature point) is zero!
-    auto grad_s_n = geometry.normalGradient(quad[pt].position());
-    for (int i = 0; i < dimworld; i++)
-      for (int j = 0; j < dimworld; j++)
-        b[i][j] = grad_s_n[i][j];
+    const auto normalGradient = geometry.normalGradient(quad[pt].position());
+#else
+    // Assume that the geometry is flat if DUNE_CURVEDGEOMETRY is not present.
+    // TODO: This is not always true!
+    Dune::FieldMatrix<double,3,3> normalGradient(0);
 #endif
-    b *= (-1);
-
-    // Mean curvatue
-    auto H = 0.5 * Dune::GFE::trace(b);
-
-    // Gauss curvature, calculated with the normalGradient in the euclidean coordinate system
-    // see e.g. formula (3.5) in "Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
-    auto bSquared = b*b;
-    auto K = 2*H*H - 0.5*Dune::GFE::trace(bSquared);
-
-    //////////////////////////////////////////////////////////
-    //  Strain tensors
-    //////////////////////////////////////////////////////////
-
-    // Elastic shell strain
-    Dune::FieldMatrix<field_type,3,3> Ee(0);
-    Dune::FieldMatrix<field_type,3,3> grad_s_m(0);
-    for (int alpha=0; alpha<gridDim; alpha++)
-    {
-      Dune::FieldVector<field_type,3> vec;
-      for (int i=0; i<3; i++)
-        vec[i] = deformationDerivative[i][alpha];
-      grad_s_m += Dune::GFE::dyadicProduct(vec, aContravariant[alpha]);
-    }
-
-    Ee = RT * grad_s_m - a;
-
-    // Elastic shell bending-curvature strain, e.g. formula (4.56) in "Reﬁned dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
-    Dune::FieldMatrix<field_type,3,3> Ke(0);
-    for (int alpha=0; alpha<gridDim; alpha++)
-    {
-      Dune::FieldMatrix<field_type,3,3> tmp;
-      for (int i=0; i<3; i++)
-        for (int j=0; j<3; j++)
-          tmp[i][j] = DR[i][j][alpha];
-      auto tmp2 = RT * tmp;
-      Ke += Dune::GFE::dyadicProduct(SkewMatrix<field_type,3>(tmp2).axial(), aContravariant[alpha]);
-    }
 
     //////////////////////////////////////////////////////////
     // Add the local energy density
     //////////////////////////////////////////////////////////
 
-    // Add the membrane energy density
-    field_type energyDensity = 0;
-    if (useAlternativeEnergyWCoss_) {
-      energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_Coss(Ee, a, aContravariant[2])
-                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_Coss(Ee*b + c*Ke, a, aContravariant[2])
-                       + Dune::power(thickness_,3) / 6.0 * W_Coss_mixt(Ee, c*Ke*b - 2*H*c*Ke, a, aContravariant[2])
-                       + Dune::power(thickness_,5) / 80.0 * W_Coss( (Ee*b + c*Ke)*b, a, aContravariant[2]);
-    } else {
-      energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_m(Ee)
-                       + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_m(Ee*b + c*Ke)
-                       + Dune::power(thickness_,3) / 6.0 * W_mixt(Ee, c*Ke*b - 2*H*c*Ke)
-                       + Dune::power(thickness_,5) / 80.0 * W_mp( (Ee*b + c*Ke)*b);
-    }
-
-    energyDensity += (thickness_ - K*Dune::power(thickness_,3) / 12.0) * W_curv(Ke)
-                     + (Dune::power(thickness_,3) / 12.0 - K * Dune::power(thickness_,5) / 80.0)*W_curv(Ke*b)
-                     + Dune::power(thickness_,5) / 80.0 * W_curv(Ke*b*b);
+    const auto energyDensity = (*density_)(quadPosGlobal,
+                                           aCovariant,
+                                           normalGradient,
+                                           value,
+                                           derivative);
 
     // Add energy density
     energy += quad[pt].weight() * integrationElement * energyDensity;

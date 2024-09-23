@@ -87,6 +87,7 @@ namespace Dune::GFE
       return mu * GFE::sym(S).frobenius_norm2() + mu_c_ * GFE::skew(S).frobenius_norm2() + lambda * 0.5 * GFE::traceSquared(S);
     }
 
+    // For b1 = b2 = 1 and b3 = 1/3, this reduces to S.frobenius_norm2()
     field_type W_curv(const Dune::FieldMatrix<field_type,3,3>& S, double mu) const
     {
       return mu * L_c_ * L_c_ * (b1_ * GFE::dev(Dune::GFE::sym(S)).frobenius_norm2()
