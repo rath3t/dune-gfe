@@ -130,7 +130,6 @@ namespace Dune::GFE
 
           const DT integrationElement = boundaryGeometry.integrationElement(qp.position());
 
-          FieldMatrix<RT, TargetSpace::embeddedDim, dimWorld> derivative;
           FieldMatrix<RT, TargetSpace::embeddedDim, boundaryDim> derivative2D;
 
           // The value of the local functions
@@ -145,12 +144,10 @@ namespace Dune::GFE
           // Put the value and the derivatives together from the separated values
           for (int j = 0; j < dimWorld; j++) {
             for (int i = 0; i < RBM0::embeddedDim; i++) {
-              derivative[i][j] = derivative0[i][j];
               if (j < boundaryDim)
                 derivative2D[i][j] = derivative0[i][j];
             }
             for (int i = 0; i < RBM1::embeddedDim; i++) {
-              derivative[RBM0::embeddedDim + i][j] = derivative1[i][j];
               if (j < boundaryDim)
                 derivative2D[RBM0::embeddedDim + i][j] = derivative1[i][j];
             }
