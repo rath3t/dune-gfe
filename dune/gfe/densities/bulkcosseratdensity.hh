@@ -192,10 +192,10 @@ namespace Dune::GFE {
       return true;
     }
 
-    /** \brief Lame constants */
+    /** \brief Lamé constants */
     double mu_, lambda_;
 
-    /** \brief Cosserat couple modulus, preferably 0 */
+    /** \brief Cosserat couple modulus */
     double mu_c_;
 
     /** \brief Length scale parameter */
