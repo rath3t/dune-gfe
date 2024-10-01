@@ -41,6 +41,43 @@ namespace Dune::GFE {
       return result;
     }
 
+    /** \brief Compute the wryness tensor from the microrotation and its derivative
+     *
+     * The wryness tensor implemented here is defined in Eq. (19) in:
+     *
+     *   M. Bîrsan, I.D. Ghiba, R.J. Martin, P. Neff: "Refined dimensional reduction
+     *   for isotropic elastic Cosserat shells with initial curvature",
+     *   Mathematics and Mechanics of Solids, 24(12), 2019
+     *   DOI: https://doi.org/10.1177/1081286519856061
+     *
+     */
+    static FieldMatrix<field_type,3,3> wryness(const FieldMatrix<field_type,gridDim,gridDim>& R,
+                                               const Tensor3<field_type,3,3,3>& DR)
+    {
+      FieldMatrix<field_type,3,3> dRx1(0);  //Derivative of R with respect to x1
+      FieldMatrix<field_type,3,3> dRx2(0);  //Derivative of R with respect to x2
+      FieldMatrix<field_type,3,3> dRx3(0);  //Derivative of R with respect to x3
+      for (int i=0; i<3; i++)
+        for (int j=0; j<3; j++) {
+          dRx1[i][j] = DR[i][j][0];
+          dRx2[i][j] = DR[i][j][1];
+          dRx3[i][j] = DR[i][j][2];
+        }
+
+      FieldMatrix<field_type,3,3> wrynessTensor(0);
+
+      auto axialVectorx1 = SkewMatrix<field_type,3>(transpose(R)*dRx1).axial();
+      auto axialVectorx2 = SkewMatrix<field_type,3>(transpose(R)*dRx2).axial();
+      auto axialVectorx3 = SkewMatrix<field_type,3>(transpose(R)*dRx3).axial();
+      for (int i=0; i<3; i++) {
+        wrynessTensor[i][0] = axialVectorx1[i];
+        wrynessTensor[i][1] = axialVectorx2[i];
+        wrynessTensor[i][2] = axialVectorx3[i];
+      }
+
+      return wrynessTensor;
+    }
+
   public:
 
     /** \brief Constructor with a set of material parameters
@@ -91,35 +128,6 @@ namespace Dune::GFE {
 #endif
     }
 
-    field_type curvatureWithWryness(const FieldMatrix<field_type,gridDim,gridDim>& R, const Tensor3<field_type,3,3,3>& DR) const
-    {
-      // construct Wryness tensor \Gamma as in "Refined dimensional reduction for isotropic elastic Cosserat shells with initial curvature"
-      FieldMatrix<field_type,3,3> dRx1(0); //Derivative of R with respect to x1
-      FieldMatrix<field_type,3,3> dRx2(0); //Derivative of R with respect to x2
-      FieldMatrix<field_type,3,3> dRx3(0); //Derivative of R with respect to x3
-      for (int i=0; i<3; i++)
-        for (int j=0; j<3; j++) {
-          dRx1[i][j] = DR[i][j][0];
-          dRx2[i][j] = DR[i][j][1];
-          dRx3[i][j] = DR[i][j][2];
-        }
-
-      FieldMatrix<field_type,3,3> wryness(0);
-
-      auto axialVectorx1 = SkewMatrix<field_type,3>(transpose(R)*dRx1).axial();
-      auto axialVectorx2 = SkewMatrix<field_type,3>(transpose(R)*dRx2).axial();
-      auto axialVectorx3 = SkewMatrix<field_type,3>(transpose(R)*dRx3).axial();
-      for (int i=0; i<3; i++) {
-        wryness[i][0] = axialVectorx1[i];
-        wryness[i][1] = axialVectorx2[i];
-        wryness[i][2] = axialVectorx3[i];
-      }
-
-      // The choice for the Frobenius norm here is b1=b2=1 and b3 = 1/3
-      return mu_ * L_c_ * L_c_ * (b1_ * GFE::dev(GFE::sym(wryness)).frobenius_norm2()
-                                  + b2_ * GFE::skew(wryness).frobenius_norm2() + b3_ * GFE::traceSquared(wryness));
-    }
-
     /** \brief Evaluate the density
      */
     virtual field_type operator() (const Position& x,
@@ -154,8 +162,15 @@ namespace Dune::GFE {
       strainEnergyDensity = quadraticEnergy(U);
 
     #ifdef CURVATURE_WITH_WRYNESS
-      strainEnergyDensity += curvatureWithWryness(R,DR);
-    #else
+      auto curvatureTensor = wryness(R,DR);
+
+      // The choice for the Frobenius norm here is b1=b2=1 and b3 = 1/3
+      auto norm = (b1_ * GFE::dev(GFE::sym(curvatureTensor)).frobenius_norm2()
+                   + b2_ * GFE::skew(curvatureTensor).frobenius_norm2()
+                   + b3_ * GFE::traceSquared(curvatureTensor));
+
+      strainEnergyDensity += mu_ * L_c_ * L_c_ * norm;
+   #else
 
     #ifdef DONT_USE_CURL
       auto argument = DR;
