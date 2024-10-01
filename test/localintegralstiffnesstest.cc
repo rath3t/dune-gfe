@@ -288,6 +288,7 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   parameters["lambda"] = "1";
   parameters["mu_c"] = "1";
   parameters["L_c"] = "0.1";
+  parameters["curvatureType"] = "wryness";
   parameters["q"] = "2";
   parameters["kappa"] = "1";
   parameters["b1"] = "1";

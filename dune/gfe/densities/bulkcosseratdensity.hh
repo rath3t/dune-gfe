@@ -1,9 +1,6 @@
 #ifndef DUNE_GFE_DENSITIES_BULKCOSSERATDENSITY_HH
 #define DUNE_GFE_DENSITIES_BULKCOSSERATDENSITY_HH
 
-#define DONT_USE_CURL
-#define CURVATURE_WITH_WRYNESS
-
 #include <dune/common/fmatrix.hh>
 
 #include <dune/gfe/cosseratstrain.hh>
@@ -80,6 +77,9 @@ namespace Dune::GFE {
 
   public:
 
+    /** \brief The different types of curvature tensors */
+    enum CurvatureType {Norm, Curl, Wryness};
+
     /** \brief Constructor with a set of material parameters
      * \param parameters The material parameters
      */
@@ -94,6 +94,17 @@ namespace Dune::GFE {
       // Length scale parameter
       L_c_ = parameters.template get<double>("L_c");
 
+      // Curvature type
+      const auto& curvatureString = parameters.template get<std::string>("curvatureType");
+      if (curvatureString=="norm")
+        curvatureType_ = CurvatureType::Norm;
+      else if (curvatureString=="curl")
+        curvatureType_ = CurvatureType::Curl;
+      else if (curvatureString=="wryness")
+        curvatureType_ = CurvatureType::Wryness;
+      else
+        DUNE_THROW(NotImplemented, "Curvature type '" << curvatureString << "' is not implemented!");
+
       // Curvature exponent
       q_ = parameters.template get<double>("q");
 
@@ -105,8 +116,8 @@ namespace Dune::GFE {
 
     /** \brief Constructor with a set of material parameters
      */
-    BulkCosseratDensity(double mu, double lambda, double mu_c, double L_c, double q, const std::array<double,3>& b)
-      : mu_(mu), lambda_(lambda), mu_c_(mu_c), L_c_(L_c), q_(q), b1_(b[0]), b2_(b[1]), b3_(b[2])
+    BulkCosseratDensity(double mu, double lambda, double mu_c, double L_c, CurvatureType curvatureType, double q, const std::array<double,3>& b)
+      : mu_(mu), lambda_(lambda), mu_c_(mu_c), L_c_(L_c), curvatureType_(curvatureType), q_(q), b1_(b[0]), b2_(b[1]), b3_(b[2])
     {}
 
     /** \brief The energy \f$ W_{mp}(\overline{U}) \f$, as written in
@@ -159,30 +170,54 @@ namespace Dune::GFE {
       ////////////////////////////////////////////////////////////////////
 
       Tensor3<field_type,3,3,gridDim> DR = rotationValue.quaternionTangentToMatrixTangent(orientationDerivative);
+
+      // Compute the bending energy density
       strainEnergyDensity = quadraticEnergy(U);
 
-    #ifdef CURVATURE_WITH_WRYNESS
-      auto curvatureTensor = wryness(R,DR);
+      // Compute the curvature energy density
+      field_type norm = 0;
 
-      // The choice for the Frobenius norm here is b1=b2=1 and b3 = 1/3
-      auto norm = (b1_ * GFE::dev(GFE::sym(curvatureTensor)).frobenius_norm2()
-                   + b2_ * GFE::skew(curvatureTensor).frobenius_norm2()
-                   + b3_ * GFE::traceSquared(curvatureTensor));
+      switch (curvatureType_)
+      {
+      case CurvatureType::Norm :
+      {
+        /* This is a simplified version of the curvature energy that appears in
+         *
+         *   P. Neff: "A geometrically exact Cosserat shell-model including size effects,
+         *   avoiding degeneracy in the thin shell limit. Part I: Formal dimensional reduction
+         *   for elastic plates and existence of minimizers for positive Cosserat couple modulus"
+         *   Continuum Mech. Thermodyn. (2004) 16: 577–628
+         *   DOI: 10.1007/s00161-004-0182-4
+         *
+         * The curvature energy given there is much more complicated, but it
+         * does use the full norm of DR to define the curvature.
+         */
+        norm = DR.frobenius_norm2();
+        break;
+      }
+      case CurvatureType::Curl :
+      {
+        auto curvatureTensor = curl(DR);
 
-      strainEnergyDensity += mu_ * L_c_ * L_c_ * norm;
-   #else
+        // The choice for the Frobenius norm here is b1=b2=1 and b3 = 1/3
+        norm = (b1_ * GFE::dev(GFE::sym(curvatureTensor)).frobenius_norm2()
+                + b2_ * GFE::skew(curvatureTensor).frobenius_norm2()
+                + b3_ * GFE::traceSquared(curvatureTensor));
+        break;
+      }
+      case CurvatureType::Wryness :
+      {
+        auto curvatureTensor = wryness(R,DR);
 
-    #ifdef DONT_USE_CURL
-      auto argument = DR;
-    #else
-      auto argument = curl(DR);
-    #endif
-
-      auto norm = (b1_ * GFE::dev(GFE::sym(argument)).frobenius_norm2()
-                   + b2_ * GFE::skew(argument).frobenius_norm2() + b3_ * GFE::traceSquared(argument));
+        // The choice for the Frobenius norm here is b1=b2=1 and b3 = 1/3
+        norm = (b1_ * GFE::dev(GFE::sym(curvatureTensor)).frobenius_norm2()
+                + b2_ * GFE::skew(curvatureTensor).frobenius_norm2()
+                + b3_ * GFE::traceSquared(curvatureTensor));
+        break;
+      }
+      }
 
       strainEnergyDensity += mu_ * std::pow(L_c_ * L_c_ * norm,q_/2.0);
-    #endif
 
       return strainEnergyDensity;
     }
@@ -190,7 +225,11 @@ namespace Dune::GFE {
     // Construct a copy of this density but using 'adouble' as the number type
     virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
     {
-      return std::make_unique<BulkCosseratDensity<Position,adouble> >(mu_, lambda_, mu_c_, L_c_, q_, std::array<double,3>{b1_, b2_, b3_});
+      // curvatureType_ is a local enum type, and therefore its type changes
+      // together with the type of the surrounding class.
+      auto activeCurvatureType = static_cast<typename BulkCosseratDensity<Position,adouble>::CurvatureType>(curvatureType_);
+
+      return std::make_unique<BulkCosseratDensity<Position,adouble> >(mu_, lambda_, mu_c_, L_c_, activeCurvatureType, q_, std::array<double,3>{b1_, b2_, b3_});
     }
 
     /** \brief The density depends on the microrotation value, but not on the deformation
@@ -215,6 +254,9 @@ namespace Dune::GFE {
 
     /** \brief Length scale parameter */
     double L_c_;
+
+    /** \brief The precise way to compute the curvature tensor */
+    enum CurvatureType curvatureType_;
 
     /** \brief Curvature exponent */
     double q_;

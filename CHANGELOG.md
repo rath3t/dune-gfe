@@ -1,5 +1,11 @@
 # Master
 
+- In the `BulkCosseratDensity` class: Make the type of curvature
+  tensor controllable at run-time (previously, ugly preprocessor switches
+  where used).  Among its parameters `BulkCosseratDensity` now expects
+  a string `curvatureType`, which has to take one of the values `norm`,
+  `curl`, or `wryness`.
+
 - Building `dune-gfe` now requires Dune 2.9 or newer. Older configurations
   have not gotten CI-tested for quite a while, anyway.
 

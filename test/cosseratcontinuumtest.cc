@@ -188,6 +188,7 @@ int main (int argc, char *argv[])
   parameters["lambda"] = "1";
   parameters["mu_c"] = "1";
   parameters["L_c"] = "0.1";
+  parameters["curvatureType"] = "wryness";
   parameters["q"] = "2";
   parameters["b1"] = "1";
   parameters["b2"] = "1";
