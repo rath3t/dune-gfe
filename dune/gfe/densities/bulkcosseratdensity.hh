@@ -130,13 +130,18 @@ namespace Dune::GFE {
       for (int i=0; i<gridDim; i++)
         UMinus1[i][i] -= 1;
 
+#ifdef QUADRATIC_2006
+      field_type materialFactor = (mu_*lambda_)/(2*mu_ + lambda_);
+#else
+      field_type materialFactor = lambda_/2;
+#endif
+
+      // In various papers the last term is traceSquared(sym(UMinus1)),
+      // but UMinus1 is symmetric and hence
+      //   traceSquared(UMinus1) = traceSquared(sym(UMinus1)).
       return mu_ * GFE::sym(UMinus1).frobenius_norm2()
              + mu_c_ * GFE::skew(UMinus1).frobenius_norm2()
-#ifdef QUADRATIC_2006
-             + (mu_*lambda_)/(2*mu_ + lambda_) * GFE::traceSquared(UMinus1);  // GFE::traceSquared(UMinus1) = GFE::traceSquared(GFE::sym(UMinus1))
-#else
-             + lambda_/2 * GFE::traceSquared(UMinus1);  // GFE::traceSquared(UMinus1) = GFE::traceSquared(GFE::sym(UMinus1))
-#endif
+             + materialFactor * GFE::traceSquared(UMinus1);
     }
 
     /** \brief Evaluate the density
