@@ -17,6 +17,13 @@ include(DuneMacros)
 
 # start a dune project with information from dune.module
 dune_project()
+
+# Create a module library
+if(dune-common_VERSION VERSION_GREATER_EQUAL 2.9.0)
+  dune_add_library(dunegfe INTERFACE EXPORT_NAME GFE NAMESPACE Dune::
+    LINK_LIBRARIES ${DUNE_LIBS})
+endif()
+
 dune_enable_all_packages()
 add_subdirectory("src")
 add_subdirectory("dune")
