@@ -241,9 +241,13 @@ int main (int argc, char *argv[]) try
   //   Output result
   // //////////////////////////////
 
+#if DUNE_VERSION_GTE(DUNE_VTK, 2, 10)
+  auto vtkWriter = Vtk::UnstructuredGridWriter(Vtk::LagrangeDataCollector(gridView,order));
+#else
   using DataCollector = Vtk::LagrangeDataCollector<GridView,order>;
   DataCollector dataCollector(gridView);
   VtkUnstructuredGridWriter<GridView,DataCollector> vtkWriter(gridView, Vtk::FormatTypes::ASCII);
+#endif
 
   // Make basis for R^3-valued data
   using namespace Functions::BasisFactory;
