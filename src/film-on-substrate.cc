@@ -35,11 +35,19 @@
 #include <dune/common/tuplevector.hh>
 #include <dune/common/version.hh>
 
+#if DUNE_VERSION_GTE(DUNE_ELASTICITY, 2, 11)
+#include <dune/elasticity/densities/exphenckydensity.hh>
+#include <dune/elasticity/densities/henckydensity.hh>
+#include <dune/elasticity/densities/mooneyrivlindensity.hh>
+#include <dune/elasticity/densities/neohookedensity.hh>
+#include <dune/elasticity/densities/stvenantkirchhoffdensity.hh>
+#else
 #include <dune/elasticity/materials/exphenckydensity.hh>
 #include <dune/elasticity/materials/henckydensity.hh>
 #include <dune/elasticity/materials/mooneyrivlindensity.hh>
 #include <dune/elasticity/materials/neohookedensity.hh>
 #include <dune/elasticity/materials/stvenantkirchhoffdensity.hh>
+#endif
 
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>

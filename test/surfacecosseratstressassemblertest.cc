@@ -15,7 +15,11 @@
 #include <dune/common/parametertreeparser.hh>
 #include <dune/common/version.hh>
 
+#if DUNE_VERSION_GTE(DUNE_ELASTICITY, 2, 11)
+#include <dune/elasticity/densities/stvenantkirchhoffdensity.hh>
+#else
 #include <dune/elasticity/materials/stvenantkirchhoffdensity.hh>
+#endif
 
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
