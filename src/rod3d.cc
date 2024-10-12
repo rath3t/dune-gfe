@@ -24,12 +24,8 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#if HAVE_DUNE_VTK
 #include <dune/vtk/vtkwriter.hh>
 #include <dune/vtk/datacollectors/lagrangedatacollector.hh>
-#else
-#include <dune/gfe/cosseratvtkwriter.hh>
-#endif
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
@@ -244,7 +240,7 @@ int main (int argc, char *argv[]) try
   // //////////////////////////////
   //   Output result
   // //////////////////////////////
-#if HAVE_DUNE_VTK
+
   using DataCollector = Vtk::LagrangeDataCollector<GridView,order>;
   DataCollector dataCollector(gridView);
   VtkUnstructuredGridWriter<GridView,DataCollector> vtkWriter(gridView, Vtk::FormatTypes::ASCII);
@@ -291,11 +287,6 @@ int main (int argc, char *argv[]) try
   }
 
   vtkWriter.write(resultPath + "rod3d-result");
-#else
-  std::cout << "Falling back to legacy file writing.  Get dune-vtk for better results" << std::endl;
-  // Fall-back solution for users without dune-vtk
-  CosseratVTKWriter<GridView>::write<ScalarBasis>(scalarBasis,x, resultPath + "rod3d-result");
-#endif
 
 }
 catch (Exception& e)

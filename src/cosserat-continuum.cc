@@ -83,9 +83,7 @@
 #include <dune/gfe/spaces/rotation.hh>
 #endif
 
-#if HAVE_DUNE_VTK
 #include <dune/vtk/vtkreader.hh>
-#endif
 
 #include <dune/gmsh4/gmsh4reader.hh>
 #include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
@@ -229,14 +227,10 @@ int main (int argc, char *argv[]) try
       reader.read(path + "/" + gridFile);
       grid = factory.createGrid();
     } else if (suffix == ".vtu" or suffix == ".vtp")
-#if HAVE_DUNE_VTK
 #if DUNE_VERSION_GTE(DUNE_VTK, 2, 10)
       grid = Vtk::VtkReader<GridType>::createGridFromFile(path + "/" + gridFile);
 #else
       grid = VtkReader<GridType>::createGridFromFile(path + "/" + gridFile);
-#endif
-#else
-      DUNE_THROW(NotImplemented, "Please install dune-vtk for VTK reading support!");
 #endif
   }
 

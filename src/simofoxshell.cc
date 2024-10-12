@@ -40,9 +40,7 @@
 #include <dune/gfe/spaces/productmanifold.hh>
 #endif
 
-#if HAVE_DUNE_VTK
 #include <dune/vtk/vtkreader.hh>
-#endif
 
 template <int dim, class ctype, class LocalFiniteElement, class TS>
 using LocalFEFunction = Dune::GFE::LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TS>;
@@ -136,11 +134,7 @@ int main(int argc, char *argv[]) try
     if (suffix == ".msh")
       grid = std::shared_ptr<Grid>(GmshReader<Grid>::read(path + "/" + gridFile));
     else if (suffix == ".vtu" or suffix == ".vtp")
-#if HAVE_DUNE_VTK
       grid = VtkReader<Grid>::createGridFromFile(path + "/" + gridFile);
-#else
-      DUNE_THROW(NotImplemented, "Please install dune-vtk for VTK reading support!");
-#endif
   }
 
   grid->globalRefine(numLevels - 1);
