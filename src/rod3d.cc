@@ -29,6 +29,7 @@
 
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
+#include <dune/fufem/dunepython.hh>
 
 #include <dune/gfe/assemblers/cosseratrodenergy.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
@@ -55,12 +56,25 @@ int main (int argc, char *argv[]) try
 {
   MPIHelper::instance(argc, argv);
 
-  // parse data file
-  ParameterTree parameterSet;
-  if (argc < 2)
-    DUNE_THROW(Exception, "Usage: ./rod3d <parameter file>");
+  // Check for appropriate number of command line arguments
+  if (argc < 3)
+    DUNE_THROW(Exception, "Usage: ./rod3d <python path> <parameter file>");
 
-  ParameterTreeParser::readINITree(argv[1], parameterSet);
+  // Start Python interpreter
+  Python::start();
+  auto pyMain = Python::main();
+
+  Python::runStream()
+    << std::endl << "import sys"
+    << std::endl << "sys.path.append('" << argv[1] << "')"
+    << std::endl;
+
+  // Parse data file
+  auto pyModule = pyMain.import(argv[2]);
+
+  // Get main parameter set
+  ParameterTree parameterSet;
+  pyModule.get("parameterSet").toC(parameterSet);
 
   ParameterTreeParser::readOptions(argc, argv, parameterSet);
 
