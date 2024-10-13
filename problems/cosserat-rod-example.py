@@ -5,6 +5,9 @@ class ParameterSet(dict):
 
 parameterSet = ParameterSet()
 
+# Interpolation method
+parameterSet.interpolationMethod = "geodesic"
+
 #############################################
 #  Grid parameters
 #############################################
@@ -56,18 +59,26 @@ parameterSet.baseTolerance = 1e-8
 
 parameterSet.instrumented = "no"
 
-############################
-#   Problem specifications
-############################
 
-# Interpolation method
-parameterSet.interpolationMethod = "geodesic"
+############################
+#   Material parameters
+############################
 
 parameterSet.A = 1
 parameterSet.J1 = 1
 parameterSet.J2 = 1
 parameterSet.E = 2.5e5
 parameterSet.nu = 0.3
+
+#############################################
+#  Boundary values
+#############################################
+
+###  Python predicate specifying all Dirichlet grid vertices
+# x is the vertex coordinate
+parameterSet.dirichletVerticesPredicate = "[x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999]"
+parameterSet.dirichletRotationVerticesPredicate = "x[2] < 0.001 or x[2] > 0.999"
+
 
 parameterSet.dirichletValue = "1 0 0"
 

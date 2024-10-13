@@ -27,8 +27,6 @@
 #include <dune/vtk/vtkwriter.hh>
 #include <dune/vtk/datacollectors/lagrangedatacollector.hh>
 
-#include <dune/fufem/boundarypatch.hh>
-#include <dune/fufem/functiontools/boundarydofs.hh>
 #include <dune/fufem/dunepython.hh>
 
 #include <dune/gfe/assemblers/cosseratrodenergy.hh>
@@ -154,15 +152,27 @@ int main (int argc, char *argv[]) try
       blockedInterleaved()
       ));
 
-  // Find all boundary dofs
-  BoundaryPatch<GridView> dirichletBoundary(gridView,
-                                            true);      // true: The entire boundary is Dirichlet boundary
   BitSetVector<TargetSpace::TangentVector::dimension> dirichletNodes(tangentBasis.size(), false);
-#if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
-  Fufem::markBoundaryPatchDofs(dirichletBoundary,tangentBasis,dirichletNodes);
-#else
-  constructBoundaryDofs(dirichletBoundary,tangentBasis,dirichletNodes);
-#endif
+
+  // Make Python function that computes which vertices are on the Dirichlet boundary, based on the vertex positions.
+  std::string lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletVerticesPredicate") + std::string(")");
+  auto pythonDirichletVertices = Python::make_function<FieldVector<bool,3> >(Python::evaluate(lambda));
+
+  lambda = std::string("lambda x: (") + parameterSet.get<std::string>("dirichletRotationVerticesPredicate") + std::string(")");
+  auto pythonOrientationDirichletVertices = Python::make_function<bool>(Python::evaluate(lambda));
+
+  for (size_t i=0; i<tangentBasis.size(); i++)
+  {
+    FieldVector<bool,3> isDirichlet = pythonDirichletVertices(referenceConfiguration[i][_0].globalCoordinates());
+    for (size_t j=0; j<3; j++)
+      dirichletNodes[i][j] = isDirichlet[j];
+
+    bool isDirichletOrientation = pythonOrientationDirichletVertices(referenceConfiguration[i][_0].globalCoordinates());
+    for (size_t j=0; j<3; j++)
+      dirichletNodes[i][j+3] = isDirichletOrientation;
+  }
+
+  std::cout << "Dirichlet boundary has " << dirichletNodes.count() << " degrees of freedom.\n";
 
   // Find the dof on the right boundary
   std::size_t rightBoundaryDof;
