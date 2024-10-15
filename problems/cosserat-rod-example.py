@@ -74,6 +74,13 @@ parameterSet.nu = 0.3
 #  Boundary values
 #############################################
 
+class ReferenceConfiguration:
+    def deformation(self, x):
+        return [0,0,x[0]]
+
+    def orientation(self, x):
+        return [[1,0,0], [0,1,0], [0,0,1]]
+
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
 parameterSet.dirichletVerticesPredicate = "[x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999]"

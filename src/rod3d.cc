@@ -114,25 +114,49 @@ int main (int argc, char *argv[]) try
   //  Create the stress-free configuration
   //////////////////////////////////////////////
 
+  using namespace Dune::Functions::BasisFactory;
+
   using ScalarBasis = Functions::LagrangeBasis<GridView,order>;
   ScalarBasis scalarBasis(gridView);
 
-  std::vector<double> referenceConfigurationX(scalarBasis.size());
+  auto deformationPowerBasis = makeBasis(
+    gridView,
+    power<3>(
+      lagrange<order>()
+      ));
 
-  auto identity = [](const FieldVector<double,1>& x) {
-                    return x;
-                  };
+  // Matrix-valued basis for treating the microrotation as a matrix field
+  auto orientationMatrixBasis = makeBasis(
+    gridView,
+    power<3>(
+      power<3>(
+        lagrange<order>()
+        )
+      ));
 
-  Functions::interpolate(scalarBasis, referenceConfigurationX, identity);
 
   using Configuration = std::vector<TargetSpace>;
   Configuration referenceConfiguration(scalarBasis.size());
 
-  for (std::size_t i=0; i<referenceConfiguration.size(); i++)
-  {
-    referenceConfiguration[i][_0] = {0, 0, referenceConfigurationX[i]};
-    referenceConfiguration[i][_1] = Rotation<double,3>::identity();
-  }
+  // Load the stress-free configuration from the Python options file
+  Python::Callable referenceConfigurationPythonClass = pyModule.get("ReferenceConfiguration");
+  Python::Reference referenceConfigurationPythonObject = referenceConfigurationPythonClass();
+
+  // Extract object member functions as Dune functions
+  auto referenceDeformationFunction = Python::make_function<FieldVector<double,3> >   (referenceConfigurationPythonObject.get("deformation"));
+  auto referenceOrientationFunction = Python::make_function<FieldMatrix<double,3,3> > (referenceConfigurationPythonObject.get("orientation"));
+
+  BlockVector<FieldVector<double,3> > ddV;
+  Functions::interpolate(deformationPowerBasis, ddV, referenceDeformationFunction);
+
+  BlockVector<FieldMatrix<double,3,3> > dOV;
+  Functions::interpolate(orientationMatrixBasis, dOV, referenceOrientationFunction);
+
+  for (std::size_t i = 0; i < deformationPowerBasis.size(); i++)
+    referenceConfiguration[i][_0] = ddV[i];
+
+  for (std::size_t i = 0; i < orientationMatrixBasis.size(); i++)
+    referenceConfiguration[i][_1].set(dOV[i]);
 
   // Select the reference configuration as initial iterate
 
@@ -143,8 +167,6 @@ int main (int argc, char *argv[]) try
   // /////////////////////////////////////////
 
   // A basis for the tangent space
-  using namespace Functions::BasisFactory;
-
   auto tangentBasis = makeBasis(
     gridView,
     power<TargetSpace::TangentVector::dimension>(
@@ -176,8 +198,8 @@ int main (int argc, char *argv[]) try
 
   // Find the dof on the right boundary
   std::size_t rightBoundaryDof;
-  for (std::size_t i=0; i<referenceConfigurationX.size(); i++)
-    if (std::fabs(referenceConfigurationX[i] - 1.0) < 1e-6)
+  for (std::size_t i=0; i<referenceConfiguration.size(); i++)
+    if (std::fabs(referenceConfiguration[i][_0].globalCoordinates()[2] - 1.0) < 1e-6)
     {
       rightBoundaryDof = i;
       break;
@@ -274,8 +296,6 @@ int main (int argc, char *argv[]) try
 #endif
 
   // Make basis for R^3-valued data
-  using namespace Functions::BasisFactory;
-
   auto worldBasis = makeBasis(
     gridView,
     power<3>(lagrange<order>())
