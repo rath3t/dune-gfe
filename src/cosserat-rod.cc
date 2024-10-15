@@ -56,7 +56,7 @@ int main (int argc, char *argv[]) try
 
   // Check for appropriate number of command line arguments
   if (argc < 3)
-    DUNE_THROW(Exception, "Usage: ./rod3d <python path> <parameter file>");
+    DUNE_THROW(Exception, "Usage: ./cosserat-rod <python path> <parameter file>");
 
   // Start Python interpreter
   Python::start();
@@ -334,7 +334,7 @@ int main (int argc, char *argv[]) try
     vtkWriter.addPointData(*directorFunction[i], "director " + std::to_string(i), 3);
   }
 
-  vtkWriter.write(resultPath + "rod3d-result");
+  vtkWriter.write(resultPath + "cosserat-rod-result");
 
 }
 catch (Exception& e)

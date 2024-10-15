@@ -1,8 +1,8 @@
 set(programs compute-disc-error
+             cosserat-rod
              film-on-substrate-stress-plot
              gradient-flow
              harmonicmaps
-             rod3d
              simofoxshell)
 #            rodobstacle)
 

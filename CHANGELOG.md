@@ -1,5 +1,8 @@
 # Master
 
+- The file `rod3d.cc` has been renamed to `cosserat-rod.cc`,
+  to better reflect what it does.
+
 - In the `BulkCosseratDensity` class: Make the type of curvature
   tensor controllable at run-time (previously, ugly preprocessor switches
   where used).  Among its parameters `BulkCosseratDensity` now expects
