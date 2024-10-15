@@ -86,9 +86,10 @@ class ReferenceConfiguration:
 parameterSet.dirichletVerticesPredicate = "[x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999]"
 parameterSet.dirichletRotationVerticesPredicate = "x[2] < 0.001 or x[2] > 0.999"
 
+# Dirichlet values and initial iterate
+class DirichletValues:
+    def deformation(self, x):
+        return [0,0,x[0]]
 
-parameterSet.dirichletValue = "1 0 0"
-
-parameterSet.dirichletAxis = "1 0 0"
-
-parameterSet.dirichletAngle = 0
+    def orientation(self, x):
+        return [[1,0,0], [0,1,0], [0,0,1]]

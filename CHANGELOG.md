@@ -1,5 +1,8 @@
 # Master
 
+- `cosserat-rod.cc` (formerly `rod3d.cc`) now reads the reference configuration
+  and the initial iterate from the Python file.
+
 - The file `rod3d.cc` has been renamed to `cosserat-rod.cc`,
   to better reflect what it does.
 

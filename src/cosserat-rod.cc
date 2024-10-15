@@ -158,13 +158,10 @@ int main (int argc, char *argv[]) try
   for (std::size_t i = 0; i < orientationMatrixBasis.size(); i++)
     referenceConfiguration[i][_1].set(dOV[i]);
 
-  // Select the reference configuration as initial iterate
 
-  Configuration x = referenceConfiguration;
-
-  // /////////////////////////////////////////
+  ///////////////////////////////////////////
   //   Read Dirichlet values
-  // /////////////////////////////////////////
+  ///////////////////////////////////////////
 
   // A basis for the tangent space
   auto tangentBasis = makeBasis(
@@ -196,28 +193,27 @@ int main (int argc, char *argv[]) try
 
   std::cout << "Dirichlet boundary has " << dirichletNodes.count() << " degrees of freedom.\n";
 
-  // Find the dof on the right boundary
-  std::size_t rightBoundaryDof;
-  for (std::size_t i=0; i<referenceConfiguration.size(); i++)
-    if (std::fabs(referenceConfiguration[i][_0].globalCoordinates()[2] - 1.0) < 1e-6)
-    {
-      rightBoundaryDof = i;
-      break;
-    }
+  Configuration dirichletValues(scalarBasis.size());
 
-  // Set Dirichlet values
-  x[rightBoundaryDof][_0] = parameterSet.get<FieldVector<double,3> >("dirichletValue");
+  // Load the stress-free configuration from the Python options file
+  Python::Callable initialConfigurationPythonClass = pyModule.get("DirichletValues");
+  Python::Reference initialConfigurationPythonObject = initialConfigurationPythonClass();
 
-  auto axis = parameterSet.get<FieldVector<double,3> >("dirichletAxis");
-  double angle = parameterSet.get<double>("dirichletAngle");
+  // Extract object member functions as Dune functions
+  auto initialDeformationFunction = Python::make_function<FieldVector<double,3> >   (initialConfigurationPythonObject.get("deformation"));
+  auto initialOrientationFunction = Python::make_function<FieldMatrix<double,3,3> > (initialConfigurationPythonObject.get("orientation"));
 
-  x[rightBoundaryDof][_1] = Rotation<double,3>(axis, M_PI*angle/180);
+  Functions::interpolate(deformationPowerBasis, ddV, initialDeformationFunction);
+  Functions::interpolate(orientationMatrixBasis, dOV, initialOrientationFunction);
 
-  // backup for error measurement later
-  std::cout << "Right boundary orientation:" << std::endl;
-  std::cout << "director 0:  " << x[rightBoundaryDof][_1].director(0) << std::endl;
-  std::cout << "director 1:  " << x[rightBoundaryDof][_1].director(1) << std::endl;
-  std::cout << "director 2:  " << x[rightBoundaryDof][_1].director(2) << std::endl;
+  for (std::size_t i = 0; i < deformationPowerBasis.size(); i++)
+    dirichletValues[i][_0] = ddV[i];
+
+  for (std::size_t i = 0; i < orientationMatrixBasis.size(); i++)
+    dirichletValues[i][_1].set(dOV[i]);
+
+  // Select the Dirichlet value function as initial iterate
+  Configuration x = dirichletValues;
 
   //////////////////////////////////////////////
   //  Create the energy and assembler
