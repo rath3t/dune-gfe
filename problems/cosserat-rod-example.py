@@ -1,3 +1,5 @@
+import math
+
 class ParameterSet(dict):
     def __init__(self, *args, **kwargs):
         super(ParameterSet, self).__init__(*args, **kwargs)
@@ -64,9 +66,9 @@ parameterSet.instrumented = "no"
 #   Material parameters
 ############################
 
-parameterSet.A = 1
-parameterSet.J1 = 1
-parameterSet.J2 = 1
+parameterSet.A = 1e-4
+parameterSet.J1 = 1e-4
+parameterSet.J2 = 1e-4
 parameterSet.E = 2.5e5
 parameterSet.nu = 0.3
 
@@ -76,20 +78,22 @@ parameterSet.nu = 0.3
 
 class ReferenceConfiguration:
     def deformation(self, x):
-        return [0,0,x[0]]
+        return [x[0],0,0]
 
     def orientation(self, x):
         return [[1,0,0], [0,1,0], [0,0,1]]
 
 ###  Python predicate specifying all Dirichlet grid vertices
 # x is the vertex coordinate
-parameterSet.dirichletVerticesPredicate = "[x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999, x[2] < 0.001 or x[2] > 0.999]"
-parameterSet.dirichletRotationVerticesPredicate = "x[2] < 0.001 or x[2] > 0.999"
+parameterSet.dirichletVerticesPredicate = "[x[0] < 0.001 or x[0] > 0.999, \
+                                            x[0] < 0.001 or x[0] > 0.999, \
+                                            x[0] < 0.001 or x[0] > 0.999]"
+parameterSet.dirichletRotationVerticesPredicate = "x[0] < 0.001 or x[0] > 0.999"
 
 # Dirichlet values and initial iterate
 class DirichletValues:
     def deformation(self, x):
-        return [0,0,x[0]]
+        return [x[0]*0.5, 0, 0.1*math.sin(x[0]*math.pi)]
 
     def orientation(self, x):
         return [[1,0,0], [0,1,0], [0,0,1]]
