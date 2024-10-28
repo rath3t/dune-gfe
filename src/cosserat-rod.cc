@@ -32,6 +32,7 @@
 #include <dune/gfe/assemblers/cosseratrodenergy.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
+#include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
@@ -283,21 +284,21 @@ int main (int argc, char *argv[]) try
   //   Output result
   // //////////////////////////////
 
-#if DUNE_VERSION_GTE(DUNE_VTK, 2, 10)
-  auto vtkWriter = Vtk::UnstructuredGridWriter(Vtk::LagrangeDataCollector(gridView,order));
-#else
-  using DataCollector = Vtk::LagrangeDataCollector<GridView,order>;
-  DataCollector dataCollector(gridView);
-  VtkUnstructuredGridWriter<GridView,DataCollector> vtkWriter(gridView, Vtk::FormatTypes::ASCII);
-#endif
-
   // Make basis for R^3-valued data
   auto worldBasis = makeBasis(
     gridView,
     power<3>(lagrange<order>())
     );
 
-  // The rod displacement field
+  // Vector-valued basis to represent directors
+  auto directorBasis = makeBasis(
+    gridView,
+    power<3>(
+      lagrange<order>()
+      ));
+
+  // Compute the displacement from the deformation, because that's more easily visualized
+  // in ParaView
   BlockVector<FieldVector<double,3> > displacement(worldBasis.size());
   for (std::size_t i=0; i<x.size(); i++)
     displacement[i] = x[i][_0].globalCoordinates();
@@ -314,23 +315,18 @@ int main (int argc, char *argv[]) try
   displacement -= gridEmbedding;
 
   auto displacementFunction = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, displacement);
-  vtkWriter.addPointData(displacementFunction, "displacement", 3);
 
-  // The three director fields
-  using FunctionType = decltype(displacementFunction);
-  std::array<std::optional<FunctionType>, 3> directorFunction;
-  std::array<BlockVector<FieldVector<double, 3> >, 3> director;
-  for (int i=0; i<3; i++)
-  {
-    director[i].resize(worldBasis.size());
-    for (std::size_t j=0; j<x.size(); j++)
-      director[i][j] = x[j][_1].director(i);
+  // Copy the orientation part of the configuration; the CosseratVTKWriter wants it that way
+  std::vector<Rotation<double,3> > orientationConfiguration(x.size());
+  for (size_t i=0; i<x.size(); ++i)
+    orientationConfiguration[i] = x[i][_1];
 
-    directorFunction[i] = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, std::move(director[i]));
-    vtkWriter.addPointData(*directorFunction[i], "director " + std::to_string(i), 3);
-  }
-
-  vtkWriter.write(resultPath + "cosserat-rod-result");
+  CosseratVTKWriter<GridView>::write(gridView,
+                                     displacementFunction,
+                                     directorBasis,
+                                     orientationConfiguration,
+                                     order,
+                                     resultPath + "cosserat-rod-result");
 
 }
 catch (Exception& e)
