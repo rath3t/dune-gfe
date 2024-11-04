@@ -416,7 +416,8 @@ int main (int argc, char *argv[]) try
     std::vector<TargetSpace> initialIterate;
     GFE::CosseratVTKReader::read(initialIterate, parameterSet.get<std::string>("initialIterateFilename"));
 
-    typedef Dune::Functions::LagrangeBasis<typename GridType::LeafGridView, 2> InitialBasis;
+    // At this point, displacementOrder == rotationOrder
+    typedef Functions::LagrangeBasis<typename GridType::LeafGridView, displacementOrder> InitialBasis;
     InitialBasis initialBasis(initialIterateGrid->leafGridView());
 
 #ifdef PROJECTED_INTERPOLATION
@@ -431,8 +432,7 @@ int main (int argc, char *argv[]) try
         lagrange<displacementOrder>()
         ));
     std::vector<FieldVector<double,7> > v;
-    //TODO: Interpolate does not work with an GFE:EmbeddedGlobalGFEFunction
-    //Dune::Functions::interpolate(powerBasis,v,initialFunction);
+    Functions::interpolate(powerBasis,v,initialFunction);
 
     for (size_t i=0; i<x.size(); i++) {
       auto vTargetSpace = TargetSpace(v[i]);
