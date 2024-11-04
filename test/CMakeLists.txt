@@ -1,6 +1,9 @@
 # Path to the example grid files in dune-grid
 add_definitions(-DDUNE_GRID_EXAMPLE_GRIDS_PATH=\"${DUNE_GRID_EXAMPLE_GRIDS_PATH}\")
 
+# Path to the grid files in this module
+set(GRID_PATH "${CMAKE_CURRENT_SOURCE_DIR}/grids/")
+
 set(TESTS
   averagedistanceassemblertest
   cosseratrodenergytest
@@ -40,7 +43,8 @@ if(dune-foamgrid_FOUND)
 endif()
 
 foreach(_test ${TESTS})
-  dune_add_test(SOURCES ${_test}.cc)
+  dune_add_test(SOURCES ${_test}.cc
+                COMPILE_DEFINITIONS "GRID_PATH=\"${GRID_PATH}\"")
   target_compile_options(${_test} PRIVATE -g)
 endforeach()
 

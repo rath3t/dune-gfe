@@ -1,15 +1,18 @@
 #include "config.h"
 
-#include <math.h>
+#include <dune/common/test/testsuite.hh>
 
+#include <dune/curvedgrid/curvedgrid.hh>
 #include <dune/foamgrid/foamgrid.hh>
 
-#include <dune/geometry/type.hh>
-#include <dune/geometry/quadraturerules.hh>
+#include <dune/gmsh4/gmsh4reader.hh>
+#include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
 
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
+#include <dune/functions/gridfunctions/analyticgridviewfunction.hh>
+#include <dune/functions/gridfunctions/composedgridfunction.hh>
 
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/assemblers/nonplanarcosseratshellenergy.hh>
@@ -17,46 +20,17 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
-#include "multiindex.hh"
-#include "valuefactory.hh"
 
 using namespace Dune;
 
-static const int dim = 2;
-static const int dimworld = 3;
 
-using GridType = FoamGrid<dim,dimworld>;
-using TargetSpace = GFE::ProductManifold<RealTuple<double,dimworld>,Rotation<double,dimworld> >;
-
-//////////////////////////////////////////////////////////
-//   Make a test grid consisting of a single triangle
-//////////////////////////////////////////////////////////
-
-template <class GridType>
-std::unique_ptr<GridType> makeSingleElementGrid()
-{
-  constexpr auto triangle = Dune::GeometryTypes::triangle;
-  GridFactory<GridType> factory;
-
-  //Create a triangle that is not parallel to the planes formed by the coordinate axes
-  FieldVector<double,dimworld> vertex0{0,0,0};
-  FieldVector<double,dimworld> vertex1{0,1,1};
-  FieldVector<double,dimworld> vertex2{1,0,0};
-  factory.insertVertex(vertex0);
-  factory.insertVertex(vertex1);
-  factory.insertVertex(vertex2);
-
-  factory.insertElement(triangle, {0,1,2});
-
-  return std::unique_ptr<GridType>(factory.createGrid());
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////
-//   Test energy computation for the same grid with different refinement levels
-//////////////////////////////////////////////////////////////////////////////////////
-template <class F1, class F2>
-double calculateEnergy(const int numLevels, const F1 referenceConfigurationFunction, const F2 configurationFunction)
+template <typename FlatGridView, typename CurvedGridView, typename GridGeometry,
+    typename DeformationFunction, typename OrientationFunction>
+double calculateEnergy(const FlatGridView& flatGridView,
+                       const CurvedGridView& curvedGridView,
+                       const GridGeometry curvedGridGeometry,
+                       const DeformationFunction deformationFunction,
+                       const OrientationFunction orientationFunction)
 {
   ParameterTree materialParameters;
   materialParameters["thickness"] = "0.1";
@@ -70,121 +44,239 @@ double calculateEnergy(const int numLevels, const F1 referenceConfigurationFunct
   materialParameters["b2"] = "1";
   materialParameters["b3"] = "1";
 
-  const std::unique_ptr<GridType> grid = makeSingleElementGrid<GridType>();
-  grid->globalRefine(numLevels-1);
-  GridType::LeafGridView gridView = grid->leafGridView();
-
-  using FEBasis = Dune::Functions::LagrangeBasis<typename GridType::LeafGridView,2>;
-  FEBasis feBasis(gridView);
+  using FlatFEBasis = Functions::LagrangeBasis<FlatGridView,2>;
+  FlatFEBasis flatFEBasis(flatGridView);
 
   using namespace Dune::Functions::BasisFactory;
   using namespace Dune::Indices;
 
-  auto deformationPowerBasis = makeBasis(
-    gridView,
-    power<dimworld>(
+  TupleVector<std::vector<RealTuple<double,3> >, std::vector<Rotation<double,3> > > configuration;
+  configuration[_0].resize(flatFEBasis.size());
+  configuration[_1].resize(flatFEBasis.size());
+
+  /////////////////////////////////////////////////////////////////////////
+  //  FE representation of the deformation field
+  /////////////////////////////////////////////////////////////////////////
+
+  auto curvedGridDeformationBasis = makeBasis(
+    curvedGridView,
+    power<3>(
       lagrange<2>()
       ));
 
-  BlockVector<FieldVector<double,3> > helperVector1(feBasis.size());
-  Dune::Functions::interpolate(deformationPowerBasis, helperVector1, referenceConfigurationFunction);
-  auto stressFreeConfiguration = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dimworld> >(deformationPowerBasis, helperVector1);
+  BlockVector<FieldVector<double,3> > deformationAsVector(flatFEBasis.size());
+  Functions::interpolate(curvedGridDeformationBasis, deformationAsVector, deformationFunction);
+  for (std::size_t i = 0; i < flatFEBasis.size(); i++)
+    configuration[_0][i].globalCoordinates() = deformationAsVector[i];
 
-  NonplanarCosseratShellEnergy<FEBasis, 3, double, decltype(stressFreeConfiguration)> nonplanarCosseratShellEnergy(materialParameters,
-                                                                                                                   &stressFreeConfiguration,
-                                                                                                                   nullptr,
-                                                                                                                   nullptr,
-                                                                                                                   nullptr);
-  BlockVector<TargetSpace> sol(feBasis.size());
-  TupleVector<std::vector<RealTuple<double,3> >,
-      std::vector<Rotation<double,3> > > solTuple;
-  solTuple[_0].resize(feBasis.size());
-  solTuple[_1].resize(feBasis.size());
+  /////////////////////////////////////////////////////////////////////////
+  //  FE representation of the microrotation field
+  /////////////////////////////////////////////////////////////////////////
 
-  BlockVector<FieldVector<double,3> > helperVector2(feBasis.size());
-  Dune::Functions::interpolate(deformationPowerBasis, helperVector2, configurationFunction);
-  for (std::size_t i = 0; i < feBasis.size(); i++) {
-    sol[i][_0].globalCoordinates() = helperVector2[i];
+  auto curvedGridQuaternionBasis = makeBasis(
+    curvedGridView,
+    power<4>(
+      lagrange<2>()
+      ));
 
-    FieldVector<double,4> idRotation = {0, 0, 0, 1};     //set rotation = Id everywhere
-    Rotation<double,dimworld> rotation(idRotation);
-    FieldMatrix<double,dimworld,dimworld> rotationMatrix(0);
-    rotation.matrix(rotationMatrix);
-    sol[i][_1].set(rotationMatrix);
-    solTuple[_0][i] = sol[i][_0];
-    solTuple[_1][i] = sol[i][_1];
-  }
-  CosseratVTKWriter<decltype(gridView)>::write<FEBasis>(feBasis, solTuple, "configuration_l" + std::to_string(numLevels));
+  // The orientation function needs to become a GridViewFunction, otherwise it cannot be composed.
+  auto orientationGridViewFunction = Functions::makeAnalyticGridViewFunction(orientationFunction, curvedGridView);
+
+  auto matrixToQuaternion = [](FieldMatrix<double,3,3> matrix) -> FieldVector<double,4>
+                            {
+                              Rotation<double,3> rotation;
+                              rotation.set(matrix);
+                              return rotation;
+                            };
+
+  auto orientationQuaternionFunction = Functions::makeComposedGridFunction(matrixToQuaternion,
+                                                                           orientationGridViewFunction);
+
+  BlockVector<FieldVector<double,4> > orientationAsVector(flatFEBasis.size());
+  Functions::interpolate(curvedGridQuaternionBasis, orientationAsVector, orientationQuaternionFunction);
+  for (std::size_t i = 0; i < flatFEBasis.size(); i++)
+    configuration[_1][i] = orientationAsVector[i];
+
+  /////////////////////////////////////////////////////////////////////////
+  //  Write the configuration to a file (just for debugging)
+  /////////////////////////////////////////////////////////////////////////
+
+  auto directorBasis = makeBasis(
+    flatGridView,
+    power<3>(
+      lagrange<2>()
+      ));
+
+  // TODO: Write the curved grid, not the flat one
+  CosseratVTKWriter<FlatGridView>::write(flatGridView,
+                                         curvedGridGeometry,
+                                         directorBasis,
+                                         configuration[_1],
+                                         2, // VTK output element order
+                                         "nonplanarcosseratenergytest-result.vtu");
+
+  ///////////////////////////////////////////////////
+  //  Construct the energy functional
+  ///////////////////////////////////////////////////
+
+  using ShellEnergy = NonplanarCosseratShellEnergy<FlatFEBasis,
+      3,                                               // Dimension of the target space
+      double,
+      GridGeometry>;
+
+  ShellEnergy nonplanarCosseratShellEnergy(materialParameters,
+                                           &curvedGridGeometry,
+                                           nullptr,
+                                           nullptr,
+                                           nullptr);
+
+  ///////////////////////////////////////////////////
+  //  Compute the energy
+  ///////////////////////////////////////////////////
+
+  using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
 
   double energy = 0;
+
   // A view on the FE basis on a single element
-  auto localView = feBasis.localView();
+  auto localView = flatFEBasis.localView();
+
   // Loop over all elements
-  for (const auto& element : elements(feBasis.gridView(), Dune::Partitions::interior)) {
+  for (const auto& element : elements(flatGridView))
+  {
     localView.bind(element);
+
     // Number of degrees of freedom on this element
     size_t nDofs = localView.tree().size();
-    std::vector<TargetSpace> localSolution(nDofs);
+    std::vector<TargetSpace> localConfiguration(nDofs);
     for (size_t i=0; i<nDofs; i++)
-      localSolution[i] = sol[localView.index(i)[0]];
-    energy += nonplanarCosseratShellEnergy.energy(localView, localSolution);
+    {
+      localConfiguration[i][_0] = configuration[_0][localView.index(i)[0]];
+      localConfiguration[i][_1] = configuration[_1][localView.index(i)[0]];
+    }
+    energy += nonplanarCosseratShellEnergy.energy(localView, localConfiguration);
   }
   return energy;
 }
 
+
+
 int main(int argc, char** argv)
 {
   MPIHelper::instance(argc, argv);
-  auto configurationId = [](FieldVector<double,dimworld> x){
-                           return x;
-                         };
-  auto configurationStretchY = [](FieldVector<double,dimworld> x){
-                                 auto out = x;
-                                 out[1] *= 2;
-                                 return out;
-                               };
 
-  auto configurationTwist = [](FieldVector<double,dimworld> x){
-                              auto out = x;
-                              out[1] = x[2];
-                              out[2] = -x[1];
-                              return out;
-                            };
+  //////////////////////////////////
+  //    Create the grid
+  //////////////////////////////////
 
-  auto configurationCurved = [](FieldVector<double,dimworld> x){
-                               auto out = x;
-                               out[1] = x[2];
-                               out[2] = -x[1];
-                               return out;
+  using FlatGrid = FoamGrid<2,3>;
+
+  GridFactory<FlatGrid> factory;
+  Gmsh4::LagrangeGridCreator gridGeometry{factory};
+
+  Gmsh4Reader reader{gridGeometry};
+  reader.read(GRID_PATH "/sphere_order2.msh");
+  auto flatGrid = factory.createGrid();
+
+  // Wrap the flat grid to build a curved grid, with Lagrange elements of order 2
+  CurvedGrid curvedGrid{*flatGrid, gridGeometry, 2};
+
+  ///////////////////////////////////////////////////////
+  //  Create configurations and check their energies
+  ///////////////////////////////////////////////////////
+
+  TestSuite test;
+
+  // The reference configuration
+  // ---------------------------------
+  auto deformationIdentity = [](FieldVector<double,3> x){
+                               return x;
                              };
-  auto configurationSquare = [](FieldVector<double,dimworld> x){
-                               auto out = x;
-                               out[1] += x[1]*x[1];
-                               return out;
+
+  auto orientationIdentity = [](FieldVector<double,3> x) -> FieldMatrix<double,3,3>
+                             {
+                               return {{1,0,0}, {0,1,0}, {0,0,1}};
                              };
 
-  auto configurationSin = [](FieldVector<double,dimworld> x){
-                            auto out = x;
-                            out[2] = sin(x[2]);
-                            return out;
-                          };
+  double energyIdentity = calculateEnergy(flatGrid->leafGridView(), curvedGrid.leafGridView(), gridGeometry,
+                                          deformationIdentity, orientationIdentity);
 
-  double energyFine = calculateEnergy(2, configurationId, configurationStretchY);
-  double energyCoarse = calculateEnergy(1, configurationId, configurationStretchY);
-  assert(std::abs(energyFine - energyCoarse) < 1e-3);
+  test.check(std::fabs(energyIdentity) < 1e-12, "reference configuration has zero energy");
 
-  double energyForZeroDifference = calculateEnergy(1,configurationId,configurationId);
-  assert(std::abs(energyForZeroDifference) < 1e-3);
+  // A translation
+  // ---------------------------------
+  auto deformationTranslation = [](FieldVector<double,3> x){
+                                  return x + FieldVector<double,3>{1.5,1.5,1.5};
+                                };
 
-  double energyForZeroDifference2 = calculateEnergy(1,configurationStretchY,configurationStretchY);
-  assert(std::abs(energyForZeroDifference2) < 1e-3);
+  double energyTranslation = calculateEnergy(flatGrid->leafGridView(), curvedGrid.leafGridView(), gridGeometry,
+                                             deformationTranslation, orientationIdentity);
 
-  double energyForZeroDifference3 = calculateEnergy(1,configurationTwist,configurationTwist);
-  assert(std::abs(energyForZeroDifference3) < 1e-3);
+  test.check(std::fabs(energyTranslation) < 1e-12, "translated configuration has zero energy");
 
-  double energyForZeroDifference4 = calculateEnergy(1,configurationSquare,configurationSquare);
-  assert(std::abs(energyForZeroDifference4) < 1e-3);
+  // A rotation -- for simplicity about an axis
+  // ---------------------------------
+  double angle = M_PI/4;
+  FieldMatrix<double,3,3> globalRotation = {{1,0,0},
+    {0,cos(angle),-sin(angle)},
+    {0,sin(angle),cos(angle)}};
 
-  double energyForZeroDifference5 = calculateEnergy(1,configurationSin,configurationSin);
-  assert(std::abs(energyForZeroDifference5) < 1e-3);
+  // A translation
+  auto deformationRotation = [&globalRotation](FieldVector<double,3> x){
+                               FieldVector<double,3> result;
+                               globalRotation.mv(x,result);
+                               return result;
+                             };
+
+  auto orientationRotation = [&globalRotation](FieldVector<double,3> x) -> FieldMatrix<double,3,3>
+                             {
+                               return globalRotation;
+                             };
+
+
+  double energyRotation = calculateEnergy(flatGrid->leafGridView(), curvedGrid.leafGridView(), gridGeometry,
+                                          deformationRotation, orientationRotation);
+
+  test.check(std::fabs(energyRotation) < 1e-12, "rotated configuration has zero energy");
+
+  // Stretching
+  // ---------------------------------
+  auto deformationStretchY = [](FieldVector<double,3> x) -> FieldVector<double,3>
+                             {
+                               return {x[0], 2*x[1], x[2]};
+                             };
+
+  double energyStretchY = calculateEnergy(flatGrid->leafGridView(), curvedGrid.leafGridView(), gridGeometry,
+                                          deformationStretchY, orientationIdentity);
+
+  test.check(std::fabs(energyStretchY-357163.4280328181) < 1e-6,
+             "stretched configuration has energy 357163.4280328181");
+
+
+
+  // Something wild
+  // ----------------------------------------
+  auto deformationIrregular = [](FieldVector<double,3> x) -> FieldVector<double,3>
+                              {
+                                return {x[0] + sin(3*M_PI*(x[1]+x[2])),
+                                        x[1] + sin(5*M_PI*(x[0]+x[2])),
+                                        x[2] + sin(2*M_PI*(x[0]+x[1]))};
+                              };
+
+  auto orientationIrregular = [](FieldVector<double,3> x) -> FieldMatrix<double,3>
+                              {
+                                double angle = sqrt(x[0]*x[0] + x[1]*x[1]);
+
+                                return {{1,0,0},
+                                  {0,cos(angle),-sin(angle)},
+                                  {0,sin(angle),cos(angle)}};
+                              };
+
+  double energyIrregular = calculateEnergy(flatGrid->leafGridView(), curvedGrid.leafGridView(), gridGeometry,
+                                           deformationIrregular, orientationIdentity);
+
+  test.check(std::fabs(energyIrregular-51489391.39400836) < 1e-6,
+             "irregular configuration has energy 51489391.39400836");
+
+  return test.exit();
 }
