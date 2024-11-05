@@ -272,10 +272,10 @@ int main(int argc, char** argv)
                               };
 
   double energyIrregular = calculateEnergy(flatGrid->leafGridView(), curvedGrid.leafGridView(), gridGeometry,
-                                           deformationIrregular, orientationIdentity);
+                                           deformationIrregular, orientationIrregular);
 
-  test.check(std::fabs(energyIrregular-51489391.39400836) < 1e-6,
-             "irregular configuration has energy 51489391.39400836");
+  test.check(std::fabs(energyIrregular-56331610.0823059) < 1e-6,
+             "irregular configuration has energy 56331610.0823059");
 
   return test.exit();
 }
