@@ -24,9 +24,6 @@ parameterSet.numRodBaseElements = 5
 #  Solver parameters
 #############################################
 
-# Initial load increment
-parameterSet.loadIncrement = 0.01
-
 # Tolerance of the trust region solver
 parameterSet.tolerance = 1e-6
 
