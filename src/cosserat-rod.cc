@@ -322,8 +322,17 @@ int main (int argc, char *argv[]) try
                                      displacementFunction,
                                      orientationFunction,
                                      order,
-                                     resultPath + "cosserat-rod-result");
+                                     resultPath + "cosserat-rod-result-" + std::to_string(numLevels));
 
+  // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
+  // This data may be used by other applications measuring the discretization error
+  BlockVector<TargetSpace::CoordinateType> xEmbedded(x.size());
+  for (size_t i=0; i<x.size(); i++)
+    xEmbedded[i] = x[i].globalCoordinates();
+
+  std::ofstream outFile("cosserat-rod-result-" + std::to_string(numLevels) + ".data", std::ios_base::binary);
+  MatrixVector::Generic::writeBinary(outFile, xEmbedded);
+  outFile.close();
 }
 catch (Exception& e)
 {
