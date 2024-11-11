@@ -287,13 +287,6 @@ int main (int argc, char *argv[]) try
       lagrange<displacementOrder>()
       ));
 
-  // Vector-valued basis to represent directors
-  auto directorBasis = makeBasis(
-    gridView,
-    power<3>(
-      lagrange<rotationOrder>()
-      ));
-
   // Matrix-valued basis for treating the microrotation as a matrix field
   auto orientationMatrixBasis = makeBasis(
     gridView,
@@ -483,11 +476,19 @@ int main (int argc, char *argv[]) try
 
   auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(deformationPowerBasis, displacement);
 
+#ifdef PROJECTED_INTERPOLATION
+  using RotationInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, Rotation<double,3> >;
+#else
+  using RotationInterpolationRule = LocalGeodesicFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, Rotation<double,3> >;
+#endif
+
+  GFE::EmbeddedGlobalGFEFunction<OrientationFEBasis, RotationInterpolationRule,Rotation<double,3> > orientationFunction(orientationFEBasis,
+                                                                                                                        x[_1]);
+
   if (dim == dimworld) {
     CosseratVTKWriter<GridView>::write(gridView,
                                        displacementFunction,
-                                       directorBasis,
-                                       x[_1],
+                                       orientationFunction,
                                        std::max(LFE_ORDER, GFE_ORDER),
                                        resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
   } else if (dim == 2 && dimworld == 3) {
@@ -753,8 +754,7 @@ int main (int argc, char *argv[]) try
     if (dim == dimworld) {
       CosseratVTKWriter<GridView>::write(gridView,
                                          displacementFunction,
-                                         directorBasis,
-                                         x[_1],
+                                         orientationFunction,
                                          std::max(LFE_ORDER, GFE_ORDER),
                                          resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
     } else if (dim == 2 && dimworld == 3) {

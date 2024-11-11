@@ -11,6 +11,7 @@
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
+#include <dune/functions/gridfunctions/composedgridfunction.hh>
 
 #include <dune/vtk/vtkwriter.hh>
 #include <dune/vtk/datacollectors/lagrangedatacollector.hh>
@@ -395,11 +396,10 @@ public:
    * \param directorBasis The basis that will be used to represent director fields
    * \param order The polynomial order that the data will have in the VTK file
    */
-  template <typename DisplacementFunction, typename DirectorBasis>
+  template <typename DisplacementFunction, typename OrientationFunction>
   static void write(const GridView& gridView,
                     const DisplacementFunction& displacement,
-                    const DirectorBasis& directorBasis,
-                    const std::vector<Rotation<double,3> >& orientationConfiguration,
+                    const OrientationFunction& orientation,
                     int order,
                     const std::string& filename)
   {
@@ -417,27 +417,26 @@ public:
     vtkWriter.addPointData(displacement, Dune::VTK::FieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 3));
 
     // Attach the director fields
-    BlockVector<FieldVector<double,3> > director0(orientationConfiguration.size());
-    BlockVector<FieldVector<double,3> > director1(orientationConfiguration.size());
-    BlockVector<FieldVector<double,3> > director2(orientationConfiguration.size());
+    // This lambda takes a unit quaternion and extracts one column
+    // of the corresponding rotation matrix
+    auto directorExtractor = [](FieldVector<double,4> q,int columnNumber) -> FieldVector<double,3>
+                             {
+                               FieldMatrix<double,3,3> matrix;
+                               Rotation<double,3>(q).matrix(matrix);
+                               FieldVector<double,3> column;
+                               for (size_t i=0; i<3; ++i)
+                                 column[i] = matrix[i][columnNumber];
+                               return column;
+                             };
 
-    for (size_t i=0; i<orientationConfiguration.size(); i++)
-    {
-      FieldMatrix<double,3,3> rotationMatrix;
-      orientationConfiguration[i].matrix(rotationMatrix);
+    auto director0Function = Functions::makeComposedGridFunction(std::bind(directorExtractor,std::placeholders::_1,0),
+                                                                 orientation);
 
-      // Extract the directors, i.e., the columns of the matrix
-      for (size_t j=0; j<3; j++)
-      {
-        director0[i][j] = rotationMatrix[j][0];
-        director1[i][j] = rotationMatrix[j][1];
-        director2[i][j] = rotationMatrix[j][2];
-      }
-    }
+    auto director1Function = Functions::makeComposedGridFunction(std::bind(directorExtractor,std::placeholders::_1,1),
+                                                                 orientation);
 
-    auto director0Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(directorBasis, director0);
-    auto director1Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(directorBasis, director1);
-    auto director2Function = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(directorBasis, director2);
+    auto director2Function = Functions::makeComposedGridFunction(std::bind(directorExtractor,std::placeholders::_1,2),
+                                                                 orientation);
 
     vtkWriter.addPointData(director0Function, Dune::VTK::FieldInfo("director0", Dune::VTK::FieldInfo::Type::vector, 3));
     vtkWriter.addPointData(director1Function, Dune::VTK::FieldInfo("director1", Dune::VTK::FieldInfo::Type::vector, 3));

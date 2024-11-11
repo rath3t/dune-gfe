@@ -81,11 +81,11 @@ double calculateEnergy(const FlatGridView& flatGridView,
   // Turn matrix-valued function into quaternion-valued function
   auto orientationQuaternionFunction
     = [&orientationFunction](FieldVector<double,3> x) -> FieldVector<double,4>
-                                       {
-                                         Rotation<double,3> rotation;
-                                         rotation.set(orientationFunction(x));
-                                         return rotation;
-                                       };
+      {
+        Rotation<double,3> rotation;
+        rotation.set(orientationFunction(x));
+        return rotation;
+      };
 
   BlockVector<FieldVector<double,4> > orientationAsVector(flatFEBasis.size());
   Functions::interpolate(curvedGridQuaternionBasis, orientationAsVector, orientationQuaternionFunction);
@@ -96,17 +96,15 @@ double calculateEnergy(const FlatGridView& flatGridView,
   //  Write the configuration to a file (just for debugging)
   /////////////////////////////////////////////////////////////////////////
 
-  auto directorBasis = makeBasis(
-    flatGridView,
-    power<3>(
-      lagrange<2>()
-      ));
+  // The orientation function needs to become a GridViewFunction,
+  // otherwise the current CosseratVTKWriter will not accept it.
+  auto orientationQuaternionGridViewFunction = Functions::makeAnalyticGridViewFunction(orientationQuaternionFunction, flatGridView);
+
 
   // TODO: Write the curved grid, not the flat one
   CosseratVTKWriter<FlatGridView>::write(flatGridView,
                                          curvedGridGeometry,
-                                         directorBasis,
-                                         configuration[_1],
+                                         orientationQuaternionGridViewFunction,
                                          2, // VTK output element order
                                          "nonplanarcosseratenergytest-result.vtu");
 

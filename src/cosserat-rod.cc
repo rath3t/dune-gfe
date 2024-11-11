@@ -31,6 +31,7 @@
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/cosseratvtkwriter.hh>
+#include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
@@ -288,13 +289,6 @@ int main (int argc, char *argv[]) try
     power<3>(lagrange<order>())
     );
 
-  // Vector-valued basis to represent directors
-  auto directorBasis = makeBasis(
-    gridView,
-    power<3>(
-      lagrange<order>()
-      ));
-
   // Compute the displacement from the deformation, because that's more easily visualized
   // in ParaView
   BlockVector<FieldVector<double,3> > displacement(worldBasis.size());
@@ -319,10 +313,14 @@ int main (int argc, char *argv[]) try
   for (size_t i=0; i<x.size(); ++i)
     orientationConfiguration[i] = x[i][_1];
 
+  using RotationInterpolationRule  = LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, Rotation<double,3> >;
+
+  GFE::EmbeddedGlobalGFEFunction<ScalarBasis, RotationInterpolationRule,Rotation<double,3> > orientationFunction(scalarBasis,
+                                                                                                                 orientationConfiguration);
+
   CosseratVTKWriter<GridView>::write(gridView,
                                      displacementFunction,
-                                     directorBasis,
-                                     orientationConfiguration,
+                                     orientationFunction,
                                      order,
                                      resultPath + "cosserat-rod-result");
 
