@@ -12,7 +12,6 @@
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
 #include <dune/functions/gridfunctions/analyticgridviewfunction.hh>
-#include <dune/functions/gridfunctions/composedgridfunction.hh>
 
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/assemblers/nonplanarcosseratshellenergy.hh>
@@ -79,18 +78,14 @@ double calculateEnergy(const FlatGridView& flatGridView,
       lagrange<2>()
       ));
 
-  // The orientation function needs to become a GridViewFunction, otherwise it cannot be composed.
-  auto orientationGridViewFunction = Functions::makeAnalyticGridViewFunction(orientationFunction, curvedGridView);
-
-  auto matrixToQuaternion = [](FieldMatrix<double,3,3> matrix) -> FieldVector<double,4>
-                            {
-                              Rotation<double,3> rotation;
-                              rotation.set(matrix);
-                              return rotation;
-                            };
-
-  auto orientationQuaternionFunction = Functions::makeComposedGridFunction(matrixToQuaternion,
-                                                                           orientationGridViewFunction);
+  // Turn matrix-valued function into quaternion-valued function
+  auto orientationQuaternionFunction
+    = [&orientationFunction](FieldVector<double,3> x) -> FieldVector<double,4>
+                                       {
+                                         Rotation<double,3> rotation;
+                                         rotation.set(orientationFunction(x));
+                                         return rotation;
+                                       };
 
   BlockVector<FieldVector<double,4> > orientationAsVector(flatFEBasis.size());
   Functions::interpolate(curvedGridQuaternionBasis, orientationAsVector, orientationQuaternionFunction);
