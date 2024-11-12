@@ -1,6 +1,5 @@
 set(programs compute-disc-error
              cosserat-rod
-             film-on-substrate-stress-plot
              gradient-flow
              harmonicmaps
              simofoxshell)
@@ -10,10 +9,13 @@ foreach(_program ${programs})
   add_executable(${_program} ${_program}.cc)
 endforeach()
 
-if (dune-parmg_FOUND AND dune-curvedgeometry_FOUND)
+if (dune-parmg_FOUND AND dune-curvedgeometry_FOUND AND dune-elasticity_FOUND)
   add_executable("film-on-substrate" film-on-substrate.cc)
   set_property(TARGET "film-on-substrate" APPEND PROPERTY COMPILE_DEFINITIONS "WORLD_DIM=3;  LFE_ORDER=2; GFE_ORDER=2")
 	set(programs film-on-substrate ${programs})
+
+  add_executable("film-on-substrate-stress-plot" film-on-substrate-stress-plot.cc)
+  set(programs film-on-substrate-stress-plot ${programs})
 endif()
 
 add_executable("cosserat-continuum-2d-in-2d" cosserat-continuum.cc)

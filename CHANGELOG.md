@@ -1,5 +1,9 @@
 # Master
 
+- The module `dune-elasticity` has been downgraded from a required
+  dependency to an optional dependency.  It is currently only needed
+  by the `film-on-substrate.cc` program.
+
 - `cosserat-rod.cc` (formerly `rod3d.cc`) now reads the reference configuration
   and the initial iterate from the Python file.
 

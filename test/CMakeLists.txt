@@ -19,18 +19,19 @@ set(TESTS
   planarcosseratshelltest
   polardecompositiontest
   rotationtest
-  surfacecosseratstressassemblertest
   svdtest
   targetspacetest
 )
 
 dune_add_test(NAME "filmonsubstratetest"
               SOURCES filmonsubstratetest.cc
+              CMAKE_GUARD dune-elasticity_FOUND
               COMPILE_DEFINITIONS "MIXED_SPACE=0"
               TIMEOUT 2400)
 
 dune_add_test(NAME "filmonsubstratetest-mixed"
               SOURCES filmonsubstratetest.cc
+              CMAKE_GUARD dune-elasticity_FOUND
               COMPILE_DEFINITIONS "MIXED_SPACE=1"
               TIMEOUT 2400)
 
@@ -73,6 +74,10 @@ dune_add_test(SOURCES mixedriemannianpnsolvertest.cc
               MPI_RANKS 1 4
               TIMEOUT 600
               CMAKE_GUARD MPI_FOUND)
+
+# TODO: The dependency on dune-elasticity is very minor, and can be removed.
+dune_add_test(SOURCES surfacecosseratstressassemblertest.cc
+              CMAKE_GUARD dune-elasticity_FOUND)
 
 # Copy the example grid used for testing into the build dir
 file(COPY grids/irregular-square.msh DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/grids)
