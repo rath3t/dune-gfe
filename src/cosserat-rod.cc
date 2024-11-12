@@ -14,8 +14,6 @@
 
 #include <dune/grid/onedgrid.hh>
 
-#include <dune/istl/io.hh>
-
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
