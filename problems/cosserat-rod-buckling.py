@@ -63,9 +63,11 @@ parameterSet.instrumented = "no"
 #   Material parameters
 ############################
 
-parameterSet.A = 1e-4
-parameterSet.J1 = 1e-4
-parameterSet.J2 = 1e-4
+radius = 0.02
+
+parameterSet.A = math.pi * radius**2
+parameterSet.J1 = math.pi * 0.25 * radius**4
+parameterSet.J2 = math.pi * 0.25 * radius**4
 parameterSet.E = 2.5e5
 parameterSet.nu = 0.3
 
