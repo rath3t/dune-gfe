@@ -5,7 +5,11 @@
 
 #include <dune/gfe/densities/localdensity.hh>
 
+#if DUNE_VERSION_GTE(DUNE_ELASTICITY, 2, 11)
+#include <dune/elasticity/densities/localdensity.hh>
+#else
 #include <dune/elasticity/materials/localdensity.hh>
+#endif
 
 namespace Dune::GFE
 {
