@@ -134,7 +134,15 @@ int main(int argc, char *argv[]) try
     if (suffix == ".msh")
       grid = std::shared_ptr<Grid>(GmshReader<Grid>::read(path + "/" + gridFile));
     else if (suffix == ".vtu" or suffix == ".vtp")
+#if HAVE_DUNE_VTK
+#if DUNE_VERSION_GTE(DUNE_VTK, 2, 10)
+      grid = Vtk::VtkReader<Grid>::createGridFromFile(path + "/" + gridFile);
+#else
       grid = VtkReader<Grid>::createGridFromFile(path + "/" + gridFile);
+#endif
+#else
+      DUNE_THROW(NotImplemented, "Please install dune-vtk for VTK reading support!");
+#endif
   }
 
   grid->globalRefine(numLevels - 1);
