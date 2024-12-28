@@ -7,8 +7,6 @@
 
 #include <dune/matrix-vector/crossproduct.hh>
 
-#include <dune/fufem/boundarypatch.hh>
-
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 
 #if HAVE_DUNE_GMSH4
@@ -18,7 +16,6 @@
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/densities/cosseratshelldensity.hh>
 #include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/tensor3.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>

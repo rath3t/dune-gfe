@@ -2,9 +2,12 @@
 #define DUNE_GFE_LINEARALGEBRA_HH
 
 #include <random>
+#include <type_traits>
 
 #include <dune/common/fmatrix.hh>
-#include <dune/istl/scaledidmatrix.hh>
+#include <dune/common/fvector.hh>
+
+#include <dune/fufem/utilities/adolcnamespaceinjections.hh>  // For PromotedType
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
