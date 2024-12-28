@@ -97,15 +97,17 @@ double calculateEnergy(const FlatGridView& flatGridView,
   //  Write the configuration to a file (just for debugging)
   /////////////////////////////////////////////////////////////////////////
 
-  // The orientation function needs to become a GridViewFunction,
-  // otherwise the current CosseratVTKWriter will not accept it.
+  // The deformation and orientation functions need to become a GridViewFunctions,
+  // otherwise the current CosseratVTKWriter will not accept them.
+  auto deformationGridViewFunction = Functions::makeAnalyticGridViewFunction(deformationFunction, flatGridView);
+
   // TODO: This is essentially the same as orientationQuaternionFunction
   auto orientationQuaternionGridViewFunction = Functions::makeAnalyticGridViewFunction(orientationQuaternionFunction, flatGridView);
 
-
   // TODO: Write the curved grid, not the flat one
+  // BUG: The second argument should be the displacement, not the deformation
   CosseratVTKWriter<FlatGridView>::write(flatGridView,
-                                         curvedGridGeometry,
+                                         deformationGridViewFunction,
                                          orientationQuaternionGridViewFunction,
                                          2, // VTK output element order
                                          "nonplanarcosseratenergytest-result.vtu");
