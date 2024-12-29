@@ -79,13 +79,14 @@ double calculateEnergy(const FlatGridView& flatGridView,
       ));
 
   // Turn matrix-valued function into quaternion-valued function
-  auto orientationQuaternionFunction
-    = [&orientationFunction](FieldVector<double,3> x) -> FieldVector<double,4>
-      {
-        Rotation<double,3> rotation;
-        rotation.set(orientationFunction(x));
-        return rotation;
-      };
+  // TODO: There is no real need to turn orientationFunction into a
+  // GridViewFunction, but makeComposedGridFunction expects such
+  // a GridViewFunction.
+  auto orientationGridViewFunction = Functions::makeAnalyticGridViewFunction(orientationFunction, curvedGridView);
+
+  const auto orientationQuaternionFunction
+    = Functions::makeComposedGridFunction(Rotation<double,3>::matrixToQuaternion,
+                                          orientationGridViewFunction);
 
   BlockVector<FieldVector<double,4> > orientationAsVector(flatFEBasis.size());
   Functions::interpolate(curvedGridQuaternionBasis, orientationAsVector, orientationQuaternionFunction);
@@ -98,6 +99,7 @@ double calculateEnergy(const FlatGridView& flatGridView,
 
   // The orientation function needs to become a GridViewFunction,
   // otherwise the current CosseratVTKWriter will not accept it.
+  // TODO: This is essentially the same as orientationQuaternionFunction
   auto orientationQuaternionGridViewFunction = Functions::makeAnalyticGridViewFunction(orientationQuaternionFunction, flatGridView);
 
 

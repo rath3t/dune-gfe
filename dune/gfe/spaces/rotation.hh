@@ -1244,6 +1244,31 @@ public:
 
   }
 
+  /** \brief Convert a unit quaternion to an orthogonal matrix
+   *
+   * This method returns a callable object which does the conversion.
+   * It can be used together with Functions::makeComposedGridFunction
+   * to turn a quaternion-valued function into a matrix-valued one.
+   */
+  constexpr static auto quaternionToMatrix = []<typename RT>(Rotation<RT,3> quaternion) -> Dune::FieldMatrix<RT,3,3>
+  {
+    Dune::FieldMatrix<RT,3,3> rotationMatrix;
+    quaternion.matrix(rotationMatrix);
+    return rotationMatrix;
+  };
+
+  /** \brief Convert an orthogonal matrix to a unit quaternion
+   *
+   * This method returns a callable object which does the conversion.
+   * It can be used together with Functions::makeComposedGridFunction
+   * to turn a matrix-valued function into a quaternion-valued one.
+   */
+  constexpr static auto matrixToQuaternion = []<typename RT>(const Dune::FieldMatrix<RT,3>& matrix) -> Dune::FieldVector<RT,4>
+  {
+    Rotation<RT,3> rotation;
+    rotation.set(matrix);
+    return rotation;
+  };
 };
 
 
