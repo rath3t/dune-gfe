@@ -7,7 +7,7 @@ before_script: &before
   - duneci-install-module https://git.imp.fu-berlin.de/agnumpde/dune-solvers.git
   - duneci-install-module https://gitlab.dune-project.org/extensions/dune-vtk.git
   - duneci-install-module https://gitlab.dune-project.org/fufem/dune-fufem.git
-  - duneci-install-module https://gitlab.mn.tu-dresden.de/iwr/dune-gmsh4
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-gmsh4
 
 #  Tests with the 2.9 release.  That's the one in Debian bookworm
 #--------------------------------------------------------------------
@@ -54,8 +54,8 @@ dune:git dune-curvedgrid dune-foamgrid gcc-10 C++20:
   image: registry.dune-project.org/docker/ci/dune:git-debian-11-gcc-10-20
   before_script:
   - *before
-  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-curvedgeometry.git
-  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/iwr/dune-curvedgrid.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-curvedgeometry.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-curvedgrid.git
   - duneci-install-module https://gitlab.dune-project.org/extensions/dune-foamgrid.git
   script: duneci-standard-test
 
@@ -66,8 +66,8 @@ dune:git dune-parmg dune-curvedgrid dune-foamgrid dune-elasticity gcc-10 C++20:
   before_script:
   - *before
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/paraphase/dune-parmg.git
-  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-curvedgeometry.git
-  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/iwr/dune-curvedgrid.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-curvedgeometry.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-curvedgrid.git
   - duneci-install-module https://gitlab.dune-project.org/extensions/dune-foamgrid.git
   - duneci-install-module https://gitlab.mn.tu-dresden.de/ag-sander/dune/dune-elasticity.git
   script: duneci-standard-test
@@ -77,8 +77,8 @@ dune:git dune-parmg dune-curvedgrid dune-foamgrid dune-elasticity clang-11 C++20
   before_script:
   - *before
   - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/paraphase/dune-parmg.git
-  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/spraetor/dune-curvedgeometry.git
-  - duneci-install-module https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mn.tu-dresden.de/iwr/dune-curvedgrid.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-curvedgeometry.git
+  - duneci-install-module https://gitlab.dune-project.org/extensions/dune-curvedgrid.git
   - duneci-install-module https://gitlab.dune-project.org/extensions/dune-foamgrid.git
   - duneci-install-module https://gitlab.mn.tu-dresden.de/ag-sander/dune/dune-elasticity.git
   script: duneci-standard-test
