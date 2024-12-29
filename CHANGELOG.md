@@ -1,5 +1,9 @@
 # Master
 
+- ...
+
+# Release 2.10 (2024-12-29)
+
 - The module `dune-elasticity` has been downgraded from a required
   dependency to an optional dependency.  It is currently only needed
   by the `film-on-substrate.cc` program.

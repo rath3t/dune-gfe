@@ -4,7 +4,7 @@
 
 #Name of the module
 Module: dune-gfe
-Version: svn
+Version: 2.11-git
 Maintainer: oliver.sander@tu-dresden.de
 #depending on
 Depends: dune-grid(>=2.9) dune-uggrid dune-istl dune-localfunctions dune-functions (>=2.9) dune-solvers dune-fufem dune-gmsh4 dune-vtk
