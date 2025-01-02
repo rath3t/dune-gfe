@@ -356,13 +356,17 @@ int main (int argc, char *argv[])
   auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ActiveRigidBodyMotion> >(elasticDensityWrapped);
   auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,neumannFunction);
 
-  auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
-      decltype(stressFreeShellFunction), CompositeBasis, ActiveRigidBodyMotion> >(
+  auto cosseratShellDensity = std::make_shared<GFE::CosseratShellDensity<
+      FieldVector<double,3>, adouble> >(
     materialParameters,
-    &surfaceShellBoundary,
-    stressFreeShellFunction,
     fThickness,
     fLame);
+
+  auto surfaceCosseratEnergy = std::make_shared<GFE::SurfaceCosseratEnergy<
+      decltype(stressFreeShellFunction), CompositeBasis, ActiveRigidBodyMotion> >(
+    cosseratShellDensity,
+    &surfaceShellBoundary,
+    stressFreeShellFunction);
 
   using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
 

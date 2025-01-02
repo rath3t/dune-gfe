@@ -40,21 +40,17 @@ namespace Dune::GFE
   public:
 
     /** \brief Constructor with a set of material parameters
-     * \param parameters The material parameters
+     * \param density The density that is being integrated over
      * \param shellBoundary The shellBoundary contains the faces where the cosserat energy is assembled
      * \param curvedGeometryGridFunction The curvedGeometryGridFunction gives the geometry of the shell in stress-free state.
               When assembling, we deform the intersections using the curvedGeometryGridFunction and then use the deformed geometries.
-     * \param thicknessF The shell thickness parameter, given as a function and evaluated at each quadrature point
-     * \param lameF The Lame parameters, given as a function and evaluated at each quadrature point
      */
-    SurfaceCosseratEnergy(const Dune::ParameterTree& parameters,
+    SurfaceCosseratEnergy(const std::shared_ptr<CosseratShellDensity<FieldVector<DT,3>,RT> >& density,
                           const BoundaryPatch<GridView>* shellBoundary,
-                          const CurvedGeometryGridFunction& curvedGeometryGridFunction,
-                          const std::function<double(Dune::FieldVector<double,dimWorld>)> thicknessF,
-                          const std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dimWorld>)> lameF)
+                          const CurvedGeometryGridFunction& curvedGeometryGridFunction)
       : shellBoundary_(shellBoundary),
       curvedGeometryGridFunction_(curvedGeometryGridFunction),
-      density_(parameters,thicknessF,lameF)
+      density_(density)
     {}
 
     /** \brief Assemble the energy for a single element */
@@ -183,11 +179,11 @@ namespace Dune::GFE
           // Add the local energy density
           //////////////////////////////////////////////////////////
 
-          const auto energyDensity = density_(quadPosGlobal,
-                                              aCovariant,
-                                              normalGradient,
-                                              value,
-                                              derivative2D);
+          const auto energyDensity = (*density_)(quadPosGlobal,
+                                                 aCovariant,
+                                                 normalGradient,
+                                                 value,
+                                                 derivative2D);
           energy += qp.weight() * integrationElement * energyDensity;
         }
       }
@@ -203,7 +199,7 @@ namespace Dune::GFE
     const CurvedGeometryGridFunction curvedGeometryGridFunction_;
 
     /** \brief The density that is being integrated */
-    const CosseratShellDensity<FieldVector<DT,3>,RT> density_;
+    const std::shared_ptr<CosseratShellDensity<FieldVector<DT,3>,RT> > density_;
 
   };
 }  // namespace Dune::GFE
