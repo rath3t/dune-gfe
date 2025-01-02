@@ -31,7 +31,7 @@ struct MPIFunctions {
 
     std::vector<int> offsets(offsetsFromSizes(sizes));
 
-    communicator.template scatterv(globalVec.data(), sizes.data(), offsets.data(), localVec.data(), mysize, root_rank);
+    communicator.scatterv(globalVec.data(), sizes.data(), offsets.data(), localVec.data(), mysize, root_rank);
   }
 
   template<typename Communicator, typename T>
@@ -45,7 +45,7 @@ struct MPIFunctions {
 
     std::vector<int> offsets(offsetsFromSizes(sizes));
 
-    communicator.template gatherv(localVec.data(), mysize, globalVec.data(), sizes.data(), offsets.data(), root_rank);
+    communicator.gatherv(localVec.data(), mysize, globalVec.data(), sizes.data(), offsets.data(), root_rank);
 
 
     return globalVec;
@@ -59,7 +59,7 @@ struct MPIFunctions {
 
     std::vector<int> offsets(offsetsFromSizes(sizes));
 
-    communicator.template allgatherv(localVec.data(), mysize, globalVec.data(), sizes.data(), offsets.data());
+    communicator.allgatherv(localVec.data(), mysize, globalVec.data(), sizes.data(), offsets.data());
 
 
     return globalVec;
