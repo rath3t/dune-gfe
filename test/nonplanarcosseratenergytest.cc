@@ -116,8 +116,8 @@ double calculateEnergy(const FlatGridView& flatGridView,
   //  Construct the energy functional
   ///////////////////////////////////////////////////
 
-  using GlobalCoordinate = typename FlatGridView::template Codim<0>::Entity::Geometry::GlobalCoordinate;
-  auto density = std::make_shared<GFE::CosseratShellDensity<GlobalCoordinate, double> >(materialParameters);
+  using Element = typename FlatGridView::template Codim<0>::Entity;
+  auto density = std::make_shared<GFE::CosseratShellDensity<Element, double> >(materialParameters);
 
   using ShellEnergy = NonplanarCosseratShellEnergy<FlatFEBasis,
       3,                                               // Dimension of the target space

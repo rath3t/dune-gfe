@@ -79,13 +79,11 @@ class NonplanarCosseratShellEnergy
   typedef typename GridView::ctype DT;
   typedef Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > TargetSpace;
   typedef typename TargetSpace::ctype RT;
-  typedef typename GridView::template Codim<0>::Entity Entity;
+  typedef typename GridView::template Codim<0>::Entity Element;
 
   // some other sizes
   constexpr static int gridDim = GridView::dimension;
   constexpr static int dimworld = GridView::dimensionworld;
-
-  using Position = typename GridView::template Codim<0>::Entity::Geometry::GlobalCoordinate;
 
 public:
 
@@ -93,7 +91,7 @@ public:
    * \param parameters                  The material parameters
    * \param stressFreeStateGridFunction Pointer to a parametrization representing the Cosserat shell in a stress-free state
    */
-  NonplanarCosseratShellEnergy(const std::shared_ptr<Dune::GFE::CosseratShellDensity<Position,field_type> >& density,
+  NonplanarCosseratShellEnergy(const std::shared_ptr<Dune::GFE::CosseratShellDensity<Element,field_type> >& density,
                                const StressFreeStateGridFunction* stressFreeStateGridFunction)
     : stressFreeStateGridFunction_(stressFreeStateGridFunction),
     density_(density)
@@ -123,7 +121,7 @@ public:
   const StressFreeStateGridFunction* stressFreeStateGridFunction_;
 
   /** \brief The energy density of a Cosserat shell with nonplanar reference configuration */
-  const std::shared_ptr<Dune::GFE::CosseratShellDensity<Position,field_type> > density_;
+  const std::shared_ptr<Dune::GFE::CosseratShellDensity<Element,field_type> > density_;
 };
 
 template <class Basis, int dim, class field_type, class StressFreeStateGridFunction>

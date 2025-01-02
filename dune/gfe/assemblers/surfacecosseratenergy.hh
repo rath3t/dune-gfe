@@ -37,6 +37,8 @@ namespace Dune::GFE
     constexpr static int gridDim = GridView::dimension;
     static constexpr int boundaryDim = gridDim - 1;
 
+    using Intersection = typename GridView::Intersection;
+
   public:
 
     /** \brief Constructor with a set of material parameters
@@ -45,7 +47,7 @@ namespace Dune::GFE
      * \param curvedGeometryGridFunction The curvedGeometryGridFunction gives the geometry of the shell in stress-free state.
               When assembling, we deform the intersections using the curvedGeometryGridFunction and then use the deformed geometries.
      */
-    SurfaceCosseratEnergy(const std::shared_ptr<CosseratShellDensity<FieldVector<DT,3>,RT> >& density,
+    SurfaceCosseratEnergy(const std::shared_ptr<CosseratShellDensity<Intersection,RT> >& density,
                           const BoundaryPatch<GridView>* shellBoundary,
                           const CurvedGeometryGridFunction& curvedGeometryGridFunction)
       : shellBoundary_(shellBoundary),
@@ -199,7 +201,7 @@ namespace Dune::GFE
     const CurvedGeometryGridFunction curvedGeometryGridFunction_;
 
     /** \brief The density that is being integrated */
-    const std::shared_ptr<CosseratShellDensity<FieldVector<DT,3>,RT> > density_;
+    const std::shared_ptr<CosseratShellDensity<Intersection,RT> > density_;
 
   };
 }  // namespace Dune::GFE

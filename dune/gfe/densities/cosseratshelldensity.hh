@@ -24,16 +24,21 @@ namespace Dune::GFE
    *
    * (and earlier papers by Neff and Bîrsan).
    *
-   * \tparam Position Type for the points where the density will be evaluated
+   * \tparam ElementOrIntersection The domain of the density.
+   *   Can be either a grid element (i.e., a codimension-0 Entity)
+   *   or an Intersection.
    * \tparam field_type Type used for numbers
    */
-  template<class Position, class field_type>
+  template<class ElementOrIntersection, class field_type>
   class CosseratShellDensity
   {
     constexpr static int dimWorld = 3;
     constexpr static int domainDim = 2;
 
+    using Geometry = typename ElementOrIntersection::Geometry;
+
     // TODO: This is likely not a good long-term solution
+    using Position = Geometry::GlobalCoordinate;
     static_assert(Position::size()==dimWorld, "Position must be in world-coordinates.");
 
     using RigidBodyMotion = ProductManifold<RealTuple<field_type,dimWorld>, Rotation<field_type,dimWorld> >;

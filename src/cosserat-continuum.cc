@@ -132,8 +132,8 @@ auto createCosseratEnergy(const ParameterTree& materialParameters,
   }
   else if constexpr (LocalCoordinate::size()==2 && dimworld==3)
   {
-    using GlobalCoordinate = typename GridView::template Codim<0>::Entity::Geometry::GlobalCoordinate;
-    auto density = std::make_shared<GFE::CosseratShellDensity<GlobalCoordinate, adouble> >(materialParameters);
+    using Element = typename GridView::template Codim<0>::Entity;
+    auto density = std::make_shared<GFE::CosseratShellDensity<Element, adouble> >(materialParameters);
 
     return std::make_shared<NonplanarCosseratShellEnergy<Basis, 3, adouble, decltype(creator)> >(density, &creator);
   }

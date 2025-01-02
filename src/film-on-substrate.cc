@@ -531,8 +531,8 @@ int main (int argc, char *argv[]) try
     auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,neumannFunctionPtr);
 
     // The energy of the surface shell
-    auto cosseratShellDensity = std::make_shared<GFE::CosseratShellDensity<
-        FieldVector<double,3>, adouble> >(
+    using Intersection = typename GridView::Intersection;
+    auto cosseratShellDensity = std::make_shared<GFE::CosseratShellDensity<Intersection, adouble> >(
       materialParameters,
       fThickness,
       fLame);
