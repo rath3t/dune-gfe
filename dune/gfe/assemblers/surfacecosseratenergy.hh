@@ -94,6 +94,9 @@ namespace Dune::GFE
         if (not shellBoundary_->contains(it))
           continue;
 
+        // Bind the density to the current intersection
+        density_->bind(it);
+
 #if HAVE_DUNE_CURVEDGEOMETRY
         auto localGridFunction = localFunction(curvedGeometryGridFunction_);
         auto curvedGeometryGridFunctionOrder = deformationLocalFiniteElement.localBasis().order();
@@ -122,9 +125,6 @@ namespace Dune::GFE
         {
           // Local position of the quadrature point
           const auto& quadPos = it.geometryInInside().global(qp.position());
-
-          // Global position of the quadrature point
-          auto quadPosGlobal = it.geometry().global(qp.position());
 
           const DT integrationElement = boundaryGeometry.integrationElement(qp.position());
 
@@ -181,7 +181,7 @@ namespace Dune::GFE
           // Add the local energy density
           //////////////////////////////////////////////////////////
 
-          const auto energyDensity = (*density_)(quadPosGlobal,
+          const auto energyDensity = (*density_)(qp.position(),
                                                  aCovariant,
                                                  normalGradient,
                                                  value,

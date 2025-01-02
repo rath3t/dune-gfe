@@ -36,10 +36,7 @@ namespace Dune::GFE
     constexpr static int domainDim = 2;
 
     using Geometry = typename ElementOrIntersection::Geometry;
-
-    // TODO: This is likely not a good long-term solution
-    using Position = Geometry::GlobalCoordinate;
-    static_assert(Position::size()==dimWorld, "Position must be in world-coordinates.");
+    using Position = typename Geometry::LocalCoordinate;
 
     using RigidBodyMotion = ProductManifold<RealTuple<field_type,dimWorld>, Rotation<field_type,dimWorld> >;
     using Derivative = FieldMatrix<field_type,RigidBodyMotion::embeddedDim,domainDim>;
@@ -190,6 +187,15 @@ namespace Dune::GFE
       useAlternativeEnergyWCoss_ = parameters.template get<bool>("useAlternativeEnergyWCoss", false);
     }
 
+    /** \brief Bind the density to a `ElementOrIntersection` object
+     *
+     * Stores a copy of the `ElementOrIntersection`'s geometry.
+     **/
+    void bind(const ElementOrIntersection& elementOrIntersection)
+    {
+      geometry_.emplace(elementOrIntersection.geometry());
+    }
+
     /** \brief Evaluation with the current position, the deformation function, the deformation gradient, the rotation and the rotation gradient
      *
      * \param x The current position
@@ -204,8 +210,9 @@ namespace Dune::GFE
                            const RigidBodyMotion& value,
                            const Derivative& derivative) const
     {
-      double thickness = thicknessF_(x);
-      auto lameConstants = lameF_(x);
+      auto xGlobal = geometry_->global(x);
+      double thickness = thicknessF_(xGlobal);
+      auto lameConstants = lameF_(xGlobal);
       auto mu = lameConstants[0];
       auto lambda = lameConstants[1];
       // TODO: Use structured binding here
@@ -345,6 +352,9 @@ namespace Dune::GFE
     /** \brief Whether to use the alternative energy W_Coss from Birsan 2021:
                "Alternative derivation of the higher-order constitutive model for six-parameter elastic shells", equations (119) and (126). */
     bool useAlternativeEnergyWCoss_;
+
+    /** \brief The geometry that this density is defined on */
+    std::optional<Geometry> geometry_ = std::nullopt;
   };
 
 }  // namespace Dune::GFE

@@ -160,6 +160,9 @@ energy(const typename Basis::LocalView& localView,
   typedef LocalGeodesicFEFunction<gridDim, DT, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
   LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
+  // Bind the density to the current element
+  density_->bind(element);
+
   RT energy = 0;
 
   auto quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
@@ -171,9 +174,6 @@ energy(const typename Basis::LocalView& localView,
   {
     // Local position of the quadrature point
     const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
-
-    // Global position of the quadrature point
-    auto quadPosGlobal = element.geometry().global(quadPos);
 
     const DT integrationElement = geometry.integrationElement(quadPos);
 
@@ -216,7 +216,7 @@ energy(const typename Basis::LocalView& localView,
     // Add the local energy density
     //////////////////////////////////////////////////////////
 
-    const auto energyDensity = (*density_)(quadPosGlobal,
+    const auto energyDensity = (*density_)(quadPos,
                                            aCovariant,
                                            normalGradient,
                                            value,
@@ -267,6 +267,9 @@ energy(const typename Basis::LocalView& localView,
   LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localConfiguration[_0]);
   LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localConfiguration[_1]);
 
+  // Bind the density to the current element
+  density_->bind(element);
+
   RT energy = 0;
 
   auto quadOrder = (deformationLocalFiniteElement.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
@@ -278,9 +281,6 @@ energy(const typename Basis::LocalView& localView,
   {
     // Local position of the quadrature point
     const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
-
-    // Global position of the quadrature point
-    auto quadPosGlobal = element.geometry().global(quadPos);
 
     const DT integrationElement = geometry.integrationElement(quadPos);
 
@@ -335,7 +335,7 @@ energy(const typename Basis::LocalView& localView,
     // Add the local energy density
     //////////////////////////////////////////////////////////
 
-    const auto energyDensity = (*density_)(quadPosGlobal,
+    const auto energyDensity = (*density_)(quadPos,
                                            aCovariant,
                                            normalGradient,
                                            value,
