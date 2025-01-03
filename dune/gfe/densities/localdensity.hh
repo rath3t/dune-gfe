@@ -216,7 +216,8 @@ namespace Dune::GFE {
      * for one factor space only.
      *
      * \param factor The factor space that is being asked about.
-     *   The default value -1 means: Does any of the factors depend on the value?
+     *   The default value -1 means: Does the density depend on the value
+     *   of any of the factors?
      */
     virtual bool dependsOnValue(int factor=-1) const = 0;
 
@@ -226,7 +227,8 @@ namespace Dune::GFE {
      * for one factor space only.
      *
      * \param factor The factor space that is being asked about
-     *   The default value -1 means: Does any of the factors depend on the derivative?
+     *   The default value -1 means: Does the density depend on the derivative
+     *   of any of the factors?
      */
     virtual bool dependsOnDerivative(int factor=-1) const = 0;
   };

@@ -339,7 +339,7 @@ namespace Dune::GFE
     /** \brief The Lamé-parameters as a function*/
     std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dimWorld>)> lameF_;
 
-    /** \brief Cosserat couple modulus, preferably 0 */
+    /** \brief Cosserat couple modulus */
     double mu_c_;
 
     /** \brief Length scale parameter */
