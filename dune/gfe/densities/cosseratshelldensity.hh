@@ -327,9 +327,6 @@ namespace Dune::GFE
     /** \brief The Lamé-parameters as a function*/
     std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dimWorld>)> lameF_;
 
-    /** \brief Lame constants */
-    double mu_, lambda_;
-
     /** \brief Cosserat couple modulus, preferably 0 */
     double mu_c_;
 
