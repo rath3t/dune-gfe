@@ -1,10 +1,20 @@
 #ifndef DUNE_GFE_DENSITIES_COSSERATSHELLDENSITY_HH
 #define DUNE_GFE_DENSITIES_COSSERATSHELLDENSITY_HH
 
+#include <adolc/adouble.h>
+
 #include <dune/common/fmatrix.hh>
 #include <dune/common/parametertree.hh>
 
+#if HAVE_DUNE_CURVEDGRID
+#include <dune/curvedgrid/curvedgrid.hh>
+#endif
+
+#include <dune/matrix-vector/crossproduct.hh>
+
+#include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/tensor3.hh>
+#include <dune/gfe/densities/localdensity.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
@@ -30,16 +40,55 @@ namespace Dune::GFE
    * \tparam field_type Type used for numbers
    */
   template<class ElementOrIntersection, class field_type>
-  class CosseratShellDensity
+  class CosseratShellDensity final
+    : public LocalDensity<typename ElementOrIntersection::Geometry::LocalCoordinate,
+          ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> > >
   {
     constexpr static int dimWorld = 3;
     constexpr static int domainDim = 2;
 
     using Geometry = typename ElementOrIntersection::Geometry;
+    using ctype = typename Geometry::ctype;
     using Position = typename Geometry::LocalCoordinate;
 
     using RigidBodyMotion = ProductManifold<RealTuple<field_type,dimWorld>, Rotation<field_type,dimWorld> >;
+    // The target space with 'adouble' as the number type
+    using ARigidBodyMotion = ProductManifold<RealTuple<adouble,3>,Rotation<adouble,3> >;
+
+    // The type used for derivatives of geometric FE functions
     using Derivative = FieldMatrix<field_type,RigidBodyMotion::embeddedDim,domainDim>;
+
+#if HAVE_DUNE_CURVEDGEOMETRY
+    /** \brief Get the derivative of the element normal vector
+     *
+     * Currently only CurvedGrid provides this information, and therefore
+     * we have this specialization.
+     *
+     * The first argument is a geometry implementation rather than
+     * the geometry itself because it makes the template specialization simpler.
+     */
+    template <class LF, class LG, bool useInterpolation>
+    static auto normalGradient(const Dune::Curved::Geometry<ctype,domainDim,dimWorld,LF,LG,useInterpolation>& geometryImpl,
+                               const typename Geometry::LocalCoordinate& pos)
+    {
+      return geometryImpl.normalGradient(pos);
+    }
+#endif
+
+    /** \brief Derivative of the element normal if the geometry is not Dune::Curved::Geometry
+     *
+     * In this case, the element is assumed to be affine, and the derivative
+     * of the normal vector is simply the zero matrix.
+     *
+     * \todo This may lead to wrong results, for example when using
+     * bilinear quadrilateral elements in a 3d world.
+     */
+    template <typename GeometryImpl>
+    static auto normalGradient(const GeometryImpl& geometryImpl,
+                               const typename Geometry::LocalCoordinate& pos)
+    {
+      return Dune::FieldMatrix<ctype,3,3>(0);
+    }
 
     /** \brief Compute the derivative of the rotation (with respect to x), but wrt matrix coordinates
         \param value Value of the gfe function at a certain point
@@ -187,6 +236,22 @@ namespace Dune::GFE
       useAlternativeEnergyWCoss_ = parameters.template get<bool>("useAlternativeEnergyWCoss", false);
     }
 
+    /** \brief Constructor with space-dependent thickness and Lamé parameters
+     * \param thickness The shell thickness parameter, as a function of 3d space
+     * \param lame The Lamé parameters, as a function of 3d space
+     */
+    CosseratShellDensity(double mu_c,
+                         double L_c,
+                         double b1, double b2, double b3,
+                         bool useAlternativeEnergyWCoss,
+                         const std::function<double(Dune::FieldVector<double,dimWorld>)> thickness,
+                         const std::function<Dune::FieldVector<double,2>(Dune::FieldVector<double,dimWorld>)> lame)
+      : thicknessF_(thickness),
+      lameF_(lame),
+      mu_c_(mu_c), L_c_(L_c), b1_(b1), b2_(b2), b3_(b3),
+      useAlternativeEnergyWCoss_(useAlternativeEnergyWCoss)
+    {}
+
     /** \brief Bind the density to a `ElementOrIntersection` object
      *
      * Stores a copy of the `ElementOrIntersection`'s geometry.
@@ -194,6 +259,56 @@ namespace Dune::GFE
     void bind(const ElementOrIntersection& elementOrIntersection)
     {
       geometry_.emplace(elementOrIntersection.geometry());
+    }
+
+    /** \brief Evaluate the density for a given value and first derivative
+     *
+     * \param x The current position
+     * \param value The value of the integrand at x
+     * \param derivative The derivative of the integrand at x
+     */
+    field_type operator() (const Position& x,
+                           const typename RigidBodyMotion::CoordinateType& value,
+                           const Derivative& derivative) const override
+    {
+      // TODO: Using this method via LocalIntegralEnergy will not produce
+      // correct results: LocalIntegralEnergy transforms the 'derivative'
+      // argument from the reference element to the grid element, while
+      // this density expects the derivatives from the reference element.
+      // At least that's how I think it is.  Until I have found the time to check,
+      // let's abort here.
+      DUNE_THROW(NotImplemented, "Check whether this method produces the correct results!");
+
+      ////////////////////////////////
+      //  First fundamental form
+      ////////////////////////////////
+
+      FieldMatrix<ctype,3,3> aCovariant;
+
+      // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
+      // of the element.  If dimworld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
+      const auto jacobianTransposed = geometry_->jacobianTransposed(x);
+
+      for (int i=0; i<2; i++)
+      {
+        for (int j=0; j<dimWorld; j++)
+          aCovariant[i][j] = jacobianTransposed[i][j];
+        for (int j=dimWorld; j<3; j++)
+          aCovariant[i][j] = 0.0;
+      }
+
+      aCovariant[2] = MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
+      aCovariant[2] /= aCovariant[2].two_norm();
+
+      //////////////////////////////////////////////////////////
+      // Add the local energy density
+      //////////////////////////////////////////////////////////
+
+      return operator()(x,
+                        aCovariant,
+                        normalGradient(geometry_->impl(), x),
+                        RigidBodyMotion(value),
+                        derivative);
     }
 
     /** \brief Evaluation with the current position, the deformation function, the deformation gradient, the rotation and the rotation gradient
@@ -330,6 +445,38 @@ namespace Dune::GFE
                  + Dune::power(thickness,5) / 80.0 * W_curv(Ke*b*b, mu);
 
       return density;
+    }
+
+    // Construct a copy of this density but using 'adouble' as the number type
+    virtual std::unique_ptr<LocalDensity<Position,ARigidBodyMotion> > makeActiveDensity() const override
+    {
+      // TODO: Return a density that is bound to the same object as we are
+      return std::make_unique<CosseratShellDensity<ElementOrIntersection,adouble> >(mu_c_,
+                                                                                    L_c_,
+                                                                                    b1_, b2_, b3_,
+                                                                                    useAlternativeEnergyWCoss_,
+                                                                                    thicknessF_,
+                                                                                    lameF_);
+    }
+
+    /** \brief Whether the density depends on the 'value' argument
+     *
+     * \return The Cosserat shell density depends on the microrotation value,
+     * but not on the deformation (only on the deformation gradient).
+     */
+    virtual bool dependsOnValue(int factor=-1) const override
+    {
+      return factor != 0;
+    }
+
+    /** \brief Whether the density depends on the 'derivative' argument
+     *
+     * \return Always `true` because the Cosserat shell density depends
+     * on the derivatives of both factors: The deformation and the microrotation.
+     */
+    virtual bool dependsOnDerivative([[maybe_unused]] int factor=-1) const override
+    {
+      return true;
     }
 
   private:
