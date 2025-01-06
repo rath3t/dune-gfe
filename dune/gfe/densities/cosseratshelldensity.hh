@@ -41,7 +41,7 @@ namespace Dune::GFE
    */
   template<class ElementOrIntersection, class field_type>
   class CosseratShellDensity final
-    : public LocalDensity<typename ElementOrIntersection::Geometry::LocalCoordinate,
+    : public LocalDensity<ElementOrIntersection,
           ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> > >
   {
     constexpr static int dimWorld = 3;
@@ -49,7 +49,7 @@ namespace Dune::GFE
 
     using Geometry = typename ElementOrIntersection::Geometry;
     using ctype = typename Geometry::ctype;
-    using Position = typename Geometry::LocalCoordinate;
+    using LocalCoordinate = typename Geometry::LocalCoordinate;
 
     using RigidBodyMotion = ProductManifold<RealTuple<field_type,dimWorld>, Rotation<field_type,dimWorld> >;
     // The target space with 'adouble' as the number type
@@ -267,7 +267,7 @@ namespace Dune::GFE
      * \param value The value of the integrand at x
      * \param derivative The derivative of the integrand at x
      */
-    field_type operator() (const Position& x,
+    field_type operator() (const LocalCoordinate& x,
                            const typename RigidBodyMotion::CoordinateType& value,
                            const Derivative& derivative) const override
     {
@@ -318,7 +318,7 @@ namespace Dune::GFE
      * \param value The deformation at the current position
      * \param derivative The derivative of the deformation at the current position
      */
-    field_type operator() (const Position& x,
+    field_type operator() (const LocalCoordinate& x,
                            const FieldMatrix<double,dimWorld,dimWorld>& aCovariant,
                            // TODO: Fix the following type
                            const FieldMatrix<double,dimWorld,dimWorld>& normalGradient,
@@ -448,7 +448,7 @@ namespace Dune::GFE
     }
 
     // Construct a copy of this density but using 'adouble' as the number type
-    virtual std::unique_ptr<LocalDensity<Position,ARigidBodyMotion> > makeActiveDensity() const override
+    virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ARigidBodyMotion> > makeActiveDensity() const override
     {
       // TODO: Return a density that is bound to the same object as we are
       return std::make_unique<CosseratShellDensity<ElementOrIntersection,adouble> >(mu_c_,

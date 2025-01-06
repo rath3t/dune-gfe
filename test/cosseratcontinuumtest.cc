@@ -210,7 +210,8 @@ int main (int argc, char *argv[])
 
   using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 
-  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<FieldVector<double,dim>,adouble> >(parameters);
+  using Element = GridView::Codim<0>::Entity;
+  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<Element,adouble> >(parameters);
   auto bulkCosseratEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ARigidBodyMotion> >(bulkCosseratDensity);
   sumEnergy->addLocalEnergy(bulkCosseratEnergy);
   sumEnergy->addLocalEnergy(neumannEnergy);

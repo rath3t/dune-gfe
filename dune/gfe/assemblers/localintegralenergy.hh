@@ -52,6 +52,7 @@ namespace Dune::GFE {
   {
     using LocalView = typename Basis::LocalView;
     using GridView = typename LocalView::GridView;
+    using Element = typename GridView::template Codim<0>::Entity;
     using DT = typename GridView::Grid::ctype;
     using RT = typename GFE::LocalEnergy<Basis,TargetSpace>::RT;
 
@@ -61,7 +62,7 @@ namespace Dune::GFE {
 
     /** \brief Constructor with a Dune::GFE::LocalDensity
      */
-    LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> >& ld)
+    LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
       : localDensity_(ld)
     {}
 
@@ -238,7 +239,7 @@ namespace Dune::GFE {
     }
 
   protected:
-    const std::shared_ptr<GFE::LocalDensity<FieldVector<DT,gridDim>,TargetSpace> > localDensity_;
+    const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> > localDensity_;
   };
 
 }  // namespace Dune::GFE

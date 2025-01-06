@@ -16,13 +16,14 @@ namespace Dune::GFE
    * The energy is discussed in:
    * - Christof Melcher, "Chiral skyrmions in the plane", Proc. of the Royal Society, online DOI DOI: 10.1098/rspa.2014.0394
    */
-  template<class Position, class field_type>
+  template<class ElementOrIntersection, class field_type>
   class ChiralSkyrmionDensity
-    : public GFE::LocalDensity<Position,UnitVector<field_type,3> >
+    : public GFE::LocalDensity<ElementOrIntersection,UnitVector<field_type,3> >
   {
     // various useful types
+    using LocalCoordinate = typename ElementOrIntersection::Geometry::LocalCoordinate;
     using TargetSpace = UnitVector<field_type,3>;
-    using Derivative = FieldMatrix<field_type, TargetSpace::embeddedDim, Position::size()>;
+    using Derivative = FieldMatrix<field_type, TargetSpace::embeddedDim, LocalCoordinate::size()>;
 
     using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
 
@@ -47,7 +48,7 @@ namespace Dune::GFE
      * \param value The deformation at the current position
      * \param derivative The derivative of the deformation at the current position
      */
-    virtual field_type operator() (const Position& x,
+    virtual field_type operator() (const LocalCoordinate& x,
                                    const typename TargetSpace::CoordinateType& value,
                                    const Derivative& derivative) const override
     {
@@ -77,9 +78,9 @@ namespace Dune::GFE
     }
 
     // Construct a copy of this density but using 'adouble' as the number type
-    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const
     {
-      return std::make_unique<ChiralSkyrmionDensity<Position,adouble> >(h_, kappa_);
+      return std::make_unique<ChiralSkyrmionDensity<ElementOrIntersection,adouble> >(h_, kappa_);
     }
 
     /** \brief The density depends on the value */

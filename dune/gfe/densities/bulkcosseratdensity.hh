@@ -12,14 +12,16 @@
 
 namespace Dune::GFE {
 
-  template<class Position, class field_type>
+  template<class Element, class field_type>
   class BulkCosseratDensity final
-    : public GFE::LocalDensity<Position, GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
+    : public GFE::LocalDensity<Element, GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
   {
   private:
+    using LocalCoordinate = typename Element::Geometry::LocalCoordinate;
+
     // BulkCosseratDensity only works for 3d->3d problems
-    static_assert(Position::size()==3);
-    static const int gridDim = Position::size();
+    static_assert(LocalCoordinate::size()==3);
+    static const int gridDim = LocalCoordinate::size();
     static const int embeddedDim = Rotation<field_type,gridDim>::embeddedDim;
 
     // The target space with 'adouble' as the number type
@@ -146,7 +148,7 @@ namespace Dune::GFE {
 
     /** \brief Evaluate the density
      */
-    virtual field_type operator() (const Position& x,
+    virtual field_type operator() (const LocalCoordinate& x,
                                    const typename GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >::CoordinateType& value,
                                    const FieldMatrix<field_type,7,gridDim>& derivative) const override
     {
@@ -228,13 +230,13 @@ namespace Dune::GFE {
     }
 
     // Construct a copy of this density but using 'adouble' as the number type
-    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    virtual std::unique_ptr<LocalDensity<Element,ATargetSpace> > makeActiveDensity() const
     {
       // curvatureType_ is a local enum type, and therefore its type changes
       // together with the type of the surrounding class.
-      auto activeCurvatureType = static_cast<typename BulkCosseratDensity<Position,adouble>::CurvatureType>(curvatureType_);
+      auto activeCurvatureType = static_cast<typename BulkCosseratDensity<Element,adouble>::CurvatureType>(curvatureType_);
 
-      return std::make_unique<BulkCosseratDensity<Position,adouble> >(mu_, lambda_, mu_c_, L_c_, activeCurvatureType, q_, std::array<double,3>{b1_, b2_, b3_});
+      return std::make_unique<BulkCosseratDensity<Element,adouble> >(mu_, lambda_, mu_c_, L_c_, activeCurvatureType, q_, std::array<double,3>{b1_, b2_, b3_});
     }
 
     /** \brief The density depends on the microrotation value, but not on the deformation

@@ -273,16 +273,16 @@ int main (int argc, char *argv[])
   // First, the energy density
   std::string energy = parameterSet.get<std::string>("energy");
 
-  using LocalCoordinate = GridType::Codim<0>::Entity::Geometry::LocalCoordinate;
-  std::shared_ptr<GFE::LocalDensity<LocalCoordinate,ATargetSpace> > density;
+  using Element = GridType::Codim<0>::Entity;
+  std::shared_ptr<GFE::LocalDensity<Element,ATargetSpace> > density;
 
   if (energy == "harmonic")
   {
-    density = std::make_shared<GFE::HarmonicDensity<LocalCoordinate, ATargetSpace> >();
+    density = std::make_shared<GFE::HarmonicDensity<Element, ATargetSpace> >();
   }
   else if (energy == "chiral_skyrmion")
   {
-    density = std::make_shared<GFE::ChiralSkyrmionDensity<LocalCoordinate, adouble> >(parameterSet.sub("energyParameters"));
+    density = std::make_shared<GFE::ChiralSkyrmionDensity<Element, adouble> >(parameterSet.sub("energyParameters"));
   } else
     DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");
 

@@ -189,7 +189,7 @@ int main (int argc, char *argv[]) try
   // Select geometric finite element interpolation method
   using AInterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
-  auto activeDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, adouble> >(materialParameters);
+  auto activeDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(materialParameters);
 
   auto activeCosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,AInterpolationRule,ATargetSpace> >(activeDensity);
 
@@ -204,7 +204,7 @@ int main (int argc, char *argv[]) try
   // Select geometric finite element interpolation method
   using InterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 
-  auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, double> >(materialParameters);
+  auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, double> >(materialParameters);
 
   auto cosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,InterpolationRule,TargetSpace> >(cosseratDensity);
 

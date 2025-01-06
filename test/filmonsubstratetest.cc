@@ -345,7 +345,8 @@ int main (int argc, char *argv[])
   std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;
   elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType> >(materialParameters);
 
-  auto elasticDensityWrapped = std::make_shared<GFE::DuneElasticityDensity<FieldVector<double,dim>,ActiveRigidBodyMotion,0> >(elasticDensity);
+  using Element = GridView::Codim<0>::Entity;
+  auto elasticDensityWrapped = std::make_shared<GFE::DuneElasticityDensity<Element,ActiveRigidBodyMotion,0> >(elasticDensity);
 
   // Select which type of geometric interpolation to use
   using LocalDeformationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<adouble,dim> >;

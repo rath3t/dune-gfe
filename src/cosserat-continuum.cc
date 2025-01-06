@@ -122,15 +122,15 @@ auto createCosseratEnergy(const ParameterTree& materialParameters,
   constexpr auto dim = GridView::dimension;
   constexpr auto dimworld = GridView::dimensionworld;
 
-  using LocalCoordinate = typename GridView::template Codim<0>::Entity::Geometry::LocalCoordinate;
+  using Element = typename GridView::template Codim<0>::Entity;
 
   if constexpr (dim==2 && dimworld==2)
   {
-    auto density = std::make_shared<GFE::PlanarCosseratShellDensity<LocalCoordinate, adouble> >(materialParameters);
+    auto density = std::make_shared<GFE::PlanarCosseratShellDensity<Element, adouble> >(materialParameters);
 
     return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(density);
   }
-  else if constexpr (LocalCoordinate::size()==2 && dimworld==3)
+  else if constexpr (dim==2 && dimworld==3)
   {
     using Element = typename GridView::template Codim<0>::Entity;
     auto density = std::make_shared<GFE::CosseratShellDensity<Element, adouble> >(materialParameters);
@@ -139,7 +139,7 @@ auto createCosseratEnergy(const ParameterTree& materialParameters,
   }
   else
   {
-    auto density = std::make_shared<GFE::BulkCosseratDensity<LocalCoordinate, adouble> >(materialParameters);
+    auto density = std::make_shared<GFE::BulkCosseratDensity<Element, adouble> >(materialParameters);
 
     return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(density);
   }
@@ -581,8 +581,6 @@ int main (int argc, char *argv[]) try
 
     using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
 
-    using LocalCoordinate = typename GridType::Codim<0>::Entity::Geometry::LocalCoordinate;
-
     // The energy on one element
     auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,3>,Rotation<adouble,3> > >();
 
@@ -597,12 +595,8 @@ int main (int argc, char *argv[]) try
     sumEnergy->addLocalEnergy(neumannEnergy);
 
     // The volume load term
-    // TODO: There is a bug here: The volumeLoad function is currently defined in global coordinates,
-    // but the density expects it to be in local coordinates with respect to the element being
-    // integrated over.  I have to think about where the binding should happen.
-    // Practically, the bug does not really show, because all our volume loads
-    // are constant in space anyway.
-    auto volumeLoadDensity = std::make_shared<GFE::CosseratVolumeLoadDensity<LocalCoordinate,adouble> >(volumeLoad);
+    using Element = GridView::Codim<0>::Entity;
+    auto volumeLoadDensity = std::make_shared<GFE::CosseratVolumeLoadDensity<Element,adouble> >(volumeLoad);
     auto volumeLoadEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, AInterpolationRule, ATargetSpace> >(volumeLoadDensity);
     sumEnergy->addLocalEnergy(volumeLoadEnergy);
 

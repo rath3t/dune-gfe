@@ -210,7 +210,7 @@ int main (int argc, char *argv[]) try
   std::vector<std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > > addends(2);
   using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
-  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, ATargetSpace> >();
+  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity, ATargetSpace> >();
   addends[0] = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace> >(harmonicDensity);
   addends[1] = l2DistanceSquaredEnergy;
 

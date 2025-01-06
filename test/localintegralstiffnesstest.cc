@@ -100,9 +100,9 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
   std::shared_ptr<GeodesicFEAssembler<FEBasis,TargetSpace> > assemblerADOLC;
   std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,TargetSpace> > localIntegralStiffness;
 
-  using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
-  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<LocalCoordinate,TargetSpace> >();
-  auto harmonicDensityA = std::make_shared<GFE::HarmonicDensity<LocalCoordinate,ATargetSpace> >();
+  using Element = typename GridView::template Codim<0>::Entity;
+  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<Element,TargetSpace> >();
+  auto harmonicDensityA = std::make_shared<GFE::HarmonicDensity<Element,ATargetSpace> >();
 
   if constexpr (interpolationType==Geodesic)
   {
@@ -298,10 +298,10 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   using RigidBodyMotion  = GFE::ProductManifold<RealTuple<double,dim>, Rotation<double,dim> >;
   using ARigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
 
-  using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
+  using Element = typename GridView::template Codim<0>::Entity;
 
-  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<LocalCoordinate,double> >(parameters);
-  auto aBulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<LocalCoordinate,adouble> >(parameters);
+  auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<Element,double> >(parameters);
+  auto aBulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<Element,adouble> >(parameters);
 
   // Select which type of geometric interpolation to use
   using DeformationFEBasis = Functions::LagrangeBasis<GridView,deformationOrder>;

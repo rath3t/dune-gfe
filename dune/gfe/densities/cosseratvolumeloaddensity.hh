@@ -10,11 +10,13 @@
 
 namespace Dune::GFE
 {
-  template<class Position, class field_type>
+  template<class ElementOrIntersection, class field_type>
   class CosseratVolumeLoadDensity final
-    : public GFE::LocalDensity<Position, GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
+    : public GFE::LocalDensity<ElementOrIntersection, GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
   {
-    static constexpr int gridDim = Position::size();
+    using LocalCoordinate = typename ElementOrIntersection::Geometry::LocalCoordinate;
+
+    static constexpr int gridDim = LocalCoordinate::size();
 
     // The target space with 'adouble' as the number type
     using ATargetSpace = GFE::ProductManifold<RealTuple<adouble,3>,Rotation<adouble,3> >;
@@ -32,7 +34,7 @@ namespace Dune::GFE
 
     /** \brief Evaluate the density
      */
-    virtual field_type operator() (const Position& x,
+    virtual field_type operator() (const LocalCoordinate& x,
                                    const typename GFE::ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >::CoordinateType& value,
                                    const FieldMatrix<field_type,7,gridDim>& derivative) const override
     {
@@ -49,9 +51,9 @@ namespace Dune::GFE
     }
 
     // Construct a copy of this density but using 'adouble' as the number type
-    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const
     {
-      return std::make_unique<CosseratVolumeLoadDensity<Position,adouble> >(volumeLoad_);
+      return std::make_unique<CosseratVolumeLoadDensity<ElementOrIntersection,adouble> >(volumeLoad_);
     }
 
     /** \brief The density depends on the deformation value, but not on the microrotation value

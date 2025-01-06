@@ -159,7 +159,7 @@ int main (int argc, char *argv[])
 #endif
 #endif
 
-  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, TargetSpace> >();
+  auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity, TargetSpace> >();
 
   GFE::LocalIntegralStiffness<FEBasis,InterpolationRule,TargetSpace> localGFEADOLCStiffness(harmonicDensity);
 

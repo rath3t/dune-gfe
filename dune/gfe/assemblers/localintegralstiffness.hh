@@ -32,6 +32,7 @@ namespace Dune::GFE
   class LocalIntegralStiffness
     : public LocalGeodesicFEStiffness<Basis,TargetSpace>
   {
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
   public:
     constexpr static int gridDim = Basis::GridView::dimension;
 
@@ -54,7 +55,7 @@ namespace Dune::GFE
 
     using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
 
-    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> >& ld)
+    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
       : localDensity_(ld)
     {}
 
@@ -360,7 +361,7 @@ namespace Dune::GFE
     }
 
     // The density that is being integrated over
-    const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> > localDensity_ = nullptr;
+    const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> > localDensity_ = nullptr;
   };
 
 
@@ -372,6 +373,7 @@ namespace Dune::GFE
   class LocalIntegralStiffness<Basis,LocalInterpolationRule,ProductManifold<FactorSpaces...> >
     : public LocalGeodesicFEStiffness<Basis,ProductManifold<FactorSpaces...> >
   {
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
   public:
 
     using TargetSpace = ProductManifold<FactorSpaces...>;
@@ -405,7 +407,7 @@ namespace Dune::GFE
 
     using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
 
-    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> >& ld)
+    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
       : localDensity_(ld)
     {}
 
@@ -457,7 +459,7 @@ namespace Dune::GFE
                                             typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override;
 
   protected:
-    const std::shared_ptr<GFE::LocalDensity<LocalCoordinate,TargetSpace> > localDensity_ = nullptr;
+    const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> > localDensity_ = nullptr;
 
   private:
 

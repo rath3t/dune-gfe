@@ -12,15 +12,19 @@ namespace Dune::GFE {
 
   /** \brief A base class for energy densities to be evaluated in an integral energy
    *
-   * \tparam Position The evaluation point in the integration domain
+   * \tparam ElementOrIntersection The domain of the density.
+   *   Can be either a grid element (i.e., a codimension-0 Entity)
+   *   or an Intersection.
    * \tparam TargetSpace Type for the function value
    */
-  template<class Position, class TargetSpace>
+  template<class ElementOrIntersection, class TargetSpace>
   class LocalDensity
   {
+    using LocalCoordinate = typename ElementOrIntersection::Geometry::LocalCoordinate;
+
     using field_type = typename TargetSpace::field_type;
     using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
-    using DerivativeType = FieldMatrix<field_type,TargetSpace::EmbeddedTangentVector::dimension,Position::size()>;
+    using DerivativeType = FieldMatrix<field_type,TargetSpace::EmbeddedTangentVector::dimension,LocalCoordinate::size()>;
 
     // Number of independent variables
     static constexpr auto m = TargetSpace::EmbeddedTangentVector::dimension + DerivativeType::rows*DerivativeType::cols;
@@ -64,7 +68,7 @@ namespace Dune::GFE {
      * \param value The value of the integrand at x
      * \param derivative The derivative of the integrand at x
      */
-    virtual field_type operator() (const Position& x,
+    virtual field_type operator() (const LocalCoordinate& x,
                                    const typename TargetSpace::CoordinateType& value,
                                    const DerivativeType& derivative) const = 0;
 
@@ -72,7 +76,7 @@ namespace Dune::GFE {
      *
      * The default implementation here uses ADOL-C for this.
      */
-    virtual void derivatives(const Position& x,
+    virtual void derivatives(const LocalCoordinate& x,
                              const TargetSpace& value,
                              const DerivativeType& derivative,
                              field_type& densityValue,
@@ -208,7 +212,7 @@ namespace Dune::GFE {
     }
 
     // Construct a copy of this density but using 'adouble' as the number type
-    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const = 0;
+    virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const = 0;
 
     /** \brief Whether the density depends on the 'value' parameter
      *

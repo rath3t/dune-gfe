@@ -7,13 +7,14 @@
 
 namespace Dune::GFE
 {
-  template<class Position, class TargetSpace>
+  template<class ElementOrIntersection, class TargetSpace>
   class HarmonicDensity final
-    : public LocalDensity<Position,TargetSpace>
+    : public LocalDensity<ElementOrIntersection,TargetSpace>
   {
+    using LocalCoordinate = typename ElementOrIntersection::Geometry::LocalCoordinate;
     using field_type = typename TargetSpace::field_type;
 
-    constexpr static auto dim = Position::size();
+    constexpr static auto dim = LocalCoordinate::size();
     constexpr static auto embeddedBlocksize = TargetSpace::EmbeddedTangentVector::dimension;
 
     using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
@@ -26,7 +27,7 @@ namespace Dune::GFE
      * \param value The deformation at the current position
      * \param derivative The derivative of the deformation at the current position
      */
-    virtual field_type operator() (const Position& x,
+    virtual field_type operator() (const LocalCoordinate& x,
                                    const typename TargetSpace::CoordinateType& value,
                                    const FieldMatrix<field_type,embeddedBlocksize,dim>& derivative) const override
     {
@@ -35,7 +36,7 @@ namespace Dune::GFE
 
     /** \brief Compute value, first and second derivatives of the density
      */
-    virtual void derivatives(const Position& x,
+    virtual void derivatives(const LocalCoordinate& x,
                              const TargetSpace& value,
                              const FieldMatrix<field_type,embeddedBlocksize,dim>& derivative,
                              field_type& densityValue,
@@ -62,9 +63,9 @@ namespace Dune::GFE
     }
 
     // Construct a copy of this density but using 'adouble' as the number type
-    virtual std::unique_ptr<LocalDensity<Position,ATargetSpace> > makeActiveDensity() const
+    virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const
     {
-      return std::make_unique<HarmonicDensity<Position,ATargetSpace> >();
+      return std::make_unique<HarmonicDensity<ElementOrIntersection,ATargetSpace> >();
     }
 
     /** \brief The density does not depend on the value */

@@ -1,6 +1,9 @@
 # Master
 
-- ...
+- The `LocalDensity` class now has a template parameter `ElementOrIntersection`,
+  which replaces the parameter `Position`.  As the name says, this parameter
+  has to be a grid element, or a grid intersection.  As it turned out,
+  just depending on the position type of the integration domain was not enough.
 
 # Release 2.10 (2024-12-29)
 

@@ -518,7 +518,8 @@ int main (int argc, char *argv[]) try
     using ActiveRigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
 
     // Wrap dune-elasticity density as dune-gfe density
-    auto elasticDensityWrapped = std::make_shared<GFE::DuneElasticityDensity<FieldVector<double,dim>,ActiveRigidBodyMotion,0> >(elasticDensity);
+    using Element = GridView::Codim<0>::Entity;
+    auto elasticDensityWrapped = std::make_shared<GFE::DuneElasticityDensity<Element,ActiveRigidBodyMotion,0> >(elasticDensity);
 
 
     // Select which type of geometric interpolation to use

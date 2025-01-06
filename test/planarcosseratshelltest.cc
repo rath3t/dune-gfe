@@ -205,7 +205,7 @@ int main (int argc, char *argv[])
   using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
       LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
 
-  auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity::Geometry::LocalCoordinate, adouble> >(parameters);
+  auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(parameters);
 
   auto planarCosseratShellEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis,AInterpolationRule,ARigidBodyMotion> >(cosseratDensity);
 
