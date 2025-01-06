@@ -71,4 +71,4 @@ namespace Dune::GFE
 
 } // namespace GFE
 
-#endif   //#ifndef DUNE_GFE_BULKCOSSERATDENSITY_HH
+#endif   //#ifndef DUNE_GFE_DENSITIES_COSSERATVOLUMELOADDENSITY_HH
