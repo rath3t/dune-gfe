@@ -65,7 +65,10 @@ namespace Dune::GFE
     // Construct a copy of this density but using 'adouble' as the number type
     virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const
     {
-      return std::make_unique<HarmonicDensity<ElementOrIntersection,ATargetSpace> >();
+      auto result = std::make_unique<HarmonicDensity<ElementOrIntersection,ATargetSpace> >();
+      if (this->elementOrIntersection_)
+        result->bind(*this->elementOrIntersection_);
+      return result;
     }
 
     /** \brief The density does not depend on the value */

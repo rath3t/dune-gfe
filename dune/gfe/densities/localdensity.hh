@@ -1,6 +1,8 @@
 #ifndef DUNE_GFE_DENSITIES_LOCALDENSITY_HH
 #define DUNE_GFE_DENSITIES_LOCALDENSITY_HH
 
+#include <optional>
+
 #include <dune/common/fmatrix.hh>
 
 #include <adolc/adalloc.h>
@@ -20,7 +22,8 @@ namespace Dune::GFE {
   template<class ElementOrIntersection, class TargetSpace>
   class LocalDensity
   {
-    using LocalCoordinate = typename ElementOrIntersection::Geometry::LocalCoordinate;
+    using Geometry = typename ElementOrIntersection::Geometry;
+    using LocalCoordinate = typename Geometry::LocalCoordinate;
 
     using field_type = typename TargetSpace::field_type;
     using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
@@ -38,6 +41,10 @@ namespace Dune::GFE {
 
     double*** Yppp_;   /* results of hov_wk_forward  */
     double*** Zppp_;   /* result of hos_ov_reverse */
+
+  protected:
+    /** \brief The element or intersection that this density is defined on */
+    std::optional<ElementOrIntersection> elementOrIntersection_ = std::nullopt;
 
   public:
 
@@ -60,6 +67,15 @@ namespace Dune::GFE {
       myfree3(densityTangent_);
       myfree3(Yppp_);
       myfree3(Zppp_);
+    }
+
+    /** \brief Bind the density to a `ElementOrIntersection` object
+     *
+     * Stores a copy of the `ElementOrIntersection`'s geometry.
+     **/
+    virtual void bind(const ElementOrIntersection& elementOrIntersection)
+    {
+      elementOrIntersection_.emplace(elementOrIntersection);
     }
 
     /** \brief Evaluate the density for a given value and first derivative

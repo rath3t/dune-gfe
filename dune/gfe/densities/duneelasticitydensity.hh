@@ -79,7 +79,11 @@ namespace Dune::GFE
       auto activeDensity = elasticityDensity_->makeActiveDensity();
 
       // Wrap it as a dune-gfe density
-      return std::make_unique<DuneElasticityDensity<ElementOrIntersection,ATargetSpace,index> >(std::move(activeDensity));
+      auto result = std::make_unique<DuneElasticityDensity<ElementOrIntersection,ATargetSpace,index> >(std::move(activeDensity));
+
+      if (this->elementOrIntersection_)
+        result->bind(*this->elementOrIntersection_);
+      return result;
     }
 
     /** \brief The density does not depend on the value */

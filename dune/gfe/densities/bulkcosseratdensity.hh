@@ -236,7 +236,11 @@ namespace Dune::GFE {
       // together with the type of the surrounding class.
       auto activeCurvatureType = static_cast<typename BulkCosseratDensity<Element,adouble>::CurvatureType>(curvatureType_);
 
-      return std::make_unique<BulkCosseratDensity<Element,adouble> >(mu_, lambda_, mu_c_, L_c_, activeCurvatureType, q_, std::array<double,3>{b1_, b2_, b3_});
+      auto result = std::make_unique<BulkCosseratDensity<Element,adouble> >(mu_, lambda_, mu_c_, L_c_, activeCurvatureType, q_, std::array<double,3>{b1_, b2_, b3_});
+
+      if (this->elementOrIntersection_)
+        result->bind(*this->elementOrIntersection_);
+      return result;
     }
 
     /** \brief The density depends on the microrotation value, but not on the deformation

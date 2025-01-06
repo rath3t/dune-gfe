@@ -70,11 +70,14 @@ namespace Dune::GFE
         const auto& localFiniteElement = localView.tree().finiteElement();
         LocalInterpolationRule localInterpolationRule(localFiniteElement,localCoefficients);
 
-        int quadOrder = (localFiniteElement.type().isSimplex())
+        // Bind density to the element
+        const auto& element = localView.element();
+        localDensity_->bind(element);
+
+        // Get a suitable quadrature rule
+        int quadOrder = (element.type().isSimplex())
            ? (localFiniteElement.localBasis().order()-1) * 2
            : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
-
-        const auto element = localView.element();
 
         const auto& quad = QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
 
@@ -176,14 +179,16 @@ namespace Dune::GFE
 
       const auto& localFiniteElement = localView.tree().finiteElement();
 
-      const auto& element = localView.element();
-
       // The range of input variables that the density depends on
       const size_t begin = (localDensity_->dependsOnValue()) ? 0 : TargetSpace::CoordinateType::dimension;
       const size_t end = (localDensity_->dependsOnDerivative()) ? m : TargetSpace::CoordinateType::dimension;
 
+      // Bind density to the element
+      const auto& element = localView.element();
+      localDensity_->bind(element);
+
       // The quadrature rule
-      int quadOrder = (localFiniteElement.type().isSimplex())
+      int quadOrder = (element.type().isSimplex())
            ? (localFiniteElement.localBasis().order()-1) * 2
            : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
 
@@ -572,8 +577,11 @@ namespace Dune::GFE
 
     const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
 
+    // Bind density to the element
     const auto& element = localView.element();
+    localDensity_->bind(element);
 
+    // Get a suitable quadrature rule
     int quadOrder = (element.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
                                                  : deformationLocalFiniteElement.localBasis().order() * gridDim;
 

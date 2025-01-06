@@ -80,7 +80,10 @@ namespace Dune::GFE
     // Construct a copy of this density but using 'adouble' as the number type
     virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const
     {
-      return std::make_unique<ChiralSkyrmionDensity<ElementOrIntersection,adouble> >(h_, kappa_);
+      auto result = std::make_unique<ChiralSkyrmionDensity<ElementOrIntersection,adouble> >(h_, kappa_);
+      if (this->elementOrIntersection_)
+        result->bind(*this->elementOrIntersection_);
+      return result;
     }
 
     /** \brief The density depends on the value */

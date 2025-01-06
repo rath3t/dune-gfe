@@ -256,7 +256,11 @@ namespace Dune::GFE
     // Construct a copy of this density but using 'adouble' as the number type
     virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const override
     {
-      return std::make_unique<PlanarCosseratShellDensity<ElementOrIntersection,adouble> >(thickness_, mu_, lambda_, mu_c_, L_c_, q_, kappa_);
+      auto result = std::make_unique<PlanarCosseratShellDensity<ElementOrIntersection,adouble> >(thickness_, mu_, lambda_, mu_c_, L_c_, q_, kappa_);
+
+      if (this->elementOrIntersection_)
+        result->bind(*this->elementOrIntersection_);
+      return result;
     }
 
     /** \brief The density depends on the microrotation value, but not on the deformation

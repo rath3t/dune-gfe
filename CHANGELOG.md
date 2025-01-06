@@ -5,6 +5,10 @@
   has to be a grid element, or a grid intersection.  As it turned out,
   just depending on the position type of the integration domain was not enough.
 
+- The `LocalDensity` class now has a `bind` method, which binds the density
+  to a given element or intersection. This is necessary, for example, to in turn
+  bind coefficient functions that the density may own.
+
 # Release 2.10 (2024-12-29)
 
 - The module `dune-elasticity` has been downgraded from a required

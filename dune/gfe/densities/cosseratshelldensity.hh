@@ -252,15 +252,6 @@ namespace Dune::GFE
       useAlternativeEnergyWCoss_(useAlternativeEnergyWCoss)
     {}
 
-    /** \brief Bind the density to a `ElementOrIntersection` object
-     *
-     * Stores a copy of the `ElementOrIntersection`'s geometry.
-     **/
-    void bind(const ElementOrIntersection& elementOrIntersection)
-    {
-      geometry_.emplace(elementOrIntersection.geometry());
-    }
-
     /** \brief Evaluate the density for a given value and first derivative
      *
      * \param x The current position
@@ -287,7 +278,7 @@ namespace Dune::GFE
 
       // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
       // of the element.  If dimworld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
-      const auto jacobianTransposed = geometry_->jacobianTransposed(x);
+      const auto jacobianTransposed = this->elementOrIntersection_->geometry().jacobianTransposed(x);
 
       for (int i=0; i<2; i++)
       {
@@ -306,7 +297,7 @@ namespace Dune::GFE
 
       return operator()(x,
                         aCovariant,
-                        normalGradient(geometry_->impl(), x),
+                        normalGradient(this->elementOrIntersection_->geometry().impl(), x),
                         RigidBodyMotion(value),
                         derivative);
     }
@@ -325,7 +316,7 @@ namespace Dune::GFE
                            const RigidBodyMotion& value,
                            const Derivative& derivative) const
     {
-      auto xGlobal = geometry_->global(x);
+      auto xGlobal = this->elementOrIntersection_->geometry().global(x);
       double thickness = thicknessF_(xGlobal);
       auto lameConstants = lameF_(xGlobal);
       auto mu = lameConstants[0];
@@ -450,13 +441,16 @@ namespace Dune::GFE
     // Construct a copy of this density but using 'adouble' as the number type
     virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ARigidBodyMotion> > makeActiveDensity() const override
     {
-      // TODO: Return a density that is bound to the same object as we are
-      return std::make_unique<CosseratShellDensity<ElementOrIntersection,adouble> >(mu_c_,
-                                                                                    L_c_,
-                                                                                    b1_, b2_, b3_,
-                                                                                    useAlternativeEnergyWCoss_,
-                                                                                    thicknessF_,
-                                                                                    lameF_);
+      auto result = std::make_unique<CosseratShellDensity<ElementOrIntersection,adouble> >(mu_c_,
+                                                                                           L_c_,
+                                                                                           b1_, b2_, b3_,
+                                                                                           useAlternativeEnergyWCoss_,
+                                                                                           thicknessF_,
+                                                                                           lameF_);
+
+      if (this->elementOrIntersection_)
+        result->bind(*this->elementOrIntersection_);
+      return result;
     }
 
     /** \brief Whether the density depends on the 'value' argument
@@ -499,9 +493,6 @@ namespace Dune::GFE
     /** \brief Whether to use the alternative energy W_Coss from Birsan 2021:
                "Alternative derivation of the higher-order constitutive model for six-parameter elastic shells", equations (119) and (126). */
     bool useAlternativeEnergyWCoss_;
-
-    /** \brief The geometry that this density is defined on */
-    std::optional<Geometry> geometry_ = std::nullopt;
   };
 
 }  // namespace Dune::GFE

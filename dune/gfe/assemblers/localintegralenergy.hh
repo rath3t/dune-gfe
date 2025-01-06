@@ -97,11 +97,14 @@ namespace Dune::GFE {
 #endif
         LocalInterpolationRule localInterpolationRule(localFiniteElement,localConfiguration);
 
-        int quadOrder = (localFiniteElement.type().isSimplex())
+        // Bind density to the element
+        const auto& element = localView.element();
+        localDensity_->bind(element);
+
+        // Get a suitable quadrature rule
+        int quadOrder = (element.type().isSimplex())
            ? (localFiniteElement.localBasis().order()-1) * 2
            : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
-
-        const auto element = localView.element();
 
         const auto& quad = QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
 
@@ -166,8 +169,6 @@ namespace Dune::GFE {
         static_assert(TargetSpace::size() == 2,
                       "LocalIntegralEnergy only implemented for product spaces with two factors!");
 
-        const auto& element = localView.element();
-
         using namespace Indices;
 
         // composite Basis: grab the finite element of the first child
@@ -180,6 +181,11 @@ namespace Dune::GFE {
         LocalGFEFunctionType0 localGFEFunction0(localFiniteElement0, coefficients[_0]);
         LocalGFEFunctionType1 localGFEFunction1(localFiniteElement1, coefficients[_1]);
 
+        // Bind density to the element
+        const auto& element = localView.element();
+        localDensity_->bind(element);
+
+        // Get a suitable quadrature rule
         int quadOrder = (element.type().isSimplex()) ? localFiniteElement0.localBasis().order()
                                                  : localFiniteElement0.localBasis().order() * gridDim;
 

@@ -17,18 +17,19 @@ namespace Dune::GFE
     using LocalCoordinate = typename ElementOrIntersection::Geometry::LocalCoordinate;
 
     static constexpr int gridDim = LocalCoordinate::size();
+    static constexpr auto dimworld = ElementOrIntersection::Geometry::coorddimension;
 
     // The target space with 'adouble' as the number type
     using ATargetSpace = GFE::ProductManifold<RealTuple<adouble,3>,Rotation<adouble,3> >;
 
     /** \brief The function implementing a volume load */
-    const std::function<FieldVector<double,3>(FieldVector<double,gridDim>)> volumeLoad_;
+    const std::function<FieldVector<double,3>(FieldVector<double,dimworld>)> volumeLoad_;
 
   public:
 
     /** \brief Constructor with a given load density
      */
-    CosseratVolumeLoadDensity(const std::function<FieldVector<double,3>(FieldVector<double,gridDim>)>& volumeLoad)
+    CosseratVolumeLoadDensity(const std::function<FieldVector<double,3>(FieldVector<double,dimworld>)>& volumeLoad)
       : volumeLoad_(volumeLoad)
     {}
 
@@ -41,7 +42,7 @@ namespace Dune::GFE
       field_type density = 0;
 
       // Value of the volume load density at the current position
-      auto loadVector = volumeLoad_(x);
+      auto loadVector = volumeLoad_(this->elementOrIntersection_->geometry().global(x));
 
       // In this implementation, only translational dofs are affected by the volume load
       for (size_t i=0; i<loadVector.size(); i++)
@@ -53,7 +54,11 @@ namespace Dune::GFE
     // Construct a copy of this density but using 'adouble' as the number type
     virtual std::unique_ptr<LocalDensity<ElementOrIntersection,ATargetSpace> > makeActiveDensity() const
     {
-      return std::make_unique<CosseratVolumeLoadDensity<ElementOrIntersection,adouble> >(volumeLoad_);
+      auto result = std::make_unique<CosseratVolumeLoadDensity<ElementOrIntersection,adouble> >(volumeLoad_);
+
+      if (this->elementOrIntersection_)
+        result->bind(*this->elementOrIntersection_);
+      return result;
     }
 
     /** \brief The density depends on the deformation value, but not on the microrotation value
