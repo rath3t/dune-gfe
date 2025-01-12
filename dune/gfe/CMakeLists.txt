@@ -4,19 +4,13 @@ install(FILES
         cosseratstrain.hh
         cosseratvtkreader.hh
         cosseratvtkwriter.hh
-        embeddedglobalgfefunction.hh
         filereader.hh
         geodesicdifference.hh
         geodesicfefunctionadaptor.hh
         gfedifferencenormsquared.hh
-        globalgfefunction.hh
         gramschmidtsolver.hh
-        interpolationderivatives.hh
         linearalgebra.hh
-        localgeodesicfefunction.hh
         localgfetestfunctionbasis.hh
-        localprojectedfefunction.hh
-        localquickanddirtyfefunction.hh
         localtangentfefunction.hh
         maxnormtrustregion.hh
         mixedriemanniantrsolver.cc
@@ -42,3 +36,4 @@ install(FILES
 add_subdirectory("spaces")
 add_subdirectory("assemblers")
 add_subdirectory("densities")
+add_subdirectory("functions")

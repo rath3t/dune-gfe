@@ -1,5 +1,7 @@
 # Master
 
+- All implementations of functions have been move to a `functions` subdirectory.
+
 - The `LocalDensity` class now has a template parameter `ElementOrIntersection`,
   which replaces the parameter `Position`.  As the name says, this parameter
   has to be a grid element, or a grid intersection.  As it turned out,
