@@ -20,7 +20,6 @@
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/subspacebasis.hh>
 
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
@@ -30,6 +29,7 @@
 #include <dune/gfe/densities/localdensity.hh>
 #include <dune/gfe/densities/bulkcosseratdensity.hh>
 #include <dune/gfe/densities/harmonicdensity.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 
 // grid dimension

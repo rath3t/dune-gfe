@@ -39,15 +39,15 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/densities/chiralskyrmiondensity.hh>
 #include <dune/gfe/densities/harmonicdensity.hh>
+#include <dune/gfe/functions/embeddedglobalgfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/rotation.hh>

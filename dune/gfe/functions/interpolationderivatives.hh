@@ -1,5 +1,5 @@
-#ifndef DUNE_GFE_INTERPOLATIONDERIVATIVES_HH
-#define DUNE_GFE_INTERPOLATIONDERIVATIVES_HH
+#ifndef DUNE_GFE_FUNCTIONS_INTERPOLATIONDERIVATIVES_HH
+#define DUNE_GFE_FUNCTIONS_INTERPOLATIONDERIVATIVES_HH
 
 // Includes for the ADOL-C automatic differentiation library
 #include <adolc/adolc.h>
@@ -8,8 +8,8 @@
 
 #include <dune/fufem/utilities/adolcnamespaceinjections.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 

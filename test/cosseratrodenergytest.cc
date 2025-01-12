@@ -5,7 +5,7 @@
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/gfe/assemblers/cosseratrodenergy.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>

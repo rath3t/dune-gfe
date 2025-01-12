@@ -1,7 +1,7 @@
 // -*- tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
 // vi: set et ts=4 sw=2 sts=2:
-#ifndef DUNE_GFE_GLOBALGFEFUNCTION_HH
-#define DUNE_GFE_GLOBALGFEFUNCTION_HH
+#ifndef DUNE_GFE_FUNCTIONS_GLOBALGFEFUNCTION_HH
+#define DUNE_GFE_FUNCTIONS_GLOBALGFEFUNCTION_HH
 
 #include <memory>
 #include <optional>
@@ -544,4 +544,4 @@ namespace Dune::GFE {
 
 } // namespace Dune::GFE
 
-#endif // DUNE_GFE_GLOBALGFEFUNCTION_HH
+#endif // DUNE_GFE_FUNCTIONS_GLOBALGFEFUNCTION_HH

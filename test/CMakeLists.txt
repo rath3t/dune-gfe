@@ -12,7 +12,6 @@ set(TESTS
   interpolationderivativestest
   localadolcstiffnesstest
   localgeodesicfefunctiontest
-  localgfetestfunctiontest
   localintegralstiffnesstest
   localprojectedfefunctiontest
   orthogonalmatrixtest

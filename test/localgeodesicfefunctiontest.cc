@@ -11,12 +11,12 @@
 
 #include <dune/localfunctions/lagrange/lagrangelfecache.hh>
 
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
 #include "multiindex.hh"
 #include "valuefactory.hh"
 

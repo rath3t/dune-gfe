@@ -27,7 +27,7 @@
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/densities/planarcosseratshelldensity.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/mixedriemannianpnsolver.hh>
 #include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/riemannianpnsolver.hh>

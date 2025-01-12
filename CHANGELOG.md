@@ -1,5 +1,9 @@
 # Master
 
+- Remove the files `localgfetestfunctionbasis.hh` and `localtangentfefunction.hh`.
+  They were never used for anything at all, I and currently wouldn't know
+  what to use them for, either.
+
 - All implementations of functions have been move to a `functions` subdirectory.
 
 - The `LocalDensity` class now has a template parameter `ElementOrIntersection`,

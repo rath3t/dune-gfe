@@ -1,7 +1,7 @@
 // -*- tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
 // vi: set et ts=4 sw=2 sts=2:
-#ifndef DUNE_GFE_EMBEDDEDGLOBALGFEFUNCTION_HH
-#define DUNE_GFE_EMBEDDEDGLOBALGFEFUNCTION_HH
+#ifndef DUNE_GFE_FUNCTIONS_EMBEDDEDGLOBALGFEFUNCTION_HH
+#define DUNE_GFE_FUNCTIONS_EMBEDDEDGLOBALGFEFUNCTION_HH
 
 #include <memory>
 #include <optional>
@@ -16,7 +16,7 @@
 #include <dune/functions/gridfunctions/gridfunction.hh>
 #include <dune/functions/backends/concepts.hh>
 
-#include <dune/gfe/globalgfefunction.hh>
+#include <dune/gfe/functions/globalgfefunction.hh>
 
 namespace Dune::GFE {
 
@@ -386,4 +386,4 @@ namespace Dune::GFE {
 
 } // namespace Dune::GFE
 
-#endif // DUNE_GFE_EMBEDDEDGLOBALGFEFUNCTION_HH
+#endif // DUNE_GFE_FUNCTIONS_EMBEDDEDGLOBALGFEFUNCTION_HH

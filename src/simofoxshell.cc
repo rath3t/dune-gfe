@@ -27,11 +27,11 @@
 
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/simofoxenergy.hh>
-#include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/functions/embeddedglobalgfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
 #if !MIXED_SPACE

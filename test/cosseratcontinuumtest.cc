@@ -25,7 +25,7 @@
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/densities/bulkcosseratdensity.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #include <dune/gfe/neumannenergy.hh>
 

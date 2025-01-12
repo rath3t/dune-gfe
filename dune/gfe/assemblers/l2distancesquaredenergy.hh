@@ -5,9 +5,9 @@
 
 #include <dune/geometry/quadraturerules.hh>
 
-#include <dune/gfe/globalgfefunction.hh>
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/globalgfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 
 template<class Basis, class TargetSpace>
 class L2DistanceSquaredEnergy

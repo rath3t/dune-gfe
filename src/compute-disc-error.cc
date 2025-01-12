@@ -24,9 +24,9 @@
 #include <dune/fufem/dunepython.hh>
 #include <dune/fufem/makesphere.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
-#include <dune/gfe/embeddedglobalgfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
+#include <dune/gfe/functions/embeddedglobalgfefunction.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 #include <dune/gfe/spaces/unitvector.hh>

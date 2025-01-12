@@ -11,7 +11,7 @@
 #include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/densities/localdensity.hh>
-#include <dune/gfe/interpolationderivatives.hh>
+#include <dune/gfe/functions/interpolationderivatives.hh>
 
 
 namespace Dune::GFE

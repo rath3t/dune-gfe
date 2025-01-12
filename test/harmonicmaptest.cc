@@ -22,12 +22,12 @@
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/fufem/functiontools/boundarydofs.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/assemblers/localintegralstiffness.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/densities/harmonicdensity.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 

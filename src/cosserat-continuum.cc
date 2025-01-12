@@ -56,8 +56,6 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/norms/energynorm.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
@@ -65,9 +63,11 @@
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/cosseratvtkreader.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
-#include <dune/gfe/embeddedglobalgfefunction.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
+#include <dune/gfe/functions/embeddedglobalgfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/densities/bulkcosseratdensity.hh>
 #include <dune/gfe/densities/cosseratvolumeloaddensity.hh>
 #include <dune/gfe/densities/cosseratshelldensity.hh>

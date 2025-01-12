@@ -10,8 +10,6 @@ install(FILES
         gfedifferencenormsquared.hh
         gramschmidtsolver.hh
         linearalgebra.hh
-        localgfetestfunctionbasis.hh
-        localtangentfefunction.hh
         maxnormtrustregion.hh
         mixedriemanniantrsolver.cc
         mixedriemanniantrsolver.hh

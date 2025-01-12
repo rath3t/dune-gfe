@@ -37,8 +37,8 @@
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/geodesicfeassembler.hh>
 #include <dune/gfe/riemanniantrsolver.hh>
-#include <dune/gfe/globalgfefunction.hh>
-#include <dune/gfe/embeddedglobalgfefunction.hh>
+#include <dune/gfe/functions/globalgfefunction.hh>
+#include <dune/gfe/functions/embeddedglobalgfefunction.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/l2distancesquaredenergy.hh>
 #include <dune/gfe/assemblers/weightedsumenergy.hh>

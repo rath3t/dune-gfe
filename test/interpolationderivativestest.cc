@@ -16,10 +16,9 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
+#include <dune/gfe/functions/interpolationderivatives.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 #include <dune/gfe/spaces/realtuple.hh>
-
-#include <dune/gfe/interpolationderivatives.hh>
 
 #include "valuefactory.hh"
 

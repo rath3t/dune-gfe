@@ -7,9 +7,9 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/assemblers/localenergy.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
 #include <dune/gfe/densities/cosseratshelldensity.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 
 #if HAVE_DUNE_CURVEDGEOMETRY

@@ -1,5 +1,5 @@
-#ifndef LOCAL_GEODESIC_FE_FUNCTION_HH
-#define LOCAL_GEODESIC_FE_FUNCTION_HH
+#ifndef DUNE_GFE_FUNCTIONS_LOCALGEODESICFEFUNCTION_HH
+#define DUNE_GFE_FUNCTIONS_LOCALGEODESICFEFUNCTION_HH
 
 #include <vector>
 
@@ -9,7 +9,7 @@
 
 #include <dune/gfe/averagedistanceassembler.hh>
 #include <dune/gfe/targetspacertrsolver.hh>
-#include <dune/gfe/localquickanddirtyfefunction.hh>
+#include <dune/gfe/functions/localquickanddirtyfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>

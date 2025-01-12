@@ -8,9 +8,9 @@
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 #include <dune/functions/gridfunctions/gridviewfunction.hh>
 
-#include <dune/gfe/embeddedglobalgfefunction.hh>
-#include <dune/gfe/localgeodesicfefunction.hh>
-#include <dune/gfe/localprojectedfefunction.hh>
+#include <dune/gfe/functions/embeddedglobalgfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
 using namespace Dune;

@@ -37,11 +37,11 @@ typedef double FDType;
 #include <dune/functions/functionspacebases/interpolate.hh>
 #include <dune/functions/functionspacebases/powerbasis.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
 #include <dune/gfe/assemblers/localintegralenergy.hh>
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/localgeodesicfefdstiffness.hh>
 #include <dune/gfe/densities/planarcosseratshelldensity.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>

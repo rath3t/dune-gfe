@@ -11,7 +11,7 @@
 #include <dune/gfe/spaces/rotation.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
-#include <dune/gfe/localgeodesicfefunction.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 
 // Domain dimension
 const int dim = 2;
