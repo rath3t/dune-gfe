@@ -7,6 +7,7 @@
 #include <dune/common/parametertree.hh>
 
 #include <dune/gfe/densities/localdensity.hh>
+#include <dune/gfe/spaces/unitvector.hh>
 
 namespace Dune::GFE
 {
