@@ -21,11 +21,6 @@
 
 namespace Dune::GFE
 {
-
-  // forward declaration
-  template <class LocalFiniteElement, class TargetSpace>
-  class LocalGfeTestFunctionBasis;
-
   /** \brief A function defined by simplicial geodesic interpolation
              from the reference element to a Riemannian manifold.
 
@@ -47,8 +42,6 @@ namespace Dune::GFE
     static const int embeddedDim = EmbeddedTangentVector::dimension;
 
     static const int spaceDim = TargetSpace::TangentVector::dimension;
-
-    friend class LocalGfeTestFunctionBasis<LocalFiniteElement,TargetSpace>;
   public:
 
     /** \brief The type used for derivatives */
