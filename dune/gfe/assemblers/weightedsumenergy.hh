@@ -8,6 +8,10 @@
 
 #include <dune/gfe/assemblers/localenergy.hh>
 
+
+namespace Dune::GFE
+{
+
 template<class Basis, class TargetSpace>
 class WeightedSumEnergy
   : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
@@ -53,5 +57,7 @@ public:
     DUNE_THROW(Dune::NotImplemented, "!");
   }
 };
+
+}  // namespace Dune::GFE
 
 #endif

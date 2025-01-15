@@ -45,17 +45,19 @@
 #include <dune/gfe/densities/harmonicdensity.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
+using namespace Dune;
+
 // grid dimension
 const int dim = 1;
 const int dimworld = dim;
 
 // Image space of the geodesic fe functions
-// typedef Rotation<double,2> TargetSpace;
-// typedef Rotation<double,3> TargetSpace;
-// typedef UnitVector<double,2> TargetSpace;
-typedef UnitVector<double,3> TargetSpace;
-// typedef UnitVector<double,4> TargetSpace;
-// typedef RealTuple<double,1> TargetSpace;
+// typedef GFE::Rotation<double,2> TargetSpace;
+// typedef GFE::Rotation<double,3> TargetSpace;
+// typedef GFE::UnitVector<double,2> TargetSpace;
+typedef GFE::UnitVector<double,3> TargetSpace;
+// typedef GFE::UnitVector<double,4> TargetSpace;
+// typedef GFE::RealTuple<double,1> TargetSpace;
 
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
@@ -63,7 +65,6 @@ const int blocksize = TargetSpace::TangentVector::dimension;
 // Approximation order of the finite element space
 const int order = 1;
 
-using namespace Dune;
 
 
 int main (int argc, char *argv[]) try
@@ -205,10 +206,10 @@ int main (int argc, char *argv[]) try
   // Assembler using ADOL-C
   typedef TargetSpace::rebind<adouble>::other ATargetSpace;
 
-  auto l2DistanceSquaredEnergy = std::make_shared<L2DistanceSquaredEnergy<FEBasis, ATargetSpace> >();
+  auto l2DistanceSquaredEnergy = std::make_shared<GFE::L2DistanceSquaredEnergy<FEBasis, ATargetSpace> >();
 
   std::vector<std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > > addends(2);
-  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
   auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity, ATargetSpace> >();
   addends[0] = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace> >(harmonicDensity);
@@ -216,17 +217,17 @@ int main (int argc, char *argv[]) try
 
   std::vector<double> weights = {1.0, 1.0/(2*timeStepSize)};
 
-  auto sumEnergy = std::make_shared< WeightedSumEnergy<FEBasis, ATargetSpace> >(addends, weights);
+  auto sumEnergy = std::make_shared< GFE::WeightedSumEnergy<FEBasis, ATargetSpace> >(addends, weights);
 
-  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy);
+  GFE::LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy);
 
-  GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
+  GFE::GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 
   ///////////////////////////////////////////////////
   //   Create a Riemannian trust-region solver
   ///////////////////////////////////////////////////
 
-  RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
+  GFE::RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
   solver.setup(*grid,
                &assembler,
                x,

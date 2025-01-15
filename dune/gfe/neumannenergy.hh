@@ -8,7 +8,9 @@
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
+
   /** \brief Integrate a density over a part of the domain boundary
    *
    * This is typically used to implement Neumann boundary conditions for Cosserat materials.

@@ -20,6 +20,6 @@ namespace Dune::GFE
 
   };
 
-}  // namespace Dune
+}  // namespace Dune::GFE
 
 #endif   // DUNE_GFE_LOCALFIRSTORDERMODEL_HH

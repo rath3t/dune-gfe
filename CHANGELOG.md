@@ -1,5 +1,7 @@
 # Master
 
+- The entire code is now in the `Dune::GFE` namespace.
+
 - Remove the files `localgfetestfunctionbasis.hh` and `localtangentfefunction.hh`.
   They were never used for anything at all, I and currently wouldn't know
   what to use them for, either.

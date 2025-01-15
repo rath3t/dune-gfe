@@ -104,7 +104,7 @@ void testPoint(const std::vector<TargetSpace>& corners,
                const TargetSpace& argument)
 {
   // create the assembler
-  AverageDistanceAssembler<TargetSpace> assembler(corners, weights);
+  GFE::AverageDistanceAssembler<TargetSpace> assembler(corners, weights);
 
   // test the functional
   double value = assembler.value(argument);
@@ -180,7 +180,7 @@ void testWeightSet(const std::vector<TargetSpace>& corners,
 
 void testRealTuples()
 {
-  typedef RealTuple<double,1> TargetSpace;
+  typedef GFE::RealTuple<double,1> TargetSpace;
 
   std::vector<TargetSpace> corners = {TargetSpace(1),
                                       TargetSpace(2),
@@ -196,7 +196,7 @@ void testRealTuples()
 
 void testUnitVectors()
 {
-  typedef UnitVector<double,3> TargetSpace;
+  typedef GFE::UnitVector<double,3> TargetSpace;
 
   std::vector<TargetSpace> corners(dim+1);
 
@@ -214,12 +214,12 @@ void testUnitVectors()
 
 void testRotations()
 {
-  typedef Rotation<double,3> TargetSpace;
+  typedef GFE::Rotation<double,3> TargetSpace;
 
   std::vector<TargetSpace> corners(dim+1);
-  corners[0] = Rotation<double,3>({1,0,0}, 0.1);
-  corners[1] = Rotation<double,3>({0,1,0}, 0.1);
-  corners[2] = Rotation<double,3>({0,0,1}, 0.1);
+  corners[0] = GFE::Rotation<double,3>({1,0,0}, 0.1);
+  corners[1] = GFE::Rotation<double,3>({0,1,0}, 0.1);
+  corners[2] = GFE::Rotation<double,3>({0,0,1}, 0.1);
 
   TargetSpace argument = corners[0];
   testWeightSet(corners, argument);
@@ -232,12 +232,12 @@ void testRotations()
 
 void testProductManifold()
 {
-  typedef Dune::GFE::ProductManifold<RealTuple<double,5>,UnitVector<double,3>, Rotation<double,3> > TargetSpace;
+  typedef GFE::ProductManifold<GFE::RealTuple<double,5>,GFE::UnitVector<double,3>, GFE::Rotation<double,3> > TargetSpace;
 
   std::vector<TargetSpace> corners(dim+1);
 
   std::generate(corners.begin(), corners.end(), []()  {
-    return Dune::GFE::randomFieldVector<typename TargetSpace::field_type,TargetSpace::CoordinateType::dimension>(0.9,1.1);
+    return GFE::randomFieldVector<typename TargetSpace::field_type,TargetSpace::CoordinateType::dimension>(0.9,1.1);
   });
 
   TargetSpace argument = corners[0];

@@ -82,7 +82,7 @@ static FieldMatrix<field_type, 3, 3> randomMatrixAlmostOrthogonal(double maxPert
   std::uniform_real_distribution<> dis(0.0, 1.0);   // equally distributed between 0 and upper bound
   for (int i = 0; i < 4; ++i)
     f[i] = dis(gen);
-  Rotation<field_type,3> q(f);
+  GFE::Rotation<field_type,3> q(f);
   q.normalize();
 
   assert(std::abs(1-q.two_norm()) < 1e-12);

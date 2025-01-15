@@ -30,7 +30,7 @@
 using namespace Dune;
 using namespace Dune::Indices;
 
-using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
+using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
 
@@ -80,7 +80,7 @@ int main (int argc, char *argv[]) try
   for (std::size_t i=0; i<referenceConfiguration.size(); i++)
   {
     referenceConfiguration[i][_0] = {0.0, 0.0, referenceConfigurationX[i]};
-    referenceConfiguration[i][_1] = Rotation<double,3>::identity();
+    referenceConfiguration[i][_1] = GFE::Rotation<double,3>::identity();
   }
 
   // Select the reference configuration as initial iterate
@@ -125,14 +125,14 @@ int main (int argc, char *argv[]) try
   FieldVector<double,3> axis = {1,0,0};
   double angle = 0;
 
-  x[rightBoundaryDof][_1] = Rotation<double,3>(axis, M_PI*angle/180);
+  x[rightBoundaryDof][_1] = GFE::Rotation<double,3>(axis, M_PI*angle/180);
 
   //////////////////////////////////////////////
   //  Create the energy and assembler
   //////////////////////////////////////////////
 
   using ATargetSpace = TargetSpace::rebind<adouble>::other;
-  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
   // Assembler using ADOL-C
@@ -157,16 +157,16 @@ int main (int argc, char *argv[]) try
   else
     DUNE_THROW(Exception, "Unknown interpolation method " << interpolationMethod << " requested!");
 
-  LocalGeodesicFEADOLCStiffness<ScalarBasis,
+  GFE::LocalGeodesicFEADOLCStiffness<ScalarBasis,
       TargetSpace> localStiffness(localRodEnergy);
 
-  GeodesicFEAssembler<ScalarBasis,TargetSpace> rodAssembler(gridView, localStiffness);
+  GFE::GeodesicFEAssembler<ScalarBasis,TargetSpace> rodAssembler(gridView, localStiffness);
 
   /////////////////////////////////////////////
   //   Create a solver for the rod problem
   /////////////////////////////////////////////
 
-  RiemannianTrustRegionSolver<ScalarBasis,TargetSpace> solver;
+  GFE::RiemannianTrustRegionSolver<ScalarBasis,TargetSpace> solver;
 
   solver.setup(grid,
                &rodAssembler,

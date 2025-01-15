@@ -7,6 +7,10 @@
 
 #include <dune/gfe/tensor3.hh>
 
+
+namespace Dune::GFE
+{
+
 template <class T>
 class Quaternion : public Dune::FieldVector<T,4>
 {
@@ -161,11 +165,13 @@ public:
 
 };
 
+}  // namespace Dune::GFE
+
 namespace Dune
 {
   /** \brief Specizalization needed to allow certain forms of matrix--quaternion multiplications */
   template< class T >
-  struct FieldTraits< Quaternion<T> >
+  struct FieldTraits< Dune::GFE::Quaternion<T> >
   {
     typedef typename FieldTraits<T>::field_type field_type;
     typedef typename FieldTraits<T>::real_type real_type;

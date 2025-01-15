@@ -107,7 +107,7 @@ static_assert(displacementOrder==rotationOrder, "displacement and rotation order
 #endif
 
 // Image space of the geodesic fe functions
-using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
+using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
 
 // Method to construct a Cosserat energy that matches the grid dimension.
 // This cannot be done inside the 'main' method, because 'constexpr if' only works
@@ -135,7 +135,7 @@ auto createCosseratEnergy(const ParameterTree& materialParameters,
     using Element = typename GridView::template Codim<0>::Entity;
     auto density = std::make_shared<GFE::CosseratShellDensity<Element, adouble> >(materialParameters);
 
-    return std::make_shared<NonplanarCosseratShellEnergy<Basis, 3, adouble, decltype(creator)> >(density, &creator);
+    return std::make_shared<GFE::NonplanarCosseratShellEnergy<Basis, 3, adouble, decltype(creator)> >(density, &creator);
   }
   else
   {
@@ -203,8 +203,8 @@ int main (int argc, char *argv[]) try
   const std::string resultPath          = parameterSet.get("resultPath", "");
 
   using namespace Dune::Indices;
-  using SolutionType = TupleVector<std::vector<RealTuple<double,3> >,
-      std::vector<Rotation<double,3> > >;
+  using SolutionType = TupleVector<std::vector<GFE::RealTuple<double,3> >,
+      std::vector<GFE::Rotation<double,3> > >;
 
   // ///////////////////////////////////////
   //    Create the grid
@@ -268,7 +268,7 @@ int main (int argc, char *argv[]) try
 
   using namespace Dune::Functions::BasisFactory;
 
-  const int dimRotation = Rotation<double,3>::embeddedDim;
+  const int dimRotation = GFE::Rotation<double,3>::embeddedDim;
   auto compositeBasis = makeBasis(
     gridView,
     composite(
@@ -438,7 +438,7 @@ int main (int argc, char *argv[]) try
 #ifdef PROJECTED_INTERPOLATION
     using LocalInterpolationRule  = GFE::LocalProjectedFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #else
-    using LocalInterpolationRule  = LocalGeodesicFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+    using LocalInterpolationRule  = GFE::LocalGeodesicFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #endif
     GFE::EmbeddedGlobalGFEFunction<InitialBasis,LocalInterpolationRule,TargetSpace> initialFunction(initialBasis,initialIterate);
     auto powerBasis = makeBasis(
@@ -477,25 +477,25 @@ int main (int argc, char *argv[]) try
   auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(deformationPowerBasis, displacement);
 
 #ifdef PROJECTED_INTERPOLATION
-  using RotationInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, Rotation<double,3> >;
+  using RotationInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, GFE::Rotation<double,3> >;
 #else
-  using RotationInterpolationRule = LocalGeodesicFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, Rotation<double,3> >;
+  using RotationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, GFE::Rotation<double,3> >;
 #endif
 
-  GFE::EmbeddedGlobalGFEFunction<OrientationFEBasis, RotationInterpolationRule,Rotation<double,3> > orientationFunction(orientationFEBasis,
+  GFE::EmbeddedGlobalGFEFunction<OrientationFEBasis, RotationInterpolationRule,GFE::Rotation<double,3> > orientationFunction(orientationFEBasis,
                                                                                                                         x[_1]);
 
   if (dim == dimworld) {
-    CosseratVTKWriter<GridView>::write(gridView,
+    GFE::CosseratVTKWriter<GridView>::write(gridView,
                                        displacementFunction,
                                        orientationFunction,
                                        std::max(LFE_ORDER, GFE_ORDER),
                                        resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
   } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
-    CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
+    GFE::CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
 #else
-    CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
+    GFE::CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
 #endif
   }
 
@@ -576,13 +576,13 @@ int main (int argc, char *argv[]) try
     using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
     using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
 
-    using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
-        LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
+    using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, GFE::RealTuple<adouble,3> >,
+        GFE::LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, GFE::Rotation<adouble,3> > >;
 
     using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
 
     // The energy on one element
-    auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,3>,Rotation<adouble,3> > >();
+    auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, GFE::RealTuple<adouble,3>,GFE::Rotation<adouble,3> > >();
 
     // The actual Cosserat energy
     auto localCosseratEnergy = createCosseratEnergy<CompositeBasis,AInterpolationRule,ATargetSpace,decltype(creator)>(materialParameters,
@@ -591,7 +591,7 @@ int main (int argc, char *argv[]) try
     sumEnergy->addLocalEnergy(localCosseratEnergy);
 
     // The Neumann surface load term
-    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,3>, Rotation<adouble,3> > >(neumannBoundary,neumannFunction);
+    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, GFE::RealTuple<adouble,3>, GFE::Rotation<adouble,3> > >(neumannBoundary,neumannFunction);
     sumEnergy->addLocalEnergy(neumannEnergy);
 
     // The volume load term
@@ -601,10 +601,10 @@ int main (int argc, char *argv[]) try
     sumEnergy->addLocalEnergy(volumeLoadEnergy);
 
     // The local assembler
-    LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy,
+    GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy,
                                                                                      adolcScalarMode);
 
-    MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
+    GFE::MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
     ////////////////////////////////////////////
     //  Set up the solver
@@ -613,10 +613,10 @@ int main (int argc, char *argv[]) try
 #if MIXED_SPACE
     if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion")
     {
-      MixedRiemannianTrustRegionSolver<GridType,
+      GFE::MixedRiemannianTrustRegionSolver<GridType,
           CompositeBasis,
-          DeformationFEBasis, RealTuple<double,3>,
-          OrientationFEBasis, Rotation<double,3> > solver;
+          DeformationFEBasis, GFE::RealTuple<double,3>,
+          OrientationFEBasis, GFE::Rotation<double,3> > solver;
       solver.setup(*grid,
                    &mixedAssembler,
                    deformationFEBasis,
@@ -642,7 +642,7 @@ int main (int argc, char *argv[]) try
     else
     {
       //Create BitVector matching the tangential space
-      const int dimRotationTangent = Rotation<double,3>::TangentVector::dimension;
+      const int dimRotationTangent = GFE::Rotation<double,3>::TangentVector::dimension;
       using VectorForBit = MultiTypeBlockVector<std::vector<FieldVector<double,3> >, std::vector<FieldVector<double,dimRotationTangent> > >;
       using BitVector = Solvers::DefaultBitVector_t<VectorForBit>;
       BitVector dirichletDofs;
@@ -658,7 +658,7 @@ int main (int argc, char *argv[]) try
         for (int j = 0; j < dimRotationTangent; j++)
           dirichletDofs[_1][i][j] = orientationDirichletDofs[i][j];
       }
-      GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, RealTuple<double,3>, OrientationFEBasis, Rotation<double,3>, BitVector> solver;
+      GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, GFE::RealTuple<double,3>, OrientationFEBasis, GFE::Rotation<double,3>, BitVector> solver;
       solver.setup(*grid,
                    &mixedAssembler,
                    x,
@@ -687,10 +687,10 @@ int main (int argc, char *argv[]) try
         dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
     }
 
-    using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace>;
+    using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, TargetSpace>;
     GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
     if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
-      RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+      GFE::RiemannianTrustRegionSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
       solver.setup(*grid,
                    &assembler,
                    xTargetSpace,
@@ -710,7 +710,7 @@ int main (int argc, char *argv[]) try
       solver.solve();
       xTargetSpace = solver.getSol();
     } else {
-      RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+      GFE::RiemannianProximalNewtonSolver<DeformationFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
       solver.setup(*grid,
                    &assembler,
                    xTargetSpace,
@@ -746,16 +746,16 @@ int main (int argc, char *argv[]) try
     auto displacementFunction = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(deformationPowerBasis, displacement);
 
     if (dim == dimworld) {
-      CosseratVTKWriter<GridView>::write(gridView,
+      GFE::CosseratVTKWriter<GridView>::write(gridView,
                                          displacementFunction,
                                          orientationFunction,
                                          std::max(LFE_ORDER, GFE_ORDER),
                                          resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
     } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
-      CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
+      GFE::CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
 #else
-      CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
+      GFE::CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x, resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
 #endif
     }
   }

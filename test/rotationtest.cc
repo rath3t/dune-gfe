@@ -36,16 +36,16 @@ void testDDExp()
 
         if (j==k) {
 
-          SkewMatrix<double,3> forward(v[i]);
+          GFE::SkewMatrix<double,3> forward(v[i]);
           forward.axial()[j] += eps;
-          Rotation<double,3> forwardQ  = Rotation<double,3>::exp(forward);
+          const auto forwardQ  = GFE::Rotation<double,3>::exp(forward);
 
-          SkewMatrix<double,3> center(v[i]);
-          Rotation<double,3> centerQ   = Rotation<double,3>::exp(center);
+          GFE::SkewMatrix<double,3> center(v[i]);
+          const auto centerQ   = GFE::Rotation<double,3>::exp(center);
 
-          SkewMatrix<double,3> backward(v[i]);
+          GFE::SkewMatrix<double,3> backward(v[i]);
           backward.axial()[j] -= eps;
-          Rotation<double,3> backwardQ = Rotation<double,3>::exp(backward);
+          const auto backwardQ = GFE::Rotation<double,3>::exp(backward);
 
           for (int l=0; l<4; l++)
             fdDDExp[l][j][j] = (forwardQ[l] - 2*centerQ[l] + backwardQ[l]) / (eps*eps);
@@ -53,15 +53,15 @@ void testDDExp()
 
         } else {
 
-          SkewMatrix<double,3> ffV(v[i]);      ffV.axial()[j] += eps;     ffV.axial()[k] += eps;
-          SkewMatrix<double,3> fbV(v[i]);      fbV.axial()[j] += eps;     fbV.axial()[k] -= eps;
-          SkewMatrix<double,3> bfV(v[i]);      bfV.axial()[j] -= eps;     bfV.axial()[k] += eps;
-          SkewMatrix<double,3> bbV(v[i]);      bbV.axial()[j] -= eps;     bbV.axial()[k] -= eps;
+          GFE::SkewMatrix<double,3> ffV(v[i]);      ffV.axial()[j] += eps;     ffV.axial()[k] += eps;
+          GFE::SkewMatrix<double,3> fbV(v[i]);      fbV.axial()[j] += eps;     fbV.axial()[k] -= eps;
+          GFE::SkewMatrix<double,3> bfV(v[i]);      bfV.axial()[j] -= eps;     bfV.axial()[k] += eps;
+          GFE::SkewMatrix<double,3> bbV(v[i]);      bbV.axial()[j] -= eps;     bbV.axial()[k] -= eps;
 
-          Rotation<double,3> forwardForwardQ = Rotation<double,3>::exp(ffV);
-          Rotation<double,3> forwardBackwardQ = Rotation<double,3>::exp(fbV);
-          Rotation<double,3> backwardForwardQ = Rotation<double,3>::exp(bfV);
-          Rotation<double,3> backwardBackwardQ = Rotation<double,3>::exp(bbV);
+          const auto forwardForwardQ = GFE::Rotation<double,3>::exp(ffV);
+          const auto forwardBackwardQ = GFE::Rotation<double,3>::exp(fbV);
+          const auto backwardForwardQ = GFE::Rotation<double,3>::exp(bfV);
+          const auto backwardBackwardQ = GFE::Rotation<double,3>::exp(bbV);
 
           for (int l=0; l<4; l++)
             fdDDExp[l][j][k] = (forwardForwardQ[l] + backwardBackwardQ[l]
@@ -75,7 +75,7 @@ void testDDExp()
 
     // Compute analytical second derivative of exp
     std::array<Dune::FieldMatrix<double,3,3>, 4> ddExp;
-    Rotation<double,3>::DDexp(v[i], ddExp);
+    GFE::Rotation<double,3>::DDexp(v[i], ddExp);
 
     for (int m=0; m<4; m++)
       for (int j=0; j<3; j++)
@@ -89,7 +89,7 @@ void testDDExp()
   }
 }
 
-void testRotation(Rotation<double,3> q)
+void testRotation(GFE::Rotation<double,3> q)
 {
   // Make sure it really is a unit quaternion
   q.normalize();
@@ -111,13 +111,13 @@ void testRotation(Rotation<double,3> q)
   // Turn the matrix back into a quaternion, and check whether it is the same one
   // Since the quaternions form a double covering of SO(3), we may either get q back
   // or -q.  We have to check both.
-  Rotation<double,3> newQ;
+  GFE::Rotation<double,3> newQ;
   newQ.set(matrix);
 
-  Rotation<double,3> diff = newQ;
+  GFE::Rotation<double,3> diff = newQ;
   diff -= q;
 
-  Rotation<double,3> sum  = newQ;
+  GFE::Rotation<double,3> sum  = newQ;
   sum += q;
 
   if (diff.infinity_norm() > 1e-12 && sum.infinity_norm() > 1e-12)
@@ -141,7 +141,7 @@ void testRotation(Rotation<double,3> q)
         for (int l=-2; l<2; l++)
           if (i!=0 || j!=0 || k!=0 || l!=0) {
 
-            Rotation<double,3> q2(Quaternion<double>(i,j,k,l));
+            GFE::Rotation<double,3> q2(GFE::Quaternion<double>(i,j,k,l));
             q2.normalize();
 
             // set up corresponding rotation matrix
@@ -167,7 +167,7 @@ void testRotation(Rotation<double,3> q)
   //   Check the operators 'B' that create an orthonormal basis of H
   // ////////////////////////////////////////////////////////////////
 
-  Quaternion<double> Bq[4];
+  GFE::Quaternion<double> Bq[4];
   Bq[0] = q;
   Bq[1] = q.B(0);
   Bq[2] = q.B(1);
@@ -188,10 +188,10 @@ void testRotation(Rotation<double,3> q)
   //  Check whether the derivativeOfMatrixToQuaternion methods works
   //////////////////////////////////////////////////////////////////////
 
-  Tensor3<double,4,3,3> derivative = Rotation<double,3>::derivativeOfMatrixToQuaternion(matrix);
+  GFE::Tensor3<double,4,3,3> derivative = GFE::Rotation<double,3>::derivativeOfMatrixToQuaternion(matrix);
 
   const double eps = 1e-8;
-  Tensor3<double,4,3,3> derivativeFD;
+  GFE::Tensor3<double,4,3,3> derivativeFD;
 
   for (size_t i=0; i<3; i++)
   {
@@ -202,7 +202,7 @@ void testRotation(Rotation<double,3> q)
       auto backwardMatrix = matrix;
       backwardMatrix[i][j] -= eps;
 
-      Rotation<double,3> forwardRotation, backwardRotation;
+      GFE::Rotation<double,3> forwardRotation, backwardRotation;
       forwardRotation.set(forwardMatrix);
       backwardRotation.set(backwardMatrix);
 
@@ -226,10 +226,10 @@ void testRotation(Rotation<double,3> q)
 }
 
 //! test interpolation between two rotations
-bool testInterpolation(const Rotation<double, 3>& a, const Rotation<double, 3>& b) {
+bool testInterpolation(const GFE::Rotation<double, 3>& a, const GFE::Rotation<double, 3>& b) {
 
   // Compute difference on T_a SO(3)
-  Rotation<double, 3> newB = Rotation<double, 3>::interpolate(a, b, 1.0);
+  auto newB = GFE::Rotation<double, 3>::interpolate(a, b, 1.0);
 
   // Compare matrix representation
   FieldMatrix<double, 3, 3> matB;
@@ -247,8 +247,8 @@ bool testInterpolation(const Rotation<double, 3>& a, const Rotation<double, 3>& 
 
 int main (int argc, char *argv[]) try
 {
-  std::vector<Rotation<double,3> > testPoints;
-  ValueFactory<Rotation<double,3> >::get(testPoints);
+  std::vector<GFE::Rotation<double,3> > testPoints;
+  GFE::ValueFactory<GFE::Rotation<double,3> >::get(testPoints);
 
   int nTestPoints = testPoints.size();
 

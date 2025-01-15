@@ -7,7 +7,8 @@
 #include <dune/parmg/parallel/datahandle.hh>
 #endif
 
-namespace Dune {
+namespace Dune::GFE
+{
 
   template <class Basis>
   class GlobalMapper
@@ -63,5 +64,6 @@ namespace Dune {
     std::size_t size_;
   };
 
-}
+}  // namespace Dune::GFE
+
 #endif   // DUNE_GFE_PARALLEL_GLOBALMAPPER_HH

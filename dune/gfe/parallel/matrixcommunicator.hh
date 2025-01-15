@@ -9,6 +9,9 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
+namespace Dune::GFE
+{
+
 template<typename RowGlobalMapper, typename GridView1, typename GridView2, typename MatrixType, typename LocalMapper1, typename LocalMapper2, typename ColumnGlobalMapper=RowGlobalMapper>
 class MatrixCommunicator {
 
@@ -173,5 +176,7 @@ private:
 
   std::vector<TransferMatrixTuple> globalMatrixEntries;
 };
+
+}  // namespace Dune::GFE
 
 #endif

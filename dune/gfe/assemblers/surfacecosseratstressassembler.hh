@@ -9,7 +9,9 @@
 
 #include <dune/matrix-vector/transpose.hh>
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
+
   /** \brief An assembler that can calculate the norms of specific stress tensors for each element for an output by film-on-substrate
 
      \tparam BasisOrderD Basis used for the displacement
@@ -301,5 +303,7 @@ namespace Dune::GFE {
       }
     }
   };
-}
+
+}  // namespace Dune::GFE
+
 #endif

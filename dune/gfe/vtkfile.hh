@@ -17,9 +17,8 @@
 // For parallel infrastructure stuff:
 #include <dune/grid/io/file/vtk.hh>
 
-namespace Dune {
-
-  namespace GFE {
+namespace Dune::GFE
+{
 
     /** \brief A class representing a VTK file, but independent from the Dune grid interface
      *
@@ -367,8 +366,6 @@ namespace Dune {
 
     };
 
-  }
-
-}
+}  // namespace Dune::GFE
 
 #endif

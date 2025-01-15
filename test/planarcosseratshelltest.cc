@@ -43,7 +43,7 @@ int main (int argc, char *argv[])
 {
   MPIHelper::instance(argc, argv);
 
-  using Configuration = TupleVector<std::vector<RealTuple<double,3> >, std::vector<Rotation<double,3> > >;
+  using Configuration = TupleVector<std::vector<GFE::RealTuple<double,3> >, std::vector<GFE::Rotation<double,3> > >;
 
   // solver settings
   const double tolerance                = 1e-4;
@@ -75,7 +75,7 @@ int main (int argc, char *argv[])
   using namespace Dune::Indices;
   using namespace Functions::BasisFactory;
 
-  const int dimRotation = Rotation<double,dim>::embeddedDim;
+  const int dimRotation = GFE::Rotation<double,dim>::embeddedDim;
   auto compositeBasis = makeBasis(
     gridView,
     composite(
@@ -120,8 +120,8 @@ int main (int argc, char *argv[])
     return x;
   });
 
-  BitSetVector<RealTuple<double,dimworld>::TangentVector::dimension> deformationDirichletDofs(deformationFEBasis.size(), false);
-  BitSetVector<Rotation<double,dimworld>::TangentVector::dimension> orientationDirichletDofs(orientationFEBasis.size(), false);
+  BitSetVector<GFE::RealTuple<double,dimworld>::TangentVector::dimension> deformationDirichletDofs(deformationFEBasis.size(), false);
+  BitSetVector<GFE::Rotation<double,dimworld>::TangentVector::dimension> orientationDirichletDofs(orientationFEBasis.size(), false);
 
   const GridView::IndexSet& indexSet = gridView.indexSet();
 
@@ -172,7 +172,7 @@ int main (int argc, char *argv[])
     x[_0][i] = {identity[_0][i][0], identity[_0][i][1], 0.0};
 
   for (auto& rotation : x[_1])
-    rotation = Rotation<double,dimworld>::identity();
+    rotation = GFE::Rotation<double,dimworld>::identity();
 
   //////////////////////////////////
   //  Parameters for the problem
@@ -192,18 +192,18 @@ int main (int argc, char *argv[])
   //////////////////////////////
 
   // The target space, with 'double' and 'adouble' as number types
-  using RigidBodyMotion = GFE::ProductManifold<RealTuple<double,dimworld>,Rotation<double,dimworld> >;
+  using RigidBodyMotion = GFE::ProductManifold<GFE::RealTuple<double,dimworld>,GFE::Rotation<double,dimworld> >;
   using ARigidBodyMotion = typename RigidBodyMotion::template rebind<adouble>::other;
 
   // The total energy
-  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dimworld>,Rotation<adouble,dimworld> > >();
+  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, GFE::RealTuple<adouble,dimworld>,GFE::Rotation<adouble,dimworld> > >();
 
   // The Cosserat shell energy
   using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
   using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
 
-  using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
-      LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
+  using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, GFE::RealTuple<adouble,3> >,
+      GFE::LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, GFE::Rotation<adouble,3> > >;
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(parameters);
 
@@ -212,17 +212,17 @@ int main (int argc, char *argv[])
   sumEnergy->addLocalEnergy(planarCosseratShellEnergy);
 
   // The Neumann surface load term
-  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dimworld>, Rotation<adouble,dimworld> > >(neumannBoundary,neumannFunction);
+  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, GFE::RealTuple<adouble,dimworld>, GFE::Rotation<adouble,dimworld> > >(neumannBoundary,neumannFunction);
   sumEnergy->addLocalEnergy(neumannEnergy);
 
   // The assembler
-  LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> localGFEADOLCStiffness(sumEnergy);
-  MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
+  GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> localGFEADOLCStiffness(sumEnergy);
+  GFE::MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
-  MixedRiemannianTrustRegionSolver<GridType,
+  GFE::MixedRiemannianTrustRegionSolver<GridType,
       CompositeBasis,
-      DeformationFEBasis, RealTuple<double,dimworld>,
-      OrientationFEBasis, Rotation<double,dimworld> > solver;
+      DeformationFEBasis, GFE::RealTuple<double,dimworld>,
+      OrientationFEBasis, GFE::Rotation<double,dimworld> > solver;
   solver.setup(*grid,
                &mixedAssembler,
                deformationFEBasis,

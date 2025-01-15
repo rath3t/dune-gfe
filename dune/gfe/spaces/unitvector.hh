@@ -9,6 +9,10 @@
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/symmetricmatrix.hh>
 
+
+namespace Dune::GFE
+{
+
 template <class T, int N>
 class Rotation;
 
@@ -291,13 +295,13 @@ public:
 
      Unlike the distance itself the squared distance is differentiable at zero
    */
-  static Dune::SymmetricMatrix<T,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
+  static SymmetricMatrix<T,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const UnitVector& p, const UnitVector& q) {
 
     T sp = p.data_ * q.data_;
 
     Dune::FieldVector<T,N> pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
-    Dune::SymmetricMatrix<T,N> A;
+    SymmetricMatrix<T,N> A;
     for (int i=0; i<N; i++)
       for (int j=0; j<=i; j++)
         A(i,j) = pProjected[i]*pProjected[j];
@@ -305,7 +309,7 @@ public:
     A *= secondDerivativeOfArcCosSquared(sp);
 
     // Compute matrix B (see notes)
-    Dune::SymmetricMatrix<T,N> Pq;
+    SymmetricMatrix<T,N> Pq;
     for (int i=0; i<N; i++)
       for (int j=0; j<=i; j++)
         Pq(i,j) = (i==j) - q.data_[i]*q.data_[j];
@@ -532,5 +536,7 @@ private:
 
   Dune::FieldVector<T,N> data_;
 };
+
+}  // namespace Dune::GFE
 
 #endif

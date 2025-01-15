@@ -7,10 +7,11 @@
 
 #include <dune/gfe/parallel/globalmapper.hh>
 
-namespace Dune {
+namespace Dune::GFE
+{
 
   template <class Basis>
-  class GlobalP2Mapper : public Dune::GlobalMapper<Basis>
+  class GlobalP2Mapper : public GlobalMapper<Basis>
   {
     using GridView = typename Basis::GridView;
     using P2BasisMapper = Functions::LagrangeBasis<GridView,2>;
@@ -119,5 +120,7 @@ namespace Dune {
 
     P2BasisMapper p2Mapper_;
   };
-}
+
+}  // namespace Dune::GFE
+
 #endif   // DUNE_GFE_PARALLEL_GLOBALP2MAPPER_HH

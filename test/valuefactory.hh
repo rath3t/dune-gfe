@@ -10,6 +10,10 @@
 #include <dune/gfe/spaces/rotation.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief A class that creates sets of values of various types, to be used in unit tests
  *
  * This is the generic dummy.  The actual work is done in specializations.
@@ -360,5 +364,6 @@ public:
   }
 };
 
+}  // namespace Dune::GFE
 
 #endif

@@ -5,8 +5,8 @@
 
 #include <dune/gfe/assemblers/localenergy.hh>
 
-namespace Dune::GFE {
-
+namespace Dune::GFE
+{
   /**
      \brief Assembles the a sum of energies for a single element by summing up the energies of each GFE::LocalEnergy.
 

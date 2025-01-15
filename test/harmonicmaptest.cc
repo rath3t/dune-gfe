@@ -35,7 +35,7 @@
 const int dim = 2;
 
 // Image space of the geodesic fe functions
-typedef UnitVector<double,3> TargetSpace;
+typedef Dune::GFE::UnitVector<double,3> TargetSpace;
 
 const int order = 1;
 
@@ -150,7 +150,7 @@ int main (int argc, char *argv[])
 
 
 #if GEODESICINTERPOLATION
-  using InterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+  using InterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #else
 #if CONFORMING
   using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace,true>;
@@ -163,13 +163,13 @@ int main (int argc, char *argv[])
 
   GFE::LocalIntegralStiffness<FEBasis,InterpolationRule,TargetSpace> localGFEADOLCStiffness(harmonicDensity);
 
-  GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
+  GFE::GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 
   ///////////////////////////////////////////////////
   //  Create a Riemannian trust-region solver
   ///////////////////////////////////////////////////
 
-  RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
+  GFE::RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
   solver.setup(*grid,
                &assembler,
                x,

@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) try
     << std::endl;
 
   using namespace Dune::Indices;
-  using SolutionType = TupleVector<std::vector<RealTuple<double,3> >, std::vector<UnitVector<double,3> > >;
+  using SolutionType = TupleVector<std::vector<GFE::RealTuple<double,3> >, std::vector<GFE::UnitVector<double,3> > >;
 
   // parse data file
   ParameterTree parameterSet;
@@ -325,12 +325,12 @@ int main(int argc, char *argv[]) try
                     neumannFunction,
                     nullptr, x0);
 
-    using TargetSpace = Dune::GFE::ProductManifold<RealTuple<double,3>,UnitVector<double,3> >;
+    using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::UnitVector<double,3> >;
 
-    LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
+    GFE::LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
         TargetSpace> localGFEADOLCStiffness(simoFoxEnergyLocalStiffness);
 
-    MixedGFEAssembler<decltype(compositeBasis),TargetSpace> assembler(compositeBasis, localGFEADOLCStiffness);
+    GFE::MixedGFEAssembler<decltype(compositeBasis),TargetSpace> assembler(compositeBasis, localGFEADOLCStiffness);
     ////////////////////////////////////////////////////////
     //   Set Dirichlet values
     ////////////////////////////////////////////////////////
@@ -359,10 +359,10 @@ int main(int argc, char *argv[]) try
     // /////////////////////////////////////////////////
     if (parameterSet.get<std::string>("solvertype", "trustRegion") == "trustRegion") {
 
-      MixedRiemannianTrustRegionSolver<Grid,
+      GFE::MixedRiemannianTrustRegionSolver<Grid,
           decltype(compositeBasis),
-          MidsurfaceFEBasis, RealTuple<double,3>,
-          DirectorFEBasis, UnitVector<double,3> > solver;
+          MidsurfaceFEBasis, GFE::RealTuple<double,3>,
+          DirectorFEBasis, GFE::UnitVector<double,3> > solver;
 
       solver.setup(*grid,
                    &assembler,
@@ -403,9 +403,9 @@ int main(int argc, char *argv[]) try
         for (int j = 3; j < TargetSpace::TangentVector::dimension; j ++)
           dirichletDofsTargetSpace[i][j] = orientationDirichletDofs[i][j-3];
       }
-      using GFEAssemblerWrapper = Dune::GFE::GeodesicFEAssemblerWrapper<decltype(compositeBasis), MidsurfaceFEBasis, TargetSpace>;
+      using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<decltype(compositeBasis), MidsurfaceFEBasis, TargetSpace>;
       GFEAssemblerWrapper assemblerNotMixed(&assembler, midsurfaceFEBasis);
-      RiemannianProximalNewtonSolver<MidsurfaceFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
+      GFE::RiemannianProximalNewtonSolver<MidsurfaceFEBasis, TargetSpace, GFEAssemblerWrapper> solver;
       solver.setup(*grid,
                    &assemblerNotMixed,
                    xTargetSpace,

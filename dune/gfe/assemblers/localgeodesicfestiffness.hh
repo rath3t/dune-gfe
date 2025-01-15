@@ -64,8 +64,7 @@ namespace Dune::GFE
       // Type of the local Hessian
       using CompositeHessian = FieldMatrix<Matrix<double>,2,2>;
     };
-  }
-}
+  }  // namespace Impl
 
 template<class Basis, class TargetSpace>
 class LocalGeodesicFEStiffness
@@ -77,16 +76,18 @@ public:
 
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
+                                          const typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
                                           std::vector<double>& localGradient,
-                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
+                                          typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
 
   /** \brief Assemble the local gradient and stiffness matrix at the current position -- Composite version
    */
   virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
+                                          const typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
                                           std::vector<double>& localGradient,
-                                          typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const = 0;
+                                          typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const = 0;
 };
+
+}  // namespace Dune::GFE
 
 #endif

@@ -208,7 +208,7 @@ namespace Dune::GFE
     static auto secondDerivativeOfDistanceSquaredWRTSecondArgument(const ProductManifold& a,
                                                                    const ProductManifold& b)
     {
-      Dune::SymmetricMatrix<field_type,embeddedDim> result;
+      SymmetricMatrix<field_type,embeddedDim> result;
       auto secDerivOfDistSqWRTSecArgFunctor = [] (auto& argsTuple, std::array<std::size_t,2>& posHelper, const auto& manifoldInt)
                                               {
                                                 auto& deriv   = std::get<0>(argsTuple);

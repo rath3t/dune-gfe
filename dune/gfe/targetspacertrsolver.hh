@@ -5,6 +5,10 @@
 
 #include <dune/gfe/symmetricmatrix.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief Riemannian trust-region solver for geodesic finite-element problems
    \tparam TargetSpace The manifold that our functions take values in
  */
@@ -18,7 +22,7 @@ class TargetSpaceRiemannianTRSolver
   // Centralize the field type here
   typedef typename TargetSpace::ctype field_type;
 
-  typedef Dune::SymmetricMatrix<field_type, embeddedBlocksize> MatrixType;
+  typedef SymmetricMatrix<field_type, embeddedBlocksize> MatrixType;
   typedef Dune::FieldVector<field_type, embeddedBlocksize>     CorrectionType;
 
 public:
@@ -61,6 +65,8 @@ protected:
   size_t minNumberOfIterations_;
 
 };
+
+}  // namespace Dune::GFE
 
 #include "targetspacertrsolver.cc"
 

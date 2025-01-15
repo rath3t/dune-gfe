@@ -22,6 +22,9 @@
 #include <dune/gfe/spaces/rotation.hh>
 
 
+namespace Dune::GFE
+{
+
 /** \brief Write the configuration of a Cosserat material in VTK format */
 template <class GridView>
 class CosseratVTKWriter
@@ -447,5 +450,7 @@ public:
   }
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

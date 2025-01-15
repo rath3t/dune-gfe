@@ -10,9 +10,8 @@
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
-namespace Dune {
-
-  namespace GFE {
+namespace Dune::GFE
+{
 
     /** \brief Interpolate on a manifold, as fast as we can
      *
@@ -149,7 +148,6 @@ namespace Dune {
         return TargetSpace(c);
       }
     }
-  }   // namespace GFE
 
-}   // namespace Dune
+}   // namespace Dune::GFE
 #endif

@@ -10,6 +10,10 @@
 
 #include <dune/solvers/common/wrapownshare.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces
  */
 template <class Basis, class TargetSpace>
@@ -273,6 +277,6 @@ computeEnergy(const std::vector<TargetSpace>& sol) const
 
 }
 
-
+}  // namespace Dune::GFE
 
 #endif

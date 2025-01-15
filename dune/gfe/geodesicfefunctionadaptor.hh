@@ -6,6 +6,10 @@
 
 #include "localgeodesicfefunction.hh"
 
+
+namespace Dune::GFE
+{
+
 template <class Basis, class TargetSpace>
 class GeodesicFEFunctionAdaptor
 {
@@ -207,5 +211,7 @@ public:
   }
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

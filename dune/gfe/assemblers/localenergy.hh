@@ -7,9 +7,9 @@
 
 #include <dune/gfe/spaces/productmanifold.hh>
 
-namespace Dune {
-
-  namespace GFE:: Impl
+namespace Dune::GFE
+{
+  namespace Impl
   {
     /** \brief A class exporting container types for coefficient sets
      *
@@ -34,9 +34,8 @@ namespace Dune {
       using Coefficients = std::vector<ProductManifold<Factors...> >;
       using CompositeCoefficients = TupleVector<std::vector<Factors>... >;
     };
-  }
+  }  // namespace Impl
 
-  namespace GFE {
 
     /** \brief Base class for energies defined by integrating over one grid element */
     template<class Basis, class TargetSpace>
@@ -69,8 +68,6 @@ namespace Dune {
 
     };
 
-  } // namespace GFE
-
-}  // namespace Dune
+}  // namespace Dune::GFE
 
 #endif  // DUNE_GFE_LOCALENERGY_HH

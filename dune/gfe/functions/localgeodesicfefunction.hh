@@ -18,6 +18,10 @@
 #include <dune/gfe/tensorssd.hh>
 #include <dune/gfe/linearalgebra.hh>
 
+
+namespace Dune::GFE
+{
+
 // forward declaration
 template <class LocalFiniteElement, class TargetSpace>
 class LocalGfeTestFunctionBasis;
@@ -143,7 +147,7 @@ public:
   }
 private:
 
-  static Dune::SymmetricMatrix<RT,embeddedDim> pseudoInverse(const Dune::SymmetricMatrix<RT,embeddedDim>& dFdq,
+  static SymmetricMatrix<RT,embeddedDim> pseudoInverse(const SymmetricMatrix<RT,embeddedDim>& dFdq,
                                                              const TargetSpace& q)
   {
     const int shortDim = TargetSpace::TangentVector::dimension;
@@ -164,7 +168,7 @@ private:
 
     A.invert();
 
-    Dune::SymmetricMatrix<RT,embeddedDim> result;
+    SymmetricMatrix<RT,embeddedDim> result;
     result = 0.0;
     for (int i=0; i<embeddedDim; i++)
       for (int j=0; j<=i; j++)
@@ -297,7 +301,7 @@ evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace
 
   AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-  Dune::SymmetricMatrix<RT,embeddedDim> dFdq;
+  SymmetricMatrix<RT,embeddedDim> dFdq;
   assembler.assembleEmbeddedHessian(q,dFdq);
 
   // We want to solve
@@ -353,7 +357,7 @@ evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& loc
 
   AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
-  Dune::SymmetricMatrix<RT,embeddedDim> dFdq;
+  SymmetricMatrix<RT,embeddedDim> dFdq;
   assembler.assembleEmbeddedHessian(q,dFdq);
 
   const int shortDim = TargetSpace::TangentVector::dimension;
@@ -461,7 +465,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
   AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
   /** \todo Use a symmetric matrix here */
-  Dune::SymmetricMatrix<RT,embeddedDim> dFdq;
+  SymmetricMatrix<RT,embeddedDim> dFdq;
   assembler.assembleEmbeddedHessian(q,dFdq);
 
 
@@ -476,7 +480,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
   // dFDq is not invertible, if the target space is embedded into a higher-dimensional
   // Euclidean space.  Therefore we use its pseudo inverse.  I don't think that is the
   // best way, though.
-  Dune::SymmetricMatrix<RT,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq,q);
+  SymmetricMatrix<RT,embeddedDim> dFdqPseudoInv = pseudoInverse(dFdq,q);
 
   //
   Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> dvDqF
@@ -497,7 +501,7 @@ evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& 
   TensorSSD<RT, embeddedDim,embeddedDim> dqdwF(coefficients_.size());
 
   for (size_t k=0; k<coefficients_.size(); k++) {
-    Dune::SymmetricMatrix<RT,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
+    SymmetricMatrix<RT,embeddedDim> hesse = TargetSpace::secondDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[k], q);
     for (int i=0; i<embeddedDim; i++)
       for (int j=0; j<=i; j++)
         dqdwF(i, j, k) = dqdwF(j, i, k) = hesse(i,j);
@@ -838,5 +842,6 @@ private:
   std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > orientationFEFunction_;
 };
 
+}  // namespace Dune::GFE
 
 #endif

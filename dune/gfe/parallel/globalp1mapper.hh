@@ -6,7 +6,8 @@
 
 #include <dune/gfe/parallel/globalmapper.hh>
 
-namespace Dune {
+namespace Dune::GFE
+{
 
   template <class Basis>
   class GlobalP1Mapper : public GlobalMapper<Basis>
@@ -79,5 +80,6 @@ namespace Dune {
 #endif
   };
 
-}
+}  // namespace Dune::GFE
+
 #endif /* DUNE_GFE_PARALLEL_GLOBALP1MAPPER_HH */

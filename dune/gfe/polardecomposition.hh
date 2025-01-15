@@ -13,7 +13,8 @@
 //  Two Methods to compute the Polar Factor of a 3x3 matrix
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
 
   class PolarDecomposition
   {
@@ -321,6 +322,7 @@ namespace Dune::GFE {
       return v;
     }
   };
-}
+
+}  // namespace Dune::GFE
 
 #endif

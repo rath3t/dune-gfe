@@ -30,12 +30,12 @@ int main(int argc, char** argv)
   auto basis = Functions::BasisFactory::makeBasis(gridView, lagrange<2>());
 
   // Make a test coefficient set
-  using TargetSpace = UnitVector<double,3>;
+  using TargetSpace = GFE::UnitVector<double,3>;
 
   std::vector<TargetSpace> coefficients(basis.size());
   std::fill(coefficients.begin(), coefficients.end(), FieldVector<double,3>({1,0,0}));
 
-  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, decltype(basis)::LocalView::Tree::FiniteElement, TargetSpace>;
+  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, decltype(basis)::LocalView::Tree::FiniteElement, TargetSpace>;
   GFE::EmbeddedGlobalGFEFunction<decltype(basis),GeodesicInterpolationRule,TargetSpace> testFunction(basis, coefficients);
 
   // Evaluate the function at the element centers

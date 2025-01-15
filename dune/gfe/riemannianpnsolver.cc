@@ -19,7 +19,7 @@
 #include <dune/gfe/parallel/vectorcommunicator.hh>
 
 template <class Basis, class TargetSpace, class Assembler>
-void RiemannianProximalNewtonSolver<Basis, TargetSpace, Assembler>::
+void Dune::GFE::RiemannianProximalNewtonSolver<Basis, TargetSpace, Assembler>::
 setup(const GridType& grid,
       const Assembler* assembler,
       const SolutionType& x,
@@ -65,7 +65,7 @@ setup(const GridType& grid,
 }
 
 template <class Basis, class TargetSpace, class Assembler>
-void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::
+void Dune::GFE::RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::
 setup(const GridType& grid,
       const Assembler* assembler,
       const SolutionType& x,
@@ -153,8 +153,8 @@ setup(const GridType& grid,
 
   // Write all intermediate solutions, if requested
   if (instrumented_
-      && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get()))
-    dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get())->historyBuffer_ = instrumentedPath_ + "/mgHistory";
+      && dynamic_cast<::IterativeSolver<CorrectionType>*>(innerSolver_.get()))
+    dynamic_cast<::IterativeSolver<CorrectionType>*>(innerSolver_.get())->historyBuffer_ = instrumentedPath_ + "/mgHistory";
 
   // ////////////////////////////////////////////////////////////
   //    Create Hessian matrix and its occupation structure
@@ -168,7 +168,7 @@ setup(const GridType& grid,
 
 
 template <class Basis, class TargetSpace, class Assembler>
-void RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
+void Dune::GFE::RiemannianProximalNewtonSolver<Basis,TargetSpace,Assembler>::solve()
 {
   int rank = grid_->comm().rank();
 

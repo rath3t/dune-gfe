@@ -12,6 +12,9 @@
 #include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 
 
+namespace Dune::GFE
+{
+
 /** \brief A global FE assembler for problems involving functions that map into non-Euclidean spaces
  */
 template <class Basis, class TargetSpace>
@@ -340,5 +343,7 @@ computeEnergy(const std::vector<TargetSpace0>& configuration0,
   return energy;
 
 }
+
+}  // namespace Dune::GFE
 
 #endif

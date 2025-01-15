@@ -14,6 +14,10 @@
 #include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief Assembles energy gradient and Hessian with ADOL-C (automatic differentiation)
  */
 template<class Basis, class TargetSpace>
@@ -824,5 +828,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     }
   }
 }
+
+}  // namespace Dune::GFE
 
 #endif

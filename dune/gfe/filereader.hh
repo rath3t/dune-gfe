@@ -8,8 +8,9 @@
 // This is a custom file format parser which reads in a grid deformation file
 // The file must contain lines of the format <grid vertex>:<displacement or rotation>
 // !!! THIS IS A TEMPORARY SOLUTION AND WILL BE REPLACED BY THE Dune::VtkReader in dune-vtk/dune/vtk/vtkreader.hh !!!
-namespace Dune {
-  namespace GFE {
+namespace Dune::GFE
+{
+
     // Convert the pairs {grid vertex, vector of dimension d} in the given file to a map
     template <int d>
     static std::unordered_map<std::string, FieldVector<double,d> > transformFileToMap(std::string pathToFile) {
@@ -38,6 +39,6 @@ namespace Dune {
       }
       return map;
     }
-  }
+
 }
 #endif

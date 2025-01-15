@@ -9,7 +9,7 @@
 #include <dune/gfe/gramschmidtsolver.hh>
 
 template <class TargetSpace>
-void TargetSpaceRiemannianTRSolver<TargetSpace>::
+void Dune::GFE::TargetSpaceRiemannianTRSolver<TargetSpace>::
 setup(const AverageDistanceAssembler<TargetSpace>* assembler,
       const TargetSpace& x,
       double tolerance,
@@ -25,7 +25,7 @@ setup(const AverageDistanceAssembler<TargetSpace>* assembler,
 
 
 template <class TargetSpace>
-void TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
+void Dune::GFE::TargetSpaceRiemannianTRSolver<TargetSpace>::solve()
 {
   assert(minNumberOfIterations_ > 0);
 

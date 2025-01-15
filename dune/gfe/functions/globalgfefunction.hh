@@ -20,8 +20,8 @@
 #include <dune/fufem/functions/virtualgridfunction.hh>
 #endif
 
-namespace Dune::GFE {
-
+namespace Dune::GFE
+{
   namespace Impl {
 
 #if DUNE_VERSION_LTE(DUNE_FUFEM, 2, 9)

@@ -296,6 +296,6 @@ namespace Dune::GFE
     double kappa_;
   };
 
-}
+}  // namespace Dune::GFE
 
 #endif   //#ifndef DUNE_GFE_DENSITIES_PLANARCOSSERATSHELLDENSITY_HH

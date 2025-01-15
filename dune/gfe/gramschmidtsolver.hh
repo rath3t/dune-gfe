@@ -5,6 +5,10 @@
 
 #include <dune/gfe/symmetricmatrix.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief Direct solver for a dense symmetric linear system, using an orthonormal basis
  *
  * This solver computes an A-orthonormal basis, and uses that to compute the solution
@@ -24,7 +28,7 @@ class GramSchmidtSolver
    * \param matrix The matrix inducing the matrix norm
    * \param[in,out] v The vector to normalize
    */
-  static void normalize(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
+  static void normalize(const SymmetricMatrix<field_type,embeddedDim>& matrix,
                         Dune::FieldVector<field_type,embeddedDim>& v)
   {
     using std::sqrt;
@@ -36,7 +40,7 @@ class GramSchmidtSolver
    *
    * \param matrix The matrix the defines the scalar product
    */
-  static void project(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
+  static void project(const SymmetricMatrix<field_type,embeddedDim>& matrix,
                       const Dune::FieldVector<field_type,embeddedDim>& vi,
                       Dune::FieldVector<field_type,embeddedDim>& vj)
   {
@@ -59,7 +63,7 @@ public:
    * \param basis Any basis of the orthogonal complement of the kernel,
    *              used as the input for the Gram-Schmidt orthogonalization process
    */
-  GramSchmidtSolver(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
+  GramSchmidtSolver(const SymmetricMatrix<field_type,embeddedDim>& matrix,
                     const Dune::FieldMatrix<field_type,rank,embeddedDim>& basis)
     : orthonormalBasis_(basis)
   {
@@ -95,7 +99,7 @@ public:
 
    * \param basis Any basis of the space, used as the input for the Gram-Schmidt orthogonalization process
    */
-  static void solve(const Dune::SymmetricMatrix<field_type,embeddedDim>& matrix,
+  static void solve(const SymmetricMatrix<field_type,embeddedDim>& matrix,
                     Dune::FieldVector<field_type,embeddedDim>& x,
                     const Dune::FieldVector<field_type,embeddedDim>& rhs,
                     const Dune::FieldMatrix<field_type,rank,embeddedDim>& basis)
@@ -130,5 +134,7 @@ private:
   Dune::FieldMatrix<field_type,rank,embeddedDim> orthonormalBasis_;
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

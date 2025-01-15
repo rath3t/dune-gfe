@@ -5,6 +5,10 @@
 
 #include <dune/gfe/symmetricmatrix.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \tparam TargetSpace The manifold that we are mapping to */
 template <class TargetSpace, class WeightType=double>
 class AverageDistanceAssembler
@@ -70,7 +74,7 @@ public:
   }
 
   void assembleEmbeddedHessian(const TargetSpace& x,
-                               Dune::SymmetricMatrix<ctype,embeddedSize>& matrix) const
+                               SymmetricMatrix<ctype,embeddedSize>& matrix) const
   {
     matrix = 0;
     for (size_t i=0; i<coefficients_.size(); i++)
@@ -81,7 +85,7 @@ public:
   void assembleHessian(const TargetSpace& x,
                        Dune::FieldMatrix<ctype,size,size>& matrix) const
   {
-    Dune::SymmetricMatrix<ctype,embeddedSize> embeddedHessian;
+    SymmetricMatrix<ctype,embeddedSize> embeddedHessian;
     assembleEmbeddedHessian(x,embeddedHessian);
 
     Dune::FieldMatrix<ctype,size,embeddedSize> frame = x.orthonormalFrame();
@@ -97,5 +101,7 @@ public:
   std::vector<WeightType> weights_;
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

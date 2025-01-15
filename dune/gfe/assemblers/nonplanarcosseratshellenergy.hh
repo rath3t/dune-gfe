@@ -60,8 +60,7 @@ namespace Dune::GFE
         return localView.tree().finiteElement();
       }
     };
-  }
-}
+  }  // namespace Impl
 
 /** \brief Assembles the cosserat energy for a single element.
  *
@@ -347,5 +346,7 @@ energy(const typename Basis::LocalView& localView,
 
   return energy;
 }
+
+}  // namespace Dune::GFE
 
 #endif   //#ifndef DUNE_GFE_NONPLANARCOSSERATSHELLENERGY_HH

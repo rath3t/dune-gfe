@@ -18,8 +18,8 @@
 
 #include <dune/gfe/functions/globalgfefunction.hh>
 
-namespace Dune::GFE {
-
+namespace Dune::GFE
+{
   template<typename EGGF>
   class EmbeddedGlobalGFEFunctionDerivative;
 

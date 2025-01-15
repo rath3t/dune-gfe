@@ -8,6 +8,10 @@
 
 #include <dune/functions/functionspacebases/lagrangebasis.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief Mimic a dune-grid mapper for a P2 space, using the dune-functions dof ordering of such a space
  */
 template<class GridView>
@@ -48,5 +52,7 @@ public:
 
   Dune::Functions::LagrangeBasis<GridView,2> p2Basis_;
 };
+
+}  // namespace Dune::GFE
 
 #endif

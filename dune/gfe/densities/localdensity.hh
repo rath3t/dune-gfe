@@ -10,7 +10,8 @@
 
 #include <dune/istl/matrix.hh>
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
 
   /** \brief A base class for energy densities to be evaluated in an integral energy
    *

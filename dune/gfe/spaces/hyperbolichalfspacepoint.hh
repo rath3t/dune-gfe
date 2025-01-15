@@ -9,6 +9,10 @@
 
 #include <dune/gfe/tensor3.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief A point in the hyperbolic half-space H^N
 
     \tparam N Dimension of the hyperbolic half-space
@@ -548,5 +552,7 @@ private:
 
   Dune::FieldVector<T,N> data_;
 };
+
+}  // namespace Dune::GFE
 
 #endif

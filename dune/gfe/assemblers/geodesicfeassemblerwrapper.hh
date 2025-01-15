@@ -5,7 +5,8 @@
 #include <dune/common/tuplevector.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
 
   /** \brief A wrapper that wraps a MixedGFEAssembler into an assembler that does not distinguish between the two finite element spaces
 
@@ -72,7 +73,8 @@ namespace Dune::GFE {
     auto splitVector(const std::vector<TargetSpace>& sol) const;
     std::unique_ptr<MatrixType> hessianMixed_;
   }; // end class
-} //end namespace
+
+}  // namespace Dune::GFE
 
 
 template <class Basis, class ScalarBasis, class TargetSpace>

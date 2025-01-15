@@ -9,6 +9,9 @@
 #include <dune/gfe/symmetricmatrix.hh>
 
 
+namespace Dune::GFE
+{
+
 /** \brief Implement a tuple of real numbers as a Riemannian manifold
 
    Currently this class only exists for testing purposes.
@@ -145,9 +148,9 @@ public:
 
      Unlike the distance itself the squared distance is differentiable at zero
    */
-  static Dune::SymmetricMatrix<T,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
+  static SymmetricMatrix<T,N> secondDerivativeOfDistanceSquaredWRTSecondArgument(const RealTuple& a, const RealTuple& b) {
 
-    Dune::SymmetricMatrix<T,N> result;
+    SymmetricMatrix<T,N> result;
     for (int i=0; i<N; i++)
       for (int j=0; j<=i; j++)
         result(i,j) = 2*(i==j);
@@ -253,5 +256,7 @@ private:
   Dune::FieldVector<T,N> data_;
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

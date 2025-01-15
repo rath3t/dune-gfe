@@ -45,7 +45,7 @@ enum InterpolationType {Geodesic, ProjectionBased, Nonconforming};
 template <class GridView, InterpolationType interpolationType>
 int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
 {
-  using TargetSpace = UnitVector<double,dim>;
+  using TargetSpace = GFE::UnitVector<double,dim>;
 
   // Finite element order
   const int order = 1;
@@ -97,8 +97,8 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
   //  Set up the two assemblers
   //////////////////////////////////////////////////////////////
 
-  std::shared_ptr<GeodesicFEAssembler<FEBasis,TargetSpace> > assemblerADOLC;
-  std::shared_ptr<LocalGeodesicFEStiffness<FEBasis,TargetSpace> > localIntegralStiffness;
+  std::shared_ptr<GFE::GeodesicFEAssembler<FEBasis,TargetSpace> > assemblerADOLC;
+  std::shared_ptr<GFE::LocalGeodesicFEStiffness<FEBasis,TargetSpace> > localIntegralStiffness;
 
   using Element = typename GridView::template Codim<0>::Entity;
   auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<Element,TargetSpace> >();
@@ -107,12 +107,12 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
   if constexpr (interpolationType==Geodesic)
   {
     std::cout << "Using geodesic interpolation" << std::endl;
-    using LocalInterpolationRule = LocalGeodesicFEFunction<dim,
+    using LocalInterpolationRule = GFE::LocalGeodesicFEFunction<dim,
         typename GridView::ctype,
         decltype(feBasis.localView().tree().finiteElement()),
         TargetSpace>;
 
-    using ALocalInterpolationRule = LocalGeodesicFEFunction<dim,
+    using ALocalInterpolationRule = GFE::LocalGeodesicFEFunction<dim,
         typename GridView::ctype,
         decltype(feBasis.localView().tree().finiteElement()),
         ATargetSpace>;
@@ -120,8 +120,8 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
     // Assemble using the old assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensityA);
 
-    auto localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
-    assemblerADOLC = std::make_shared<GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
+    auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
+    assemblerADOLC = std::make_shared<GFE::GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
 
     // Assemble using the new assembler
     localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<FEBasis,LocalInterpolationRule,TargetSpace> >(harmonicDensity);
@@ -146,15 +146,15 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
     // Assemble using the old assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensityA);
 
-    auto localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
-    assemblerADOLC = std::make_shared<GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
+    auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
+    assemblerADOLC = std::make_shared<GFE::GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
 
     // Assemble using the new assembler
     localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<FEBasis,LocalInterpolationRule,TargetSpace> >(harmonicDensity);
   }
 
   // TODO: The assembler should really get the tangent basis.
-  auto assemblerIntegralStiffness = std::make_shared<GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localIntegralStiffness);
+  auto assemblerIntegralStiffness = std::make_shared<GFE::GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localIntegralStiffness);
 
   //////////////////////////////////////////////////////////////
   //  Assemble
@@ -224,8 +224,8 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   const int deformationOrder = 2;
   const int rotationOrder = 1;
 
-  const static int deformationBlocksize = RealTuple<double,dim>::TangentVector::dimension;
-  const static int orientationBlocksize = Rotation<double,dim>::TangentVector::dimension;
+  const static int deformationBlocksize = GFE::RealTuple<double,dim>::TangentVector::dimension;
+  const static int orientationBlocksize = GFE::Rotation<double,dim>::TangentVector::dimension;
 
   using CorrectionType0 = BlockVector<FieldVector<double, deformationBlocksize> >;
   using CorrectionType1 = BlockVector<FieldVector<double, orientationBlocksize> >;
@@ -242,7 +242,7 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   //  Construct all needed function space bases
   //////////////////////////////////////////////////////////////////////////////////
 
-  const int dimRotation = Rotation<double,dim>::embeddedDim;
+  const int dimRotation = GFE::Rotation<double,dim>::embeddedDim;
   auto compositeBasis = makeBasis(
     gridView,
     composite(
@@ -260,7 +260,7 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   //  Construct the configuration where to assemble the tangent problem
   /////////////////////////////////////////////////////////////////////////
 
-  using CoefficientVector = TupleVector<std::vector<RealTuple<double,dim> >,std::vector<Rotation<double,dim> > >;
+  using CoefficientVector = TupleVector<std::vector<GFE::RealTuple<double,dim> >,std::vector<GFE::Rotation<double,dim> > >;
   CoefficientVector x;
   x[_0].resize(compositeBasis.size({0}));
   x[_1].resize(compositeBasis.size({1}));
@@ -279,7 +279,7 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
     return y;
   });
   for (size_t i = 0; i < x[_1].size(); i++)
-    x[_1][i] = Rotation<double,dim>(initialIterate[_1][i]);
+    x[_1][i] = GFE::Rotation<double,dim>(initialIterate[_1][i]);
 
   // Set of material parameters
   ParameterTree parameters;
@@ -295,8 +295,8 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   parameters["b2"] = "1";
   parameters["b3"] = "1";
 
-  using RigidBodyMotion  = GFE::ProductManifold<RealTuple<double,dim>, Rotation<double,dim> >;
-  using ARigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
+  using RigidBodyMotion  = GFE::ProductManifold<GFE::RealTuple<double,dim>, GFE::Rotation<double,dim> >;
+  using ARigidBodyMotion = GFE::ProductManifold<GFE::RealTuple<adouble,dim>, GFE::Rotation<adouble,dim> >;
 
   using Element = typename GridView::template Codim<0>::Entity;
 
@@ -314,29 +314,29 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   //  Set up the two assemblers
   //////////////////////////////////////////////////////////////
 
-  std::shared_ptr<MixedGFEAssembler<CompositeBasis,RigidBodyMotion> > assemblerADOLC;
-  std::shared_ptr<LocalGeodesicFEStiffness<CompositeBasis,RigidBodyMotion> > localIntegralStiffness;
+  std::shared_ptr<GFE::MixedGFEAssembler<CompositeBasis,RigidBodyMotion> > assemblerADOLC;
+  std::shared_ptr<GFE::LocalGeodesicFEStiffness<CompositeBasis,RigidBodyMotion> > localIntegralStiffness;
 
   if constexpr (interpolationType==Geodesic)
   {
     std::cout << "Using geodesic interpolation" << std::endl;
 
-    using LocalDeformationInterpolationRule = LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<double,dim> >;
-    using LocalOrientationInterpolationRule = LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<double,dim> >;
+    using LocalDeformationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<double,dim> >;
+    using LocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<double,dim> >;
 
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 
-    using ALocalDeformationInterpolationRule = LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<adouble,dim> >;
-    using ALocalOrientationInterpolationRule = LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<adouble,dim> >;
+    using ALocalDeformationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<adouble,dim> >;
+    using ALocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<adouble,dim> >;
 
     using ALocalInterpolationRule = std::tuple<ALocalDeformationInterpolationRule,ALocalOrientationInterpolationRule>;
 
     // Assemble using the ADOL-C assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(aBulkCosseratDensity);
 
-    auto localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> >(energy);
+    auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> >(energy);
 
-    assemblerADOLC = std::make_shared<MixedGFEAssembler<CompositeBasis,RigidBodyMotion> >(compositeBasis, localGFEADOLCStiffness);
+    assemblerADOLC = std::make_shared<GFE::MixedGFEAssembler<CompositeBasis,RigidBodyMotion> >(compositeBasis, localGFEADOLCStiffness);
 
     // Assemble using the new assembler
     localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<CompositeBasis,LocalInterpolationRule,RigidBodyMotion> >(bulkCosseratDensity);
@@ -345,28 +345,28 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   {
     std::cout << "Using projection-based interpolation" << std::endl;
 
-    using LocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<double,dim> >;
-    using LocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<double,dim> >;
+    using LocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<double,dim> >;
+    using LocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<double,dim> >;
 
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 
-    using ALocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<adouble,dim> >;
-    using ALocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<adouble,dim> >;
+    using ALocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<adouble,dim> >;
+    using ALocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<adouble,dim> >;
 
     using ALocalInterpolationRule = std::tuple<ALocalDeformationInterpolationRule,ALocalOrientationInterpolationRule>;
 
     // Assemble using the ADOL-C assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(aBulkCosseratDensity);
 
-    auto localGFEADOLCStiffness = std::make_shared<LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> >(energy);
+    auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> >(energy);
 
-    assemblerADOLC = std::make_shared<MixedGFEAssembler<CompositeBasis,RigidBodyMotion> >(compositeBasis, localGFEADOLCStiffness);
+    assemblerADOLC = std::make_shared<GFE::MixedGFEAssembler<CompositeBasis,RigidBodyMotion> >(compositeBasis, localGFEADOLCStiffness);
 
     // Assemble using the new assembler
     localIntegralStiffness = std::make_shared<GFE::LocalIntegralStiffness<CompositeBasis,LocalInterpolationRule,RigidBodyMotion> >(bulkCosseratDensity);
   }
 
-  MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssemblerSmart(compositeBasis,
+  GFE::MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssemblerSmart(compositeBasis,
                                                                         localIntegralStiffness);
 
   //////////////////////////////////////////////////////////////

@@ -5,6 +5,10 @@
 
 #include <dune/solvers/common/boxconstraint.hh>
 
+
+namespace Dune::GFE
+{
+
 template <int blocksize, class field_type=double>
 class MaxNormTrustRegion
 {
@@ -95,5 +99,7 @@ private:
   field_type radius_;
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

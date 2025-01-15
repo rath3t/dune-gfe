@@ -19,7 +19,7 @@ namespace Dune::GFE
   template <typename GridView>
   struct MapperFactory<Functions::LagrangeBasis<GridView,1> >
   {
-    typedef Dune::GlobalP1Mapper<Functions::LagrangeBasis<GridView,1> > GlobalMapper;
+    typedef GlobalP1Mapper<Functions::LagrangeBasis<GridView,1> > GlobalMapper;
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<GridView> LocalMapper;
     static LocalMapper createLocalMapper(const GridView& gridView)
     {
@@ -30,7 +30,7 @@ namespace Dune::GFE
   template <typename GridView>
   struct MapperFactory<Dune::Functions::LagrangeBasis<GridView,2> >
   {
-    typedef Dune::GlobalP2Mapper<Functions::LagrangeBasis<GridView,2> > GlobalMapper;
+    typedef GlobalP2Mapper<Functions::LagrangeBasis<GridView,2> > GlobalMapper;
     typedef P2BasisMapper<GridView> LocalMapper;
     static LocalMapper createLocalMapper(const GridView& gridView)
     {

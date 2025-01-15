@@ -12,7 +12,8 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
 
   /** \brief Get LocalFiniteElements from a localView, for different tree depths of the local view
    *
@@ -360,5 +361,7 @@ namespace Dune::GFE {
     }
     return energy;
   }
+
 }  // namespace Dune::GFE
+
 #endif  // DUNE_GFE_SIMOFOX_ENERGY_HH

@@ -18,7 +18,7 @@ using namespace Dune::Indices;
 int main (int argc, char *argv[]) try
 {
   // Type used for algebraic rod configurations
-  using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
+  using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
   using SolutionType = std::vector<TargetSpace>;
 
   // Problem settings
@@ -45,12 +45,12 @@ int main (int argc, char *argv[]) try
   {
     double s = double(i)/(x.size()-1);
     x[i][_0] = {0.1*std::cos(2*M_PI*s), 0.1*std::sin(2*M_PI*s), s};
-    x[i][_1] = Rotation<double,3>::identity();
-    //x[i].q = Quaternion<double>(zAxis, (double(i)*M_PI)/(2*(x.size()-1)) );
+    x[i][_1] = GFE::Rotation<double,3>::identity();
+    //x[i].q = GFE::Quaternion<double>(zAxis, (double(i)*M_PI)/(2*(x.size()-1)) );
   }
 
   FieldVector<double,3> zAxis(0);  zAxis[2]=1;
-  x.back()[_1] = Rotation<double,3>(zAxis, M_PI/4);
+  x.back()[_1] = GFE::Rotation<double,3>(zAxis, M_PI/4);
 
   // /////////////////////////////////////////////////////////////////////
   //   Create a second, rotated copy of the configuration
@@ -59,7 +59,7 @@ int main (int argc, char *argv[]) try
   FieldVector<double,3> displacement {0, 1, 0};
 
   FieldVector<double,3> axis = {1,0,0};
-  Rotation<double,3> rotation(axis,M_PI/2);
+  GFE::Rotation<double,3> rotation(axis,M_PI/2);
 
   SolutionType rotatedX = x;
 
@@ -71,7 +71,7 @@ int main (int argc, char *argv[]) try
     rotatedX[i][_1] = rotation.mult(x[i][_1]);
   }
 
-  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double,
+  using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<1, double,
       FEBasis::LocalView::Tree::FiniteElement,
       TargetSpace>;
 
@@ -87,7 +87,7 @@ int main (int argc, char *argv[]) try
     auto idx = gridView.indexSet().index(vertex);
 
     referenceConfiguration[idx][_0] = {0.0, 0.0, vertex.geometry().corner(0)[0]};
-    referenceConfiguration[idx][_1] = Rotation<double,3>::identity();
+    referenceConfiguration[idx][_1] = GFE::Rotation<double,3>::identity();
   }
 
   localRodEnergy.setReferenceConfiguration(referenceConfiguration);

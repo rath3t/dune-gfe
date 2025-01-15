@@ -4,6 +4,10 @@
 #include <numeric>
 #include <vector>
 
+
+namespace Dune::GFE
+{
+
 struct MPIFunctions {
   static std::vector<int> offsetsFromSizes(const std::vector<int>& sizes) {
     std::vector<int> offsets(sizes.size());
@@ -66,5 +70,6 @@ struct MPIFunctions {
   }
 };
 
+}  // namespace Dune::GFE
 
 #endif

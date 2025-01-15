@@ -15,6 +15,10 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief A factory class that implements various ways to create rod configurations
  */
 
@@ -232,5 +236,7 @@ private:
 
   const GridView gridView_;
 };
+
+}  // namespace Dune::GFE
 
 #endif

@@ -18,7 +18,8 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
 
   template<class Basis, class LocalInterpolationRule, class RT>
   class CosseratRodEnergy

@@ -7,7 +7,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/curvedgrid/gridfunctions/analyticgridfunction.hh>
 
-namespace Dune {
+namespace Dune::GFE
+{
 
   /// \brief Functor representing a Möbius strip in 3D, where the base circle is the circle in the x-y-plane with radius_ around 0,0,0
   template <class T = double>
@@ -101,6 +102,6 @@ namespace Dune {
     return analyticGridFunction<Grid>(MoebiusStripProjection<T>{radius});
   }
 
-} // end namespace Dune
+}  // namespace Dune::GFE
 
 #endif // DUNE_GFE_MOEBIUSSTRIP_GRIDFUNCTION_HH

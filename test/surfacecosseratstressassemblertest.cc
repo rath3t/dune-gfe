@@ -61,11 +61,11 @@ static bool sameEntries(FieldVector<double,3> a,FieldVector<double,3> b) {
 }
 
 static bool sameEntries(FieldVector<double,4> a,FieldVector<double,4> b) {
-  Rotation<double,dim> rotationA(a);
-  Rotation<double,dim> rotationB(b);
+  GFE::Rotation<double,dim> rotationA(a);
+  GFE::Rotation<double,dim> rotationB(b);
   rotationA.mult(rotationB);
-  Rotation<double,dim> identity;
-  auto distance = Rotation<double,dim>::distance(rotationA, identity);
+  GFE::Rotation<double,dim> identity;
+  auto distance = GFE::Rotation<double,dim>::distance(rotationA, identity);
   return distance < 0.01;
 }
 
@@ -163,10 +163,10 @@ int main (int argc, char *argv[])
   //               READ IN TEST DATA
   /////////////////////////////////////////////////////////////
 
-  auto deformationMap = Dune::GFE::transformFileToMap<dim>("./stressPlotData/stressPlotTestDeformation");
-  auto initialDeformationMap = Dune::GFE::transformFileToMap<dim>("./stressPlotData/stressPlotTestInitialDeformation");
-  const auto dimRotation = Rotation<double,dim>::embeddedDim;
-  auto rotationMap = Dune::GFE::transformFileToMap<dimRotation>("./stressPlotData/stressPlotTestRotation");
+  auto deformationMap = GFE::transformFileToMap<dim>("./stressPlotData/stressPlotTestDeformation");
+  auto initialDeformationMap = GFE::transformFileToMap<dim>("./stressPlotData/stressPlotTestInitialDeformation");
+  const auto dimRotation = GFE::Rotation<double,dim>::embeddedDim;
+  auto rotationMap = GFE::transformFileToMap<dimRotation>("./stressPlotData/stressPlotTestRotation");
 
   bool deformationIsSymmetric = symmetryTest<dim>(deformationMap, 30);
   bool rotationIsSymmetric = symmetryTest<dimRotation>(rotationMap, 30);
@@ -203,7 +203,7 @@ int main (int argc, char *argv[])
     xInitial[i] += initialDeformationMap.at(stream.str());
   }
 
-  using RotationVector = std::vector<Rotation<double,dim> >;
+  using RotationVector = std::vector<GFE::Rotation<double,dim> >;
   RotationVector rot;
   rot.resize(basisOrderR.size());
   DisplacementVector xOrderR;
@@ -214,7 +214,7 @@ int main (int argc, char *argv[])
   for (std::size_t i = 0; i < basisOrderR.size(); i++) {
     std::stringstream stream;
     stream << xOrderR[i];
-    Rotation<double,dim> rotation(rotationMap.at(stream.str()));
+    GFE::Rotation<double,dim> rotation(rotationMap.at(stream.str()));
     FieldMatrix<double,dim,dim> rotationMatrix(0);
     rotation.matrix(rotationMatrix);
     rot[i].set(rotationMatrix);
@@ -237,7 +237,7 @@ int main (int argc, char *argv[])
   /////////////////////////////////////////////////////////////
 
   auto quadOrder = 4;
-  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, Rotation<double,dim> >
+  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, GFE::Rotation<double,dim> >
                            (basisOrderD, basisOrderR);
 
   std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;

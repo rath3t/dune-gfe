@@ -87,9 +87,9 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
   cornersRotated1[1] = cornersRotated2[0] = corners[2];
   cornersRotated1[2] = cornersRotated2[1] = corners[0];
 
-  LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f0(feCache.get(simplex), corners);
-  LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f1(feCache.get(simplex), cornersRotated1);
-  LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f2(feCache.get(simplex), cornersRotated2);
+  GFE::LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f0(feCache.get(simplex), corners);
+  GFE::LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f1(feCache.get(simplex), cornersRotated1);
+  GFE::LocalGeodesicFEFunction<2,double,LocalFiniteElement,TargetSpace> f2(feCache.get(simplex), cornersRotated2);
 
   // A quadrature rule as a set of test points
   int quadOrder = 3;
@@ -124,7 +124,7 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 }
 
 template <int domainDim, class TargetSpace>
-void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
+void testDerivative(const GFE::LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
 {
   static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
 
@@ -158,7 +158,7 @@ void testDerivative(const LocalGeodesicFEFunction<domainDim,double,typename Lagr
 
 
 template <int domainDim, class TargetSpace>
-void testDerivativeOfValueWRTCoefficients(const LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
+void testDerivativeOfValueWRTCoefficients(const GFE::LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
 {
   static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
 
@@ -202,7 +202,7 @@ void testDerivativeOfValueWRTCoefficients(const LocalGeodesicFEFunction<domainDi
 }
 
 template <int domainDim, class TargetSpace>
-void testDerivativeOfGradientWRTCoefficients(const LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
+void testDerivativeOfGradientWRTCoefficients(const GFE::LocalGeodesicFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace>& f)
 {
   static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
 
@@ -220,11 +220,11 @@ void testDerivativeOfGradientWRTCoefficients(const LocalGeodesicFEFunction<domai
     for (size_t i=0; i<f.size(); i++) {
 
       // evaluate actual derivative
-      Tensor3<double, embeddedDim, embeddedDim, domainDim> derivative;
+      GFE::Tensor3<double, embeddedDim, embeddedDim, domainDim> derivative;
       f.evaluateDerivativeOfGradientWRTCoefficient(quadPos, i, derivative);
 
       // evaluate fd approximation of derivative
-      Tensor3<double, embeddedDim, embeddedDim, domainDim> fdDerivative;
+      GFE::Tensor3<double, embeddedDim, embeddedDim, domainDim> fdDerivative;
       f.evaluateFDDerivativeOfGradientWRTCoefficient(quadPos, i, fdDerivative);
 
       if ( (derivative - fdDerivative).infinity_norm() > eps ) {
@@ -252,7 +252,7 @@ void test(const GeometryType& element)
   std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << element.dim() << " ---" << std::endl;
 
   std::vector<TargetSpace> testPoints;
-  ValueFactory<TargetSpace>::get(testPoints);
+  GFE::ValueFactory<TargetSpace>::get(testPoints);
 
   int nTestPoints = testPoints.size();
   size_t nVertices = Dune::ReferenceElements<double,domainDim>::general(element).size(domainDim);
@@ -260,7 +260,7 @@ void test(const GeometryType& element)
   // Set up elements of the target space
   std::vector<TargetSpace> corners(nVertices);
 
-  MultiIndex index(nVertices, nTestPoints);
+  GFE::MultiIndex index(nVertices, nTestPoints);
   int numIndices = index.cycle();
 
   for (int i=0; i<numIndices; i++, ++index) {
@@ -275,7 +275,7 @@ void test(const GeometryType& element)
     LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
     typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
 
-    LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
+    GFE::LocalGeodesicFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
 
     //testPermutationInvariance(corners);
     testDerivative<domainDim>(f);
@@ -299,33 +299,33 @@ int main()
   //  Test functions on 1d elements
   ////////////////////////////////////////////////////////////////
 
-  test<RealTuple<double,1>,1>(GeometryTypes::simplex(1));
-  test<UnitVector<double,2>,1>(GeometryTypes::simplex(1));
-  test<UnitVector<double,3>,1>(GeometryTypes::simplex(1));
-  test<Rotation<double,3>,1>(GeometryTypes::simplex(1));
-  typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
+  test<GFE::RealTuple<double,1>,1>(GeometryTypes::simplex(1));
+  test<GFE::UnitVector<double,2>,1>(GeometryTypes::simplex(1));
+  test<GFE::UnitVector<double,3>,1>(GeometryTypes::simplex(1));
+  test<GFE::Rotation<double,3>,1>(GeometryTypes::simplex(1));
+  typedef GFE::ProductManifold<GFE::RealTuple<double,1>,GFE::Rotation<double,3>,GFE::UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold,1>(GeometryTypes::simplex(1));
 
   ////////////////////////////////////////////////////////////////
   //  Test functions on 2d simplex elements
   ////////////////////////////////////////////////////////////////
 
-  test<RealTuple<double,1>,2>(GeometryTypes::simplex(2));
-  test<UnitVector<double,2>,2>(GeometryTypes::simplex(2));
-  test<UnitVector<double,3>,2>(GeometryTypes::simplex(2));
-  test<Rotation<double,3>,2>(GeometryTypes::simplex(2));
-  typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
+  test<GFE::RealTuple<double,1>,2>(GeometryTypes::simplex(2));
+  test<GFE::UnitVector<double,2>,2>(GeometryTypes::simplex(2));
+  test<GFE::UnitVector<double,3>,2>(GeometryTypes::simplex(2));
+  test<GFE::Rotation<double,3>,2>(GeometryTypes::simplex(2));
+  typedef GFE::ProductManifold<GFE::RealTuple<double,1>,GFE::Rotation<double,3>,GFE::UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold,2>(GeometryTypes::simplex(2));
 
   ////////////////////////////////////////////////////////////////
   //  Test functions on 2d quadrilateral elements
   ////////////////////////////////////////////////////////////////
 
-  test<RealTuple<double,1>,2>(GeometryTypes::cube(2));
-  test<UnitVector<double,2>,2>(GeometryTypes::cube(2));
-  test<UnitVector<double,3>,2>(GeometryTypes::cube(2));
-  test<Rotation<double,3>,2>(GeometryTypes::cube(2));
-  typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
+  test<GFE::RealTuple<double,1>,2>(GeometryTypes::cube(2));
+  test<GFE::UnitVector<double,2>,2>(GeometryTypes::cube(2));
+  test<GFE::UnitVector<double,3>,2>(GeometryTypes::cube(2));
+  test<GFE::Rotation<double,3>,2>(GeometryTypes::cube(2));
+  typedef GFE::ProductManifold<GFE::RealTuple<double,1>,GFE::Rotation<double,3>,GFE::UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold,2>(GeometryTypes::cube(2));
 
 }

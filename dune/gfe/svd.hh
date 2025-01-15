@@ -12,6 +12,9 @@
 // int SIGN(const T& a, const T& b) {return 1;}
 #define SIGN(a,b)((b)>=0.0 ? fabs(a) : -fabs(a))
 
+namespace Dune::GFE
+{
+
 /** Computes (a^2 + b^2 )1/2 without destructive underflow or overflow. */
 template <class T>
 T pythag(T a, T b)
@@ -260,5 +263,7 @@ void svdcmp(Dune::FieldMatrix<T,m,n>& a_, Dune::FieldVector<T,n>& w, Dune::Field
     for (int j=0; j<n; j++)
       v_[i][j] = v[i+1][j+1];
 }
+
+}  // namespace Dune::GFE
 
 #endif

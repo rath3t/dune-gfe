@@ -143,9 +143,9 @@ int main (int argc, char *argv[])
 
   using namespace Dune::Indices;
 
-  typedef std::vector<RealTuple<double,dim> > DisplacementVector;
-  typedef std::vector<Rotation<double,dim> > RotationVector;
-  const int dimRotation = Rotation<double,dim>::embeddedDim;
+  typedef std::vector<GFE::RealTuple<double,dim> > DisplacementVector;
+  typedef std::vector<GFE::Rotation<double,dim> > RotationVector;
+  const int dimRotation = GFE::Rotation<double,dim>::embeddedDim;
   typedef TupleVector<DisplacementVector, RotationVector> SolutionType;
 
   /////////////////////////////////////////////////////////////
@@ -241,7 +241,7 @@ int main (int argc, char *argv[])
 #endif
 
   //Create BitVector matching the tangential space
-  const int dimRotationTangent = Rotation<double,dim>::TangentVector::dimension;
+  const int dimRotationTangent = GFE::Rotation<double,dim>::TangentVector::dimension;
   typedef MultiTypeBlockVector<std::vector<FieldVector<double,dim> >, std::vector<FieldVector<double,dimRotationTangent> > > VectorForBit;
   typedef Solvers::DefaultBitVector_t<VectorForBit> BitVector;
 
@@ -276,7 +276,7 @@ int main (int argc, char *argv[])
     x[_0][i] = identity[i];
 
   for (std::size_t i=0; i<x[_1].size(); ++i)
-    x[_1][i] = Rotation<double,dim>::identity();
+    x[_1][i] = GFE::Rotation<double,dim>::identity();
 
 
   /////////////////////////////////////////////////////////////
@@ -340,7 +340,7 @@ int main (int argc, char *argv[])
   materialParameters["b2"] = "1.0";
   materialParameters["b3"] = "1.0";
 
-  using ActiveRigidBodyMotion = GFE::ProductManifold<RealTuple<adouble,dim>, Rotation<adouble,dim> >;
+  using ActiveRigidBodyMotion = GFE::ProductManifold<GFE::RealTuple<adouble,dim>, GFE::Rotation<adouble,dim> >;
 
   std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;
   elasticDensity = std::make_shared<Elasticity::MooneyRivlinDensity<dim,ValueType> >(materialParameters);
@@ -349,13 +349,13 @@ int main (int argc, char *argv[])
   auto elasticDensityWrapped = std::make_shared<GFE::DuneElasticityDensity<Element,ActiveRigidBodyMotion,0> >(elasticDensity);
 
   // Select which type of geometric interpolation to use
-  using LocalDeformationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), RealTuple<adouble,dim> >;
-  using LocalOrientationInterpolationRule = LocalGeodesicFEFunction<dim, GridType::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), Rotation<adouble,dim> >;
+  using LocalDeformationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, GridType::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<adouble,dim> >;
+  using LocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, GridType::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<adouble,dim> >;
 
   using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 
   auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ActiveRigidBodyMotion> >(elasticDensityWrapped);
-  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,dim> > >(neumannBoundary,neumannFunction);
+  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, GFE::RealTuple<ValueType,targetDim>, GFE::Rotation<ValueType,dim> > >(neumannBoundary,neumannFunction);
 
   using Intersection = typename GridView::Intersection;
   auto cosseratShellDensity = std::make_shared<GFE::CosseratShellDensity<Intersection, adouble> >(
@@ -369,28 +369,28 @@ int main (int argc, char *argv[])
     &surfaceShellBoundary,
     stressFreeShellFunction);
 
-  using RBM = GFE::ProductManifold<RealTuple<double, dim>,Rotation<double,dim> >;
+  using RBM = GFE::ProductManifold<GFE::RealTuple<double, dim>,GFE::Rotation<double,dim> >;
 
-  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<ValueType,targetDim>, Rotation<ValueType,targetDim> > >();
+  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, GFE::RealTuple<ValueType,targetDim>, GFE::Rotation<ValueType,targetDim> > >();
   sumEnergy->addLocalEnergy(neumannEnergy);
   sumEnergy->addLocalEnergy(elasticEnergy);
   sumEnergy->addLocalEnergy(surfaceCosseratEnergy);
 
-  LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(sumEnergy);
-  MixedGFEAssembler<CompositeBasis,RBM> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
+  GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> localGFEADOLCStiffness(sumEnergy);
+  GFE::MixedGFEAssembler<CompositeBasis,RBM> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
   ////////////////////////////////////////////////////////
   //   Set Dirichlet values
   ////////////////////////////////////////////////////////
 
-  BitSetVector<RealTuple<double,dim>::TangentVector::dimension> deformationDirichletDofs(dirichletDofs[_0].size(), false);
+  BitSetVector<GFE::RealTuple<double,dim>::TangentVector::dimension> deformationDirichletDofs(dirichletDofs[_0].size(), false);
   for (std::size_t i = 0; i < dirichletDofs[_0].size(); i++)
-    for (int j = 0; j < RealTuple<double,dim>::TangentVector::dimension; j++)
+    for (int j = 0; j < GFE::RealTuple<double,dim>::TangentVector::dimension; j++)
       deformationDirichletDofs[i][j] = dirichletDofs[_0][i][j];
 
-  BitSetVector<Rotation<double,dim>::TangentVector::dimension> orientationDirichletDofs(dirichletDofs[_1].size(), false);
+  BitSetVector<GFE::Rotation<double,dim>::TangentVector::dimension> orientationDirichletDofs(dirichletDofs[_1].size(), false);
   for (std::size_t i = 0; i < dirichletDofs[_1].size(); i++)
-    for (int j = 0; j < Rotation<double,dim>::TangentVector::dimension; j++)
+    for (int j = 0; j < GFE::Rotation<double,dim>::TangentVector::dimension; j++)
       orientationDirichletDofs[i][j] = dirichletDofs[_1][i][j];
 
 #if !MIXED_SPACE
@@ -421,7 +421,7 @@ int main (int argc, char *argv[])
   if (solverType == "trustRegion")
   {
 #if MIXED_SPACE
-    MixedRiemannianTrustRegionSolver<GridType, CompositeBasis, DeformationFEBasis, RealTuple<double,dim>, OrientationFEBasis, Rotation<double,dim> > solver;
+    GFE::MixedRiemannianTrustRegionSolver<GridType, CompositeBasis, DeformationFEBasis, GFE::RealTuple<double,dim>, OrientationFEBasis, GFE::Rotation<double,dim> > solver;
     solver.setup(*grid,
                  &mixedAssembler,
                  deformationFEBasis,
@@ -444,7 +444,7 @@ int main (int argc, char *argv[])
     solver.solve();
     x = solver.getSol();
 #else
-    RiemannianTrustRegionSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
+    GFE::RiemannianTrustRegionSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
     solver.setup(*grid,
                  &assembler,
                  xRBM,
@@ -473,7 +473,7 @@ int main (int argc, char *argv[])
   } else {    // solverType == "proximalNewton"
 
 #if MIXED_SPACE
-    GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, RealTuple<double,dim>, OrientationFEBasis, Rotation<double,dim>, BitVector> solver;
+    GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, GFE::RealTuple<double,dim>, OrientationFEBasis, GFE::Rotation<double,dim>, BitVector> solver;
     solver.setup(*grid,
                  &mixedAssembler,
                  x,
@@ -486,7 +486,7 @@ int main (int argc, char *argv[])
     solver.solve();
     x = solver.getSol();
 #else
-    RiemannianProximalNewtonSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
+    GFE::RiemannianProximalNewtonSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
     solver.setup(*grid,
                  &assembler,
                  xRBM,

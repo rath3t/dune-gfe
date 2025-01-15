@@ -391,7 +391,7 @@ TestSuite checkDerivatives()
   Functions::LagrangeBasis<GridView,order> scalarBasis(gridView);
 
   std::vector<TargetSpace> testPoints;
-  ValueFactory<TargetSpace>::get(testPoints);
+  GFE::ValueFactory<TargetSpace>::get(testPoints);
 
   // TODO: Make sure the list of test points is longer than this.
   const std::size_t nDofs = scalarBasis.dimension();
@@ -405,7 +405,7 @@ TestSuite checkDerivatives()
   /////////////////////////////////////////////////////////////////////////
 
   // Define the two possible interpolation rules
-  using GeodesicInterpolationRule = LocalGeodesicFEFunction<domainDim,
+  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<domainDim,
       typename Grid::ctype,
       decltype(scalarBasis.localView().tree().finiteElement()),
       TargetSpace>;
@@ -556,16 +556,16 @@ int main (int argc, char *argv[])
 
   // Test the UnitSphere class and geodesic interpolation.
   // This uses the default derivatives implementation (using ADOL-C)
-  test.subTest(checkDerivatives<UnitVector<double,3>, InterpolationType::Geodesic >());
+  test.subTest(checkDerivatives<GFE::UnitVector<double,3>, InterpolationType::Geodesic >());
 
   // Test the RealTuple class, both with geodesic and projection-based interpolation
   // Both are specialized
-  test.subTest(checkDerivatives<RealTuple<double,3>, InterpolationType::Geodesic>());
-  test.subTest(checkDerivatives<RealTuple<double,3>, InterpolationType::ProjectionBased>());
+  test.subTest(checkDerivatives<GFE::RealTuple<double,3>, InterpolationType::Geodesic>());
+  test.subTest(checkDerivatives<GFE::RealTuple<double,3>, InterpolationType::ProjectionBased>());
 
   // Test the UnitVector class with projection-based interpolation
   // This is also specialized.
-  test.subTest(checkDerivatives<UnitVector<double,3>, InterpolationType::ProjectionBased>());
+  test.subTest(checkDerivatives<GFE::UnitVector<double,3>, InterpolationType::ProjectionBased>());
 
   return test.exit();
 }

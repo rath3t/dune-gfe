@@ -16,7 +16,7 @@ int main()
   int nTestValues = 5;
   double maxDiff = 0;
 
-  MultiIndex index(N*M, nTestValues);
+  GFE::MultiIndex index(N*M, nTestValues);
   int numIndices = index.cycle();
 
   for (int i=0; i<numIndices; i++, ++index) {
@@ -32,7 +32,7 @@ int main()
     FieldMatrix<double,N,N> v;
 
     FieldMatrix<double,N,M> testMatrixBackup = testMatrix;
-    svdcmp(testMatrix,w,v);
+    GFE::svdcmp(testMatrix,w,v);
 
     // Multiply the three matrices to see whether we get the original one back
     FieldMatrix<double,N,M> product(0);

@@ -27,7 +27,7 @@
 #include <dune/gfe/parallel/vectorcommunicator.hh>
 
 template <class Basis, class TargetSpace, class Assembler>
-void RiemannianTrustRegionSolver<Basis, TargetSpace, Assembler>::
+void Dune::GFE::RiemannianTrustRegionSolver<Basis, TargetSpace, Assembler>::
 setup(const GridType& grid,
       const Assembler* assembler,
       const SolutionType& x,
@@ -66,7 +66,7 @@ setup(const GridType& grid,
 }
 
 template <class Basis, class TargetSpace, class Assembler>
-void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::
+void Dune::GFE::RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::
 setup(const GridType& grid,
       const Assembler* assembler,
       const SolutionType& x,
@@ -121,7 +121,7 @@ setup(const GridType& grid,
   // Hack: the two-norm may not scale all that well, but it is fast!
   auto baseNorm = std::make_shared<TwoNorm<CorrectionType> >();
 
-  auto baseSolver = std::make_shared<::LoopSolver<CorrectionType> >(baseSolverStep,
+  auto baseSolver = std::make_shared<Solvers::LoopSolver<CorrectionType> >(baseSolverStep,
                                                                     baseIterations,
                                                                     baseTolerance,
                                                                     baseNorm,
@@ -179,7 +179,7 @@ setup(const GridType& grid,
 #endif
   h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
 
-  innerSolver_ = std::make_shared<::LoopSolver<CorrectionType> >(mmgStep,
+  innerSolver_ = std::make_shared<Solvers::LoopSolver<CorrectionType> >(mmgStep,
                                                                  innerIterations_,
                                                                  innerTolerance_,
                                                                  h1SemiNorm_,
@@ -204,8 +204,8 @@ setup(const GridType& grid,
 
   // Write all intermediate solutions, if requested
   if (instrumented_
-      && dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get()))
-    dynamic_cast<IterativeSolver<CorrectionType>*>(innerSolver_.get())->historyBuffer_ = instrumentedPath_ + "/mgHistory";
+      && dynamic_cast<Solvers::IterativeSolver<CorrectionType>*>(innerSolver_.get()))
+    dynamic_cast<Solvers::IterativeSolver<CorrectionType>*>(innerSolver_.get())->historyBuffer_ = instrumentedPath_ + "/mgHistory";
 
   // ////////////////////////////////////////////////////////////
   //    Create Hessian matrix and its occupation structure
@@ -248,7 +248,7 @@ setup(const GridType& grid,
 #if HAVE_MPI
     // If we are on more than 1 processors, join all local transfer matrices on rank 0,
     // and construct a single global transfer operator there.
-    typedef Dune::GlobalP1Mapper<Dune::Functions::LagrangeBasis<typename Basis::GridView,1> > GlobalLeafP1Mapper;
+    typedef GFE::GlobalP1Mapper<Dune::Functions::LagrangeBasis<typename Basis::GridView,1> > GlobalLeafP1Mapper;
     GlobalLeafP1Mapper p1Index(grid_->leafGridView());
 
     typedef Dune::MultipleCodimMultipleGeomTypeMapper<typename GridType::LeafGridView> LeafP1LocalMapper;
@@ -282,7 +282,7 @@ setup(const GridType& grid,
     // If we are on more than 1 processors, join all local transfer matrices on rank 0,
     // and construct a single global transfer operator there.
     typedef Dune::Functions::LagrangeBasis<typename GridType::LevelGridView, 1> FEBasis;
-    typedef Dune::GlobalP1Mapper<FEBasis> GlobalLevelP1Mapper;
+    typedef GFE::GlobalP1Mapper<FEBasis> GlobalLevelP1Mapper;
     GlobalLevelP1Mapper fineGUIndex(grid_->levelGridView(i+1));
     GlobalLevelP1Mapper coarseGUIndex(grid_->levelGridView(i));
 
@@ -328,15 +328,15 @@ setup(const GridType& grid,
 
 
 template <class Basis, class TargetSpace, class Assembler>
-void RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
+void Dune::GFE::RiemannianTrustRegionSolver<Basis,TargetSpace,Assembler>::solve()
 {
   int rank = grid_->comm().rank();
 
   MonotoneMGStep<MatrixType,CorrectionType>* mgStep = nullptr;    // Non-shared pointer -- the innerSolver keeps the ownership
 
   // if the inner solver is a monotone multigrid set up a max-norm trust-region
-  if (dynamic_cast<LoopSolver<CorrectionType>*>(innerSolver_.get())) {
-    auto loopSolver = std::dynamic_pointer_cast<LoopSolver<CorrectionType> >(innerSolver_);
+  if (dynamic_cast<Solvers::LoopSolver<CorrectionType>*>(innerSolver_.get())) {
+    auto loopSolver = std::dynamic_pointer_cast<Solvers::LoopSolver<CorrectionType> >(innerSolver_);
     mgStep = dynamic_cast<MonotoneMGStep<MatrixType,CorrectionType>*>(&loopSolver->getIterationStep());
   }
 

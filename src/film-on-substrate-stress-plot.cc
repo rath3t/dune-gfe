@@ -176,7 +176,7 @@ int main (int argc, char *argv[]) try
   auto deformationMap = Dune::GFE::transformFileToMap<dim>(pathToOutput + parameterSet.get<std::string>("deformationOutput"));
   std::cout << "... done: The basis has " << basisOrderD.size() << " elements and the defomation file has " << deformationMap.size() << " entries." << std::endl;
 
-  const auto dimRotation = Rotation<double,dim>::embeddedDim;
+  const auto dimRotation = GFE::Rotation<double,dim>::embeddedDim;
   std::unordered_map<std::string, FieldVector<double,dimRotation> > rotationMap;
   if (parameterSet.hasKey("rotationOutput")) {
     std::cout << "Reading in rotation file ("  << "order is "  << rotationOrder  << "): " << pathToOutput + parameterSet.get<std::string>("rotationOutput") << std::endl;
@@ -222,7 +222,7 @@ int main (int argc, char *argv[]) try
     }
   }
 
-  using RotationVector = std::vector<Rotation<double,dim> >;
+  using RotationVector = std::vector<GFE::Rotation<double,dim> >;
   RotationVector rot;
   rot.resize(basisOrderR.size());
   DisplacementVector xOrderR;
@@ -240,7 +240,7 @@ int main (int argc, char *argv[]) try
   for (std::size_t i = 0; i < basisOrderR.size(); i++) {
     std::stringstream stream;
     stream << xOrderR[i];
-    Rotation<double,dim> rotation(rotationMap.at(stream.str()));
+    GFE::Rotation<double,dim> rotation(rotationMap.at(stream.str()));
     FieldMatrix<double,dim,dim> rotationMatrix(0);
     rotation.matrix(rotationMatrix);
     rot[i].set(rotationMatrix);
@@ -253,7 +253,7 @@ int main (int argc, char *argv[]) try
   /////////////////////////////////////////////////////////////
   int quadOrder = parameterSet.hasKey("quadOrder") ? parameterSet.get<int>("quadOrder") : 4;
 
-  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, Rotation<double,dim> >
+  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, GFE::Rotation<double,dim> >
                            (basisOrderD, basisOrderR);
 
 

@@ -22,6 +22,10 @@
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class GridType,
     class Basis,
@@ -184,6 +188,8 @@ protected:
   /** \brief Store information about solver runs for testing */
   Statistics statistics_;
 };
+
+}  // namespace Dune::GFE
 
 #include "mixedriemanniantrsolver.cc"
 

@@ -5,6 +5,10 @@
 
 #include <dune/istl/bvector.hh>
 
+
+namespace Dune::GFE
+{
+
 template <class TargetSpace>
 Dune::BlockVector<typename TargetSpace::TangentVector> computeGeodesicDifference(const std::vector<TargetSpace>& a,
                                                                                  const std::vector<TargetSpace>& b)
@@ -23,5 +27,7 @@ Dune::BlockVector<typename TargetSpace::TangentVector> computeGeodesicDifference
 
   return result;
 }
+
+}  // namespace Dune::GFE
 
 #endif

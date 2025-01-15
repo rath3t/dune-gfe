@@ -42,7 +42,7 @@
 using namespace Dune;
 using namespace Dune::Indices;
 
-using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
+using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
 
 const int blocksize = TargetSpace::TangentVector::dimension;
 
@@ -220,7 +220,7 @@ int main (int argc, char *argv[]) try
   //////////////////////////////////////////////
 
   using ATargetSpace = TargetSpace::rebind<adouble>::other;
-  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
   // Assembler using ADOL-C
@@ -243,16 +243,16 @@ int main (int argc, char *argv[]) try
   else
     DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
-  LocalGeodesicFEADOLCStiffness<ScalarBasis,
+  GFE::LocalGeodesicFEADOLCStiffness<ScalarBasis,
       TargetSpace> localStiffness(localRodEnergy);
 
-  GeodesicFEAssembler<ScalarBasis,TargetSpace> rodAssembler(gridView, localStiffness);
+  GFE::GeodesicFEAssembler<ScalarBasis,TargetSpace> rodAssembler(gridView, localStiffness);
 
   /////////////////////////////////////////////
   //   Create a solver for the rod problem
   /////////////////////////////////////////////
 
-  RiemannianTrustRegionSolver<ScalarBasis,TargetSpace> rodSolver;
+  GFE::RiemannianTrustRegionSolver<ScalarBasis,TargetSpace> rodSolver;
 
   rodSolver.setup(grid,
                   &rodAssembler,
@@ -309,16 +309,16 @@ int main (int argc, char *argv[]) try
   auto displacementFunction = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,3> >(worldBasis, displacement);
 
   // Copy the orientation part of the configuration; the CosseratVTKWriter wants it that way
-  std::vector<Rotation<double,3> > orientationConfiguration(x.size());
+  std::vector<GFE::Rotation<double,3> > orientationConfiguration(x.size());
   for (size_t i=0; i<x.size(); ++i)
     orientationConfiguration[i] = x[i][_1];
 
-  using RotationInterpolationRule  = LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, Rotation<double,3> >;
+  using RotationInterpolationRule = GFE::LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, GFE::Rotation<double,3> >;
 
-  GFE::EmbeddedGlobalGFEFunction<ScalarBasis, RotationInterpolationRule,Rotation<double,3> > orientationFunction(scalarBasis,
+  GFE::EmbeddedGlobalGFEFunction<ScalarBasis, RotationInterpolationRule,GFE::Rotation<double,3> > orientationFunction(scalarBasis,
                                                                                                                  orientationConfiguration);
 
-  CosseratVTKWriter<GridView>::write(gridView,
+  GFE::CosseratVTKWriter<GridView>::write(gridView,
                                      displacementFunction,
                                      orientationFunction,
                                      order,

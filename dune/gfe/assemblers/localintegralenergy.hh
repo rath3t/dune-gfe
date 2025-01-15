@@ -10,7 +10,8 @@
 #include <dune/gfe/densities/localdensity.hh>
 
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
 
 #if ! DUNE_VERSION_GTE(DUNE_LOCALFUNCTIONS, 2, 10)
   namespace Impl

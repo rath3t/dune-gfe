@@ -18,6 +18,10 @@
 #include <dune/gfe/spaces/quaternion.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
+
+namespace Dune::GFE
+{
+
 template <class T, int dim>
 class Rotation
 {};
@@ -772,13 +776,13 @@ public:
   }
 
   /** \brief Compute the Hessian of the squared distance function keeping the first argument fixed */
-  static Dune::SymmetricMatrix<T,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
+  static SymmetricMatrix<T,4> secondDerivativeOfDistanceSquaredWRTSecondArgument(const Rotation<T,3>& p, const Rotation<T,3>& q) {
 
     T sp = p.globalCoordinates() * q.globalCoordinates();
 
     EmbeddedTangentVector pProjected = q.projectOntoTangentSpace(p.globalCoordinates());
 
-    Dune::SymmetricMatrix<T,4> A;
+    SymmetricMatrix<T,4> A;
     for (int i=0; i<4; i++)
       for (int j=0; j<=i; j++)
         A(i,j) = pProjected[i]*pProjected[j];
@@ -787,7 +791,7 @@ public:
     A *= 4*UnitVector<T,4>::secondDerivativeOfArcCosSquared(abs(sp));
 
     // Compute matrix B (see notes)
-    Dune::SymmetricMatrix<T,4> Pq;
+    SymmetricMatrix<T,4> Pq;
     for (int i=0; i<4; i++)
       for (int j=0; j<=i; j++)
         Pq(i,j) = (i==j) - q.globalCoordinates()[i]*q.globalCoordinates()[j];
@@ -1271,6 +1275,6 @@ public:
   };
 };
 
-
+}  // namespace Dune::GFE
 
 #endif

@@ -56,11 +56,11 @@ using namespace Indices;
 using ValueType = adouble;
 
 //Types for the mixed space
-using DisplacementVector = std::vector<RealTuple<double,dim> >;
-using RotationVector =  std::vector<Rotation<double,dim> >;
+using DisplacementVector = std::vector<GFE::RealTuple<double,dim> >;
+using RotationVector =  std::vector<GFE::Rotation<double,dim> >;
 using Vector = TupleVector<DisplacementVector, RotationVector>;
-using BlockTupleVector = TupleVector<BlockVector<RealTuple<double,dim> >, BlockVector<Rotation<double,dim> > >;
-const int dimRotationTangent = Rotation<double,dim>::TangentVector::dimension;
+using BlockTupleVector = TupleVector<BlockVector<GFE::RealTuple<double,dim> >, BlockVector<GFE::Rotation<double,dim> > >;
+const int dimRotationTangent = GFE::Rotation<double,dim>::TangentVector::dimension;
 
 
 int main (int argc, char *argv[])
@@ -164,18 +164,18 @@ int main (int argc, char *argv[])
                          };
 
   // The target space, with 'double' and 'adouble' as number types
-  using RBM = GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> >;
+  using RBM = GFE::ProductManifold<GFE::RealTuple<double,dim>,GFE::Rotation<double,dim> >;
   using ARBM = typename RBM::template rebind<adouble>::other;
 
   // The total energy
-  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, RealTuple<adouble,dim>,Rotation<adouble,dim> > >();
+  auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, GFE::RealTuple<adouble,dim>,GFE::Rotation<adouble,dim> > >();
 
   // The Cosserat shell energy
   using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
   using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
 
-  using AInterpolationRule = std::tuple<LocalGeodesicFEFunction<gridDim, double, ScalarDeformationLocalFiniteElement, RealTuple<adouble,3> >,
-      LocalGeodesicFEFunction<gridDim, double, ScalarRotationLocalFiniteElement, Rotation<adouble,3> > >;
+  using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<gridDim, double, ScalarDeformationLocalFiniteElement, GFE::RealTuple<adouble,3> >,
+      GFE::LocalGeodesicFEFunction<gridDim, double, ScalarRotationLocalFiniteElement, GFE::Rotation<adouble,3> > >;
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(parameters);
 
@@ -184,14 +184,14 @@ int main (int argc, char *argv[])
   sumEnergy->addLocalEnergy(planarCosseratShellEnergy);
 
   // The Neumann surface load term
-  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, RealTuple<adouble,dim>, Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
+  auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, GFE::RealTuple<adouble,dim>, GFE::Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
   sumEnergy->addLocalEnergy(neumannEnergy);
 
   // The local assembler
-  LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> mixedLocalGFEADOLCStiffness(sumEnergy);
+  GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,RBM> mixedLocalGFEADOLCStiffness(sumEnergy);
 
   // The global assembler
-  MixedGFEAssembler<CompositeBasis, RBM> mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
+  GFE::MixedGFEAssembler<CompositeBasis, RBM> mixedAssembler(compositeBasis, mixedLocalGFEADOLCStiffness);
 
   using GFEAssemblerWrapper = GFE::GeodesicFEAssemblerWrapper<CompositeBasis, DeformationFEBasis, RBM>;
   GFEAssemblerWrapper assembler(&mixedAssembler, deformationFEBasis);
@@ -239,7 +239,7 @@ int main (int argc, char *argv[])
   const int maxSolverSteps = 1;
   const double initialRegularization = 100;
   const bool instrumented = false;
-  GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, RealTuple<double,dim>, DeformationFEBasis, Rotation<double,dim>, BitVector> mixedSolver;
+  GFE::MixedRiemannianProximalNewtonSolver<CompositeBasis, DeformationFEBasis, GFE::RealTuple<double,dim>, DeformationFEBasis, GFE::Rotation<double,dim>, BitVector> mixedSolver;
   mixedSolver.setup(*grid,
                     &mixedAssembler,
                     x,
@@ -252,7 +252,7 @@ int main (int argc, char *argv[])
   mixedSolver.solve();
   x = mixedSolver.getSol();
 
-  RiemannianProximalNewtonSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
+  GFE::RiemannianProximalNewtonSolver<DeformationFEBasis, RBM, GFEAssemblerWrapper> solver;
   solver.setup(*grid,
                &assembler,
                xRBM,

@@ -5,6 +5,10 @@
 
 #include <dune/gfe/skewmatrix.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief An orthogonal \f$ n \times n \f$ matrix
  * \tparam T Type of the matrix entries
  * \tparam N Space dimension
@@ -176,5 +180,7 @@ private:
   Dune::FieldMatrix<T,N,N> data_;
 
 };
+
+}  // namespace Dune::GFE
 
 #endif  // DUNE_GFE_SPACES_ORTHOGONALMATRIX_HH

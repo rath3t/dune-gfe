@@ -231,9 +231,9 @@ void testDerivativeOfHessianOfDistanceSquared(const TargetSpace& a, const Target
   //  Test mixed third derivative with respect to first (once) and second (twice) argument
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d2d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
+  GFE::Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d2d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(a, b);
 
-  Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d2d2d2_fd;
+  GFE::Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d2d2d2_fd;
 
   for (size_t i=0; i<embeddedDim; i++) {
 
@@ -270,9 +270,9 @@ void testMixedDerivativeOfHessianOfDistanceSquared(const TargetSpace& a, const T
   //  Test mixed third derivative with respect to first (once) and second (twice) argument
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d1d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a, b);
+  GFE::Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d1d2d2 = TargetSpace::thirdDerivativeOfDistanceSquaredWRTFirst1AndSecond2Argument(a, b);
 
-  Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d1d2d2_fd;
+  GFE::Tensor3<double,embeddedDim,embeddedDim,embeddedDim> d1d2d2_fd;
 
   for (size_t i=0; i<embeddedDim; i++) {
 
@@ -359,7 +359,7 @@ void test()
   std::cout << "Testing class " << className<TargetSpace>() << std::endl;
 
   std::vector<TargetSpace> testPoints;
-  ValueFactory<TargetSpace>::get(testPoints);
+  GFE::ValueFactory<TargetSpace>::get(testPoints);
 
   int nTestPoints = testPoints.size();
 
@@ -397,23 +397,23 @@ void test()
 int main() try
 {
   // Test the RealTuple class
-  test<RealTuple<double,1> >();
-  test<RealTuple<double,3> >();
+  test<GFE::RealTuple<double,1> >();
+  test<GFE::RealTuple<double,3> >();
 
   // Test the UnitVector class
-  test<UnitVector<double,2> >();
-  test<UnitVector<double,3> >();
-  test<UnitVector<double,4> >();
+  test<GFE::UnitVector<double,2> >();
+  test<GFE::UnitVector<double,3> >();
+  test<GFE::UnitVector<double,4> >();
 
   // Test the rotation class
-  test<Rotation<double,3> >();
+  test<GFE::Rotation<double,3> >();
 
   // Test the ProductManifold class
-  test<Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > >();
-  test<Dune::GFE::ProductManifold<Rotation<double,3>,UnitVector<double,5> > >();
+  test<GFE::ProductManifold<GFE::RealTuple<double,1>,GFE::Rotation<double,3>,GFE::UnitVector<double,2> > >();
+  test<GFE::ProductManifold<GFE::Rotation<double,3>,GFE::UnitVector<double,5> > >();
 
   //
-  //     test<HyperbolicHalfspacePoint<double,2> >();
+  //     test<GFE::HyperbolicHalfspacePoint<double,2> >();
 
 }
 catch (Exception& e) {

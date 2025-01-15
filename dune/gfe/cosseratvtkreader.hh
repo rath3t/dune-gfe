@@ -5,10 +5,8 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
-namespace Dune
+namespace Dune::GFE
 {
-  namespace GFE
-  {
 
     /** \brief Read configurations of Cosserat models from VTK files into memory */
     class CosseratVTKReader
@@ -39,8 +37,6 @@ namespace Dune
 
     };
 
-  }
-
-}
+}  // namespace Dune::GFE
 
 #endif

@@ -8,6 +8,10 @@
 #include <array>
 #include <dune/common/fmatrix.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief A third-rank tensor
  */
 template <class T, int N1, int N2, int N3>
@@ -193,6 +197,6 @@ inline std::ostream& operator<< (std::ostream& s, const Tensor3<T,N1,N2,N3>& ten
   return s;
 }
 
-
+}  // namespace Dune::GFE
 
 #endif

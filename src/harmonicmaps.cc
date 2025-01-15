@@ -57,20 +57,21 @@
 const int dim = 2;
 const int dimworld = 2;
 
+using namespace Dune;
+
 // Image space of the geodesic fe functions
-// typedef Rotation<double,2> TargetSpace;
-// typedef Rotation<double,3> TargetSpace;
-// typedef UnitVector<double,2> TargetSpace;
-typedef UnitVector<double,3> TargetSpace;
-// typedef UnitVector<double,4> TargetSpace;
-// typedef RealTuple<double,1> TargetSpace;
+// typedef GFE::Rotation<double,2> TargetSpace;
+// typedef GFE::Rotation<double,3> TargetSpace;
+// typedef GFE::UnitVector<double,2> TargetSpace;
+typedef GFE::UnitVector<double,3> TargetSpace;
+// typedef GFE::UnitVector<double,4> TargetSpace;
+// typedef GFE::RealTuple<double,1> TargetSpace;
 
 // Tangent vector of the image space
 const int blocksize = TargetSpace::TangentVector::dimension;
 
 const int order = 1;
 
-using namespace Dune;
 
 template <typename Writer, typename Basis, typename SolutionType>
 void fillVTKWriter(Writer& vtkWriter, const Basis& feBasis, const SolutionType& x, std::string filename)
@@ -80,7 +81,7 @@ void fillVTKWriter(Writer& vtkWriter, const Basis& feBasis, const SolutionType& 
   for (size_t i=0; i<x.size(); i++)
     xEmbedded[i] = x[i].globalCoordinates();
 
-  if constexpr (std::is_same<TargetSpace, Rotation<double,3> >::value)
+  if constexpr (std::is_same<TargetSpace, GFE::Rotation<double,3> >::value)
   {
     std::array<BlockVector<FieldVector<double,3> >,3> director;
     for (int i=0; i<3; i++)
@@ -287,7 +288,7 @@ int main (int argc, char *argv[])
     DUNE_THROW(Exception, "Unknown energy type '" << energy << "'");
 
   // Next: The local energy, i.e., the integral of the density over one element
-  using GeodesicInterpolationRule  = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
   std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy;
@@ -300,15 +301,15 @@ int main (int argc, char *argv[])
     DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 
   // Compute local tangent problems by applying ADOL-C directly to the energy on the element
-  LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy);
+  GFE::LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> localGFEADOLCStiffness(localEnergy);
 
-  GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
+  GFE::GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 
   // /////////////////////////////////////////////////
   //   Create a Riemannian trust-region solver
   // /////////////////////////////////////////////////
 
-  RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
+  GFE::RiemannianTrustRegionSolver<FEBasis,TargetSpace> solver;
   solver.setup(*grid,
                &assembler,
                x,

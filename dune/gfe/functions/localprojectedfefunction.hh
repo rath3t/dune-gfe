@@ -13,9 +13,8 @@
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
-namespace Dune {
-
-  namespace GFE {
+namespace Dune::GFE
+{
 
     /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold
      *
@@ -675,7 +674,6 @@ namespace Dune {
 
     };
 
-  }
+}  // namespace Dune::GFE
 
-}
 #endif

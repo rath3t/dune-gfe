@@ -4,7 +4,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
 
-namespace Dune {
+namespace Dune::GFE
+{
 
   /** \brief  A class implementing a symmetric matrix with compile-time size
    *
@@ -93,5 +94,6 @@ namespace Dune {
     Dune::FieldVector<T,N*(N+1)/2> data_;
   };
 
-}
+}  // namespace Dune::GFE
+
 #endif

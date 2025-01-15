@@ -7,7 +7,8 @@
 #include <dune/common/fvector.hh>
 #include <dune/curvedgrid/gridfunctions/analyticgridfunction.hh>
 
-namespace Dune {
+namespace Dune::GFE
+{
 
   /// \brief Functor representing a twisted strip in 3D, with length length_ and nTwists twists
   template <class T = double>
@@ -99,6 +100,6 @@ namespace Dune {
     return analyticGridFunction<Grid>(TwistedStripProjection<T>{length, nTwists});
   }
 
-} // end namespace Dune
+}  // namespace Dune::GFE
 
 #endif // DUNE_GFE_TWISTEDSTRIP_GRIDFUNCTION_HH

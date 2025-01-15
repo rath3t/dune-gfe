@@ -9,6 +9,10 @@
 #include <dune/gfe/functions/globalgfefunction.hh>
 #include <dune/gfe/functions/localgeodesicfefunction.hh>
 
+
+namespace Dune::GFE
+{
+
 template<class Basis, class TargetSpace>
 class L2DistanceSquaredEnergy
   : public Dune::GFE::LocalEnergy<Basis,TargetSpace>
@@ -86,5 +90,7 @@ public:
     DUNE_THROW(Dune::NotImplemented, "!");
   }
 };
+
+}  // namespace Dune::GFE
 
 #endif

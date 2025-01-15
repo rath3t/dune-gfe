@@ -16,7 +16,7 @@ double eps = 1e-6;
 /** \brief Test whether orthogonal matrix really is orthogonal
  */
 template <class T, int N>
-void testOrthogonality(const OrthogonalMatrix<T,N>& p)
+void testOrthogonality(const GFE::OrthogonalMatrix<T,N>& p)
 {
   Dune::FieldMatrix<T,N,N> prod(0);
   for (int i=0; i<N; i++)
@@ -33,10 +33,10 @@ void testOrthogonality(const OrthogonalMatrix<T,N>& p)
 /** \brief Test orthogonal projection onto the tangent space at p
  */
 template <class T, int N>
-void testProjectionOntoTangentSpace(const OrthogonalMatrix<T,N>& p)
+void testProjectionOntoTangentSpace(const GFE::OrthogonalMatrix<T,N>& p)
 {
   std::vector<FieldMatrix<T,N,N> > testVectors;
-  ValueFactory<FieldMatrix<T,N,N> >::get(testVectors);
+  GFE::ValueFactory<FieldMatrix<T,N,N> >::get(testVectors);
 
   // Test each element in the list
   for (size_t i=0; i<testVectors.size(); i++) {
@@ -70,11 +70,11 @@ void testProjectionOntoTangentSpace(const OrthogonalMatrix<T,N>& p)
 template <class T, int N>
 void test()
 {
-  std::cout << "Testing class " << className<OrthogonalMatrix<T,N> >() << std::endl;
+  std::cout << "Testing class " << className<GFE::OrthogonalMatrix<T,N> >() << std::endl;
 
   // Get set of orthogonal test matrices
-  std::vector<OrthogonalMatrix<T,N> > testPoints;
-  ValueFactory<OrthogonalMatrix<T,N> >::get(testPoints);
+  std::vector<GFE::OrthogonalMatrix<T,N> > testPoints;
+  GFE::ValueFactory<GFE::OrthogonalMatrix<T,N> >::get(testPoints);
 
   int nTestPoints = testPoints.size();
 

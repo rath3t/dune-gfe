@@ -1,6 +1,9 @@
 #ifndef DUNE_SKEW_MATRIX_HH
 #define DUNE_SKEW_MATRIX_HH
 
+namespace Dune::GFE
+{
+
 /** \brief Static dense skew-symmetric matrix */
 template <class T, int N>
 class SkewMatrix
@@ -97,5 +100,7 @@ private:
   Dune::FieldVector<T,3> data_;
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

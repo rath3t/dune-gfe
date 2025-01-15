@@ -49,7 +49,7 @@ double calculateEnergy(const FlatGridView& flatGridView,
   using namespace Dune::Functions::BasisFactory;
   using namespace Dune::Indices;
 
-  TupleVector<std::vector<RealTuple<double,3> >, std::vector<Rotation<double,3> > > configuration;
+  TupleVector<std::vector<GFE::RealTuple<double,3> >, std::vector<GFE::Rotation<double,3> > > configuration;
   configuration[_0].resize(flatFEBasis.size());
   configuration[_1].resize(flatFEBasis.size());
 
@@ -85,7 +85,7 @@ double calculateEnergy(const FlatGridView& flatGridView,
   auto orientationGridViewFunction = Functions::makeAnalyticGridViewFunction(orientationFunction, curvedGridView);
 
   const auto orientationQuaternionFunction
-    = Functions::makeComposedGridFunction(Rotation<double,3>::matrixToQuaternion,
+    = Functions::makeComposedGridFunction(GFE::Rotation<double,3>::matrixToQuaternion,
                                           orientationGridViewFunction);
 
   BlockVector<FieldVector<double,4> > orientationAsVector(flatFEBasis.size());
@@ -106,7 +106,7 @@ double calculateEnergy(const FlatGridView& flatGridView,
 
   // TODO: Write the curved grid, not the flat one
   // BUG: The second argument should be the displacement, not the deformation
-  CosseratVTKWriter<FlatGridView>::write(flatGridView,
+  GFE::CosseratVTKWriter<FlatGridView>::write(flatGridView,
                                          deformationGridViewFunction,
                                          orientationQuaternionGridViewFunction,
                                          2, // VTK output element order
@@ -119,7 +119,7 @@ double calculateEnergy(const FlatGridView& flatGridView,
   using Element = typename FlatGridView::template Codim<0>::Entity;
   auto density = std::make_shared<GFE::CosseratShellDensity<Element, double> >(materialParameters);
 
-  using ShellEnergy = NonplanarCosseratShellEnergy<FlatFEBasis,
+  using ShellEnergy = GFE::NonplanarCosseratShellEnergy<FlatFEBasis,
       3,                                               // Dimension of the target space
       double,
       GridGeometry>;
@@ -130,7 +130,7 @@ double calculateEnergy(const FlatGridView& flatGridView,
   //  Compute the energy
   ///////////////////////////////////////////////////
 
-  using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
+  using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
 
   double energy = 0;
 

@@ -7,6 +7,9 @@
 #include <dune/gfe/parallel/mpifunctions.hh>
 
 
+namespace Dune::GFE
+{
+
 template<typename GUIndex, typename Communicator, typename VectorType>
 class VectorCommunicator {
 
@@ -100,5 +103,7 @@ private:
   std::vector<int> localVectorEntriesSizes;
   std::vector<TransferVectorTuple> globalVectorEntries;
 };
+
+}  // namespace Dune::GFE
 
 #endif

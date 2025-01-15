@@ -9,6 +9,9 @@
 #include <dune/solvers/solvers/iterativesolver.hh>
 #include <dune/solvers/solvers/quadraticipopt.hh>
 
+namespace Dune::GFE
+{
+
 /** \brief Base solver for a monotone multigrid solver when used as the inner solver in a trust region method
  *
  * Monotone multigrid methods solve constrained problems even on the coarsest level.  Therefore, the choice
@@ -196,5 +199,6 @@ void TrustRegionMMGBaseSolver<MatrixType, VectorType>::solve()
 
 }
 
+}  // namespace Dune::GFE
 
 #endif

@@ -3,6 +3,10 @@
 
 #include <vector>
 
+
+namespace Dune::GFE
+{
+
 /** \brief A multi-index
  */
 class MultiIndex
@@ -50,5 +54,7 @@ public:
   }
 
 };
+
+}  // namespace Dune::GFE
 
 #endif

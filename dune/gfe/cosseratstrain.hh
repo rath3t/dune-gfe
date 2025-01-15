@@ -3,9 +3,8 @@
 
 #include <dune/common/fmatrix.hh>
 
-namespace Dune {
-
-  namespace GFE {
+namespace Dune::GFE
+{
 
     /** \brief Strain tensor of a Cosserat material
      *
@@ -107,8 +106,6 @@ namespace Dune {
       FieldMatrix<T,dimworld,dimworld> data_;
     };
 
-  }   // namespace GFE
-
-}  // namespace Dune
+}  // namespace Dune::GFE
 
 #endif   // DUNE_GFE_COSSERATSTRAIN_HH

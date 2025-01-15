@@ -10,7 +10,8 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
-namespace Dune::GFE {
+namespace Dune::GFE
+{
 
   template<class Element, class field_type>
   class BulkCosseratDensity final

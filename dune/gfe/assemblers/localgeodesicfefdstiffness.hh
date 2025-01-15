@@ -6,6 +6,10 @@
 
 #include <dune/gfe/assemblers/localgeodesicfestiffness.hh>
 
+
+namespace Dune::GFE
+{
+
 /** \brief Assembles energy gradient and Hessian with finite difference approximations
  */
 template<class Basis, class TargetSpace, class field_type=double>
@@ -273,5 +277,7 @@ assembleGradientAndHessian(const typename Basis::LocalView& localView,
     }
   }
 }
+
+}  // namespace Dune::GFE
 
 #endif

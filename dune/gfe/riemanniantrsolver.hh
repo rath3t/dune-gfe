@@ -20,10 +20,13 @@
 #include <dune/gfe/parallel/mapperfactory.hh>
 
 
+namespace Dune::GFE
+{
+
 /** \brief Riemannian trust-region solver for geodesic finite-element problems */
 template <class Basis, class TargetSpace, class Assembler = GeodesicFEAssembler<Basis,TargetSpace> >
 class RiemannianTrustRegionSolver
-  : public IterativeSolver<std::vector<TargetSpace>,
+  : public ::IterativeSolver<std::vector<TargetSpace>,
         Dune::BitSetVector<TargetSpace::TangentVector::dimension> >
 {
   typedef typename Basis::GridView::Grid GridType;
@@ -59,7 +62,7 @@ class RiemannianTrustRegionSolver
 public:
 
   RiemannianTrustRegionSolver()
-    : IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
+    : ::IterativeSolver<std::vector<TargetSpace>, Dune::BitSetVector<blocksize> >(0,100,NumProc::FULL),
     hessianMatrix_(nullptr), h1SemiNorm_(NULL)
   {
     std::fill(scaling_.begin(), scaling_.end(), 1.0);
@@ -178,6 +181,8 @@ protected:
   Statistics statistics_;
 
 };
+
+}  // namespace Dune::GFE
 
 #include "riemanniantrsolver.cc"
 

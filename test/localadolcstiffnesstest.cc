@@ -52,7 +52,7 @@ using namespace Dune;
 const int dim = 2;
 
 // Image space of the geodesic fe functions
-using TargetSpace = GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> >;
+using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
 
 // Compare two matrices
 void compareMatrices(const Matrix<double>& matrixA, std::string nameA,
@@ -112,7 +112,7 @@ int main (int argc, char *argv[]) try
 
   using namespace Functions::BasisFactory;
 
-  const int dimRotation = Rotation<double,3>::TangentVector::dimension;
+  const int dimRotation = GFE::Rotation<double,3>::TangentVector::dimension;
 
   auto tangentBasis = makeBasis(
     gridView,
@@ -187,14 +187,14 @@ int main (int argc, char *argv[]) try
   using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
 
   // Select geometric finite element interpolation method
-  using AInterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using AInterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
   auto activeDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(materialParameters);
 
   auto activeCosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,AInterpolationRule,ATargetSpace> >(activeDensity);
 
   // The actual assembler
-  LocalGeodesicFEADOLCStiffness<TangentBasis,
+  GFE::LocalGeodesicFEADOLCStiffness<TangentBasis,
       TargetSpace> localGFEADOLCStiffness(activeCosseratLocalEnergy);
 
   //////////////////////////////////////////////////////
@@ -202,14 +202,14 @@ int main (int argc, char *argv[]) try
   //////////////////////////////////////////////////////
 
   // Select geometric finite element interpolation method
-  using InterpolationRule = LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+  using InterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, double> >(materialParameters);
 
   auto cosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,InterpolationRule,TargetSpace> >(cosseratDensity);
 
   // The actual assembler
-  LocalGeodesicFEFDStiffness<TangentBasis,
+  GFE::LocalGeodesicFEFDStiffness<TangentBasis,
       TargetSpace,
       FDType> localGFEFDStiffness(cosseratLocalEnergy.get());
 

@@ -14,9 +14,8 @@
 //  Various matrix methods
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-namespace Dune {
-
-  namespace GFE {
+namespace Dune::GFE
+{
 
 #if ADOLC_ADOUBLE_H
     /** \brief Calculates ret = s*A, where A has as field_type of adouble.
@@ -231,8 +230,7 @@ namespace Dune {
       std::generate(vec.begin(), vec.end(), rand);
       return vec;
     }
-  }
-}
 
+}  // namespace Dune::GFE
 
 #endif

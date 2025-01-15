@@ -66,7 +66,7 @@ evaluateDerivativeFD(const LocalFunction& f, const Dune::FieldVector<ctype, dim>
 
 
 template <int domainDim, int dim>
-void testDerivativeTangentiality(const RealTuple<double,dim>& x,
+void testDerivativeTangentiality(const GFE::RealTuple<double,dim>& x,
                                  const FieldMatrix<double,dim,domainDim>& derivative)
 {
   // By construction, derivatives of RealTuples are always tangent
@@ -74,7 +74,7 @@ void testDerivativeTangentiality(const RealTuple<double,dim>& x,
 
 // the columns of the derivative must be tangential to the manifold
 template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const UnitVector<double,vectorDim>& x,
+void testDerivativeTangentiality(const GFE::UnitVector<double,vectorDim>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {
   for (int i=0; i<domainDim; i++) {
@@ -94,13 +94,13 @@ void testDerivativeTangentiality(const UnitVector<double,vectorDim>& x,
 
 // the columns of the derivative must be tangential to the manifold
 template <int domainDim, int vectorDim>
-void testDerivativeTangentiality(const Rotation<double,vectorDim-1>& x,
+void testDerivativeTangentiality(const GFE::Rotation<double,vectorDim-1>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {}
 
 // the columns of the derivative must be tangential to the manifold
 template <int domainDim, int vectorDim,typename ... TargetSpaces>
-void testDerivativeTangentiality(const Dune::GFE::ProductManifold<TargetSpaces...>& x,
+void testDerivativeTangentiality(const GFE::ProductManifold<TargetSpaces...>& x,
                                  const FieldMatrix<double,vectorDim,domainDim>& derivative)
 {
   size_t posHelper=0;
@@ -214,7 +214,7 @@ void test(const GeometryType& element)
   std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << element.dim() << " ---" << std::endl;
 
   std::vector<TargetSpace> testPoints;
-  ValueFactory<TargetSpace>::get(testPoints);
+  GFE::ValueFactory<TargetSpace>::get(testPoints);
 
   int nTestPoints = testPoints.size();
   size_t nVertices = Dune::ReferenceElements<double,domainDim>::general(element).size(domainDim);
@@ -222,7 +222,7 @@ void test(const GeometryType& element)
   // Set up elements of the target space
   std::vector<TargetSpace> corners(nVertices);
 
-  MultiIndex index(nVertices, nTestPoints);
+  GFE::MultiIndex index(nVertices, nTestPoints);
   int numIndices = index.cycle();
 
   for (int i=0; i<numIndices; i++, ++index) {
@@ -260,34 +260,34 @@ int main()
   //  Test functions on 1d elements
   ////////////////////////////////////////////////////////////////
 
-  test<RealTuple<double,1>,1>(GeometryTypes::line);
-  test<UnitVector<double,2>,1>(GeometryTypes::line);
-  test<UnitVector<double,3>,1>(GeometryTypes::line);
-  test<Rotation<double,3>,1>(GeometryTypes::line);
-  typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
+  test<GFE::RealTuple<double,1>,1>(GeometryTypes::line);
+  test<GFE::UnitVector<double,2>,1>(GeometryTypes::line);
+  test<GFE::UnitVector<double,3>,1>(GeometryTypes::line);
+  test<GFE::Rotation<double,3>,1>(GeometryTypes::line);
+  typedef GFE::ProductManifold<GFE::RealTuple<double,1>,GFE::Rotation<double,3>,GFE::UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold, 1>(GeometryTypes::line);
 
   ////////////////////////////////////////////////////////////////
   //  Test functions on 2d simplex elements
   ////////////////////////////////////////////////////////////////
 
-  test<RealTuple<double,1>,2>(GeometryTypes::triangle);
-  test<UnitVector<double,2>,2>(GeometryTypes::triangle);
-  test<RealTuple<double,3>,2>(GeometryTypes::triangle);
-  test<UnitVector<double,3>,2>(GeometryTypes::triangle);
-  test<Rotation<double,3>,2>(GeometryTypes::triangle);
-  typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
+  test<GFE::RealTuple<double,1>,2>(GeometryTypes::triangle);
+  test<GFE::UnitVector<double,2>,2>(GeometryTypes::triangle);
+  test<GFE::RealTuple<double,3>,2>(GeometryTypes::triangle);
+  test<GFE::UnitVector<double,3>,2>(GeometryTypes::triangle);
+  test<GFE::Rotation<double,3>,2>(GeometryTypes::triangle);
+  typedef GFE::ProductManifold<GFE::RealTuple<double,1>,GFE::Rotation<double,3>,GFE::UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold, 2>(GeometryTypes::triangle);
 
   ////////////////////////////////////////////////////////////////
   //  Test functions on 2d quadrilateral elements
   ////////////////////////////////////////////////////////////////
 
-  test<RealTuple<double,1>,2>(GeometryTypes::quadrilateral);
-  test<UnitVector<double,2>,2>(GeometryTypes::quadrilateral);
-  test<UnitVector<double,3>,2>(GeometryTypes::quadrilateral);
-  test<Rotation<double,3>,2>(GeometryTypes::quadrilateral);
-  typedef Dune::GFE::ProductManifold<RealTuple<double,1>,Rotation<double,3>,UnitVector<double,2> > CrazyManifold;
+  test<GFE::RealTuple<double,1>,2>(GeometryTypes::quadrilateral);
+  test<GFE::UnitVector<double,2>,2>(GeometryTypes::quadrilateral);
+  test<GFE::UnitVector<double,3>,2>(GeometryTypes::quadrilateral);
+  test<GFE::Rotation<double,3>,2>(GeometryTypes::quadrilateral);
+  typedef GFE::ProductManifold<GFE::RealTuple<double,1>,GFE::Rotation<double,3>,GFE::UnitVector<double,2> > CrazyManifold;
   test<CrazyManifold, 2>(GeometryTypes::quadrilateral);
 
 }

@@ -25,7 +25,7 @@ template <class GridType,
     class Basis,
     class Basis0, class TargetSpace0,
     class Basis1, class TargetSpace1>
-void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,TargetSpace1>::
+void Dune::GFE::MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,TargetSpace1>::
 setup(const GridType& grid,
       const MixedGFEAssembler<Basis, TargetSpace>* assembler,
       const Basis0& tmpBasis0,
@@ -262,7 +262,7 @@ template <class GridType,
     class Basis,
     class Basis0, class TargetSpace0,
     class Basis1, class TargetSpace1>
-void MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,TargetSpace1>::solve()
+void Dune::GFE::MixedRiemannianTrustRegionSolver<GridType,Basis,Basis0,TargetSpace0,Basis1,TargetSpace1>::solve()
 {
   int argc = 0;
   char** argv;

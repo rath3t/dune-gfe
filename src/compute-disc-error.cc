@@ -222,7 +222,7 @@ void measureDiscreteEOC(const GridView gridView,
   auto localReferenceSolution = localFunction(referenceSolution);
   auto localNumericalSolution = localFunction(numericalSolution);
 
-  if (std::is_same<TargetSpace,GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >::value)
+  if (std::is_same<TargetSpace,GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> > >::value)
   {
     double deformationL2ErrorSquared = 0;
     double orientationL2ErrorSquared = 0;
@@ -264,10 +264,10 @@ void measureDiscreteEOC(const GridView gridView,
         // Compute error of the orientation degrees of freedom
         // We need to transform from quaternion coordinates to matrix coordinates first.
         FieldMatrix<double,3,3> referenceValue, numericalValue;
-        Rotation<double,3> referenceRotation(std::array<double,4>{refValue[3], refValue[4], refValue[5], refValue[6]});
+        GFE::Rotation<double,3> referenceRotation(std::array<double,4>{refValue[3], refValue[4], refValue[5], refValue[6]});
         referenceRotation.matrix(referenceValue);
 
-        Rotation<double,3> numericalRotation(std::array<double,4>{numValue[3], numValue[4], numValue[5], numValue[6]});
+        GFE::Rotation<double,3> numericalRotation(std::array<double,4>{numValue[3], numValue[4], numValue[5], numValue[6]});
         numericalRotation.matrix(numericalValue);
 
         auto orientationDiff = referenceValue - numericalValue;
@@ -278,11 +278,11 @@ void measureDiscreteEOC(const GridView gridView,
         auto numericalDerQuat = localNumericalDerivative(localPos);
 
         // Transform to matrix coordinates
-        Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(FieldVector<double,4>{refValue[3], refValue[4], refValue[5], refValue[6]});
-        Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = Rotation<double,3>::derivativeOfQuaternionToMatrix(FieldVector<double,4>{numValue[3], numValue[4], numValue[5], numValue[6]});
+        GFE::Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = GFE::Rotation<double,3>::derivativeOfQuaternionToMatrix(FieldVector<double,4>{refValue[3], refValue[4], refValue[5], refValue[6]});
+        GFE::Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = GFE::Rotation<double,3>::derivativeOfQuaternionToMatrix(FieldVector<double,4>{numValue[3], numValue[4], numValue[5], numValue[6]});
 
-        Tensor3<double,3,3,dim> refDerivative(0);
-        Tensor3<double,3,3,dim> numDerivative(0);
+        GFE::Tensor3<double,3,3,dim> refDerivative(0);
+        GFE::Tensor3<double,3,3,dim> numDerivative(0);
 
         for (int i=0; i<3; i++)
           for (int j=0; j<3; j++)
@@ -309,7 +309,7 @@ void measureDiscreteEOC(const GridView gridView,
               << "H^1 error orientation: " << std::sqrt(orientationH1ErrorSquared)
               << std::endl;
   }
-  else if constexpr (std::is_same<TargetSpace,Rotation<double,3> >::value)
+  else if constexpr (std::is_same<TargetSpace,GFE::Rotation<double,3> >::value)
   {
     double l2ErrorSquared = 0;
     double h1ErrorSquared = 0;
@@ -334,11 +334,11 @@ void measureDiscreteEOC(const GridView gridView,
 
         FieldMatrix<double,3,3> referenceValue, numericalValue;
         auto refValue = localReferenceSolution(qp.position());
-        Rotation<double,3> referenceRotation(refValue);
+        GFE::Rotation<double,3> referenceRotation(refValue);
         referenceRotation.matrix(referenceValue);
 
         auto numValue = localNumericalSolution(localPos);
-        Rotation<double,3> numericalRotation(numValue);
+        GFE::Rotation<double,3> numericalRotation(numValue);
         numericalRotation.matrix(numericalValue);
 
         auto diff = referenceValue - numericalValue;
@@ -349,11 +349,11 @@ void measureDiscreteEOC(const GridView gridView,
         auto numericalDerQuat = localNumericalDerivative(localPos);
 
         // Transform to matrix coordinates
-        Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(refValue);
-        Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = Rotation<double,3>::derivativeOfQuaternionToMatrix(numValue);
+        GFE::Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = GFE::Rotation<double,3>::derivativeOfQuaternionToMatrix(refValue);
+        GFE::Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = GFE::Rotation<double,3>::derivativeOfQuaternionToMatrix(numValue);
 
-        Tensor3<double,3,3,dim> refDerivative(0);
-        Tensor3<double,3,3,dim> numDerivative(0);
+        GFE::Tensor3<double,3,3,dim> refDerivative(0);
+        GFE::Tensor3<double,3,3,dim> numDerivative(0);
 
         for (int i=0; i<3; i++)
           for (int j=0; j<3; j++)
@@ -473,7 +473,7 @@ void measureAnalyticalEOC(const GridView gridView,
   // TODO: We need to use a type-erasure wrapper here
   // Only used if // parameterSet["interpolationMethod"] == "geodesic"
   auto numericalSolutionGeodesic = GFE::EmbeddedGlobalGFEFunction<FEBasis,
-      LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+      GFE::LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
       TargetSpace> (feBasis, x);
   auto localNumericalSolutionGeodesic = localFunction(numericalSolutionGeodesic);
 
@@ -493,7 +493,7 @@ void measureAnalyticalEOC(const GridView gridView,
 
   if (parameterSet["interpolationMethod"] == "geodesic")
     numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
-        LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+        GFE::LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
         TargetSpace> > (feBasis, x);
 
   if (parameterSet["interpolationMethod"] == "projected")
@@ -508,7 +508,7 @@ void measureAnalyticalEOC(const GridView gridView,
   // Compute errors in the L2 norm and the h1 seminorm.
   // SO(3)-valued maps need special treatment, because they are stored as quaternions,
   // but the errors need to be computed in matrix space.
-  if constexpr (std::is_same<TargetSpace,Rotation<double,3> >::value)
+  if constexpr (std::is_same<TargetSpace,GFE::Rotation<double,3> >::value)
   {
     constexpr int blocksize = TargetSpace::CoordinateType::dimension;
 
@@ -560,11 +560,11 @@ void measureAnalyticalEOC(const GridView gridView,
 #endif
 
         // Get error in matrix space
-        Rotation<double,3> numRotation(numValue);
+        GFE::Rotation<double,3> numRotation(numValue);
         FieldMatrix<double,3,3> numValueMatrix;
         numRotation.matrix(numValueMatrix);
 
-        Rotation<double,3> refRotation(refValue);
+        GFE::Rotation<double,3> refRotation(refValue);
         FieldMatrix<double,3,3> refValueMatrix;
         refRotation.matrix(refValueMatrix);
 
@@ -599,11 +599,11 @@ void measureAnalyticalEOC(const GridView gridView,
 #endif
 
         // Transform into matrix space
-        Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = Rotation<double,3>::derivativeOfQuaternionToMatrix(numValue);
-        Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = Rotation<double,3>::derivativeOfQuaternionToMatrix(refValue);
+        GFE::Tensor3<double,3,3,4> derivativeQuaternionToMatrixNum = GFE::Rotation<double,3>::derivativeOfQuaternionToMatrix(numValue);
+        GFE::Tensor3<double,3,3,4> derivativeQuaternionToMatrixRef = GFE::Rotation<double,3>::derivativeOfQuaternionToMatrix(refValue);
 
-        Tensor3<double,3,3,dim> numDerivative(0);
-        Tensor3<double,3,3,dim> refDerivative(0);
+        GFE::Tensor3<double,3,3,dim> numDerivative(0);
+        GFE::Tensor3<double,3,3,dim> refDerivative(0);
 
         for (int i=0; i<3; i++)
           for (int j=0; j<3; j++)
@@ -821,12 +821,12 @@ int main (int argc, char *argv[]) try
   case 1 :
     if (targetSpace=="RealTuple")
     {
-      measureEOC<GridType,RealTuple<double,1> >(grid,
+      measureEOC<GridType,GFE::RealTuple<double,1> >(grid,
                                                 referenceGrid,
                                                 parameterSet);
     } else if (targetSpace=="UnitVector")
     {
-      measureEOC<GridType,UnitVector<double,1> >(grid,
+      measureEOC<GridType,GFE::UnitVector<double,1> >(grid,
                                                  referenceGrid,
                                                  parameterSet);
     } else
@@ -836,23 +836,23 @@ int main (int argc, char *argv[]) try
   case 2 :
     if (targetSpace=="RealTuple")
     {
-      measureEOC<GridType,RealTuple<double,2> >(grid,
+      measureEOC<GridType,GFE::RealTuple<double,2> >(grid,
                                                 referenceGrid,
                                                 parameterSet);
     } else if (targetSpace=="UnitVector")
     {
-      measureEOC<GridType,UnitVector<double,2> >(grid,
+      measureEOC<GridType,GFE::UnitVector<double,2> >(grid,
                                                  referenceGrid,
                                                  parameterSet);
 #if 0
     } else if (targetSpace=="Rotation")
     {
-      measureEOC<GridType,Rotation<double,2> >(grid,
+      measureEOC<GridType,GFE::Rotation<double,2> >(grid,
                                                referenceGrid,
                                                parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
-      measureEOC<GridType,GFE::ProductManifold<RealTuple<double,2>,Rotation<double,2> > >(grid,
+      measureEOC<GridType,GFE::ProductManifold<GFE::RealTuple<double,2>,GFE::Rotation<double,2> > >(grid,
                                                                                           referenceGrid,
                                                                                           parameterSet);
 #endif
@@ -863,22 +863,22 @@ int main (int argc, char *argv[]) try
   case 3 :
     if (targetSpace=="RealTuple")
     {
-      measureEOC<GridType,RealTuple<double,3> >(grid,
+      measureEOC<GridType,GFE::RealTuple<double,3> >(grid,
                                                 referenceGrid,
                                                 parameterSet);
     } else if (targetSpace=="UnitVector")
     {
-      measureEOC<GridType,UnitVector<double,3> >(grid,
+      measureEOC<GridType,GFE::UnitVector<double,3> >(grid,
                                                  referenceGrid,
                                                  parameterSet);
     } else if (targetSpace=="Rotation")
     {
-      measureEOC<GridType,Rotation<double,3> >(grid,
+      measureEOC<GridType,GFE::Rotation<double,3> >(grid,
                                                referenceGrid,
                                                parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
-      measureEOC<GridType,GFE::ProductManifold<RealTuple<double,3>,Rotation<double,3> > >(grid,
+      measureEOC<GridType,GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> > >(grid,
                                                                                           referenceGrid,
                                                                                           parameterSet);
     } else
@@ -888,18 +888,18 @@ int main (int argc, char *argv[]) try
   case 4 :
     if (targetSpace=="RealTuple")
     {
-      measureEOC<GridType,RealTuple<double,4> >(grid,
+      measureEOC<GridType,GFE::RealTuple<double,4> >(grid,
                                                 referenceGrid,
                                                 parameterSet);
     } else if (targetSpace=="UnitVector")
     {
-      measureEOC<GridType,UnitVector<double,4> >(grid,
+      measureEOC<GridType,GFE::UnitVector<double,4> >(grid,
                                                  referenceGrid,
                                                  parameterSet);
 #if 0
     } else if (targetSpace=="Rotation")
     {
-      measureEOC<GridType,Rotation<double,4> >(grid,
+      measureEOC<GridType,GFE::Rotation<double,4> >(grid,
                                                referenceGrid,
                                                parameterSet);
     } else if (targetSpace=="RigidBodyMotion")

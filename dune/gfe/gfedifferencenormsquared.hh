@@ -15,6 +15,10 @@
 
 #include <dune/gfe/globalgeodesicfefunction.hh>
 
+
+namespace Dune::GFE
+{
+
 template <class Basis, class TargetSpace>
 class GFEDifferenceNormSquared {
 
@@ -284,5 +288,7 @@ public:
     return computeNormSquared(uniformGrid, difference, localStiffness);
   }
 };
+
+}  // namespace Dune::GFE
 
 #endif
