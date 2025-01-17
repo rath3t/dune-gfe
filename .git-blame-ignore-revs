@@ -1,2 +1,5 @@
 # First use of uncrustify, with the vanilla config from dune-project.org
 d13f34469065230dd86e63733e4dc8d1f775acfb
+
+# Cleanup after having moved everything into the Dune::GFE namespace
+c2eb8dacb5885363c30c2b7373c479ed9c66ac12
