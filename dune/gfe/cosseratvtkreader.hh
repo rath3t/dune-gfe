@@ -8,34 +8,34 @@
 namespace Dune::GFE
 {
 
-    /** \brief Read configurations of Cosserat models from VTK files into memory */
-    class CosseratVTKReader
+  /** \brief Read configurations of Cosserat models from VTK files into memory */
+  class CosseratVTKReader
+  {
+  public:
+
+    static void read(std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& configuration,
+                     const std::string& filename)
     {
-    public:
+      VTKFile vtkFile;
+      vtkFile.read(filename);
 
-      static void read(std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& configuration,
-                       const std::string& filename)
+      configuration.resize(vtkFile.points_.size());
+
+      for (size_t i=0; i<configuration.size(); i++)
       {
-        VTKFile vtkFile;
-        vtkFile.read(filename);
+        configuration[i][Indices::_0].globalCoordinates() = vtkFile.points_[i];
 
-        configuration.resize(vtkFile.points_.size());
+        FieldMatrix<double,3,3> R;
+        for (int j=0; j<3; j++)
+          for (int k=0; k<3; k++)
+            R[j][k] = vtkFile.directors_[k][i][j];
 
-        for (size_t i=0; i<configuration.size(); i++)
-        {
-          configuration[i][Indices::_0].globalCoordinates() = vtkFile.points_[i];
-
-          FieldMatrix<double,3,3> R;
-          for (int j=0; j<3; j++)
-            for (int k=0; k<3; k++)
-              R[j][k] = vtkFile.directors_[k][i][j];
-
-          configuration[i][Indices::_1].set(R);
-        }
-
+        configuration[i][Indices::_1].set(R);
       }
 
-    };
+    }
+
+  };
 
 }  // namespace Dune::GFE
 

@@ -64,7 +64,7 @@ namespace Dune::GFE
     using Domain = typename Base::Domain;
     using Range = typename TargetSpace::CoordinateType;
 
-    using Traits = Functions::Imp::GridFunctionTraits<Range(Domain), typename Base::EntitySet, Functions::DefaultDerivativeTraits, 16>;
+    using Traits = Functions::Imp::GridFunctionTraits<Range (Domain), typename Base::EntitySet, Functions::DefaultDerivativeTraits, 16>;
 
     class LocalFunction
       : public Base::LocalFunctionBase
@@ -256,7 +256,7 @@ namespace Dune::GFE
     using Domain = typename Base::Domain;
     using Range = typename Functions::SignatureTraits<typename EmbeddedGlobalGFEFunction::Traits::DerivativeInterface>::Range;
 
-    using Traits = Functions::Imp::GridFunctionTraits<Range(Domain), typename Base::EntitySet, Functions::DefaultDerivativeTraits, 16>;
+    using Traits = Functions::Imp::GridFunctionTraits<Range (Domain), typename Base::EntitySet, Functions::DefaultDerivativeTraits, 16>;
 
     /**
      * \brief local function evaluating the derivative in reference coordinates

@@ -28,7 +28,7 @@ namespace Dune::GFE
 
     using field_type = typename TargetSpace::field_type;
     using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
-    using DerivativeType = FieldMatrix<field_type,TargetSpace::EmbeddedTangentVector::dimension,LocalCoordinate::size()>;
+    using DerivativeType = FieldMatrix<field_type,TargetSpace::EmbeddedTangentVector::dimension,LocalCoordinate::size ()>;
 
     // Number of independent variables
     static constexpr auto m = TargetSpace::EmbeddedTangentVector::dimension + DerivativeType::rows*DerivativeType::cols;

@@ -367,7 +367,7 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   }
 
   GFE::MixedGFEAssembler<CompositeBasis,RigidBodyMotion> mixedAssemblerSmart(compositeBasis,
-                                                                        localIntegralStiffness);
+                                                                             localIntegralStiffness);
 
   //////////////////////////////////////////////////////////////
   //  Assemble

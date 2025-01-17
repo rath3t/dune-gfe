@@ -37,36 +37,36 @@ namespace Dune::GFE
   }  // namespace Impl
 
 
-    /** \brief Base class for energies defined by integrating over one grid element */
-    template<class Basis, class TargetSpace>
-    class LocalEnergy
-    {
-    public:
-      using RT = typename TargetSpace::ctype;
+  /** \brief Base class for energies defined by integrating over one grid element */
+  template<class Basis, class TargetSpace>
+  class LocalEnergy
+  {
+  public:
+    using RT = typename TargetSpace::ctype;
 
-      /** \brief Compute the energy
-       *
-       * \param localView Local view specifying the current element and the FE space there
-       * \param coefficients The coefficients of a FE function on the current element
-       */
-      virtual RT
-      energy (const typename Basis::LocalView& localView,
-              const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& coefficients) const = 0;
+    /** \brief Compute the energy
+     *
+     * \param localView Local view specifying the current element and the FE space there
+     * \param coefficients The coefficients of a FE function on the current element
+     */
+    virtual RT
+    energy (const typename Basis::LocalView& localView,
+            const typename Impl::LocalEnergyTypes<TargetSpace>::Coefficients& coefficients) const = 0;
 
-      /** \brief ProductManifolds: Compute the energy from coefficients in separate containers
-       * for each factor
-       */
-      virtual RT
-      energy (const typename Basis::LocalView& localView,
-              const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const = 0;
+    /** \brief ProductManifolds: Compute the energy from coefficients in separate containers
+     * for each factor
+     */
+    virtual RT
+    energy (const typename Basis::LocalView& localView,
+            const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const = 0;
 
-      /** Empty virtual default destructor
-       *
-       * To allow proper destruction of derived classes through a base class pointer
-       */
-      virtual ~LocalEnergy() = default;
+    /** Empty virtual default destructor
+     *
+     * To allow proper destruction of derived classes through a base class pointer
+     */
+    virtual ~LocalEnergy() = default;
 
-    };
+  };
 
 }  // namespace Dune::GFE
 

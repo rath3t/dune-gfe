@@ -822,13 +822,13 @@ int main (int argc, char *argv[]) try
     if (targetSpace=="RealTuple")
     {
       measureEOC<GridType,GFE::RealTuple<double,1> >(grid,
-                                                referenceGrid,
-                                                parameterSet);
+                                                     referenceGrid,
+                                                     parameterSet);
     } else if (targetSpace=="UnitVector")
     {
       measureEOC<GridType,GFE::UnitVector<double,1> >(grid,
-                                                 referenceGrid,
-                                                 parameterSet);
+                                                      referenceGrid,
+                                                      parameterSet);
     } else
       DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
     break;
@@ -837,24 +837,24 @@ int main (int argc, char *argv[]) try
     if (targetSpace=="RealTuple")
     {
       measureEOC<GridType,GFE::RealTuple<double,2> >(grid,
-                                                referenceGrid,
-                                                parameterSet);
+                                                     referenceGrid,
+                                                     parameterSet);
     } else if (targetSpace=="UnitVector")
     {
       measureEOC<GridType,GFE::UnitVector<double,2> >(grid,
-                                                 referenceGrid,
-                                                 parameterSet);
+                                                      referenceGrid,
+                                                      parameterSet);
 #if 0
     } else if (targetSpace=="Rotation")
     {
       measureEOC<GridType,GFE::Rotation<double,2> >(grid,
-                                               referenceGrid,
-                                               parameterSet);
+                                                    referenceGrid,
+                                                    parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
       measureEOC<GridType,GFE::ProductManifold<GFE::RealTuple<double,2>,GFE::Rotation<double,2> > >(grid,
-                                                                                          referenceGrid,
-                                                                                          parameterSet);
+                                                                                                    referenceGrid,
+                                                                                                    parameterSet);
 #endif
     } else
       DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
@@ -864,23 +864,23 @@ int main (int argc, char *argv[]) try
     if (targetSpace=="RealTuple")
     {
       measureEOC<GridType,GFE::RealTuple<double,3> >(grid,
-                                                referenceGrid,
-                                                parameterSet);
+                                                     referenceGrid,
+                                                     parameterSet);
     } else if (targetSpace=="UnitVector")
     {
       measureEOC<GridType,GFE::UnitVector<double,3> >(grid,
-                                                 referenceGrid,
-                                                 parameterSet);
+                                                      referenceGrid,
+                                                      parameterSet);
     } else if (targetSpace=="Rotation")
     {
       measureEOC<GridType,GFE::Rotation<double,3> >(grid,
-                                               referenceGrid,
-                                               parameterSet);
+                                                    referenceGrid,
+                                                    parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
       measureEOC<GridType,GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> > >(grid,
-                                                                                          referenceGrid,
-                                                                                          parameterSet);
+                                                                                                    referenceGrid,
+                                                                                                    parameterSet);
     } else
       DUNE_THROW(NotImplemented, "Target space '" << targetSpace << "' is not implemented");
     break;
@@ -889,19 +889,19 @@ int main (int argc, char *argv[]) try
     if (targetSpace=="RealTuple")
     {
       measureEOC<GridType,GFE::RealTuple<double,4> >(grid,
-                                                referenceGrid,
-                                                parameterSet);
+                                                     referenceGrid,
+                                                     parameterSet);
     } else if (targetSpace=="UnitVector")
     {
       measureEOC<GridType,GFE::UnitVector<double,4> >(grid,
-                                                 referenceGrid,
-                                                 parameterSet);
+                                                      referenceGrid,
+                                                      parameterSet);
 #if 0
     } else if (targetSpace=="Rotation")
     {
       measureEOC<GridType,GFE::Rotation<double,4> >(grid,
-                                               referenceGrid,
-                                               parameterSet);
+                                                    referenceGrid,
+                                                    parameterSet);
     } else if (targetSpace=="RigidBodyMotion")
     {
       measureEOC<GridType,GFE::ProductManifold<RealTuple<double,4>,Rotation<double,4> > >(grid,

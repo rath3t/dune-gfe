@@ -19,223 +19,223 @@
 namespace Dune::GFE
 {
 
-/** \brief A factory class that implements various ways to create rod configurations
- */
-
-template <class GridView>
-class RodFactory
-{
-  static_assert(GridView::dimensionworld==1, "RodFactory is only implemented for grids in a 1d world");
-
-public:
-
-  RodFactory(const GridView& gridView)
-    : gridView_(gridView)
-  {}
-
-  /** \brief Make a straight, unsheared rod from two given endpoints
-
-     \param[out] rod The new rod
-     \param[in] n The number of vertices
+  /** \brief A factory class that implements various ways to create rod configurations
    */
-  template <int dim>
-  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > >& rod,
-              const Dune::FieldVector<double,3>& beginning, const Dune::FieldVector<double,3>& end)
+
+  template <class GridView>
+  class RodFactory
   {
-    // Compute the correct orientation
-    Rotation<double,dim> orientation = Rotation<double,dim>::identity();
+    static_assert(GridView::dimensionworld==1, "RodFactory is only implemented for grids in a 1d world");
 
-    Dune::FieldVector<double,3> zAxis(0);
-    zAxis[2] = 1;
-    Dune::FieldVector<double,3> axis = MatrixVector::crossProduct(Dune::FieldVector<double,3>(end-beginning), zAxis);
-    if (axis.two_norm() != 0)
-      axis /= -axis.two_norm();
+  public:
 
-    Dune::FieldVector<double,3> d3 = end-beginning;
-    d3 /= d3.two_norm();
+    RodFactory(const GridView& gridView)
+      : gridView_(gridView)
+    {}
 
-    double angle = std::acos(zAxis * d3);
+    /** \brief Make a straight, unsheared rod from two given endpoints
 
-    if (angle != 0)
-      orientation = Rotation<double,3>(axis, angle);
+       \param[out] rod The new rod
+       \param[in] n The number of vertices
+     */
+    template <int dim>
+    void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > >& rod,
+                const Dune::FieldVector<double,3>& beginning, const Dune::FieldVector<double,3>& end)
+    {
+      // Compute the correct orientation
+      Rotation<double,dim> orientation = Rotation<double,dim>::identity();
 
-    // Set the values
-    create(rod,
-           Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > (beginning,orientation),
-           Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > (end,orientation));
-  }
+      Dune::FieldVector<double,3> zAxis(0);
+      zAxis[2] = 1;
+      Dune::FieldVector<double,3> axis = MatrixVector::crossProduct(Dune::FieldVector<double,3>(end-beginning), zAxis);
+      if (axis.two_norm() != 0)
+        axis /= -axis.two_norm();
 
+      Dune::FieldVector<double,3> d3 = end-beginning;
+      d3 /= d3.two_norm();
 
-  /** \brief Make a rod by interpolating between two end configurations
+      double angle = std::acos(zAxis * d3);
 
-     \param[out] rod The new rod
-   */
-  template <int spaceDim>
-  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> >  >& rod,
-              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & beginning,
-              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & end)
-  {
+      if (angle != 0)
+        orientation = Rotation<double,3>(axis, angle);
 
-    static const int dim = GridView::dimension;  // de facto: 1
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    //  Get smallest and largest coordinate, in order to create an arc-length parametrization
-    //////////////////////////////////////////////////////////////////////////////////////////////
-
-    typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
-    typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
-
-    double min =  std::numeric_limits<double>::max();
-    double max = -std::numeric_limits<double>::max();
-
-    for (; vIt != vEndIt; ++vIt) {
-      min = std::min(min, vIt->geometry().corner(0)[0]);
-      max = std::max(max, vIt->geometry().corner(0)[0]);
+      // Set the values
+      create(rod,
+             Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > (beginning,orientation),
+             Dune::GFE::ProductManifold<RealTuple<double,dim>,Rotation<double,dim> > (end,orientation));
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////
-    //  Interpolate according to arc-length
-    ////////////////////////////////////////////////////////////////////////////////////
 
-    rod.resize(gridView_.size(dim));
+    /** \brief Make a rod by interpolating between two end configurations
 
-    for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
-      int idx = gridView_.indexSet().index(*vIt);
-      Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
+       \param[out] rod The new rod
+     */
+    template <int spaceDim>
+    void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> >  >& rod,
+                const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & beginning,
+                const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & end)
+    {
 
-      for (int i=0; i<3; i++)
-        rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
-      rod[idx].q = Rotation<double,3>::interpolate(beginning.q, end.q, local);
-    }
-  }
+      static const int dim = GridView::dimension; // de facto: 1
 
-  /** \brief Make a rod by setting each entry to the same value
+      //////////////////////////////////////////////////////////////////////////////////////////////
+      //  Get smallest and largest coordinate, in order to create an arc-length parametrization
+      //////////////////////////////////////////////////////////////////////////////////////////////
 
-     \param[out] rod The new rod
-   */
-  template <int spaceDim>
-  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> >  >& rod,
-              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & value)
-  {
-    rod.resize(gridView_.size(1));
-    std::fill(rod.begin(), rod.end(), value);
-  }
+      typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
+      typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
 
-  /** \brief Make a rod by linearly interpolating between the end values
+      double min =  std::numeric_limits<double>::max();
+      double max = -std::numeric_limits<double>::max();
 
-      \note The end values are expected to be in the input container!
-      \param[in,out] rod The new rod
-   */
-  template <int spaceDim>
-  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > >& rod)
-  {
-    static const int dim = GridView::dimension;      // de facto: 1
-    assert(gridView_.size(dim)==rod.size());
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    //  Get smallest and largest coordinate, in order to create an arc-length parametrization
-    //////////////////////////////////////////////////////////////////////////////////////////////
-
-    typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
-    typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
-
-    double min =  std::numeric_limits<double>::max();
-    double max = -std::numeric_limits<double>::max();
-    Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > beginning, end;
-
-    for (; vIt != vEndIt; ++vIt) {
-      if (vIt->geometry().corner(0)[0] < min) {
-        min = vIt->geometry().corner(0)[0];
-        beginning = rod[gridView_.indexSet().index(*vIt)];
+      for (; vIt != vEndIt; ++vIt) {
+        min = std::min(min, vIt->geometry().corner(0)[0]);
+        max = std::max(max, vIt->geometry().corner(0)[0]);
       }
-      if (vIt->geometry().corner(0)[0] > max) {
-        max = vIt->geometry().corner(0)[0];
-        end = rod[gridView_.indexSet().index(*vIt)];
+
+      ////////////////////////////////////////////////////////////////////////////////////
+      //  Interpolate according to arc-length
+      ////////////////////////////////////////////////////////////////////////////////////
+
+      rod.resize(gridView_.size(dim));
+
+      for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
+        int idx = gridView_.indexSet().index(*vIt);
+        Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
+
+        for (int i=0; i<3; i++)
+          rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
+        rod[idx].q = Rotation<double,3>::interpolate(beginning.q, end.q, local);
       }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////
-    //  Interpolate according to arc-length
-    ////////////////////////////////////////////////////////////////////////////////////
+    /** \brief Make a rod by setting each entry to the same value
 
-    rod.resize(gridView_.size(dim));
-
-    for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
-      int idx = gridView_.indexSet().index(*vIt);
-      Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
-
-      for (int i=0; i<3; i++)
-        rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
-      rod[idx].q = Rotation<double,3>::interpolate(beginning.q, end.q, local);
-    }
-  }
-
-
-  /** \brief Make a rod solving a static Dirichlet problem
-
-     \param rod The configuration to be computed
-     \param radius The rod's radius
-     \param E The rod's elastic modulus
-     \param nu The rod's Poisson modulus
-     \param beginning The prescribed Dirichlet values
-     \param end The prescribed Dirichlet values
-     \param[out] rod The new rod
-   */
-  template <int spaceDim>
-  void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > >& rod,
-              double radius, double E, double nu,
-              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & beginning,
-              const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & end)
-  {
-
-    // Make Dirichlet bitfields for the rods as well
-    Dune::BitSetVector<6> rodDirichletNodes(gridView_.size(GridView::dimension),false);
-
-    for (int j=0; j<6; j++) {
-      rodDirichletNodes[0][j] = true;
-      rodDirichletNodes.back()[j] = true;
+       \param[out] rod The new rod
+     */
+    template <int spaceDim>
+    void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> >  >& rod,
+                const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & value)
+    {
+      rod.resize(gridView_.size(1));
+      std::fill(rod.begin(), rod.end(), value);
     }
 
-    // Create local assembler for the static elastic problem
-    RodLocalStiffness<GridView,double> rodLocalStiffness(gridView_, radius*radius*M_PI,
-                                                         std::pow(radius,4) * 0.25* M_PI, std::pow(radius,4) * 0.25* M_PI, E, nu);
+    /** \brief Make a rod by linearly interpolating between the end values
 
-    typedef Dune::Functions::PQKNodalBasis<GridView,1> RodP1Basis;
-    RodP1Basis p1Basis(gridView_);
-    RodAssembler<RodP1Basis,spaceDim> assembler(p1Basis, &rodLocalStiffness);
+        \note The end values are expected to be in the input container!
+        \param[in,out] rod The new rod
+     */
+    template <int spaceDim>
+    void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > >& rod)
+    {
+      static const int dim = GridView::dimension;    // de facto: 1
+      assert(gridView_.size(dim)==rod.size());
 
-    // Create initial iterate using the straight rod interpolation method
-    create(rod, beginning.r, end.r);
+      //////////////////////////////////////////////////////////////////////////////////////////////
+      //  Get smallest and largest coordinate, in order to create an arc-length parametrization
+      //////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Set reference configuration
-    rodLocalStiffness.setReferenceConfiguration(rod);
+      typename GridView::template Codim<dim>::Iterator vIt    = gridView_.template begin<dim>();
+      typename GridView::template Codim<dim>::Iterator vEndIt = gridView_.template end<dim>();
 
-    // Set Dirichlet values
-    rod[0] = beginning;
-    rod.back() = end;
+      double min =  std::numeric_limits<double>::max();
+      double max = -std::numeric_limits<double>::max();
+      Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > beginning, end;
 
-    // Trust--Region solver
-    RiemannianTrustRegionSolver<RodP1Basis, Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > > rodSolver;
-    rodSolver.setup(gridView_.grid(), &assembler, rod,
-                    rodDirichletNodes,
-                    1e-10, 100, // TR tolerance and iterations
-                    20, // init TR radius
-                    200, 1e-00, 1, 3, 3, // Multigrid parameters
-                    100, 1e-8 , false); // base solver parameters
+      for (; vIt != vEndIt; ++vIt) {
+        if (vIt->geometry().corner(0)[0] < min) {
+          min = vIt->geometry().corner(0)[0];
+          beginning = rod[gridView_.indexSet().index(*vIt)];
+        }
+        if (vIt->geometry().corner(0)[0] > max) {
+          max = vIt->geometry().corner(0)[0];
+          end = rod[gridView_.indexSet().index(*vIt)];
+        }
+      }
 
-    rodSolver.verbosity_ = NumProc::QUIET;
+      ////////////////////////////////////////////////////////////////////////////////////
+      //  Interpolate according to arc-length
+      ////////////////////////////////////////////////////////////////////////////////////
 
-    rodSolver.solve();
+      rod.resize(gridView_.size(dim));
 
-    rod = rodSolver.getSol();
+      for (vIt = gridView_.template begin<dim>(); vIt != vEndIt; ++vIt) {
+        int idx = gridView_.indexSet().index(*vIt);
+        Dune::FieldVector<double,1> local = (vIt->geometry().corner(0)[0] - min) / (max - min);
+
+        for (int i=0; i<3; i++)
+          rod[idx].r[i] = (1-local)*beginning.r[i] + local*end.r[i];
+        rod[idx].q = Rotation<double,3>::interpolate(beginning.q, end.q, local);
+      }
+    }
 
 
-  }
+    /** \brief Make a rod solving a static Dirichlet problem
 
-private:
+       \param rod The configuration to be computed
+       \param radius The rod's radius
+       \param E The rod's elastic modulus
+       \param nu The rod's Poisson modulus
+       \param beginning The prescribed Dirichlet values
+       \param end The prescribed Dirichlet values
+       \param[out] rod The new rod
+     */
+    template <int spaceDim>
+    void create(std::vector<Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > >& rod,
+                double radius, double E, double nu,
+                const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & beginning,
+                const Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > & end)
+    {
 
-  const GridView gridView_;
-};
+      // Make Dirichlet bitfields for the rods as well
+      Dune::BitSetVector<6> rodDirichletNodes(gridView_.size(GridView::dimension),false);
+
+      for (int j=0; j<6; j++) {
+        rodDirichletNodes[0][j] = true;
+        rodDirichletNodes.back()[j] = true;
+      }
+
+      // Create local assembler for the static elastic problem
+      RodLocalStiffness<GridView,double> rodLocalStiffness(gridView_, radius*radius*M_PI,
+                                                           std::pow(radius,4) * 0.25* M_PI, std::pow(radius,4) * 0.25* M_PI, E, nu);
+
+      typedef Dune::Functions::PQKNodalBasis<GridView,1> RodP1Basis;
+      RodP1Basis p1Basis(gridView_);
+      RodAssembler<RodP1Basis,spaceDim> assembler(p1Basis, &rodLocalStiffness);
+
+      // Create initial iterate using the straight rod interpolation method
+      create(rod, beginning.r, end.r);
+
+      // Set reference configuration
+      rodLocalStiffness.setReferenceConfiguration(rod);
+
+      // Set Dirichlet values
+      rod[0] = beginning;
+      rod.back() = end;
+
+      // Trust--Region solver
+      RiemannianTrustRegionSolver<RodP1Basis, Dune::GFE::ProductManifold<RealTuple<double,spaceDim>,Rotation<double,spaceDim> > > rodSolver;
+      rodSolver.setup(gridView_.grid(), &assembler, rod,
+                      rodDirichletNodes,
+                      1e-10, 100, // TR tolerance and iterations
+                      20, // init TR radius
+                      200, 1e-00, 1, 3, 3, // Multigrid parameters
+                      100, 1e-8 , false); // base solver parameters
+
+      rodSolver.verbosity_ = NumProc::QUIET;
+
+      rodSolver.solve();
+
+      rod = rodSolver.getSol();
+
+
+    }
+
+  private:
+
+    const GridView gridView_;
+  };
 
 }  // namespace Dune::GFE
 

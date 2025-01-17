@@ -66,27 +66,27 @@ namespace Dune::GFE
     };
   }  // namespace Impl
 
-template<class Basis, class TargetSpace>
-class LocalGeodesicFEStiffness
-  : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
-{
-public:
+  template<class Basis, class TargetSpace>
+  class LocalGeodesicFEStiffness
+    : public Dune::GFE::LocalFirstOrderModel<Basis,TargetSpace>
+  {
+  public:
 
-  /** \brief Assemble the local gradient and stiffness matrix at the current position
+    /** \brief Assemble the local gradient and stiffness matrix at the current position
 
-   */
-  virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
-                                          std::vector<double>& localGradient,
-                                          typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
+     */
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
+                                            const typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Coefficients& coefficients,
+                                            std::vector<double>& localGradient,
+                                            typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const = 0;
 
-  /** \brief Assemble the local gradient and stiffness matrix at the current position -- Composite version
-   */
-  virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
-                                          const typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
-                                          std::vector<double>& localGradient,
-                                          typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const = 0;
-};
+    /** \brief Assemble the local gradient and stiffness matrix at the current position -- Composite version
+     */
+    virtual void assembleGradientAndHessian(const typename Basis::LocalView& localView,
+                                            const typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeCoefficients& coefficients,
+                                            std::vector<double>& localGradient,
+                                            typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const = 0;
+  };
 
 }  // namespace Dune::GFE
 

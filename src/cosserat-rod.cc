@@ -316,13 +316,13 @@ int main (int argc, char *argv[]) try
   using RotationInterpolationRule = GFE::LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, GFE::Rotation<double,3> >;
 
   GFE::EmbeddedGlobalGFEFunction<ScalarBasis, RotationInterpolationRule,GFE::Rotation<double,3> > orientationFunction(scalarBasis,
-                                                                                                                 orientationConfiguration);
+                                                                                                                      orientationConfiguration);
 
   GFE::CosseratVTKWriter<GridView>::write(gridView,
-                                     displacementFunction,
-                                     orientationFunction,
-                                     order,
-                                     resultPath + "cosserat-rod-result-" + std::to_string(numLevels));
+                                          displacementFunction,
+                                          orientationFunction,
+                                          order,
+                                          resultPath + "cosserat-rod-result-" + std::to_string(numLevels));
 
   // Write the corresponding coefficient vector: verbatim in binary, to be completely lossless
   // This data may be used by other applications measuring the discretization error

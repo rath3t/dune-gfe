@@ -107,10 +107,10 @@ double calculateEnergy(const FlatGridView& flatGridView,
   // TODO: Write the curved grid, not the flat one
   // BUG: The second argument should be the displacement, not the deformation
   GFE::CosseratVTKWriter<FlatGridView>::write(flatGridView,
-                                         deformationGridViewFunction,
-                                         orientationQuaternionGridViewFunction,
-                                         2, // VTK output element order
-                                         "nonplanarcosseratenergytest-result.vtu");
+                                              deformationGridViewFunction,
+                                              orientationQuaternionGridViewFunction,
+                                              2, // VTK output element order
+                                              "nonplanarcosseratenergytest-result.vtu");
 
   ///////////////////////////////////////////////////
   //  Construct the energy functional

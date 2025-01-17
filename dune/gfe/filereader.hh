@@ -11,34 +11,34 @@
 namespace Dune::GFE
 {
 
-    // Convert the pairs {grid vertex, vector of dimension d} in the given file to a map
-    template <int d>
-    static std::unordered_map<std::string, FieldVector<double,d> > transformFileToMap(std::string pathToFile) {
+  // Convert the pairs {grid vertex, vector of dimension d} in the given file to a map
+  template <int d>
+  static std::unordered_map<std::string, FieldVector<double,d> > transformFileToMap(std::string pathToFile) {
 
-      std::unordered_map<std::string, FieldVector<double,d> > map;
+    std::unordered_map<std::string, FieldVector<double,d> > map;
 
-      std::string line, displacement, entry;
+    std::string line, displacement, entry;
 
-      std::ifstream file(pathToFile, std::ios::in);
+    std::ifstream file(pathToFile, std::ios::in);
 
-      if (file.is_open()) {
-        while (std::getline(file, line)) {
-          size_t j = 0;
-          size_t pos = line.find(":");
-          displacement = line.substr(pos + 1);
-          line.erase(pos);
-          std::stringstream entries(displacement);
-          FieldVector<double,d> vector(0);
-          while(entries >> entry)
-            vector[j++] = std::stod(entry);
-          map.insert({line,vector});
-        }
-        file.close();
-      } else {
-        DUNE_THROW(Exception, "Error: Could not open the file " + pathToFile + " !");
+    if (file.is_open()) {
+      while (std::getline(file, line)) {
+        size_t j = 0;
+        size_t pos = line.find(":");
+        displacement = line.substr(pos + 1);
+        line.erase(pos);
+        std::stringstream entries(displacement);
+        FieldVector<double,d> vector(0);
+        while(entries >> entry)
+          vector[j++] = std::stod(entry);
+        map.insert({line,vector});
       }
-      return map;
+      file.close();
+    } else {
+      DUNE_THROW(Exception, "Error: Could not open the file " + pathToFile + " !");
     }
+    return map;
+  }
 
 }
 #endif

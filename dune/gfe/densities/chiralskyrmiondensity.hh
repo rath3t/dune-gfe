@@ -24,7 +24,7 @@ namespace Dune::GFE
     // various useful types
     using LocalCoordinate = typename ElementOrIntersection::Geometry::LocalCoordinate;
     using TargetSpace = UnitVector<field_type,3>;
-    using Derivative = FieldMatrix<field_type, TargetSpace::embeddedDim, LocalCoordinate::size()>;
+    using Derivative = FieldMatrix<field_type, TargetSpace::embeddedDim, LocalCoordinate::size ()>;
 
     using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
 

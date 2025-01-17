@@ -14,9 +14,8 @@ namespace Dune::GFE
    */
 
   template <class Basis, class ScalarBasis, class TargetSpace>
-  class
-    GeodesicFEAssemblerWrapper {
-
+  class GeodesicFEAssemblerWrapper
+  {
     using MixedSpace0 = std::tuple_element_t<0,TargetSpace>;
     using MixedSpace1 = std::tuple_element_t<1,TargetSpace>;
 

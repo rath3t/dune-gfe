@@ -122,10 +122,10 @@ setup(const GridType& grid,
   auto baseNorm = std::make_shared<TwoNorm<CorrectionType> >();
 
   auto baseSolver = std::make_shared<Solvers::LoopSolver<CorrectionType> >(baseSolverStep,
-                                                                    baseIterations,
-                                                                    baseTolerance,
-                                                                    baseNorm,
-                                                                    Solver::QUIET);
+                                                                           baseIterations,
+                                                                           baseTolerance,
+                                                                           baseNorm,
+                                                                           Solver::QUIET);
 #endif
 
 #if HAVE_MPI
@@ -180,10 +180,10 @@ setup(const GridType& grid,
   h1SemiNorm_ = std::make_shared<H1SemiNorm<CorrectionType> >(A);
 
   innerSolver_ = std::make_shared<Solvers::LoopSolver<CorrectionType> >(mmgStep,
-                                                                 innerIterations_,
-                                                                 innerTolerance_,
-                                                                 h1SemiNorm_,
-                                                                 Solver::QUIET);
+                                                                        innerIterations_,
+                                                                        innerTolerance_,
+                                                                        h1SemiNorm_,
+                                                                        Solver::QUIET);
 
   // //////////////////////////////////////////////////////////////////////////////////////
   //   Assemble a mass matrix to create a norm that's equivalent to the L2-norm

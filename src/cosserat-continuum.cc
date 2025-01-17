@@ -483,14 +483,14 @@ int main (int argc, char *argv[]) try
 #endif
 
   GFE::EmbeddedGlobalGFEFunction<OrientationFEBasis, RotationInterpolationRule,GFE::Rotation<double,3> > orientationFunction(orientationFEBasis,
-                                                                                                                        x[_1]);
+                                                                                                                             x[_1]);
 
   if (dim == dimworld) {
     GFE::CosseratVTKWriter<GridView>::write(gridView,
-                                       displacementFunction,
-                                       orientationFunction,
-                                       std::max(LFE_ORDER, GFE_ORDER),
-                                       resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
+                                            displacementFunction,
+                                            orientationFunction,
+                                            std::max(LFE_ORDER, GFE_ORDER),
+                                            resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
   } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
     GFE::CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_0_l" + std::to_string(numLevels));
@@ -602,7 +602,7 @@ int main (int argc, char *argv[]) try
 
     // The local assembler
     GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,TargetSpace> localGFEADOLCStiffness(sumEnergy,
-                                                                                     adolcScalarMode);
+                                                                                          adolcScalarMode);
 
     GFE::MixedGFEAssembler<CompositeBasis,TargetSpace> mixedAssembler(compositeBasis, localGFEADOLCStiffness);
 
@@ -747,10 +747,10 @@ int main (int argc, char *argv[]) try
 
     if (dim == dimworld) {
       GFE::CosseratVTKWriter<GridView>::write(gridView,
-                                         displacementFunction,
-                                         orientationFunction,
-                                         std::max(LFE_ORDER, GFE_ORDER),
-                                         resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
+                                              displacementFunction,
+                                              orientationFunction,
+                                              std::max(LFE_ORDER, GFE_ORDER),
+                                              resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
     } else if (dim == 2 && dimworld == 3) {
 #if MIXED_SPACE
       GFE::CosseratVTKWriter<GridView>::write<DeformationFEBasis>(deformationFEBasis, x[_0], resultPath + "cosserat_homotopy_" + std::to_string(i+1) + "_l" + std::to_string(numLevels));
