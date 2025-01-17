@@ -44,6 +44,11 @@ add_executable("cosserat-continuum-3d-in-3d-2-1" cosserat-continuum.cc)
 set_property(TARGET "cosserat-continuum-3d-in-3d-2-1" APPEND PROPERTY COMPILE_DEFINITIONS "GRID_DIM=3; WORLD_DIM=3; LFE_ORDER=2; GFE_ORDER=1")
 set(programs cosserat-continuum-3d-in-3d-2-1 ${programs})
 
+if(dune-functions_VERSION VERSION_GREATER_EQUAL 2.11.0)
+  add_executable("bending-plate" bending-plate.cc)
+  set(programs bending-plate ${programs})
+endif()
+
 foreach(_program ${programs})
   target_link_dune_default_libraries(${_program})
   add_dune_pythonlibs_flags(${_program})
