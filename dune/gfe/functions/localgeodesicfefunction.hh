@@ -251,17 +251,6 @@ namespace Dune::GFE
   {
     Dune::FieldMatrix<RT, embeddedDim, dim> result;
 
-#if 0  // this is probably faster than the general implementation, but we leave it out for testing purposes
-    if (dim==1) {
-
-      EmbeddedTangentVector tmp = TargetSpace::interpolateDerivative(coefficients_[0], coefficients_[1], local[0]);
-
-      for (int i=0; i<embeddedDim; i++)
-        result[i][0] = tmp[i];
-
-    }
-#endif
-
     // ////////////////////////////////////////////////////////////////////////
     //  The derivative is evaluated using the implicit function theorem.
     //  Hence we need to solve a small system of linear equations.
