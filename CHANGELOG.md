@@ -1,5 +1,8 @@
 # Master
 
+- The class `LocalGeodesicFEFunction` now takes a `dune-functions` basis
+  as its first argument, instead of a `LocalFiniteElement`.
+
 - The entire code is now in the `Dune::GFE` namespace.
 
 - Remove the files `localgfetestfunctionbasis.hh` and `localtangentfefunction.hh`.

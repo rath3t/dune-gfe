@@ -438,7 +438,7 @@ int main (int argc, char *argv[]) try
 #ifdef PROJECTED_INTERPOLATION
     using LocalInterpolationRule  = GFE::LocalProjectedFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
 #else
-    using LocalInterpolationRule  = GFE::LocalGeodesicFEFunction<dim, double, DeformationFEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+    using LocalInterpolationRule  = GFE::LocalGeodesicFEFunction<DeformationFEBasis, TargetSpace>;
 #endif
     GFE::EmbeddedGlobalGFEFunction<InitialBasis,LocalInterpolationRule,TargetSpace> initialFunction(initialBasis,initialIterate);
     auto powerBasis = makeBasis(
@@ -479,7 +479,7 @@ int main (int argc, char *argv[]) try
 #ifdef PROJECTED_INTERPOLATION
   using RotationInterpolationRule = GFE::LocalProjectedFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, GFE::Rotation<double,3> >;
 #else
-  using RotationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, OrientationFEBasis::LocalView::Tree::FiniteElement, GFE::Rotation<double,3> >;
+  using RotationInterpolationRule = GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<double,3> >;
 #endif
 
   GFE::EmbeddedGlobalGFEFunction<OrientationFEBasis, RotationInterpolationRule,GFE::Rotation<double,3> > orientationFunction(orientationFEBasis,
@@ -573,11 +573,8 @@ int main (int argc, char *argv[]) try
     ////////////////////////////////////////////////////////////////
 
     // Construct the interpolation rule, i.e., the geometric finite element
-    using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
-    using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
-
-    using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, GFE::RealTuple<adouble,3> >,
-        GFE::LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, GFE::Rotation<adouble,3> > >;
+    using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >,
+        GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<adouble,3> > >;
 
     using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
 

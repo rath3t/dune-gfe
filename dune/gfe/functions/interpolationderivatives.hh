@@ -427,10 +427,20 @@ namespace Dune::GFE
    * standard FE interpolation, and the derivatives with respect to the coefficients can be
    * computed much simpler and faster than for the general case.
    */
-  template <int gridDim, typename field_type, typename LocalFiniteElement,int dim>
-  class InterpolationDerivatives<LocalGeodesicFEFunction<gridDim, field_type, LocalFiniteElement, RealTuple<field_type,dim> > >
+  template <typename Basis, typename field_type,int dim>
+  class InterpolationDerivatives<LocalGeodesicFEFunction<Basis, RealTuple<field_type,dim> > >
   {
-    using LocalInterpolationRule = LocalGeodesicFEFunction<gridDim, field_type, LocalFiniteElement, RealTuple<field_type,dim> >;
+    using LocalInterpolationRule = LocalGeodesicFEFunction<Basis, RealTuple<field_type,dim> >;
+
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
+    using LocalCoordinate = typename Element::Geometry::LocalCoordinate;
+    static constexpr auto gridDim = LocalCoordinate::size();
+
+    using LocalFiniteElement = typename Basis::LocalView::Tree::FiniteElement;
+    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
+    using WeightType = typename LocalBasis::Traits::RangeType;
+    using WeightJacobianType = typename LocalBasis::Traits::JacobianType;
+
     using TargetSpace = typename LocalInterpolationRule::TargetSpace;
 
     constexpr static auto blocksize = TargetSpace::TangentVector::dimension;
@@ -449,11 +459,10 @@ namespace Dune::GFE
     const bool doDerivative_;
 
     // Values of all scalar shape functions at the point we are bound to
-    std::vector<FieldVector<double,1> > shapeFunctionValues_;
+    std::vector<WeightType> shapeFunctionValues_;
 
     // Gradients of all scalar shape functions at the point we are bound to
-    // TODO: The second dimension must be WorldDim
-    std::vector<FieldMatrix<double,1,gridDim> > shapeFunctionGradients_;
+    std::vector<WeightJacobianType> shapeFunctionGradients_;
 
 
   public:
@@ -479,10 +488,9 @@ namespace Dune::GFE
      *  \param[out] derivative      The derivative of the interpolation function
      *                              with respect to the evaluation point
      */
-    template <typename Element>
     void bind(short tapeNumber,
               const Element& element,
-              const typename Element::Geometry::LocalCoordinate& localPos,
+              const LocalCoordinate& localPos,
               typename TargetSpace::CoordinateType& valueGlobalCoordinates,
               typename LocalInterpolationRule::DerivativeType& derivative)
     {
@@ -546,7 +554,7 @@ namespace Dune::GFE
       // First derivatives of the function gradient wrt to the FE coefficients
       for (size_t i=0; i<nDofs; ++i)
         for (int j=0; j<blocksize; ++j)
-          for (int k=0; k<gridDim; ++k)
+          for (std::size_t k=0; k<gridDim; ++k)
             firstDerivative[blocksize + j*gridDim + k][i*blocksize+j] = shapeFunctionGradients_[i][0][k];
 
       // For RealTuple, firstDerivative and embeddedFirstDerivative coincide

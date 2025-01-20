@@ -162,7 +162,7 @@ void measureDiscreteEOC(const GridView gridView,
   FEBasis feBasis(gridView);
   FEBasis referenceFEBasis(referenceGridView);
 
-  //typedef LocalGeodesicFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  //typedef LocalGeodesicFEFunction<FEBasis, TargetSpace> LocalInterpolationRule;
   //if (parameterSet["interpolationMethod"] != "geodesic")
   //  DUNE_THROW(Exception, "Inconsistent choice of interpolation method");
   typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
@@ -473,7 +473,7 @@ void measureAnalyticalEOC(const GridView gridView,
   // TODO: We need to use a type-erasure wrapper here
   // Only used if // parameterSet["interpolationMethod"] == "geodesic"
   auto numericalSolutionGeodesic = GFE::EmbeddedGlobalGFEFunction<FEBasis,
-      GFE::LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+      GFE::LocalGeodesicFEFunction<FEBasis, TargetSpace>,
       TargetSpace> (feBasis, x);
   auto localNumericalSolutionGeodesic = localFunction(numericalSolutionGeodesic);
 
@@ -493,7 +493,7 @@ void measureAnalyticalEOC(const GridView gridView,
 
   if (parameterSet["interpolationMethod"] == "geodesic")
     numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
-        GFE::LocalGeodesicFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+        GFE::LocalGeodesicFEFunction<FEBasis, TargetSpace>,
         TargetSpace> > (feBasis, x);
 
   if (parameterSet["interpolationMethod"] == "projected")

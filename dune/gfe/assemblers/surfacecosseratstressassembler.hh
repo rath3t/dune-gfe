@@ -1,6 +1,8 @@
 #ifndef DUNE_GFE_SURFACECOSSERATSTRESSASSEMBLER_HH
 #define DUNE_GFE_SURFACECOSSERATSTRESSASSEMBLER_HH
 
+#include <dune/functions/functionspacebases/subspacebasis.hh>
+
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/linearalgebra.hh>
@@ -235,7 +237,9 @@ namespace Dune::GFE
           VectorR localConfigurationRot(lFEOrderR.size());
           for (std::size_t i=0; i<localConfigurationRot.size(); i++)
             localConfigurationRot[i] = rot[localViewOrderR.index(i)[0]];  //localViewOrderR.index(i) is a multiindex, its first entry is the actual index
-          typedef LocalGeodesicFEFunction<dim, double, decltype(lFEOrderR), TargetSpaceR> LocalGFEFunctionType;
+
+          const auto scalarBasisR = Functions::subspaceBasis(basisOrderR_,0);
+          typedef LocalGeodesicFEFunction<decltype(scalarBasisR), TargetSpaceR> LocalGFEFunctionType;
           LocalGFEFunctionType localGeodesicFEFunction(lFEOrderR,localConfigurationRot);
 
           auto evaluateAtPoint = [&](FieldVector<double,3> pointGlobal, FieldVector<double,3> pointLocal3d) -> FieldMatrix<double,dim,dim> {

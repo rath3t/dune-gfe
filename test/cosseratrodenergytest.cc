@@ -71,8 +71,7 @@ int main (int argc, char *argv[]) try
     rotatedX[i][_1] = rotation.mult(x[i][_1]);
   }
 
-  using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<1, double,
-      FEBasis::LocalView::Tree::FiniteElement,
+  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis,
       TargetSpace>;
 
   GFE::CosseratRodEnergy<FEBasis,

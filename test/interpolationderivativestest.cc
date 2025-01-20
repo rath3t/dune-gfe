@@ -405,9 +405,7 @@ TestSuite checkDerivatives()
   /////////////////////////////////////////////////////////////////////////
 
   // Define the two possible interpolation rules
-  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<domainDim,
-      typename Grid::ctype,
-      decltype(scalarBasis.localView().tree().finiteElement()),
+  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(scalarBasis),
       TargetSpace>;
 
   using ProjectionBasedInterpolationRule = GFE::LocalProjectedFEFunction<domainDim,

@@ -205,8 +205,8 @@ int main (int argc, char *argv[])
   auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, GFE::RealTuple<adouble,dim>, GFE::Rotation<adouble,dim> > >(neumannBoundary,neumannFunction);
 
   // Select which type of geometric interpolation to use
-  using LocalDeformationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, GridType::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<adouble,dim> >;
-  using LocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<dim, GridType::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<adouble,dim> >;
+  using LocalDeformationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(deformationFEBasis), GFE::RealTuple<adouble,dim> >;
+  using LocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
   using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 

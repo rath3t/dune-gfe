@@ -99,6 +99,7 @@ int main (int argc, char *argv[])
 
   using DeformationFEBasis = Functions::LagrangeBasis<GridView,displacementOrder>;
   DeformationFEBasis deformationFEBasis(gridView);
+  using RotationFEBasis = Functions::LagrangeBasis<GridView,rotationOrder>;
 
   /////////////////////////////////////////////////////////////////////////
   //  Create the Neumann and Dirichlet boundary
@@ -171,11 +172,8 @@ int main (int argc, char *argv[])
   auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, GFE::RealTuple<adouble,dim>,GFE::Rotation<adouble,dim> > >();
 
   // The Cosserat shell energy
-  using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
-  using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
-
-  using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<gridDim, double, ScalarDeformationLocalFiniteElement, GFE::RealTuple<adouble,3> >,
-      GFE::LocalGeodesicFEFunction<gridDim, double, ScalarRotationLocalFiniteElement, GFE::Rotation<adouble,3> > >;
+  using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >,
+      GFE::LocalGeodesicFEFunction<RotationFEBasis, GFE::Rotation<adouble,3> > >;
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(parameters);
 

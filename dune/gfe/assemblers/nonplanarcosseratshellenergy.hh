@@ -5,6 +5,8 @@
 #include <dune/common/parametertree.hh>
 #include <dune/geometry/quadraturerules.hh>
 
+#include <dune/functions/functionspacebases/subspacebasis.hh>
+
 #include <dune/matrix-vector/crossproduct.hh>
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
@@ -46,6 +48,13 @@ namespace Dune::GFE
       {
         return localView.tree().child(iType,0).finiteElement();
       }
+
+      static auto get(const Basis& basis,
+                      std::integral_constant<std::size_t, i> iType)
+      -> decltype(Functions::subspaceBasis(basis,iType,0))
+      {
+        return Functions::subspaceBasis(basis,iType,0);
+      }
     };
 
     /** \brief Specialize for scalar bases, here we cannot call tree().child() */
@@ -58,6 +67,13 @@ namespace Dune::GFE
       -> decltype(localView.tree().finiteElement())
       {
         return localView.tree().finiteElement();
+      }
+
+      static auto get(const Functions::LagrangeBasis<GridView,order>& basis,
+                      std::integral_constant<std::size_t, i> iType)
+      -> Functions::LagrangeBasis<GridView,order>
+      {
+        return basis;
       }
     };
   }  // namespace Impl
@@ -138,6 +154,8 @@ namespace Dune::GFE
     using namespace Dune::Indices;
     const auto& localFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView,_0);
 
+    const auto scalarBasis = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView.globalBasis(),_0);
+
 #if HAVE_DUNE_CURVEDGEOMETRY
     // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
     // The variable local holds the local coordinates in the reference element
@@ -156,7 +174,7 @@ namespace Dune::GFE
     ////////////////////////////////////////////////////////////////////////////////////
     //  Set up the local nonlinear finite element function
     ////////////////////////////////////////////////////////////////////////////////////
-    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
+    typedef LocalGeodesicFEFunction<decltype(scalarBasis), TargetSpace> LocalGFEFunctionType;
     LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
     // Bind the density to the current element
@@ -243,6 +261,10 @@ namespace Dune::GFE
     const auto& deformationLocalFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView,_0);
     const auto& orientationLocalFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,1>::get(localView,_1);
 
+    const auto deformationScalarBasis = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView.globalBasis(),_0);
+
+    const auto orientationScalarBasis = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,1>::get(localView.globalBasis(),_1);
+
 #if HAVE_DUNE_CURVEDGEOMETRY
     // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
     // The variable local holds the local coordinates in the reference element
@@ -261,8 +283,8 @@ namespace Dune::GFE
     ////////////////////////////////////////////////////////////////////////////////////
     //  Set up the local nonlinear finite element function
     ////////////////////////////////////////////////////////////////////////////////////
-    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
-    typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
+    typedef LocalGeodesicFEFunction<decltype(deformationScalarBasis), RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
+    typedef LocalGeodesicFEFunction<decltype(orientationScalarBasis), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
     LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localConfiguration[_0]);
     LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localConfiguration[_1]);
 

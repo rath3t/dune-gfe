@@ -150,7 +150,7 @@ int main (int argc, char *argv[])
 
 
 #if GEODESICINTERPOLATION
-  using InterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+  using InterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis, TargetSpace>;
 #else
 #if CONFORMING
   using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace,true>;

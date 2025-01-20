@@ -25,7 +25,7 @@ namespace Dune::GFE
     // some other sizes
     constexpr static int gridDim = GridView::dimension;
 
-    using LocalInterpolationRule = LocalGeodesicFEFunction<gridDim, DT, typename Basis::LocalView::Tree::FiniteElement, typename TargetSpace::template rebind<double>::other>;
+    using LocalInterpolationRule = LocalGeodesicFEFunction<Basis, typename TargetSpace::template rebind<double>::other>;
 
   public:
 
@@ -40,7 +40,7 @@ namespace Dune::GFE
       RT energy = 0;
 
       const auto& localFiniteElement = localView.tree().finiteElement();
-      typedef LocalGeodesicFEFunction<gridDim, double, decltype(localFiniteElement), TargetSpace> LocalGFEFunctionType;
+      typedef LocalGeodesicFEFunction<Basis, TargetSpace> LocalGFEFunctionType;
       LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
 
       const auto element = localView.element();

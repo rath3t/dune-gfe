@@ -35,7 +35,7 @@ int main(int argc, char** argv)
   std::vector<TargetSpace> coefficients(basis.size());
   std::fill(coefficients.begin(), coefficients.end(), FieldVector<double,3>({1,0,0}));
 
-  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, decltype(basis)::LocalView::Tree::FiniteElement, TargetSpace>;
+  using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(basis), TargetSpace>;
   GFE::EmbeddedGlobalGFEFunction<decltype(basis),GeodesicInterpolationRule,TargetSpace> testFunction(basis, coefficients);
 
   // Evaluate the function at the element centers

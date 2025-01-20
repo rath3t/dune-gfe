@@ -132,7 +132,7 @@ int main (int argc, char *argv[]) try
   //////////////////////////////////////////////
 
   using ATargetSpace = TargetSpace::rebind<adouble>::other;
-  using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<ScalarBasis, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
 
   // Assembler using ADOL-C

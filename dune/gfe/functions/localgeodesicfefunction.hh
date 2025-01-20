@@ -14,6 +14,7 @@
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
+#include <dune/gfe/symmetricmatrix.hh>
 #include <dune/gfe/tensor3.hh>
 #include <dune/gfe/tensorssd.hh>
 #include <dune/gfe/linearalgebra.hh>
@@ -21,22 +22,29 @@
 
 namespace Dune::GFE
 {
-  /** \brief A function defined by simplicial geodesic interpolation
+
+  /** \brief A function defined by geodesic interpolation
              from the reference element to a Riemannian manifold.
 
-     \tparam dim Dimension of the reference element
-     \tparam ctype Type used for coordinates on the reference element
-     \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
+     \tparam Basis The scalar basis used as weight functions in the Riemannian mean
      \tparam TS TargetSpace: The manifold that the function takes its values in
    */
-  template <int dim, class ctype, class LocalFiniteElement, class TS>
+  template <typename Basis, typename TS>
   class LocalGeodesicFEFunction
   {
   public:
     using TargetSpace = TS;
 
   private:
-    using LocalCoordinate = FieldVector<ctype,dim>;
+
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
+    using LocalCoordinate = typename Element::Geometry::LocalCoordinate;
+    static constexpr auto dim = LocalCoordinate::size();
+
+    using LocalFiniteElement = typename Basis::LocalView::Tree::FiniteElement;
+    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
+    using WeightType = typename LocalBasis::Traits::RangeType;
+    using WeightJacobianType = typename LocalBasis::Traits::JacobianType;
 
     typedef typename TargetSpace::ctype RT;
 
@@ -68,7 +76,7 @@ namespace Dune::GFE
     template<class U>
     struct rebind
     {
-      using other = LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,U>;
+      using other = LocalGeodesicFEFunction<Basis,U>;
     };
 
     /** \brief The number of Lagrange points */
@@ -186,7 +194,7 @@ namespace Dune::GFE
       return dFdw;
     }
 
-    Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<Dune::FieldVector<ctype,1> >& w, const TargetSpace& q) const
+    Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> computeDqDqF(const std::vector<WeightType>& w, const TargetSpace& q) const
     {
       Tensor3<RT,embeddedDim,embeddedDim,embeddedDim> result;
       result = Tensor3<RT,embeddedDim,embeddedDim,embeddedDim>(RT(0));
@@ -205,19 +213,19 @@ namespace Dune::GFE
 
   };
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  TargetSpace LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  TargetSpace LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluate(const LocalCoordinate& local) const
   {
     // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-    std::vector<Dune::FieldVector<ctype,1> > w;
+    std::vector<WeightType> w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     // The energy functional whose mimimizer is the value of the geodesic interpolation
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
 
     // Create a reasonable initial iterate for the iterative solver
-    Dune::GFE::LocalQuickAndDirtyFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> localProjectedFEFunction(localFiniteElement_, coefficients_);
+    GFE::LocalQuickAndDirtyFEFunction<dim,typename Basis::GridView::ctype,LocalFiniteElement,TargetSpace> localProjectedFEFunction(localFiniteElement_, coefficients_);
     TargetSpace initialIterate = localProjectedFEFunction.evaluate(local);
 
     // Iteratively solve the GFE minimization problem
@@ -234,9 +242,9 @@ namespace Dune::GFE
     return solver.getSol();
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
-  LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  typename LocalGeodesicFEFunction<Basis,TargetSpace>::DerivativeType
+  LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluateDerivative(const LocalCoordinate& local) const
   {
     // the function value at the point where we are evaluating the derivative
@@ -246,12 +254,12 @@ namespace Dune::GFE
     return evaluateDerivative(local,q);
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
-  LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  typename LocalGeodesicFEFunction<Basis,TargetSpace>::DerivativeType
+  LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluateDerivative(const LocalCoordinate& local, const TargetSpace& q) const
   {
-    Dune::FieldMatrix<RT, embeddedDim, dim> result;
+    DerivativeType result;
 
     // ////////////////////////////////////////////////////////////////////////
     //  The derivative is evaluated using the implicit function theorem.
@@ -259,7 +267,7 @@ namespace Dune::GFE
     // ////////////////////////////////////////////////////////////////////////
 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
-    std::vector<Dune::FieldMatrix<ctype,1,dim> > B(coefficients_.size());
+    std::vector<WeightJacobianType> B(coefficients_.size());
     localFiniteElement_.localBasis().evaluateJacobian(local, B);
 
     // compute negative derivative of F(w,q) (the derivative of the weighted distance fctl) wrt to w
@@ -280,7 +288,7 @@ namespace Dune::GFE
       }
 
     // the actual system matrix
-    std::vector<Dune::FieldVector<ctype,1> > w;
+    std::vector<WeightType> w;
     localFiniteElement_.localBasis().evaluateFunction(local, w);
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
@@ -298,7 +306,7 @@ namespace Dune::GFE
     Dune::FieldMatrix<RT,shortDim,embeddedDim> basis = q.orthonormalFrame();
     GramSchmidtSolver<RT,shortDim,embeddedDim> gramSchmidtSolver(dFdq, basis);
 
-    for (int i=0; i<dim; i++) {
+    for (std::size_t i=0; i<dim; i++) {
 
       Dune::FieldVector<RT,embeddedDim> rhs;
       for (int j=0; j<embeddedDim; j++)
@@ -315,9 +323,9 @@ namespace Dune::GFE
     return result;
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  std::pair<TargetSpace,typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType>
-  LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  std::pair<TargetSpace,typename LocalGeodesicFEFunction<Basis,TargetSpace>::DerivativeType>
+  LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluateValueAndDerivative(const LocalCoordinate& local) const
   {
     std::pair<TargetSpace,DerivativeType> result;
@@ -326,8 +334,8 @@ namespace Dune::GFE
     return result;
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  void LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluateDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                           int coefficient,
                                           Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& result) const
@@ -336,7 +344,7 @@ namespace Dune::GFE
     TargetSpace q = evaluate(local);
 
     // dFdq
-    std::vector<Dune::FieldVector<ctype,1> > w;
+    std::vector<WeightType> w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
@@ -377,8 +385,8 @@ namespace Dune::GFE
 
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  void LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluateFDDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                             int coefficient,
                                             Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& result) const
@@ -403,8 +411,8 @@ namespace Dune::GFE
       cornersPlus [coefficient] = TargetSpace::exp(coefficients_[coefficient], forwardVariation);
       cornersMinus[coefficient] = TargetSpace::exp(coefficients_[coefficient], backwardVariation);
 
-      LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
-      LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
+      const LocalGeodesicFEFunction<Basis,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
+      const LocalGeodesicFEFunction<Basis,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
 
       TargetSpace hPlus  = fPlus.evaluate(local);
       TargetSpace hMinus = fMinus.evaluate(local);
@@ -425,8 +433,8 @@ namespace Dune::GFE
   }
 
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  void LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluateDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                              int coefficient,
                                              DerivativeOfGradientWRTCoefficientType& result) const
@@ -435,7 +443,7 @@ namespace Dune::GFE
     TargetSpace q = evaluate(local);
 
     // the matrix that turns coordinates on the reference simplex into coordinates on the standard simplex
-    std::vector<Dune::FieldMatrix<ctype,1,dim> > BNested(coefficients_.size());
+    std::vector<WeightJacobianType> BNested(coefficients_.size());
     localFiniteElement_.localBasis().evaluateJacobian(local, BNested);
     Dune::Matrix<RT> B(coefficients_.size(), dim);
     for (size_t i=0; i<coefficients_.size(); i++)
@@ -443,7 +451,7 @@ namespace Dune::GFE
         B[i][j] = BNested[i][0][j];
 
     // the actual system matrix
-    std::vector<Dune::FieldVector<ctype,1> > w;
+    std::vector<WeightType> w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     AverageDistanceAssembler<TargetSpace> assembler(coefficients_, w);
@@ -508,13 +516,13 @@ namespace Dune::GFE
 
     for (int i=0; i<embeddedDim; i++)
       for (int j=0; j<embeddedDim; j++)
-        for (int k=0; k<dim; k++)
+        for (std::size_t k=0; k<dim; k++)
           foo[i][j][k] -= bar(i, j, k);
 
     result = RT(0);
     for (int i=0; i<embeddedDim; i++)
       for (int j=0; j<embeddedDim; j++)
-        for (int k=0; k<dim; k++)
+        for (std::size_t k=0; k<dim; k++)
           for (int l=0; l<embeddedDim; l++)
             // TODO Smarter implementation of the product with a symmetric matrix
             result[i][j][k] += ((j>=l) ? dFdqPseudoInv(j,l) : dFdqPseudoInv(l,j)) * foo[i][l][k];
@@ -522,8 +530,8 @@ namespace Dune::GFE
   }
 
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
-  void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
+  template <typename Basis, typename TargetSpace>
+  void LocalGeodesicFEFunction<Basis,TargetSpace>::
   evaluateFDDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                                int coefficient,
                                                DerivativeOfGradientWRTCoefficientType& result) const
@@ -541,11 +549,12 @@ namespace Dune::GFE
       aMinus[j] -= eps;
       cornersPlus[coefficient]  = TargetSpace(aPlus);
       cornersMinus[coefficient] = TargetSpace(aMinus);
-      LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
-      LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
 
-      Dune::FieldMatrix<RT,embeddedDim,dim> hPlus  = fPlus.evaluateDerivative(local);
-      Dune::FieldMatrix<RT,embeddedDim,dim> hMinus = fMinus.evaluateDerivative(local);
+      const LocalGeodesicFEFunction<Basis,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
+      const LocalGeodesicFEFunction<Basis,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
+
+      const auto hPlus  = fPlus.evaluateDerivative(local);
+      const auto hMinus = fMinus.evaluateDerivative(local);
 
       result[j]  = hPlus;
       result[j] -= hMinus;
@@ -557,7 +566,7 @@ namespace Dune::GFE
 
       TargetSpace q = evaluate(local);
       Dune::FieldVector<RT,embeddedDim> foo;
-      for (int l=0; l<dim; l++) {
+      for (std::size_t l=0; l<dim; l++) {
 
         for (int k=0; k<embeddedDim; k++)
           foo[k] = result[j][k][l];
@@ -579,15 +588,22 @@ namespace Dune::GFE
 
      This is a specialization for speeding up the code.
 
-     \tparam dim Dimension of the reference element
-     \tparam ctype Type used for coordinates on the reference element
+     \tparam Basis The scalar basis used as weight functions in the Riemannian mean
+     \tparam field_type Type used for point coefficients in the target space
    */
-  template <int dim, class ctype, class LocalFiniteElement, class field_type>
-  class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement, Dune::GFE::ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> > >
+  template <typename Basis, typename field_type>
+  class LocalGeodesicFEFunction<Basis,GFE::ProductManifold<GFE::RealTuple<field_type,3>, GFE::Rotation<field_type,3> > >
   {
-    using LocalCoordinate = FieldVector<ctype,dim>;
+    using TargetSpace = GFE::ProductManifold<GFE::RealTuple<field_type,3>, GFE::Rotation<field_type,3> >;
 
-    using TargetSpace = Dune::GFE::ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> >;
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
+    using LocalCoordinate = typename Element::Geometry::LocalCoordinate;
+    static constexpr auto dim = LocalCoordinate::size();
+
+    using LocalFiniteElement = typename Basis::LocalView::Tree::FiniteElement;
+    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
+    using WeightType = typename LocalBasis::Traits::RangeType;
+    using WeightJacobianType = typename LocalBasis::Traits::JacobianType;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::dimension;
@@ -619,15 +635,14 @@ namespace Dune::GFE
       for (size_t i=0; i<coefficients.size(); i++)
         orientationCoefficients[i] = coefficients[i][_1];
 
-      orientationFEFunction_ = std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (new LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> >(localFiniteElement,orientationCoefficients));
-
+      orientationFEFunction_ = std::make_unique<LocalGeodesicFEFunction<Basis,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
     template<class U>
     struct rebind
     {
-      using other = LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,U>;
+      using other = LocalGeodesicFEFunction<Basis,U>;
     };
 
     /** \brief The number of Lagrange points */
@@ -650,7 +665,7 @@ namespace Dune::GFE
       TargetSpace result;
 
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-      std::vector<Dune::FieldVector<ctype,1> > w;
+      std::vector<WeightType> w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
 
       result[_0] = Dune::FieldVector<field_type,3>(0.0);
@@ -667,7 +682,7 @@ namespace Dune::GFE
       DerivativeType result(0);
 
       // get translation part
-      std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
+      std::vector<WeightJacobianType> sfDer(translationCoefficients_.size());
       localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
 
       for (size_t i=0; i<translationCoefficients_.size(); i++)
@@ -677,7 +692,7 @@ namespace Dune::GFE
       // get orientation part
       Dune::FieldMatrix<field_type,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local);
       for (int i=0; i<4; i++)
-        for (int j=0; j<dim; j++)
+        for (std::size_t j=0; j<dim; j++)
           result[3+i][j] = qResult[i][j];
 
       return result;
@@ -695,7 +710,7 @@ namespace Dune::GFE
       DerivativeType result(0);
 
       // get translation part
-      std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
+      std::vector<WeightJacobianType> sfDer(translationCoefficients_.size());
       localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
 
       for (size_t i=0; i<translationCoefficients_.size(); i++)
@@ -705,7 +720,7 @@ namespace Dune::GFE
       // get orientation part
       Dune::FieldMatrix<field_type,4,dim> qResult = orientationFEFunction_->evaluateDerivative(local,q[_1]);
       for (int i=0; i<4; i++)
-        for (int j=0; j<dim; j++)
+        for (std::size_t j=0; j<dim; j++)
           result[3+i][j] = qResult[i][j];
 
       return result;
@@ -729,7 +744,7 @@ namespace Dune::GFE
       derivative = 0;
 
       // Translation part
-      std::vector<Dune::FieldVector<ctype,1> > w;
+      std::vector<WeightType> w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
       for (int i=0; i<3; i++)
         derivative[i][i] = w[coefficient];
@@ -750,13 +765,13 @@ namespace Dune::GFE
       derivative = 0;
 
       // Translation part
-      std::vector<Dune::FieldVector<ctype,1> > w;
+      std::vector<WeightType> w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
       for (int i=0; i<3; i++)
         derivative[i][i] = w[coefficient];
 
       // Rotation part
-      Dune::FieldMatrix<ctype,4,4> qDerivative;
+      Dune::FieldMatrix<field_type,4,4> qDerivative;
       orientationFEFunction_->evaluateFDDerivativeOfValueWRTCoefficient(local,coefficient,qDerivative);
       for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
@@ -771,7 +786,7 @@ namespace Dune::GFE
       derivative = field_type(0);
 
       // Translation part
-      std::vector<Dune::FieldMatrix<ctype,1,dim> > w;
+      std::vector<WeightType> w;
       localFiniteElement_.localBasis().evaluateJacobian(local,w);
       for (int i=0; i<3; i++)
         derivative[i][i] = w[coefficient][0];
@@ -793,13 +808,13 @@ namespace Dune::GFE
       derivative = 0;
 
       // Translation part
-      std::vector<Dune::FieldMatrix<ctype,1,dim> > w;
+      std::vector<WeightType> w;
       localFiniteElement_.localBasis().evaluateJacobian(local,w);
       for (int i=0; i<3; i++)
         derivative[i][i] = w[coefficient][0];
 
       // Rotation part
-      Tensor3<ctype,4,4,dim> qDerivative;
+      Tensor3<field_type,4,4,dim> qDerivative;
       orientationFEFunction_->evaluateFDDerivativeOfGradientWRTCoefficient(local,coefficient,qDerivative);
       for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
@@ -825,7 +840,7 @@ namespace Dune::GFE
     // we need access to the coefficients for the various factor spaces separately.
     std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
-    std::unique_ptr<LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > orientationFEFunction_;
+    std::unique_ptr<LocalGeodesicFEFunction<Basis,Rotation<field_type,3> > > orientationFEFunction_;
   };
 
 }  // namespace Dune::GFE

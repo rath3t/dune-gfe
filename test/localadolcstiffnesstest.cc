@@ -187,7 +187,7 @@ int main (int argc, char *argv[]) try
   using ATargetSpace = typename TargetSpace::template rebind<adouble>::other;
 
   // Select geometric finite element interpolation method
-  using AInterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using AInterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis, ATargetSpace>;
 
   auto activeDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(materialParameters);
 
@@ -202,7 +202,7 @@ int main (int argc, char *argv[]) try
   //////////////////////////////////////////////////////
 
   // Select geometric finite element interpolation method
-  using InterpolationRule = GFE::LocalGeodesicFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace>;
+  using InterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis, TargetSpace>;
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, double> >(materialParameters);
 

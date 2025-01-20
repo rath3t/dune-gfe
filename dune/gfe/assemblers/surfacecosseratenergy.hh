@@ -6,6 +6,8 @@
 
 #include <dune/fufem/boundarypatch.hh>
 
+#include <dune/functions/functionspacebases/subspacebasis.hh>
+
 #include <dune/gfe/assemblers/localenergy.hh>
 #include <dune/gfe/densities/cosseratshelldensity.hh>
 #include <dune/gfe/functions/localgeodesicfefunction.hh>
@@ -76,12 +78,15 @@ namespace Dune::GFE
       using RBM0 = typename std::tuple_element<0,TargetSpace>::type;
       using RBM1 = typename std::tuple_element<1,TargetSpace>::type;
 
+      auto deformationScalarBasis = Functions::subspaceBasis(localView.globalBasis(), _0, 0);
+      auto rotationScalarBasis = Functions::subspaceBasis(localView.globalBasis(), _1, 0);
+
       // The set of shape functions on this element
       const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
       const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
 
-      typedef LocalGeodesicFEFunction<gridDim, DT, decltype(deformationLocalFiniteElement), RBM0> LocalGFEFunctionType0;
-      typedef LocalGeodesicFEFunction<gridDim, DT, decltype(orientationLocalFiniteElement), RBM1> LocalGFEFunctionType1;
+      typedef LocalGeodesicFEFunction<decltype(deformationScalarBasis), RBM0> LocalGFEFunctionType0;
+      typedef LocalGeodesicFEFunction<decltype(rotationScalarBasis), RBM1> LocalGFEFunctionType1;
       LocalGFEFunctionType0 localGeodesicFEFunction0(deformationLocalFiniteElement,localCoefficients[_0]);
       LocalGFEFunctionType1 localGeodesicFEFunction1(orientationLocalFiniteElement,localCoefficients[_1]);
 

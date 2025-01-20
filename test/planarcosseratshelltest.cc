@@ -199,11 +199,8 @@ int main (int argc, char *argv[])
   auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, GFE::RealTuple<adouble,dimworld>,GFE::Rotation<adouble,dimworld> > >();
 
   // The Cosserat shell energy
-  using ScalarDeformationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_0,0).finiteElement());
-  using ScalarRotationLocalFiniteElement = decltype(compositeBasis.localView().tree().child(_1,0).finiteElement());
-
-  using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<dim, double, ScalarDeformationLocalFiniteElement, GFE::RealTuple<adouble,3> >,
-      GFE::LocalGeodesicFEFunction<dim, double, ScalarRotationLocalFiniteElement, GFE::Rotation<adouble,3> > >;
+  using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >,
+      GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<adouble,3> > >;
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(parameters);
 
