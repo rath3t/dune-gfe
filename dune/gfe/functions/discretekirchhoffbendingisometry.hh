@@ -61,8 +61,8 @@ namespace Dune::GFE
     DiscreteKirchhoffBendingIsometry(const DiscreteKirchhoffBasis& discreteKirchhoffBasis,
                                      const CoefficientBasis& coefficientBasis,
                                      Coefficients& globalIsometryCoefficients)
-      : basis_(discreteKirchhoffBasis),
-      coefficientBasis_(coefficientBasis),
+      : coefficientBasis_(coefficientBasis),
+      basis_(discreteKirchhoffBasis),
       localView_(basis_),
       localViewCoefficient_(coefficientBasis_),
       globalIsometryCoefficients_(globalIsometryCoefficients)

@@ -261,7 +261,6 @@ int main(int argc, char *argv[])
   Dune::GFE::RiemannianTrustRegionSolver<CoefficientBasis, Coefficient> RTRsolver;
 
   std::string Solver_name = parameterSet.get<std::string>("Solver", "RNHM");
-  double numerical_energy; //final discrete energy
 
   if(Solver_name == "RNHM")
   {
@@ -273,7 +272,6 @@ int main(int argc, char *argv[])
 
     RNHMsolver.solve();
     isometryCoefficients = RNHMsolver.getSol();
-    numerical_energy = RNHMsolver.getStatistics().finalEnergy;
   } else if (Solver_name =="RiemannianTR")
   {
     std::cout << "Using Riemannian Trust-region method for energy minimization." << std::endl;
@@ -285,7 +283,6 @@ int main(int argc, char *argv[])
 
     RTRsolver.solve();
     isometryCoefficients = RTRsolver.getSol();
-    numerical_energy = RTRsolver.getStatistics().finalEnergy;
   } else
     DUNE_THROW(Dune::Exception, "Unknown Solver type for bending isometries.");
 

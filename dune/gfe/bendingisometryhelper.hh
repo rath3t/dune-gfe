@@ -332,7 +332,6 @@ namespace Dune::GFE::Impl
          */
         size_t edgeIndex =  representationLFE.localCoefficients().localKey(i).subEntity();
         auto edgeGeometry = element.template subEntity<1>(edgeIndex).geometry();
-        auto edgeEntity = element.template subEntity<1>(edgeIndex);
 
         /**
          * @brief Get the right orientation for tangent and normal vectors on current edge.
