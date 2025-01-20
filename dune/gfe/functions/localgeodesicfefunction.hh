@@ -36,6 +36,8 @@ namespace Dune::GFE
     using TargetSpace = TS;
 
   private:
+    using LocalCoordinate = FieldVector<ctype,dim>;
+
     typedef typename TargetSpace::ctype RT;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
@@ -97,39 +99,39 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the function */
-    TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const;
+    TargetSpace evaluate(const LocalCoordinate& local) const;
 
     /** \brief Evaluate the derivative of the function */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+    DerivativeType evaluateDerivative(const LocalCoordinate& local) const;
 
     /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
         \param local Local coordinates in the reference element where to evaluate the derivative
         \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
      */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+    DerivativeType evaluateDerivative(const LocalCoordinate& local,
                                       const TargetSpace& q) const;
 
     /** \brief Evaluate the value and the derivative of the interpolation function
      */
-    std::pair<TargetSpace,DerivativeType> evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+    std::pair<TargetSpace,DerivativeType> evaluateValueAndDerivative(const LocalCoordinate& local) const;
 
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
-    void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                                  int coefficient,
                                                  Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& derivative) const;
 
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
-    void evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateFDDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                                    int coefficient,
                                                    Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& derivative) const;
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
-    void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                                     int coefficient,
                                                     DerivativeOfGradientWRTCoefficientType& result) const;
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
-    void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateFDDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                                       int coefficient,
                                                       DerivativeOfGradientWRTCoefficientType& result) const;
 
@@ -205,7 +207,7 @@ namespace Dune::GFE
 
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   TargetSpace LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluate(const Dune::FieldVector<ctype, dim>& local) const
+  evaluate(const LocalCoordinate& local) const
   {
     // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
     std::vector<Dune::FieldVector<ctype,1> > w;
@@ -235,7 +237,7 @@ namespace Dune::GFE
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
   LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+  evaluateDerivative(const LocalCoordinate& local) const
   {
     // the function value at the point where we are evaluating the derivative
     TargetSpace q = evaluate(local);
@@ -247,7 +249,7 @@ namespace Dune::GFE
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType
   LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
+  evaluateDerivative(const LocalCoordinate& local, const TargetSpace& q) const
   {
     Dune::FieldMatrix<RT, embeddedDim, dim> result;
 
@@ -316,7 +318,7 @@ namespace Dune::GFE
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   std::pair<TargetSpace,typename LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::DerivativeType>
   LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+  evaluateValueAndDerivative(const LocalCoordinate& local) const
   {
     std::pair<TargetSpace,DerivativeType> result;
     result.first = evaluate(local);
@@ -326,7 +328,7 @@ namespace Dune::GFE
 
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+  evaluateDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                           int coefficient,
                                           Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& result) const
   {
@@ -377,7 +379,7 @@ namespace Dune::GFE
 
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+  evaluateFDDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                             int coefficient,
                                             Dune::FieldMatrix<RT,embeddedDim,embeddedDim>& result) const
   {
@@ -425,7 +427,7 @@ namespace Dune::GFE
 
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+  evaluateDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                              int coefficient,
                                              DerivativeOfGradientWRTCoefficientType& result) const
   {
@@ -522,7 +524,7 @@ namespace Dune::GFE
 
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace>
   void LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TargetSpace>::
-  evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+  evaluateFDDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                                int coefficient,
                                                DerivativeOfGradientWRTCoefficientType& result) const
   {
@@ -583,6 +585,8 @@ namespace Dune::GFE
   template <int dim, class ctype, class LocalFiniteElement, class field_type>
   class LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement, Dune::GFE::ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> > >
   {
+    using LocalCoordinate = FieldVector<ctype,dim>;
+
     using TargetSpace = Dune::GFE::ProductManifold<RealTuple<field_type,3>, Rotation<field_type,3> >;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
@@ -639,7 +643,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the function */
-    TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
+    TargetSpace evaluate(const LocalCoordinate& local) const
     {
       using namespace Dune::Indices;
 
@@ -658,7 +662,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the derivative of the function */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    DerivativeType evaluateDerivative(const LocalCoordinate& local) const
     {
       DerivativeType result(0);
 
@@ -683,7 +687,7 @@ namespace Dune::GFE
         \param local Local coordinates in the reference element where to evaluate the derivative
         \param q Value of the local gfe function at 'local'.  If you provide something wrong here the result will be wrong, too!
      */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+    DerivativeType evaluateDerivative(const LocalCoordinate& local,
                                       const TargetSpace& q) const
     {
       using namespace Dune::Indices;
@@ -709,7 +713,7 @@ namespace Dune::GFE
 
     /** \brief Evaluate the value and the derivative of the interpolation function
      */
-    std::pair<TargetSpace,DerivativeType> evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    std::pair<TargetSpace,DerivativeType> evaluateValueAndDerivative(const LocalCoordinate& local) const
     {
       std::pair<TargetSpace,DerivativeType> result;
       result.first = evaluate(local);
@@ -718,7 +722,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
-    void evaluateDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                                  int coefficient,
                                                  Dune::FieldMatrix<field_type,embeddedDim,embeddedDim>& derivative) const
     {
@@ -739,7 +743,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the derivative of the function value with respect to a coefficient */
-    void evaluateFDDerivativeOfValueWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateFDDerivativeOfValueWRTCoefficient(const LocalCoordinate& local,
                                                    int coefficient,
                                                    Dune::FieldMatrix<field_type,embeddedDim,embeddedDim>& derivative) const
     {
@@ -760,7 +764,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
-    void evaluateDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                                     int coefficient,
                                                     DerivativeOfGradientWRTCoefficientType& derivative) const
     {
@@ -782,7 +786,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the derivative of the gradient of the function with respect to a coefficient */
-    void evaluateFDDerivativeOfGradientWRTCoefficient(const Dune::FieldVector<ctype, dim>& local,
+    void evaluateFDDerivativeOfGradientWRTCoefficient(const LocalCoordinate& local,
                                                       int coefficient,
                                                       DerivativeOfGradientWRTCoefficientType& derivative) const
     {

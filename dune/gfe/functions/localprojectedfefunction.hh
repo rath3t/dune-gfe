@@ -30,6 +30,8 @@ namespace Dune::GFE
   public:
     using TargetSpace=TS;
   private:
+    using LocalCoordinate = FieldVector<ctype,dim>;
+
     typedef typename TargetSpace::ctype RT;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
@@ -87,10 +89,10 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the function */
-    auto evaluate(const Dune::FieldVector<ctype, dim>& local) const;
+    auto evaluate(const LocalCoordinate& local) const;
 
     /** \brief Evaluate the derivative of the function */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+    DerivativeType evaluateDerivative(const LocalCoordinate& local) const;
 
     /** \brief Evaluate the derivative of the function, if you happen to know the function value (much faster!)
      *        \param local Local coordinates in the reference element where to evaluate the derivative
@@ -99,7 +101,7 @@ namespace Dune::GFE
      * \note This method is only usable in the conforming setting, because it requires the caller
      * to hand over the interpolation value as a TargetSpace object.
      */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+    DerivativeType evaluateDerivative(const LocalCoordinate& local,
                                       const TargetSpace& q) const;
 
     /** \brief Evaluate the value and the derivative of the interpolation function
@@ -108,7 +110,7 @@ namespace Dune::GFE
      * If the interpolation is conforming then the first member of the pair will be a TargetSpace.
      * Otherwise it will be a RealTuple.
      */
-    auto evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const;
+    auto evaluateValueAndDerivative(const LocalCoordinate& local) const;
 
     /** \brief Get the i'th base coefficient. */
     const TargetSpace& coefficient(int i) const
@@ -129,7 +131,7 @@ namespace Dune::GFE
 
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace, bool conforming>
   auto LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
-  evaluate(const Dune::FieldVector<ctype, dim>& local) const
+  evaluate(const LocalCoordinate& local) const
   {
     // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
     std::vector<Dune::FieldVector<ctype,1> > w;
@@ -149,7 +151,7 @@ namespace Dune::GFE
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
   typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::DerivativeType
   LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
-  evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+  evaluateDerivative(const LocalCoordinate& local) const
   {
     if constexpr(conforming)
     {
@@ -176,7 +178,7 @@ namespace Dune::GFE
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
   typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::DerivativeType
   LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
-  evaluateDerivative(const Dune::FieldVector<ctype, dim>& local, const TargetSpace& q) const
+  evaluateDerivative(const LocalCoordinate& local, const TargetSpace& q) const
   {
     // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
     std::vector<Dune::FieldVector<ctype,1> > w;
@@ -203,7 +205,7 @@ namespace Dune::GFE
   template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
   auto
   LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
-  evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+  evaluateValueAndDerivative(const LocalCoordinate& local) const
   {
     // Construct the type of the result -- it depends on whether the interpolation
     // is conforming or not.
@@ -261,6 +263,8 @@ namespace Dune::GFE
   public:
     typedef Rotation<field_type,3> TargetSpace;
   private:
+    using LocalCoordinate = FieldVector<ctype,dim>;
+
     typedef typename TargetSpace::ctype RT;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
@@ -382,7 +386,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the function */
-    TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
+    TargetSpace evaluate(const LocalCoordinate& local) const
     {
       Rotation<field_type,3> result;
 
@@ -406,7 +410,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the derivative of the function */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    DerivativeType evaluateDerivative(const LocalCoordinate& local) const
     {
       // the function value at the point where we are evaluating the derivative
       TargetSpace q = evaluate(local);
@@ -419,7 +423,7 @@ namespace Dune::GFE
      *        \param local Local coordinates in the reference element where to evaluate the derivative
      *        \param q Value of the local function at 'local'.  If you provide something wrong here the result will be wrong, too!
      */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+    DerivativeType evaluateDerivative(const LocalCoordinate& local,
                                       const TargetSpace& q) const
     {
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
@@ -479,7 +483,7 @@ namespace Dune::GFE
      * If the interpolation is conforming then the first member of the pair will be a TargetSpace.
      * Otherwise it will be a RealTuple.
      */
-    auto evaluateValueAndDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    auto evaluateValueAndDerivative(const LocalCoordinate& local) const
     {
       // Construct the type of the result -- it depends on whether the interpolation
       // is conforming or not.
@@ -539,6 +543,8 @@ namespace Dune::GFE
   public:
     using TargetSpace = ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >;
   private:
+    using LocalCoordinate = FieldVector<ctype,dim>;
+
     typedef typename TargetSpace::ctype RT;
 
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
@@ -592,7 +598,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the function */
-    TargetSpace evaluate(const Dune::FieldVector<ctype, dim>& local) const
+    TargetSpace evaluate(const LocalCoordinate& local) const
     {
       using namespace Dune::Indices;
 
@@ -612,7 +618,7 @@ namespace Dune::GFE
     }
 
     /** \brief Evaluate the derivative of the function */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local) const
+    DerivativeType evaluateDerivative(const LocalCoordinate& local) const
     {
       // the function value at the point where we are evaluating the derivative
       TargetSpace q = evaluate(local);
@@ -625,7 +631,7 @@ namespace Dune::GFE
      *        \param local Local coordinates in the reference element where to evaluate the derivative
      *        \param q Value of the local function at 'local'.  If you provide something wrong here the result will be wrong, too!
      */
-    DerivativeType evaluateDerivative(const Dune::FieldVector<ctype, dim>& local,
+    DerivativeType evaluateDerivative(const LocalCoordinate& local,
                                       const TargetSpace& q) const
     {
       using namespace Dune::Indices;
