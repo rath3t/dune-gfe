@@ -10,7 +10,10 @@
 #include <dune/geometry/type.hh>
 #include <dune/geometry/referenceelements.hh>
 
-#include <dune/localfunctions/lagrange/lagrangelfecache.hh>
+#include <dune/grid/onedgrid.hh>
+#include <dune/grid/uggrid.hh>
+
+#include <dune/functions/functionspacebases/lagrangebasis.hh>
 
 #include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
@@ -122,12 +125,21 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
   if (domainDim!=2)
     return;
 
-  LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
-  typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+  // Make a test grid
+  using Grid = UGGrid<domainDim>;
+  GridFactory<Grid> gridFactory;
 
-  GeometryType simplex = GeometryTypes::simplex(domainDim);
+  gridFactory.insertVertex({0.0,0.0});
+  gridFactory.insertVertex({1.0,0.0});
+  gridFactory.insertVertex({0.0,1.0});
 
-  //
+  gridFactory.insertElement(GeometryTypes::simplex(domainDim), {0,1,2});
+
+  const auto grid = gridFactory.createGrid();
+  const auto gridView = grid->leafGridView();
+  using GridView = decltype(gridView);
+
+  // Create the test configurations
   std::vector<TargetSpace> cornersRotated1(domainDim+1);
   std::vector<TargetSpace> cornersRotated2(domainDim+1);
 
@@ -135,15 +147,22 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
   cornersRotated1[1] = cornersRotated2[0] = corners[2];
   cornersRotated1[2] = cornersRotated2[1] = corners[0];
 
-  GFE::LocalProjectedFEFunction<2,double,LocalFiniteElement,TargetSpace> f0(feCache.get(simplex), corners);
-  GFE::LocalProjectedFEFunction<2,double,LocalFiniteElement,TargetSpace> f1(feCache.get(simplex), cornersRotated1);
-  GFE::LocalProjectedFEFunction<2,double,LocalFiniteElement,TargetSpace> f2(feCache.get(simplex), cornersRotated2);
+  using InterpolationBasis = Functions::LagrangeBasis<GridView,1>;
+  InterpolationBasis interpolationBasis(gridView);
+
+  auto localBasisView = interpolationBasis.localView();
+  localBasisView.bind(*gridView.template begin<0>());
+  const auto& localFiniteElement = localBasisView.tree().finiteElement();
+
+  GFE::LocalProjectedFEFunction<InterpolationBasis,TargetSpace> f0(localFiniteElement, corners);
+  GFE::LocalProjectedFEFunction<InterpolationBasis,TargetSpace> f1(localFiniteElement, cornersRotated1);
+  GFE::LocalProjectedFEFunction<InterpolationBasis,TargetSpace> f2(localFiniteElement, cornersRotated2);
 
   // A quadrature rule as a set of test points
   int quadOrder = 3;
 
-  const Dune::QuadratureRule<double, domainDim>& quad
-    = Dune::QuadratureRules<double, domainDim>::rule(simplex, quadOrder);
+  const auto& quad
+    = QuadratureRules<double, domainDim>::rule(GeometryTypes::simplex(domainDim), quadOrder);
 
   for (size_t pt=0; pt<quad.size(); pt++) {
 
@@ -171,9 +190,10 @@ void testPermutationInvariance(const std::vector<TargetSpace>& corners)
 
 }
 
-template <int domainDim, class TargetSpace, bool conforming=true>
-void testDerivative(const GFE::LocalProjectedFEFunction<domainDim,double,typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType, TargetSpace, conforming>& f)
+template <class Basis, class TargetSpace, bool conforming=true>
+void testDerivative(const GFE::LocalProjectedFEFunction<Basis, TargetSpace, conforming>& f)
 {
+  static constexpr auto domainDim = Basis::GridView::template Codim<0>::Entity::mydimension;
   static const int embeddedDim = TargetSpace::EmbeddedTangentVector::dimension;
 
   // A quadrature rule as a set of test points
@@ -213,6 +233,26 @@ void test(const GeometryType& element)
 {
   std::cout << " --- Testing " << className<TargetSpace>() << ", domain dimension: " << element.dim() << " ---" << std::endl;
 
+  // Make a test grid
+  using Grid = std::conditional_t<domainDim==1,OneDGrid,UGGrid<domainDim> >;
+  GridFactory<Grid> gridFactory;
+
+  const auto referenceElement = Dune::referenceElement<double,domainDim>(element);
+
+  std::vector<unsigned int> refElementCorners(referenceElement.size(domainDim));
+  for (int i=0; i<referenceElement.size(domainDim); i++)
+  {
+    gridFactory.insertVertex(referenceElement.position(i,domainDim));
+    refElementCorners[i] = i;
+  }
+
+  gridFactory.insertElement(element, refElementCorners);
+
+  const auto grid = gridFactory.createGrid();
+  const auto gridView = grid->leafGridView();
+  using GridView = decltype(gridView);
+
+  // Make test point sets
   std::vector<TargetSpace> testPoints;
   GFE::ValueFactory<TargetSpace>::get(testPoints);
 
@@ -234,22 +274,28 @@ void test(const GeometryType& element)
       continue;
 
     // Make local gfe function to be tested
-    LagrangeLocalFiniteElementCache<double,double,domainDim,1> feCache;
-    typedef typename LagrangeLocalFiniteElementCache<double,double,domainDim,1>::FiniteElementType LocalFiniteElement;
+    using InterpolationBasis = Functions::LagrangeBasis<GridView,1>;
+    InterpolationBasis interpolationBasis(gridView);
 
-    GFE::LocalProjectedFEFunction<domainDim,double,LocalFiniteElement,TargetSpace> f(feCache.get(element),corners);
-    GFE::LocalProjectedFEFunction<domainDim, double, LocalFiniteElement, TargetSpace,false> f_nonconforming(feCache.get(element), corners);
+    auto localBasisView = interpolationBasis.localView();
+    localBasisView.bind(*gridView.template begin<0>());
+    const auto& localFiniteElement = localBasisView.tree().finiteElement();
+
+    GFE::LocalProjectedFEFunction<InterpolationBasis,TargetSpace> f(localFiniteElement,corners);
+    GFE::LocalProjectedFEFunction<InterpolationBasis, TargetSpace,false> f_nonconforming(localFiniteElement,corners);
 
     //testPermutationInvariance(corners);
-    testDerivative<domainDim>(f);
-    testDerivative<domainDim>(f_nonconforming);
+    testDerivative(f);
+    testDerivative(f_nonconforming);
   }
 
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
+  MPIHelper::instance(argc, argv);
+
   // choke on NaN -- don't enable this by default, as there are
   // a few harmless NaN in the loopsolver
   //feenableexcept(FE_INVALID);

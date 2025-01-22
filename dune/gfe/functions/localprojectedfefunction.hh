@@ -18,19 +18,27 @@ namespace Dune::GFE
 
   /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold
    *
-   * \tparam dim Dimension of the reference element
-   * \tparam ctype Type used for coordinates on the reference element
-   * \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
-   * \tparam TargetSpace The manifold that the function takes its values in
+   * \tparam Basis The basis used for the interpolation in the embedding space.
+   * \tparam TS The manifold that the function takes its values in
    * \tparam conforming Geometrical conformity of the functions (omits projections when set to false)
+   *
+   * \note Even though the embedding space is typically more than one-dimensional,
+   * we allow this basis to be scalar-valued.
    */
-  template <int dim, class ctype, class LocalFiniteElement, class TS, bool conforming=true>
+  template <class Basis, class TS, bool conforming=true>
   class LocalProjectedFEFunction
   {
   public:
     using TargetSpace=TS;
   private:
-    using LocalCoordinate = FieldVector<ctype,dim>;
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
+    using LocalCoordinate = typename Element::Geometry::LocalCoordinate;
+    static constexpr auto dim = LocalCoordinate::size();
+
+    using LocalFiniteElement = typename Basis::LocalView::Tree::FiniteElement;
+    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
+    using ScalarFERange = typename LocalBasis::Traits::RangeType;
+    using ScalarFEJacobian = typename LocalBasis::Traits::JacobianType;
 
     typedef typename TargetSpace::ctype RT;
 
@@ -58,7 +66,7 @@ namespace Dune::GFE
     template<class U>
     struct rebind
     {
-      using other = LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,U,conforming>;
+      using other = LocalProjectedFEFunction<Basis,U,conforming>;
     };
 
     /** \brief The number of Lagrange points */
@@ -129,18 +137,19 @@ namespace Dune::GFE
 
   };
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace, bool conforming>
-  auto LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
+  template <class Basis, class TargetSpace, bool conforming>
+  auto LocalProjectedFEFunction<Basis,TargetSpace,conforming>::
   evaluate(const LocalCoordinate& local) const
   {
-    // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-    std::vector<Dune::FieldVector<ctype,1> > w;
+    // Compute value of FE function in embedding space
+    std::vector<ScalarFERange> w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     typename TargetSpace::CoordinateType c(0);
     for (size_t i=0; i<coefficients_.size(); i++)
       c.axpy(w[i][0], coefficients_[i].globalCoordinates());
 
+    // Possibly project onto target space
     if constexpr (conforming)
       return TargetSpace::projectOnto(c);
     else
@@ -148,9 +157,9 @@ namespace Dune::GFE
 
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
-  typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::DerivativeType
-  LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
+  template <class Basis, class TargetSpace,bool conforming>
+  typename LocalProjectedFEFunction<Basis,TargetSpace,conforming>::DerivativeType
+  LocalProjectedFEFunction<Basis,TargetSpace,conforming>::
   evaluateDerivative(const LocalCoordinate& local) const
   {
     if constexpr(conforming)
@@ -162,7 +171,7 @@ namespace Dune::GFE
       return evaluateDerivative(local, q);
     }
     else {
-      std::vector<Dune::FieldMatrix<ctype, 1, dim> > wDer;
+      std::vector<ScalarFEJacobian> wDer;
       localFiniteElement_.localBasis().evaluateJacobian(local, wDer);
 
       Dune::FieldMatrix<RT, embeddedDim, dim> derivative(0);
@@ -175,16 +184,16 @@ namespace Dune::GFE
     }
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
-  typename LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::DerivativeType
-  LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
+  template <class Basis, class TargetSpace,bool conforming>
+  typename LocalProjectedFEFunction<Basis,TargetSpace,conforming>::DerivativeType
+  LocalProjectedFEFunction<Basis,TargetSpace,conforming>::
   evaluateDerivative(const LocalCoordinate& local, const TargetSpace& q) const
   {
-    // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-    std::vector<Dune::FieldVector<ctype,1> > w;
+    // Compute value and derivative of FE approximation
+    std::vector<ScalarFERange> w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
 
-    std::vector<Dune::FieldMatrix<ctype,1,dim> > wDer;
+    std::vector<ScalarFEJacobian> wDer;
     localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
 
     typename TargetSpace::CoordinateType embeddedInterpolation(0);
@@ -202,9 +211,9 @@ namespace Dune::GFE
     return derivativeOfProjection*derivative;
   }
 
-  template <int dim, class ctype, class LocalFiniteElement, class TargetSpace,bool conforming>
+  template <class Basis, class TargetSpace,bool conforming>
   auto
-  LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TargetSpace,conforming>::
+  LocalProjectedFEFunction<Basis,TargetSpace,conforming>::
   evaluateValueAndDerivative(const LocalCoordinate& local) const
   {
     // Construct the type of the result -- it depends on whether the interpolation
@@ -217,7 +226,7 @@ namespace Dune::GFE
     //  Compute the value of the interpolation function
     ///////////////////////////////////////////////////////////
 
-    std::vector<Dune::FieldVector<ctype,1> > w;
+    std::vector<ScalarFERange> w;
     localFiniteElement_.localBasis().evaluateFunction(local,w);
 
     typename TargetSpace::CoordinateType embeddedInterpolation(0);
@@ -234,7 +243,7 @@ namespace Dune::GFE
     ///////////////////////////////////////////////////////////
 
     // Compute the interpolation in the surrounding space
-    std::vector<Dune::FieldMatrix<ctype,1,dim> > wDer;
+    std::vector<ScalarFEJacobian> wDer;
     localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
 
     result.second = 0.0;
@@ -253,17 +262,27 @@ namespace Dune::GFE
 
   /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold -- specialization for SO(3)
    *
-   * \tparam dim Dimension of the reference element
-   * \tparam ctype Type used for coordinates on the reference element
-   * \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
+   * \tparam Basis The basis used for the interpolation in the embedding space.
+   * \tparam field_type The number type used for function values
+   * \tparam conforming Geometrical conformity of the functions (omits projections when set to false)
+   *
+   * \note Even though the embedding space is 9-dimensional, we allow this basis
+   * to be scalar-valued.
    */
-  template <int dim, class ctype, class LocalFiniteElement, class field_type, bool conforming>
-  class LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3>,conforming>
+  template <class Basis, class field_type, bool conforming>
+  class LocalProjectedFEFunction<Basis,Rotation<field_type,3>,conforming>
   {
   public:
     typedef Rotation<field_type,3> TargetSpace;
   private:
-    using LocalCoordinate = FieldVector<ctype,dim>;
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
+    using LocalCoordinate = typename Element::Geometry::LocalCoordinate;
+    static constexpr auto dim = LocalCoordinate::size();
+
+    using LocalFiniteElement = typename Basis::LocalView::Tree::FiniteElement;
+    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
+    using ScalarFERange = typename LocalBasis::Traits::RangeType;
+    using ScalarFEJacobian = typename LocalBasis::Traits::JacobianType;
 
     typedef typename TargetSpace::ctype RT;
 
@@ -355,7 +374,7 @@ namespace Dune::GFE
     template<class U>
     struct rebind
     {
-      using other = LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,U>;
+      using other = LocalProjectedFEFunction<Basis,U>;
     };
 
     /** \brief The number of Lagrange points */
@@ -391,7 +410,7 @@ namespace Dune::GFE
       Rotation<field_type,3> result;
 
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-      std::vector<Dune::FieldVector<ctype,1> > w;
+      std::vector<ScalarFERange> w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
 
       // Interpolate in R^{3x3}
@@ -427,10 +446,10 @@ namespace Dune::GFE
                                       const TargetSpace& q) const
     {
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-      std::vector<Dune::FieldVector<ctype,1> > w;
+      std::vector<ScalarFERange> w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
 
-      std::vector<Dune::FieldMatrix<ctype,1,dim> > wDer;
+      std::vector<ScalarFEJacobian> wDer;
       localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
 
       // Compute matrix representations for all coefficients (we only have them in quaternion representation)
@@ -492,7 +511,7 @@ namespace Dune::GFE
       std::pair<Value,DerivativeType> result;
 
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-      std::vector<Dune::FieldVector<ctype,1> > w;
+      std::vector<ScalarFERange> w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
 
       // Interpolate in R^{3x3}
@@ -533,17 +552,26 @@ namespace Dune::GFE
 
   /** \brief Interpolate in an embedding Euclidean space, and project back onto the Riemannian manifold -- specialization for R^3 x SO(3)
    *
-   * \tparam dim Dimension of the reference element
-   * \tparam ctype Type used for coordinates on the reference element
-   * \tparam LocalFiniteElement A Lagrangian finite element whose shape functions define the interpolation weights
+   * \tparam Basis The basis used for the interpolation in the embedding space.
+   * \tparam field_type The number type used for function values
+   *
+   * \note Even though the embedding space is 12-dimensional, we allow this basis
+   * to be scalar-valued.
    */
-  template <int dim, class ctype, class LocalFiniteElement, class field_type>
-  class LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
+  template <class Basis, class field_type>
+  class LocalProjectedFEFunction<Basis,ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> > >
   {
   public:
     using TargetSpace = ProductManifold<RealTuple<field_type,3>,Rotation<field_type,3> >;
   private:
-    using LocalCoordinate = FieldVector<ctype,dim>;
+    using Element = typename Basis::GridView::template Codim<0>::Entity;
+    using LocalCoordinate = typename Element::Geometry::LocalCoordinate;
+    static constexpr auto dim = LocalCoordinate::size();
+
+    using LocalFiniteElement = typename Basis::LocalView::Tree::FiniteElement;
+    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
+    using ScalarFERange = typename LocalBasis::Traits::RangeType;
+    using ScalarFEJacobian = typename LocalBasis::Traits::JacobianType;
 
     typedef typename TargetSpace::ctype RT;
 
@@ -575,14 +603,14 @@ namespace Dune::GFE
       for (size_t i=0; i<coefficients.size(); i++)
         orientationCoefficients[i] = coefficients[i][_1];
 
-      orientationFunction_ = std::make_unique<LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
+      orientationFunction_ = std::make_unique<LocalProjectedFEFunction<Basis,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
     template<class U>
     struct rebind
     {
-      using other = LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,U>;
+      using other = LocalProjectedFEFunction<Basis,U>;
     };
 
     /** \brief The number of Lagrange points */
@@ -605,7 +633,7 @@ namespace Dune::GFE
       TargetSpace result;
 
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
-      std::vector<Dune::FieldVector<ctype,1> > w;
+      std::vector<ScalarFERange> w;
       localFiniteElement_.localBasis().evaluateFunction(local,w);
 
       result[_0] = FieldVector<field_type,3>(0.0);
@@ -639,7 +667,7 @@ namespace Dune::GFE
       DerivativeType result(0);
 
       // get translation part
-      std::vector<Dune::FieldMatrix<ctype,1,dim> > sfDer(translationCoefficients_.size());
+      std::vector<ScalarFEJacobian> sfDer(translationCoefficients_.size());
       localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
 
       for (size_t i=0; i<translationCoefficients_.size(); i++)
@@ -650,7 +678,7 @@ namespace Dune::GFE
       Dune::FieldMatrix<field_type,4,dim> qResult = orientationFunction_->evaluateDerivative(local,q[_1]);
 
       for (int i=0; i<4; i++)
-        for (int j=0; j<dim; j++)
+        for (std::size_t j=0; j<dim; j++)
           result[3+i][j] = qResult[i][j];
 
       return result;
@@ -675,7 +703,7 @@ namespace Dune::GFE
     // we need access to the coefficients for the various factor spaces separately.
     std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
-    std::unique_ptr<LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,Rotation<field_type, 3> > > orientationFunction_;
+    std::unique_ptr<LocalProjectedFEFunction<Basis,Rotation<field_type, 3> > > orientationFunction_;
 
 
   };

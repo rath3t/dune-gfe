@@ -153,9 +153,9 @@ int main (int argc, char *argv[])
   using InterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis, TargetSpace>;
 #else
 #if CONFORMING
-  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace,true>;
+  using InterpolationRule = GFE::LocalProjectedFEFunction<FEBasis, TargetSpace,true>;
 #else
-  using InterpolationRule = GFE::LocalProjectedFEFunction<dim, double, FEBasis::LocalView::Tree::FiniteElement, TargetSpace,false>;
+  using InterpolationRule = GFE::LocalProjectedFEFunction<FEBasis, TargetSpace,false>;
 #endif
 #endif
 

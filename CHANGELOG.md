@@ -1,7 +1,8 @@
 # Master
 
-- The class `LocalGeodesicFEFunction` now takes a `dune-functions` basis
-  as its first argument, instead of a `LocalFiniteElement`.
+- The classes `LocalGeodesicFEFunction` and `LocalProjectedFEFunction`
+  now take a `dune-functions` basis as their first arguments, instead
+  of a `LocalFiniteElement`.
 
 - The entire code is now in the `Dune::GFE` namespace.
 

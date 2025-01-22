@@ -129,14 +129,10 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
     else
       std::cout << "Using nonconforming interpolation" << std::endl;
 
-    using LocalInterpolationRule = GFE::LocalProjectedFEFunction<dim,
-        typename GridView::ctype,
-        decltype(feBasis.localView().tree().finiteElement()),
+    using LocalInterpolationRule = GFE::LocalProjectedFEFunction<FEBasis,
         TargetSpace, interpolationType!=Nonconforming>;
 
-    using ALocalInterpolationRule = GFE::LocalProjectedFEFunction<dim,
-        typename GridView::ctype,
-        decltype(feBasis.localView().tree().finiteElement()),
+    using ALocalInterpolationRule = GFE::LocalProjectedFEFunction<FEBasis,
         ATargetSpace, interpolationType!=Nonconforming>;
 
     // Assemble using the old assembler
@@ -341,13 +337,13 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
   {
     std::cout << "Using projection-based interpolation" << std::endl;
 
-    using LocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<double,dim> >;
-    using LocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<double,dim> >;
+    using LocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(deformationFEBasis), GFE::RealTuple<double,dim> >;
+    using LocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(orientationFEBasis), GFE::Rotation<double,dim> >;
 
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
 
-    using ALocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(deformationFEBasis.localView().tree().finiteElement()), GFE::RealTuple<adouble,dim> >;
-    using ALocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<dim, typename GridView::ctype, decltype(orientationFEBasis.localView().tree().finiteElement()), GFE::Rotation<adouble,dim> >;
+    using ALocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(deformationFEBasis), GFE::RealTuple<adouble,dim> >;
+    using ALocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
     using ALocalInterpolationRule = std::tuple<ALocalDeformationInterpolationRule,ALocalOrientationInterpolationRule>;
 

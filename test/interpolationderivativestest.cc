@@ -408,10 +408,7 @@ TestSuite checkDerivatives()
   using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(scalarBasis),
       TargetSpace>;
 
-  using ProjectionBasedInterpolationRule = GFE::LocalProjectedFEFunction<domainDim,
-      typename Grid::ctype,
-      decltype(scalarBasis.localView().tree().finiteElement()),
-      TargetSpace>;
+  using ProjectionBasedInterpolationRule = GFE::LocalProjectedFEFunction<decltype(scalarBasis),TargetSpace>;
 
   // Select the one to test
   using LocalInterpolationRule = std::conditional_t<interpolationType==InterpolationType::Geodesic,

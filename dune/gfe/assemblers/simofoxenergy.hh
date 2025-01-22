@@ -5,6 +5,7 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/transpose.hh>
 #include <dune/common/tuplevector.hh>
+#include <dune/functions/functionspacebases/subspacebasis.hh>
 #include <dune/fufem/boundarypatch.hh>
 #include <dune/geometry/quadraturerules.hh>
 #include <dune/gfe/linearalgebra.hh>
@@ -48,7 +49,7 @@ namespace Dune::GFE
    * \tparam LocalFEFunction Decides which interpolation function is used for the interpolation of the midsurface
    * and director field.
    */
-  template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type = double>
+  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type = double>
   class SimoFoxEnergyLocalStiffness
     : public LocalEnergy<Basis, ProductManifold<RealTuple<field_type, 3>,
           UnitVector<field_type, 3> > >
@@ -64,22 +65,6 @@ namespace Dune::GFE
     // some other sizes
     static constexpr int gridDim  = GridView::dimension;
     static constexpr int dimworld = GridView::dimensionworld;
-
-    // The local finite element type used for midsurface position and displacement interpolation
-    using MidSurfaceElement =
-      typename std::result_of<decltype (&LocalFiniteElementFactory<Basis, 0>::get)(typename Basis::LocalView, decltype(Dune::Indices::_0))>::type;
-    // The local finite element type used for the director interpolation
-    using DirectorElement =
-      typename std::result_of<decltype (&LocalFiniteElementFactory<Basis, 1>::get)(typename Basis::LocalView, decltype(Dune::Indices::_1))>::type;
-
-    // The local finite element function type to evaluate the midsurface position
-    using LocalMidSurfaceFunctionType = LocalFEFunction<gridDim, DT, MidSurfaceElement, RealTuple<field_type, 3> >;
-    // The local finite element function type to evaluate the director
-    using LocalDirectorFunctionType = LocalFEFunction<gridDim, DT, DirectorElement, UnitVector<field_type, 3> >;
-
-    // Extra function type for reference quantities since they are unconditionally doubles, i.e. no ADOL-C types
-    using LocalMidSurfaceReferenceFunctionType = LocalFEFunction<gridDim, DT, MidSurfaceElement, RealTuple<double, 3> >;
-    using LocalDirectorReferenceFunctionType   = LocalFEFunction<gridDim, DT, DirectorElement, UnitVector<double, 3> >;
 
   public:
     /** \brief Constructor with a set of material parameters
@@ -195,7 +180,7 @@ namespace Dune::GFE
    * b is similar to the second fundamental form of the surface, but the unit normal is replaced with the shell director
    * gamma_1 and gamma_2 are the transverse shear in the two parametric directions
    * Paper Equation 4.10 */
-  template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
+  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
   Dune::FieldVector<field_type, 8> SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::calculateGreenLagrangianStrains(
     const KinematicVariables &kin)
   {
@@ -222,7 +207,7 @@ namespace Dune::GFE
    *
    * Paper Equations 6.4 - 6.8
    */
-  template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
+  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
   template <typename Element, typename LocalDirectorFunction, typename LocalMidSurfaceFunction, typename LocalDirectorReferenceFunction,
       typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
   auto SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::kinematicVariablesFactory(
@@ -245,7 +230,7 @@ namespace Dune::GFE
     return kin;
   }
 
-  template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
+  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
   auto SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::getReferenceLocalConfigurations(
     const typename Basis::LocalView &localView) const {
     using namespace Dune::Indices;
@@ -283,7 +268,7 @@ namespace Dune::GFE
    *  E are the components of the Green-Lagrangian strains [membrane strains, bending, transverse shear]
    *  see for details Paper Equation 4.11,4.10 and 10.1
    */
-  template <class Basis, template <int, typename, typename, typename> typename LocalFEFunction, typename field_type>
+  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
   typename SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::RT
   SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::energy(
     const typename Basis::LocalView &localView,
@@ -304,6 +289,19 @@ namespace Dune::GFE
     displacements.reserve(localMidSurfaceConfiguration.size());
     for (size_t i = 0; i < localMidSurfaceConfiguration.size(); ++i)
       displacements.emplace_back(localMidSurfaceConfiguration[i].globalCoordinates() - localRefMidSurfaceConfiguration[i].globalCoordinates());
+
+    // The local finite element type used for midsurface position and displacement interpolation
+    const auto midSurfaceBasis = Functions::subspaceBasis(localView.globalBasis(),_0,0);
+    const auto directorBasis = Functions::subspaceBasis(localView.globalBasis(),_1,0);
+
+    // The local finite element function type to evaluate the midsurface position
+    using LocalMidSurfaceFunctionType = LocalFEFunction<decltype(midSurfaceBasis), RealTuple<field_type, 3> >;
+    // The local finite element function type to evaluate the director
+    using LocalDirectorFunctionType = LocalFEFunction<decltype(directorBasis), UnitVector<field_type, 3> >;
+
+    // Extra function type for reference quantities since they are unconditionally doubles, i.e. no ADOL-C types
+    using LocalMidSurfaceReferenceFunctionType = LocalFEFunction<decltype(midSurfaceBasis), RealTuple<double, 3> >;
+    using LocalDirectorReferenceFunctionType   = LocalFEFunction<decltype(directorBasis), UnitVector<double, 3> >;
 
     const LocalMidSurfaceFunctionType localMidSurfaceFunction(midSurfaceElement, localMidSurfaceConfiguration);
     const LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction(midSurfaceElement, displacements);

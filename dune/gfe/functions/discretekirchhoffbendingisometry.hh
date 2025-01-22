@@ -44,7 +44,7 @@ namespace Dune::GFE
 
     static constexpr int components_ = 3;
 
-    typedef Dune::GFE::LocalProjectedFEFunction<GridView::dimension, ctype, typename CoefficientBasis::LocalView::Tree::FiniteElement, Dune::GFE::ProductManifold<RealTuple<RT,components_>, Rotation<RT,components_> > > LocalInterpolationRule;
+    typedef GFE::LocalProjectedFEFunction<CoefficientBasis, GFE::ProductManifold<RealTuple<RT,components_>, Rotation<RT,components_> > > LocalInterpolationRule;
 
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<RT, components_, gridDim> DerivativeType;

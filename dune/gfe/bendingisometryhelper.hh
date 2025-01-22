@@ -200,7 +200,6 @@ namespace Dune::GFE::Impl
     auto localView = discreteKirchhoffBasis.localView();
     auto localViewCoefficients = coefficientBasis.localView();
 
-    using GridView = typename DiscreteKirchhoffBasis::GridView;
     auto gridView = discreteKirchhoffBasis.gridView();
 
     /** Create an EmbeddedGlobalGFEFunction that serves as a GridViewFunction later on.
@@ -211,7 +210,7 @@ namespace Dune::GFE::Impl
         where the first three entries correspond to the deformation and the
         last four entries correspond to a (quaternion) rotation.
      */
-    typedef Dune::GFE::LocalProjectedFEFunction<GridView::dimension, double, typename CoefficientBasis::LocalView::Tree::FiniteElement, Dune::GFE::ProductManifold<RealTuple<double,3>, Rotation<double,3> > > LocalInterpolationRule;
+    typedef GFE::LocalProjectedFEFunction<CoefficientBasis, GFE::ProductManifold<RealTuple<double,3>, Rotation<double,3> > > LocalInterpolationRule;
     Dune::GFE::EmbeddedGlobalGFEFunction<CoefficientBasis, LocalInterpolationRule, Dune::GFE::ProductManifold<RealTuple<double,3>, Rotation<double,3> > > embeddedGlobalFunction(coefficientBasis, isometryCoefficients);
 
     auto productSpaceGridViewFunction = Dune::Functions::makeAnalyticGridViewFunction(embeddedGlobalFunction, gridView);

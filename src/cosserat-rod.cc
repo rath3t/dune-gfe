@@ -221,7 +221,7 @@ int main (int argc, char *argv[]) try
 
   using ATargetSpace = TargetSpace::rebind<adouble>::other;
   using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<ScalarBasis, ATargetSpace>;
-  using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<1, double, ScalarBasis::LocalView::Tree::FiniteElement, ATargetSpace>;
+  using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<ScalarBasis, ATargetSpace>;
 
   // Assembler using ADOL-C
   std::shared_ptr<GFE::LocalEnergy<ScalarBasis,ATargetSpace> > localRodEnergy;

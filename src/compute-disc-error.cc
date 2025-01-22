@@ -165,7 +165,7 @@ void measureDiscreteEOC(const GridView gridView,
   //typedef LocalGeodesicFEFunction<FEBasis, TargetSpace> LocalInterpolationRule;
   //if (parameterSet["interpolationMethod"] != "geodesic")
   //  DUNE_THROW(Exception, "Inconsistent choice of interpolation method");
-  typedef GFE::LocalProjectedFEFunction<GridView::dimension, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace> LocalInterpolationRule;
+  typedef GFE::LocalProjectedFEFunction<FEBasis, TargetSpace> LocalInterpolationRule;
   if (parameterSet["interpolationMethod"] != "projected")
     DUNE_THROW(Exception, "Inconsistent choice of interpolation method");
   std::cout << "Using local interpolation: " << className<LocalInterpolationRule>() << std::endl;
@@ -479,7 +479,7 @@ void measureAnalyticalEOC(const GridView gridView,
 
   // ONly used if parameterSet["interpolationMethod"] == "projected"
   auto numericalSolutionProjected = GFE::EmbeddedGlobalGFEFunction<FEBasis,
-      GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+      GFE::LocalProjectedFEFunction<FEBasis, TargetSpace>,
       TargetSpace> (feBasis, x);
   auto localNumericalSolutionProjected = localFunction(numericalSolutionProjected);
 #else
@@ -498,7 +498,7 @@ void measureAnalyticalEOC(const GridView gridView,
 
   if (parameterSet["interpolationMethod"] == "projected")
     numericalSolution = std::make_unique<GFE::EmbeddedGlobalGFEFunction<FEBasis,
-        GFE::LocalProjectedFEFunction<dim, double, typename FEBasis::LocalView::Tree::FiniteElement, TargetSpace>,
+        GFE::LocalProjectedFEFunction<FEBasis, TargetSpace>,
         TargetSpace> > (feBasis, x);
 #endif
 

@@ -42,9 +42,9 @@
 
 #include <dune/vtk/vtkreader.hh>
 
-template <int dim, class ctype, class LocalFiniteElement, class TS>
-using LocalFEFunction = Dune::GFE::LocalProjectedFEFunction<dim,ctype,LocalFiniteElement,TS>;
-//using LocalFEFunction = LocalGeodesicFEFunction<dim,ctype,LocalFiniteElement,TS>;
+template <class Basis, class TS>
+using LocalFEFunction = Dune::GFE::LocalProjectedFEFunction<Basis,TS>;
+//using LocalFEFunction = LocalGeodesicFEFunction<Basis,TS>;
 
 // Order of the approximation space for the midsurface position
 const int midsurfaceOrder = 1;
