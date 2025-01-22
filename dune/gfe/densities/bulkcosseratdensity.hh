@@ -231,7 +231,7 @@ namespace Dune::GFE
     }
 
     // Construct a copy of this density but using 'adouble' as the number type
-    virtual std::unique_ptr<LocalDensity<Element,ATargetSpace> > makeActiveDensity() const
+    virtual std::unique_ptr<LocalDensity<Element,ATargetSpace> > makeActiveDensity() const override
     {
       // curvatureType_ is a local enum type, and therefore its type changes
       // together with the type of the surrounding class.
