@@ -50,16 +50,18 @@ namespace Dune::GFE
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
 
-    /** \brief Constructor
-     * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
-     * \param coefficients Values of the function at the Lagrange points
+    /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
+     *
+     * \param localFiniteElement A finite element that defines the interpolation in the embedding space
+     * \param coefficients Coefficients of the finite element function
      */
-    LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
-                             const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients)
+    void bind(const LocalFiniteElement& localFiniteElement,
+              const std::vector<TargetSpace>& coefficients)
     {
-      assert(localFiniteElement_.localBasis().size() == coefficients_.size());
+      assert(localFiniteElement.localBasis().size() == coefficients.size());
+
+      localFiniteElement_ = localFiniteElement;
+      coefficients_ = coefficients;
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -130,7 +132,7 @@ namespace Dune::GFE
     /** \brief The scalar local finite element, which provides the weighting factors
      *        \todo We really only need the local basis
      */
-    const LocalFiniteElement& localFiniteElement_;
+    LocalFiniteElement localFiniteElement_;
 
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
@@ -358,16 +360,18 @@ namespace Dune::GFE
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
 
-    /** \brief Constructor
-     * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
-     * \param coefficients Values of the function at the Lagrange points
+    /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
+     *
+     * \param localFiniteElement A finite element that defines the interpolation in the embedding space
+     * \param coefficients Coefficients of the finite element function
      */
-    LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
-                             const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients)
+    void bind(const LocalFiniteElement& localFiniteElement,
+              const std::vector<TargetSpace>& coefficients)
     {
-      assert(localFiniteElement_.localBasis().size() == coefficients_.size());
+      assert(localFiniteElement.localBasis().size() == coefficients.size());
+
+      localFiniteElement_ = localFiniteElement;
+      coefficients_ = coefficients;
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -542,7 +546,7 @@ namespace Dune::GFE
     /** \brief The scalar local finite element, which provides the weighting factors
      *        \todo We really only need the local basis
      */
-    const LocalFiniteElement& localFiniteElement_;
+    LocalFiniteElement localFiniteElement_;
 
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
@@ -583,19 +587,21 @@ namespace Dune::GFE
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
 
-    /** \brief Constructor
-     * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
-     * \param coefficients Values of the function at the Lagrange points
+    /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
+     *
+     * \param localFiniteElement A finite element that defines the interpolation in the embedding space
+     * \param coefficients Coefficients of the finite element function
      */
-    LocalProjectedFEFunction(const LocalFiniteElement& localFiniteElement,
-                             const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients),
-      translationCoefficients_(coefficients.size())
+    void bind(const LocalFiniteElement& localFiniteElement,
+              const std::vector<TargetSpace>& coefficients)
     {
       assert(localFiniteElement.localBasis().size() == coefficients.size());
       using namespace Dune::Indices;
 
+      localFiniteElement_ = localFiniteElement;
+      coefficients_ = coefficients;
+
+      translationCoefficients_.resize(coefficients.size());
       for (size_t i=0; i<coefficients.size(); i++)
         translationCoefficients_[i] = coefficients[i][_0].globalCoordinates();
 
@@ -603,7 +609,8 @@ namespace Dune::GFE
       for (size_t i=0; i<coefficients.size(); i++)
         orientationCoefficients[i] = coefficients[i][_1];
 
-      orientationFunction_ = std::make_unique<LocalProjectedFEFunction<Basis,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
+      orientationFunction_ = std::make_unique<LocalProjectedFEFunction<Basis,Rotation<field_type,3> > > ();
+      orientationFunction_->bind(localFiniteElement,orientationCoefficients);
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -694,7 +701,7 @@ namespace Dune::GFE
     /** \brief The scalar local finite element, which provides the weighting factors
      *        \todo We really only need the local basis
      */
-    const LocalFiniteElement& localFiniteElement_;
+    LocalFiniteElement localFiniteElement_;
 
     // The coefficients of this interpolation rule
     std::vector<TargetSpace> coefficients_;

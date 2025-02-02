@@ -60,16 +60,19 @@ namespace Dune::GFE
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
     typedef Tensor3<RT,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
 
-    /** \brief Constructor
-     * \param localFiniteElement A Lagrangian finite element that provides the interpolation points
-     * \param coefficients Values of the function at the Lagrange points
+    /** \brief Bind the local function to a particular scalar finite element
+     * and a set of coefficients
+     *
+     * \param localFiniteElement A scalar finite element that provides the weight functions
+     * \param coefficients Values to be interpolated
      */
-    LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
-                            const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients)
+    void bind(const LocalFiniteElement& localFiniteElement,
+              const std::vector<TargetSpace>& coefficients)
     {
-      assert(localFiniteElement_.localBasis().size() == coefficients_.size());
+      assert(localFiniteElement.localBasis().size() == coefficients.size());
+
+      localFiniteElement_ = localFiniteElement;
+      coefficients_ = coefficients;
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -206,7 +209,7 @@ namespace Dune::GFE
     /** \brief The scalar local finite element, which provides the weighting factors
         \todo We really only need the local basis
      */
-    const LocalFiniteElement& localFiniteElement_;
+    LocalFiniteElement localFiniteElement_;
 
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
@@ -411,8 +414,9 @@ namespace Dune::GFE
       cornersPlus [coefficient] = TargetSpace::exp(coefficients_[coefficient], forwardVariation);
       cornersMinus[coefficient] = TargetSpace::exp(coefficients_[coefficient], backwardVariation);
 
-      const LocalGeodesicFEFunction<Basis,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
-      const LocalGeodesicFEFunction<Basis,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
+      LocalGeodesicFEFunction<Basis,TargetSpace> fPlus, fMinus;
+      fPlus.bind(localFiniteElement_,cornersPlus);
+      fMinus.bind(localFiniteElement_,cornersMinus);
 
       TargetSpace hPlus  = fPlus.evaluate(local);
       TargetSpace hMinus = fMinus.evaluate(local);
@@ -550,8 +554,9 @@ namespace Dune::GFE
       cornersPlus[coefficient]  = TargetSpace(aPlus);
       cornersMinus[coefficient] = TargetSpace(aMinus);
 
-      const LocalGeodesicFEFunction<Basis,TargetSpace> fPlus(localFiniteElement_,cornersPlus);
-      const LocalGeodesicFEFunction<Basis,TargetSpace> fMinus(localFiniteElement_,cornersMinus);
+      LocalGeodesicFEFunction<Basis,TargetSpace> fPlus,fMinus;
+      fPlus.bind(localFiniteElement_,cornersPlus);
+      fMinus.bind(localFiniteElement_,cornersMinus);
 
       const auto hPlus  = fPlus.evaluateDerivative(local);
       const auto hMinus = fMinus.evaluateDerivative(local);
@@ -618,16 +623,18 @@ namespace Dune::GFE
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
     typedef Tensor3<field_type,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
 
-    /** \brief Constructor */
-    LocalGeodesicFEFunction(const LocalFiniteElement& localFiniteElement,
-                            const std::vector<TargetSpace>& coefficients)
-      : localFiniteElement_(localFiniteElement),
-      coefficients_(coefficients),
-      translationCoefficients_(coefficients.size())
+    /** \brief Bind the function to a particular weight function set and coefficients
+     */
+    void bind(const LocalFiniteElement& localFiniteElement,
+              const std::vector<TargetSpace>& coefficients)
     {
       using namespace Dune::Indices;
       assert(localFiniteElement.localBasis().size() == coefficients.size());
 
+      localFiniteElement_ = localFiniteElement;
+      coefficients_ = coefficients;
+
+      translationCoefficients_.resize(coefficients.size());
       for (size_t i=0; i<coefficients.size(); i++)
         translationCoefficients_[i] = coefficients[i][_0].globalCoordinates();
 
@@ -635,7 +642,8 @@ namespace Dune::GFE
       for (size_t i=0; i<coefficients.size(); i++)
         orientationCoefficients[i] = coefficients[i][_1];
 
-      orientationFEFunction_ = std::make_unique<LocalGeodesicFEFunction<Basis,Rotation<field_type,3> > > (localFiniteElement,orientationCoefficients);
+      orientationFEFunction_ = std::make_unique<LocalGeodesicFEFunction<Basis,Rotation<field_type,3> > >();
+      orientationFEFunction_->bind(localFiniteElement,orientationCoefficients);
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -831,7 +839,7 @@ namespace Dune::GFE
     /** \brief The scalar local finite element, which provides the weighting factors
         \todo We really only need the local basis
      */
-    const LocalFiniteElement& localFiniteElement_;
+    LocalFiniteElement localFiniteElement_;
 
     // The coefficients of this interpolation rule
     std::vector<TargetSpace> coefficients_;

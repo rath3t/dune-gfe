@@ -96,7 +96,8 @@ namespace Dune::GFE
 #else
         const auto& localFiniteElement = Impl::LocalFiniteElementFactory<Basis>::get(localView);
 #endif
-        LocalInterpolationRule localInterpolationRule(localFiniteElement,localConfiguration);
+        LocalInterpolationRule localInterpolationRule;
+        localInterpolationRule.bind(localFiniteElement,localConfiguration);
 
         // Bind density to the element
         const auto& element = localView.element();
@@ -179,8 +180,10 @@ namespace Dune::GFE
         using LocalGFEFunctionType0 = typename std::tuple_element<0, LocalInterpolationRule>::type;
         using LocalGFEFunctionType1 = typename std::tuple_element<1, LocalInterpolationRule>::type;
 
-        LocalGFEFunctionType0 localGFEFunction0(localFiniteElement0, coefficients[_0]);
-        LocalGFEFunctionType1 localGFEFunction1(localFiniteElement1, coefficients[_1]);
+        LocalGFEFunctionType0 localGFEFunction0;
+        LocalGFEFunctionType1 localGFEFunction1;
+        localGFEFunction0.bind(localFiniteElement0, coefficients[_0]);
+        localGFEFunction1.bind(localFiniteElement1, coefficients[_1]);
 
         // Bind density to the element
         const auto& element = localView.element();

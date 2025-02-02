@@ -179,7 +179,8 @@ namespace Dune::GFE
          const std::vector<TargetSpace>& localCoefficients) const
   {
     const auto& localFiniteElement = localView.tree().finiteElement();
-    LocalInterpolationRule localConfiguration(localFiniteElement, localCoefficients);
+    LocalInterpolationRule localConfiguration;
+    localConfiguration.bind(localFiniteElement, localCoefficients);
 
     const auto& element = localView.element();
 
@@ -187,7 +188,8 @@ namespace Dune::GFE
 
     std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localReferenceCoefficients = getLocalReferenceConfiguration(localView);
     using InactiveLocalInterpolationRule = typename LocalInterpolationRule::template rebind<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >::other;
-    InactiveLocalInterpolationRule localReferenceConfiguration(localFiniteElement, localReferenceCoefficients);
+    InactiveLocalInterpolationRule localReferenceConfiguration;
+    localReferenceConfiguration.bind(localFiniteElement, localReferenceCoefficients);
 
     // ///////////////////////////////////////////////////////////////////////////////
     //   The following two loops are a reduced integration scheme.  We integrate

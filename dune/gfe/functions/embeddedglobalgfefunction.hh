@@ -97,7 +97,7 @@ namespace Dune::GFE
        */
       Range operator()(const Domain& x) const
       {
-        return this->localInterpolationRule_->evaluate(x).globalCoordinates();
+        return this->localInterpolationRule_.evaluate(x).globalCoordinates();
       }
 
       //! Local function of the derivative
@@ -319,7 +319,7 @@ namespace Dune::GFE
       Range operator()(const Domain& x) const
       {
         // Jacobian with respect to local coordinates
-        auto refJac = this->localInterpolationRule_->evaluateDerivative(x);
+        auto refJac = this->localInterpolationRule_.evaluateDerivative(x);
 
         // Transform to world coordinates
         return refJac * geometry_->jacobianInverse(x);

@@ -233,7 +233,8 @@ namespace Dune::GFE
 
       //Create a LocalProjected-Finite element from the local coefficients used for interpolation.
       auto P1LagrangeLFE = localViewCoefficient_.tree().finiteElement();
-      LocalInterpolationRule localPBfunction(P1LagrangeLFE,localIsometryCoefficients);
+      LocalInterpolationRule localPBfunction;
+      localPBfunction.bind(P1LagrangeLFE,localIsometryCoefficients);
 
       /**
           Interpolate into the local hermite space for each component.

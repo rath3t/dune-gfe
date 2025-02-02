@@ -143,8 +143,9 @@ public:
         cornersPlus [coefficient] = TargetSpace(coefficients_[coefficient].globalCoordinates() + variation);
         cornersMinus[coefficient] = TargetSpace(coefficients_[coefficient].globalCoordinates() - variation);
 
-        LocalInterpolationRule fPlus(localInterpolationRule_.localFiniteElement(),cornersPlus);
-        LocalInterpolationRule fMinus(localInterpolationRule_.localFiniteElement(),cornersMinus);
+        LocalInterpolationRule fPlus, fMinus;
+        fPlus.bind(localInterpolationRule_.localFiniteElement(),cornersPlus);
+        fMinus.bind(localInterpolationRule_.localFiniteElement(),cornersMinus);
 
         /////////////////////////////////////////////////////////////
         //  Compute first derivative of the interpolation value
@@ -195,8 +196,9 @@ public:
         cornersPlus [coefficient] = TargetSpace::exp(coefficients_[coefficient], forwardVariation);
         cornersMinus[coefficient] = TargetSpace::exp(coefficients_[coefficient], backwardVariation);
 
-        LocalInterpolationRule fPlus(localInterpolationRule_.localFiniteElement(),cornersPlus);
-        LocalInterpolationRule fMinus(localInterpolationRule_.localFiniteElement(),cornersMinus);
+        LocalInterpolationRule fPlus, fMinus;
+        fPlus.bind(localInterpolationRule_.localFiniteElement(),cornersPlus);
+        fMinus.bind(localInterpolationRule_.localFiniteElement(),cornersMinus);
 
         /////////////////////////////////////////////////////////////
         //  Compute first derivative of the interpolation value
@@ -254,8 +256,9 @@ public:
         forwardSolution[i]  = TargetSpace::exp(coefficients_[i], eps * xi);
         backwardSolution[i] = TargetSpace::exp(coefficients_[i], -1 * eps * xi);
 
-        LocalInterpolationRule fPlus(localInterpolationRule_.localFiniteElement(),forwardSolution);
-        LocalInterpolationRule fMinus(localInterpolationRule_.localFiniteElement(),backwardSolution);
+        LocalInterpolationRule fPlus, fMinus;
+        fPlus.bind(localInterpolationRule_.localFiniteElement(),forwardSolution);
+        fMinus.bind(localInterpolationRule_.localFiniteElement(),backwardSolution);
 
         forwardValue[i][i2] = fPlus.evaluate(localPos_);
         backwardValue[i][i2] = fMinus.evaluate(localPos_);
@@ -312,8 +315,9 @@ public:
               backwardSolutionXiEta[j] = TargetSpace::exp(coefficients_[j], (-1)*epsEta);
             }
 
-            LocalInterpolationRule fPlus(localInterpolationRule_.localFiniteElement(),forwardSolutionXiEta);
-            LocalInterpolationRule fMinus(localInterpolationRule_.localFiniteElement(),backwardSolutionXiEta);
+            LocalInterpolationRule fPlus, fMinus;
+            fPlus.bind(localInterpolationRule_.localFiniteElement(),forwardSolutionXiEta);
+            fMinus.bind(localInterpolationRule_.localFiniteElement(),backwardSolutionXiEta);
 
             /////////////////////////////////////////////////////////////////////////////////////
             //  Compute second derivative of the adjoint vector times the interpolation value
@@ -418,7 +422,8 @@ TestSuite checkDerivatives()
 
   auto localView = scalarBasis.localView();
   localView.bind(*gridView.begin<0>());
-  LocalInterpolationRule localGFEFunction(localView.tree().finiteElement(),localCoefficients);
+  LocalInterpolationRule localGFEFunction;
+  localGFEFunction.bind(localView.tree().finiteElement(),localCoefficients);
 
   GFE::InterpolationDerivatives<LocalInterpolationRule> interpolationDerivatives(localGFEFunction,
                                                                                  true,   // doValue

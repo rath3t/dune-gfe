@@ -1,8 +1,6 @@
 #ifndef DUNE_GFE_SURFACECOSSERATSTRESSASSEMBLER_HH
 #define DUNE_GFE_SURFACECOSSERATSTRESSASSEMBLER_HH
 
-#include <dune/functions/functionspacebases/subspacebasis.hh>
-
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/linearalgebra.hh>
@@ -238,7 +236,8 @@ namespace Dune::GFE
           for (std::size_t i=0; i<localConfigurationRot.size(); i++)
             localConfigurationRot[i] = rot[localViewOrderR.index(i)[0]];  //localViewOrderR.index(i) is a multiindex, its first entry is the actual index
 
-          LocalGFEFunctionR localGeodesicFEFunction(lFEOrderR,localConfigurationRot);
+          LocalGFEFunctionR localGeodesicFEFunction;
+          localGeodesicFEFunction.bind(lFEOrderR,localConfigurationRot);
 
           auto evaluateAtPoint = [&](FieldVector<double,3> pointGlobal, FieldVector<double,3> pointLocal3d) -> FieldMatrix<double,dim,dim> {
                                    Dune::FieldMatrix<double,dim,dim> nablaTheta;

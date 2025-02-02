@@ -87,8 +87,10 @@ namespace Dune::GFE
 
       typedef LocalGeodesicFEFunction<decltype(deformationScalarBasis), RBM0> LocalGFEFunctionType0;
       typedef LocalGeodesicFEFunction<decltype(rotationScalarBasis), RBM1> LocalGFEFunctionType1;
-      LocalGFEFunctionType0 localGeodesicFEFunction0(deformationLocalFiniteElement,localCoefficients[_0]);
-      LocalGFEFunctionType1 localGeodesicFEFunction1(orientationLocalFiniteElement,localCoefficients[_1]);
+      LocalGFEFunctionType0 localGeodesicFEFunction0;
+      LocalGFEFunctionType1 localGeodesicFEFunction1;
+      localGeodesicFEFunction0.bind(deformationLocalFiniteElement,localCoefficients[_0]);
+      localGeodesicFEFunction1.bind(orientationLocalFiniteElement,localCoefficients[_1]);
 
       RT energy = 0;
 

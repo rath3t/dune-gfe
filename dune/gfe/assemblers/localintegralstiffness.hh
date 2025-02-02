@@ -68,7 +68,8 @@ namespace Dune::GFE
       if constexpr (not Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
       {
         const auto& localFiniteElement = localView.tree().finiteElement();
-        LocalInterpolationRule localInterpolationRule(localFiniteElement,localCoefficients);
+        LocalInterpolationRule localInterpolationRule;
+        localInterpolationRule.bind(localFiniteElement,localCoefficients);
 
         // Bind density to the element
         const auto& element = localView.element();
@@ -152,7 +153,8 @@ namespace Dune::GFE
                                             std::vector<double>& localGradient,
                                             typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override
     {
-      LocalInterpolationRule localGFEFunction(localView.tree().finiteElement(),localCoefficients);
+      LocalInterpolationRule localGFEFunction;
+      localGFEFunction.bind(localView.tree().finiteElement(),localCoefficients);
 
       InterpolationDerivatives<LocalInterpolationRule> interpolationDerivatives(localGFEFunction,
                                                                                 localDensity_->dependsOnValue(),
@@ -532,8 +534,10 @@ namespace Dune::GFE
     using DeformationLocalInterpolationRule = typename std::tuple_element<0,LocalInterpolationRule>::type;
     using OrientationLocalInterpolationRule = typename std::tuple_element<1,LocalInterpolationRule>::type;
 
-    DeformationLocalInterpolationRule localDeformationGFEFunction(localView.tree().child(_0,0).finiteElement(),localCoefficients[_0]);
-    OrientationLocalInterpolationRule localOrientationGFEFunction(localView.tree().child(_1,0).finiteElement(),localCoefficients[_1]);
+    DeformationLocalInterpolationRule localDeformationGFEFunction;
+    OrientationLocalInterpolationRule localOrientationGFEFunction;
+    localDeformationGFEFunction.bind(localView.tree().child(_0,0).finiteElement(),localCoefficients[_0]);
+    localOrientationGFEFunction.bind(localView.tree().child(_1,0).finiteElement(),localCoefficients[_1]);
 
     InterpolationDerivatives<DeformationLocalInterpolationRule> deformationInterpolationDerivatives(localDeformationGFEFunction,
                                                                                                     localDensity_->dependsOnValue(0),

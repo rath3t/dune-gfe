@@ -175,7 +175,8 @@ namespace Dune::GFE
     //  Set up the local nonlinear finite element function
     ////////////////////////////////////////////////////////////////////////////////////
     typedef LocalGeodesicFEFunction<decltype(scalarBasis), TargetSpace> LocalGFEFunctionType;
-    LocalGFEFunctionType localGeodesicFEFunction(localFiniteElement,localSolution);
+    LocalGFEFunctionType localGeodesicFEFunction;
+    localGeodesicFEFunction.bind(localFiniteElement,localSolution);
 
     // Bind the density to the current element
     density_->bind(element);
@@ -285,8 +286,10 @@ namespace Dune::GFE
     ////////////////////////////////////////////////////////////////////////////////////
     typedef LocalGeodesicFEFunction<decltype(deformationScalarBasis), RealTuple<field_type,dim> > LocalDeformationGFEFunctionType;
     typedef LocalGeodesicFEFunction<decltype(orientationScalarBasis), Rotation<field_type,dim> > LocalOrientationGFEFunctionType;
-    LocalDeformationGFEFunctionType localDeformationGFEFunction(deformationLocalFiniteElement,localConfiguration[_0]);
-    LocalOrientationGFEFunctionType localOrientationGFEFunction(orientationLocalFiniteElement,localConfiguration[_1]);
+    LocalDeformationGFEFunctionType localDeformationGFEFunction;
+    LocalOrientationGFEFunctionType localOrientationGFEFunction;
+    localDeformationGFEFunction.bind(deformationLocalFiniteElement,localConfiguration[_0]);
+    localOrientationGFEFunction.bind(orientationLocalFiniteElement,localConfiguration[_1]);
 
     // Bind the density to the current element
     density_->bind(element);

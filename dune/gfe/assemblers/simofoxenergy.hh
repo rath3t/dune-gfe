@@ -286,11 +286,17 @@ namespace Dune::GFE
     using LocalMidSurfaceReferenceFunctionType = LocalFEFunction<decltype(midSurfaceBasis), RealTuple<double, 3> >;
     using LocalDirectorReferenceFunctionType   = LocalFEFunction<decltype(directorBasis), UnitVector<double, 3> >;
 
-    const LocalMidSurfaceFunctionType localMidSurfaceFunction(midSurfaceElement, localMidSurfaceConfiguration);
-    const LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction(midSurfaceElement, displacements);
-    const LocalMidSurfaceReferenceFunctionType localMidSurfaceReferenceFunction(midSurfaceElement, localRefMidSurfaceConfiguration);
-    const LocalDirectorFunctionType localDirectorFunction(directorElement, localDirectorConfiguration);
-    const LocalDirectorReferenceFunctionType localDirectorReferenceFunction(directorElement, localRefDirectorConfiguration);
+    LocalMidSurfaceFunctionType localMidSurfaceFunction;
+    LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction;
+    LocalMidSurfaceReferenceFunctionType localMidSurfaceReferenceFunction;
+    LocalDirectorFunctionType localDirectorFunction;
+    LocalDirectorReferenceFunctionType localDirectorReferenceFunction;
+
+    localMidSurfaceFunction.bind(midSurfaceElement, localMidSurfaceConfiguration);
+    localMidSurfaceDisplacementFunction.bind(midSurfaceElement, displacements);
+    localMidSurfaceReferenceFunction.bind(midSurfaceElement, localRefMidSurfaceConfiguration);
+    localDirectorFunction.bind(directorElement, localDirectorConfiguration);
+    localDirectorReferenceFunction.bind(directorElement, localRefDirectorConfiguration);
 
     const int quadOrder = (element.type().isSimplex()) ? std::max(midSurfaceElement.localBasis().order(), directorElement.localBasis().order())
                                                        : std::max(midSurfaceElement.localBasis().order(), directorElement.localBasis().order()) + 1;
