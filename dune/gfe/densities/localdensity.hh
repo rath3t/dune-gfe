@@ -63,7 +63,7 @@ namespace Dune::GFE
 
     }
 
-    ~LocalDensity()
+    virtual ~LocalDensity()
     {
       myfree3(densityTangent_);
       myfree3(Yppp_);
