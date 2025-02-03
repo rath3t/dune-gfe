@@ -290,13 +290,15 @@ int main (int argc, char *argv[])
   // Next: The local energy, i.e., the integral of the density over one element
   using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<FEBasis, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<FEBasis, ATargetSpace>;
+  GeodesicInterpolationRule localGeodesicFEFunctionA;
+  ProjectedInterpolationRule localProjectedFEFunctionA;
 
   std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy;
 
   if (parameterSet["interpolationMethod"] == "geodesic")
-    localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace> >(density);
+    localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, GeodesicInterpolationRule, ATargetSpace> >(std::move(localGeodesicFEFunctionA), density);
   else if (parameterSet["interpolationMethod"] == "projected")
-    localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace> >(density);
+    localEnergy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ProjectedInterpolationRule, ATargetSpace> >(std::move(localProjectedFEFunctionA), density);
   else
     DUNE_THROW(Exception, "Unknown interpolation method " << parameterSet["interpolationMethod"] << " requested!");
 

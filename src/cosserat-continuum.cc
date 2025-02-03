@@ -115,7 +115,8 @@ using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<
 //
 // TODO: Do we really need the 'creator' argument?
 template <typename Basis, typename InterpolationRule, typename TargetSpace, typename Creator>
-auto createCosseratEnergy(const ParameterTree& materialParameters,
+auto createCosseratEnergy(std::shared_ptr<InterpolationRule>& localGFEFunction,
+                          const ParameterTree& materialParameters,
                           const Creator creator)
 {
   using GridView = typename Basis::GridView;
@@ -128,7 +129,7 @@ auto createCosseratEnergy(const ParameterTree& materialParameters,
   {
     auto density = std::make_shared<GFE::PlanarCosseratShellDensity<Element, adouble> >(materialParameters);
 
-    return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(density);
+    return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(localGFEFunction, density);
   }
   else if constexpr (dim==2 && dimworld==3)
   {
@@ -141,7 +142,7 @@ auto createCosseratEnergy(const ParameterTree& materialParameters,
   {
     auto density = std::make_shared<GFE::BulkCosseratDensity<Element, adouble> >(materialParameters);
 
-    return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(density);
+    return std::make_shared<GFE::LocalIntegralEnergy<Basis,InterpolationRule,TargetSpace> >(localGFEFunction, density);
   }
 }
 
@@ -575,6 +576,7 @@ int main (int argc, char *argv[]) try
     // Construct the interpolation rule, i.e., the geometric finite element
     using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >,
         GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<adouble,3> > >;
+    auto localGFEFunction = std::make_shared<AInterpolationRule>();
 
     using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
 
@@ -582,8 +584,9 @@ int main (int argc, char *argv[]) try
     auto sumEnergy = std::make_shared<GFE::SumEnergy<CompositeBasis, GFE::RealTuple<adouble,3>,GFE::Rotation<adouble,3> > >();
 
     // The actual Cosserat energy
-    auto localCosseratEnergy = createCosseratEnergy<CompositeBasis,AInterpolationRule,ATargetSpace,decltype(creator)>(materialParameters,
-                                                                                                                      creator);
+    auto localCosseratEnergy = createCosseratEnergy<CompositeBasis,AInterpolationRule,ATargetSpace>(localGFEFunction,
+                                                                                                    materialParameters,
+                                                                                                    creator);
 
     sumEnergy->addLocalEnergy(localCosseratEnergy);
 
@@ -594,7 +597,7 @@ int main (int argc, char *argv[]) try
     // The volume load term
     using Element = GridView::Codim<0>::Entity;
     auto volumeLoadDensity = std::make_shared<GFE::CosseratVolumeLoadDensity<Element,adouble> >(volumeLoad);
-    auto volumeLoadEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, AInterpolationRule, ATargetSpace> >(volumeLoadDensity);
+    auto volumeLoadEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, AInterpolationRule, ATargetSpace> >(localGFEFunction, volumeLoadDensity);
     sumEnergy->addLocalEnergy(volumeLoadEnergy);
 
     // The local assembler

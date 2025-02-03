@@ -61,10 +61,28 @@ namespace Dune::GFE
 
   public:
 
-    /** \brief Constructor with a Dune::GFE::LocalDensity
+    /** \brief Constructor from a GFE function as a shared pointer
+     *
+     * \param localGFEFunction The geometric finite element function that
+     * the density will be evaluated on
+     * \param ld The density that will be integrated
      */
-    LocalIntegralEnergy(const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
-      : localDensity_(ld)
+    LocalIntegralEnergy(std::shared_ptr<LocalInterpolationRule> localGFEFunction,
+                        const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
+      : localGFEFunction_(localGFEFunction),
+      localDensity_(ld)
+    {}
+
+    /** \brief Constructor from a GFE function r-value reference
+     *
+     * \param localGFEFunction The geometric finite element function that
+     * the density will be evaluated on
+     * \param ld The density that will be integrated
+     */
+    LocalIntegralEnergy(LocalInterpolationRule&& localGFEFunction,
+                        const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
+      : localGFEFunction_(std::make_shared<LocalInterpolationRule>(std::move(localGFEFunction))),
+      localDensity_(ld)
     {}
 
   private:
@@ -96,8 +114,7 @@ namespace Dune::GFE
 #else
         const auto& localFiniteElement = Impl::LocalFiniteElementFactory<Basis>::get(localView);
 #endif
-        LocalInterpolationRule localInterpolationRule;
-        localInterpolationRule.bind(localFiniteElement,localConfiguration);
+        localGFEFunction_->bind(localFiniteElement,localConfiguration);
 
         // Bind density to the element
         const auto& element = localView.element();
@@ -123,13 +140,13 @@ namespace Dune::GFE
           {
             if (localDensity_->dependsOnDerivative())
             {
-              auto [value, derivative] = localInterpolationRule.evaluateValueAndDerivative(quadPos);
+              auto [value, derivative] = localGFEFunction_->evaluateValueAndDerivative(quadPos);
               derivative = derivative * geometryJacobianInverse;
               energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),derivative);
             }
             else
             {
-              auto value = localInterpolationRule.evaluate(quadPos);
+              const auto value = localGFEFunction_->evaluate(quadPos);
               typename LocalInterpolationRule::DerivativeType dummyDerivative;
               energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),dummyDerivative);
             }
@@ -139,7 +156,7 @@ namespace Dune::GFE
             if (localDensity_->dependsOnDerivative())
             {
               typename TargetSpace::CoordinateType dummyValue;
-              auto derivative = localInterpolationRule.evaluateDerivative(quadPos);
+              auto derivative = localGFEFunction_->evaluateDerivative(quadPos);
               derivative = derivative * geometryJacobianInverse;
               energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,dummyValue,derivative);
             }
@@ -177,13 +194,8 @@ namespace Dune::GFE
         const auto& localFiniteElement0 = localView.tree().child(_0,0).finiteElement();
         const auto& localFiniteElement1 = localView.tree().child(_1,0).finiteElement();
 
-        using LocalGFEFunctionType0 = typename std::tuple_element<0, LocalInterpolationRule>::type;
-        using LocalGFEFunctionType1 = typename std::tuple_element<1, LocalInterpolationRule>::type;
-
-        LocalGFEFunctionType0 localGFEFunction0;
-        LocalGFEFunctionType1 localGFEFunction1;
-        localGFEFunction0.bind(localFiniteElement0, coefficients[_0]);
-        localGFEFunction1.bind(localFiniteElement1, coefficients[_1]);
+        std::get<0>(*localGFEFunction_).bind(localFiniteElement0, coefficients[_0]);
+        std::get<1>(*localGFEFunction_).bind(localFiniteElement1, coefficients[_1]);
 
         // Bind density to the element
         const auto& element = localView.element();
@@ -212,19 +224,19 @@ namespace Dune::GFE
           // A value is needed either directly, or for computing the derivative.
           TargetSpace value;
           if (localDensity_->dependsOnValue(0) || localDensity_->dependsOnDerivative(0))
-            value[_0] = localGFEFunction0.evaluate(quadPos);
+            value[_0] = std::get<0>(*localGFEFunction_).evaluate(quadPos);
           if (localDensity_->dependsOnValue(1) || localDensity_->dependsOnDerivative(1))
-            value[_1] = localGFEFunction1.evaluate(quadPos);
+            value[_1] = std::get<1>(*localGFEFunction_).evaluate(quadPos);
 
           // Compute the derivatives of the interpolation function factors
-          typename LocalGFEFunctionType0::DerivativeType derivative0;
-          typename LocalGFEFunctionType1::DerivativeType derivative1;
+          typename std::tuple_element_t<0, LocalInterpolationRule>::DerivativeType derivative0;
+          typename std::tuple_element_t<1, LocalInterpolationRule>::DerivativeType derivative1;
 
           if (localDensity_->dependsOnDerivative(0))
-            derivative0 = localGFEFunction0.evaluateDerivative(quadPos,value[_0]) * geometryJacobianInverse;
+            derivative0 = std::get<0>(*localGFEFunction_).evaluateDerivative(quadPos,value[_0]) * geometryJacobianInverse;
 
           if (localDensity_->dependsOnDerivative(1))
-            derivative1 = localGFEFunction1.evaluateDerivative(quadPos,value[_1]) * geometryJacobianInverse;
+            derivative1 = std::get<1>(*localGFEFunction_).evaluateDerivative(quadPos,value[_1]) * geometryJacobianInverse;
 
           // Copy the two derivatives into a joint matrix object
           // TODO: I am not sure about this.  May the densities should get the
@@ -249,6 +261,11 @@ namespace Dune::GFE
     }
 
   protected:
+
+    // The value and derivative of this function are evaluated at the quadrature points,
+    // and given to the density.
+    const std::shared_ptr<LocalInterpolationRule> localGFEFunction_;
+
     const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> > localDensity_;
   };
 

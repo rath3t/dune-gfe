@@ -112,9 +112,10 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
 
     using ALocalInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(feBasis),
         ATargetSpace>;
+    ALocalInterpolationRule localGFEFunctionA;
 
     // Assemble using the old assembler
-    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensityA);
+    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(std::move(localGFEFunctionA), harmonicDensityA);
 
     auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
     assemblerADOLC = std::make_shared<GFE::GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
@@ -134,9 +135,10 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
 
     using ALocalInterpolationRule = GFE::LocalProjectedFEFunction<FEBasis,
         ATargetSpace, interpolationType!=Nonconforming>;
+    ALocalInterpolationRule localGFEFunctionA;
 
     // Assemble using the old assembler
-    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(harmonicDensityA);
+    auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(std::move(localGFEFunctionA), harmonicDensityA);
 
     auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<FEBasis,TargetSpace> >(energy);
     assemblerADOLC = std::make_shared<GFE::GeodesicFEAssembler<FEBasis,TargetSpace> >(feBasis, localGFEADOLCStiffness);
@@ -322,9 +324,10 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
     using ALocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
     using ALocalInterpolationRule = std::tuple<ALocalDeformationInterpolationRule,ALocalOrientationInterpolationRule>;
+    ALocalInterpolationRule localGFEFunctionA;
 
     // Assemble using the ADOL-C assembler
-    auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(aBulkCosseratDensity);
+    auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(std::move(localGFEFunctionA), aBulkCosseratDensity);
 
     auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> >(energy);
 
@@ -346,9 +349,10 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
     using ALocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
     using ALocalInterpolationRule = std::tuple<ALocalDeformationInterpolationRule,ALocalOrientationInterpolationRule>;
+    ALocalInterpolationRule localGFEFunctionA;
 
     // Assemble using the ADOL-C assembler
-    auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(aBulkCosseratDensity);
+    auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(std::move(localGFEFunctionA), aBulkCosseratDensity);
 
     auto localGFEADOLCStiffness = std::make_shared<GFE::LocalGeodesicFEADOLCStiffness<CompositeBasis,RigidBodyMotion> >(energy);
 

@@ -4,6 +4,10 @@
   does not accept a surface load density anymore. Use the
   `NeumannEnergy` class for assembling surface loads.
 
+- The class `LocalIntegralEnergy` now does not construct the local interpolation
+  rule itself anymore.  Rather, it expects to be given one in its constructor.
+  This will allow interpolation rules with state.
+
 - The classes `LocalGeodesicFEFunction` and `LocalProjectedFEFunction`
   now take a `dune-functions` basis as their first arguments, instead
   of a `LocalFiniteElement`.

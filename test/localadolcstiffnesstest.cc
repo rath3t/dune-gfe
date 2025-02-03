@@ -188,10 +188,11 @@ int main (int argc, char *argv[]) try
 
   // Select geometric finite element interpolation method
   using AInterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis, ATargetSpace>;
+  AInterpolationRule localGFEFunctionA;
 
   auto activeDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(materialParameters);
 
-  auto activeCosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,AInterpolationRule,ATargetSpace> >(activeDensity);
+  auto activeCosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,AInterpolationRule,ATargetSpace> >(std::move(localGFEFunctionA), activeDensity);
 
   // The actual assembler
   GFE::LocalGeodesicFEADOLCStiffness<TangentBasis,
@@ -203,10 +204,11 @@ int main (int argc, char *argv[]) try
 
   // Select geometric finite element interpolation method
   using InterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis, TargetSpace>;
+  InterpolationRule localGFEFunction;
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, double> >(materialParameters);
 
-  auto cosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,InterpolationRule,TargetSpace> >(cosseratDensity);
+  auto cosseratLocalEnergy = std::make_shared<GFE::LocalIntegralEnergy<TangentBasis,InterpolationRule,TargetSpace> >(std::move(localGFEFunction), cosseratDensity);
 
   // The actual assembler
   GFE::LocalGeodesicFEFDStiffness<TangentBasis,
