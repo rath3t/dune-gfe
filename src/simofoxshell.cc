@@ -317,8 +317,8 @@ int main(int argc, char *argv[]) try
     }
 
     // Assembler using ADOL-C
-    auto simoFoxEnergyLocalStiffness
-      = std::make_shared<GFE::SimoFoxEnergyLocalStiffness<decltype(compositeBasis),
+    auto simoFoxEnergy
+      = std::make_shared<GFE::SimoFoxEnergy<decltype(compositeBasis),
         LocalFEFunction,
         adouble> > (materialParameters,
                     &neumannBoundary,
@@ -328,7 +328,7 @@ int main(int argc, char *argv[]) try
     using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::UnitVector<double,3> >;
 
     GFE::LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
-        TargetSpace> localGFEADOLCStiffness(simoFoxEnergyLocalStiffness);
+        TargetSpace> localGFEADOLCStiffness(simoFoxEnergy);
 
     GFE::MixedGFEAssembler<decltype(compositeBasis),TargetSpace> assembler(compositeBasis, localGFEADOLCStiffness);
     ////////////////////////////////////////////////////////

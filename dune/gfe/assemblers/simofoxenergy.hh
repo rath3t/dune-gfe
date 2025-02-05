@@ -50,7 +50,7 @@ namespace Dune::GFE
    * and director field.
    */
   template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type = double>
-  class SimoFoxEnergyLocalStiffness
+  class SimoFoxEnergy
     : public LocalEnergy<Basis, ProductManifold<RealTuple<field_type, 3>,
           UnitVector<field_type, 3> > >
   {
@@ -71,10 +71,10 @@ namespace Dune::GFE
      * \param parameters The material parameters
      * \param x0 reference configuration
      */
-    SimoFoxEnergyLocalStiffness(const Dune::ParameterTree &parameters, const BoundaryPatch<GridView> *neumannBoundary,
-                                const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> neumannFunction,
-                                const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> volumeLoad,
-                                const Dune::TupleVector<std::vector<RealTuple<double, 3> >, std::vector<UnitVector<double, 3> > > &x0)
+    SimoFoxEnergy(const Dune::ParameterTree &parameters, const BoundaryPatch<GridView> *neumannBoundary,
+                  const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> neumannFunction,
+                  const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> volumeLoad,
+                  const Dune::TupleVector<std::vector<RealTuple<double, 3> >, std::vector<UnitVector<double, 3> > > &x0)
       : neumannBoundary_(neumannBoundary),
       neumannFunction_(neumannFunction),
       thickness_{parameters.template get<double>("thickness")},      // The sheeqll thickness
@@ -181,7 +181,7 @@ namespace Dune::GFE
    * gamma_1 and gamma_2 are the transverse shear in the two parametric directions
    * Paper Equation 4.10 */
   template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
-  Dune::FieldVector<field_type, 8> SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::calculateGreenLagrangianStrains(
+  Dune::FieldVector<field_type, 8> SimoFoxEnergy<Basis, LocalFEFunction, field_type>::calculateGreenLagrangianStrains(
     const KinematicVariables &kin)
   {
     Dune::FieldVector<RT, 8> egl;
@@ -210,7 +210,7 @@ namespace Dune::GFE
   template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
   template <typename Element, typename LocalDirectorFunction, typename LocalMidSurfaceFunction, typename LocalDirectorReferenceFunction,
       typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
-  auto SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::kinematicVariablesFactory(
+  auto SimoFoxEnergy<Basis, LocalFEFunction, field_type>::kinematicVariablesFactory(
     const Element &element, const LocalDirectorFunction &directorFunction, const LocalDirectorReferenceFunction &directorReferenceFunction,
     const LocalMidSurfaceFunction &midSurfaceFunction, const LocalMidSurfaceReferenceFunction &midSurfaceReferenceFunction,
     const LocalMidSurfaceFunction &midSurfaceDisplacementFunction, const IntegrationPointPosition &quadPos)
@@ -231,7 +231,7 @@ namespace Dune::GFE
   }
 
   template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
-  auto SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::getReferenceLocalConfigurations(
+  auto SimoFoxEnergy<Basis, LocalFEFunction, field_type>::getReferenceLocalConfigurations(
     const typename Basis::LocalView &localView) const {
     using namespace Dune::Indices;
     const int nDofs0 = localView.tree().child(_0, 0).finiteElement().size();
@@ -269,8 +269,8 @@ namespace Dune::GFE
    *  see for details Paper Equation 4.11,4.10 and 10.1
    */
   template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
-  typename SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::RT
-  SimoFoxEnergyLocalStiffness<Basis, LocalFEFunction, field_type>::energy(
+  typename SimoFoxEnergy<Basis, LocalFEFunction, field_type>::RT
+  SimoFoxEnergy<Basis, LocalFEFunction, field_type>::energy(
     const typename Basis::LocalView &localView,
     const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients &localConfiguration) const
   {
