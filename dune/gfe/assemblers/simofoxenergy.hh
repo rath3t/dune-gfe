@@ -71,7 +71,6 @@ namespace Dune::GFE
      * \param x0 reference configuration
      */
     SimoFoxEnergy(const Dune::ParameterTree &parameters,
-                  const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> volumeLoad,
                   const Dune::TupleVector<std::vector<RealTuple<double, 3> >, std::vector<UnitVector<double, 3> > > &x0)
       : thickness_{parameters.template get<double>("thickness")},      // The sheeqll thickness
       mu_{parameters.template get<double>("mu")},                    // Lame constant 1
@@ -154,9 +153,6 @@ namespace Dune::GFE
 
     /** \brief Material tangent matrix */
     Dune::FieldMatrix<double, 8, 8> CMat_;
-
-    /** \brief The function implementing a volume load */
-    const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, dimworld>)> volumeLoad_;
 
     /** \brief Stores the reference configuration of the midsurface and the director field */
     const std::vector<RealTuple<double, 3> > &midSurfaceRefConfig;

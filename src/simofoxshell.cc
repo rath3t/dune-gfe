@@ -325,7 +325,7 @@ int main(int argc, char *argv[]) try
     auto simoFoxEnergy
       = std::make_shared<GFE::SimoFoxEnergy<decltype(compositeBasis),
         LocalFEFunction,
-        adouble> > (materialParameters, nullptr, x0);
+        adouble> > (materialParameters, x0);
     sumEnergy->addLocalEnergy(simoFoxEnergy);
 
     // The Neumann surface load term
