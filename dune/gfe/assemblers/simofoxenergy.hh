@@ -6,7 +6,6 @@
 #include <dune/common/transpose.hh>
 #include <dune/common/tuplevector.hh>
 #include <dune/functions/functionspacebases/subspacebasis.hh>
-#include <dune/fufem/boundarypatch.hh>
 #include <dune/geometry/quadraturerules.hh>
 #include <dune/gfe/linearalgebra.hh>
 #include <dune/gfe/assemblers/localenergy.hh>
@@ -71,13 +70,10 @@ namespace Dune::GFE
      * \param parameters The material parameters
      * \param x0 reference configuration
      */
-    SimoFoxEnergy(const Dune::ParameterTree &parameters, const BoundaryPatch<GridView> *neumannBoundary,
-                  const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> neumannFunction,
+    SimoFoxEnergy(const Dune::ParameterTree &parameters,
                   const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, 2>)> volumeLoad,
                   const Dune::TupleVector<std::vector<RealTuple<double, 3> >, std::vector<UnitVector<double, 3> > > &x0)
-      : neumannBoundary_(neumannBoundary),
-      neumannFunction_(neumannFunction),
-      thickness_{parameters.template get<double>("thickness")},      // The sheeqll thickness
+      : thickness_{parameters.template get<double>("thickness")},      // The sheeqll thickness
       mu_{parameters.template get<double>("mu")},                    // Lame constant 1
       lambda_{parameters.template get<double>("lambda")},            // Lame constant 2
       kappa_{parameters.template get<double>("kappa")},              // Shear correction factor
@@ -146,12 +142,6 @@ namespace Dune::GFE
 
     /** \brief Save all tangent base matrices for all nodes in one place*/
     Dune::BlockVector<Dune::FieldMatrix<field_type, 2, 3> > directorTangentSpaces;
-
-    /** \brief The Neumann boundary */
-    const BoundaryPatch<GridView> *neumannBoundary_;
-
-    /** \brief The function implementing the Neumann data */
-    const std::function<Dune::FieldVector<double, 3>(Dune::FieldVector<double, dimworld>)> neumannFunction_;
 
     /** \brief The shell thickness */
     double thickness_;
@@ -327,36 +317,6 @@ namespace Dune::GFE
       energy +=  0.5 * Egl * (CMat_ * Egl) * curQuad.weight() * integrationElement;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-    //   Assemble boundary contributions
-    //////////////////////////////////////////////////////////////////////////////
-
-    if (not neumannFunction_) return energy;
-
-    for (auto &&it : intersections(neumannBoundary_->gridView(), element))
-    {
-      if (not neumannBoundary_ or not neumannBoundary_->contains(it)) continue;
-
-      const auto &quadLine = QuadratureRules<DT, gridDim - 1>::rule(it.type(), quadOrder);
-
-      for (const auto &curQuad : quadLine)
-      {
-        // Local position of the quadrature point
-        const FieldVector<DT, gridDim> &quadPos = it.geometryInInside().global(curQuad.position());
-
-        const DT integrationElement = it.geometry().integrationElement(curQuad.position());
-
-        // The value of the local function
-        RealTuple<field_type, 3> deformationValue = localMidSurfaceFunction.evaluate(quadPos);
-
-        // Value of the Neumann data at the current position
-        auto neumannValue = neumannFunction_(it.geometry().global(curQuad.position()));
-
-        // Only translational dofs are affected by the Neumann force
-        for (size_t i = 0; i < neumannValue.size(); i++)
-          energy -= (neumannValue[i] * deformationValue.globalCoordinates()[i]) * curQuad.weight() * integrationElement;
-      }
-    }
     return energy;
   }
 

@@ -1,5 +1,9 @@
 # Master
 
+- The `SimoFoxEnergy` class (formerly known as `SimoFoxEnergyLocalStiffness`)
+  does not accept a surface load density anymore. Use the
+  `NeumannEnergy` class for assembling surface loads.
+
 - The classes `LocalGeodesicFEFunction` and `LocalProjectedFEFunction`
   now take a `dune-functions` basis as their first arguments, instead
   of a `LocalFiniteElement`.

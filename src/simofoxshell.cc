@@ -28,10 +28,12 @@
 #include <dune/gfe/assemblers/localgeodesicfeadolcstiffness.hh>
 #include <dune/gfe/assemblers/simofoxenergy.hh>
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
+#include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/functions/embeddedglobalgfefunction.hh>
 #include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
+#include <dune/gfe/neumannenergy.hh>
 #include <dune/gfe/spaces/unitvector.hh>
 
 #if !MIXED_SPACE
@@ -195,10 +197,10 @@ int main(int argc, char *argv[]) try
   }
 
   BoundaryPatch<GridView> dirichletBoundary(gridView, dirichletVertices);
-  BoundaryPatch<GridView> neumannBoundary(gridView, neumannVertices);
+  auto neumannBoundary = std::make_shared<BoundaryPatch<GridView> >(gridView, neumannVertices);
 
   if (mpiHelper.rank() == 0)
-    std::cout << "Neumann boundary has " << neumannBoundary.numFaces() << " faces\n";
+    std::cout << "Neumann boundary has " << neumannBoundary->numFaces() << " faces\n";
 
   BitSetVector<1> deformationDirichletNodes(midsurfaceFEBasis.size(), false);
 #if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
@@ -209,9 +211,9 @@ int main(int argc, char *argv[]) try
 
   BitSetVector<1> neumannNodes(midsurfaceFEBasis.size(), false);
 #if DUNE_VERSION_GTE(DUNE_FUFEM, 2, 10)
-  Fufem::markBoundaryPatchDofs(neumannBoundary, directorFEBasis, neumannNodes);
+  Fufem::markBoundaryPatchDofs(*neumannBoundary, directorFEBasis, neumannNodes);
 #else
-  constructBoundaryDofs(neumannBoundary, directorFEBasis, neumannNodes);
+  constructBoundaryDofs(*neumannBoundary, directorFEBasis, neumannNodes);
 #endif
 
   BitSetVector<3> deformationDirichletDofs(midsurfaceFEBasis.size(), false);
@@ -316,19 +318,25 @@ int main(int argc, char *argv[]) try
       materialParameters.report();
     }
 
-    // Assembler using ADOL-C
+    // The total energy on one element
+    auto sumEnergy = std::make_shared<GFE::SumEnergy<decltype(compositeBasis), GFE::RealTuple<adouble,3>,GFE::UnitVector<adouble,3> > >();
+
+    // Internal energy of the shell
     auto simoFoxEnergy
       = std::make_shared<GFE::SimoFoxEnergy<decltype(compositeBasis),
         LocalFEFunction,
-        adouble> > (materialParameters,
-                    &neumannBoundary,
-                    neumannFunction,
-                    nullptr, x0);
+        adouble> > (materialParameters, nullptr, x0);
+    sumEnergy->addLocalEnergy(simoFoxEnergy);
+
+    // The Neumann surface load term
+    auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<decltype(compositeBasis), GFE::RealTuple<adouble,3>, GFE::UnitVector<adouble,3> > >(neumannBoundary,neumannFunction);
+    sumEnergy->addLocalEnergy(neumannEnergy);
 
     using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::UnitVector<double,3> >;
 
+    // Use ADOL-C to assemble the element stiffness matrices
     GFE::LocalGeodesicFEADOLCStiffness<decltype(compositeBasis),
-        TargetSpace> localGFEADOLCStiffness(simoFoxEnergy);
+        TargetSpace> localGFEADOLCStiffness(sumEnergy);
 
     GFE::MixedGFEAssembler<decltype(compositeBasis),TargetSpace> assembler(compositeBasis, localGFEADOLCStiffness);
     ////////////////////////////////////////////////////////
