@@ -219,24 +219,36 @@ int main (int argc, char *argv[]) try
   //  Create the energy and assembler
   //////////////////////////////////////////////
 
+  // GFE function describing the reference configuration
+  using ReferenceGeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<ScalarBasis, TargetSpace>;
+  using ReferenceProjectedInterpolationRule = GFE::LocalProjectedFEFunction<ScalarBasis, TargetSpace>;
+  ReferenceGeodesicInterpolationRule referenceGeodesicFEFunction;
+  ReferenceProjectedInterpolationRule referenceProjectedFEFunction;
+
   using ATargetSpace = TargetSpace::rebind<adouble>::other;
   using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<ScalarBasis, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<ScalarBasis, ATargetSpace>;
+  GeodesicInterpolationRule localGeodesicFEFunction;
+  ProjectedInterpolationRule localProjectedFEFunction;
 
   // Assembler using ADOL-C
   std::shared_ptr<GFE::LocalEnergy<ScalarBasis,ATargetSpace> > localRodEnergy;
 
   if (parameterSet["interpolationMethod"] == "geodesic")
   {
-    auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, GeodesicInterpolationRule, adouble> >(gridView,
-                                                                                                             A, J1, J2, E, nu);
+    auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, GeodesicInterpolationRule, ReferenceGeodesicInterpolationRule, adouble> >(std::move(localGeodesicFEFunction),
+                                                                                                                                                 std::move(referenceGeodesicFEFunction),
+                                                                                                                                                 gridView,
+                                                                                                                                                 A, J1, J2, E, nu);
     energy->setReferenceConfiguration(referenceConfiguration);
     localRodEnergy = energy;
   }
   else if (parameterSet["interpolationMethod"] == "projected")
   {
-    auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, ProjectedInterpolationRule, adouble> >(gridView,
-                                                                                                              A, J1, J2, E, nu);
+    auto energy = std::make_shared<GFE::CosseratRodEnergy<ScalarBasis, ProjectedInterpolationRule, ReferenceProjectedInterpolationRule, adouble> >(std::move(localProjectedFEFunction),
+                                                                                                                                                   std::move(referenceProjectedFEFunction),
+                                                                                                                                                   gridView,
+                                                                                                                                                   A, J1, J2, E, nu);
     energy->setReferenceConfiguration(referenceConfiguration);
     localRodEnergy = energy;
   }

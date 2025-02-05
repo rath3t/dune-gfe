@@ -73,10 +73,15 @@ int main (int argc, char *argv[]) try
 
   using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis,
       TargetSpace>;
+  GeodesicInterpolationRule localGFEFunction;
+  GeodesicInterpolationRule referenceGFEFunction;
 
   GFE::CosseratRodEnergy<FEBasis,
       GeodesicInterpolationRule,
-      double> localRodEnergy(gridView,
+      GeodesicInterpolationRule,
+      double> localRodEnergy(std::move(localGFEFunction),
+                             std::move(referenceGFEFunction),
+                             gridView,
                              1,1,1,1e6,0.3);
 
   SolutionType referenceConfiguration(gridView.size(1));

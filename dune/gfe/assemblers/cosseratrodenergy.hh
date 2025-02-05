@@ -2,6 +2,7 @@
 #define DUNE_GFE_COSSERATRODENERGY_HH
 
 #include <array>
+#include <memory>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/common/version.hh>
@@ -21,7 +22,7 @@
 namespace Dune::GFE
 {
 
-  template<class Basis, class LocalInterpolationRule, class RT>
+  template<class Basis, class LocalInterpolationRule, class ReferenceInterpolationRule, class RT>
   class CosseratRodEnergy
     : public LocalEnergy<Basis, ProductManifold<RealTuple<RT,3>,Rotation<RT,3> > >
   {
@@ -42,6 +43,14 @@ namespace Dune::GFE
     constexpr static int bendingQuadOrder = 2;
 
   public:
+
+    /** \brief The current configuration whose energy is being computed
+     */
+    const std::shared_ptr<LocalInterpolationRule> localGFEFunction_;
+
+    /** \brief The GFE function that implements the stress-free reference configuration
+     */
+    const std::shared_ptr<ReferenceInterpolationRule> localReferenceConfiguration_;
 
     /** \brief The stress-free configuration
 
@@ -68,9 +77,25 @@ namespace Dune::GFE
     GridView gridView_;
 
     //! Constructor
-    CosseratRodEnergy(const GridView& gridView,
+    CosseratRodEnergy(std::shared_ptr<LocalInterpolationRule> localGFEFunction,
+                      std::shared_ptr<ReferenceInterpolationRule> localReferenceConfiguration,
+                      const GridView& gridView,
                       const std::array<double,3>& K, const std::array<double,3>& A)
-      : K_(K),
+      : localGFEFunction_(localGFEFunction)
+      , localReferenceConfiguration_(localReferenceConfiguration)
+      , K_(K),
+      A_(A),
+      gridView_(gridView)
+    {}
+
+    //! Constructor
+    CosseratRodEnergy(LocalInterpolationRule&& localGFEFunction,
+                      ReferenceInterpolationRule&& localReferenceConfiguration,
+                      const GridView& gridView,
+                      const std::array<double,3>& K, const std::array<double,3>& A)
+      : localGFEFunction_(std::make_shared<LocalInterpolationRule>(std::move(localGFEFunction)))
+      , localReferenceConfiguration_(std::make_shared<ReferenceInterpolationRule>(std::move(localReferenceConfiguration)))
+      , K_(K),
       A_(A),
       gridView_(gridView)
     {}
@@ -81,9 +106,39 @@ namespace Dune::GFE
         \param E Young's modulus
         \param nu Poisson number
      */
-    CosseratRodEnergy(const GridView& gridView,
+    CosseratRodEnergy(std::shared_ptr<LocalInterpolationRule> localGFEFunction,
+                      std::shared_ptr<ReferenceInterpolationRule> localReferenceConfiguration,
+                      const GridView& gridView,
                       double A, double J1, double J2, double E, double nu)
-      : gridView_(gridView)
+      : localGFEFunction_(localGFEFunction)
+      , localReferenceConfiguration_(localReferenceConfiguration)
+      , gridView_(gridView)
+    {
+      // shear modulus
+      double G = E/(2+2*nu);
+
+      K_[0] = E * J1;
+      K_[1] = E * J2;
+      K_[2] = G * (J1 + J2);
+
+      A_[0] = G * A;
+      A_[1] = G * A;
+      A_[2] = E * A;
+    }
+
+    /** \brief Constructor setting shape constants and material parameters
+        \param A The rod section area
+        \param J1, J2 The geometric moments (Flächenträgheitsmomente)
+        \param E Young's modulus
+        \param nu Poisson number
+     */
+    CosseratRodEnergy(LocalInterpolationRule&& localGFEFunction,
+                      ReferenceInterpolationRule&& localReferenceConfiguration,
+                      const GridView& gridView,
+                      double A, double J1, double J2, double E, double nu)
+      : localGFEFunction_(std::make_shared<LocalInterpolationRule>(std::move(localGFEFunction)))
+      , localReferenceConfiguration_(std::make_shared<ReferenceInterpolationRule>(std::move(localReferenceConfiguration)))
+      , gridView_(gridView)
     {
       // shear modulus
       double G = E/(2+2*nu);
@@ -173,23 +228,20 @@ namespace Dune::GFE
 
   };
 
-  template<class Basis, class LocalInterpolationRule, class RT>
-  RT CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  template<class Basis, class LocalInterpolationRule, class ReferenceInterpolationRule, class RT>
+  RT CosseratRodEnergy<Basis, LocalInterpolationRule, ReferenceInterpolationRule, RT>::
   energy(const typename Basis::LocalView& localView,
          const std::vector<TargetSpace>& localCoefficients) const
   {
     const auto& localFiniteElement = localView.tree().finiteElement();
-    LocalInterpolationRule localConfiguration;
-    localConfiguration.bind(localFiniteElement, localCoefficients);
+    localGFEFunction_->bind(localFiniteElement, localCoefficients);
 
     const auto& element = localView.element();
 
     RT energy = 0;
 
     std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localReferenceCoefficients = getLocalReferenceConfiguration(localView);
-    using InactiveLocalInterpolationRule = typename LocalInterpolationRule::template rebind<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >::other;
-    InactiveLocalInterpolationRule localReferenceConfiguration;
-    localReferenceConfiguration.bind(localFiniteElement, localReferenceCoefficients);
+    localReferenceConfiguration_->bind(localFiniteElement, localReferenceCoefficients);
 
     // ///////////////////////////////////////////////////////////////////////////////
     //   The following two loops are a reduced integration scheme.  We integrate
@@ -208,10 +260,10 @@ namespace Dune::GFE
 
       double weight = shearingQuad[pt].weight() * integrationElement;
 
-      auto strain = getStrain(localConfiguration, element, quadPos);
+      auto strain = getStrain(*localGFEFunction_, element, quadPos);
 
       // The reference strain
-      auto referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
+      auto referenceStrain = getStrain(*localReferenceConfiguration_, element, quadPos);
 
       for (int i=0; i<3; i++)
         energy += weight * 0.5 * A_[i] * (strain[i] - referenceStrain[i]) * (strain[i] - referenceStrain[i]);
@@ -228,10 +280,10 @@ namespace Dune::GFE
 
       double weight = bendingQuad[pt].weight() * element.geometry().integrationElement(quadPos);
 
-      auto strain = getStrain(localConfiguration, element, quadPos);
+      auto strain = getStrain(*localGFEFunction_, element, quadPos);
 
       // The reference strain
-      auto referenceStrain = getStrain(localReferenceConfiguration, element, quadPos);
+      auto referenceStrain = getStrain(*localReferenceConfiguration_, element, quadPos);
 
       // Part II: the bending and twisting energy
       for (int i=0; i<3; i++)
@@ -243,9 +295,9 @@ namespace Dune::GFE
   }
 
 
-  template<class Basis, class LocalInterpolationRule, class RT>
+  template<class Basis, class LocalInterpolationRule, class ReferenceInterpolationRule, class RT>
   template <class ReboundLocalInterpolationRule>
-  auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  auto CosseratRodEnergy<Basis, LocalInterpolationRule, ReferenceInterpolationRule, RT>::
   getStrain(const ReboundLocalInterpolationRule& localInterpolation,
             const Entity& element,
             const FieldVector<double,1>& pos) const
@@ -288,9 +340,9 @@ namespace Dune::GFE
     return strain;
   }
 
-  template<class Basis, class LocalInterpolationRule, class RT>
+  template<class Basis, class LocalInterpolationRule, class ReferenceInterpolationRule, class RT>
   template <class Number>
-  auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  auto CosseratRodEnergy<Basis, LocalInterpolationRule, ReferenceInterpolationRule, RT>::
   getStress(const std::vector<ProductManifold<RealTuple<Number,3>,Rotation<Number,3> > >& localSolution,
             const Entity& element,
             const FieldVector<double, 1>& pos) const
@@ -311,8 +363,8 @@ namespace Dune::GFE
     return stress;
   }
 
-  template<class Basis, class LocalInterpolationRule, class RT>
-  void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  template<class Basis, class LocalInterpolationRule, class ReferenceInterpolationRule, class RT>
+  void CosseratRodEnergy<Basis, LocalInterpolationRule, ReferenceInterpolationRule, RT>::
   getStrain(const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol,
             BlockVector<FieldVector<double, blocksize> >& strain) const
   {
@@ -366,8 +418,8 @@ namespace Dune::GFE
     }
   }
 
-  template<class Basis, class LocalInterpolationRule, class RT>
-  void CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  template<class Basis, class LocalInterpolationRule, class ReferenceInterpolationRule, class RT>
+  void CosseratRodEnergy<Basis, LocalInterpolationRule, ReferenceInterpolationRule, RT>::
   getStress(const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol,
             BlockVector<FieldVector<double, blocksize> >& stress) const
   {
@@ -389,9 +441,9 @@ namespace Dune::GFE
     }
   }
 
-  template<class Basis, class LocalInterpolationRule, class RT>
+  template<class Basis, class LocalInterpolationRule, class ReferenceInterpolationRule, class RT>
   template <class PatchGridView>
-  auto CosseratRodEnergy<Basis, LocalInterpolationRule, RT>::
+  auto CosseratRodEnergy<Basis, LocalInterpolationRule, ReferenceInterpolationRule, RT>::
   getResultantForce(const BoundaryPatch<PatchGridView>& boundary,
                     const std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > >& sol) const
   {

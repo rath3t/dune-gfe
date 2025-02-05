@@ -7,6 +7,11 @@
 - The class `LocalIntegralEnergy` now does not construct the local interpolation
   rule itself anymore.  Rather, it expects to be given one in its constructor.
   This will allow interpolation rules with state.
+  
+- The same holds for `CosseratRodEnergy`.  Unfortunately, that move
+  implies that `CosseratRodEnergy` gains an extra template argument
+  which specifies the GFE function used to implement the reference
+  configuration.
 
 - The classes `LocalGeodesicFEFunction` and `LocalProjectedFEFunction`
   now take a `dune-functions` basis as their first arguments, instead
