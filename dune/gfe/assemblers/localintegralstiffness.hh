@@ -55,8 +55,28 @@ namespace Dune::GFE
 
     using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
 
-    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
-      : localDensity_(ld)
+    /** \brief Constructor from a GFE function as a shared pointer
+     *
+     * \param localGFEFunction The geometric finite element function that
+     * the density will be evaluated on
+     * \param density The density that will be integrated
+     */
+    LocalIntegralStiffness(std::shared_ptr<LocalInterpolationRule> localGFEFunction,
+                           const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
+      : localGFEFunction_(localGFEFunction)
+      , localDensity_(ld)
+    {}
+
+    /** \brief Constructor from a GFE function r-value reference
+     *
+     * \param localGFEFunction The geometric finite element function that
+     * the density will be evaluated on
+     * \param ld The density that will be integrated
+     */
+    LocalIntegralStiffness(LocalInterpolationRule&& localGFEFunction,
+                           const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& density)
+      : localGFEFunction_(std::make_shared<LocalInterpolationRule>(std::move(localGFEFunction)))
+      , localDensity_(density)
     {}
 
     virtual RT
@@ -68,8 +88,7 @@ namespace Dune::GFE
       if constexpr (not Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
       {
         const auto& localFiniteElement = localView.tree().finiteElement();
-        LocalInterpolationRule localInterpolationRule;
-        localInterpolationRule.bind(localFiniteElement,localCoefficients);
+        localGFEFunction_->bind(localFiniteElement,localCoefficients);
 
         // Bind density to the element
         const auto& element = localView.element();
@@ -95,13 +114,13 @@ namespace Dune::GFE
           {
             if (localDensity_->dependsOnDerivative())
             {
-              auto [value, derivative] = localInterpolationRule.evaluateValueAndDerivative(quadPos);
+              auto [value, derivative] = localGFEFunction_->evaluateValueAndDerivative(quadPos);
               derivative = derivative * geometryJacobianInverse;
               energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),derivative);
             }
             else
             {
-              auto value = localInterpolationRule.evaluate(quadPos);
+              auto value = localGFEFunction_->evaluate(quadPos);
               typename LocalInterpolationRule::DerivativeType dummyDerivative;
               energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,value.globalCoordinates(),dummyDerivative);
             }
@@ -111,7 +130,7 @@ namespace Dune::GFE
             if (localDensity_->dependsOnDerivative())
             {
               typename TargetSpace::CoordinateType dummyValue;
-              auto derivative = localInterpolationRule.evaluateDerivative(quadPos);
+              auto derivative = localGFEFunction_->evaluateDerivative(quadPos);
               derivative = derivative * geometryJacobianInverse;
               energy += qp.weight() * integrationElement * (*localDensity_)(quadPos,dummyValue,derivative);
             }
@@ -153,10 +172,9 @@ namespace Dune::GFE
                                             std::vector<double>& localGradient,
                                             typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override
     {
-      LocalInterpolationRule localGFEFunction;
-      localGFEFunction.bind(localView.tree().finiteElement(),localCoefficients);
+      localGFEFunction_->bind(localView.tree().finiteElement(),localCoefficients);
 
-      InterpolationDerivatives<LocalInterpolationRule> interpolationDerivatives(localGFEFunction,
+      InterpolationDerivatives<LocalInterpolationRule> interpolationDerivatives(*localGFEFunction_,
                                                                                 localDensity_->dependsOnValue(),
                                                                                 localDensity_->dependsOnDerivative());
 
@@ -367,6 +385,10 @@ namespace Dune::GFE
                                  hessianDensity);
     }
 
+    // The value and derivative of this function are evaluated at the quadrature points,
+    // and given to the density.
+    const std::shared_ptr<LocalInterpolationRule> localGFEFunction_;
+
     // The density that is being integrated over
     const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> > localDensity_ = nullptr;
   };
@@ -414,8 +436,28 @@ namespace Dune::GFE
 
     using LocalCoordinate = typename GridView::template Codim<0>::Geometry::LocalCoordinate;
 
-    LocalIntegralStiffness(const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
-      : localDensity_(ld)
+    /** \brief Constructor from a GFE function as a shared pointer
+     *
+     * \param localGFEFunction The geometric finite element function that
+     * the density will be evaluated on
+     * \param density The density that will be integrated
+     */
+    LocalIntegralStiffness(std::shared_ptr<LocalInterpolationRule> localGFEFunction,
+                           const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& ld)
+      : localGFEFunction_(localGFEFunction)
+      , localDensity_(ld)
+    {}
+
+    /** \brief Constructor from a GFE function r-value reference
+     *
+     * \param localGFEFunction The geometric finite element function that
+     * the density will be evaluated on
+     * \param ld The density that will be integrated
+     */
+    LocalIntegralStiffness(LocalInterpolationRule&& localGFEFunction,
+                           const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> >& density)
+      : localGFEFunction_(std::make_shared<LocalInterpolationRule>(std::move(localGFEFunction)))
+      , localDensity_(density)
     {}
 
     virtual ~LocalIntegralStiffness() {}
@@ -466,6 +508,11 @@ namespace Dune::GFE
                                             typename Dune::GFE::Impl::LocalStiffnessTypes<TargetSpace>::CompositeHessian& localHessian) const override;
 
   protected:
+
+    // The value and derivative of this function are evaluated at the quadrature points,
+    // and given to the density.
+    const std::shared_ptr<LocalInterpolationRule> localGFEFunction_;
+
     const std::shared_ptr<GFE::LocalDensity<Element,TargetSpace> > localDensity_ = nullptr;
 
   private:
@@ -534,15 +581,13 @@ namespace Dune::GFE
     using DeformationLocalInterpolationRule = typename std::tuple_element<0,LocalInterpolationRule>::type;
     using OrientationLocalInterpolationRule = typename std::tuple_element<1,LocalInterpolationRule>::type;
 
-    DeformationLocalInterpolationRule localDeformationGFEFunction;
-    OrientationLocalInterpolationRule localOrientationGFEFunction;
-    localDeformationGFEFunction.bind(localView.tree().child(_0,0).finiteElement(),localCoefficients[_0]);
-    localOrientationGFEFunction.bind(localView.tree().child(_1,0).finiteElement(),localCoefficients[_1]);
+    std::get<0>(*localGFEFunction_).bind(localView.tree().child(_0,0).finiteElement(),localCoefficients[_0]);
+    std::get<1>(*localGFEFunction_).bind(localView.tree().child(_1,0).finiteElement(),localCoefficients[_1]);
 
-    InterpolationDerivatives<DeformationLocalInterpolationRule> deformationInterpolationDerivatives(localDeformationGFEFunction,
+    InterpolationDerivatives<DeformationLocalInterpolationRule> deformationInterpolationDerivatives(std::get<0>(*localGFEFunction_),
                                                                                                     localDensity_->dependsOnValue(0),
                                                                                                     localDensity_->dependsOnDerivative(0));
-    InterpolationDerivatives<OrientationLocalInterpolationRule> orientationInterpolationDerivatives(localOrientationGFEFunction,
+    InterpolationDerivatives<OrientationLocalInterpolationRule> orientationInterpolationDerivatives(std::get<1>(*localGFEFunction_),
                                                                                                     localDensity_->dependsOnValue(1),
                                                                                                     localDensity_->dependsOnDerivative(1));
 

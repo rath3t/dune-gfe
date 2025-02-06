@@ -158,10 +158,11 @@ int main (int argc, char *argv[])
   using InterpolationRule = GFE::LocalProjectedFEFunction<FEBasis, TargetSpace,false>;
 #endif
 #endif
+  InterpolationRule localGFEFunction;
 
   auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity, TargetSpace> >();
 
-  GFE::LocalIntegralStiffness<FEBasis,InterpolationRule,TargetSpace> localGFEADOLCStiffness(harmonicDensity);
+  GFE::LocalIntegralStiffness<FEBasis,InterpolationRule,TargetSpace> localGFEADOLCStiffness(std::move(localGFEFunction),harmonicDensity);
 
   GFE::GeodesicFEAssembler<FEBasis,TargetSpace> assembler(feBasis, localGFEADOLCStiffness);
 
