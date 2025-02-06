@@ -609,8 +609,7 @@ namespace Dune::GFE
       for (size_t i=0; i<coefficients.size(); i++)
         orientationCoefficients[i] = coefficients[i][_1];
 
-      orientationFunction_ = std::make_unique<LocalProjectedFEFunction<Basis,Rotation<field_type,3> > > ();
-      orientationFunction_->bind(localFiniteElement,orientationCoefficients);
+      orientationFunction_.bind(localFiniteElement,orientationCoefficients);
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -647,7 +646,7 @@ namespace Dune::GFE
       for (size_t i=0; i<w.size(); i++)
         result[_0].globalCoordinates().axpy(w[i][0], translationCoefficients_[i]);
 
-      result[_1] = orientationFunction_->evaluate(local);
+      result[_1] = orientationFunction_.evaluate(local);
 
       return result;
     }
@@ -682,7 +681,7 @@ namespace Dune::GFE
           result[j].axpy(translationCoefficients_[i][j], sfDer[i][0]);
 
       // get orientation part
-      Dune::FieldMatrix<field_type,4,dim> qResult = orientationFunction_->evaluateDerivative(local,q[_1]);
+      Dune::FieldMatrix<field_type,4,dim> qResult = orientationFunction_.evaluateDerivative(local,q[_1]);
 
       for (int i=0; i<4; i++)
         for (std::size_t j=0; j<dim; j++)
@@ -710,7 +709,7 @@ namespace Dune::GFE
     // we need access to the coefficients for the various factor spaces separately.
     std::vector<Dune::FieldVector<field_type,3> > translationCoefficients_;
 
-    std::unique_ptr<LocalProjectedFEFunction<Basis,Rotation<field_type, 3> > > orientationFunction_;
+    LocalProjectedFEFunction<Basis,Rotation<field_type, 3> > orientationFunction_;
 
 
   };
