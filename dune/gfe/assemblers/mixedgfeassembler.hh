@@ -70,16 +70,16 @@ namespace Dune::GFE
      * This is more efficient than computing them separately, because you need the gradient
      * anyway to compute the Riemannian Hessian.
      */
-    virtual void assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
-                                            const std::vector<TargetSpace1>& configuration1,
-                                            Dune::BlockVector<Dune::FieldVector<double, blocksize0> >& gradient0,
-                                            Dune::BlockVector<Dune::FieldVector<double, blocksize1> >& gradient1,
-                                            MatrixType& hessian,
-                                            bool computeOccupationPattern=true) const;
+    void assembleGradientAndHessian(const std::vector<TargetSpace0>& configuration0,
+                                    const std::vector<TargetSpace1>& configuration1,
+                                    Dune::BlockVector<Dune::FieldVector<double, blocksize0> >& gradient0,
+                                    Dune::BlockVector<Dune::FieldVector<double, blocksize1> >& gradient1,
+                                    MatrixType& hessian,
+                                    bool computeOccupationPattern=true) const;
 
     /** \brief Compute the energy of a deformation state */
-    virtual double computeEnergy(const std::vector<TargetSpace0>& configuration0,
-                                 const std::vector<TargetSpace1>& configuration1) const;
+    double computeEnergy(const std::vector<TargetSpace0>& configuration0,
+                         const std::vector<TargetSpace1>& configuration1) const;
 
     //protected:
     void getMatrixPattern(Dune::MatrixIndexSet& nb00,
