@@ -209,7 +209,8 @@ int main (int argc, char *argv[])
   using LocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
   using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
-  LocalInterpolationRule localGFEFunctionA;
+  LocalInterpolationRule localGFEFunctionA{LocalDeformationInterpolationRule(deformationFEBasis),
+                                           LocalOrientationInterpolationRule(orientationFEBasis)};
 
   using Element = GridView::Codim<0>::Entity;
   auto bulkCosseratDensity = std::make_shared<GFE::BulkCosseratDensity<Element,adouble> >(parameters);

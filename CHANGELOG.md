@@ -15,7 +15,10 @@
 
 - The classes `LocalGeodesicFEFunction` and `LocalProjectedFEFunction`
   now take a `dune-functions` basis as their first arguments, instead
-  of a `LocalFiniteElement`.
+  of a `LocalFiniteElement`. In addition, they need to be given an object
+  of this type in the constructor.  This is the basis to be used for
+  interpolation weights (for `LocalGeodesicFEFunction`) and for
+  interpolating in the embedding space (for `LocalProjectedFEFunction`).
 
 - The entire code is now in the `Dune::GFE` namespace.
 

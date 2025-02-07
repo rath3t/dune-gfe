@@ -222,14 +222,14 @@ int main (int argc, char *argv[]) try
   // GFE function describing the reference configuration
   using ReferenceGeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<ScalarBasis, TargetSpace>;
   using ReferenceProjectedInterpolationRule = GFE::LocalProjectedFEFunction<ScalarBasis, TargetSpace>;
-  ReferenceGeodesicInterpolationRule referenceGeodesicFEFunction;
-  ReferenceProjectedInterpolationRule referenceProjectedFEFunction;
+  ReferenceGeodesicInterpolationRule referenceGeodesicFEFunction(scalarBasis);
+  ReferenceProjectedInterpolationRule referenceProjectedFEFunction(scalarBasis);
 
   using ATargetSpace = TargetSpace::rebind<adouble>::other;
   using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<ScalarBasis, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<ScalarBasis, ATargetSpace>;
-  GeodesicInterpolationRule localGeodesicFEFunction;
-  ProjectedInterpolationRule localProjectedFEFunction;
+  GeodesicInterpolationRule localGeodesicFEFunction(scalarBasis);
+  ProjectedInterpolationRule localProjectedFEFunction(scalarBasis);
 
   // Assembler using ADOL-C
   std::shared_ptr<GFE::LocalEnergy<ScalarBasis,ATargetSpace> > localRodEnergy;

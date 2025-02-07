@@ -286,11 +286,11 @@ namespace Dune::GFE
     using LocalMidSurfaceReferenceFunctionType = LocalFEFunction<decltype(midSurfaceBasis), RealTuple<double, 3> >;
     using LocalDirectorReferenceFunctionType   = LocalFEFunction<decltype(directorBasis), UnitVector<double, 3> >;
 
-    LocalMidSurfaceFunctionType localMidSurfaceFunction;
-    LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction;
-    LocalMidSurfaceReferenceFunctionType localMidSurfaceReferenceFunction;
-    LocalDirectorFunctionType localDirectorFunction;
-    LocalDirectorReferenceFunctionType localDirectorReferenceFunction;
+    LocalMidSurfaceFunctionType localMidSurfaceFunction(midSurfaceBasis);
+    LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction(midSurfaceBasis);
+    LocalMidSurfaceReferenceFunctionType localMidSurfaceReferenceFunction(midSurfaceBasis);
+    LocalDirectorFunctionType localDirectorFunction(directorBasis);
+    LocalDirectorReferenceFunctionType localDirectorReferenceFunction(directorBasis);
 
     localMidSurfaceFunction.bind(midSurfaceElement, localMidSurfaceConfiguration);
     localMidSurfaceDisplacementFunction.bind(midSurfaceElement, displacements);

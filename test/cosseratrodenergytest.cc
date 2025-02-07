@@ -73,8 +73,8 @@ int main (int argc, char *argv[]) try
 
   using GeodesicInterpolationRule = GFE::LocalGeodesicFEFunction<FEBasis,
       TargetSpace>;
-  GeodesicInterpolationRule localGFEFunction;
-  GeodesicInterpolationRule referenceGFEFunction;
+  GeodesicInterpolationRule localGFEFunction(feBasis);
+  GeodesicInterpolationRule referenceGFEFunction(feBasis);
 
   GFE::CosseratRodEnergy<FEBasis,
       GeodesicInterpolationRule,

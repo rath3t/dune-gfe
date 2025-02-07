@@ -41,7 +41,7 @@ namespace Dune::GFE
 
       const auto& localFiniteElement = localView.tree().finiteElement();
       typedef LocalGeodesicFEFunction<Basis, TargetSpace> LocalGFEFunctionType;
-      LocalGFEFunctionType localGeodesicFEFunction;
+      LocalGFEFunctionType localGeodesicFEFunction(localView.globalBasis());
       localGeodesicFEFunction.bind(localFiniteElement,localSolution);
 
       const auto element = localView.element();

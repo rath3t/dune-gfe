@@ -109,11 +109,11 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
     std::cout << "Using geodesic interpolation" << std::endl;
     using LocalInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(feBasis),
         TargetSpace>;
-    LocalInterpolationRule localGFEFunction;
+    LocalInterpolationRule localGFEFunction(feBasis);
 
     using ALocalInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(feBasis),
         ATargetSpace>;
-    ALocalInterpolationRule localGFEFunctionA;
+    ALocalInterpolationRule localGFEFunctionA(feBasis);
 
     // Assemble using the old assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(std::move(localGFEFunctionA), harmonicDensityA);
@@ -133,11 +133,11 @@ int testHarmonicMapIntoSphere(TestSuite& test, const GridView& gridView)
 
     using LocalInterpolationRule = GFE::LocalProjectedFEFunction<FEBasis,
         TargetSpace, interpolationType!=Nonconforming>;
-    LocalInterpolationRule localGFEFunction;
+    LocalInterpolationRule localGFEFunction(feBasis);
 
     using ALocalInterpolationRule = GFE::LocalProjectedFEFunction<FEBasis,
         ATargetSpace, interpolationType!=Nonconforming>;
-    ALocalInterpolationRule localGFEFunctionA;
+    ALocalInterpolationRule localGFEFunctionA(feBasis);
 
     // Assemble using the old assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<FEBasis, ALocalInterpolationRule,ATargetSpace> >(std::move(localGFEFunctionA), harmonicDensityA);
@@ -321,13 +321,15 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
     using LocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(orientationFEBasis), GFE::Rotation<double,dim> >;
 
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
-    LocalInterpolationRule localGFEFunction;
+    LocalInterpolationRule localGFEFunction{LocalDeformationInterpolationRule(deformationFEBasis),
+                                            LocalOrientationInterpolationRule(orientationFEBasis)};
 
     using ALocalDeformationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(deformationFEBasis), GFE::RealTuple<adouble,dim> >;
     using ALocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
     using ALocalInterpolationRule = std::tuple<ALocalDeformationInterpolationRule,ALocalOrientationInterpolationRule>;
-    ALocalInterpolationRule localGFEFunctionA;
+    ALocalInterpolationRule localGFEFunctionA{ALocalDeformationInterpolationRule(deformationFEBasis),
+                                              ALocalOrientationInterpolationRule(orientationFEBasis)};
 
     // Assemble using the ADOL-C assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(std::move(localGFEFunctionA), aBulkCosseratDensity);
@@ -347,13 +349,15 @@ int testCosseratBulkModel(TestSuite& test, const GridView& gridView)
     using LocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(orientationFEBasis), GFE::Rotation<double,dim> >;
 
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
-    LocalInterpolationRule localGFEFunction;
+    LocalInterpolationRule localGFEFunction{LocalDeformationInterpolationRule(deformationFEBasis),
+                                            LocalOrientationInterpolationRule(orientationFEBasis)};
 
     using ALocalDeformationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(deformationFEBasis), GFE::RealTuple<adouble,dim> >;
     using ALocalOrientationInterpolationRule = GFE::LocalProjectedFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
     using ALocalInterpolationRule = std::tuple<ALocalDeformationInterpolationRule,ALocalOrientationInterpolationRule>;
-    ALocalInterpolationRule localGFEFunctionA;
+    ALocalInterpolationRule localGFEFunctionA{ALocalDeformationInterpolationRule(deformationFEBasis),
+                                              ALocalOrientationInterpolationRule(orientationFEBasis)};
 
     // Assemble using the ADOL-C assembler
     auto energy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, ALocalInterpolationRule,ARigidBodyMotion> >(std::move(localGFEFunctionA), aBulkCosseratDensity);

@@ -576,7 +576,9 @@ int main (int argc, char *argv[]) try
     // Construct the interpolation rule, i.e., the geometric finite element
     using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >,
         GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<adouble,3> > >;
-    auto localGFEFunction = std::make_shared<AInterpolationRule>();
+    auto localGFEFunction
+      = std::make_shared<AInterpolationRule>(GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >(deformationFEBasis),
+                                             GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<adouble,3> >(orientationFEBasis));
 
     using ATargetSpace = typename TargetSpace::rebind<adouble>::other;
 

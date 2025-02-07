@@ -50,6 +50,15 @@ namespace Dune::GFE
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
 
+    /** \brief Constructor with a given scalar basis
+     *
+     * \param basis The basis that implements the weights for the Riemannian
+     * center of mass
+     */
+    LocalProjectedFEFunction(const Basis& basis)
+      : basis_(basis)
+    {}
+
     /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
      *
      * \param localFiniteElement A finite element that defines the interpolation in the embedding space
@@ -81,6 +90,13 @@ namespace Dune::GFE
     Dune::GeometryType type() const
     {
       return localFiniteElement_.type();
+    }
+
+    /** \brief The finite element basis used to interpolate in the embedding space
+     */
+    const Basis& globalBasis() const
+    {
+      return basis_;
     }
 
     /** \brief The scalar finite element used as the interpolation weights
@@ -128,6 +144,10 @@ namespace Dune::GFE
       return coefficients_[i];
     }
   private:
+
+    /** \brief The finite element basis for the interpolation in the embedding space
+     */
+    const Basis basis_;
 
     /** \brief The scalar local finite element, which provides the weighting factors
      *        \todo We really only need the local basis
@@ -360,6 +380,15 @@ namespace Dune::GFE
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
 
+    /** \brief Constructor with a given scalar basis
+     *
+     * \param basis The basis that implements the weights for the Riemannian
+     * center of mass
+     */
+    LocalProjectedFEFunction(const Basis basis)
+      : basis_(basis)
+    {}
+
     /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
      *
      * \param localFiniteElement A finite element that defines the interpolation in the embedding space
@@ -391,6 +420,13 @@ namespace Dune::GFE
     Dune::GeometryType type() const
     {
       return localFiniteElement_.type();
+    }
+
+    /** \brief The finite element basis used to interpolate in the embedding space
+     */
+    const Basis& globalBasis() const
+    {
+      return basis_;
     }
 
     /** \brief The scalar finite element used as the interpolation weights
@@ -543,6 +579,10 @@ namespace Dune::GFE
     }
   private:
 
+    /** \brief The finite element basis for the interpolation in the embedding space
+     */
+    const Basis basis_;
+
     /** \brief The scalar local finite element, which provides the weighting factors
      *        \todo We really only need the local basis
      */
@@ -587,6 +627,16 @@ namespace Dune::GFE
     /** \brief The type used for derivatives */
     typedef Dune::FieldMatrix<RT, embeddedDim, dim> DerivativeType;
 
+    /** \brief Constructor with a given scalar basis
+     *
+     * \param basis The basis that implements the weights for the Riemannian
+     * center of mass
+     */
+    LocalProjectedFEFunction(const Basis basis)
+      : basis_(basis)
+      , orientationFunction_(basis)
+    {}
+
     /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
      *
      * \param localFiniteElement A finite element that defines the interpolation in the embedding space
@@ -629,6 +679,13 @@ namespace Dune::GFE
     Dune::GeometryType type() const
     {
       return localFiniteElement_.type();
+    }
+
+    /** \brief The finite element basis used to interpolate in the embedding space
+     */
+    const Basis& globalBasis() const
+    {
+      return basis_;
     }
 
     /** \brief Evaluate the function */
@@ -696,6 +753,10 @@ namespace Dune::GFE
       return coefficients_[i];
     }
   private:
+
+    /** \brief The finite element basis for the interpolation in the embedding space
+     */
+    const Basis basis_;
 
     /** \brief The scalar local finite element, which provides the weighting factors
      *        \todo We really only need the local basis

@@ -143,7 +143,8 @@ public:
         cornersPlus [coefficient] = TargetSpace(coefficients_[coefficient].globalCoordinates() + variation);
         cornersMinus[coefficient] = TargetSpace(coefficients_[coefficient].globalCoordinates() - variation);
 
-        LocalInterpolationRule fPlus, fMinus;
+        LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
+        LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
         fPlus.bind(localInterpolationRule_.localFiniteElement(),cornersPlus);
         fMinus.bind(localInterpolationRule_.localFiniteElement(),cornersMinus);
 
@@ -196,7 +197,8 @@ public:
         cornersPlus [coefficient] = TargetSpace::exp(coefficients_[coefficient], forwardVariation);
         cornersMinus[coefficient] = TargetSpace::exp(coefficients_[coefficient], backwardVariation);
 
-        LocalInterpolationRule fPlus, fMinus;
+        LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
+        LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
         fPlus.bind(localInterpolationRule_.localFiniteElement(),cornersPlus);
         fMinus.bind(localInterpolationRule_.localFiniteElement(),cornersMinus);
 
@@ -256,7 +258,8 @@ public:
         forwardSolution[i]  = TargetSpace::exp(coefficients_[i], eps * xi);
         backwardSolution[i] = TargetSpace::exp(coefficients_[i], -1 * eps * xi);
 
-        LocalInterpolationRule fPlus, fMinus;
+        LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
+        LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
         fPlus.bind(localInterpolationRule_.localFiniteElement(),forwardSolution);
         fMinus.bind(localInterpolationRule_.localFiniteElement(),backwardSolution);
 
@@ -315,7 +318,8 @@ public:
               backwardSolutionXiEta[j] = TargetSpace::exp(coefficients_[j], (-1)*epsEta);
             }
 
-            LocalInterpolationRule fPlus, fMinus;
+            LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
+            LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
             fPlus.bind(localInterpolationRule_.localFiniteElement(),forwardSolutionXiEta);
             fMinus.bind(localInterpolationRule_.localFiniteElement(),backwardSolutionXiEta);
 
@@ -422,7 +426,7 @@ TestSuite checkDerivatives()
 
   auto localView = scalarBasis.localView();
   localView.bind(*gridView.begin<0>());
-  LocalInterpolationRule localGFEFunction;
+  LocalInterpolationRule localGFEFunction(scalarBasis);
   localGFEFunction.bind(localView.tree().finiteElement(),localCoefficients);
 
   GFE::InterpolationDerivatives<LocalInterpolationRule> interpolationDerivatives(localGFEFunction,

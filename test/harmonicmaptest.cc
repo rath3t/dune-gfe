@@ -158,7 +158,7 @@ int main (int argc, char *argv[])
   using InterpolationRule = GFE::LocalProjectedFEFunction<FEBasis, TargetSpace,false>;
 #endif
 #endif
-  InterpolationRule localGFEFunction;
+  InterpolationRule localGFEFunction(feBasis);
 
   auto harmonicDensity = std::make_shared<GFE::HarmonicDensity<GridType::Codim<0>::Entity, TargetSpace> >();
 

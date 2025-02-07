@@ -258,7 +258,7 @@ int main (int argc, char *argv[]) try
 
   using LocalGFEFunctionR = GFE::LocalGeodesicFEFunction<decltype(scalarBasisR),GFE::Rotation<double,dim> >;
 
-  LocalGFEFunctionR localGFEFunction;
+  LocalGFEFunctionR localGFEFunction(scalarBasisR);
 
   auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), LocalGFEFunctionR, FieldVector<double,dim>, GFE::Rotation<double,dim> >
                            (basisOrderD, basisOrderR);

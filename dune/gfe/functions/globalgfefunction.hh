@@ -102,6 +102,7 @@ namespace Dune::GFE
 #endif
           : data_(data)
           , localView_(data_->basis->localView())
+          , localInterpolationRule_(*data_->basis)
         {
           localDoFs_.reserve(localView_.maxSize());
         }
@@ -115,6 +116,7 @@ namespace Dune::GFE
         LocalFunctionBase(const LocalFunctionBase& other)
           : data_(other.data_)
           , localView_(other.localView_)
+          , localInterpolationRule_(other.localInterpolationRule_)
         {
           localDoFs_.reserve(localView_.maxSize());
           if (bound())

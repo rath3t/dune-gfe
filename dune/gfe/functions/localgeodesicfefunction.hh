@@ -60,6 +60,15 @@ namespace Dune::GFE
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
     typedef Tensor3<RT,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
 
+    /** \brief Constructor with a given scalar basis
+     *
+     * \param basis The basis that implements the weights for the Riemannian
+     * center of mass
+     */
+    LocalGeodesicFEFunction(const Basis basis)
+      : basis_(basis)
+    {}
+
     /** \brief Bind the local function to a particular scalar finite element
      * and a set of coefficients
      *
@@ -92,6 +101,13 @@ namespace Dune::GFE
     Dune::GeometryType type() const
     {
       return localFiniteElement_.type();
+    }
+
+    /** \brief The scalar finite element basis used as interpolation weights
+     */
+    const Basis& globalBasis() const
+    {
+      return basis_;
     }
 
     /** \brief The scalar finite element used as the interpolation weights
@@ -205,6 +221,11 @@ namespace Dune::GFE
         result.axpy(w[i][0], TargetSpace::thirdDerivativeOfDistanceSquaredWRTSecondArgument(coefficients_[i],q));
       return result;
     }
+
+    /** \brief The scalar basis that implements the weights for the
+     * Riemannian center of mass
+     */
+    const Basis basis_;
 
     /** \brief The scalar local finite element, which provides the weighting factors
         \todo We really only need the local basis
@@ -414,7 +435,7 @@ namespace Dune::GFE
       cornersPlus [coefficient] = TargetSpace::exp(coefficients_[coefficient], forwardVariation);
       cornersMinus[coefficient] = TargetSpace::exp(coefficients_[coefficient], backwardVariation);
 
-      LocalGeodesicFEFunction<Basis,TargetSpace> fPlus, fMinus;
+      LocalGeodesicFEFunction<Basis,TargetSpace> fPlus(basis_), fMinus(basis_);
       fPlus.bind(localFiniteElement_,cornersPlus);
       fMinus.bind(localFiniteElement_,cornersMinus);
 
@@ -554,7 +575,7 @@ namespace Dune::GFE
       cornersPlus[coefficient]  = TargetSpace(aPlus);
       cornersMinus[coefficient] = TargetSpace(aMinus);
 
-      LocalGeodesicFEFunction<Basis,TargetSpace> fPlus,fMinus;
+      LocalGeodesicFEFunction<Basis,TargetSpace> fPlus(basis_), fMinus(basis_);
       fPlus.bind(localFiniteElement_,cornersPlus);
       fMinus.bind(localFiniteElement_,cornersMinus);
 
@@ -622,6 +643,16 @@ namespace Dune::GFE
 
     /** \brief The type used for derivatives of the gradient with respect to coefficients */
     typedef Tensor3<field_type,embeddedDim,embeddedDim,dim> DerivativeOfGradientWRTCoefficientType;
+
+    /** \brief Constructor with a given scalar basis
+     *
+     * \param basis The basis that implements the weights for the Riemannian
+     * center of mass
+     */
+    LocalGeodesicFEFunction(const Basis basis)
+      : basis_(basis)
+      , orientationFEFunction_(basis)
+    {}
 
     /** \brief Bind the function to a particular weight function set and coefficients
      */
@@ -834,6 +865,11 @@ namespace Dune::GFE
     }
 
   private:
+
+    /** \brief The scalar basis that implements the weights for the
+     * Riemannian center of mass
+     */
+    const Basis basis_;
 
     /** \brief The scalar local finite element, which provides the weighting factors
         \todo We really only need the local basis

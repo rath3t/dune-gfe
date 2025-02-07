@@ -201,7 +201,8 @@ int main (int argc, char *argv[])
   // The Cosserat shell energy
   using AInterpolationRule = std::tuple<GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >,
       GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<adouble,3> > >;
-  AInterpolationRule localGFEFunctionA;
+  AInterpolationRule localGFEFunctionA{GFE::LocalGeodesicFEFunction<DeformationFEBasis, GFE::RealTuple<adouble,3> >(deformationFEBasis),
+                                       GFE::LocalGeodesicFEFunction<OrientationFEBasis, GFE::Rotation<adouble,3> >(orientationFEBasis)};
 
   auto cosseratDensity = std::make_shared<GFE::PlanarCosseratShellDensity<GridType::Codim<0>::Entity, adouble> >(parameters);
 

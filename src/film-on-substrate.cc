@@ -527,7 +527,8 @@ int main (int argc, char *argv[]) try
     using LocalOrientationInterpolationRule = GFE::LocalGeodesicFEFunction<decltype(orientationFEBasis), GFE::Rotation<adouble,dim> >;
 
     using LocalInterpolationRule = std::tuple<LocalDeformationInterpolationRule,LocalOrientationInterpolationRule>;
-    LocalInterpolationRule localGFEFunction;
+    LocalInterpolationRule localGFEFunction{LocalDeformationInterpolationRule(deformationFEBasis),
+                                            LocalOrientationInterpolationRule(orientationFEBasis)};
 
     auto elasticEnergy = std::make_shared<GFE::LocalIntegralEnergy<CompositeBasis, LocalInterpolationRule, ActiveRigidBodyMotion> >(std::move(localGFEFunction), elasticDensityWrapped);
     auto neumannEnergy = std::make_shared<GFE::NeumannEnergy<CompositeBasis, GFE::RealTuple<ValueType,targetDim>, GFE::Rotation<ValueType,dim> > >(neumannBoundary,neumannFunctionPtr);

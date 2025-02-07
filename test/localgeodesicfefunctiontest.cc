@@ -324,7 +324,7 @@ void test(const GeometryType& element)
     localBasisView.bind(*gridView.template begin<0>());
     const auto& localFiniteElement = localBasisView.tree().finiteElement();
 
-    GFE::LocalGeodesicFEFunction<InterpolationBasis,TargetSpace> f;
+    GFE::LocalGeodesicFEFunction<InterpolationBasis,TargetSpace> f(interpolationBasis);
     f.bind(localFiniteElement,corners);
 
     //testPermutationInvariance(corners);

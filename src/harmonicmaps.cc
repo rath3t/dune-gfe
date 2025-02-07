@@ -290,8 +290,8 @@ int main (int argc, char *argv[])
   // Next: The local energy, i.e., the integral of the density over one element
   using GeodesicInterpolationRule  = GFE::LocalGeodesicFEFunction<FEBasis, ATargetSpace>;
   using ProjectedInterpolationRule = GFE::LocalProjectedFEFunction<FEBasis, ATargetSpace>;
-  GeodesicInterpolationRule localGeodesicFEFunctionA;
-  ProjectedInterpolationRule localProjectedFEFunctionA;
+  GeodesicInterpolationRule localGeodesicFEFunctionA(feBasis);
+  ProjectedInterpolationRule localProjectedFEFunctionA(feBasis);
 
   std::shared_ptr<GFE::LocalEnergy<FEBasis,ATargetSpace> > localEnergy;
 
