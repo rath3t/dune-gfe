@@ -203,15 +203,15 @@ namespace Dune::GFE
   {
     KinematicVariables kin{};
 
-    const auto jInvT = element.geometry().jacobianInverseTransposed(quadPos);
+    const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
 
     kin.t           = directorFunction.evaluate(quadPos).globalCoordinates();
     kin.t0          = directorReferenceFunction.evaluate(quadPos).globalCoordinates();
-    kin.a1anda2     = transpose(midSurfaceFunction.evaluateDerivative(quadPos) * transpose(jInvT));
-    kin.A1andA2     = transpose(midSurfaceReferenceFunction.evaluateDerivative(quadPos) * transpose(jInvT));
-    kin.ud1andud2   = transpose(midSurfaceDisplacementFunction.evaluateDerivative(quadPos) * transpose(jInvT));
-    kin.t0d1Andt0d2 = transpose(directorReferenceFunction.evaluateDerivative(quadPos) * transpose(jInvT));
-    kin.td1Andtd2   = transpose(directorFunction.evaluateDerivative(quadPos) * transpose(jInvT));
+    kin.a1anda2     = transpose(midSurfaceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+    kin.A1andA2     = transpose(midSurfaceReferenceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+    kin.ud1andud2   = transpose(midSurfaceDisplacementFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+    kin.t0d1Andt0d2 = transpose(directorReferenceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+    kin.td1Andtd2   = transpose(directorFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
 
     return kin;
   }
