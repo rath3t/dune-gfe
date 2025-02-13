@@ -237,7 +237,7 @@ namespace Dune::GFE
           for (std::size_t i=0; i<localConfigurationRot.size(); i++)
             localConfigurationRot[i] = rot[localViewOrderR.index(i)[0]];  //localViewOrderR.index(i) is a multiindex, its first entry is the actual index
 
-          localGeodesicFEFunction.bind(lFEOrderR,localConfigurationRot);
+          localGeodesicFEFunction.bind(element,localConfigurationRot);
 
           auto evaluateAtPoint = [&](FieldVector<double,3> pointGlobal, FieldVector<double,3> pointLocal3d) -> FieldMatrix<double,dim,dim> {
                                    Dune::FieldMatrix<double,dim,dim> nablaTheta;

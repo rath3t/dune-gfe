@@ -71,6 +71,8 @@ namespace Dune::GFE
 
       using namespace Dune::Indices;
 
+      const auto element = localView.element();
+
       ////////////////////////////////////////////////////////////////////////////////////
       //  Set up the local nonlinear finite element function
       ////////////////////////////////////////////////////////////////////////////////////
@@ -81,20 +83,14 @@ namespace Dune::GFE
       auto deformationScalarBasis = Functions::subspaceBasis(localView.globalBasis(), _0, 0);
       auto rotationScalarBasis = Functions::subspaceBasis(localView.globalBasis(), _1, 0);
 
-      // The set of shape functions on this element
-      const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
-      const auto& orientationLocalFiniteElement = localView.tree().child(_1,0).finiteElement();
-
       typedef LocalGeodesicFEFunction<decltype(deformationScalarBasis), RBM0> LocalGFEFunctionType0;
       typedef LocalGeodesicFEFunction<decltype(rotationScalarBasis), RBM1> LocalGFEFunctionType1;
       LocalGFEFunctionType0 localGeodesicFEFunction0(deformationScalarBasis);
       LocalGFEFunctionType1 localGeodesicFEFunction1(rotationScalarBasis);
-      localGeodesicFEFunction0.bind(deformationLocalFiniteElement,localCoefficients[_0]);
-      localGeodesicFEFunction1.bind(orientationLocalFiniteElement,localCoefficients[_1]);
+      localGeodesicFEFunction0.bind(element,localCoefficients[_0]);
+      localGeodesicFEFunction1.bind(element,localCoefficients[_1]);
 
       RT energy = 0;
-
-      const auto element = localView.element();
 
       for (auto&& it : intersections(shellBoundary_->gridView(), element))
       {
@@ -104,9 +100,9 @@ namespace Dune::GFE
         // Bind the density to the current intersection
         density_->bind(it);
 
+        const auto deformationOrder = localView.tree().child(_0,0).finiteElement().localBasis().order();
 #if HAVE_DUNE_CURVEDGEOMETRY
         auto localGridFunction = localFunction(curvedGeometryGridFunction_);
-        auto curvedGeometryGridFunctionOrder = deformationLocalFiniteElement.localBasis().order();
         localGridFunction.bind(element);
         auto referenceElement = Dune::referenceElement<DT,boundaryDim>(it.type());
 
@@ -118,13 +114,12 @@ namespace Dune::GFE
         BoundaryGeometry boundaryGeometry(referenceElement,
                                           [localGridFunction, localGeometry=it.geometryInInside()](const auto& local) {
                                           return localGridFunction(localGeometry.global(local));
-          }, curvedGeometryGridFunctionOrder);
+          }, deformationOrder);
 #else
         const auto& boundaryGeometry = it.geometry();
 #endif
 
-        auto quadOrder = (it.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
-                                                  : deformationLocalFiniteElement.localBasis().order() * boundaryDim;
+        auto quadOrder = (it.type().isSimplex()) ? deformationOrder : deformationOrder * boundaryDim;
 
         const auto& quad = Dune::QuadratureRules<DT, boundaryDim>::rule(it.type(), quadOrder);
 

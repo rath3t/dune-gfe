@@ -279,12 +279,11 @@ void test(const GeometryType& element)
 
     auto localBasisView = interpolationBasis.localView();
     localBasisView.bind(*gridView.template begin<0>());
-    const auto& localFiniteElement = localBasisView.tree().finiteElement();
 
     GFE::LocalProjectedFEFunction<InterpolationBasis,TargetSpace> f(interpolationBasis);
-    f.bind(localFiniteElement,corners);
+    f.bind(*gridView.template begin<0>(),corners);
     GFE::LocalProjectedFEFunction<InterpolationBasis, TargetSpace,false> f_nonconforming(interpolationBasis);
-    f_nonconforming.bind(localFiniteElement,corners);
+    f_nonconforming.bind(*gridView.template begin<0>(),corners);
 
     //testPermutationInvariance(corners);
     testDerivative(f);

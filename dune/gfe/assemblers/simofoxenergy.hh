@@ -255,11 +255,11 @@ namespace Dune::GFE
     using LocalMidSurfaceFunctionType = std::tuple_element_t<0,LocalFEFunction>;
     LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction(localMidSurfaceFunction);
 
-    localMidSurfaceFunction.bind(midSurfaceElement, localMidSurfaceConfiguration);
-    localMidSurfaceDisplacementFunction.bind(midSurfaceElement, displacements);
-    localMidSurfaceReferenceFunction.bind(midSurfaceElement, localRefMidSurfaceConfiguration);
-    localDirectorFunction.bind(directorElement, localDirectorConfiguration);
-    localDirectorReferenceFunction.bind(directorElement, localRefDirectorConfiguration);
+    localMidSurfaceFunction.bind(element, localMidSurfaceConfiguration);
+    localMidSurfaceDisplacementFunction.bind(element, displacements);
+    localMidSurfaceReferenceFunction.bind(element, localRefMidSurfaceConfiguration);
+    localDirectorFunction.bind(element, localDirectorConfiguration);
+    localDirectorReferenceFunction.bind(element, localRefDirectorConfiguration);
 
     const int quadOrder = (element.type().isSimplex()) ? std::max(midSurfaceElement.localBasis().order(), directorElement.localBasis().order())
                                                        : std::max(midSurfaceElement.localBasis().order(), directorElement.localBasis().order()) + 1;

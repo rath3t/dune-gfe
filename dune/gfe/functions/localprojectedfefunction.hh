@@ -45,6 +45,13 @@ namespace Dune::GFE
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::dimension;
 
+    /** \brief Short-cut to the local basis
+     */
+    const auto& localBasis() const
+    {
+      return localBasisView_.tree().finiteElement().localBasis();
+    }
+
   public:
 
     /** \brief The type used for derivatives */
@@ -57,20 +64,69 @@ namespace Dune::GFE
      */
     LocalProjectedFEFunction(const Basis& basis)
       : basis_(basis)
+      , localBasisView_(basis_)
     {}
 
-    /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
-     *
-     * \param localFiniteElement A finite element that defines the interpolation in the embedding space
-     * \param coefficients Coefficients of the finite element function
+    /** \brief Copy constructor
      */
-    void bind(const LocalFiniteElement& localFiniteElement,
+    LocalProjectedFEFunction(const LocalProjectedFEFunction& other)
+      : basis_(other.basis_)
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      , localBasisView_(basis_.localView())
+      , coefficients_(other.coefficients_)
+    {
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Move constructor
+     */
+    LocalProjectedFEFunction(LocalProjectedFEFunction&& other)
+      : basis_(std::move(other.basis_))
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      , localBasisView_(basis_.localView())
+      , coefficients_(std::move(other.coefficients_))
+    {
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Copy assignment
+     */
+    LocalProjectedFEFunction& operator=(const LocalProjectedFEFunction& other)
+    {
+      basis_ = other.basis_;
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      localBasisView_ = basis_.localView();
+      coefficients_ = other.coefficients_;
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Move assignment
+     */
+    LocalProjectedFEFunction& operator=(LocalProjectedFEFunction&& other)
+    {
+      basis_ = std::move(other.basis_);
+      // Do NOT move the localView: It contains a reference to other.basis_.
+      localBasisView_ = basis_.localView();
+      coefficients_ = std::move(other.coefficients_);
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Bind the local function to a grid element and a set of coefficients
+     *
+     * \param element The grid element
+     * \param coefficients Values to be interpolated
+     */
+    void bind(const Element& element,
               const std::vector<TargetSpace>& coefficients)
     {
-      assert(localFiniteElement.localBasis().size() == coefficients.size());
-
-      localFiniteElement_ = localFiniteElement;
+      localBasisView_.bind(element);
       coefficients_ = coefficients;
+
+      assert(localBasisView_.tree().finiteElement().size() == coefficients.size());
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -83,13 +139,13 @@ namespace Dune::GFE
     /** \brief The number of Lagrange points */
     unsigned int size() const
     {
-      return localFiniteElement_.localBasis().size();
+      return localBasisView_.size();
     }
 
     /** \brief The type of the reference element */
     Dune::GeometryType type() const
     {
-      return localFiniteElement_.type();
+      return localBasisView_.element().type();
     }
 
     /** \brief The finite element basis used to interpolate in the embedding space
@@ -111,7 +167,7 @@ namespace Dune::GFE
      */
     const LocalFiniteElement& localFiniteElement() const
     {
-      return localFiniteElement_;
+      return localBasisView_.tree().finiteElement();
     }
 
     /** \brief Evaluate the function */
@@ -149,10 +205,9 @@ namespace Dune::GFE
      */
     const Basis basis_;
 
-    /** \brief The scalar local finite element, which provides the weighting factors
-     *        \todo We really only need the local basis
+    /** \brief The local finite element used for the interpolation in the embedding space
      */
-    LocalFiniteElement localFiniteElement_;
+    typename Basis::LocalView localBasisView_;
 
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
@@ -165,7 +220,7 @@ namespace Dune::GFE
   {
     // Compute value of FE function in embedding space
     std::vector<ScalarFERange> w;
-    localFiniteElement_.localBasis().evaluateFunction(local,w);
+    localBasis().evaluateFunction(local,w);
 
     typename TargetSpace::CoordinateType c(0);
     for (size_t i=0; i<coefficients_.size(); i++)
@@ -194,7 +249,7 @@ namespace Dune::GFE
     }
     else {
       std::vector<ScalarFEJacobian> wDer;
-      localFiniteElement_.localBasis().evaluateJacobian(local, wDer);
+      localBasis().evaluateJacobian(local, wDer);
 
       Dune::FieldMatrix<RT, embeddedDim, dim> derivative(0);
       for (size_t i = 0; i < embeddedDim; i++)
@@ -213,10 +268,10 @@ namespace Dune::GFE
   {
     // Compute value and derivative of FE approximation
     std::vector<ScalarFERange> w;
-    localFiniteElement_.localBasis().evaluateFunction(local,w);
+    localBasis().evaluateFunction(local,w);
 
     std::vector<ScalarFEJacobian> wDer;
-    localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
+    localBasis().evaluateJacobian(local,wDer);
 
     typename TargetSpace::CoordinateType embeddedInterpolation(0);
     for (size_t i=0; i<coefficients_.size(); i++)
@@ -249,7 +304,7 @@ namespace Dune::GFE
     ///////////////////////////////////////////////////////////
 
     std::vector<ScalarFERange> w;
-    localFiniteElement_.localBasis().evaluateFunction(local,w);
+    localBasis().evaluateFunction(local,w);
 
     typename TargetSpace::CoordinateType embeddedInterpolation(0);
     for (size_t i=0; i<coefficients_.size(); i++)
@@ -266,7 +321,7 @@ namespace Dune::GFE
 
     // Compute the interpolation in the surrounding space
     std::vector<ScalarFEJacobian> wDer;
-    localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
+    localBasis().evaluateJacobian(local,wDer);
 
     result.second = 0.0;
     for (size_t i=0; i<embeddedDim; i++)
@@ -374,6 +429,12 @@ namespace Dune::GFE
       return result;
     }
 
+    /** \brief Short-cut to the local basis
+     */
+    const auto& localBasis() const
+    {
+      return localBasisView_.tree().finiteElement().localBasis();
+    }
 
   public:
 
@@ -387,20 +448,69 @@ namespace Dune::GFE
      */
     LocalProjectedFEFunction(const Basis basis)
       : basis_(basis)
+      , localBasisView_(basis_)
     {}
+
+    /** \brief Copy constructor
+     */
+    LocalProjectedFEFunction(const LocalProjectedFEFunction& other)
+      : basis_(other.basis_)
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      , localBasisView_(basis_.localView())
+      , coefficients_(other.coefficients_)
+    {
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Move constructor
+     */
+    LocalProjectedFEFunction(LocalProjectedFEFunction&& other)
+      : basis_(std::move(other.basis_))
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      , localBasisView_(basis_.localView())
+      , coefficients_(std::move(other.coefficients_))
+    {
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Copy assignment
+     */
+    LocalProjectedFEFunction& operator=(const LocalProjectedFEFunction& other)
+    {
+      basis_ = other.basis_;
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      localBasisView_ = basis_.localView();
+      coefficients_ = other.coefficients_;
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Move assignment
+     */
+    LocalProjectedFEFunction& operator=(LocalProjectedFEFunction&& other)
+    {
+      basis_ = std::move(other.basis_);
+      // Do NOT move the localView: It contains a reference to other.basis_.
+      localBasisView_ = basis_.localView();
+      coefficients_ = std::move(other.coefficients_);
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
 
     /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
      *
-     * \param localFiniteElement A finite element that defines the interpolation in the embedding space
-     * \param coefficients Coefficients of the finite element function
+     * \param element The grid element to bind to
+     * \param coefficients Coefficients of the finite element function on that element
      */
-    void bind(const LocalFiniteElement& localFiniteElement,
+    void bind(const Element& element,
               const std::vector<TargetSpace>& coefficients)
     {
-      assert(localFiniteElement.localBasis().size() == coefficients.size());
-
-      localFiniteElement_ = localFiniteElement;
+      localBasisView_.bind(element);
       coefficients_ = coefficients;
+
+      assert(localBasisView_.size() == coefficients.size());
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -413,13 +523,13 @@ namespace Dune::GFE
     /** \brief The number of Lagrange points */
     unsigned int size() const
     {
-      return localFiniteElement_.size();
+      return localBasisView_.tree().finiteElement().size();
     }
 
     /** \brief The type of the reference element */
     Dune::GeometryType type() const
     {
-      return localFiniteElement_.type();
+      return localBasisView_.element().type();
     }
 
     /** \brief The finite element basis used to interpolate in the embedding space
@@ -441,7 +551,7 @@ namespace Dune::GFE
      */
     const LocalFiniteElement& localFiniteElement() const
     {
-      return localFiniteElement_;
+      return localBasisView_.tree().finiteElement();
     }
 
     /** \brief Evaluate the function */
@@ -451,7 +561,7 @@ namespace Dune::GFE
 
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
       std::vector<ScalarFERange> w;
-      localFiniteElement_.localBasis().evaluateFunction(local,w);
+      localBasis().evaluateFunction(local,w);
 
       // Interpolate in R^{3x3}
       FieldMatrix<field_type,3,3> interpolatedMatrix(0);
@@ -487,10 +597,10 @@ namespace Dune::GFE
     {
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
       std::vector<ScalarFERange> w;
-      localFiniteElement_.localBasis().evaluateFunction(local,w);
+      localBasis().evaluateFunction(local,w);
 
       std::vector<ScalarFEJacobian> wDer;
-      localFiniteElement_.localBasis().evaluateJacobian(local,wDer);
+      localBasis().evaluateJacobian(local,wDer);
 
       // Compute matrix representations for all coefficients (we only have them in quaternion representation)
       std::vector<Dune::FieldMatrix<field_type,3,3> > coefficientsAsMatrix(coefficients_.size());
@@ -552,7 +662,7 @@ namespace Dune::GFE
 
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
       std::vector<ScalarFERange> w;
-      localFiniteElement_.localBasis().evaluateFunction(local,w);
+      localBasis().evaluateFunction(local,w);
 
       // Interpolate in R^{3x3}
       FieldMatrix<field_type,3,3> interpolatedMatrix(0);
@@ -583,10 +693,9 @@ namespace Dune::GFE
      */
     const Basis basis_;
 
-    /** \brief The scalar local finite element, which provides the weighting factors
-     *        \todo We really only need the local basis
+    /** \brief The scalar local finite element, for interpolating in the embedding space
      */
-    LocalFiniteElement localFiniteElement_;
+    typename Basis::LocalView localBasisView_;
 
     /** \brief The coefficient vector */
     std::vector<TargetSpace> coefficients_;
@@ -622,6 +731,13 @@ namespace Dune::GFE
     typedef typename TargetSpace::EmbeddedTangentVector EmbeddedTangentVector;
     static const int embeddedDim = EmbeddedTangentVector::dimension;
 
+    /** \brief Short-cut to the local basis
+     */
+    const auto& localBasis() const
+    {
+      return localBasisView_.tree().finiteElement().localBasis();
+    }
+
   public:
 
     /** \brief The type used for derivatives */
@@ -634,22 +750,80 @@ namespace Dune::GFE
      */
     LocalProjectedFEFunction(const Basis basis)
       : basis_(basis)
+      , localBasisView_(basis_)
       , orientationFunction_(basis)
     {}
 
+    /** \brief Copy constructor
+     */
+    LocalProjectedFEFunction(const LocalProjectedFEFunction& other)
+      : basis_(other.basis_)
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      , localBasisView_(basis_.localView())
+      , coefficients_(other.coefficients_)
+      , translationCoefficients_(other.translationCoefficients_)
+      , orientationFunction_(other.orientationFunction_)
+    {
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Move constructor
+     */
+    LocalProjectedFEFunction(LocalProjectedFEFunction&& other)
+      : basis_(std::move(other.basis_))
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      , localBasisView_(basis_.localView())
+      , coefficients_(std::move(other.coefficients_))
+      , translationCoefficients_(std::move(other.translationCoefficients_))
+      , orientationFunction_(std::move(other.orientationFunction_))
+    {
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+    }
+
+    /** \brief Copy assignment
+     */
+    LocalProjectedFEFunction& operator=(const LocalProjectedFEFunction& other)
+    {
+      basis_ = other.basis_;
+      // Do NOT copy the localView: It contains a reference to other.basis_.
+      localBasisView_ = basis_.localView();
+      coefficients_ = other.coefficients_;
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+      translationCoefficients_ = other.translationCoefficients_;
+      orientationFunction_ = other.orientationFunction_;
+    }
+
+    /** \brief Move assignment
+     */
+    LocalProjectedFEFunction& operator=(LocalProjectedFEFunction&& other)
+    {
+      basis_ = std::move(other.basis_);
+      // Do NOT move the localView: It contains a reference to other.basis_.
+      localBasisView_ = basis_.localView();
+      coefficients_ = std::move(other.coefficients_);
+      if (other.localBasisView_.bound())
+        localBasisView_.bind(other.localBasisView_.element());
+      translationCoefficients_ = std::move(other.translationCoefficients_);
+      orientationFunction_ = std::move(other.orientationFunction_);
+    }
+
     /** \brief Bind the function to a specific finite element interpolation space and set of coefficients
      *
-     * \param localFiniteElement A finite element that defines the interpolation in the embedding space
+     * \param element The grid element to bind to
      * \param coefficients Coefficients of the finite element function
      */
-    void bind(const LocalFiniteElement& localFiniteElement,
+    void bind(const Element& element,
               const std::vector<TargetSpace>& coefficients)
     {
-      assert(localFiniteElement.localBasis().size() == coefficients.size());
       using namespace Dune::Indices;
 
-      localFiniteElement_ = localFiniteElement;
+      localBasisView_.bind(element);
       coefficients_ = coefficients;
+
+      assert(localBasis().size() == coefficients.size());
 
       translationCoefficients_.resize(coefficients.size());
       for (size_t i=0; i<coefficients.size(); i++)
@@ -659,7 +833,7 @@ namespace Dune::GFE
       for (size_t i=0; i<coefficients.size(); i++)
         orientationCoefficients[i] = coefficients[i][_1];
 
-      orientationFunction_.bind(localFiniteElement,orientationCoefficients);
+      orientationFunction_.bind(element,orientationCoefficients);
     }
 
     /** \brief Rebind the FEFunction to another TargetSpace */
@@ -672,13 +846,13 @@ namespace Dune::GFE
     /** \brief The number of Lagrange points */
     unsigned int size() const
     {
-      return localFiniteElement_.size();
+      return localBasisView_.size();
     }
 
     /** \brief The type of the reference element */
     Dune::GeometryType type() const
     {
-      return localFiniteElement_.type();
+      return localBasisView_.element().type();
     }
 
     /** \brief The finite element basis used to interpolate in the embedding space
@@ -697,7 +871,7 @@ namespace Dune::GFE
 
       // Evaluate the weighting factors---these are the Lagrangian shape function values at 'local'
       std::vector<ScalarFERange> w;
-      localFiniteElement_.localBasis().evaluateFunction(local,w);
+      localBasis().evaluateFunction(local,w);
 
       result[_0] = FieldVector<field_type,3>(0.0);
       for (size_t i=0; i<w.size(); i++)
@@ -731,7 +905,7 @@ namespace Dune::GFE
 
       // get translation part
       std::vector<ScalarFEJacobian> sfDer(translationCoefficients_.size());
-      localFiniteElement_.localBasis().evaluateJacobian(local, sfDer);
+      localBasis().evaluateJacobian(local, sfDer);
 
       for (size_t i=0; i<translationCoefficients_.size(); i++)
         for (int j=0; j<3; j++)
@@ -758,10 +932,9 @@ namespace Dune::GFE
      */
     const Basis basis_;
 
-    /** \brief The scalar local finite element, which provides the weighting factors
-     *        \todo We really only need the local basis
+    /** \brief The local finite element, for the interpolation in the embedding space
      */
-    LocalFiniteElement localFiniteElement_;
+    typename Basis::LocalView localBasisView_;
 
     // The coefficients of this interpolation rule
     std::vector<TargetSpace> coefficients_;

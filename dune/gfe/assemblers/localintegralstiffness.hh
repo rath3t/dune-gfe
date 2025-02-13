@@ -87,19 +87,20 @@ namespace Dune::GFE
 
       if constexpr (not Impl::LocalEnergyTypes<TargetSpace>::isProductManifold)
       {
-        const auto& localFiniteElement = localView.tree().finiteElement();
-        localGFEFunction_->bind(localFiniteElement,localCoefficients);
+        // Bind GFE function to the current element
+        const auto& element = localView.element();
+        localGFEFunction_->bind(element,localCoefficients);
 
         // Bind density to the element
-        const auto& element = localView.element();
         localDensity_->bind(element);
 
         // Get a suitable quadrature rule
+        const auto localGFEOrder = localGFEFunction_->localFiniteElement().localBasis().order();
         int quadOrder = (element.type().isSimplex())
-           ? (localFiniteElement.localBasis().order()-1) * 2
-           : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
+           ? (localGFEOrder-1) * 2
+           : (localGFEOrder * gridDim - 1) * 2;
 
-        const auto& quad = QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
+        const auto& quad = QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
 
         for (auto&& qp : quad)
         {
@@ -172,7 +173,12 @@ namespace Dune::GFE
                                             std::vector<double>& localGradient,
                                             typename GFE::Impl::LocalStiffnessTypes<TargetSpace>::Hessian& localHessian) const override
     {
-      localGFEFunction_->bind(localView.tree().finiteElement(),localCoefficients);
+      // Bind GFE function to the current element
+      const auto& element = localView.element();
+      localGFEFunction_->bind(element,localCoefficients);
+
+      // Bind density to the element
+      localDensity_->bind(element);
 
       InterpolationDerivatives<LocalInterpolationRule> interpolationDerivatives(*localGFEFunction_,
                                                                                 localDensity_->dependsOnValue(),
@@ -202,10 +208,6 @@ namespace Dune::GFE
       // The range of input variables that the density depends on
       const size_t begin = (localDensity_->dependsOnValue()) ? 0 : TargetSpace::CoordinateType::dimension;
       const size_t end = (localDensity_->dependsOnDerivative()) ? m : TargetSpace::CoordinateType::dimension;
-
-      // Bind density to the element
-      const auto& element = localView.element();
-      localDensity_->bind(element);
 
       // The quadrature rule
       int quadOrder = (element.type().isSimplex())
@@ -578,11 +580,17 @@ namespace Dune::GFE
   {
     using namespace Dune::Indices;
 
+    // Bind GFE functions to the current element
+    const auto& element = localView.element();
+    std::get<0>(*localGFEFunction_).bind(element,localCoefficients[_0]);
+    std::get<1>(*localGFEFunction_).bind(element,localCoefficients[_1]);
+
+    // Bind density to the element
+    localDensity_->bind(element);
+
+    // Construct factory objects for the GFE derivatives
     using DeformationLocalInterpolationRule = typename std::tuple_element<0,LocalInterpolationRule>::type;
     using OrientationLocalInterpolationRule = typename std::tuple_element<1,LocalInterpolationRule>::type;
-
-    std::get<0>(*localGFEFunction_).bind(localView.tree().child(_0,0).finiteElement(),localCoefficients[_0]);
-    std::get<1>(*localGFEFunction_).bind(localView.tree().child(_1,0).finiteElement(),localCoefficients[_1]);
 
     InterpolationDerivatives<DeformationLocalInterpolationRule> deformationInterpolationDerivatives(std::get<0>(*localGFEFunction_),
                                                                                                     localDensity_->dependsOnValue(0),
@@ -627,7 +635,6 @@ namespace Dune::GFE
     const auto& deformationLocalFiniteElement = localView.tree().child(_0,0).finiteElement();
 
     // Bind density to the element
-    const auto& element = localView.element();
     localDensity_->bind(element);
 
     // Get a suitable quadrature rule

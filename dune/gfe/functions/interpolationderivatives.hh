@@ -223,9 +223,8 @@ namespace Dune::GFE
       }
 
       // Create the functions, we want to tape the function evaluation and the evaluation of the derivatives
-      const auto& scalarFiniteElement = localInterpolationRule_.localFiniteElement();
       ALocalInterpolationRule localGFEFunction(localInterpolationRule_.globalBasis());
-      localGFEFunction.bind(scalarFiniteElement,localAConfiguration);
+      localGFEFunction.bind(element,localAConfiguration);
 
       if (doValue_)
       {

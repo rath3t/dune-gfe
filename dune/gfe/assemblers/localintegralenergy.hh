@@ -12,35 +12,6 @@
 
 namespace Dune::GFE
 {
-
-#if ! DUNE_VERSION_GTE(DUNE_LOCALFUNCTIONS, 2, 10)
-  namespace Impl
-  {
-    template <class Basis>
-    class LocalFiniteElementFactory
-    {
-    public:
-      static auto get(const typename Basis::LocalView& localView)
-      -> decltype(localView.tree().child(0).finiteElement())
-      {
-        return localView.tree().child(0).finiteElement();
-      }
-    };
-
-    /** \brief Specialize for scalar bases, here we cannot call tree().child() */
-    template <class GridView, int order>
-    class LocalFiniteElementFactory<Dune::Functions::LagrangeBasis<GridView,order> >
-    {
-    public:
-      static auto get(const typename Dune::Functions::LagrangeBasis<GridView,order>::LocalView& localView)
-      -> decltype(localView.tree().finiteElement())
-      {
-        return localView.tree().finiteElement();
-      }
-    };
-  }
-#endif
-
   /** \brief An energy given as an integral over a density
    *
    * \tparam Basis The scalar finite element basis used to construct the interpolation rule
@@ -95,37 +66,20 @@ namespace Dune::GFE
 
       if constexpr (Basis::LocalView::Tree::isLeaf || Basis::LocalView::Tree::isPower)
       {
-#if DUNE_VERSION_GTE(DUNE_LOCALFUNCTIONS, 2, 10)
-        // Get an appropriate scalar local finite element, to construct the interpolation rule with
-        // TODO: This is not a good design, for several reasons:
-        // * The interpolation rule could want to have state beyond what we know here.
-        //   It should therefore be constructed outside of the LocalIntegralEnergy class
-        // * I don't really see why Basis should be allowed to be scalar-valued
-        //   to begin with, but a lot of code still currently does that.
-        auto lfeGetter = [&localView]()
-                         {
-                           if constexpr (Basis::LocalView::Tree::isPower)
-                             return localView.tree().child(0).finiteElement();
-                           else
-                             return localView.tree().finiteElement();
-                         };
-
-        const auto& localFiniteElement = lfeGetter();
-#else
-        const auto& localFiniteElement = Impl::LocalFiniteElementFactory<Basis>::get(localView);
-#endif
-        localGFEFunction_->bind(localFiniteElement,localConfiguration);
+        // Bind GFE function to the current element
+        const auto& element = localView.element();
+        localGFEFunction_->bind(element,localConfiguration);
 
         // Bind density to the element
-        const auto& element = localView.element();
         localDensity_->bind(element);
 
         // Get a suitable quadrature rule
+        const auto localGFEOrder = localGFEFunction_->localFiniteElement().localBasis().order();
         int quadOrder = (element.type().isSimplex())
-           ? (localFiniteElement.localBasis().order()-1) * 2
-           : (localFiniteElement.localBasis().order() * gridDim - 1) * 2;
+           ? (localGFEOrder-1) * 2
+           : (localGFEOrder * gridDim - 1) * 2;
 
-        const auto& quad = QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);
+        const auto& quad = QuadratureRules<double, gridDim>::rule(element.type(), quadOrder);
 
         for (auto&& qp : quad)
         {
@@ -190,20 +144,17 @@ namespace Dune::GFE
 
         using namespace Indices;
 
-        // composite Basis: grab the finite element of the first child
-        const auto& localFiniteElement0 = localView.tree().child(_0,0).finiteElement();
-        const auto& localFiniteElement1 = localView.tree().child(_1,0).finiteElement();
-
-        std::get<0>(*localGFEFunction_).bind(localFiniteElement0, coefficients[_0]);
-        std::get<1>(*localGFEFunction_).bind(localFiniteElement1, coefficients[_1]);
+        // Bind GFE functions to the current element
+        const auto& element = localView.element();
+        std::get<0>(*localGFEFunction_).bind(element, coefficients[_0]);
+        std::get<1>(*localGFEFunction_).bind(element, coefficients[_1]);
 
         // Bind density to the element
-        const auto& element = localView.element();
         localDensity_->bind(element);
 
         // Get a suitable quadrature rule
-        int quadOrder = (element.type().isSimplex()) ? localFiniteElement0.localBasis().order()
-                                                 : localFiniteElement0.localBasis().order() * gridDim;
+        const auto feOrder = localView.tree().child(_0,0).finiteElement().localBasis().order();
+        int quadOrder = (element.type().isSimplex()) ? feOrder : feOrder * gridDim;
 
         const auto& quad = QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 

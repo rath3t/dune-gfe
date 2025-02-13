@@ -39,16 +39,17 @@ namespace Dune::GFE
     {
       RT energy = 0;
 
-      const auto& localFiniteElement = localView.tree().finiteElement();
       typedef LocalGeodesicFEFunction<Basis, TargetSpace> LocalGFEFunctionType;
       LocalGFEFunctionType localGeodesicFEFunction(localView.globalBasis());
-      localGeodesicFEFunction.bind(localFiniteElement,localSolution);
 
       const auto element = localView.element();
+      localGeodesicFEFunction.bind(element,localSolution);
+
       auto localOrigin = localFunction(*origin_);
       localOrigin.bind(element);
 
       // Just guessing an appropriate quadrature order
+      const auto& localFiniteElement = localView.tree().finiteElement();
       auto quadOrder = localFiniteElement.localBasis().order() * 2 * gridDim;
 
       const auto& quad = Dune::QuadratureRules<double, gridDim>::rule(localFiniteElement.type(), quadOrder);

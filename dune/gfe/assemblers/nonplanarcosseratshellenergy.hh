@@ -28,41 +28,6 @@
 
 namespace Dune::GFE
 {
-  namespace Impl
-  {
-    /** \brief Get LocalFiniteElements from a localView, for different tree depths of the local view
-     *
-     * We instantiate the CosseratEnergyLocalStiffness class with two different kinds of Basis:
-     * A scalar one and a composite one that combines two scalar ones.  But code for accessing the
-     * finite elements in the basis tree only work for one kind of basis, not for the other.
-     * To allow both kinds of basis in a single class we need this trickery below.
-     */
-    template <class Basis, std::size_t i>
-    class NonplanarCosseratShellLocalFiniteElementFactory
-    {
-    public:
-      static auto get(const typename Basis::LocalView& localView,
-                      std::integral_constant<std::size_t, i> iType)
-      -> decltype(localView.tree().child(iType,0).finiteElement())
-      {
-        return localView.tree().child(iType,0).finiteElement();
-      }
-    };
-
-    /** \brief Specialize for scalar bases, here we cannot call tree().child() */
-    template <class GridView, int order, std::size_t i>
-    class NonplanarCosseratShellLocalFiniteElementFactory<Dune::Functions::LagrangeBasis<GridView,order>,i>
-    {
-    public:
-      static auto get(const typename Dune::Functions::LagrangeBasis<GridView,order>::LocalView& localView,
-                      std::integral_constant<std::size_t, i> iType)
-      -> decltype(localView.tree().finiteElement())
-      {
-        return localView.tree().finiteElement();
-      }
-    };
-  }  // namespace Impl
-
   /** \brief Assembles the cosserat energy for a single element.
    *
    * \tparam Basis                       Type of the Basis used for assembling
@@ -156,7 +121,6 @@ namespace Dune::GFE
     {
       // The set of shape functions on this element
       using namespace Dune::Indices;
-      const auto& localFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView,_0);
 
 #if HAVE_DUNE_CURVEDGEOMETRY
       // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
@@ -173,16 +137,14 @@ namespace Dune::GFE
       auto geometry = element.geometry();
 #endif
 
-      ////////////////////////////////////////////////////////////////////////////////////
-      //  Set up the local nonlinear finite element function
-      ////////////////////////////////////////////////////////////////////////////////////
-      localGFEFunction_->bind(localFiniteElement,localSolution);
+      localGFEFunction_->bind(element,localSolution);
 
       // Bind the density to the current element
       density_->bind(element);
 
-      auto quadOrder = (element.type().isSimplex()) ? localFiniteElement.localBasis().order()
-                                                : localFiniteElement.localBasis().order() * gridDim;
+      const auto localGFEOrder = localGFEFunction_->localFiniteElement().localBasis().order();
+      const auto quadOrder = (element.type().isSimplex()) ? localGFEOrder
+                                                        : localGFEOrder * gridDim;
 
       const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
@@ -269,8 +231,6 @@ namespace Dune::GFE
       // The set of shape functions on this element
 
       using namespace Dune::Indices;
-      const auto& deformationLocalFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,0>::get(localView,_0);
-      const auto& orientationLocalFiniteElement = Dune::GFE::Impl::NonplanarCosseratShellLocalFiniteElementFactory<Basis,1>::get(localView,_1);
 
 #if HAVE_DUNE_CURVEDGEOMETRY
       // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
@@ -290,14 +250,16 @@ namespace Dune::GFE
       ////////////////////////////////////////////////////////////////////////////////////
       //  Set up the local nonlinear finite element function
       ////////////////////////////////////////////////////////////////////////////////////
-      std::get<0>(*localGFEFunction_).bind(deformationLocalFiniteElement,localConfiguration[_0]);
-      std::get<1>(*localGFEFunction_).bind(orientationLocalFiniteElement,localConfiguration[_1]);
+      std::get<0>(*localGFEFunction_).bind(element,localConfiguration[_0]);
+      std::get<1>(*localGFEFunction_).bind(element,localConfiguration[_1]);
 
       // Bind the density to the current element
       density_->bind(element);
 
-      auto quadOrder = (deformationLocalFiniteElement.type().isSimplex()) ? deformationLocalFiniteElement.localBasis().order()
-                                                : deformationLocalFiniteElement.localBasis().order() * gridDim;
+      const auto deformationGFEOrder = std::get<0>(*localGFEFunction_).localFiniteElement().localBasis().order();
+
+      auto quadOrder = (element.type().isSimplex()) ? deformationGFEOrder
+                                                : deformationGFEOrder * gridDim;
 
       const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 

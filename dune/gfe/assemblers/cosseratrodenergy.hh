@@ -233,15 +233,13 @@ namespace Dune::GFE
   energy(const typename Basis::LocalView& localView,
          const std::vector<TargetSpace>& localCoefficients) const
   {
-    const auto& localFiniteElement = localView.tree().finiteElement();
-    localGFEFunction_->bind(localFiniteElement, localCoefficients);
-
     const auto& element = localView.element();
+    localGFEFunction_->bind(element, localCoefficients);
 
     RT energy = 0;
 
     std::vector<ProductManifold<RealTuple<double,3>,Rotation<double,3> > > localReferenceCoefficients = getLocalReferenceConfiguration(localView);
-    localReferenceConfiguration_->bind(localFiniteElement, localReferenceCoefficients);
+    localReferenceConfiguration_->bind(element, localReferenceCoefficients);
 
     // ///////////////////////////////////////////////////////////////////////////////
     //   The following two loops are a reduced integration scheme.  We integrate

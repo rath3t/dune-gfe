@@ -162,7 +162,7 @@ namespace Dune::GFE
           }
 
           // create local GFE function
-          localInterpolationRule_.bind(this->localView_.tree().finiteElement(),localDoFs_);
+          localInterpolationRule_.bind(element,localDoFs_);
         }
 
         //! Unbind the local-function.

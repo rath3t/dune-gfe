@@ -34,7 +34,7 @@ using namespace Dune;
  * \tparam LocalInterpolationRule The class that implements the interpolation from a set of coefficients
  *
  */
-template <typename LocalInterpolationRule>
+template <typename GridView, typename LocalInterpolationRule>
 class FiniteDifferenceInterpolationDerivatives
 {
   using TargetSpace = typename LocalInterpolationRule::TargetSpace;
@@ -49,6 +49,9 @@ class FiniteDifferenceInterpolationDerivatives
 
   // TODO: Do not hard-wirde this!
   static constexpr int domainDim = 2;
+
+  using Element = typename GridView::template Codim<0>::Entity;
+  Element element_;
 
   FieldVector<double,domainDim> localPos_;
   FieldMatrix<double,domainDim,domainDim> geometryJacobianInverse_;
@@ -87,13 +90,14 @@ public:
    *  \param[out] derivative      The derivative of the interpolation function
    *                              with respect to the evaluation point
    */
-  template <typename Element>
   void bind(short tapeNumber,
             const Element& element,
             const typename Element::Geometry::LocalCoordinate& localPos,
             typename TargetSpace::CoordinateType& value,
             typename LocalInterpolationRule::DerivativeType& derivative)
   {
+    element_ = element;
+
     localPos_ = localPos;
 
     value = localInterpolationRule_.evaluate(localPos).globalCoordinates();
@@ -145,8 +149,8 @@ public:
 
         LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
         LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
-        fPlus.bind(localInterpolationRule_.localFiniteElement(),cornersPlus);
-        fMinus.bind(localInterpolationRule_.localFiniteElement(),cornersMinus);
+        fPlus.bind(element_,cornersPlus);
+        fMinus.bind(element_,cornersMinus);
 
         /////////////////////////////////////////////////////////////
         //  Compute first derivative of the interpolation value
@@ -199,8 +203,8 @@ public:
 
         LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
         LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
-        fPlus.bind(localInterpolationRule_.localFiniteElement(),cornersPlus);
-        fMinus.bind(localInterpolationRule_.localFiniteElement(),cornersMinus);
+        fPlus.bind(element_,cornersPlus);
+        fMinus.bind(element_,cornersMinus);
 
         /////////////////////////////////////////////////////////////
         //  Compute first derivative of the interpolation value
@@ -260,8 +264,8 @@ public:
 
         LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
         LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
-        fPlus.bind(localInterpolationRule_.localFiniteElement(),forwardSolution);
-        fMinus.bind(localInterpolationRule_.localFiniteElement(),backwardSolution);
+        fPlus.bind(element_,forwardSolution);
+        fMinus.bind(element_,backwardSolution);
 
         forwardValue[i][i2] = fPlus.evaluate(localPos_);
         backwardValue[i][i2] = fMinus.evaluate(localPos_);
@@ -320,8 +324,8 @@ public:
 
             LocalInterpolationRule fPlus(localInterpolationRule_.globalBasis());
             LocalInterpolationRule fMinus(localInterpolationRule_.globalBasis());
-            fPlus.bind(localInterpolationRule_.localFiniteElement(),forwardSolutionXiEta);
-            fMinus.bind(localInterpolationRule_.localFiniteElement(),backwardSolutionXiEta);
+            fPlus.bind(element_,forwardSolutionXiEta);
+            fMinus.bind(element_,backwardSolutionXiEta);
 
             /////////////////////////////////////////////////////////////////////////////////////
             //  Compute second derivative of the adjoint vector times the interpolation value
@@ -427,7 +431,7 @@ TestSuite checkDerivatives()
   auto localView = scalarBasis.localView();
   localView.bind(*gridView.begin<0>());
   LocalInterpolationRule localGFEFunction(scalarBasis);
-  localGFEFunction.bind(localView.tree().finiteElement(),localCoefficients);
+  localGFEFunction.bind(*gridView.begin<0>(),localCoefficients);
 
   GFE::InterpolationDerivatives<LocalInterpolationRule> interpolationDerivatives(localGFEFunction,
                                                                                  true,   // doValue
@@ -438,7 +442,7 @@ TestSuite checkDerivatives()
   //  that we will use to compare with
   /////////////////////////////////////////////////////////////////////////
 
-  FiniteDifferenceInterpolationDerivatives<LocalInterpolationRule> interpolationDerivativesFD(localGFEFunction);
+  FiniteDifferenceInterpolationDerivatives<GridView,LocalInterpolationRule> interpolationDerivativesFD(localGFEFunction);
 
   /////////////////////////////////////////////////////////////////////////
   //  Bind the two objects to a test point, and verify that this
