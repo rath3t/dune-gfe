@@ -30,7 +30,6 @@
 #include <dune/gfe/assemblers/mixedgfeassembler.hh>
 #include <dune/gfe/assemblers/sumenergy.hh>
 #include <dune/gfe/functions/embeddedglobalgfefunction.hh>
-#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/functions/localprojectedfefunction.hh>
 #include <dune/gfe/mixedriemanniantrsolver.hh>
 #include <dune/gfe/neumannenergy.hh>
@@ -43,10 +42,6 @@
 #endif
 
 #include <dune/vtk/vtkreader.hh>
-
-template <class Basis, class TS>
-using LocalFEFunction = Dune::GFE::LocalProjectedFEFunction<Basis,TS>;
-//using LocalFEFunction = LocalGeodesicFEFunction<Basis,TS>;
 
 // Order of the approximation space for the midsurface position
 const int midsurfaceOrder = 1;
@@ -321,10 +316,23 @@ int main(int argc, char *argv[]) try
     // The total energy on one element
     auto sumEnergy = std::make_shared<GFE::SumEnergy<decltype(compositeBasis), GFE::RealTuple<adouble,3>,GFE::UnitVector<adouble,3> > >();
 
+    // Select which type of geometric interpolation to use
+    using LocalMidsurfaceInterpolationRule = GFE::LocalProjectedFEFunction<decltype(midsurfaceFEBasis), GFE::RealTuple<double,3> >;
+    using LocalDirectorInterpolationRule = GFE::LocalProjectedFEFunction<decltype(directorFEBasis), GFE::UnitVector<double,3> >;
+
+    std::tuple referenceLocalGFEFunction{LocalMidsurfaceInterpolationRule(midsurfaceFEBasis),
+                                         LocalDirectorInterpolationRule(directorFEBasis)};
+
+    using LocalMidsurfaceInterpolationRuleA = GFE::LocalProjectedFEFunction<decltype(midsurfaceFEBasis), GFE::RealTuple<adouble,3> >;
+    using LocalDirectorInterpolationRuleA = GFE::LocalProjectedFEFunction<decltype(directorFEBasis), GFE::UnitVector<adouble,3> >;
+
+    std::tuple localGFEFunction{LocalMidsurfaceInterpolationRuleA(midsurfaceFEBasis),
+                                LocalDirectorInterpolationRuleA(directorFEBasis)};
+
     // Internal energy of the shell
     auto simoFoxEnergy
       = std::make_shared<GFE::SimoFoxEnergy<decltype(compositeBasis),
-        LocalFEFunction,
+        decltype(localGFEFunction), decltype(referenceLocalGFEFunction),
         adouble> > (materialParameters, x0);
     sumEnergy->addLocalEnergy(simoFoxEnergy);
 

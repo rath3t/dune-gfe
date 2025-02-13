@@ -48,7 +48,7 @@ namespace Dune::GFE
    * \tparam LocalFEFunction Decides which interpolation function is used for the interpolation of the midsurface
    * and director field.
    */
-  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type = double>
+  template <class Basis, typename LocalFEFunction, typename ReferenceLocalGFEFunction, typename field_type = double>
   class SimoFoxEnergy
     : public LocalEnergy<Basis, ProductManifold<RealTuple<field_type, 3>,
           UnitVector<field_type, 3> > >
@@ -163,8 +163,8 @@ namespace Dune::GFE
    * b is similar to the second fundamental form of the surface, but the unit normal is replaced with the shell director
    * gamma_1 and gamma_2 are the transverse shear in the two parametric directions
    * Paper Equation 4.10 */
-  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
-  Dune::FieldVector<field_type, 8> SimoFoxEnergy<Basis, LocalFEFunction, field_type>::calculateGreenLagrangianStrains(
+  template <class Basis, typename LocalFEFunction, typename ReferenceLocalGFEFunction, typename field_type>
+  Dune::FieldVector<field_type, 8> SimoFoxEnergy<Basis, LocalFEFunction, ReferenceLocalGFEFunction, field_type>::calculateGreenLagrangianStrains(
     const KinematicVariables &kin)
   {
     Dune::FieldVector<RT, 8> egl;
@@ -190,10 +190,10 @@ namespace Dune::GFE
    *
    * Paper Equations 6.4 - 6.8
    */
-  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
+  template <class Basis, typename LocalFEFunction, typename ReferenceLocalGFEFunction, typename field_type>
   template <typename Element, typename LocalDirectorFunction, typename LocalMidSurfaceFunction, typename LocalDirectorReferenceFunction,
       typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
-  auto SimoFoxEnergy<Basis, LocalFEFunction, field_type>::kinematicVariablesFactory(
+  auto SimoFoxEnergy<Basis, LocalFEFunction, ReferenceLocalGFEFunction, field_type>::kinematicVariablesFactory(
     const Element &element, const LocalDirectorFunction &directorFunction, const LocalDirectorReferenceFunction &directorReferenceFunction,
     const LocalMidSurfaceFunction &midSurfaceFunction, const LocalMidSurfaceReferenceFunction &midSurfaceReferenceFunction,
     const LocalMidSurfaceFunction &midSurfaceDisplacementFunction, const IntegrationPointPosition &quadPos)
@@ -213,8 +213,8 @@ namespace Dune::GFE
     return kin;
   }
 
-  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
-  auto SimoFoxEnergy<Basis, LocalFEFunction, field_type>::getReferenceLocalConfigurations(
+  template <class Basis, typename LocalFEFunction, typename ReferenceLocalGFEFunction, typename field_type>
+  auto SimoFoxEnergy<Basis, LocalFEFunction, ReferenceLocalGFEFunction, field_type>::getReferenceLocalConfigurations(
     const typename Basis::LocalView &localView) const {
     using namespace Dune::Indices;
     const int nDofs0 = localView.tree().child(_0, 0).finiteElement().size();
@@ -251,9 +251,9 @@ namespace Dune::GFE
    *  E are the components of the Green-Lagrangian strains [membrane strains, bending, transverse shear]
    *  see for details Paper Equation 4.11,4.10 and 10.1
    */
-  template <class Basis, template <typename, typename> typename LocalFEFunction, typename field_type>
-  typename SimoFoxEnergy<Basis, LocalFEFunction, field_type>::RT
-  SimoFoxEnergy<Basis, LocalFEFunction, field_type>::energy(
+  template <class Basis, typename LocalFEFunction, typename ReferenceLocalGFEFunction, typename field_type>
+  typename SimoFoxEnergy<Basis, LocalFEFunction, ReferenceLocalGFEFunction, field_type>::RT
+  SimoFoxEnergy<Basis, LocalFEFunction, ReferenceLocalGFEFunction, field_type>::energy(
     const typename Basis::LocalView &localView,
     const typename Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients &localConfiguration) const
   {
@@ -274,17 +274,18 @@ namespace Dune::GFE
       displacements.emplace_back(localMidSurfaceConfiguration[i].globalCoordinates() - localRefMidSurfaceConfiguration[i].globalCoordinates());
 
     // The local finite element type used for midsurface position and displacement interpolation
-    const auto midSurfaceBasis = Functions::subspaceBasis(localView.globalBasis(),_0,0);
-    const auto directorBasis = Functions::subspaceBasis(localView.globalBasis(),_1,0);
+    // TODO: Do not hard-wire the order here!
+    Functions::LagrangeBasis<GridView, 1> midSurfaceBasis(localView.globalBasis().gridView());
+    Functions::LagrangeBasis<GridView, 1> directorBasis(localView.globalBasis().gridView());
 
     // The local finite element function type to evaluate the midsurface position
-    using LocalMidSurfaceFunctionType = LocalFEFunction<decltype(midSurfaceBasis), RealTuple<field_type, 3> >;
+    using LocalMidSurfaceFunctionType = std::tuple_element_t<0,LocalFEFunction>;
     // The local finite element function type to evaluate the director
-    using LocalDirectorFunctionType = LocalFEFunction<decltype(directorBasis), UnitVector<field_type, 3> >;
+    using LocalDirectorFunctionType = std::tuple_element_t<1,LocalFEFunction>;
 
     // Extra function type for reference quantities since they are unconditionally doubles, i.e. no ADOL-C types
-    using LocalMidSurfaceReferenceFunctionType = LocalFEFunction<decltype(midSurfaceBasis), RealTuple<double, 3> >;
-    using LocalDirectorReferenceFunctionType   = LocalFEFunction<decltype(directorBasis), UnitVector<double, 3> >;
+    using LocalMidSurfaceReferenceFunctionType = std::tuple_element_t<0,ReferenceLocalGFEFunction>;
+    using LocalDirectorReferenceFunctionType = std::tuple_element_t<1,ReferenceLocalGFEFunction>;
 
     LocalMidSurfaceFunctionType localMidSurfaceFunction(midSurfaceBasis);
     LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction(midSurfaceBasis);
