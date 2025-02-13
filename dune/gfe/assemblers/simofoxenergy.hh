@@ -67,14 +67,21 @@ namespace Dune::GFE
   public:
     /** \brief Constructor with a set of material parameters
      * \param parameters The material parameters
-     * \param x0 reference configuration
+     * \param localGFEFunction The geometric FE function that describes the current configuration
+     * \param referenceLocalGFEFunction The GFE function that describes
+     *   the stress-free configuration
+     * \param x0 Coefficients of the stress-free configuration
      */
     SimoFoxEnergy(const Dune::ParameterTree &parameters,
+                  LocalFEFunction &&localGFEFunction,
+                  ReferenceLocalGFEFunction &&referenceLocalGFEFunction,
                   const Dune::TupleVector<std::vector<RealTuple<double, 3> >, std::vector<UnitVector<double, 3> > > &x0)
       : thickness_{parameters.template get<double>("thickness")},      // The sheeqll thickness
       mu_{parameters.template get<double>("mu")},                    // Lame constant 1
       lambda_{parameters.template get<double>("lambda")},            // Lame constant 2
       kappa_{parameters.template get<double>("kappa")},              // Shear correction factor
+      localGFEFunction_(std::make_shared<LocalFEFunction>(std::move(localGFEFunction))),
+      referenceLocalGFEFunction_(std::make_shared<ReferenceLocalGFEFunction>(std::move(referenceLocalGFEFunction))),
       midSurfaceRefConfig{x0[Dune::Indices::_0]},
       directorRefConfig{x0[Dune::Indices::_1]}
     {
@@ -141,7 +148,10 @@ namespace Dune::GFE
     /** \brief Material tangent matrix */
     Dune::FieldMatrix<double, 8, 8> CMat_;
 
+    const std::shared_ptr<LocalFEFunction> localGFEFunction_;
+
     /** \brief Stores the reference configuration of the midsurface and the director field */
+    const std::shared_ptr<ReferenceLocalGFEFunction> referenceLocalGFEFunction_;
     const std::vector<RealTuple<double, 3> > &midSurfaceRefConfig;
     const std::vector<UnitVector<double, 3> > &directorRefConfig;
   };
@@ -236,25 +246,14 @@ namespace Dune::GFE
     for (size_t i = 0; i < localMidSurfaceConfiguration.size(); ++i)
       displacements.emplace_back(localMidSurfaceConfiguration[i].globalCoordinates() - localRefMidSurfaceConfiguration[i].globalCoordinates());
 
-    // The local finite element type used for midsurface position and displacement interpolation
-    // TODO: Do not hard-wire the order here!
-    Functions::LagrangeBasis<GridView, 1> midSurfaceBasis(localView.globalBasis().gridView());
-    Functions::LagrangeBasis<GridView, 1> directorBasis(localView.globalBasis().gridView());
+    auto& localMidSurfaceFunction = std::get<0>(*localGFEFunction_);
+    auto& localDirectorFunction = std::get<1>(*localGFEFunction_);
+    auto& localMidSurfaceReferenceFunction = std::get<0>(*referenceLocalGFEFunction_);
+    auto& localDirectorReferenceFunction = std::get<1>(*referenceLocalGFEFunction_);
 
-    // The local finite element function type to evaluate the midsurface position
+    // Copy of the midsurface deformation function to hold the displacement
     using LocalMidSurfaceFunctionType = std::tuple_element_t<0,LocalFEFunction>;
-    // The local finite element function type to evaluate the director
-    using LocalDirectorFunctionType = std::tuple_element_t<1,LocalFEFunction>;
-
-    // Extra function type for reference quantities since they are unconditionally doubles, i.e. no ADOL-C types
-    using LocalMidSurfaceReferenceFunctionType = std::tuple_element_t<0,ReferenceLocalGFEFunction>;
-    using LocalDirectorReferenceFunctionType = std::tuple_element_t<1,ReferenceLocalGFEFunction>;
-
-    LocalMidSurfaceFunctionType localMidSurfaceFunction(midSurfaceBasis);
-    LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction(midSurfaceBasis);
-    LocalMidSurfaceReferenceFunctionType localMidSurfaceReferenceFunction(midSurfaceBasis);
-    LocalDirectorFunctionType localDirectorFunction(directorBasis);
-    LocalDirectorReferenceFunctionType localDirectorReferenceFunction(directorBasis);
+    LocalMidSurfaceFunctionType localMidSurfaceDisplacementFunction(localMidSurfaceFunction);
 
     localMidSurfaceFunction.bind(midSurfaceElement, localMidSurfaceConfiguration);
     localMidSurfaceDisplacementFunction.bind(midSurfaceElement, displacements);
