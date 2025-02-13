@@ -59,7 +59,6 @@ namespace Dune::GFE
     typedef typename Basis::GridView GridView;
     typedef typename GridView::ctype DT;
     typedef field_type RT;
-    typedef typename GridView::template Codim<0>::Entity Entity;
 
     // some other sizes
     static constexpr int gridDim  = GridView::dimension;
@@ -127,15 +126,6 @@ namespace Dune::GFE
 
     auto getReferenceLocalConfigurations(const typename Basis::LocalView &localView) const;
 
-    /** \brief Calculates all kinematic quantities */
-    template <typename Element, typename LocalDirectorFunction, typename LocalMidSurfaceFunction, typename LocalDirectorReferenceFunction,
-        typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
-    static auto kinematicVariablesFactory(const Element &element, const LocalDirectorFunction &directorFunction,
-                                          const LocalDirectorReferenceFunction &directorReferenceFunction,
-                                          const LocalMidSurfaceFunction &midSurfaceFunction,
-                                          const LocalMidSurfaceReferenceFunction &midSurfaceReferenceFunction,
-                                          const LocalMidSurfaceFunction &midSurfaceDisplacementFunction, const IntegrationPointPosition &quadPos);
-
     /** \brief Calculate the Green-Lagrange strain components */
     static Dune::FieldVector<RT, 8> calculateGreenLagrangianStrains(const KinematicVariables &kin);
 
@@ -184,33 +174,6 @@ namespace Dune::GFE
     egl[7] = kin.a1anda2[1] * kin.t - kin.A1andA2[1] * kin.t0;
 
     return egl;
-  }
-
-  /** \brief Calculates all kinematic quantities that are needed for strain calculation
-   *
-   * Paper Equations 6.4 - 6.8
-   */
-  template <class Basis, typename LocalFEFunction, typename ReferenceLocalGFEFunction, typename field_type>
-  template <typename Element, typename LocalDirectorFunction, typename LocalMidSurfaceFunction, typename LocalDirectorReferenceFunction,
-      typename LocalMidSurfaceReferenceFunction, typename IntegrationPointPosition>
-  auto SimoFoxEnergy<Basis, LocalFEFunction, ReferenceLocalGFEFunction, field_type>::kinematicVariablesFactory(
-    const Element &element, const LocalDirectorFunction &directorFunction, const LocalDirectorReferenceFunction &directorReferenceFunction,
-    const LocalMidSurfaceFunction &midSurfaceFunction, const LocalMidSurfaceReferenceFunction &midSurfaceReferenceFunction,
-    const LocalMidSurfaceFunction &midSurfaceDisplacementFunction, const IntegrationPointPosition &quadPos)
-  {
-    KinematicVariables kin{};
-
-    const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
-
-    kin.t           = directorFunction.evaluate(quadPos).globalCoordinates();
-    kin.t0          = directorReferenceFunction.evaluate(quadPos).globalCoordinates();
-    kin.a1anda2     = transpose(midSurfaceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
-    kin.A1andA2     = transpose(midSurfaceReferenceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
-    kin.ud1andud2   = transpose(midSurfaceDisplacementFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
-    kin.t0d1Andt0d2 = transpose(directorReferenceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
-    kin.td1Andtd2   = transpose(directorFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
-
-    return kin;
   }
 
   template <class Basis, typename LocalFEFunction, typename ReferenceLocalGFEFunction, typename field_type>
@@ -308,9 +271,20 @@ namespace Dune::GFE
     for (const auto &curQuad : quad) {
       const Dune::FieldVector<DT, gridDim> &quadPos = curQuad.position();
 
-      const KinematicVariables kin
-        = kinematicVariablesFactory(element, localDirectorFunction, localDirectorReferenceFunction, localMidSurfaceFunction,
-                                    localMidSurfaceReferenceFunction, localMidSurfaceDisplacementFunction, quadPos);
+      KinematicVariables kin{};
+
+      const auto geometryJacobianInverse = element.geometry().jacobianInverse(quadPos);
+
+      // Compute all kinematic quantities needed for strain calculation
+      //
+      // Paper Equations (6.4)--(6.8)
+      kin.t           = localDirectorFunction.evaluate(quadPos).globalCoordinates();
+      kin.t0          = localDirectorReferenceFunction.evaluate(quadPos).globalCoordinates();
+      kin.a1anda2     = transpose(localMidSurfaceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+      kin.A1andA2     = transpose(localMidSurfaceReferenceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+      kin.ud1andud2   = transpose(localMidSurfaceDisplacementFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+      kin.t0d1Andt0d2 = transpose(localDirectorReferenceFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
+      kin.td1Andtd2   = transpose(localDirectorFunction.evaluateDerivative(quadPos) * geometryJacobianInverse);
 
       const DT integrationElement = element.geometry().integrationElement(quadPos);
       const FieldVector<field_type, 8> Egl = calculateGreenLagrangianStrains(kin);
