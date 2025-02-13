@@ -139,9 +139,6 @@ namespace Dune::GFE
     /** \brief Calculate the Green-Lagrange strain components */
     static Dune::FieldVector<RT, 8> calculateGreenLagrangianStrains(const KinematicVariables &kin);
 
-    /** \brief Save all tangent base matrices for all nodes in one place*/
-    Dune::BlockVector<Dune::FieldMatrix<field_type, 2, 3> > directorTangentSpaces;
-
     /** \brief The shell thickness */
     double thickness_;
 
