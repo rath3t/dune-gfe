@@ -15,6 +15,7 @@
 
 #include <dune/gfe/cosseratvtkwriter.hh>
 #include <dune/gfe/assemblers/nonplanarcosseratshellenergy.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/productmanifold.hh>
 #include <dune/gfe/spaces/realtuple.hh>
 #include <dune/gfe/spaces/rotation.hh>
@@ -116,21 +117,25 @@ double calculateEnergy(const FlatGridView& flatGridView,
   //  Construct the energy functional
   ///////////////////////////////////////////////////
 
+  using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
+
   using Element = typename FlatGridView::template Codim<0>::Entity;
   auto density = std::make_shared<GFE::CosseratShellDensity<Element, double> >(materialParameters);
 
+  using LocalGFEFunction = GFE::LocalGeodesicFEFunction<FlatFEBasis,TargetSpace>;
+  LocalGFEFunction localGFEFunction(flatFEBasis);
+
   using ShellEnergy = GFE::NonplanarCosseratShellEnergy<FlatFEBasis,
-      3,                                               // Dimension of the target space
+      LocalGFEFunction,
+      3,                                           // Dimension of the target space
       double,
       GridGeometry>;
 
-  ShellEnergy nonplanarCosseratShellEnergy(density, &curvedGridGeometry);
+  ShellEnergy nonplanarCosseratShellEnergy(std::move(localGFEFunction), density, &curvedGridGeometry);
 
   ///////////////////////////////////////////////////
   //  Compute the energy
   ///////////////////////////////////////////////////
-
-  using TargetSpace = GFE::ProductManifold<GFE::RealTuple<double,3>,GFE::Rotation<double,3> >;
 
   double energy = 0;
 

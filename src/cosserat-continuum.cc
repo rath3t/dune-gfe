@@ -136,7 +136,7 @@ auto createCosseratEnergy(std::shared_ptr<InterpolationRule>& localGFEFunction,
     using Element = typename GridView::template Codim<0>::Entity;
     auto density = std::make_shared<GFE::CosseratShellDensity<Element, adouble> >(materialParameters);
 
-    return std::make_shared<GFE::NonplanarCosseratShellEnergy<Basis, 3, adouble, decltype(creator)> >(density, &creator);
+    return std::make_shared<GFE::NonplanarCosseratShellEnergy<Basis, InterpolationRule, 3, adouble, decltype(creator)> >(localGFEFunction, density, &creator);
   }
   else
   {
