@@ -14,31 +14,6 @@
 
 namespace Dune::GFE
 {
-
-  /** \brief Get LocalFiniteElements from a localView, for different tree depths of the local view
-   *
-   * Copied from CosseratEnergyLocalStiffness.hh
-   */
-  template <class Basis, std::size_t i>
-  class LocalFiniteElementFactory {
-  public:
-    static auto get(const typename Basis::LocalView &localView, std::integral_constant<std::size_t, i> iType)
-    -> decltype(localView.tree().child(iType, 0).finiteElement()) {
-      return localView.tree().child(iType, 0).finiteElement();
-    }
-  };
-
-  /** \brief Specialize for scalar bases, here we cannot call tree().child() */
-  template <class GridView, int order, std::size_t i>
-  class LocalFiniteElementFactory<Dune::Functions::LagrangeBasis<GridView, order>, i> {
-  public:
-    static auto get(const typename Dune::Functions::LagrangeBasis<GridView, order>::LocalView &localView,
-                    std::integral_constant<std::size_t, i> iType) -> decltype(localView.tree().finiteElement()) {
-      return localView.tree().finiteElement();
-    }
-  };
-
-
   /** \brief Implements the energy of a Simo-Fox shell
    *
    * Described in:
@@ -236,9 +211,6 @@ namespace Dune::GFE
 
     auto element = localView.element();
 
-    const auto &midSurfaceElement = LocalFiniteElementFactory<Basis, 0>::get(localView, _0);
-    const auto &directorElement   = LocalFiniteElementFactory<Basis, 1>::get(localView, _1);
-
     const auto [localRefMidSurfaceConfiguration, localRefDirectorConfiguration] = getReferenceLocalConfigurations(localView);
 
     std::vector<RealTuple<field_type, 3> > displacements;
@@ -261,8 +233,11 @@ namespace Dune::GFE
     localDirectorFunction.bind(element, localDirectorConfiguration);
     localDirectorReferenceFunction.bind(element, localRefDirectorConfiguration);
 
-    const int quadOrder = (element.type().isSimplex()) ? std::max(midSurfaceElement.localBasis().order(), directorElement.localBasis().order())
-                                                       : std::max(midSurfaceElement.localBasis().order(), directorElement.localBasis().order()) + 1;
+    const auto midSurfaceOrder = localMidSurfaceFunction.localFiniteElement().localBasis().order();
+    const auto directorOrder = localDirectorFunction.localFiniteElement().localBasis().order();
+    const auto gfeOrder = std::max(midSurfaceOrder, directorOrder);
+
+    const int quadOrder = (element.type().isSimplex()) ? gfeOrder : gfeOrder + 1;
 
     const auto &quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
 
