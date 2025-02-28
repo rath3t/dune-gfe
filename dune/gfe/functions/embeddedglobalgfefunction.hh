@@ -177,7 +177,8 @@ namespace Dune::GFE
         localCoeff[i] = this->dofs()[localView.index(i)];
 
       // create local gfe function
-      LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
+      LocalInterpolationRule localInterpolationRule(localView.globalBasis());
+      localInterpolationRule.bind(element,localCoeff);
       return localInterpolationRule.evaluate(local).globalCoordinates();
     }
 
@@ -201,7 +202,8 @@ namespace Dune::GFE
         localCoeff[i] = this->dofs()[localView.index(i)];
 
       // create local gfe function
-      LocalInterpolationRule localInterpolationRule(localView.tree().finiteElement(),localCoeff);
+      LocalInterpolationRule localInterpolationRule(localView.globalBasis());
+      localInterpolationRule.bind(element,localCoeff);
 
       // use it to evaluate the derivative
       auto refJac = localInterpolationRule.evaluateDerivative(local);
