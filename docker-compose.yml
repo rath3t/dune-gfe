@@ -1,0 +1,19 @@
+#SPDX-FileCopyrightText: SPDX-FileCopyrightText: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+#SPDX-License-Identifier: LGPL-3.0-or-later
+
+version: "3.3"
+services:
+  OpenIkarusContainer:
+    image: simo-fox-book
+    entrypoint: /bin/bash
+    tty: true
+    volumes:
+      - .:/workspaces/ikarus
+    working_dir: /workspaces/ikarus
+  OpenIkarusContainer-clang:
+    image: simo-fox-book
+    entrypoint: /bin/bash
+    tty: true
+    volumes:
+      - .:/workspaces/ikarus
+    working_dir: /workspaces/ikarus

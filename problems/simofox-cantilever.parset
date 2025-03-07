@@ -24,9 +24,10 @@ numHomotopySteps = 10
 tolerance = 1e-6
 
 # Max number of steps of the trust region solver
-maxTrustRegionSteps = 200
+maxSolverSteps = 200
 
-solverScaling = 1 1 1 0.01 0.01
+initialRegularization = 1
+trustRegionScaling = 1 1 1 0.01 0.01
 
 # Initial trust-region radius
 initialTrustRegionRadius = 10
