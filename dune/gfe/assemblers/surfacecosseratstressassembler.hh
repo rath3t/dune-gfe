@@ -181,6 +181,7 @@ namespace Dune::GFE
        \param stressShellBiotTensor Vector containing the Biot-Stress-Tensor for each element
      */
     void assembleShellStress(
+      LocalGFEFunctionR& localGeodesicFEFunction,
       const VectorR rot,
       const VectorD x,
       const VectorD xInitial,
@@ -236,7 +237,6 @@ namespace Dune::GFE
           for (std::size_t i=0; i<localConfigurationRot.size(); i++)
             localConfigurationRot[i] = rot[localViewOrderR.index(i)[0]];  //localViewOrderR.index(i) is a multiindex, its first entry is the actual index
 
-          LocalGFEFunctionR localGeodesicFEFunction;
           localGeodesicFEFunction.bind(lFEOrderR,localConfigurationRot);
 
           auto evaluateAtPoint = [&](FieldVector<double,3> pointGlobal, FieldVector<double,3> pointLocal3d) -> FieldMatrix<double,dim,dim> {

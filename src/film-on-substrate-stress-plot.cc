@@ -258,6 +258,8 @@ int main (int argc, char *argv[]) try
 
   using LocalGFEFunctionR = GFE::LocalGeodesicFEFunction<decltype(scalarBasisR),GFE::Rotation<double,dim> >;
 
+  LocalGFEFunctionR localGFEFunction;
+
   auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), LocalGFEFunctionR, FieldVector<double,dim>, GFE::Rotation<double,dim> >
                            (basisOrderD, basisOrderR);
 
@@ -293,7 +295,7 @@ int main (int argc, char *argv[]) try
 
   std::vector<FieldMatrix<double,dim,dim> > stressShellBiotTensor;
   std::cout << "Assemble stress for the shell.." << std::endl;
-  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
+  stressAssembler.assembleShellStress(localGFEFunction, rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
 
   std::vector<double> stressSubstrate1stPiolaKirchhoff(stressSubstrate1stPiolaKirchhoffTensor.size());
   std::vector<double> stressSubstrateCauchy(stressSubstrate1stPiolaKirchhoffTensor.size());

@@ -243,6 +243,8 @@ int main (int argc, char *argv[])
 
   using LocalGFEFunctionR = GFE::LocalGeodesicFEFunction<decltype(scalarBasisR),GFE::Rotation<double,dim> >;
 
+  LocalGFEFunctionR localGFEFunction;
+
   auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),
       decltype(basisOrderR),
       LocalGFEFunctionR,
@@ -260,7 +262,7 @@ int main (int argc, char *argv[])
   std::vector<FieldMatrix<double,dim,dim> > stressSubstrateCauchyTensor;
   stressAssembler.assembleSubstrateStress<Elasticity::LocalDensity<dim,ValueType> >(x, elasticDensity.get(), quadOrder, stressSubstrate1stPiolaKirchhoffTensor, stressSubstrateCauchyTensor);
   std::vector<FieldMatrix<double,dim,dim> > stressShellBiotTensor;
-  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
+  stressAssembler.assembleShellStress(localGFEFunction, rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensor);
 
   //Now modify ONE value in the rotation function
   int i = 39787;
@@ -270,7 +272,7 @@ int main (int argc, char *argv[])
   Dune::MatrixVector::transpose(transposed, rotationMatrix);
   rot[i].set(transposed);
   std::vector<FieldMatrix<double,dim,dim> > stressShellBiotTensorNotSymmetric;
-  stressAssembler.assembleShellStress(rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensorNotSymmetric);
+  stressAssembler.assembleShellStress(localGFEFunction, rot, x, xInitial, fLame,/*mu_c*/ 0, surfaceShellBoundary, quadOrder, stressShellBiotTensorNotSymmetric);
   // ... and ONE in the displacement function
   x[i] *= 2;
   std::vector<FieldMatrix<double,dim,dim> > stressSubstrate1stPiolaKirchhoffTensorNotSymmetric;
