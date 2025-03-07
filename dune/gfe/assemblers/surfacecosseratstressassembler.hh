@@ -6,7 +6,6 @@
 #include <dune/fufem/boundarypatch.hh>
 
 #include <dune/gfe/linearalgebra.hh>
-#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
 #include <dune/matrix-vector/transpose.hh>
@@ -18,10 +17,11 @@ namespace Dune::GFE
 
      \tparam BasisOrderD Basis used for the displacement
      \tparam BasisOrderR Basis used for the rotation
+     \tparam LocalGFEFunctionR Geometric FE function for the rotations
      \tparam TargetSpaceD Target space for the Displacement
      \tparam TargetSpaceR Target space for the Rotation
    */
-  template <class BasisOrderD, class BasisOrderR, class TargetSpaceD, class TargetSpaceR>
+  template <class BasisOrderD, class BasisOrderR, class LocalGFEFunctionR, class TargetSpaceD, class TargetSpaceR>
   class SurfaceCosseratStressAssembler
   {
   public:
@@ -238,9 +238,7 @@ namespace Dune::GFE
           for (std::size_t i=0; i<localConfigurationRot.size(); i++)
             localConfigurationRot[i] = rot[localViewOrderR.index(i)[0]];  //localViewOrderR.index(i) is a multiindex, its first entry is the actual index
 
-          const auto scalarBasisR = Functions::subspaceBasis(basisOrderR_,0);
-          typedef LocalGeodesicFEFunction<decltype(scalarBasisR), TargetSpaceR> LocalGFEFunctionType;
-          LocalGFEFunctionType localGeodesicFEFunction(lFEOrderR,localConfigurationRot);
+          LocalGFEFunctionR localGeodesicFEFunction(lFEOrderR,localConfigurationRot);
 
           auto evaluateAtPoint = [&](FieldVector<double,3> pointGlobal, FieldVector<double,3> pointLocal3d) -> FieldMatrix<double,dim,dim> {
                                    Dune::FieldMatrix<double,dim,dim> nablaTheta;

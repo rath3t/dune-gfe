@@ -43,6 +43,7 @@
 
 #include <dune/gfe/filereader.hh>
 #include <dune/gfe/assemblers/surfacecosseratstressassembler.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
 // grid dimension
@@ -253,7 +254,11 @@ int main (int argc, char *argv[]) try
   /////////////////////////////////////////////////////////////
   int quadOrder = parameterSet.hasKey("quadOrder") ? parameterSet.get<int>("quadOrder") : 4;
 
-  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, GFE::Rotation<double,dim> >
+  const Functions::LagrangeBasis<GridView,rotationOrder> scalarBasisR(gridView);
+
+  using LocalGFEFunctionR = GFE::LocalGeodesicFEFunction<decltype(scalarBasisR),GFE::Rotation<double,dim> >;
+
+  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), LocalGFEFunctionR, FieldVector<double,dim>, GFE::Rotation<double,dim> >
                            (basisOrderD, basisOrderR);
 
 

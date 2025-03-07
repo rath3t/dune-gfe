@@ -31,6 +31,7 @@
 
 #include <dune/gfe/filereader.hh>
 #include <dune/gfe/assemblers/surfacecosseratstressassembler.hh>
+#include <dune/gfe/functions/localgeodesicfefunction.hh>
 #include <dune/gfe/spaces/rotation.hh>
 
 #include <dune/matrix-vector/transpose.hh>
@@ -237,7 +238,16 @@ int main (int argc, char *argv[])
   /////////////////////////////////////////////////////////////
 
   auto quadOrder = 4;
-  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),decltype(basisOrderR), FieldVector<double,dim>, GFE::Rotation<double,dim> >
+
+  const Functions::LagrangeBasis<GridView,rotationOrder> scalarBasisR(gridView);
+
+  using LocalGFEFunctionR = GFE::LocalGeodesicFEFunction<decltype(scalarBasisR),GFE::Rotation<double,dim> >;
+
+  auto stressAssembler = GFE::SurfaceCosseratStressAssembler<decltype(basisOrderD),
+      decltype(basisOrderR),
+      LocalGFEFunctionR,
+      FieldVector<double,dim>,
+      GFE::Rotation<double,dim> >
                            (basisOrderD, basisOrderR);
 
   std::shared_ptr<Elasticity::LocalDensity<dim,ValueType> > elasticDensity;
