@@ -1,0 +1,342 @@
+#ifndef DUNE_GFE_SIMOFOX_SHELL_ENERGY_HH
+#define DUNE_GFE_SIMOFOX_SHELL_ENERGY_HH
+
+#include <dune/common/fmatrix.hh>
+#include <dune/common/parametertree.hh>
+#include <dune/geometry/quadraturerules.hh>
+
+#include <dune/functions/functionspacebases/subspacebasis.hh>
+
+#include <dune/matrix-vector/crossproduct.hh>
+
+#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
+
+#if HAVE_DUNE_GMSH4
+#include <dune/gmsh4/gridcreators/lagrangegridcreator.hh>
+#endif
+
+#include <dune/gfe/assemblers/localenergy.hh>
+#include <dune/gfe/densities/simofoxshelldensity.hh>
+#include <dune/gfe/spaces/productmanifold.hh>
+#include <dune/gfe/spaces/realtuple.hh>
+#include <dune/gfe/spaces/rotation.hh>
+
+#if HAVE_DUNE_CURVEDGEOMETRY
+#include <dune/curvedgeometry/curvedgeometry.hh>
+#include <dune/localfunctions/lagrange/lfecache.hh>
+#endif
+
+namespace Dune::GFE
+{
+  /** \brief Assembles the cosserat energy for a single element.
+   *
+   * \tparam Basis                       Type of the Basis used for assembling
+   * \tparam LocalGFEFunction The geometric finite element function that represents the shell configuration
+   * \tparam field_type                  The coordinate type of the TargetSpace
+   * \tparam StressFreeStateGridFunction Type of the GridFunction representing the Simo Fox shell in a stress free state
+   */
+  template<class Basis, class LocalGFEFunction, class field_type, class StressFreeStateGridFunction>
+  class SimoFoxEnergy
+    : public Dune::GFE::LocalEnergy<Basis,Dune::GFE::ProductManifold<RealTuple<field_type,3>,UnitVector<field_type,3> > >
+  {
+    // grid types
+    typedef typename Basis::GridView GridView;
+    typedef typename GridView::ctype DT;
+    typedef Dune::GFE::ProductManifold<RealTuple<field_type,dim>,Rotation<field_type,dim> > TargetSpace;
+    typedef typename TargetSpace::ctype RT;
+    typedef typename GridView::template Codim<0>::Entity Element;
+
+    // some other sizes
+    constexpr static int gridDim = GridView::dimension;
+    constexpr static int dimworld = GridView::dimensionworld;
+
+  public:
+
+    /** \brief Constructor from a GFE function as a shared pointer
+     * \param stressFreeStateGridFunction Pointer to a parametrization representing the Cosserat shell in a stress-free state
+     */
+    SimoFoxEnergy(std::shared_ptr<LocalGFEFunction> localGFEFunction,
+                                 const std::shared_ptr<Dune::GFE::SimoFoxDensity<Element,field_type> >& density,
+                                 const StressFreeStateGridFunction* stressFreeStateGridFunction)
+      : localGFEFunction_(localGFEFunction)
+      , stressFreeStateGridFunction_(stressFreeStateGridFunction)
+      , density_(density)
+    {}
+
+    /** \brief Constructor from a GFE function as an r-value reference
+     * \param stressFreeStateGridFunction Pointer to a parametrization representing the Cosserat shell in a stress-free state
+     */
+    SimoFoxEnergy(LocalGFEFunction&& localGFEFunction,
+                                 const std::shared_ptr<Dune::GFE::SimoFoxDensity<Element,field_type> >& density,
+                                 const StressFreeStateGridFunction* stressFreeStateGridFunction)
+      : localGFEFunction_(std::make_shared<LocalGFEFunction>(std::move(localGFEFunction)))
+      , stressFreeStateGridFunction_(stressFreeStateGridFunction)
+      , density_(density)
+    {}
+
+    /** \brief Assemble the energy for a single element */
+    RT energy (const typename Basis::LocalView& localView,
+               const std::vector<TargetSpace>& localSolution) const override;
+
+    RT energy (const typename Basis::LocalView& localView,
+               const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& coefficients) const override;
+
+#if HAVE_DUNE_GMSH4
+    static int getOrder(const Dune::Gmsh4::LagrangeGridCreator<typename GridView::Grid>* lagrangeGridCreator)
+    {
+      return lagrangeGridCreator->order();
+    }
+#endif
+
+    template<typename B, typename V, typename NTREM, typename R>
+    static int getOrder(const Dune::Functions::DiscreteGlobalBasisFunction<B,V, NTREM, R>* gridFunction)
+    {
+      return gridFunction->basis().preBasis().subPreBasis().order();
+    }
+
+    // The value and derivative of this function are evaluated at the quadrature points,
+    // and given to the density.
+    const std::shared_ptr<LocalGFEFunction> localGFEFunction_;
+
+    /** \brief The geometry of the reference deformation used for assembling */
+    const StressFreeStateGridFunction* stressFreeStateGridFunction_;
+
+    /** \brief The energy density of a Cosserat shell with nonplanar reference configuration */
+    const std::shared_ptr<Dune::GFE::SimoFoxDensity<Element,field_type> > density_;
+  };
+
+  template <class Basis, class LocalGFEFunction, class field_type, class StressFreeStateGridFunction>
+  typename SimoFoxDensity<Basis, LocalGFEFunction, field_type, StressFreeStateGridFunction>::RT
+  SimoFoxDensity<Basis,LocalGFEFunction,field_type, StressFreeStateGridFunction>::
+  energy(const typename Basis::LocalView& localView,
+         const std::vector<Dune::GFE::ProductManifold<RealTuple<field_type,3>,UnitVector<field_type,3> > >& localSolution) const
+  {
+    RT energy = 0;
+
+    // The element geometry
+    auto element = localView.element();
+
+    if constexpr (Basis::LocalView::Tree::isLeaf || Basis::LocalView::Tree::isPower)
+    {
+      // The set of shape functions on this element
+      using namespace Dune::Indices;
+
+#if HAVE_DUNE_CURVEDGEOMETRY
+      // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
+      // The variable local holds the local coordinates in the reference element
+      // and localGeometry.global maps them to the world coordinates
+      Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim> > > geometry(referenceElement(element),
+                                                                                                                                    [this,element](const auto& local) {
+                                                                                                                                    auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
+                                                                                                                                    localGridFunction.bind(element);
+                                                                                                                                    return localGridFunction(local);
+        }, getOrder(stressFreeStateGridFunction_));
+#else
+      // When using element.geometry(), the geometry of the element is flat
+      auto geometry = element.geometry();
+#endif
+
+      localGFEFunction_->bind(element,localSolution);
+
+      // Bind the density to the current element
+      density_->bind(element);
+
+      const auto localGFEOrder = localGFEFunction_->localFiniteElement().localBasis().order();
+      const auto quadOrder = (element.type().isSimplex()) ? localGFEOrder
+                                                        : localGFEOrder * gridDim;
+
+      const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
+
+      for (size_t pt=0; pt<quad.size(); pt++)
+      {
+        // Local position of the quadrature point
+        const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
+
+        const DT integrationElement = geometry.integrationElement(quadPos);
+
+        // The value of the local function
+        const auto value = localGFEFunction_->evaluate(quadPos);
+
+        // The derivative of the local function w.r.t. the coordinate system of the tangent space
+        const auto derivative = localGFEFunction_->evaluateDerivative(quadPos,value);
+
+        ////////////////////////////////
+        //  First fundamental form
+        ////////////////////////////////
+
+        Dune::FieldMatrix<double,3,3> aCovariant;
+
+        // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
+        // of the element.  If dimworld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
+        auto jacobianTransposed = geometry.jacobianTransposed(quadPos);
+
+        for (int i=0; i<2; i++)
+        {
+          for (int j=0; j<dimworld; j++)
+            aCovariant[i][j] = jacobianTransposed[i][j];
+          for (int j=dimworld; j<3; j++)
+            aCovariant[i][j] = 0.0;
+        }
+
+        aCovariant[2] = Dune::MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
+        aCovariant[2] /= aCovariant[2].two_norm();
+
+#if HAVE_DUNE_CURVEDGEOMETRY
+        const auto normalGradient = geometry.normalGradient(quad[pt].position());
+#else
+        // Assume that the geometry is flat if DUNE_CURVEDGEOMETRY is not present.
+        // TODO: This is not always true!
+        Dune::FieldMatrix<double,3,3> normalGradient(0);
+#endif
+
+        //////////////////////////////////////////////////////////
+        // Add the local energy density
+        //////////////////////////////////////////////////////////
+
+        const auto energyDensity = (*density_)(quadPos,
+                                               aCovariant,
+                                               normalGradient,
+                                               value,
+                                               derivative);
+
+        // Add energy density
+        energy += quad[pt].weight() * integrationElement * energyDensity;
+      }
+    }
+    else
+    {
+      // You need a scalar basis or a power basis when calling this method.
+      std::abort();
+    }
+
+    return energy;
+  }
+
+  template <class Basis, class LocalGFEFunction, int dim, class field_type, class StressFreeStateGridFunction>
+  typename NonplanarCosseratShellEnergy<Basis, LocalGFEFunction, dim, field_type, StressFreeStateGridFunction>::RT
+  NonplanarCosseratShellEnergy<Basis,LocalGFEFunction,dim,field_type, StressFreeStateGridFunction>::
+  energy(const typename Basis::LocalView& localView,
+         const typename Dune::GFE::Impl::LocalEnergyTypes<TargetSpace>::CompositeCoefficients& localConfiguration) const
+  {
+    // The element geometry
+    auto element = localView.element();
+
+    RT energy = 0;
+
+    if constexpr (Impl::LocalEnergyTypes<TargetSpace>::isProductManifold
+                  && Basis::LocalView::Tree::isComposite)
+    {
+
+      // The set of shape functions on this element
+
+      using namespace Dune::Indices;
+
+#if HAVE_DUNE_CURVEDGEOMETRY
+      // Construct a curved geometry of this element of the Cosserat shell in its stress-free state
+      // The variable local holds the local coordinates in the reference element
+      // and localGeometry.global maps them to the world coordinates
+      Dune::CurvedGeometry<DT, gridDim, dimworld, Dune::CurvedGeometryTraits<DT, Dune::LagrangeLFECache<DT,DT,gridDim> > > geometry(referenceElement(element),
+                                                                                                                                    [this,element](const auto& local) {
+                                                                                                                                    auto localGridFunction = localFunction(*stressFreeStateGridFunction_);
+                                                                                                                                    localGridFunction.bind(element);
+                                                                                                                                    return localGridFunction(local);
+        }, getOrder(stressFreeStateGridFunction_));
+#else
+      // When using element.geometry(), the geometry of the element is flat
+      auto geometry = element.geometry();
+#endif
+
+      ////////////////////////////////////////////////////////////////////////////////////
+      //  Set up the local nonlinear finite element function
+      ////////////////////////////////////////////////////////////////////////////////////
+      std::get<0>(*localGFEFunction_).bind(element,localConfiguration[_0]);
+      std::get<1>(*localGFEFunction_).bind(element,localConfiguration[_1]);
+
+      // Bind the density to the current element
+      density_->bind(element);
+
+      const auto deformationGFEOrder = std::get<0>(*localGFEFunction_).localFiniteElement().localBasis().order();
+
+      auto quadOrder = (element.type().isSimplex()) ? deformationGFEOrder
+                                                : deformationGFEOrder * gridDim;
+
+      const auto& quad = Dune::QuadratureRules<DT, gridDim>::rule(element.type(), quadOrder);
+
+      for (size_t pt=0; pt<quad.size(); pt++)
+      {
+        // Local position of the quadrature point
+        const Dune::FieldVector<DT,gridDim>& quadPos = quad[pt].position();
+
+        const DT integrationElement = geometry.integrationElement(quadPos);
+
+        // The value of the local function
+        TargetSpace value;
+        value[_0] = std::get<0>(*localGFEFunction_).evaluate(quadPos);
+        value[_1] = std::get<1>(*localGFEFunction_).evaluate(quadPos);
+
+        // The derivative of the local function w.r.t. the coordinate system of the tangent space
+        const auto deformationDerivative = std::get<0>(*localGFEFunction_).evaluateDerivative(quadPos,value[_0]);
+        const auto orientationDerivative = std::get<1>(*localGFEFunction_).evaluateDerivative(quadPos,value[_1]);
+
+        // Concatenate the two derivative matrices
+        Dune::FieldMatrix<RT, TargetSpace::embeddedDim, gridDim> derivative;
+
+        for (int i=0; i<deformationDerivative.rows; ++i)
+          derivative[i] = deformationDerivative[i];
+
+        for (int i=0; i<orientationDerivative.rows; ++i)
+          derivative[i+deformationDerivative.rows] = orientationDerivative[i];
+
+        //////////////////////////////////////////////////////////
+        //  Fundamental forms and curvature
+        //////////////////////////////////////////////////////////
+
+        // First fundamental form
+        Dune::FieldMatrix<double,3,3> aCovariant;
+
+        // If dimworld==3, then the first two lines of aCovariant are simply the jacobianTransposed
+        // of the element.  If dimworld<3 (i.e., ==2), we have to explicitly enters 0.0 in the last column.
+        auto jacobianTransposed = geometry.jacobianTransposed(quadPos);
+        for (int i=0; i<2; i++)
+        {
+          for (int j=0; j<dimworld; j++)
+            aCovariant[i][j] = jacobianTransposed[i][j];
+          for (int j=dimworld; j<3; j++)
+            aCovariant[i][j] = 0.0;
+        }
+
+        aCovariant[2] = Dune::MatrixVector::crossProduct(aCovariant[0], aCovariant[1]);
+        aCovariant[2] /= aCovariant[2].two_norm();
+
+#if HAVE_DUNE_CURVEDGEOMETRY
+        const auto normalGradient = geometry.normalGradient(quad[pt].position());
+#else
+        // Assume that the geometry is flat if DUNE_CURVEDGEOMETRY is not present.
+        // TODO: This is not always true!
+        Dune::FieldMatrix<double,3,3> normalGradient(0);
+#endif
+
+        //////////////////////////////////////////////////////////
+        // Add the local energy density
+        //////////////////////////////////////////////////////////
+
+        const auto energyDensity = (*density_)(quadPos,
+                                               aCovariant,
+                                               normalGradient,
+                                               value,
+                                               derivative);
+
+        // Add energy density
+        energy += quad[pt].weight() * integrationElement * energyDensity;
+      }
+
+    }
+    else
+      DUNE_THROW(Dune::NotImplemented, "Non-product manifold or non-composite basis");
+
+    return energy;
+  }
+
+}  // namespace Dune::GFE
+
+#endif   //#ifndef DUNE_GFE_SIMOFOX_SHELL_ENERGY_HH

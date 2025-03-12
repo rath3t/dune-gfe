@@ -4,14 +4,14 @@
 version: "3.3"
 services:
   OpenIkarusContainer:
-    image: simo-fox-book
+    image: rath3t/dune-gfe-simo-fox-book
     entrypoint: /bin/bash
     tty: true
     volumes:
       - .:/workspaces/ikarus
     working_dir: /workspaces/ikarus
   OpenIkarusContainer-clang:
-    image: simo-fox-book
+    image: rath3t/dune-gfe-simo-fox-book
     entrypoint: /bin/bash
     tty: true
     volumes:
